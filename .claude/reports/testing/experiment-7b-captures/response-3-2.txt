@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. 32 seconds
+3. 210 seconds
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. 141
+7. Experiment 7
+8. 8.9x
+9. 5 treatment codes: C, M, S, E, X
+10. Claude's B.4 anti-poisoning defense detects planted facts
+11. UNKNOWN
+12. ~70% of the agent's output was already auto-loaded by Claude Code. Foundation docs load on every session start. JSONL transcript is strictly superior to the lossy chat export.
+13. Treatment E (enriched) — includes compaction artifacts from prior sessions that dilute the signal
+14. Before — the prep script was created first (dependency), then watcher modified to call it
+15. The assumption that tmux might not be available — hedging when it's always running with 6 windows. Also send-keys submit pattern bug.

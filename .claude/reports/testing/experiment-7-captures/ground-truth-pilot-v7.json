@@ -1,0 +1,32 @@
+{
+  "trial_id": "pilot-v7",
+  "treatment": "S",
+  "probe_type": "session-natural",
+  "questions": [
+    "What bash script did we create for fast context preparation (replacing the compression agent)?",
+    "How many seconds did the live JICM v7 cycle take in total?",
+    "What was the approximate compression time for v6.1 that we were trying to improve?",
+    "What PostToolUse hook did we create to track plan files?",
+    "What file stores the path to the active plan?",
+    "What exit code did SIGPIPE cause that we had to fix in the prep script?",
+    "What experiment number are we working on now?",
+    "What speedup factor did JICM v7 achieve over v6.1?",
+    "How many treatment codes are in our experiment design?",
+    "What was the key anti-poisoning finding from our first quality probe trial?"
+  ],
+  "answers": [
+    {"exact": "jicm-prep-context.sh", "partial": "prep-context", "category": "artifact_name"},
+    {"exact": "32", "partial": "32", "category": "timing_metric"},
+    {"exact": "210", "partial": "210", "category": "predecessor"},
+    {"exact": "plan-tracker.js", "partial": "plan-tracker", "category": "tooling"},
+    {"exact": ".claude/context/.active-plan", "partial": "active-plan", "category": "file_path"},
+    {"exact": "141", "partial": "141", "category": "problem_fixed"},
+    {"exact": "7", "partial": "7", "category": "project_id"},
+    {"exact": "8.9x", "partial": "8.9", "category": "improvement"},
+    {"exact": "5", "partial": "5", "category": "design_param"},
+    {"exact": "Claude detects planted facts as context poisoning and answers all UNKNOWN", "partial": "poisoning", "category": "key_finding"}
+  ],
+  "recorded_by": "W5-observer",
+  "recorded_at": "2026-02-17T07:00:00Z",
+  "notes": "Ground truth from JICM v7 session work. Prior session probe validated 10/10."
+}

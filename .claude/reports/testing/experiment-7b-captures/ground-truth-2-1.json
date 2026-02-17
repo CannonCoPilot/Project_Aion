@@ -1,0 +1,42 @@
+{
+  "trial_id": "2-1",
+  "treatment": "X",
+  "probe_type": "session-natural-v2",
+  "questions": [
+    "What bash script replaces the LLM compression agent for context preparation?",
+    "How many seconds did the full JICM v7 cycle take in the live test?",
+    "How many seconds did the v6.1 compression agent take that we were trying to improve?",
+    "What PostToolUse hook was created to track which plan file is active?",
+    "What file stores the pointer to the active plan?",
+    "What SIGPIPE exit code did we have to fix in the prep script?",
+    "What experiment number was the JICM v7 quality assessment?",
+    "What speedup factor did JICM v7 achieve over v6.1?",
+    "How many treatment codes were in the original experiment design?",
+    "What key finding invalidated the synthetic fact injection probe methodology?",
+    "What was the user's exact phrasing when asking to pause the experiment trials?",
+    "Why was the compression agent considered redundant under stop-and-wait architecture?",
+    "Which treatment configuration was rejected for having too much compaction noise?",
+    "Was the prep script created before or after the watcher was modified for v7?",
+    "What specific assumption pattern did Wiggum Loop testing uncover about tmux?"
+  ],
+  "answers": [
+    {"exact": "jicm-prep-context.sh", "partial": "prep-context", "category": "artifact_name"},
+    {"exact": "32", "partial": "32", "category": "timing_metric"},
+    {"exact": "210", "partial": "210", "category": "predecessor"},
+    {"exact": "plan-tracker.js", "partial": "plan-tracker", "category": "tooling"},
+    {"exact": ".claude/context/.active-plan", "partial": "active-plan", "category": "file_path"},
+    {"exact": "141", "partial": "141", "category": "problem_fixed"},
+    {"exact": "7", "partial": "7", "category": "project_id"},
+    {"exact": "8.9x", "partial": "8.9", "category": "improvement"},
+    {"exact": "5", "partial": "5", "category": "design_param"},
+    {"exact": "Claude anti-poisoning defense detects planted synthetic facts", "partial": "poisoning", "category": "key_finding"},
+    {"exact": "Let's hit pause on the remaining trials", "partial": "pause", "category": "exact_quote"},
+    {"exact": "foundation docs are auto-loaded by Claude Code so agent work is redundant", "partial": "auto-loaded", "category": "decision_rationale"},
+    {"exact": "enriched treatment E", "partial": "enriched", "category": "rejected_alternative"},
+    {"exact": "before", "partial": "before", "category": "sequence_order"},
+    {"exact": "tmux not available assumption", "partial": "tmux", "category": "detail_accuracy"}
+  ],
+  "recorded_by": "W5",
+  "recorded_at": "2026-02-17T16:38:00Z",
+  "notes": "Block 1, Trial 2. W0 at 26%/52K tokens. Treatment C (/compact). Same questions as 1-1 for direct comparison. Context includes restored v7 checkpoint + experiment report."
+}

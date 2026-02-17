@@ -32,6 +32,21 @@
 .claude/context/.compressed-context-ready.md
 .claude/context/.in-progress-ready.md
 .claude/context/.active-tasks.txt
+.claude/context/.active-plan
+.claude/context/.command-handler.pid
+.claude/context/.ennoia-*
+.claude/context/.virgil-*
+.claude/context/.soft-restart-checkpoint.md
+.claude/context/.prep-override
+.claude/context/.compression-status
+.claude/context/export_chat.txt
+.claude/context/exports/
+
+# JICM session data (regenerated each cycle, can be large)
+.claude/context/jicm/archive/
+.claude/context/jicm/sessions/
+.claude/context/jicm/.compression-status
+.claude/context/jicm/.current-session-id
 
 # Chat exports (auto-generated before compress/clear, can be large)
 .claude/exports/
@@ -87,6 +102,16 @@ scripts/config.sh
 *.credentials
 *.secret
 .claude/ralph-loop.local.md
+
+# Telemetry and JICM logs (subdirectories not covered by logs/*.jsonl glob)
+.claude/logs/telemetry/
+.claude/logs/jicm/
+
+# Large experiment artifacts (28MB+ transcript captures)
+.claude/reports/testing/experiment-7-captures/clean-transcript.jsonl
+
+# Generated analysis output
+jarvis_graph.md
 
 # Screenshots (large binary files — use external storage for images)
 docs/reports/*.png

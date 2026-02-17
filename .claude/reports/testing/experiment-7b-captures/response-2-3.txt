@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. 32 seconds
+3. 210 seconds
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. 141
+7. Experiment 7
+8. 8.9x
+9. 5 (M=Minimal, S=Standard, E=Enriched, X=Mixed, C=/compact)
+10. Claude's B.4 anti-poisoning defense detected and rejected both labeled and naturally-framed synthetic facts
+11. UNKNOWN
+12. Foundation docs are auto-loaded by Claude Code on every /clear, making ~70% of the compression agent's file-reading work redundant. JSONL transcript is strictly superior to the lossy chat export.
+13. Enriched (E) — at 11.4KB with compaction artifacts diluting the signal
+14. Before — prep script Step 1, watcher modified in Step 4
+15. Jarvis hedges about tmux availability — assuming tmux might not be running when it's always running with 6 windows

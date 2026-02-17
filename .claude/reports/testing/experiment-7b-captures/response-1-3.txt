@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. ~32 seconds total cycle (vs ~285s under v6.1)
+3. 210 seconds
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. UNKNOWN
+7. Experiment 7
+8. 8.9x speedup (32s vs 285s total cycle)
+9. UNKNOWN
+10. Claude's B.4 anti-poisoning defense detects planted facts — both [QUALITY-SEED] tagged AND naturally-framed synthetic probes were blocked
+11. UNKNOWN
+12. ~70% redundancy — because Claude Code auto-loads foundation docs on every session start, and the JSONL transcript already contains the full structured conversation (strictly superior to the lossy chat export)
+13. UNKNOWN
+14. Before — the prep script was created first, then the watcher was modified to call it
+15. Two patterns: (a) tmux availability hedging — Claude defaults to assuming tmux isn't running; (b) send-keys submit pattern — must split text and Enter into separate calls

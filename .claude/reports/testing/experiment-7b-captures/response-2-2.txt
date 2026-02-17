@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. 32 seconds total JICM v7 cycle time
+3. 210 seconds
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. 141 (SIGPIPE)
+7. Experiment 7
+8. 8.9x speedup over v6.1
+9. 5 treatment codes: M (Minimal), S (Standard), E (Enriched), X (Mixed), C (/compact native)
+10. Claude's B.4 anti-poisoning defense detected and rejected both labeled and naturally-framed synthetic fact injections
+11. UNKNOWN
+12. ~70% of the agent's work was redundant because foundation docs are auto-loaded by Claude Code on every session start and the JSONL transcript is strictly superior to the lossy chat export
+13. Enriched (E) — the 20-message, 2000-char treatment at 11.4KB with compaction noise
+14. Before — the plan shows Step 1 creates prep script, Step 4 modifies watcher
+15. Jarvis assumes tmux is unavailable or hedges about its existence — led to adding Runtime Environment section to CLAUDE.md
