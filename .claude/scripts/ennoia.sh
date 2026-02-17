@@ -23,6 +23,7 @@ WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state"
 ENNOIA_STATE="$PROJECT_DIR/.claude/context/.ennoia-state"
 ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"
 ENNOIA_RECOMMENDATION="$PROJECT_DIR/.claude/context/.ennoia-recommendation"
+ACTIVE_PLAN="$PROJECT_DIR/.claude/context/.active-plan"
 REFRESH=30
 
 # --- Color Constants (ANSI-C quoting for reliable escape sequences) ---
@@ -141,6 +142,22 @@ get_next_priority() {
     return 0
 }
 
+# Get active plan title (if .active-plan pointer exists)
+# Written by plan-tracker.js PostToolUse hook on ExitPlanMode
+resolve_active_plan() {
+    if [[ -f "$ACTIVE_PLAN" ]]; then
+        local plan_path
+        plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN")
+        if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
+            # Extract plan title from first line (# Plan: ...)
+            head -1 "$plan_path" | sed 's/^# Plan: //' | head -c 60
+            return 0
+        fi
+    fi
+    echo ""
+    return 0
+}
+
 # Write .ennoia-recommendation signal file for Watcher consumption
 # Atomic write: tmp file → mv (prevents Watcher reading partial content)
 # Only writes for arise and resume modes (attend/idle = no recommendation)
@@ -150,13 +167,16 @@ write_recommendation() {
 
     case "$mode" in
         arise)
-            local current_work next_priority
+            local current_work next_priority active_plan plan_clause
             current_work=$(get_current_work)
             next_priority=$(get_next_priority)
+            active_plan=$(resolve_active_plan)
+            plan_clause=""
+            [[ -n "$active_plan" ]] && plan_clause=" Active plan: ${active_plan}."
             if [[ -n "$next_priority" ]]; then
-                recommendation="[SESSION-START] New session. Current: ${current_work}. Next: ${next_priority}. Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
+                recommendation="[SESSION-START] New session. Current: ${current_work}.${plan_clause} Next: ${next_priority}. Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
             else
-                recommendation="[SESSION-START] New session. Current: ${current_work}. Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
+                recommendation="[SESSION-START] New session. Current: ${current_work}.${plan_clause} Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
             fi
             ;;
         resume)
@@ -247,6 +267,9 @@ render() {
         arise)
             echo; echo "${C_BOLD}  SESSION INTENT${C_RESET}"
             echo "  → $(get_intent)"
+            local plan_title
+            plan_title=$(resolve_active_plan)
+            [[ -n "$plan_title" ]] && echo "  → Plan: $plan_title"
             local unpushed
             unpushed=$(git -C "$PROJECT_DIR" log --oneline origin/Project_Aion..HEAD 2>/dev/null | wc -l | tr -d ' ')
             [[ $unpushed -gt 0 ]] && echo "  → $unpushed commits unpushed"

@@ -205,14 +205,23 @@ All 3 Wiggum Loops + code reviews complete. Bulk replacement re-executed success
 - **Protocol**: `.claude/reports/testing/experiment-3-protocol.md`
 - **Recommendations**: Keep threshold at 55%, no volume optimization needed, consider Haiku for compress agent, investigate negative JICM trend
 
-### Compression Optimization Experiments 4-5-6 — INFRASTRUCTURE COMPLETE (2026-02-14)
-- **Experiment 4**: Model selection (Haiku/Sonnet/Opus) — 24 trials, 6 blocks
-- **Experiment 5**: Thinking mode (on/off) — 16 trials, 8 blocks
-- **Experiment 6**: Preprocessing (standard/pre-assembled) — 16 trials, 8 blocks
-- **Infrastructure**: 3 experiment scripts, preprocessing script, preassembled agent, modified watcher + command
-- **Protocol**: `.claude/reports/testing/experiment-4-5-6-protocol.md`
-- **RTK Assessment**: Learn from patterns, don't fork (domain mismatch, 8-14 days effort)
-- **Status**: Ready for execution (~10.2 hours across 3 experiments)
+### Compression Optimization Experiments 4-5-6 — SUPERSEDED BY JICM v7 (2026-02-14)
+- **Status**: SUPERSEDED — JICM v7 eliminates LLM compression agent entirely
+- Experiments 4-6 aimed to optimize the 210s compression agent (model, thinking, preprocessing)
+- JICM v7 replaces the agent with a 0.03s bash script, rendering these experiments moot
+- Infrastructure and data preserved in `.claude/scripts/dev/` and `.claude/reports/testing/`
+
+### JICM v7 — Script-Based Context Preparation (2026-02-16) — COMPLETE
+- **Key insight**: Compression agent is ~70% redundant under stop-and-wait architecture
+  - Claude Code auto-loads foundation docs (CLAUDE.md, capability-map, identity) on /clear
+  - JSONL transcript contains full structured conversation (superior to chat export)
+  - What Jarvis needs after /clear: (1) what was I doing, (2) what's the plan, (3) what's next
+- **Implementation**: `jicm-prep-context.sh` extracts user messages + plan + status from JSONL
+- **Performance**: 0.028s vs 210s (7,500x faster), projected total cycle ~30s vs ~285s
+- **Live tested**: JICM cycle on 2026-02-16 23:22 MST — successful restoration
+- **Files**: jicm-prep-context.sh, plan-tracker.js, watcher v7, session-start v7, ennoia plan tracking
+- **Deprecated**: compression-agent.md, compression-agent-preassembled.md, intelligent-compress.md, compaction-essentials.md
+- **Plan**: `.claude/plans/robust-painting-stonebraker.md`
 
 ### Next: Phase C — Mac Studio Infrastructure (Wed Feb 12+)
 - Docker container deployment

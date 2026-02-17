@@ -11,9 +11,10 @@
 # - MCP suggestions based on work type
 # - Auto-clear watcher launch
 #
-# JICM v6 Integration:
+# JICM v7 Integration:
 # - Context injection via additionalContext (hook → Claude)
-# - v6 watcher handles all state transitions via .jicm-state file
+# - v7 watcher handles all state transitions via .jicm-state file
+# - v7 prep script replaces LLM compression agent (0.03s vs 210s)
 # - See: .claude/context/designs/jicm-v6-design.md
 #
 # Updated: 2026-02-11 (v6.1 — v5 code paths removed)
@@ -306,11 +307,11 @@ Read session-state.md + current-priorities.md, then begin work. Do NOT just gree
 PROTOCOL
 }
 
-# ============== JICM v6 — STOP-AND-WAIT ARCHITECTURE ==============
-# v6 uses a single .jicm-state file instead of multiple signal files.
+# ============== JICM v7 — STOP-AND-WAIT ARCHITECTURE ==============
+# JICM v7 uses a single .jicm-state file instead of multiple signal files.
 # The watcher handles all state transitions; this hook just injects context.
 # Detection: .jicm-state exists with state=clearing or state=restoring
-# See: .claude/context/designs/jicm-v6-design.md
+# v7: Prep script replaces LLM agent. CLAUDE.md/capability-map auto-loaded.
 V6_STATE_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-state"
 V6_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md"
 
@@ -318,21 +319,21 @@ if [[ "$SOURCE" == "clear" ]] && [[ -f "$V6_STATE_FILE" ]]; then
     V6_STATE=$(grep '^state:' "$V6_STATE_FILE" 2>/dev/null | head -1 | awk '{print $2}')
 
     if [[ "$V6_STATE" == "CLEARING" ]] || [[ "$V6_STATE" == "RESTORING" ]]; then
-        echo "$TIMESTAMP | SessionStart | JICM v6: Detected state=$V6_STATE" >> "$LOG_DIR/session-start-diagnostic.log"
+        echo "$TIMESTAMP | SessionStart | JICM v7: Detected state=$V6_STATE" >> "$LOG_DIR/session-start-diagnostic.log"
 
         V6_CONTEXT=""
         if [[ -f "$V6_COMPRESSED" ]]; then
             V6_CONTEXT=$(cat "$V6_COMPRESSED")
-            echo "$TIMESTAMP | SessionStart | JICM v6: Loaded compressed context ($(wc -c < "$V6_COMPRESSED") bytes)" >> "$LOG_DIR/session-start-diagnostic.log"
+            echo "$TIMESTAMP | SessionStart | JICM v7: Loaded compressed context ($(wc -c < "$V6_COMPRESSED") bytes)" >> "$LOG_DIR/session-start-diagnostic.log"
         fi
 
         # NOTE: Session-state.md deliberately NOT loaded for mid-session restores.
         # It is stale during active work. Compressed context contains current state.
         # Session-state is for NEW session starts only (created at session end).
 
-        MESSAGE="JICM v6: Context compressed and cleared.$ENV_STATUS"
-        CONTEXT="JICM v6 CONTEXT RESTORATION — NOT a new session.
-You are Jarvis. Context was compressed via stop-and-wait JICM cycle.
+        MESSAGE="JICM v7: Context compressed and cleared.$ENV_STATUS"
+        CONTEXT="JICM v7 CONTEXT RESTORATION — NOT a new session.
+You are Jarvis. Context was cleared via stop-and-wait JICM cycle.
 Resume work immediately. Do NOT greet. Do NOT ask what to work on.
 
 Current datetime: $LOCAL_DATE at $LOCAL_TIME
@@ -340,8 +341,6 @@ Current datetime: $LOCAL_DATE at $LOCAL_TIME
 Compressed Context:
 $V6_CONTEXT
 
-After reading compressed context, also read CLAUDE.md for guardrails.
-Read .claude/context/psyche/capability-map.yaml for tool selection.
 Resume: Parse above, continue from interruption point."
 
         # Write state file (AC-01)

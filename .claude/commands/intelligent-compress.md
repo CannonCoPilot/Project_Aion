@@ -1,5 +1,5 @@
 ---
-description: Intelligent context compression using Claude model to analyze and compress conversation context
+description: "[DEPRECATED v7] Intelligent context compression using Claude model to analyze and compress conversation context. Replaced by jicm-prep-context.sh (2026-02-16)."
 allowed-tools: Read, Write, Task, Bash, TaskList
 ---
 
