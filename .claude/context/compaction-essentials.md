@@ -1,4 +1,9 @@
-# Compaction Essentials
+# Compaction Essentials [DEPRECATED v7]
+
+> **DEPRECATED**: This file was used by the JICM v6.1 compression agent.
+> In JICM v7, foundation docs are auto-loaded by Claude Code and the prep
+> script (jicm-prep-context.sh) extracts session context from JSONL directly.
+> Retained for historical reference only.
 
 **Purpose**: Core context preserved after conversation compaction. Keep this concise.
 

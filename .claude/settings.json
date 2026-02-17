@@ -195,6 +195,15 @@
             "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/virgil-tracker.js"
           }
         ]
+      },
+      {
+        "matcher": "^ExitPlanMode$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/plan-tracker.js"
+          }
+        ]
       }
     ],
     "Notification": [

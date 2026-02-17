@@ -1,15 +1,17 @@
 #!/bin/bash
 # ============================================================================
-# JICM v6 WATCHER — Ground-Up Redesign (Stop-and-Wait Architecture)
+# JICM v7 WATCHER — Script-Based Context Preparation
 # ============================================================================
 #
 # A simple, precise, responsive, accurate, stable context monitoring and
-# compression system. When context reaches threshold, Jarvis STOPS, context
-# is compressed, /clear is sent, and Jarvis resumes from compressed context.
+# compression system. When context reaches threshold, Jarvis STOPS, a fast
+# bash script prepares context from JSONL transcript, /clear is sent, and
+# Jarvis resumes from prepared context.
 #
 # State Machine: WATCHING → HALTING → COMPRESSING → CLEARING → RESTORING → WATCHING
 #
-# Design: .claude/context/designs/jicm-v6-design.md
+# v7: Replaced LLM compression agent (~210s) with jicm-prep-context.sh (~0.06s)
+# Design: .claude/context/designs/jicm-v6-design.md (architecture)
 # Analysis: .claude/context/designs/jicm-v6-critical-analysis.md
 #
 # Usage:
@@ -64,7 +66,7 @@ while [[ $# -gt 0 ]]; do
         --threshold) JICM_THRESHOLD="$2"; shift 2 ;;
         --interval) POLL_INTERVAL="$2"; shift 2 ;;
         -h|--help)
-            echo "JICM v6 Watcher — Stop-and-Wait Context Management"
+            echo "JICM v7 Watcher — Stop-and-Wait Context Management"
             echo ""
             echo "Usage: $0 [options]"
             echo "  --threshold PCT   Compression trigger (default: $JICM_THRESHOLD)"
@@ -775,85 +777,31 @@ do_compress() {
     COMPRESS_START_TIME=$(date +%s)
     write_state  # Ensure state file reflects COMPRESSING immediately
 
-    # Step 0: Clean up stale artifacts from prior cycles
-    # - .compression-done.signal may linger from a late background agent write
-    # - .compression-in-progress flag may persist (v6.1 doesn't own cleanup, but
-    #   /intelligent-compress command checks it and refuses to spawn if present)
+    # Clean up stale artifacts from prior cycles
     rm -f "$COMPRESSION_SIGNAL"
     rm -f "$PROJECT_DIR/.claude/context/.compression-in-progress"
 
-    # Step 1: Export chat history
-    log JICM "Exporting chat history..."
-    export_chat "pre-compress"
-    sleep 3
+    # JICM v7: Run prep script directly (replaces LLM agent spawning)
+    # The prep script extracts user messages from JSONL transcript, active plan,
+    # and session status into .compressed-context-ready.md (~0.06s vs 210s).
+    # No chat export needed — JSONL has the full structured conversation.
+    # No Jarvis interaction needed — script runs in watcher process.
+    log JICM "Running context preparation script (#${COMPRESSION_COUNT})..."
 
-    # Step 2: Wait for idle after export
-    wait_for_idle 30
-
-    # Step 3: Read experiment override signals (if present)
-    # These files are written by experiment scripts (run-experiment-4/5/6.sh)
-    # to control model selection, thinking mode, and preprocessing.
-    local model_flag=""
-    local preassemble_flag=""
-    local model_override_file="$PROJECT_DIR/.claude/context/.jicm-model-override"
-    local thinking_override_file="$PROJECT_DIR/.claude/context/.jicm-thinking-override"
-    local preassemble_override_file="$PROJECT_DIR/.claude/context/.jicm-preassemble-override"
-
-    if [[ -f "$model_override_file" ]]; then
-        local model_val
-        model_val=$(cat "$model_override_file" | tr -d '[:space:]')
-        if [[ "$model_val" =~ ^(haiku|sonnet|opus)$ ]]; then
-            model_flag=" --model $model_val"
-            log JICM "Model override: $model_val"
-        else
-            log WARN "Invalid model override: '$model_val' — using default"
-        fi
+    local prep_script="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
+    if bash "$prep_script" 2>>"$LOG_FILE"; then
+        log JICM "Context prepared in $(( $(date +%s) - COMPRESS_START_TIME ))s"
+    else
+        log ERROR "Prep script failed (exit $?) — reset to WATCHING"
+        emit_cycle_metrics "prep_script_error"
+        transition_to "WATCHING"
+        COOLDOWN_UNTIL=$(( $(date +%s) + COOLDOWN_PERIOD ))
+        ERROR_COUNT=$((ERROR_COUNT + 1))
+        return 0
     fi
 
-    if [[ -f "$preassemble_override_file" ]]; then
-        preassemble_flag=" --preassemble"
-        log JICM "Preassemble override: enabled"
-    fi
-
-    # Step 3b: Thinking mode override (env var injection via tmux)
-    if [[ -f "$thinking_override_file" ]]; then
-        local thinking_val
-        thinking_val=$(cat "$thinking_override_file" | tr -d '[:space:]')
-        if [[ "$thinking_val" == "off" ]]; then
-            log JICM "Thinking override: off (setting MAX_THINKING_TOKENS=0)"
-            tmux_send_escape
-            sleep 0.2
-            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l "export MAX_THINKING_TOKENS=0"
-            sleep 0.3
-            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" C-m
-            sleep 2
-        fi
-    fi
-
-    # Step 4: Spawn compression agent
-    # PROMPT DESIGN: The spawn prompt must produce an exact Task tool call.
-    # - Uses /intelligent-compress skill (pre-validated, handles flag+spawn+cleanup)
-    # - Falls back to direct Task tool call if skill unavailable
-    # - Requests minimal confirmation output
-    log JICM "Spawning compression agent (#${COMPRESSION_COUNT})..."
-    tmux_send_escape
-    sleep 0.3
-
-    local spawn_prompt="[JICM-COMPRESS] Run /intelligent-compress${model_flag}${preassemble_flag} NOW. Do NOT update session files. Do NOT read additional files. After spawning, say ONLY: Compression spawned."
-    tmux_send_prompt "$spawn_prompt"
-
-    # Step 5: Clean up thinking override (restore default)
-    if [[ -f "$thinking_override_file" ]]; then
-        local thinking_val
-        thinking_val=$(cat "$thinking_override_file" | tr -d '[:space:]')
-        if [[ "$thinking_val" == "off" ]]; then
-            # Deferred cleanup: unset after compression completes (in do_restore)
-            touch "$PROJECT_DIR/.claude/context/.jicm-thinking-cleanup-pending"
-        fi
-    fi
-
-    log JICM "Waiting for compression agent to finish..."
-    # Polling for .compression-done.signal is handled in main loop
+    # Signal file written by prep script — main loop will detect and call do_clear
+    log JICM "Context preparation complete, signal written"
 }
 
 # =============================================================================
@@ -897,31 +845,12 @@ do_restore() {
     # The hook fires on /clear and injects compressed context via JSON
     sleep 5
 
-    # PROMPT DESIGN: Restore prompt is action-forcing.
+    # JICM v7: Simplified restore prompt.
     # - [JICM-RESUME] tag signals this is a JICM continuation
-    # - Explicitly tells Jarvis to read the checkpoint
-    # - "Do NOT greet" prevents token-wasting pleasantries
-    # - "Do NOT ask" prevents clarification loops
-    local resume_prompt='[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md then CLAUDE.md then resume work immediately. Do NOT greet. Do NOT ask what to work on.'
+    # - CLAUDE.md and capability-map.yaml are auto-loaded — no need to read
+    # - Compressed context is injected by session-start hook via additionalContext
+    local resume_prompt='[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md then resume work immediately. Do NOT greet. Do NOT ask what to work on.'
     tmux_send_prompt "$resume_prompt"
-
-    # Clean up thinking mode override if it was set during compression
-    local thinking_cleanup="$PROJECT_DIR/.claude/context/.jicm-thinking-cleanup-pending"
-    if [[ -f "$thinking_cleanup" ]]; then
-        log JICM "Restoring thinking mode (unsetting MAX_THINKING_TOKENS)"
-        sleep 3
-        tmux_send_escape
-        sleep 0.2
-        "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l "unset MAX_THINKING_TOKENS"
-        sleep 0.3
-        "$TMUX_BIN" send-keys -t "$TMUX_TARGET" C-m
-        rm -f "$thinking_cleanup"
-    fi
-
-    # Clean up experiment override signal files
-    rm -f "$PROJECT_DIR/.claude/context/.jicm-model-override"
-    rm -f "$PROJECT_DIR/.claude/context/.jicm-thinking-override"
-    rm -f "$PROJECT_DIR/.claude/context/.jicm-preassemble-override"
 
     transition_to "RESTORING"
 }
@@ -1060,7 +989,7 @@ draw_dashboard() {
 
     # Dashboard (8 lines)
     echo -e "${C_CYAN}╔══════════════════════════════════════════════════════╗${C_RESET}"
-    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v6.1${C_RESET}                        ${state_ind}  ${C_CYAN}║${C_RESET}"
+    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7${C_RESET}                          ${state_ind}  ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╠══════════════════════════════════════════════════════╣${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Context: ${bar} ${pct}%%  ${tokens} tokens$(printf '%*s' $((14 - ${#tokens} - ${#pct})) '')${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}  Emergency: ${C_RED}${EMERGENCY_PCT}%${C_RESET}  Lockout: ~${LOCKOUT_PCT}%     ${C_CYAN}║${C_RESET}"
@@ -1075,7 +1004,7 @@ draw_dashboard() {
 banner() {
     echo ""
     echo -e "${C_CYAN}╔══════════════════════════════════════════════════════╗${C_RESET}"
-    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v6.1 WATCHER${C_RESET} —  Stop-and-Wait Architecture     ${C_CYAN}║${C_RESET}"
+    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7 WATCHER${C_RESET} —  Stop-and-Wait Architecture       ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╚══════════════════════════════════════════════════════╝${C_RESET}"
     echo -e "  threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}  emergency: ${C_RED}${EMERGENCY_PCT}%${C_RESET}  lockout: ~${LOCKOUT_PCT}%  interval: ${POLL_INTERVAL}s"
     echo ""
@@ -1111,7 +1040,7 @@ main() {
         exit 1
     fi
 
-    log INFO "JICM v6 Watcher started (threshold=${JICM_THRESHOLD}%, interval=${POLL_INTERVAL}s)"
+    log INFO "JICM v7 Watcher started (threshold=${JICM_THRESHOLD}%, interval=${POLL_INTERVAL}s)"
     write_state
 
     local poll_count=0

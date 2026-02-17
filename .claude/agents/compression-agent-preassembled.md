@@ -1,7 +1,9 @@
 ---
 name: compression-agent-preassembled
+deprecated: true
+deprecated_by: "JICM v7 — replaced by .claude/scripts/jicm-prep-context.sh (2026-02-16)"
 description: |
-  JICM v6.1 Compression Agent (Pre-Assembled Input Variant).
+  [DEPRECATED v7] JICM v6.1 Compression Agent (Pre-Assembled Input Variant).
   Reads a SINGLE pre-assembled file instead of 10-17 individual files.
   Same output format and quality checklist as the standard compression agent.
   Used for Experiment 6 (preprocessing effect on compression time).

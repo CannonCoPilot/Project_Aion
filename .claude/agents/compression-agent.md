@@ -1,7 +1,9 @@
 ---
 name: compression-agent
+deprecated: true
+deprecated_by: "JICM v7 — replaced by .claude/scripts/jicm-prep-context.sh (2026-02-16)"
 description: |
-  JICM v6.1 Compression Agent. Spawned at threshold to compress context
+  [DEPRECATED v7] JICM v6.1 Compression Agent. Spawned at threshold to compress context
   for seamless Jarvis continuation after /clear. Reads foundation docs,
   Psyche files, indexes, session transcript, and active tasks. Writes
   checkpoint from Jarvis's perspective. Target: 5,000-15,000 tokens.
