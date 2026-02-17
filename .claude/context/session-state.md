@@ -8,11 +8,29 @@
 
 ## Current Work Status
 
-**Status**: active — JICM v7 implementation complete, verified and live-tested
+**Status**: idle — Experiment 7b complete, codebase hardened, all pushed
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 4f86bee (JICM v7 — prep script, plan-tracker hook, watcher/ennoia/session-start mods)
-**Last Pushed**: 4f86bee (to origin/Project_Aion)
+**Last Commit**: 5fa4b66 (Experiment 7/7b data + prep script hardening + gitignore cleanup)
+**Last Pushed**: 5fa4b66 (to origin/Project_Aion)
+
+**What Was Accomplished (2026-02-17, session 21)**:
+- Experiment 7b — JICM v7 Quality Assessment (Live Trials)
+  - 9 trials (3 blocks x 3 treatments: S=Standard, C=/compact, X=Mixed)
+  - 15-question session-natural quality probes per trial
+  - Key finding: JICM v7 non-inferior to /compact (clean trial scores: S=9.5, C=8.5, X=9.25 / 15)
+  - Discovery: file-reading confound (W0 reads source files, boosting all methods to 12.0/15)
+  - Discovery: cascade confound (/compact preserves prior probe answers)
+  - Reports: experiment-7b-protocol.md, experiment-7b-report.md, experiment-7b-data.jsonl
+  - Captures: 9 ground-truth JSON + 9 response TXT files
+- Codebase Hardening
+  - `jicm-prep-context.sh`: array-aware JSONL extraction, experiment override support, message filters
+  - `.gitignore`: 15 new patterns (runtime state, JICM sessions, telemetry, large artifacts)
+  - Untracked 21 runtime files (JICM sessions, telemetry events/metrics, current-session-id)
+  - Removed 10 stale v6.1 JICM archive files
+  - Anti-poisoning research brief: `claude-anti-poisoning-defense-2026-02-17.md`
+- Commit 5fa4b66: 79 files changed (+3634/-3972), pushed to origin/Project_Aion
+- Session reflection: `.claude/reports/reflections/reflection-2026-02-17.md`
 
 **What Was Accomplished (2026-02-16, session 20)**:
 - JICM v7 — Script-Based Context Preparation
@@ -99,10 +117,10 @@
 - Stream 1: research-ops v2.1.0 — 8 scripts, 12/12 tests (ffe9bf0)
 
 **Next Session Pickup:**
-1. ~~Commit + push JICM v7 changes~~ DONE (4f86bee pushed)
-2. Monitor next few JICM cycles for stability
-3. Phase C: Mac Studio Infrastructure (blocked until hardware arrives)
-4. Phase E.1: Memory System Comparative Analysis
+1. Monitor JICM v7 cycles for stability (2nd session post-deployment)
+2. Phase C: Mac Studio Infrastructure (blocked until hardware arrives)
+3. Phase E.1: Memory System Comparative Analysis
+4. Consider Experiment 7c: control file-reading confound in quality probes
 
 ---
 
@@ -138,4 +156,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-13 22:22 MST — Experiments 1-3 complete, JICM ceiling validated*
+*Session state updated 2026-02-17 12:00 MST — Experiment 7b complete, codebase hardened, all pushed*

@@ -2,7 +2,7 @@
 
 Active tasks and priorities for Project Aion (Jarvis Archon).
 
-**Last Updated**: 2026-02-13
+**Last Updated**: 2026-02-17
 **Version**: v5.10.0
 
 ---
@@ -222,6 +222,17 @@ All 3 Wiggum Loops + code reviews complete. Bulk replacement re-executed success
 - **Files**: jicm-prep-context.sh, plan-tracker.js, watcher v7, session-start v7, ennoia plan tracking
 - **Deprecated**: compression-agent.md, compression-agent-preassembled.md, intelligent-compress.md, compaction-essentials.md
 - **Plan**: `.claude/plans/robust-painting-stonebraker.md`
+
+### Experiment 7b — JICM v7 Quality Assessment (2026-02-17) — COMPLETE
+- 9 live trials, 3 treatments (S=Standard, C=/compact, X=Mixed), 15-question probes
+- **Result**: Non-inferiority confirmed — JICM v7 matches /compact quality
+- Clean trial scores: S=9.5, C=8.5, X=9.25 (out of 15)
+- **Discovery**: File-reading confound — W0 reads source files during probes, boosting all methods to 12.0/15
+- **Discovery**: Cascade confound — /compact preserves prior probe answers in compacted context
+- **Discovery**: Anti-poisoning defense — Claude B.4 detects planted synthetic facts (invalidated Exp 7 methodology)
+- **Codebase hardening**: gitignore +15 patterns, 21 runtime files untracked, 10 stale archives removed
+- **Reports**: experiment-7b-protocol.md, experiment-7b-report.md, experiment-7b-data.jsonl
+- **Research**: claude-anti-poisoning-defense-2026-02-17.md
 
 ### Next: Phase C — Mac Studio Infrastructure (Wed Feb 12+)
 - Docker container deployment
