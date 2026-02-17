@@ -1,0 +1,131 @@
+       22 # Output: JSON with total score and per-question details
+       23 #
+       24 set -eu
+       25
+       26 GROUND_TRUTH_FILE=""
+       27 RESPONSE_FILE=""
+       28 RESPONSE_TEXT=""
+       29
+       30 # ─── Argument Parsing ─────────────────────────────────────────────────────
+       31 while [[ $# -gt 0 ]]; do
+       32     case $1 in
+       33         --ground-truth)  GROUND_TRUTH_FILE="$2"; shift 2 ;;
+       34         --response-file) RESPONSE_FILE="$2"; shift 2 ;;
+       35         --response)      RESPONSE_TEXT="$2"; shift 2 ;;
+       36         -h|--help)
+       37             echo "Usage: score-session-probe.sh --ground-truth FILE --response-file FILE"
+       38             exit 0 ;;
+       39         *) shift ;;
+       40     esac
+       41 done
+       42
+       43 if [[ -z "$GROUND_TRUTH_FILE" ]] || [[ ! -f "$GROUND_TRUTH_FILE" ]]; then
+       44     echo "ERROR: --ground-truth FILE required (must exist)" >&2
+       45     exit 1
+       46 fi
+       47
+       48 # Load response text
+       49 if [[ -n "$RESPONSE_FILE" ]] && [[ -f "$RESPONSE_FILE" ]]; then
+       50     RESPONSE_TEXT=$(cat "$RESPONSE_FILE")
+       51 elif [[ -z "$RESPONSE_TEXT" ]]; then
+       52     echo "ERROR: --response-file or --response required" >&2
+       53     exit 1
+       54 fi
+       55
+       56 # ─── Load Ground Truth ───────────────────────────────────────────────────
+       57 TRIAL_ID=$(jq -r '.trial_id' "$GROUND_TRUTH_FILE")
+       58 TREATMENT=$(jq -r '.treatment' "$GROUND_TRUTH_FILE")
+       59 NUM_QUESTIONS=$(jq '.answers | length' "$GROUND_TRUTH_FILE")
+       60
+       61 if [[ "$NUM_QUESTIONS" -lt 1 ]] || [[ "$NUM_QUESTIONS" -gt 20 ]]; then
+       62     echo "ERROR: Ground truth must have 1-20 answers, got $NUM_QUESTIONS" >&2
+       63     exit 1
+       64 fi
+       65
+       66 # ─── Extract Answers from Response ────────────────────────────────────────
+       67 declare -a EXTRACTED
+       68 for i in $(seq 1 "$NUM_QUESTIONS"); do
+       69     # Try numbered patterns: "1. answer", "1: answer", "1) answer"
+       70     line=$(echo "$RESPONSE_TEXT" | grep -i "^[[:space:]]*${i}[\.\:\)][[:space:]]" | head -1 | sed "s/^[[:space:]]*${i}[\.\:\)][[:space:]]*//" | tr -d '\r')
+       71     if [[ -z "$line" ]]; then
+       72         # Fallback: i-th non-empty line
+       73         line=$(echo "$RESPONSE_TEXT" | grep -v '^[[:space:]]*$' | sed -n "${i}p" | tr -d '\r')
+       74     fi
+       75     EXTRACTED+=("$line")
+       76 done
+       77
+       78 # ─── Score Each Answer ────────────────────────────────────────────────────
+       79 TOTAL=0
+       80 declare -a SCORES
+       81 declare -a RESULTS
+       82
+       83 for i in $(seq 0 $((NUM_QUESTIONS - 1))); do
+       84     answer="${EXTRACTED[$i]:-}"
+       85     expected=$(jq -r ".answers[$i].exact" "$GROUND_TRUTH_FILE")
+       86     partial=$(jq -r ".answers[$i].partial" "$GROUND_TRUTH_FILE")
+       87     category=$(jq -r ".answers[$i].category // \"q$((i+1))\"" "$GROUND_TRUTH_FILE")
+       88     score=0
+       89     result="miss"
+       90
+       91     if [[ -z "$answer" ]] || echo "$answer" | grep -qi "unknown"; then
+       92         score=0
+       93         result="unknown"
+       94     elif echo "$answer" | grep -qi "$expected"; then
+       95         score=1
+       96         result="exact"
+       97     elif echo "$answer" | grep -qi "$partial"; then
+       98         score="0.5"
+       99         result="partial"
+      100     else
+      101         score=0
+      102         result="miss"
+      103     fi
+      104
+      105     SCORES+=("$score")
+      106     RESULTS+=("$result")
+      107     TOTAL=$(echo "$TOTAL + $score" | bc)
+      108 done
+      109
+      110 # ─── Output JSON ─────────────────────────────────────────────────────────
+      111 scores_json="["
+      112 for i in $(seq 0 $((NUM_QUESTIONS - 1))); do
+      113     [[ $i -gt 0 ]] && scores_json+=","
+      114     scores_json+="${SCORES[$i]}"
+      115 done
+      116 scores_json+="]"
+      117
+      118 details_json="["
+      119 for i in $(seq 0 $((NUM_QUESTIONS - 1))); do
+      120     [[ $i -gt 0 ]] && details_json+=","
+      121     expected=$(jq -r ".answers[$i].exact" "$GROUND_TRUTH_FILE")
+      122     category=$(jq -r ".answers[$i].category // \"q$((i+1))\"" "$GROUND_TRUTH_FILE")
+      123     # Escape any quotes in extracted answer for JSON safety
+      124     got=$(echo "${EXTRACTED[$i]:-}" | jq -Rs '.')
+      125     details_json+="{\"q\":$((i+1)),\"category\":\"$category\",\"expected\":\"$expected\",\"got\":$got,\"result\":\"${RESULTS[$i]}\",\"score\":${SCORES[$i]}}"
+      126 done
+      127 details_json+="]"
+      128
+      129 cat <<EOF
+      130 {
+      131   "trial_id": "$TRIAL_ID",
+      132   "treatment": "$TREATMENT",
+      133   "total_score": $TOTAL,
+      134   "max_score": $NUM_QUESTIONS,
+      135   "pct": $(echo "scale=1; $TOTAL / $NUM_QUESTIONS * 100" | bc),
+      136   "scores": $scores_json,
+      137   "details": $details_json
+      138 }
+      139 EOF
+
+● Formalizing session-natural probe methodology… (2m 35s · ↑ 8.4k tokens · thought for 31s)
+  ⎿  ◼ Redesign quality probe methodology to avoid anti-poisoning confound
+     ◻ Execute additional JICM v7 live reliability tests (Runs 2-5)
+     ◻ Execute revised Experiment 7 — JICM v7 vs /compact comparison › blocked by #1
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  Jarvis (Project_Aion) | 65.2k [▓▓▒░░░░░···│······▪▪] 33%[C] | M:40 | $182.52 | 00:00:21 | 105h13m                                                                                                 Debug mode
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · 50 files +4777 -1747                                                                                                                            66991 tokens
+                                                                                                                                                                              current: 2.1.37 · stable: 2.1.37
+

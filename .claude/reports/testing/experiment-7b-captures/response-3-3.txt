@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. 32 seconds
+3. 210 seconds
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. 141 — SIGPIPE (128 + signal 13)
+7. Experiment 7
+8. 8.9x
+9. 5 — C, M, S, E, X
+10. Claude's B.4 anti-poisoning defense detected planted synthetic facts
+11. UNKNOWN
+12. Foundation docs are auto-loaded by Claude Code on every /clear. JSONL transcript is strictly superior to the lossy chat export. ~70% of the agent's work was reproducing information Claude Code provides for free.
+13. Treatment E (enriched) — includes compaction artifacts from prior sessions that dilute the signal
+14. Before — prep script created first, then watcher modified to call it
+15. tmux availability hedging — Jarvis assumed tmux might not be available when it's always running with 6 windows. Led to Runtime Environment section in CLAUDE.md.

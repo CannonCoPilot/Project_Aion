@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. 32s (total cycle)
+3. 210s
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. UNKNOWN
+7. Experiment 7
+8. 8.9x
+9. UNKNOWN
+10. Claude B.4 anti-poisoning defense detects planted/synthetic facts
+11. UNKNOWN
+12. Claude Code auto-loads foundation docs (CLAUDE.md, capability-map.yaml, identity) on every /clear — making ~70% of the compression agent's file-reading work redundant
+13. UNKNOWN
+14. Before (prep script created first, then watcher modified to call it)
+15. send-keys "text" Enter appends a newline instead of submitting — must split text and Enter into separate send-keys calls

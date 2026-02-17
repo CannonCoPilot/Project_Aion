@@ -1,0 +1,15 @@
+1. jicm-prep-context.sh
+2. 32
+3. 210
+4. plan-tracker.js
+5. .claude/context/.active-plan
+6. UNKNOWN
+7. 7
+8. 8.9x
+9. UNKNOWN
+10. Claude B.4 anti-poisoning defense detects planted facts
+11. UNKNOWN
+12. Foundation docs are auto-loaded by Claude Code on /clear; JSONL transcript is strictly superior to the lossy chat export — the agent was re-reading what Claude Code already provides
+13. UNKNOWN
+14. Before
+15. Hedging about tmux availability — assuming tmux might not be running when it's always present
