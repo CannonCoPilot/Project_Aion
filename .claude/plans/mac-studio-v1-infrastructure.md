@@ -376,7 +376,7 @@ ollama pull qwen3:8b            # 5 GB — fast secondary / context gen
 ollama pull qwen3:0.6b          # <1 GB — ultra-fast routing / classification
 
 # ─── Coding ───
-ollama pull qwen3-coder:8b      # 5 GB — fast code tasks
+ollama pull qwen3-coder          # 17 GB — 30B MoE, 3.3B active params
 # Qwen3-Coder-Next (80B-A3B MoE) — via HuggingFace GGUF when available
 
 # ─── Vision / Multimodal ───
@@ -528,17 +528,17 @@ Create initial collections via REST API:
 # jarvis-context — Jarvis session state, patterns, plans
 curl -X PUT http://localhost:6333/collections/jarvis-context \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 
 # codebase-jarvis — source code chunks
 curl -X PUT http://localhost:6333/collections/codebase-jarvis \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 
 # research — research reports and findings
 curl -X PUT http://localhost:6333/collections/research \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 ```
 
 ### 3.4 RAG MCP Server

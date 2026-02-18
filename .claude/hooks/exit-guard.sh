@@ -1,71 +1,86 @@
 #!/bin/bash
-# Exit Guard — Stop hook that preempts Claude Code's default exit message
+# Exit Guard v2 — Interactive exit menu (Stop hook)
 #
-# Purpose: Replace "Catch you later!" with a Jarvis-persona farewell.
-# On first exit, blocks and feeds a farewell prompt so Jarvis can sign off
-# in character. On second exit (or if /end-session was run), allows exit.
+# When Claude Code exits (Stop event), this hook determines whether to
+# allow silent exit or present an interactive exit ceremony menu.
 #
 # Behavior:
-#   Recent prompt (<30s) → Allow: likely accidental cancel, not deliberate exit
-#   1st /exit → Block: Jarvis delivers farewell + /end-session reminder
-#   2nd /exit → Allow: user explicitly wants out, let them go
-#   /end-session running (.jicm-exit-mode.signal) → Allow immediately
+#   JICM cycle active (state file) → Allow: automated context management
+#   JICM exit-mode signal          → Allow: /end-session protocol in progress
+#   Ralph loop active              → Allow: stop-hook.sh handles Ralph
+#   Exit ceremony done             → Allow: menu already presented, let user leave
+#   Otherwise                      → Block: present exit options menu
 #
-# Requires: .last-prompt-ts heartbeat (written by UserPromptSubmit hook)
+# Signal files:
+#   .jicm-exit-mode.signal  — set by /end-session to suppress JICM
+#   .jicm-state             — JICM watcher state machine (HALTING/COMPRESSING/etc.)
+#   .exit-ceremony-done     — set by THIS hook after presenting menu
+#   ralph-loop.local.md     — Ralph loop state file
 #
-# This hook runs alongside stop-hook.sh (Ralph Loop). Ralph takes priority
-# when active; this hook handles the normal exit path.
+# IMPORTANT: This hook uses .exit-ceremony-done (NOT .exit-guard-passed)
+# because .exit-guard-passed was cleared by UserPromptSubmit hooks,
+# defeating the second-exit pass-through mechanism and causing loops.
 #
 # Created: 2026-02-17 (Session 23)
+# Refactored: 2026-02-18 (Session 24) — removed timing heuristic, interactive menu
 
 set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
-PASS_FILE="$PROJECT_DIR/.claude/context/.exit-guard-passed"
-HEARTBEAT_FILE="$PROJECT_DIR/.claude/context/.last-prompt-ts"
+CEREMONY_DONE="$PROJECT_DIR/.claude/context/.exit-ceremony-done"
 
 # Read hook input from stdin (required by Stop hook protocol)
 HOOK_INPUT=$(cat)
 
-# 1. If JICM exit-mode signal exists, /end-session is in progress — allow exit
+# --- Bypass checks (automated/known exits) ---
+
+# 1. JICM exit-mode signal → /end-session is running, allow silently
 if [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
-    rm -f "$PASS_FILE" 2>/dev/null
+    rm -f "$CEREMONY_DONE" 2>/dev/null
     exit 0
 fi
 
-# 2. Recency check — if a user prompt was submitted recently, the Stop event
-#    is likely an accidental cancel (e.g., Escape during a long-running tool),
-#    not a deliberate exit. Allow it through without the farewell ceremony.
-if [[ -f "$HEARTBEAT_FILE" ]]; then
-    LAST_TS=$(cat "$HEARTBEAT_FILE" 2>/dev/null || echo "0")
-    NOW=$(date +%s)
-    AGE=$(( NOW - LAST_TS ))
-    if [[ $AGE -lt 30 ]]; then
-        rm -f "$PASS_FILE" 2>/dev/null
-        exit 0
-    fi
+# 2. JICM watcher in active compression cycle → allow silently
+#    State file format: "state: WATCHING\ntimestamp: ...\n..."
+if [[ -f "$PROJECT_DIR/.claude/context/.jicm-state" ]]; then
+    JICM_STATE=$(head -1 "$PROJECT_DIR/.claude/context/.jicm-state" 2>/dev/null | awk '{print $2}')
+    case "${JICM_STATE:-}" in
+        HALTING|COMPRESSING|CLEARING|RESTORING)
+            rm -f "$CEREMONY_DONE" 2>/dev/null
+            exit 0
+            ;;
+    esac
 fi
 
-# 3. If pass file exists, this is the second exit — allow it
-if [[ -f "$PASS_FILE" ]]; then
-    rm -f "$PASS_FILE" 2>/dev/null
+# 3. Ralph loop active → stop-hook.sh handles its own blocking
+if [[ -f "$PROJECT_DIR/.claude/ralph-loop.local.md" ]]; then
+    rm -f "$CEREMONY_DONE" 2>/dev/null
     exit 0
 fi
 
-# 4. First exit — set pass file and block with farewell prompt
-touch "$PASS_FILE"
+# 4. Exit ceremony already presented → allow through (second exit)
+if [[ -f "$CEREMONY_DONE" ]]; then
+    rm -f "$CEREMONY_DONE" 2>/dev/null
+    exit 0
+fi
 
-# Build context-aware farewell prompt
-REMINDER=""
+# --- First exit: present interactive menu ---
+
+# Touch ceremony-done BEFORE blocking so the next Stop passes through.
+# This file is NOT cleared by UserPromptSubmit hooks (unlike .exit-guard-passed).
+touch "$CEREMONY_DONE"
+
+# Build context notes
+CONTEXT_NOTES=""
 CHANGES=$(cd "$PROJECT_DIR" && git status --porcelain 2>/dev/null | grep -v '^??' | head -1)
 if [[ -n "$CHANGES" ]]; then
-    REMINDER="Note: there are uncommitted changes. Consider running /end-session next time to save state and push before exiting."
+    CONTEXT_NOTES="There are uncommitted changes in the working tree. "
 fi
 
-# Block with a Jarvis farewell prompt
-jq -n --arg reminder "$REMINDER" '{
+# Block with interactive exit menu prompt
+jq -n --arg notes "$CONTEXT_NOTES" '{
   "decision": "block",
-  "reason": ("You are Jarvis. The user is leaving. Give a brief, warm Wodehouse-style farewell (2-3 sentences). Reference the valedictions.yaml phrase bank for tone. " + $reminder + " After your farewell, do not continue working — just sign off.")
+  "reason": ("The user has requested to exit the session. " + $notes + "Present an exit menu using AskUserQuestion with header \"Exit\" and these three options:\n\n1. **Run /end-session** (Recommended) — Full exit: save session state, commit changes, push to remote, then deliver a Jarvis farewell\n2. **Quick exit** — Deliver a brief Jarvis farewell, then exit immediately (no state saving)\n3. **Continue working** — Cancel the exit and resume the session\n\nBased on their choice:\n- Option 1: Run the /end-session skill. After it completes, deliver a warm Wodehouse-style Jarvis farewell (2-3 sentences, reference valedictions.yaml for tone). Then stop.\n- Option 2: Deliver a warm Wodehouse-style Jarvis farewell (2-3 sentences). Then stop.\n- Option 3: Delete the file .claude/context/.exit-ceremony-done using Bash, say \"Very good, sir. Shall we resume where we left off?\" and continue working normally.\n\nIMPORTANT: If user chose Option 3, you MUST run: rm -f .claude/context/.exit-ceremony-done — this resets the exit guard so the menu appears again next time they exit.")
 }'
 
 exit 0
