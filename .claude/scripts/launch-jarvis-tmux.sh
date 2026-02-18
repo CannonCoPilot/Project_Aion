@@ -29,13 +29,19 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-02-17 — v2.2: W0 --continue restart loop + dynamic project slug
+# Updated: 2026-02-17 — v2.3: Deterministic session UUIDs for W0+W5, --resume by default
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-jarvis}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 # Derive Claude project directory slug from PROJECT_DIR (e.g. /Users/foo/Claude/Jarvis → -Users-foo-Claude-Jarvis)
 CLAUDE_PROJECT_SLUG="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
+
+# Deterministic session UUIDs — each window resumes its own conversation by default
+# W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL
+JARVIS_W0_SESSION_ID="17612316-37f1-5cec-b456-6a79f7735a9f"
+JARVIS_W0_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_W0_SESSION_ID}.jsonl"
+
 # JICM v6 watcher (v5 removed in v6.1)
 WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
 WATCHER_VERSION="v6"
@@ -57,10 +63,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# --dev implies W0 gets --fresh (clean slate for test isolation)
-if [[ "$DEV_MODE" == "true" ]]; then
-    FRESH_MODE=true
-fi
+# --dev only controls W5 creation; W0 resumes by default regardless
+# Use --fresh explicitly if you want a clean W0 slate
 
 # Auto-detect iTerm2
 if [[ "$TERM_PROGRAM" == "iTerm.app" ]] && [[ "$ITERM2_MODE" != "true" ]]; then
@@ -76,8 +80,8 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║              JARVIS TMUX LAUNCHER v2.2                        ║"
-echo "║       (W0 --continue loop + Aion Quartet + JICM)             ║"
+echo "║              JARVIS TMUX LAUNCHER v2.3                        ║"
+echo "║       (Deterministic UUIDs + Aion Quartet + JICM)            ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -166,6 +170,14 @@ fi
 
 echo -e "  ${CYAN}Project:${NC} $PROJECT_DIR"
 echo -e "  ${CYAN}Session:${NC} $SESSION_NAME"
+echo -e "  ${CYAN}W0 UUID:${NC} $JARVIS_W0_SESSION_ID"
+if [[ "$FRESH_MODE" == "true" ]]; then
+    echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session pinned to UUID)"
+elif [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
+    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} (restoring previous session)"
+else
+    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}NEW${NC} (first session, pinned to UUID)"
+fi
 echo -e "  ${CYAN}Watcher:${NC} $([ "$WATCHER_ENABLED" = true ] && echo "${GREEN}ENABLED${NC}" || echo "${YELLOW}DISABLED${NC}")"
 echo ""
 echo "Starting Jarvis..."
@@ -182,23 +194,51 @@ export TERM=xterm-256color
 if [[ "$FRESH_MODE" == "true" ]]; then
     JARVIS_SESSION_TYPE="fresh"
 else
-    JARVIS_SESSION_TYPE="continue"
+    JARVIS_SESSION_TYPE="resume"
 fi
 
 CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE"
 
 # Create new tmux session with Claude in the main pane
-# W0 runs in a restart loop: first launch per mode, then --continue on re-entry
+# W0 runs in a restart loop: first launch per mode, then --resume on re-entry
 CLAUDE_BASE="claude --dangerously-skip-permissions --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
-CLAUDE_CONTINUE="$CLAUDE_BASE --continue"
-if [[ "$FRESH_MODE" != "true" ]]; then
-    CLAUDE_FIRST="$CLAUDE_CONTINUE"
-else
-    CLAUDE_FIRST="$CLAUDE_BASE"
+
+# W0 session file rotation — archive if > 5MB to prevent unbounded growth
+W0_SESSION_MAX_BYTES=5242880  # 5MB
+W0_SESSION_ARCHIVE_DIR="$PROJECT_DIR/.claude/exports/w0/sessions"
+if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
+    W0_FILE_SIZE=$(stat -f%z "$JARVIS_W0_SESSION_FILE" 2>/dev/null || echo 0)
+    if [[ "$W0_FILE_SIZE" -gt "$W0_SESSION_MAX_BYTES" ]]; then
+        mkdir -p "$W0_SESSION_ARCHIVE_DIR"
+        ARCHIVE_NAME="w0-session-$(date +%Y%m%d-%H%M%S).jsonl"
+        mv "$JARVIS_W0_SESSION_FILE" "$W0_SESSION_ARCHIVE_DIR/$ARCHIVE_NAME"
+        echo -e "  ${YELLOW}W0 session file rotated ($(( W0_FILE_SIZE / 1024 ))KB > 5MB) → $ARCHIVE_NAME${NC}"
+        ls -t "$W0_SESSION_ARCHIVE_DIR"/w0-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
+    fi
 fi
 
-# Wrapper: run Claude, then loop with --continue on re-entry (Ctrl-C exits window)
-W0_WRAPPER="export $CLAUDE_ENV && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --continue, or Ctrl-C to close window.'; read; $CLAUDE_CONTINUE; done"
+# Determine W0 first-run command based on mode
+if [[ "$FRESH_MODE" == "true" ]]; then
+    # Fresh: archive existing session and start new with pinned UUID
+    if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
+        mkdir -p "$W0_SESSION_ARCHIVE_DIR"
+        ARCHIVE_NAME="w0-session-$(date +%Y%m%d-%H%M%S).jsonl"
+        mv "$JARVIS_W0_SESSION_FILE" "$W0_SESSION_ARCHIVE_DIR/$ARCHIVE_NAME"
+        echo -e "  ${YELLOW}W0 session archived for --fresh → $ARCHIVE_NAME${NC}"
+    fi
+    CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+else
+    # Default: resume existing session or create new pinned session
+    if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
+        CLAUDE_FIRST="$CLAUDE_BASE --resume $JARVIS_W0_SESSION_ID"
+    else
+        CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+    fi
+fi
+
+# Restart loop: always --resume (session was created on first run)
+CLAUDE_RESUME="$CLAUDE_BASE --resume $JARVIS_W0_SESSION_ID"
+W0_WRAPPER="export $CLAUDE_ENV && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
 "$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" "$W0_WRAPPER"
 
@@ -293,7 +333,7 @@ echo ""
 echo -e "${GREEN}Jarvis is ready!${NC}"
 echo ""
 echo "Windows:"
-echo "  Window 0: Jarvis (system under test)"
+echo "  Window 0: Jarvis ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed") — $JARVIS_W0_SESSION_ID)"
 echo "  Window 1: Watcher"
 echo "  Window 2: Ennoia"
 echo "  Window 3: Virgil"
