@@ -82,11 +82,11 @@ print(last_text)
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | last_user_msg: ${LAST_USER_MSG:0:100}" >> "$LOG_FILE" 2>/dev/null
 
     if [[ -n "$LAST_USER_MSG" ]]; then
-        # Narrow exit-intent patterns (case insensitive)
-        # Matches: /exit, /quit, /end-session, "end session", standalone exit/quit/bye
-        # Use grep -qi (quiet, exit code only) to avoid the grep -c double-output bug
-        if ! echo "$LAST_USER_MSG" | grep -Eiq '(/exit|/quit|/end-session|end.?session|^exit$|^quit$|^bye$|^goodbye$)' 2>/dev/null; then
-            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | SKIPPED: no exit intent" >> "$LOG_FILE" 2>/dev/null
+        # Only trigger on exact "/exit" — the actual Claude Code exit command.
+        # Everything else (normal messages, tool results, embedded text) passes through.
+        FIRST_LINE=$(echo "$LAST_USER_MSG" | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ "$FIRST_LINE" != "/exit" ]]; then
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | SKIPPED: last msg is not /exit" >> "$LOG_FILE" 2>/dev/null
             exit 0
         fi
     fi
