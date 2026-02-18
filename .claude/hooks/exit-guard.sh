@@ -6,9 +6,12 @@
 # in character. On second exit (or if /end-session was run), allows exit.
 #
 # Behavior:
+#   Recent prompt (<30s) → Allow: likely accidental cancel, not deliberate exit
 #   1st /exit → Block: Jarvis delivers farewell + /end-session reminder
 #   2nd /exit → Allow: user explicitly wants out, let them go
 #   /end-session running (.jicm-exit-mode.signal) → Allow immediately
+#
+# Requires: .last-prompt-ts heartbeat (written by UserPromptSubmit hook)
 #
 # This hook runs alongside stop-hook.sh (Ralph Loop). Ralph takes priority
 # when active; this hook handles the normal exit path.
@@ -19,6 +22,7 @@ set -euo pipefail
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 PASS_FILE="$PROJECT_DIR/.claude/context/.exit-guard-passed"
+HEARTBEAT_FILE="$PROJECT_DIR/.claude/context/.last-prompt-ts"
 
 # Read hook input from stdin (required by Stop hook protocol)
 HOOK_INPUT=$(cat)
@@ -29,13 +33,26 @@ if [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
     exit 0
 fi
 
-# 2. If pass file exists, this is the second exit — allow it
+# 2. Recency check — if a user prompt was submitted recently, the Stop event
+#    is likely an accidental cancel (e.g., Escape during a long-running tool),
+#    not a deliberate exit. Allow it through without the farewell ceremony.
+if [[ -f "$HEARTBEAT_FILE" ]]; then
+    LAST_TS=$(cat "$HEARTBEAT_FILE" 2>/dev/null || echo "0")
+    NOW=$(date +%s)
+    AGE=$(( NOW - LAST_TS ))
+    if [[ $AGE -lt 30 ]]; then
+        rm -f "$PASS_FILE" 2>/dev/null
+        exit 0
+    fi
+fi
+
+# 3. If pass file exists, this is the second exit — allow it
 if [[ -f "$PASS_FILE" ]]; then
     rm -f "$PASS_FILE" 2>/dev/null
     exit 0
 fi
 
-# 3. First exit — set pass file and block with farewell prompt
+# 4. First exit — set pass file and block with farewell prompt
 touch "$PASS_FILE"
 
 # Build context-aware farewell prompt

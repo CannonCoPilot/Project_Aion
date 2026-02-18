@@ -8,11 +8,11 @@
 
 ## Current Work Status
 
-**Status**: idle — Session 23 complete, pending push
+**Status**: active — Session 24, Mac Studio Milestone 0+1 (Foundation + Local Models)
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 0568887 (fix: exit guard farewell + session-start cleanup)
-**Last Pushed**: f1706d0 (to origin/Project_Aion — push pending)
+**Last Commit**: e61cb86 (docs: session 23 state update + plans, sync reports, and project ideas)
+**Last Pushed**: e61cb86 (to origin/Project_Aion — all caught up)
 
 **What Was Accomplished (2026-02-17 evening, session 23)**:
 - Launcher v2.3: W0 deterministic session UUID (`17612316-37f1-5cec-b456-6a79f7735a9f`)
@@ -138,9 +138,23 @@
 - Stream 0: Housekeeping — 3 Wiggum Loops, 34 files (09e43be)
 - Stream 1: research-ops v2.1.0 — 8 scripts, 12/12 tests (ffe9bf0)
 
+**What Was Accomplished (2026-02-17/18 night, session 24)**:
+- Milestone 0: Foundation Bootstrap — COMPLETE (all tools pre-installed on Mac Studio)
+  - Python 3.12.12, uv 0.10.3, Docker 29.2.0, Ollama 0.16.2, MLX (venv), jq/yq/htop/git-lfs
+  - Infrastructure venv: `/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/`
+- Milestone 1: Local Model Serving — COMPLETE (all 5 checks passing)
+  - 7 models pulled (53 GB): qwen3:32b, qwen3:8b, qwen3:0.6b, qwen3-coder (30B MoE), qwen3-vl:8b, qwen3-embedding:4b, nomic-embed-text
+  - All models tested: text gen, embeddings (dim=2560), vision, coding, classification
+  - LiteLLM proxy running on :4000 with all 7 model routes
+  - Key finding: qwen3-embedding:4b outputs 2560-dim vectors (not 2048 as planned) — Qdrant collections must use size:2560
+  - Key finding: qwen3-coder:8b doesn't exist — replaced with qwen3-coder (30B MoE, 3.3B active)
+  - Key finding: all Qwen3 models default to thinking mode — use think:false for non-reasoning tasks
+- Exit guard fix: added 30s heartbeat recency check to prevent false triggers during tool cancellation
+  - Heartbeat written by UserPromptSubmit hook (date +%s), checked by exit-guard.sh
+
 **Next Session Pickup:**
-1. **Milestone 1**: Mac Studio Infrastructure — see `.claude/plans/mac-studio-v1-infrastructure.md` and `.claude/plans/mac-studio-db-ai-roadmap.md`
-2. Push session 23 commits to origin/Project_Aion (3 commits pending)
+1. Milestone 2: Database Stack + RAG Foundation (Docker Compose: PostgreSQL, Qdrant, Neo4j, Redis, n8n)
+2. Update plans to correct embedding dimension (2560 not 2048) and coder model name
 3. Test launcher v2.3 by relaunching tmux session (verify W0 --resume works)
 4. Monitor JICM v7 cycles (corrected PROJECTS_DIR — first real checkpoint expected)
 5. Consider archiving `current-priorities.md` completed sections (~8KB of history)
