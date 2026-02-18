@@ -128,6 +128,9 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
         rm -f "$COMPRESSION_FLAG"
         echo "$TIMESTAMP | SessionStart | JICM: Cleared compression-in-progress flag" >> "$LOG_DIR/session-start-diagnostic.log"
     fi
+
+    # Clear exit-guard pass file if stale from previous session
+    rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-guard-passed" 2>/dev/null
 fi
 
 # ============================================================================

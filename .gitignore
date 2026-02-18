@@ -24,6 +24,7 @@
 .claude/context/.clear-sent.signal
 .claude/context/.continuation-injected.signal
 .claude/context/.compression-in-progress
+.claude/context/.exit-guard-passed
 
 # Tool output offloading (temp files for large results)
 .claude/context/.tool-output/
