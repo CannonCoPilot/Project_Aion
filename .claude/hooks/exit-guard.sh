@@ -32,6 +32,49 @@ CEREMONY_DONE="$PROJECT_DIR/.claude/context/.exit-ceremony-done"
 # Read hook input from stdin (required by Stop hook protocol)
 HOOK_INPUT=$(cat)
 
+# --- Debug logging (captures what Stop hook receives) ---
+LOG_DIR="$PROJECT_DIR/.claude/logs"
+mkdir -p "$LOG_DIR"
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | HOOK_INPUT: $HOOK_INPUT" >> "$LOG_DIR/exit-guard-debug.log"
+
+# --- Check stop_reason: only trigger on actual exit, not end-of-turn ---
+# Claude Code Stop hooks fire on EVERY turn end. The hook input JSON may
+# contain a "stop_reason" field that distinguishes user exit from normal
+# turn completion. If we can identify non-exit stops, allow them silently.
+STOP_REASON=$(echo "$HOOK_INPUT" | jq -r '.stop_reason // empty' 2>/dev/null)
+if [[ -n "$STOP_REASON" ]]; then
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | stop_reason=$STOP_REASON" >> "$LOG_DIR/exit-guard-debug.log"
+    case "$STOP_REASON" in
+        end_turn|max_tokens|tool_use|stop_sequence)
+            # Normal turn completion — not a user exit
+            exit 0
+            ;;
+    esac
+fi
+
+# --- Transcript-based exit detection (fallback if stop_reason not available) ---
+# Check the last user message in the transcript. If the user didn't send
+# an exit-related command, this Stop is just a normal turn end — allow it.
+TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+if [[ -n "$TRANSCRIPT_PATH" ]] && [[ -f "$TRANSCRIPT_PATH" ]]; then
+    # Get last user message text from JSONL transcript
+    LAST_USER_MSG=$(grep '"role":"human"' "$TRANSCRIPT_PATH" 2>/dev/null | tail -1 | jq -r '.message.content | if type == "array" then map(select(.type == "text") | .text) | join(" ") elif type == "string" then . else "" end' 2>/dev/null | head -c 200)
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | last_user_msg: ${LAST_USER_MSG:0:100}" >> "$LOG_DIR/exit-guard-debug.log"
+
+    # If user's last message is NOT an exit-related command, this is just
+    # a normal conversation turn ending — allow silently
+    if [[ -n "$LAST_USER_MSG" ]]; then
+        # Check for exit-intent patterns (case insensitive)
+        # Narrow patterns: /exit, /quit, "end session", "exit" as standalone
+        # Broad terms like "stop" excluded (too many false matches)
+        EXIT_INTENT=$(echo "$LAST_USER_MSG" | grep -Eic '(^/exit$|^/quit$|/end-session|end.?session|^exit$|^quit$|^bye$|^goodbye$)' 2>/dev/null || true)
+        if [[ "$EXIT_INTENT" -eq 0 ]]; then
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | SKIPPED: no exit intent in last user message" >> "$LOG_DIR/exit-guard-debug.log"
+            exit 0
+        fi
+    fi
+fi
+
 # --- Bypass checks (automated/known exits) ---
 
 # 1. JICM exit-mode signal → /end-session is running, allow silently
