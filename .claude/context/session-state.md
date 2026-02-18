@@ -8,11 +8,11 @@
 
 ## Current Work Status
 
-**Status**: idle — Session 22 maintenance complete, pending commit+push
+**Status**: idle — Session 22 complete, committed+pushed
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: (pending — session 22 changes)
-**Last Pushed**: 5fa4b66 (to origin/Project_Aion)
+**Last Commit**: f1706d0 (fix: complete stale path migration + rewire /intelligent-compress to JICM v7)
+**Last Pushed**: f1706d0 (to origin/Project_Aion)
 
 **What Was Accomplished (2026-02-17 evening, session 22)**:
 - Maintenance: rewired `/intelligent-compress` command from v6.1 LLM agent to v7 bash prep script
