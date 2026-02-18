@@ -8,11 +8,22 @@
 
 ## Current Work Status
 
-**Status**: idle — Experiment 7b complete, codebase hardened, all pushed
+**Status**: idle — Session 22 maintenance complete, pending commit+push
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 5fa4b66 (Experiment 7/7b data + prep script hardening + gitignore cleanup)
+**Last Commit**: (pending — session 22 changes)
 **Last Pushed**: 5fa4b66 (to origin/Project_Aion)
+
+**What Was Accomplished (2026-02-17 evening, session 22)**:
+- Maintenance: rewired `/intelligent-compress` command from v6.1 LLM agent to v7 bash prep script
+- Bug fix: `jicm-prep-context.sh` PROJECTS_DIR had stale `aircannon` path — all v7 checkpoints since deployment were minimal (no JSONL content)
+- Bug fix: `memory-mirror.js` stale `-Users-aircannon-` slug — memory mirroring silently broken since migration
+- Bug fix: `permission-gate.js` stale `aircannon` regex — AIfred baseline guard was non-functional
+- Bug fix: `update-context-cache.js` broken symlink to `/Users/aircannon/`
+- Enhancement: prep script now emits diagnostic warning on minimal checkpoint fallback
+- Research agenda: RD-003 marked SUPERSEDED (JICM v7 eliminated compression agent)
+- Self-improvement cycle: 4/4 phases complete, 6 low-risk implementations, 1 queued
+- Reflection report: `reflection-2026-02-17-session22.md`
 
 **What Was Accomplished (2026-02-17, session 21)**:
 - Experiment 7b — JICM v7 Quality Assessment (Live Trials)
@@ -117,10 +128,10 @@
 - Stream 1: research-ops v2.1.0 — 8 scripts, 12/12 tests (ffe9bf0)
 
 **Next Session Pickup:**
-1. Monitor JICM v7 cycles for stability (2nd session post-deployment)
-2. Phase C: Mac Studio Infrastructure (blocked until hardware arrives)
+1. **Milestone 1**: Mac Studio Infrastructure — see `.claude/plans/mac-studio-v1-infrastructure.md` and `.claude/plans/mac-studio-db-ai-roadmap.md`
+2. Monitor JICM v7 cycles (now with corrected PROJECTS_DIR — first real checkpoint expected)
 3. Phase E.1: Memory System Comparative Analysis
-4. Consider Experiment 7c: control file-reading confound in quality probes
+4. Consider archiving `current-priorities.md` completed sections (~8KB of history)
 
 ---
 
