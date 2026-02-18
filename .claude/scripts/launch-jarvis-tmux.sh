@@ -29,11 +29,13 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-02-10 — Aion Quartet layout (Watcher W1, Ennoia W2, Virgil W3)
+# Updated: 2026-02-17 — v2.2: W0 --continue restart loop + dynamic project slug
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-jarvis}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+# Derive Claude project directory slug from PROJECT_DIR (e.g. /Users/foo/Claude/Jarvis → -Users-foo-Claude-Jarvis)
+CLAUDE_PROJECT_SLUG="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
 # JICM v6 watcher (v5 removed in v6.1)
 WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
 WATCHER_VERSION="v6"
@@ -74,8 +76,8 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║              JARVIS TMUX LAUNCHER v2.1                        ║"
-echo "║         (with Unified Watcher & JICM support)                 ║"
+echo "║              JARVIS TMUX LAUNCHER v2.2                        ║"
+echo "║       (W0 --continue loop + Aion Quartet + JICM)             ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -116,7 +118,7 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
             echo "Adding Jarvis-dev window (W5) to existing session..."
             JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
-            JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/-Users-aircannon-Claude-Jarvis/${JARVIS_DEV_SESSION_ID}.jsonl"
+            JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
             CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
             DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
             # Session file rotation — archive if > 5MB to prevent unbounded growth
@@ -186,14 +188,19 @@ fi
 CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE"
 
 # Create new tmux session with Claude in the main pane
-# Environment variables are exported inline before the claude command
-CLAUDE_CMD="claude --dangerously-skip-permissions --verbose --debug --debug-file /Users/nathanielcannon/Claude/Jarvis/.claude/logs/debug.log"
+# W0 runs in a restart loop: first launch per mode, then --continue on re-entry
+CLAUDE_BASE="claude --dangerously-skip-permissions --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_CONTINUE="$CLAUDE_BASE --continue"
 if [[ "$FRESH_MODE" != "true" ]]; then
-    CLAUDE_CMD="$CLAUDE_CMD --continue"
+    CLAUDE_FIRST="$CLAUDE_CONTINUE"
+else
+    CLAUDE_FIRST="$CLAUDE_BASE"
 fi
 
-"$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" \
-    "export $CLAUDE_ENV && $CLAUDE_CMD"
+# Wrapper: run Claude, then loop with --continue on re-entry (Ctrl-C exits window)
+W0_WRAPPER="export $CLAUDE_ENV && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --continue, or Ctrl-C to close window.'; read; $CLAUDE_CONTINUE; done"
+
+"$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" "$W0_WRAPPER"
 
 # Give Claude a moment to start
 sleep 2
@@ -243,7 +250,7 @@ fi
 if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
-    JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/-Users-aircannon-Claude-Jarvis/${JARVIS_DEV_SESSION_ID}.jsonl"
+    JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
     CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
     DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
     # Session file rotation — archive if > 5MB to prevent unbounded growth
