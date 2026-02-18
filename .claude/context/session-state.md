@@ -8,11 +8,11 @@
 
 ## Current Work Status
 
-**Status**: active — Session 24, Mac Studio Milestone 0+1 (Foundation + Local Models)
+**Status**: idle — Session 24 complete
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: e61cb86 (docs: session 23 state update + plans, sync reports, and project ideas)
-**Last Pushed**: e61cb86 (to origin/Project_Aion — all caught up)
+**Last Commit**: (pending — session 24 exit commit)
+**Last Pushed**: (pending)
 
 **What Was Accomplished (2026-02-17 evening, session 23)**:
 - Launcher v2.3: W0 deterministic session UUID (`17612316-37f1-5cec-b456-6a79f7735a9f`)
@@ -138,7 +138,23 @@
 - Stream 0: Housekeeping — 3 Wiggum Loops, 34 files (09e43be)
 - Stream 1: research-ops v2.1.0 — 8 scripts, 12/12 tests (ffe9bf0)
 
-**What Was Accomplished (2026-02-17/18 night, session 24)**:
+**What Was Accomplished (2026-02-18 evening, session 24 continued)**:
+- Milestone 2: Database Stack — IN PROGRESS (5/5 containers healthy, MCP registration partial)
+  - Docker Compose stack deployed: PostgreSQL (ParadeDB), Qdrant, Neo4j, Redis, n8n
+  - PostgreSQL: pgvector 0.8.1 + pg_search 0.21.8 extensions, 3 DBs (jarvis, n8n, rag), 3 analytics tables
+  - Qdrant: 4 collections created (jarvis-context, codebase, research, sessions) — 2560-dim Cosine
+  - Neo4j: v2026.01.4 CE with APOC, 2G pagecache, 2G heap max
+  - Redis: redis-stack with 2GB maxmemory, AOF persistence
+  - n8n: running on :5678, needs admin account setup via browser
+  - MCP servers: qdrant-mcp + postgres-mcp registered, neo4j MCP added (@alanse/mcp-neo4j-server)
+  - n8n-mcp: BLOCKED — needs API key from browser setup
+  - Docker-compose evaluated: no fixes needed (volume mounts, healthchecks, memory settings all correct)
+- Self-improvement cycle (AC-05/06/07/08): 4/4 phases, 1 low-risk implemented (corrections tracking files)
+  - Created corrections.md + self-corrections.md in psyche/self-knowledge/
+  - 34 stale docs identified for future review
+  - 2 new R&D topics proposed (RAG chunking, stale doc workflow)
+
+**What Was Accomplished (2026-02-17/18 night, session 24 first window)**:
 - Milestone 0: Foundation Bootstrap — COMPLETE (all tools pre-installed on Mac Studio)
   - Python 3.12.12, uv 0.10.3, Docker 29.2.0, Ollama 0.16.2, MLX (venv), jq/yq/htop/git-lfs
   - Infrastructure venv: `/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/`
@@ -153,11 +169,12 @@
   - Heartbeat written by UserPromptSubmit hook (date +%s), checked by exit-guard.sh
 
 **Next Session Pickup:**
-1. Milestone 2: Database Stack + RAG Foundation (Docker Compose: PostgreSQL, Qdrant, Neo4j, Redis, n8n)
-2. Update plans to correct embedding dimension (2560 not 2048) and coder model name
-3. Test launcher v2.3 by relaunching tmux session (verify W0 --resume works)
-4. Monitor JICM v7 cycles (corrected PROJECTS_DIR — first real checkpoint expected)
-5. Consider archiving `current-priorities.md` completed sections (~8KB of history)
+1. Complete n8n admin setup via browser (http://localhost:5678) → get API key → register n8n-mcp
+2. Milestone 3: RAG Pipeline (semantic search) — build RAG MCP server, initial indexing
+3. Test neo4j MCP (requires Claude Code restart to pick up .mcp.json change)
+4. Review 34 stale docs identified by AC-08 maintenance audit
+5. Consider R&D proposals: RD-004 (RAG chunking), RD-005 (stale doc workflow)
+6. Test launcher v2.3 by relaunching tmux session (verify W0 --resume works)
 
 ---
 

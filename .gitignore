@@ -120,3 +120,4 @@ docs/reports/*.png
 projects/mtg-card-sales/*.png
 projects/mtg-card-sales/archived/*.png
 infrastructure/.venv/
+infrastructure/.env

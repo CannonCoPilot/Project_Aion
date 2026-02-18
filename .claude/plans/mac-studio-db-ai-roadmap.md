@@ -187,7 +187,7 @@ ollama pull qwen3-embedding:4b  # 8 GB — top-tier MTEB multilingual
 ollama pull nomic-embed-text    # 1 GB — fast fallback
 
 # ─── Coding ───
-ollama pull qwen3-coder:8b      # 5 GB — code tasks
+ollama pull qwen3-coder          # 17 GB — 30B MoE, 3.3B active params
 
 # ─── Vision ───
 ollama pull qwen3-vl:8b         # 5 GB — image understanding
@@ -241,7 +241,7 @@ model_list:
       api_base: http://localhost:11434
   - model_name: qwen3-coder
     litellm_params:
-      model: ollama/qwen3-coder:8b
+      model: ollama/qwen3-coder
       api_base: http://localhost:11434
   - model_name: embedding
     litellm_params:
@@ -542,31 +542,31 @@ docker compose ps
 # jarvis-context — patterns, session state, plans, context files
 curl -X PUT http://localhost:6333/collections/jarvis-context \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 
 # codebase — source code chunks (scripts, hooks, skills)
 curl -X PUT http://localhost:6333/collections/codebase \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 
 # research — research reports and findings
 curl -X PUT http://localhost:6333/collections/research \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 
 # sessions — session transcripts and checkpoints
 curl -X PUT http://localhost:6333/collections/sessions \
   -H "Content-Type: application/json" \
-  -d '{"vectors":{"size":2048,"distance":"Cosine"}}'
+  -d '{"vectors":{"size":2560,"distance":"Cosine"}}'
 
 # Verify
 curl http://localhost:6333/collections | jq '.result.collections[].name'
 ```
 
-> **Why 2048 dimensions?** Qwen3-Embedding-4B outputs 2048-dimensional vectors.
-> This matches the model we'll use for all embeddings. If you switch to
-> nomic-embed-text (768-dim), create separate collections or use Qdrant's
-> named vectors feature for multi-model support.
+> **Why 2560 dimensions?** Qwen3-Embedding-4B outputs 2560-dimensional vectors
+> (confirmed via M1 testing). This matches the model we'll use for all embeddings.
+> If you switch to nomic-embed-text (768-dim), create separate collections or
+> use Qdrant's named vectors feature for multi-model support.
 
 #### Step 2.6: Register MCP Servers in Claude Code
 ```bash
@@ -670,7 +670,7 @@ from qdrant_client.models import (
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "qwen3-embedding:4b")
-EMBED_DIM = int(os.getenv("EMBED_DIM", "2048"))
+EMBED_DIM = int(os.getenv("EMBED_DIM", "2560"))
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")

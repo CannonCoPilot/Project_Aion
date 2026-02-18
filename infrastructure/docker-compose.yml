@@ -1,0 +1,162 @@
+services:
+  # --- PostgreSQL + pgvector + BM25 (n8n backend + RAG + analytics) ---
+  postgres:
+    image: paradedb/paradedb:latest
+    container_name: jarvis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER:-jarvis}
+      POSTGRES_PASSWORD: ${PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB:-jarvis}
+    command: >
+      postgres
+        -c shared_buffers=2GB
+        -c effective_cache_size=6GB
+        -c work_mem=256MB
+        -c maintenance_work_mem=1GB
+        -c max_connections=200
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./init-scripts:/docker-entrypoint-initdb.d
+    ports:
+      - "5432:5432"
+    networks:
+      - jarvis-net
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+          cpus: "4"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-jarvis}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- Qdrant (high-performance vector search for RAG) ---
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: jarvis-qdrant
+    restart: unless-stopped
+    volumes:
+      - qdrant_data:/qdrant/storage
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    networks:
+      - jarvis-net
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: "4"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c 'echo > /dev/tcp/localhost/6333' || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  # --- Neo4j (knowledge graph + Graphiti agent memory) ---
+  neo4j:
+    image: neo4j:latest
+    container_name: jarvis-neo4j
+    restart: unless-stopped
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD}
+      NEO4J_server_memory_pagecache_size: 2G
+      NEO4J_server_memory_heap_initial__size: 512m
+      NEO4J_server_memory_heap_max__size: 2G
+      NEO4J_PLUGINS: '["apoc"]'
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    networks:
+      - jarvis-net
+    deploy:
+      resources:
+        limits:
+          memory: 6G
+          cpus: "4"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -O /dev/null -q http://localhost:7474 || exit 1"]
+      interval: 20s
+      timeout: 10s
+      retries: 10
+
+  # --- Redis (agent working memory + workflow queue + caching) ---
+  redis:
+    image: redis/redis-stack:latest
+    container_name: jarvis-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+        --maxmemory 2gb
+        --maxmemory-policy allkeys-lru
+        --appendonly yes
+        --protected-mode no
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+      - "8001:8001"
+    networks:
+      - jarvis-net
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # --- n8n (workflow automation -- uses PostgreSQL + Redis) ---
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: jarvis-n8n
+    restart: unless-stopped
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n
+      DB_POSTGRESDB_USER: ${PG_USER:-jarvis}
+      DB_POSTGRESDB_PASSWORD: ${PG_PASSWORD}
+      EXECUTIONS_MODE: queue
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: 6379
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      WEBHOOK_URL: http://localhost:5678
+    volumes:
+      - n8n_data:/home/node/.n8n
+    ports:
+      - "5678:5678"
+    networks:
+      - jarvis-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: "2"
+
+volumes:
+  postgres_data:
+  qdrant_data:
+  neo4j_data:
+  neo4j_logs:
+  redis_data:
+  n8n_data:
+
+networks:
+  jarvis-net:
+    driver: bridge
