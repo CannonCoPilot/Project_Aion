@@ -4,9 +4,9 @@
 # Usage: ./freshness-auditor.sh [directory] [days_threshold]
 # bash 3.2 compatible (macOS)
 
-BASE_DIR="${1:-/Users/aircannon/Claude/Jarvis/.claude}"
+BASE_DIR="${1:-/Users/nathanielcannon/Claude/Jarvis/.claude}"
 THRESHOLD_DAYS="${2:-30}"
-REPORT_DIR="/Users/aircannon/Claude/Jarvis/.claude/reports/maintenance"
+REPORT_DIR="/Users/nathanielcannon/Claude/Jarvis/.claude/reports/maintenance"
 
 audit_freshness() {
     local dir="$1"

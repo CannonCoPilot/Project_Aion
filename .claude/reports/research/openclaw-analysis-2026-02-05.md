@@ -664,7 +664,7 @@ This provides coordination benefits without full gateway complexity.
   "agent": {
     "name": "Jarvis",
     "identity_file": ".claude/jarvis-identity.md",
-    "workspace": "/Users/aircannon/Claude/Jarvis"
+    "workspace": "/Users/nathanielcannon/Claude/Jarvis"
   },
   
   "session": {

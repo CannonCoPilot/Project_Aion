@@ -26,7 +26,7 @@ Jarvis runs inside a **tmux session named `jarvis`** with 6 windows. This is alw
 | W4 | Commands | Command signal handler |
 | W5 | Jarvis-dev | Autonomous test driver (dev sessions only) |
 
-- **tmux binary**: `/Users/aircannon/bin/tmux` (NOT in PATH — always use absolute path)
+- **tmux binary**: `/Users/nathanielcannon/bin/tmux` (NOT in PATH — always use absolute path)
 - **Interact with any window**: `$HOME/bin/tmux capture-pane -t jarvis:N -p` / `send-keys -t jarvis:N`
 - **Dev scripts**: `.claude/scripts/dev/` wrap tmux calls for convenience
 
@@ -50,7 +50,7 @@ Jarvis runs inside a **tmux session named `jarvis`** with 6 windows. This is alw
 - Update `session-state.md` at session boundaries
 - Use epoch seconds (`date +%s`) for timestamps in signal files
 - Ensure bash functions called via `$(...)` return 0 (bash 3.2 macOS compatibility)
-- Use absolute file paths (`/Users/aircannon/Claude/Jarvis/...`) in response text, never relative. When line-specific: `/path/file.ext:42`. Include "Files touched" summary after modifications.
+- Use absolute file paths (`/Users/nathanielcannon/Claude/Jarvis/...`) in response text, never relative. When line-specific: `/path/file.ext:42`. Include "Files touched" summary after modifications.
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 # Freshness Audit — 2026-02-09
 
-**Directory**: /Users/aircannon/Claude/Jarvis/.claude
+**Directory**: /Users/nathanielcannon/Claude/Jarvis/.claude
 **Threshold**: 30 days
 
 ## Stale Files (>30 days since modification)

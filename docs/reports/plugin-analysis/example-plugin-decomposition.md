@@ -1,8 +1,8 @@
 # Integration Plan: example-plugin
 
-**Source**: /Users/aircannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin
+**Source**: /Users/nathanielcannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin
 **Generated**: 2026-01-17T20:32:38Z
-**Target**: /Users/aircannon/Claude/Jarvis
+**Target**: /Users/nathanielcannon/Claude/Jarvis
 
 ---
 

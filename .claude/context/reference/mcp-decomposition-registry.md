@@ -157,7 +157,7 @@ These MCPs were removed from config but their unique capabilities are being RECO
 ## Discovery Summary
 
 ### Config Storage
-MCPs added via `claude mcp add` → `/Users/aircannon/.claude.json` (project-specific).
+MCPs added via `claude mcp add` → `/Users/nathanielcannon/.claude.json` (project-specific).
 `.mcp.json` only contains manually-edited MCPs.
 
 ### Auto-Provisioned MCP Architecture

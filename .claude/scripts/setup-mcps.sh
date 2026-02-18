@@ -22,8 +22,8 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-JARVIS_ROOT="/Users/aircannon/Claude/Jarvis"
-CLAUDE_ROOT="/Users/aircannon/Claude"
+JARVIS_ROOT="/Users/nathanielcannon/Claude/Jarvis"
+CLAUDE_ROOT="/Users/nathanielcannon/Claude"
 
 echo "=============================================="
 echo "  Jarvis MCP Auto-Install Script"

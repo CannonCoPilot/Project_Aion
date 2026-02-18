@@ -73,8 +73,8 @@ This document is a **feature request** (what to build) and a **development roadm
 
 Requirements:
 - Confirm and implement:
-  - projects live in: `/Users/aircannon/Claude/<ProjectName>/`
-  - Jarvis project summaries live in: `/Users/aircannon/Claude/Jarvis/projects/`
+  - projects live in: `/Users/nathanielcannon/Claude/<ProjectName>/`
+  - Jarvis project summaries live in: `/Users/nathanielcannon/Claude/Jarvis/projects/`
 - Ensure “Hub, Not Container” remains true: Jarvis tracks/works on projects stored elsewhere.
 - Improve/extend project registration behavior (hook- or command-driven):
   - detect GitHub URLs and “new project” requests
@@ -94,7 +94,7 @@ Deliverables:
 **Goal:** Keep Jarvis modern without destabilizing its divergent track.
 
 Requirements:
-1. Pull AIfred baseline main into `/Users/aircannon/Claude/AIfred` (canonical local upstream mirror).
+1. Pull AIfred baseline main into `/Users/nathanielcannon/Claude/AIfred` (canonical local upstream mirror).
 2. Compute diff vs Jarvis.
 3. Classify changes: safe / unsafe / manual review.
 4. Propose ports and apply only after review (**to Jarvis repo only**).

@@ -106,7 +106,7 @@ Short document describing:
 4. Tag a release (e.g., `v1.0.0`)
 
 #### Run Report
-Generate a report saved to: `/Users/aircannon/Claude/Jarvis/projects/`
+Generate a report saved to: `/Users/nathanielcannon/Claude/Jarvis/projects/`
 
 Report must include:
 - Execution timestamp

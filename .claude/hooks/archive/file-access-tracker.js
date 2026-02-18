@@ -19,7 +19,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/aircannon/Claude/Jarvis';
+const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
 const ACCESS_LOG_FILE = path.join(WORKSPACE_ROOT, '.claude/logs/file-access.json');
 const SESSION_FILE = path.join(WORKSPACE_ROOT, '.claude/logs/.current-session');
 

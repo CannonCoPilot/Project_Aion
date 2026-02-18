@@ -1,6 +1,6 @@
 # Plugin Review: example-plugin
 
-**Path:** `/Users/aircannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin`
+**Path:** `/Users/nathanielcannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin`
 **Generated:** 2026-01-17 12:02:54
 
 ## Metadata

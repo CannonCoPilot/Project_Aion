@@ -9,7 +9,7 @@
 
 **Jarvis is a hub that orchestrates code projects stored elsewhere.**
 
-Code lives in `projects_root` (typically `/Users/aircannon/Claude/Jarvis/projects`), not scattered through Jarvis.
+Code lives in `projects_root` (typically `/Users/nathanielcannon/Claude/Jarvis/projects`), not scattered through Jarvis.
 
 ---
 

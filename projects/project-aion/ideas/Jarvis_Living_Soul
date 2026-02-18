@@ -18,9 +18,9 @@ Burden of project development documentation:
 Maybe 'projects/project-aion/aifred-integration/' and a parallel 'self-improvement' dir are both placed within a shared folder, like 'evolution' or 'growth' or something.  So, the 'ability' to evolve should reside in Jarvis' self, but the records and dev work of that evolution should be in project-aion.
 
 Principle 4: External Projects = Deliverables Only
-"/Users/aircannon/Claude/<ProjectName>/ contains only the project codebase" yes and "/Users/aircannon/Claude/Jarvis/projects" should contain the develpment workspaces for that project.  As you put, "alternatively, a lighter touch" which I prefer.  Projects inside of projects is a little too Inception for me.
+"/Users/Jarvis/Claude/<ProjectName>/ contains only the project codebase" yes and "/Users/Jarvis/Claude/Jarvis/projects" should contain the develpment workspaces for that project.  As you put, "alternatively, a lighter touch" which I prefer.  Projects inside of projects is a little too Inception for me.
 
-Lastly, I want an assessment of the purpose of every folder location within: '/Users/aircannon/Claude/Jarvis' at one level deep, '/Users/aircannon/Claude/Jarvis/.claude' at two levels deep, and '/Users/aircannon/Claude/Jarvis/.claude/context' at two levels deep.  If there is any folder that you don't see a clear purpose for keep a list.  We want to keep the spaces of Jarvis' definition of self clean and efficient, and also want to keep sut enough subfolder organization for Jarvis to tuck things away which have very niche uses.
+Lastly, I want an assessment of the purpose of every folder location within: '/Users/Jarvis/Claude/Jarvis' at one level deep, '/Users/Jarvis/Claude/Jarvis/.claude' at two levels deep, and '/Users/Jarvis/Claude/Jarvis/.claude/context' at two levels deep.  If there is any folder that you don't see a clear purpose for keep a list.  We want to keep the spaces of Jarvis' definition of self clean and efficient, and also want to keep sut enough subfolder organization for Jarvis to tuck things away which have very niche uses.
 
 Your Proposed Changes are pretty good, as far as the analysis has gone to this point.  Refactor these after you have reviewed and address all of my other thoughts above, and updated your discoveries from the /.claude/context space.
 

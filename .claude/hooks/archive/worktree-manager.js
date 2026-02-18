@@ -16,7 +16,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/aircannon/Claude/Jarvis';
+const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
 const STATE_FILE = path.join(WORKSPACE_ROOT, '.claude/logs/.worktree-state.json');
 
 /**

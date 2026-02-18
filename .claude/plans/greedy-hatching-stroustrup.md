@@ -32,7 +32,7 @@ Ennoia crash → no file → Watcher uses hardcoded (JICM unaffected)
 
 ### Step 1: ennoia.sh — Add context extraction helpers
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
 **Insert after**: `get_intent()` (line 82)
 
 Add two new functions:
@@ -43,7 +43,7 @@ Both return 0 on all paths (bash 3.2 `set -e` safety).
 
 ### Step 2: ennoia.sh — Add `write_recommendation()`
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
 **Insert after**: Step 1 functions
 
 Core function that generates mode-appropriate prompt text:
@@ -55,7 +55,7 @@ Atomic write: `echo > .tmp` then `mv .tmp .ennoia-recommendation`
 
 ### Step 3: ennoia.sh — Wire into main loop + update status
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
 **Modify**: `render()` function
 
 - Call `write_recommendation "$mode"` after the mode case block
@@ -65,7 +65,7 @@ Atomic write: `echo > .tmp` then `mv .tmp .ennoia-recommendation`
 
 ### Step 4: jarvis-watcher.sh — Add `read_ennoia_recommendation()`
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/jarvis-watcher.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jarvis-watcher.sh`
 
 Add path constant `ENNOIA_RECOMMENDATION` in config section (~line 214).
 
@@ -78,7 +78,7 @@ Add reader function (~line 945, before `detect_idle_state()`):
 
 ### Step 5: jarvis-watcher.sh — Modify `send_prompt_by_type()`
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/jarvis-watcher.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jarvis-watcher.sh`
 **Modify**: `send_prompt_by_type()` (lines 1107-1138)
 
 Add at top of function, before `case` statement:
@@ -95,7 +95,7 @@ Emergency paths (`handle_critical_state`) are unaffected — they call `send_tex
 
 ### Step 6: launch-jarvis-tmux.sh — Add Ennoia window
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/launch-jarvis-tmux.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/launch-jarvis-tmux.sh`
 **Insert after**: line 154 (after Watcher window creation)
 
 - Add Window 2 "Ennoia" with `new-window -d`
@@ -105,7 +105,7 @@ Emergency paths (`handle_critical_state`) are unaffected — they call `send_tex
 
 ### Step 7: capability-map.yaml — Register Ennoia
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml`
 **Insert after**: line 261 (after ac.10-ulfhedthnar, before compositions)
 
 ```yaml

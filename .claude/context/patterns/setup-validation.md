@@ -177,7 +177,7 @@ If significant changes were made this session:
 
 | Failure | Cause | Fix |
 |---------|-------|-----|
-| Jarvis workspace not found | Wrong directory | `cd /Users/aircannon/Claude/Jarvis` |
+| Jarvis workspace not found | Wrong directory | `cd /Users/nathanielcannon/Claude/Jarvis` |
 | In AIfred baseline | Started from wrong repo | Change working directory |
 | In forbidden path | Started from system directory | Navigate to workspace |
 

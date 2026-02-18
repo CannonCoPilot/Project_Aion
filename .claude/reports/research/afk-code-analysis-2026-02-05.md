@@ -476,7 +476,7 @@ From the codebase analysis, Jarvis has:
 #### Step 1: Setup Infrastructure
 ```bash
 # Install dependencies
-cd /Users/aircannon/Claude/Jarvis
+cd /Users/nathanielcannon/Claude/Jarvis
 npm install grammy node-pty @types/node
 
 # Create directory structure
@@ -512,7 +512,7 @@ touch .claude/scripts/launch-remote-monitor.sh
 
 # Script content:
 #!/bin/bash
-cd /Users/aircannon/Claude/Jarvis
+cd /Users/nathanielcannon/Claude/Jarvis
 node --loader ts-node/esm .claude/remote/telegram-bot.ts
 
 # Add to jarvis-watcher.sh or run in separate tmux window
@@ -594,7 +594,7 @@ function logRemoteInput(sessionId: string, input: string, source: string) {
   const logEntry = { timestamp, sessionId, input, source };
   
   fs.appendFileSync(
-    '/Users/aircannon/Claude/Jarvis/.claude/logs/remote-inputs.log',
+    '/Users/nathanielcannon/Claude/Jarvis/.claude/logs/remote-inputs.log',
     JSON.stringify(logEntry) + '\n'
   );
 }
@@ -991,7 +991,7 @@ bot.start();
 ### Appendix B: File Locations Reference
 
 ```
-/Users/aircannon/Claude/Jarvis/
+/Users/nathanielcannon/Claude/Jarvis/
 ├── .claude/
 │   ├── remote/                          # New: Remote monitoring
 │   │   ├── session-manager.ts           # Unix socket server + JSONL watcher

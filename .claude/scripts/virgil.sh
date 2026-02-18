@@ -18,7 +18,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/aircannon/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
 FILE_ACCESS="$PROJECT_DIR/.claude/logs/file-access.json"
 WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state"
 ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"

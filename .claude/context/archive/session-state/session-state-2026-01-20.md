@@ -52,7 +52,7 @@ E2E: 21 tests, 10 passed, 11 failed
 Total: 53 tests — TDD setup VERIFIED
 ```
 
-**Project Location**: `/Users/aircannon/Claude/Projects/aion-hello-console-v1-session`
+**Project Location**: `/Users/nathanielcannon/Claude/Projects/aion-hello-console-v1-session`
 
 ### Next Session Pickup (Session 2)
 
@@ -62,7 +62,7 @@ Total: 53 tests — TDD setup VERIFIED
 - `projects/project-aion/plans/prd-variants/PRD-V1-session-continuity.md`
 - `projects/project-aion/plans/one-shot-prd-v2.md`
 
-**Project to implement**: `/Users/aircannon/Claude/Projects/aion-hello-console-v1-session`
+**Project to implement**: `/Users/nathanielcannon/Claude/Projects/aion-hello-console-v1-session`
 
 **Session 2 Tasks**:
 1. Implement transform functions (slugify, reverse, uppercase, wordCount)
@@ -218,7 +218,7 @@ Autonomous end-to-end product development benchmark:
 - GitHub push: Blocked (no credentials)
 
 **Artifacts Created**:
-- `/Users/aircannon/Claude/aion-hello-console-2026-01-18/` — Full project
+- `/Users/nathanielcannon/Claude/aion-hello-console-2026-01-18/` — Full project
 - `projects/project-aion/reports/demo-a-run-report-2026-01-18.md`
 - `projects/project-aion/reports/demo-a-autonomic-analysis-2026-01-18.md`
 - `.claude/orchestration/demo-a-orchestration.yaml`
@@ -1393,7 +1393,7 @@ Comprehensive design document created for Phase 6 autonomous operation:
 
 3. **Python Upgrade**
    - Found Python 3.13.11 via uv
-   - Created venv for GPTresearcher at `/Users/aircannon/Claude/gptr-mcp/.venv`
+   - Created venv for GPTresearcher at `/Users/nathanielcannon/Claude/gptr-mcp/.venv`
 
 4. **Plugins Removed by User**
    - 18 plugins uninstalled for future decomposition work

@@ -175,7 +175,7 @@ file_link() {
 }
 
 # Example:
-file_link "/Users/aircannon/Claude/Jarvis/.claude/context/session-state.md" "session-state.md"
+file_link "/Users/nathanielcannon/Claude/Jarvis/.claude/context/session-state.md" "session-state.md"
 # Renders: session-state.md (clickable, opens in VS Code)
 ```
 
@@ -355,7 +355,7 @@ Concrete pseudocode for the minimum viable Virgil:
 
 set -euo pipefail
 
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/aircannon/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
 FILE_ACCESS="$PROJECT_DIR/.claude/logs/file-access.json"
 WATCHER_STATUS="$PROJECT_DIR/.claude/context/.watcher-status"
 REFRESH=15  # seconds
@@ -486,7 +486,7 @@ printf '\e]8;;https://example.com\e\\Click me\e]8;;\e\\'
 # Should render "Click me" as clickable link in iTerm2
 
 # Test vscode:// scheme:
-open 'vscode://file/Users/aircannon/Claude/Jarvis/CLAUDE.md'
+open 'vscode://file/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md'
 # Should open CLAUDE.md in VS Code
 ```
 

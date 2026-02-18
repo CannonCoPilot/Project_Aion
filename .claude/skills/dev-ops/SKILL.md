@@ -117,12 +117,12 @@ Drive a full JICM compression cycle by lowering the threshold, filling W0's cont
 
 3. **Fill W0 context** — send large file reads to W0:
    ```bash
-   bash .claude/scripts/dev/send-to-jarvis.sh "Read the file /Users/aircannon/Claude/Jarvis/.claude/context/designs/jicm-v5-design-addendum.md and provide a detailed summary of every section" --wait 90
+   bash .claude/scripts/dev/send-to-jarvis.sh "Read the file /Users/nathanielcannon/Claude/Jarvis/.claude/context/designs/jicm-v5-design-addendum.md and provide a detailed summary of every section" --wait 90
    ```
    After W0 responds, check context % via `watch-jicm.sh --once --json`.
    If still below threshold, send another large read:
    ```bash
-   bash .claude/scripts/dev/send-to-jarvis.sh "Read the file /Users/aircannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml and list every skill entry with its description" --wait 90
+   bash .claude/scripts/dev/send-to-jarvis.sh "Read the file /Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml and list every skill entry with its description" --wait 90
    ```
    Continue until `context_pct` exceeds 15%.
 
@@ -140,7 +140,7 @@ Drive a full JICM compression cycle by lowering the threshold, filling W0's cont
    - `compressions` count incremented (was 0, now 1+)
    - Compressed context file exists:
      ```bash
-     ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.compressed-context-ready.md
+     ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compressed-context-ready.md
      ```
 
 6. **Restore production threshold**:
@@ -165,13 +165,13 @@ Tests the signal-file IPC between command-handler (W4) and W0:Jarvis.
 
 2. **Write test signal** (use `/status` — safe, read-only):
    ```bash
-   echo '/status' > /Users/aircannon/Claude/Jarvis/.claude/context/.command-signal
+   echo '/status' > /Users/nathanielcannon/Claude/Jarvis/.claude/context/.command-signal
    ```
 
 3. **Wait for signal consumption** (command-handler polls every 3s):
    ```bash
    sleep 5
-   ls /Users/aircannon/Claude/Jarvis/.claude/context/.command-signal 2>/dev/null && echo "STILL_EXISTS" || echo "CONSUMED"
+   ls /Users/nathanielcannon/Claude/Jarvis/.claude/context/.command-signal 2>/dev/null && echo "STILL_EXISTS" || echo "CONSUMED"
    ```
    Pass: `CONSUMED` (file removed by command-handler).
 
@@ -195,11 +195,11 @@ Tests that hooks are producing expected signal files.
 1. **Check baseline signal files exist**:
    ```bash
    # JICM state file (watcher writes every 5s)
-   ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.jicm-state
+   ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.jicm-state
    # Virgil tasks (hook writes on tool calls)
-   ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.virgil-tasks.json 2>/dev/null
+   ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.virgil-tasks.json 2>/dev/null
    # Ennoia status
-   ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.ennoia-status 2>/dev/null
+   ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.ennoia-status 2>/dev/null
    ```
 
 2. **Record timestamps** of current signal files.
@@ -211,8 +211,8 @@ Tests that hooks are producing expected signal files.
 
 4. **Re-check signal files** — verify timestamps updated:
    ```bash
-   ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.jicm-state
-   ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.virgil-tasks.json 2>/dev/null
+   ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.jicm-state
+   ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.virgil-tasks.json 2>/dev/null
    ```
    Pass: `.jicm-state` updated (watcher still running). Virgil/Ennoia files updated if hooks fired.
 

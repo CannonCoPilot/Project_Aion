@@ -164,7 +164,7 @@ the threshold, re-triggering compression immediately.
 
 **Standard (S)**:
 ```
-JSONL_PATH=/Users/aircannon/Claude/Jarvis/.claude/reports/testing/experiment-7-captures/clean-transcript.jsonl
+JSONL_PATH=/Users/Jarvis/Claude/Jarvis/.claude/reports/testing/experiment-7-captures/clean-transcript.jsonl
 JSONL_TAIL_LINES=25000
 USER_MSG_COUNT=10
 MSG_TRUNCATE_CHARS=500
@@ -174,7 +174,7 @@ INCLUDE_ASSISTANT=false
 
 **Mixed (X)**:
 ```
-JSONL_PATH=/Users/aircannon/Claude/Jarvis/.claude/reports/testing/experiment-7-captures/clean-transcript.jsonl
+JSONL_PATH=/Users/Jarvis/Claude/Jarvis/.claude/reports/testing/experiment-7-captures/clean-transcript.jsonl
 JSONL_TAIL_LINES=25000
 USER_MSG_COUNT=10
 MSG_TRUNCATE_CHARS=500

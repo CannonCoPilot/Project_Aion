@@ -3,8 +3,8 @@
 > **Template**: Copy to `projects/<project-name>.md` when registering a project.
 > This is a *summary* stored in Jarvis, not the project's own documentation.
 
-**Project Path**: `/Users/aircannon/Claude/<project-name>/`
-**Summary Path**: `/Users/aircannon/Claude/Jarvis/projects/<project-name>.md`
+**Project Path**: `/Users/nathanielcannon/Claude/<project-name>/`
+**Summary Path**: `/Users/nathanielcannon/Claude/Jarvis/projects/<project-name>.md`
 **Type**: [web-app | api | library | cli | docker | other]
 **Language**: [primary language]
 **Status**: [active | maintenance | paused | archived]
@@ -21,7 +21,7 @@
 ## Quick Reference
 
 ### Repository
-- **Local**: `/Users/aircannon/Claude/<project-name>/`
+- **Local**: `/Users/nathanielcannon/Claude/<project-name>/`
 - **Remote**: [GitHub URL if applicable]
 - **Branch**: [default branch]
 
@@ -43,8 +43,8 @@
 
 | Item | Location |
 |------|----------|
-| Project code | `/Users/aircannon/Claude/<project-name>/` |
-| This summary | `/Users/aircannon/Claude/Jarvis/projects/<project-name>.md` |
+| Project code | `/Users/nathanielcannon/Claude/<project-name>/` |
+| This summary | `/Users/nathanielcannon/Claude/Jarvis/projects/<project-name>.md` |
 | Context file | `.claude/context/projects/<project-name>.md` (if detailed notes needed) |
 | Registry entry | `paths-registry.yaml` → `development.projects.<name>` |
 

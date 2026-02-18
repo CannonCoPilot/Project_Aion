@@ -4,8 +4,8 @@
 # Usage: ./telemetry-dashboard.sh [date]
 # bash 3.2 compatible (macOS)
 
-TELEMETRY_DIR="/Users/aircannon/Claude/Jarvis/.claude/logs/telemetry"
-METRICS_DIR="/Users/aircannon/Claude/Jarvis/.claude/metrics"
+TELEMETRY_DIR="/Users/nathanielcannon/Claude/Jarvis/.claude/logs/telemetry"
+METRICS_DIR="/Users/nathanielcannon/Claude/Jarvis/.claude/metrics"
 TARGET_DATE="${1:-$(date +%Y-%m-%d)}"
 EVENTS_FILE="$TELEMETRY_DIR/events-${TARGET_DATE}.jsonl"
 
@@ -64,7 +64,7 @@ generate_dashboard() {
     echo "| AC | Name | Status |"
     echo "|----|------|--------|"
 
-    local state_dir="/Users/aircannon/Claude/Jarvis/.claude/state/components"
+    local state_dir="/Users/nathanielcannon/Claude/Jarvis/.claude/state/components"
     for f in "$state_dir"/AC-*.json; do
         if [ -f "$f" ] && command -v jq >/dev/null 2>&1; then
             local comp name status

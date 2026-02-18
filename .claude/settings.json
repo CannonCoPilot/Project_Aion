@@ -303,7 +303,7 @@
       "Bash(netstat:*)",
 
       "Read",
-      "Read(/Users/Jarvis/Claude/Jarvis/.claude/secrets/**)",
+      "Read(/Users/nathanielcannon/Claude/Jarvis/.claude/secrets/**)",
       "Glob",
       "Grep",
 
@@ -318,8 +318,8 @@
       "Read(**/*password*)",
       "Read(**/*token*)",
 
-      "Write(/Users/Jarvis/Claude/AIfred/**)",
-      "Edit(/Users/Jarvis/Claude/AIfred/**)",
+      "Write(/Users/nathanielcannon/Claude/AIfred/**)",
+      "Edit(/Users/nathanielcannon/Claude/AIfred/**)",
 
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~/*)",

@@ -23,7 +23,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/aircannon/Claude/Jarvis';
+const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
 const LOG_DIR = path.join(WORKSPACE_ROOT, '.claude/logs');
 const DETECTION_LOG = path.join(LOG_DIR, 'orchestration-detections.jsonl');
 const ORCHESTRATION_DIR = path.join(WORKSPACE_ROOT, '.claude/orchestration');

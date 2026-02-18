@@ -31,7 +31,7 @@ Python virtual environments (venvs) provide dependency isolation. Two questions 
 
 Currently no venv exists:
 ```bash
-ls /Users/aircannon/Claude/Jarvis/ | grep -E "venv|.venv"
+ls /Users/nathanielcannon/Claude/Jarvis/ | grep -E "venv|.venv"
 # (none found)
 ```
 
@@ -104,7 +104,7 @@ The `/create-project` command currently:
 If you plan to use Python-based MCP servers or agents:
 
 ```bash
-cd /Users/aircannon/Claude/Jarvis
+cd /Users/nathanielcannon/Claude/Jarvis
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt  # When requirements.txt exists
@@ -208,7 +208,7 @@ If you'll use Python-based tools:
 
 3. (If venv created) Add to shell profile:
    ```bash
-   alias jarvis-env="source /Users/aircannon/Claude/Jarvis/.venv/bin/activate"
+   alias jarvis-env="source /Users/nathanielcannon/Claude/Jarvis/.venv/bin/activate"
    ```
 ```
 

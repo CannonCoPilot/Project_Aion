@@ -88,7 +88,7 @@ Four codebases were analyzed for potential Jarvis integration opportunities:
 
 **Implementation**:
 1. Install `node-pty` and `grammy` (Telegram SDK)
-2. Create `/Users/aircannon/Claude/Jarvis/.claude/services/telegram-relay/`
+2. Create `/Users/nathanielcannon/Claude/Jarvis/.claude/services/telegram-relay/`
 3. Port `session-manager.ts` pattern for JSONL watching
 4. Implement read-only message relay first (LOW RISK)
 5. Add command whitelist for bidirectional control (Phase 2)

@@ -14,7 +14,7 @@
 ```json
 {
   "projects": {
-    "/Users/aircannon/Claude/Jarvis": {
+    "/Users/nathanielcannon/Claude/Jarvis": {
       "mcpServers": {
         "memory": { "type": "stdio", "command": "npx", ... },
         "fetch": { "type": "stdio", "command": "uvx", ... },
@@ -61,7 +61,7 @@
 
 ```bash
 # Add to disabledMcpServers array
-jq --arg path "/Users/aircannon/Claude/Jarvis" --arg server "git" '
+jq --arg path "/Users/nathanielcannon/Claude/Jarvis" --arg server "git" '
   .projects[$path].disabledMcpServers |= (. + [$server] | unique)
 ' ~/.claude.json > ~/.claude.json.tmp && mv ~/.claude.json.tmp ~/.claude.json
 ```
@@ -70,7 +70,7 @@ jq --arg path "/Users/aircannon/Claude/Jarvis" --arg server "git" '
 
 ```bash
 # Remove from disabledMcpServers array
-jq --arg path "/Users/aircannon/Claude/Jarvis" --arg server "git" '
+jq --arg path "/Users/nathanielcannon/Claude/Jarvis" --arg server "git" '
   .projects[$path].disabledMcpServers |= (. - [$server])
 ' ~/.claude.json > ~/.claude.json.tmp && mv ~/.claude.json.tmp ~/.claude.json
 ```
@@ -79,10 +79,10 @@ jq --arg path "/Users/aircannon/Claude/Jarvis" --arg server "git" '
 
 ```bash
 # List disabled MCPs
-jq '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
 
 # List all registered MCPs
-jq '.projects["/Users/aircannon/Claude/Jarvis"].mcpServers | keys' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].mcpServers | keys' ~/.claude.json
 ```
 
 ---
@@ -217,7 +217,7 @@ claude mcp add filesystem -s local -- npx -y @modelcontextprotocol/server-filesy
 # .claude/scripts/disable-mcps.sh
 # Usage: disable-mcps.sh <server-name> [server-name...]
 
-PROJECT_PATH="/Users/aircannon/Claude/Jarvis"
+PROJECT_PATH="/Users/nathanielcannon/Claude/Jarvis"
 CONFIG_FILE="$HOME/.claude.json"
 
 if [ $# -eq 0 ]; then
@@ -243,7 +243,7 @@ echo "Changes will take effect after /clear"
 # .claude/scripts/enable-mcps.sh
 # Usage: enable-mcps.sh <server-name> [server-name...]
 
-PROJECT_PATH="/Users/aircannon/Claude/Jarvis"
+PROJECT_PATH="/Users/nathanielcannon/Claude/Jarvis"
 CONFIG_FILE="$HOME/.claude.json"
 
 if [ $# -eq 0 ]; then
@@ -269,7 +269,7 @@ echo "Changes will take effect after /clear"
 # .claude/scripts/list-mcp-status.sh
 # Show registered vs disabled MCPs
 
-PROJECT_PATH="/Users/aircannon/Claude/Jarvis"
+PROJECT_PATH="/Users/nathanielcannon/Claude/Jarvis"
 CONFIG_FILE="$HOME/.claude.json"
 
 echo "=== Registered MCPs ==="

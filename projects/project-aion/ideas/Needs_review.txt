@@ -5,7 +5,7 @@ Needs_review
 
 ...but could you make the selection list sorted alphabetically?
 
-3) You primary major next task is to complete a full and exhaustive inventory of every iteam and artifact within /Users/aircannon/Claude/Jarvis and create a report with information about the item, whether it's part of the Jarvis operational ecosystem, whether its part of the Project Aion planning and design project documents, whether it appears to be in the correct place, and where you would recommend moving it to, and whether or not it is a legacy version of a newer item, and whether its contents are up-to-date with respect to Jarvis' version and current state of directory structure.  I want to review this information manually to help me shape the design of Jarvis' organization principles and patterns.
+3) You primary major next task is to complete a full and exhaustive inventory of every iteam and artifact within /Users/nathanielcannon/Claude/Jarvis and create a report with information about the item, whether it's part of the Jarvis operational ecosystem, whether its part of the Project Aion planning and design project documents, whether it appears to be in the correct place, and where you would recommend moving it to, and whether or not it is a legacy version of a newer item, and whether its contents are up-to-date with respect to Jarvis' version and current state of directory structure.  I want to review this information manually to help me shape the design of Jarvis' organization principles and patterns.
 
 
 

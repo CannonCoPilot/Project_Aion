@@ -14,7 +14,7 @@
 **MCP disabled state is stored in `~/.claude.json`** under:
 ```json
 "projects": {
-  "/Users/aircannon/Claude/Jarvis": {
+  "/Users/nathanielcannon/Claude/Jarvis": {
     "disabledMcpServers": ["context7", "github", "git", ...],
     "mcpServers": { ... }
   }
@@ -61,7 +61,7 @@ Create script to modify `~/.claude.json`:
 # .claude/scripts/disable-mcps.sh
 # Usage: disable-mcps.sh <server-name> [server-name...]
 
-PROJECT_PATH="/Users/aircannon/Claude/Jarvis"
+PROJECT_PATH="/Users/nathanielcannon/Claude/Jarvis"
 CONFIG_FILE="$HOME/.claude.json"
 
 for SERVER in "$@"; do
@@ -79,7 +79,7 @@ done
 # .claude/scripts/enable-mcps.sh
 # Usage: enable-mcps.sh <server-name> [server-name...]
 
-PROJECT_PATH="/Users/aircannon/Claude/Jarvis"
+PROJECT_PATH="/Users/nathanielcannon/Claude/Jarvis"
 CONFIG_FILE="$HOME/.claude.json"
 
 for SERVER in "$@"; do
@@ -252,7 +252,7 @@ echo "{}"
 .claude/scripts/disable-mcps.sh fetch
 
 # Verify config changed
-jq '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
 # Expected: fetch in array
 
 # After /clear

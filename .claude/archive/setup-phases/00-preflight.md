@@ -59,7 +59,7 @@ echo "╠═══════════════════════�
 # -----------------------------------------------------------------------------
 
 # Check 1: Jarvis workspace exists
-JARVIS_PATH="/Users/aircannon/Claude/Jarvis"
+JARVIS_PATH="/Users/nathanielcannon/Claude/Jarvis"
 if [ -d "$JARVIS_PATH" ]; then
   echo "║ ✅ PASS: Jarvis workspace exists                 ║"
   ((PASS_COUNT++))
@@ -79,7 +79,7 @@ else
 fi
 
 # Check 3: AIfred baseline is separate
-AIFRED_PATH="/Users/aircannon/Claude/AIfred"
+AIFRED_PATH="/Users/nathanielcannon/Claude/AIfred"
 if [ "$JARVIS_PATH" != "$AIFRED_PATH" ]; then
   if [ -d "$AIFRED_PATH" ]; then
     echo "║ ✅ PASS: AIfred baseline properly separated      ║"
@@ -127,7 +127,7 @@ else
 fi
 
 # Check 6: In current user's directory
-EXPECTED_USER_PATH="/Users/aircannon"
+EXPECTED_USER_PATH="/Users/nathanielcannon"
 if [[ "$CURRENT_DIR" == "$EXPECTED_USER_PATH"* || "$CURRENT_DIR" == "/tmp"* || "$CURRENT_DIR" == "/var/folders"* ]]; then
   echo "║ ✅ PASS: In valid user directory                 ║"
   ((PASS_COUNT++))
@@ -237,7 +237,7 @@ fi
 
 ### Workspace Isolation Check
 
-**Why it matters**: Jarvis derives from AIfred but must remain separate. The AIfred baseline at `/Users/aircannon/Claude/AIfred` is **read-only** — it's the upstream reference. All development happens in Jarvis.
+**Why it matters**: Jarvis derives from AIfred but must remain separate. The AIfred baseline at `/Users/nathanielcannon/Claude/AIfred` is **read-only** — it's the upstream reference. All development happens in Jarvis.
 
 **Failure modes**:
 - Jarvis path doesn't exist → Setup can't proceed
@@ -294,10 +294,10 @@ If any required check fails, `/setup` should **not proceed**:
 Fix the following before running /setup:
 
 1. Workspace not found
-   → Clone Jarvis to /Users/aircannon/Claude/Jarvis
+   → Clone Jarvis to /Users/nathanielcannon/Claude/Jarvis
 
 2. In AIfred baseline
-   → cd /Users/aircannon/Claude/Jarvis
+   → cd /Users/nathanielcannon/Claude/Jarvis
 
 3. In forbidden path
    → Navigate to your workspace directory

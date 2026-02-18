@@ -57,7 +57,7 @@ A minimal web application demonstrating text transformation capabilities.
 | Node.js version | `node --version` | >= 20.0.0 |
 | npm version | `npm --version` | >= 10.0.0 |
 | Git configured | `git config user.name` | Non-empty |
-| Project root exists | `ls /Users/aircannon/Claude/` | Directory exists |
+| Project root exists | `ls /Users/nathanielcannon/Claude/` | Directory exists |
 
 ### 1.2 GitHub Capability Verification
 

@@ -668,7 +668,7 @@ CREATE INDEX idx_lessons_date ON lessons(date);
   "mcpServers": {
     "vestige": {
       "command": "vestige-mcp",
-      "args": ["--data-dir", "/Users/aircannon/Claude/Jarvis/.vestige"]
+      "args": ["--data-dir", "/Users/nathanielcannon/Claude/Jarvis/.vestige"]
     }
   }
 }

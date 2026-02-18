@@ -13,7 +13,7 @@
 1. Open a **NEW terminal window** (not the main session)
 2. Navigate to Jarvis:
    ```bash
-   cd /Users/aircannon/Claude/Jarvis
+   cd /Users/nathanielcannon/Claude/Jarvis
    ```
 3. Start Claude Code:
    ```bash
@@ -33,7 +33,7 @@ Note which MCPs are currently enabled/disabled.
 
 ```bash
 # Check current disabled list (outside Claude or via Bash tool):
-jq '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
 ```
 
 ---
@@ -79,7 +79,7 @@ cat .claude/context/.soft-restart-checkpoint.md
 
 ```bash
 # Check disabledMcpServers array
-jq '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
 ```
 
 **Expected**: github, git, context7, sequential-thinking in the array.
@@ -159,7 +159,7 @@ Or:
 ### Step 3.2: Verify Config Changed
 
 ```bash
-jq '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
 ```
 
 **Expected**: Array should be smaller or empty.

@@ -158,7 +158,7 @@ MCP_SUGGESTION=""
 
 # --- AIfred Baseline Sync Check (evo-2026-01-018) ---
 AIFRED_SYNC_STATUS=""
-AIFRED_REPO="/Users/aircannon/Claude/AIfred"
+AIFRED_REPO="/Users/nathanielcannon/Claude/AIfred"
 if [[ -d "$AIFRED_REPO/.git" ]] && [[ "$SOURCE" == "startup" ]]; then
     # Fetch upstream changes (silent, non-blocking)
     cd "$AIFRED_REPO" 2>/dev/null
@@ -179,7 +179,7 @@ if [[ -d "$AIFRED_REPO/.git" ]] && [[ "$SOURCE" == "startup" ]]; then
 fi
 
 # --- Claude Code Docs Sync (B.1 integration) ---
-CLAUDE_DOCS_REPO="/Users/aircannon/Claude/GitRepos/claude-code-docs"
+CLAUDE_DOCS_REPO="/Users/nathanielcannon/Claude/GitRepos/claude-code-docs"
 if [[ -d "$CLAUDE_DOCS_REPO/.git" ]] && [[ "$SOURCE" == "startup" ]]; then
     cd "$CLAUDE_DOCS_REPO" 2>/dev/null
     if git pull --quiet origin main 2>/dev/null; then

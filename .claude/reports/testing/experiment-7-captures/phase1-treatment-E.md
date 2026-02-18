@@ -86,7 +86,7 @@ Let me chronologically analyze the entire conversation to capture all technical 
 **Phase 2: Plan Writing and Approval**
 - Read 4 key files in parallel: jicm-watcher.sh (do_compress lines 770-890), ennoia.sh (315 lines), session-start.sh (lines 310-430), settings.json (329 lines)
 - Also read watcher do_restore (lines 886-985), main loop COMPRESSING handler (lines 1215-1265), and listed 16 plan files
-- Wrote comprehensive JICM v7 implementation plan to `/Users/aircannon/Claude/Jarvis/.claude/plans/robust-painting-stonebraker.md`
+- Wrote comprehensive JICM v7 implementation plan to `/Users/Jarvis/Claude/Jarvis/.claude/plans/robust-painting-stonebraker.md`
 - Plan covered 9 implementation steps across 8 files
 - Called ExitPlanMode — user approved
 
@@ -96,7 +96,7 @@ Let me chronologically analyze the entire conversation to capture all technical 
 - Discovered JSONL user messages have content as BOTH string type (real user text) and array type (tool results)
 - The correct filter: `select(.type == "user") | .message.content | select(type == "string") | select(startswith("<") | not) | select(startswith("[JICM-") | not)`
 - Tested compact mode with truncation: `jq -c '...[0:500]' | tail -10 | jq -r '.'`
-- Created `/Users/aircannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+- Created `/Users/Jarvis/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
 
 **Phase 3a: SIGPIPE/pip
 

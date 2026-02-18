@@ -14,7 +14,7 @@ The MCP disable/enable mechanism via `disabledMcpServers` array in `~/.claude.js
 
 ## Test Environment
 
-- **Location**: `/Users/aircannon/Claude/Jarvis`
+- **Location**: `/Users/nathanielcannon/Claude/Jarvis`
 - **Branch**: `Project_Aion`
 - **MCPs Tested**: memory, filesystem, fetch, git, github, context7, sequential-thinking
 - **Test Terminal**: Fresh Claude Code session (separate from main session)

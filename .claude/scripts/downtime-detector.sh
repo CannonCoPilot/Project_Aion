@@ -5,7 +5,7 @@
 # bash 3.2 compatible (macOS)
 
 IDLE_THRESHOLD_SECONDS=1800  # 30 minutes
-ACTIVITY_FILE="/Users/aircannon/Claude/Jarvis/.claude/state/last-activity.timestamp"
+ACTIVITY_FILE="/Users/nathanielcannon/Claude/Jarvis/.claude/state/last-activity.timestamp"
 
 detect_idle() {
     if [ ! -f "$ACTIVITY_FILE" ]; then

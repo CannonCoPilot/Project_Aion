@@ -8,7 +8,7 @@
 
 - [x] MCP registered in Claude (`filesystem` in mcp list)
 - [x] Server connected: `npx -y @modelcontextprotocol/server-filesystem`
-- [x] Allowed directories: /Users/aircannon/Claude/Jarvis, /Users/aircannon/Claude
+- [x] Allowed directories: /Users/Jarvis/Claude/Jarvis, /Users/Jarvis/Claude
 - [x] No startup errors
 
 ## Phase 2: Configuration Audit
@@ -43,21 +43,21 @@
 
 ### Test 1: list_directory
 ```
-Input: path="/Users/aircannon/Claude/Jarvis/.claude"
+Input: path="/Users/Jarvis/Claude/Jarvis/.claude"
 Output: 16 entries (files and directories with [FILE]/[DIR] prefix)
 Result: PASS
 ```
 
 ### Test 2: get_file_info
 ```
-Input: path="/Users/aircannon/Claude/Jarvis/.claude/CLAUDE.md"
+Input: path="/Users/Jarvis/Claude/Jarvis/.claude/CLAUDE.md"
 Output: size=3202, created/modified dates, permissions=644
 Result: PASS
 ```
 
 ### Test 3: create_directory
 ```
-Input: path="/Users/aircannon/Claude/Jarvis/.claude/logs/mcp-validation"
+Input: path="/Users/Jarvis/Claude/Jarvis/.claude/logs/mcp-validation"
 Output: Successfully created directory
 Result: PASS
 ```

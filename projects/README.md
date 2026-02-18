@@ -29,7 +29,7 @@ project-aion/external/<project-name>/
 └── decisions.md
 ```
 
-The actual project codebase stays in `/Users/aircannon/Claude/<ProjectName>/`.
+The actual project codebase stays in `/Users/nathanielcannon/Claude/<ProjectName>/`.
 
 ## Key Principle
 

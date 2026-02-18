@@ -28,7 +28,7 @@
 1. **Prompt delivery works reliably** using split pattern: send-keys -l "text" + sleep 0.3 + send-keys C-m
 2. **W0 handles tool-use prompts** — Glob was invoked for file count
 3. **All infrastructure subsystems healthy** — JICM, AC-01, Ennoia, Virgil, all windows
-4. **tmux absolute path required** — `$HOME/bin/tmux` breaks when piped in zsh, use `/Users/aircannon/bin/tmux`
+4. **tmux absolute path required** — `$HOME/bin/tmux` breaks when piped in zsh, use `/Users/nathanielcannon/bin/tmux`
 
 ## Review
 

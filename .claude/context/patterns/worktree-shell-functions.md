@@ -273,7 +273,7 @@ cxd hotfix-urgent                # Clean up
 | AIfred baseline fix | `main` | `main` (but see constraint below) |
 | Hotfix | whatever you branched from | same branch |
 
-**AIfred Constraint**: AIfred baseline at `/Users/aircannon/Claude/AIfred` is **READ-ONLY**. Only `git fetch` and `git pull` are allowed — never create worktrees there.
+**AIfred Constraint**: AIfred baseline at `/Users/nathanielcannon/Claude/AIfred` is **READ-ONLY**. Only `git fetch` and `git pull` are allowed — never create worktrees there.
 
 ---
 

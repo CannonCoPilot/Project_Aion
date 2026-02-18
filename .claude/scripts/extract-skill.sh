@@ -19,7 +19,7 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 PLUGIN_CACHE="$HOME/.claude/plugins/cache"
-JARVIS_SKILLS="/Users/aircannon/Claude/Jarvis/.claude/skills"
+JARVIS_SKILLS="/Users/nathanielcannon/Claude/Jarvis/.claude/skills"
 
 usage() {
     echo "Usage: $0 <marketplace> <plugin> <skill>"

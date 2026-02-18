@@ -219,7 +219,7 @@ Always include service status section:
 
 ```bash
 # Start (Option A - Background)
-cd /Users/aircannon/Claude/aion-hello-console-2026-01-18
+cd /Users/nathanielcannon/Claude/aion-hello-console-2026-01-18
 nohup npm start > /tmp/aion-hello-console.log 2>&1 &
 echo $! > /tmp/aion-hello-console.pid
 sleep 2 && curl -s http://localhost:3000/health

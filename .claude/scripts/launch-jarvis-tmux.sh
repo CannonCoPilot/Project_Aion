@@ -175,7 +175,7 @@ export TERM=xterm-256color
 # - ENABLE_TOOL_SEARCH: Enable MCP tool search to reduce context usage
 # - CLAUDE_CODE_MAX_OUTPUT_TOKENS: Set max output to 20K (affects effective context budget)
 # Note: CLAUDE_AUTOCOMPACT_PCT_OVERRIDE left at default (~95%, effective ~85%)
-#       JICM triggers at 55% with 30% headroom before auto-compact
+#       JICM triggers at 70% with 15% headroom before auto-compact
 # Determine session type
 if [[ "$FRESH_MODE" == "true" ]]; then
     JARVIS_SESSION_TYPE="fresh"
@@ -187,7 +187,7 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_S
 
 # Create new tmux session with Claude in the main pane
 # Environment variables are exported inline before the claude command
-CLAUDE_CMD="claude --dangerously-skip-permissions --verbose --debug --debug-file /Users/aircannon/Claude/Jarvis/.claude/logs/debug.log"
+CLAUDE_CMD="claude --dangerously-skip-permissions --verbose --debug --debug-file /Users/nathanielcannon/Claude/Jarvis/.claude/logs/debug.log"
 if [[ "$FRESH_MODE" != "true" ]]; then
     CLAUDE_CMD="$CLAUDE_CMD --continue"
 fi
@@ -208,9 +208,9 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
     # Create watcher window (window 1, detached so we stay on window 0)
-    # Threshold=55 (accounts for queuing delay before compression starts)
+    # Threshold=70 (accounts for queuing delay before compression starts)
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --threshold 55 --interval 5; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --threshold 70 --interval 5; echo 'Watcher stopped.'; read"
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)

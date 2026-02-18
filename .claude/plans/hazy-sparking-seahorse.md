@@ -24,7 +24,7 @@ GET https://www.agamecardshop.com/wp-json/wc/store/v1/products?search=black+lotu
 ## Phase 1: Caching Infrastructure
 
 ### 1.1 Add Cache Module
-**File**: `/Users/aircannon/Claude/Projects/mtg-card-sales/app/proxy_cache.py` (new)
+**File**: `/Users/nathanielcannon/Claude/Projects/mtg-card-sales/app/proxy_cache.py` (new)
 
 ```python
 import time

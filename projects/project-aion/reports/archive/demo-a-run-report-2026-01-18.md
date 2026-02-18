@@ -20,7 +20,7 @@ Jarvis successfully built and validated the Aion Hello Console web application e
 | **End Time** | 2026-01-18 ~20:50 UTC |
 | **Duration** | ~15 minutes |
 | **Technology Stack** | Node.js 24 + Express + Vitest |
-| **Repository Path** | `/Users/aircannon/Claude/aion-hello-console-2026-01-18` |
+| **Repository Path** | `/Users/nathanielcannon/Claude/aion-hello-console-2026-01-18` |
 | **GitHub Status** | Local only (credentials unavailable) |
 
 ---
@@ -146,7 +146,7 @@ aion-hello-console-2026-01-18/
 
 **Workaround**: Manual push instructions provided:
 ```bash
-cd /Users/aircannon/Claude/aion-hello-console-2026-01-18
+cd /Users/nathanielcannon/Claude/aion-hello-console-2026-01-18
 git remote add origin https://github.com/CannonCoPilot/aion-hello-console-2026-01-18.git
 git push -u origin main --tags
 ```

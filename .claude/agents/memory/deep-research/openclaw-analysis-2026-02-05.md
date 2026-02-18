@@ -67,7 +67,7 @@ Conducted comprehensive analysis of OpenClaw (formerly Clawdbot/Moltbot), a vira
 
 ## Report Location
 
-Full analysis: `/Users/aircannon/Claude/Jarvis/.claude/reports/research/openclaw-analysis-2026-02-05.md`
+Full analysis: `/Users/nathanielcannon/Claude/Jarvis/.claude/reports/research/openclaw-analysis-2026-02-05.md`
 
 **Sections**:
 - Executive Summary
