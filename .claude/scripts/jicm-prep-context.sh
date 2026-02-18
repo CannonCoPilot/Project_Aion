@@ -25,7 +25,7 @@ set -eu
 # upstream command. This is normal pipe behavior, not an error.
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
-PROJECTS_DIR="$HOME/.claude/projects/-Users-aircannon-Claude-Jarvis"
+PROJECTS_DIR="$HOME/.claude/projects/-Users-nathanielcannon-Claude-Jarvis"
 OUTPUT="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
 SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
 ACTIVE_PLAN_FILE="$PROJECT_DIR/.claude/context/.active-plan"
@@ -77,7 +77,8 @@ elif [[ -d "$PROJECTS_DIR" ]]; then
 fi
 
 if [[ -z "$JSONL" ]]; then
-    echo "WARN: No JSONL transcript found — writing minimal checkpoint" >&2
+    echo "WARN: No JSONL transcript found (checked $PROJECTS_DIR) — writing minimal checkpoint" >&2
+    echo "WARN: This usually means PROJECTS_DIR is wrong. Current: $PROJECTS_DIR" >&2
     # Graceful fallback: minimal checkpoint with just session status
     {
         echo "# JICM v7 Context Checkpoint (minimal)"

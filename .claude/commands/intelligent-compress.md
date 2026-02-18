@@ -1,41 +1,22 @@
 ---
-description: "[DEPRECATED v7] Intelligent context compression using Claude model to analyze and compress conversation context. Replaced by jicm-prep-context.sh (2026-02-16)."
-allowed-tools: Read, Write, Task, Bash, TaskList
+description: "JICM v7 manual context compression — runs prep script, writes checkpoint + signal for watcher."
+allowed-tools: Bash, TaskList, Write
 ---
 
-# Intelligent Compress (JICM v6.1)
+# Intelligent Compress (JICM v7)
 
 **CRITICAL: Execute silently. No explanations. Tool calls only. Minimize context overhead.**
 
 1. Check flag: `ls .claude/context/.compression-in-progress 2>/dev/null` — if exists, say "Compression already in progress." and STOP.
 2. Create flag: `echo "$(date +%s)" > .claude/context/.compression-in-progress`
-3. Dump active tasks to file for compression agent: call `TaskList`, then write results to `.claude/context/.active-tasks.txt`. If no tasks exist, write "No active tasks."
-4. Parse optional flags from the command invocation:
-   - `--model <haiku|sonnet|opus>` — Override model (default: sonnet)
-   - `--preassemble` — Run preprocessing script before spawning agent
-
-5. If `--preassemble` was specified:
-   a. Run preprocessing: `bash .claude/scripts/dev/preassemble-compression-input.sh`
-   b. Spawn agent with Task tool — EXACT parameters:
+3. Dump active tasks to file: call `TaskList`, then write results to `.claude/context/.active-tasks.txt`. If no tasks exist, write "No active tasks."
+4. Run JICM v7 prep script:
+   ```bash
+   bash /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh
    ```
-   subagent_type: compression-agent-preassembled
-   model: [parsed model, default sonnet]
-   run_in_background: true
-   max_turns: 10
-   prompt: Compress current conversation context for JICM v6.1 continuation. Target 5K-15K tokens. Read the pre-assembled input from .claude/context/.compression-input-preassembled.md. Write checkpoint to .claude/context/.compressed-context-ready.md and signal to .claude/context/.compression-done.signal. See compression-agent-preassembled.md for full protocol.
-   ```
+5. Check exit code:
+   - **Success (0)**: Say only: "JICM v7 context prepared. Checkpoint at .compressed-context-ready.md, signal written."
+   - **Failure (non-zero)**: Say: "Prep script failed (exit $?)." and remove the in-progress flag: `rm -f .claude/context/.compression-in-progress`
 
-6. If `--preassemble` was NOT specified (default):
-   Spawn agent with Task tool — EXACT parameters:
-   ```
-   subagent_type: compression-agent
-   model: [parsed model, default sonnet]
-   run_in_background: true
-   max_turns: 30
-   prompt: Compress current conversation context for JICM v5.8 continuation. Target 5K-15K tokens. Write checkpoint to .claude/context/.compressed-context-ready.md and signal to .claude/context/.compression-done.signal. See compression-agent.md for full protocol.
-   ```
-
-7. Say only: "Compression spawned. Watcher handles /clear and restoration."
-
-Do NOT: update session files, read additional files, verify agent output, or add explanations.
-Post-compression gating (.in-progress-ready.md, /clear) is handled entirely by the watcher.
+Do NOT: update session files, read additional files, verify output, or add explanations.
+The watcher detects .compression-done.signal and handles /clear + restoration automatically.

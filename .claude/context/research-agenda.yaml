@@ -40,18 +40,7 @@ pending:
     notes: |
       May require persistent state tracking across /clear cycles
 
-  - id: RD-003
-    title: "Context Compression Optimization"
-    description: |
-      Research optimal compression strategies for different work types
-      (coding vs research vs documentation).
-    priority: MEDIUM
-    source: JICM v5 compression agent observations
-    created: 2026-02-04
-    related_files:
-      - .claude/agents/compression-agent.md
-    notes: |
-      Current 12:1 ratio is good but may be improvable for specific patterns
+  # RD-003 moved to completed (SUPERSEDED by JICM v7 — 2026-02-17)
 
 # ============================================================================
 # IN PROGRESS
@@ -75,6 +64,18 @@ completed:
     notes: |
       Root cause: Ink TUI raw mode creates input state collision.
       Solution: Use external watcher process for all prompt injection.
+
+  - id: RD-003
+    title: "Context Compression Optimization"
+    description: "Optimize compression strategies for different work types"
+    priority: MEDIUM
+    source: JICM v5 compression agent observations
+    completed: 2026-02-17
+    result: SUPERSEDED
+    notes: |
+      JICM v7 replaced the LLM compression agent with a 0.03s bash prep script.
+      Compression optimization is moot when there is no compression step.
+      See: Experiments 4-6 superseded note in current-priorities.md.
 
 # ============================================================================
 # DEFERRED

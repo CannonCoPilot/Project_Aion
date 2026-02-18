@@ -12,7 +12,7 @@ const fs = require('fs');
 const path = require('path');
 
 const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || path.join(process.env.HOME, 'Claude', 'Jarvis');
-const MEMORY_SOURCE = path.join(process.env.HOME, '.claude', 'projects', '-Users-aircannon-Claude-Jarvis', 'memory', 'MEMORY.md');
+const MEMORY_SOURCE = path.join(process.env.HOME, '.claude', 'projects', '-Users-nathanielcannon-Claude-Jarvis', 'memory', 'MEMORY.md');
 const MEMORY_DEST = path.join(PROJECT_DIR, '.claude', 'context', 'memory', 'MEMORY.md');
 
 function main() {

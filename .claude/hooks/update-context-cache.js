@@ -1,1 +1,1 @@
-/Users/aircannon/.claude/hooks/update-context-cache.js
+/Users/nathanielcannon/.claude/hooks/update-context-cache.js

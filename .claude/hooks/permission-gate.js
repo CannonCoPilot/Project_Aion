@@ -32,7 +32,7 @@ const GATE_PATTERNS = [
       /edit.*aifred/i,
       /modify.*aifred/i,
       /change.*aifred/i,
-      /\/Users\/aircannon\/Claude\/AIfred/i,
+      /\/Users\/nathanielcannon\/Claude\/AIfred/i,
     ],
     reminder: `<permission-gate name="aifred-baseline">
 POLICY-CROSSING OPERATION: AIfred Baseline
