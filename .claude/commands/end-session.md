@@ -273,7 +273,26 @@ ls -la .claude/reports/maintenance/maintenance-$(date +%Y-%m-%d)*.md 2>/dev/null
 | PR-10 | 2.0.0 (Phase 5) |
 | PR-14 | 3.0.0 (Phase 6) |
 
-### 7. Git Commit
+### 7. Graphiti Knowledge Capture (AC-09 Memory)
+
+**Capture session knowledge** in the Jarvis knowledge graph for cross-session memory:
+
+1. **Compose a session summary** (2-4 paragraphs) covering:
+   - What was accomplished (key decisions, implementations, fixes)
+   - Key technical findings (gotchas, patterns discovered, architecture decisions)
+   - Current state and next steps
+
+2. **Call jarvis-graphiti `add_episode`**:
+   - `name`: "Session [N] — [brief topic]" (e.g., "Session 26 — Graphiti MCP + RAG Pipeline")
+   - `content`: The session summary composed above
+   - `source_description`: "Jarvis AC-09 session exit capture"
+   - `source_type`: "text"
+
+3. **Verify** the episode was ingested (check entities_extracted > 0)
+
+If jarvis-graphiti MCP is not available (server not running), skip this step and note in session-state.md.
+
+### 8. Git Commit
 
 If there are uncommitted changes:
 
@@ -296,7 +315,7 @@ git commit -m "Release vX.X.X - [PR description]
 Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 ```
 
-### 8. GitHub Push
+### 9. GitHub Push
 
 Push to Project_Aion branch (NOT main — main is read-only baseline):
 
@@ -304,7 +323,7 @@ Push to Project_Aion branch (NOT main — main is read-only baseline):
 git push origin Project_Aion
 ```
 
-### 9. Tag Release (Optional)
+### 10. Tag Release (Optional)
 
 For MINOR and MAJOR bumps, create a git tag:
 
@@ -313,11 +332,11 @@ git tag vX.X.X
 git push origin vX.X.X
 ```
 
-### 10. Clear Session Activity
+### 11. Clear Session Activity
 
 Reset the session activity tracker for next session.
 
-### 11. Cross-Project Commit Check (If Multi-Repo)
+### 12. Cross-Project Commit Check (If Multi-Repo)
 
 If commits were made to multiple repositories this session:
 
@@ -329,7 +348,7 @@ If commits were made to multiple repositories this session:
 3. If yes, push each project's branch
 4. Report results per project
 
-### 12. Disable On-Demand MCPs
+### 13. Disable On-Demand MCPs
 
 Check session-state.md for any On-Demand MCPs enabled this session.
 List them for user to disable (they must be OFF by default per MCP Loading Strategy).
@@ -391,7 +410,7 @@ After the closing salutation, emit the completion telemetry and update the AC-09
 
 ```bash
 # Emit session completion telemetry
-echo '{"component":"AC-09","event_type":"session_end","data":{"phase":"complete","steps_completed":12}}' | node .claude/hooks/telemetry-emitter.js
+echo '{"component":"AC-09","event_type":"session_end","data":{"phase":"complete","steps_completed":13}}' | node .claude/hooks/telemetry-emitter.js
 
 # Update AC-09 state file with session metrics
 node -e "
