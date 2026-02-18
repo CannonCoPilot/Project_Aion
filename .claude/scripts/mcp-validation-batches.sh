@@ -17,7 +17,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_PATH="/Users/aircannon/Claude/Jarvis"
+PROJECT_PATH="/Users/nathanielcannon/Claude/Jarvis"
 CONFIG_FILE="$HOME/.claude.json"
 
 # Colors

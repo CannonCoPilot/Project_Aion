@@ -18,7 +18,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/aircannon/Claude/Jarvis';
+const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
 const METADATA_FILE = path.join(WORKSPACE_ROOT, '.claude/logs/memory-access.json');
 
 // Memory MCP tool names to track (Jarvis uses mcp-gateway)

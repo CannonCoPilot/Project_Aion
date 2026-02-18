@@ -8,7 +8,7 @@ When the user runs `/dev-chat`:
 
 1. **List available exports**:
    ```bash
-   ls -lhS /Users/aircannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_*.txt 2>/dev/null
+   ls -lhS /Users/nathanielcannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_*.txt 2>/dev/null
    ```
    If no exports exist, tell the user: "No dev chat exports found. Use `/export-dev` to create one."
 

@@ -91,7 +91,7 @@ Beyond the Nine Muses exists a hidden 10th component: **AC-10 Ulfhedthnar** — 
 ### B.1 Install claude-code-docs (~1 hr) — DONE
 - [x] Forked costiash/claude-code-docs → CannonCoPilot/claude-code-docs
 - [x] Refactored installer v0.6.0-jarvis: Jarvis-aware, GitRepos path, project-level /docs command
-- [x] Installed to /Users/aircannon/Claude/GitRepos/claude-code-docs (543 files, 573 paths, Python 3.9.6)
+- [x] Installed to /Users/nathanielcannon/Claude/GitRepos/claude-code-docs (543 files, 573 paths, Python 3.9.6)
 - [x] Created /docs command at .claude/commands/docs.md (project-level, not user-level)
 - [x] Session-start sync: git pull on startup (session-start.sh, after AIfred sync)
 - [x] Zero hooks, zero persistent context overhead

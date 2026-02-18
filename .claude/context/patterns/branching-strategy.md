@@ -118,8 +118,8 @@ git log origin/main..HEAD --oneline
 
 | Local Path | Branch | Purpose |
 |------------|--------|---------|
-| `/Users/aircannon/Claude/Jarvis/` | `Project_Aion` | Active development |
-| `/Users/aircannon/Claude/AIfred/` | `main` (mirror) | Baseline reference only |
+| `/Users/nathanielcannon/Claude/Jarvis/` | `Project_Aion` | Active development |
+| `/Users/nathanielcannon/Claude/AIfred/` | `main` (mirror) | Baseline reference only |
 
 ---
 

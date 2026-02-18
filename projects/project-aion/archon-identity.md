@@ -95,7 +95,7 @@ Project Aion Archons are **derived from** the AIfred baseline but follow a **div
 
 Archons may incorporate improvements from the AIfred baseline through a controlled porting process:
 
-1. **Pull**: Fetch AIfred baseline main into local mirror (`/Users/aircannon/Claude/AIfred`)
+1. **Pull**: Fetch AIfred baseline main into local mirror (`/Users/nathanielcannon/Claude/AIfred`)
 2. **Diff**: Compare baseline changes against Archon
 3. **Classify**: Categorize changes as safe / unsafe / manual review
 4. **Propose**: Generate port proposal with rationale
@@ -125,7 +125,7 @@ A port log tracks decisions with "adopt / adapt / reject" status and rationale.
 ### Workspace Boundaries
 
 Archons operate within explicitly allowlisted directories:
-- Archon's own workspace (e.g., `/Users/aircannon/Claude/Jarvis/`)
+- Archon's own workspace (e.g., `/Users/nathanielcannon/Claude/Jarvis/`)
 - Active target project workspace(s)
 - Registered project paths in `paths-registry.yaml`
 

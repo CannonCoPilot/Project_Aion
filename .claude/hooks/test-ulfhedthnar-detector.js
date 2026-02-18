@@ -12,7 +12,7 @@ const path = require('path');
 const fs = require('fs');
 
 // Paths for state files that may be modified by tests
-const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || '/Users/aircannon/Claude/Jarvis';
+const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || '/Users/nathanielcannon/Claude/Jarvis';
 const SIGNAL_FILE = path.join(WORKSPACE_ROOT, '.claude/state/ulfhedthnar-signals.json');
 const AC10_STATE = path.join(WORKSPACE_ROOT, '.claude/state/components/AC-10-ulfhedthnar.json');
 

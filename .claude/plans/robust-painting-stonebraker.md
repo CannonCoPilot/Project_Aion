@@ -51,7 +51,7 @@ HALT → bash jicm-prep-context.sh (3-5s, runs in watcher process)
 
 ### Step 1: Create `jicm-prep-context.sh`
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
 **Purpose**: Fast bash script that prepares context for post-/clear restoration.
 
 **Inputs** (read by script):
@@ -150,7 +150,7 @@ echo "$(date +%s)" > "$SIGNAL"
 
 ### Step 2: Create `plan-tracker.js` (ExitPlanMode hook)
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/hooks/plan-tracker.js`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/plan-tracker.js`
 **Purpose**: PostToolUse hook that tracks which plan file is active.
 
 ```javascript
@@ -191,7 +191,7 @@ console.log(JSON.stringify({}));
 
 ### Step 3: Register `plan-tracker.js` in settings.json
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/settings.json`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/settings.json`
 **Change**: Add new PostToolUse entry with `^ExitPlanMode$` matcher.
 
 ```json
@@ -210,7 +210,7 @@ Insert after the existing `^(Task|TaskCreate|TaskUpdate)$` virgil-tracker entry 
 
 ### Step 4: Modify `jicm-watcher.sh` — Replace `do_compress()`
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`
 **Lines**: 773-857 (entire `do_compress()` function)
 
 Replace with:
@@ -257,7 +257,7 @@ do_compress() {
 
 ### Step 5: Modify `session-start.sh` — Simplify JICM restore path
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/hooks/session-start.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/session-start.sh`
 **Lines**: 333-345 (CONTEXT template in JICM v6 restore path)
 
 Replace the CONTEXT template:
@@ -283,7 +283,7 @@ These files are auto-loaded by Claude Code on every session/clear. Instructing J
 
 ### Step 6: Modify `ennoia.sh` — Add plan tracking
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
 
 **6a. Add variables** (after line 26):
 ```bash
@@ -341,7 +341,7 @@ arise)
 
 ### Step 7: Modify `do_restore()` — Clean up experiment artifacts
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`
 **Lines**: 890-927
 
 Simplify by removing experiment-specific cleanup:

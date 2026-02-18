@@ -35,10 +35,10 @@ Before running tests, ensure:
 pgrep -f "auto-clear-watcher.sh"
 
 # Check PID file
-cat /Users/aircannon/Claude/Jarvis/.claude/context/.watcher-pid
+cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.watcher-pid
 
 # Check watcher log
-tail -20 /Users/aircannon/Claude/Jarvis/.claude/logs/watcher-launcher.log
+tail -20 /Users/nathanielcannon/Claude/Jarvis/.claude/logs/watcher-launcher.log
 ```
 
 ### Expected Results:
@@ -49,7 +49,7 @@ tail -20 /Users/aircannon/Claude/Jarvis/.claude/logs/watcher-launcher.log
 ### If Watcher Not Running:
 ```bash
 # Manual launch
-CLAUDE_PROJECT_DIR=/Users/aircannon/Claude/Jarvis /Users/aircannon/Claude/Jarvis/.claude/scripts/launch-watcher.sh
+CLAUDE_PROJECT_DIR=/Users/nathanielcannon/Claude/Jarvis /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/launch-watcher.sh
 ```
 
 ---
@@ -62,10 +62,10 @@ CLAUDE_PROJECT_DIR=/Users/aircannon/Claude/Jarvis /Users/aircannon/Claude/Jarvis
 
 ```bash
 # Check current context estimate
-cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq .
+cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq .
 
 # Watch file in real-time (leave running)
-watch -n 1 "cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq ."
+watch -n 1 "cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq ."
 ```
 
 ### Steps (Primary Claude Session):
@@ -97,7 +97,7 @@ After test, run `/context` in Primary session and compare:
 ### Steps (Test Terminal):
 ```bash
 # Check JICM estimate
-cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.percentage'
+cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.percentage'
 ```
 
 ### Document the Gap:
@@ -123,7 +123,7 @@ Actual will likely be 20-40% higher than estimated because JICM doesn't count:
 
 ```bash
 # Set context estimate to threshold level (65% recommended)
-cat > /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
+cat > /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
 {
   "sessionStart": "2026-01-20T20:00:00.000Z",
   "totalTokens": 135000,
@@ -134,7 +134,7 @@ cat > /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
 EOF
 
 # Watch for checkpoint file creation
-watch -n 1 "ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md 2>/dev/null || echo 'No checkpoint'"
+watch -n 1 "ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md 2>/dev/null || echo 'No checkpoint'"
 ```
 
 ### Steps (Primary Claude Session):
@@ -149,9 +149,9 @@ Run any tool call (e.g., read a file)
 ### Verification:
 ```bash
 # Check all JICM state files
-echo "=== Checkpoint ===" && head -20 /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
-echo "=== Signal ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context/.auto-clear-signal 2>/dev/null || echo "No signal"
-echo "=== Flag ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context/.compaction-in-progress 2>/dev/null || echo "No flag"
+echo "=== Checkpoint ===" && head -20 /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
+echo "=== Signal ===" && cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.auto-clear-signal 2>/dev/null || echo "No signal"
+echo "=== Flag ===" && cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compaction-in-progress 2>/dev/null || echo "No flag"
 ```
 
 ---
@@ -166,7 +166,7 @@ echo "=== Flag ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context/.compa
 
 ```bash
 # Simulate PreCompact hook firing
-echo '{}' | CLAUDE_PROJECT_DIR=/Users/aircannon/Claude/Jarvis /Users/aircannon/Claude/Jarvis/.claude/hooks/pre-compact.sh
+echo '{}' | CLAUDE_PROJECT_DIR=/Users/nathanielcannon/Claude/Jarvis /Users/nathanielcannon/Claude/Jarvis/.claude/hooks/pre-compact.sh
 ```
 
 ### Expected Results:
@@ -177,7 +177,7 @@ echo '{}' | CLAUDE_PROJECT_DIR=/Users/aircannon/Claude/Jarvis /Users/aircannon/C
 ### Verify Coupling Issue:
 ```bash
 # After running, check if signal was created
-ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.auto-clear-signal
+ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.auto-clear-signal
 # If exists, this demonstrates the coupling issue identified in Q10
 ```
 
@@ -190,7 +190,7 @@ ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.auto-clear-signal
 ### Setup (Test Terminal):
 ```bash
 # Create a checkpoint manually
-cat > /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md << 'EOF'
+cat > /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md << 'EOF'
 # Manual Test Checkpoint
 
 **Created**: 2026-01-20T21:00:00.000Z
@@ -223,7 +223,7 @@ EOF
 
 ### Cleanup:
 ```bash
-rm -f /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
+rm -f /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
 ```
 
 ---
@@ -236,19 +236,19 @@ rm -f /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
 
 ```bash
 # Check current disabled MCPs
-jq -r '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers // []' ~/.claude.json
+jq -r '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers // []' ~/.claude.json
 
 # Disable test MCPs
-/Users/aircannon/Claude/Jarvis/.claude/scripts/disable-mcps.sh github context7 sequential-thinking
+/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/disable-mcps.sh github context7 sequential-thinking
 
 # Verify disabled
-jq -r '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers // []' ~/.claude.json
+jq -r '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers // []' ~/.claude.json
 
 # Re-enable
-/Users/aircannon/Claude/Jarvis/.claude/scripts/enable-mcps.sh github context7 sequential-thinking
+/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/enable-mcps.sh github context7 sequential-thinking
 
 # Verify re-enabled
-jq -r '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers // []' ~/.claude.json
+jq -r '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers // []' ~/.claude.json
 ```
 
 ### Expected Results:
@@ -264,7 +264,7 @@ jq -r '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers // []' ~/.
 ### Setup (Test Terminal):
 ```bash
 # Note current estimate
-cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.toolCalls, .totalTokens'
+cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.toolCalls, .totalTokens'
 ```
 
 ### Steps (Primary Claude Session):
@@ -276,7 +276,7 @@ Use the Explore subagent to find all TypeScript files in the .claude directory
 ### Check After (Test Terminal):
 ```bash
 # Check estimate again
-cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.toolCalls, .totalTokens'
+cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.toolCalls, .totalTokens'
 ```
 
 ### Expected Results:
@@ -303,7 +303,7 @@ cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq '.too
 pgrep -f "auto-clear-watcher.sh" || echo "START WATCHER FIRST"
 
 # 2. Set estimate to trigger level
-cat > /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
+cat > /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
 {
   "sessionStart": "2026-01-20T20:00:00.000Z",
   "totalTokens": 170000,
@@ -347,26 +347,26 @@ EOF
 
 ```bash
 # Real-time context monitoring
-watch -n 1 "cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq ."
+watch -n 1 "cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq ."
 
 # Watch for checkpoint
-watch -n 1 "ls -la /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md 2>/dev/null"
+watch -n 1 "ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md 2>/dev/null"
 
 # Watch session-start log
-tail -f /Users/aircannon/Claude/Jarvis/.claude/logs/session-start-diagnostic.log
+tail -f /Users/nathanielcannon/Claude/Jarvis/.claude/logs/session-start-diagnostic.log
 
 # Watch watcher log
-tail -f /Users/aircannon/Claude/Jarvis/.claude/logs/watcher-launcher.log
+tail -f /Users/nathanielcannon/Claude/Jarvis/.claude/logs/watcher-launcher.log
 
 # Watch JICM triggers log
-tail -f /Users/aircannon/Claude/Jarvis/.claude/logs/jicm-triggers.log 2>/dev/null
+tail -f /Users/nathanielcannon/Claude/Jarvis/.claude/logs/jicm-triggers.log 2>/dev/null
 
 # Full JICM state check
-echo "=== Context Estimate ===" && cat /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq .
-echo "=== Checkpoint ===" && head -10 /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md 2>/dev/null || echo "None"
-echo "=== Signal ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context/.auto-clear-signal 2>/dev/null || echo "None"
-echo "=== Flag ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context/.compaction-in-progress 2>/dev/null || echo "None"
-echo "=== Watcher PID ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context/.watcher-pid 2>/dev/null || echo "None"
+echo "=== Context Estimate ===" && cat /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json | jq .
+echo "=== Checkpoint ===" && head -10 /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md 2>/dev/null || echo "None"
+echo "=== Signal ===" && cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.auto-clear-signal 2>/dev/null || echo "None"
+echo "=== Flag ===" && cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compaction-in-progress 2>/dev/null || echo "None"
+echo "=== Watcher PID ===" && cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.watcher-pid 2>/dev/null || echo "None"
 ```
 
 ---
@@ -375,7 +375,7 @@ echo "=== Watcher PID ===" && cat /Users/aircannon/Claude/Jarvis/.claude/context
 
 ```bash
 # Reset context estimate to baseline
-cat > /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
+cat > /Users/nathanielcannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
 {
   "sessionStart": "2026-01-20T21:00:00.000Z",
   "totalTokens": 30000,
@@ -386,15 +386,15 @@ cat > /Users/aircannon/Claude/Jarvis/.claude/logs/context-estimate.json << 'EOF'
 EOF
 
 # Remove JICM state files
-rm -f /Users/aircannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
-rm -f /Users/aircannon/Claude/Jarvis/.claude/context/.auto-clear-signal
-rm -f /Users/aircannon/Claude/Jarvis/.claude/context/.compaction-in-progress
+rm -f /Users/nathanielcannon/Claude/Jarvis/.claude/context/.soft-restart-checkpoint.md
+rm -f /Users/nathanielcannon/Claude/Jarvis/.claude/context/.auto-clear-signal
+rm -f /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compaction-in-progress
 
 # Re-enable any disabled MCPs
-/Users/aircannon/Claude/Jarvis/.claude/scripts/enable-mcps.sh github context7 sequential-thinking
+/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/enable-mcps.sh github context7 sequential-thinking
 
 # Stop watcher (if desired)
-/Users/aircannon/Claude/Jarvis/.claude/scripts/stop-watcher.sh
+/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/stop-watcher.sh
 ```
 
 ---

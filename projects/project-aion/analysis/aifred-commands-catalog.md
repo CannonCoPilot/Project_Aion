@@ -1,6 +1,6 @@
 # AIfred Commands Catalog
 
-**Source**: `/Users/aircannon/Claude/AIfred/.claude/commands/`
+**Source**: `/Users/nathanielcannon/Claude/AIfred/.claude/commands/`
 **Analyzed**: 2026-01-21
 **Purpose**: Comprehensive catalog for Jarvis sync analysis
 

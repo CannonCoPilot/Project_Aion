@@ -14,7 +14,7 @@ This document defines the canonical locations for all Jarvis-managed workspaces,
 ## Path Hierarchy
 
 ```
-/Users/aircannon/Claude/
+/Users/nathanielcannon/Claude/
 ├── AIfred/                    # AIfred baseline (READ-ONLY mirror)
 ├── Jarvis/                    # Jarvis Archon workspace (this repo)
 │   ├── .claude/
@@ -31,20 +31,20 @@ This document defines the canonical locations for all Jarvis-managed workspaces,
 
 ### 1. Projects Root
 
-**Path**: `/Users/aircannon/Claude/`
+**Path**: `/Users/nathanielcannon/Claude/`
 
 This is the root directory for all Claude-assisted projects. Each project gets its own subdirectory.
 
 | Content | Location |
 |---------|----------|
-| External projects | `/Users/aircannon/Claude/<ProjectName>/` |
-| Jarvis itself | `/Users/aircannon/Claude/Jarvis/` |
-| AIfred baseline | `/Users/aircannon/Claude/AIfred/` (read-only) |
-| Future Archons | `/Users/aircannon/Claude/<ArchonName>/` |
+| External projects | `/Users/nathanielcannon/Claude/<ProjectName>/` |
+| Jarvis itself | `/Users/nathanielcannon/Claude/Jarvis/` |
+| AIfred baseline | `/Users/nathanielcannon/Claude/AIfred/` (read-only) |
+| Future Archons | `/Users/nathanielcannon/Claude/<ArchonName>/` |
 
 ### 2. Jarvis Project Summaries
 
-**Path**: `/Users/aircannon/Claude/Jarvis/projects/`
+**Path**: `/Users/nathanielcannon/Claude/Jarvis/projects/`
 
 When Jarvis works on external projects, it creates **summary documents** here (not code). These summaries provide context about projects without duplicating their content.
 
@@ -57,12 +57,12 @@ When Jarvis works on external projects, it creates **summary documents** here (n
 | Benchmark outputs | `projects/<project-name>-benchmark-<date>.md` |
 
 **Example**: Working on a project called "MyApp":
-- Code lives at: `/Users/aircannon/Claude/MyApp/`
-- Summary lives at: `/Users/aircannon/Claude/Jarvis/projects/myapp.md`
+- Code lives at: `/Users/nathanielcannon/Claude/MyApp/`
+- Summary lives at: `/Users/nathanielcannon/Claude/Jarvis/projects/myapp.md`
 
 ### 3. Project Aion Documentation (EVOLUTION)
 
-**Path**: `/Users/aircannon/Claude/Jarvis/projects/project-aion/`
+**Path**: `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/`
 
 Project Aion is special—Jarvis is working on itself. All evolution documentation lives here.
 
@@ -81,7 +81,7 @@ Project Aion is special—Jarvis is working on itself. All evolution documentati
 
 ### 4. AIfred Baseline Mirror
 
-**Path**: `/Users/aircannon/Claude/AIfred/`
+**Path**: `/Users/nathanielcannon/Claude/AIfred/`
 
 **STATUS: READ-ONLY**
 
@@ -102,11 +102,11 @@ This is a local mirror of the upstream AIfred baseline. It is used only for:
 The `paths-registry.yaml` file at Jarvis root is the source of truth for all paths. Key entries:
 
 ```yaml
-projects_root: /Users/aircannon/Claude
-jarvis_root: /Users/aircannon/Claude/Jarvis
-jarvis_summaries: /Users/aircannon/Claude/Jarvis/projects
-jarvis_project_aion: /Users/aircannon/Claude/Jarvis/projects/project-aion
-aifred_baseline: /Users/aircannon/Claude/AIfred  # READ-ONLY
+projects_root: /Users/nathanielcannon/Claude
+jarvis_root: /Users/nathanielcannon/Claude/Jarvis
+jarvis_summaries: /Users/nathanielcannon/Claude/Jarvis/projects
+jarvis_project_aion: /Users/nathanielcannon/Claude/Jarvis/projects/project-aion
+aifred_baseline: /Users/nathanielcannon/Claude/AIfred  # READ-ONLY
 
 development:
   projects:
@@ -121,10 +121,10 @@ development:
 
 | Scenario | Location |
 |----------|----------|
-| New external project | `/Users/aircannon/Claude/<ProjectName>/` |
-| Jarvis internal changes | `/Users/aircannon/Claude/Jarvis/` |
-| New Archon | `/Users/aircannon/Claude/<ArchonName>/` |
-| Benchmarks (Demo apps) | `/Users/aircannon/Claude/<DemoName>/` |
+| New external project | `/Users/nathanielcannon/Claude/<ProjectName>/` |
+| Jarvis internal changes | `/Users/nathanielcannon/Claude/Jarvis/` |
+| New Archon | `/Users/nathanielcannon/Claude/<ArchonName>/` |
+| Benchmarks (Demo apps) | `/Users/nathanielcannon/Claude/<DemoName>/` |
 
 ### Where Do Docs Go?
 
@@ -154,8 +154,8 @@ Jarvis is a **hub** that orchestrates projects stored elsewhere. It does not con
 User: "Clone https://github.com/example/myapp"
 
 Action:
-1. Clone to: /Users/aircannon/Claude/myapp/
-2. Create summary: /Users/aircannon/Claude/Jarvis/projects/myapp.md
+1. Clone to: /Users/nathanielcannon/Claude/myapp/
+2. Create summary: /Users/nathanielcannon/Claude/Jarvis/projects/myapp.md
 3. Register in: paths-registry.yaml under development.projects
 ```
 
@@ -165,9 +165,9 @@ Action:
 User: "Create a new project called DataPipeline"
 
 Action:
-1. Create at: /Users/aircannon/Claude/DataPipeline/
+1. Create at: /Users/nathanielcannon/Claude/DataPipeline/
 2. Initialize: git, README, CLAUDE.md
-3. Create summary: /Users/aircannon/Claude/Jarvis/projects/DataPipeline.md
+3. Create summary: /Users/nathanielcannon/Claude/Jarvis/projects/DataPipeline.md
 4. Register in: paths-registry.yaml
 ```
 
@@ -177,9 +177,9 @@ Action:
 Task: Execute one-shot PRD demo
 
 Action:
-1. Create repo at: /Users/aircannon/Claude/aion-hello-console-2026-01-05/
+1. Create repo at: /Users/nathanielcannon/Claude/aion-hello-console-2026-01-05/
 2. Push to: github.com/CannonCoPilot/aion-hello-console-2026-01-05
-3. Create report: /Users/aircannon/Claude/Jarvis/projects/aion-hello-console-report.md
+3. Create report: /Users/nathanielcannon/Claude/Jarvis/projects/aion-hello-console-report.md
 ```
 
 ---

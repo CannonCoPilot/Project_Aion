@@ -28,7 +28,7 @@
 | Server | Status | Token Cost | Test Result |
 |--------|--------|------------|-------------|
 | memory | ✅ Connected | ~8-15K | Graph empty, ready to use |
-| filesystem | ✅ Connected | ~8K | Allowed: `/Users/aircannon/Claude/Jarvis` |
+| filesystem | ✅ Connected | ~8K | Allowed: `/Users/nathanielcannon/Claude/Jarvis` |
 | fetch | ✅ Connected | ~5K | Ready |
 | time | ✅ Connected | ~3K | `2026-01-06T20:16:00-07:00` |
 | git | ✅ Connected | ~6K | Branch: Project_Aion, 2 modified files |

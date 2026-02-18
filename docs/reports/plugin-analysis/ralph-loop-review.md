@@ -1,6 +1,6 @@
 # Plugin Review: ralph-loop
 
-**Path:** `/Users/aircannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop`
+**Path:** `/Users/nathanielcannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop`
 **Generated:** 2026-01-17 11:44:27
 
 ## Metadata

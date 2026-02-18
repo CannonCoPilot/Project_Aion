@@ -18,9 +18,9 @@ During thorough validation of the v1.3.0 setup process, several UX and architect
 
 **Issue**: Projects root default detection is suboptimal
 
-**Current Behavior**: Auto-detects `/Users/aircannon/Claude` with existing repos
+**Current Behavior**: Auto-detects `/Users/nathanielcannon/Claude` with existing repos
 
-**Expected Behavior**: Default should be `/Users/aircannon/Claude/Projects` - a dedicated subdirectory for code projects separate from Jarvis and other tools.
+**Expected Behavior**: Default should be `/Users/nathanielcannon/Claude/Projects` - a dedicated subdirectory for code projects separate from Jarvis and other tools.
 
 **Rationale**: Code projects (and any project beyond Project Aion self-evolution) should keep their codebases, knowledge bases, and planning docs within their own subfolder of a dedicated Projects directory.
 
@@ -29,7 +29,7 @@ During thorough validation of the v1.3.0 setup process, several UX and architect
 What will you primarily use Jarvis for?     → All of the above
 How much automation do you want?            → Full Automation
 Enable Memory MCP?                          → Yes, enable memory
-Where should code projects live?            → /Users/aircannon/Claude/Projects
+Where should code projects live?            → /Users/nathanielcannon/Claude/Projects
 ```
 
 **Fix**: Update Phase 2 to use `$HOME/Claude/Projects` as default, create if not exists.
@@ -122,7 +122,7 @@ context-reminder.js: ✅
 **Example of What User Sees**:
 ```bash
 JARVIS_PATH="/tmp/jarvis-validation-test/Jarvis"
-AIFRED_PATH="/Users/aircannon/Claude/AIfred"
+AIFRED_PATH="/Users/nathanielcannon/Claude/AIfred"
 CRITICAL_PASS=0
 ...hundreds of lines of bash...
 ```

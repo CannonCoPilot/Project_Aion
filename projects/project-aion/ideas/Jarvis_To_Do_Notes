@@ -95,9 +95,9 @@ Pre-reqs and Env
  - Needs a better pre-req stage (especially any manual installs and desktop apps) that checks the system and walks the user through all of the installs.
  - Instructions to create and load a virtual environment, then install all dependencies
  - Explicitly inherit all permissions at and below the root project directory.
- - Is the Jarvis project configured to create and save project code spaces in their own subfolders in '/Users/aircannon/Claude'?  I want projects to go into their own subfolders of '/Users/aircannon/Claude' and a project summary doc to be saved to '/Users/aircannon/Claude/Jarvis/projects' as when working on said project from within '/Users/aircannon/Claude/Jarvis'
+ - Is the Jarvis project configured to create and save project code spaces in their own subfolders in '/Users/Jarvis/Claude'?  I want projects to go into their own subfolders of '/Users/Jarvis/Claude' and a project summary doc to be saved to '/Users/Jarvis/Claude/Jarvis/projects' as when working on said project from within '/Users/Jarvis/Claude/Jarvis'
  - ClaudeCode when running from the Jarvis project needs way more autonomy.  It shouldn't ask for permission to perform ANY operation that is done within the Jarvis project space, or done within any other project space that is the target for the codebase of the current session's project.
- - At project start the user should be encouraged to run '/setup', which if run in a fully initialized AIfred-style project space, est up then goes through and validates logs, system docs, previous session notes and 'To Do' docs, pulls the AIfred Main branch down to '/Users/aircannon/Claude/AIfred' which is always used as the baseline reference for potential updates to port over to Jarvis, and then runs the comparative analysis and updating of itself based on any useful non-conflicting updates made to AIfred.
+ - At project start the user should be encouraged to run '/setup', which if run in a fully initialized AIfred-style project space, est up then goes through and validates logs, system docs, previous session notes and 'To Do' docs, pulls the AIfred Main branch down to '/Users/Jarvis/Claude/AIfred' which is always used as the baseline reference for potential updates to port over to Jarvis, and then runs the comparative analysis and updating of itself based on any useful non-conflicting updates made to AIfred.
  - start Claude Code with claude --debug --verbose
  - Claude Code actually makes it really easy to see the tool descriptions for all of your enabled MCPs. Just issue the /mcp slash command and keep drilling down until you get to the tool you're interested in. Eventually you'll see the tool description.
  - setup should strongly encourage n8n installed locally or configure remote connection to n8n server
@@ -106,13 +106,13 @@ Pre-reqs and Env
 
  GitHub
  - Jarvis version to be 'JARVIS' branch of AIfred repo. Set up the project folder as github repo and commit and push changes.
- - Still needs to pull updates from AIfred Main branch into '/Users/aircannon/Claude/AIfred' and then review changes, analyze in context of current Jarvis project state, and recommend changes to be applied to keep the Jarvis core on par with AIfred Main.
+ - Still needs to pull updates from AIfred Main branch into '/Users/Jarvis/Claude/AIfred' and then review changes, analyze in context of current Jarvis project state, and recommend changes to be applied to keep the Jarvis core on par with AIfred Main.
  - Individual projects pushed to their own repos in CannonCoPilot when developing from within Jarvis
  
  Aeon philosophy: Flavors ('Aeons') of AIfred Main are developed for custom ClaudCode development and content creation experiences.
  - Jarvis: The 'Master' version of AIfred.  Is does all general dev work, system management, and also builds other AIfred flavors as seen below.
  	* Re-write all setup files, documentation, and anything else to refer to this flavor of the AIfred code-base as 'Jarvis'.  In the readme include an explanation that this branch is more like a fork, and is not meant to be merged, and that 'Jarvis' is a derivative development track of AIfred (created by David O'Neil) under development by Nathaniel Cannon.
- - Jeeves: Non-dev, has knowledge bases of family bios and profiles, access to personal records and financials, work data.  Needs a large set of advanced tools, lots of self-automation (initiative). Lives in its own ''/Users/aircannon/Claude' subfolder like any other 'Project'
+ - Jeeves: Non-dev, has knowledge bases of family bios and profiles, access to personal records and financials, work data.  Needs a large set of advanced tools, lots of self-automation (initiative). Lives in its own ''/Users/Jarvis/Claude' subfolder like any other 'Project'
  - Wallace: The creative writer version of AIfred. Radically different. In very early conceptual stages. Builds knowledge bases of literary fiction, politics, history, philosophy and religion. Knows about and uses computational linquistics tools built by Jarvis. Helps the user access, read, understand, interpret and analyze written works.
 
  Evolutionary Philosophy:

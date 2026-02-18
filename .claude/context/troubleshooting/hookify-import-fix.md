@@ -71,8 +71,8 @@ python3 -c "from hookify.core.config_loader import load_rules; print('✅ Succes
 
 # Test full hook execution
 echo '{"prompt": "test"}' | \
-  CLAUDE_PLUGIN_ROOT="/Users/aircannon/.claude/plugins/cache/claude-code-plugins/hookify/0.1.0" \
-  python3 /Users/aircannon/.claude/plugins/cache/claude-code-plugins/hookify/0.1.0/hooks/userpromptsubmit.py
+  CLAUDE_PLUGIN_ROOT="/Users/nathanielcannon/.claude/plugins/cache/claude-code-plugins/hookify/0.1.0" \
+  python3 /Users/nathanielcannon/.claude/plugins/cache/claude-code-plugins/hookify/0.1.0/hooks/userpromptsubmit.py
 
 # Expected output: {} (empty JSON = success, no rules matched)
 ```

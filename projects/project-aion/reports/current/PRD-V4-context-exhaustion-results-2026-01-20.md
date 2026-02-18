@@ -123,7 +123,7 @@ Scripts modify `~/.claude.json`:
 ```json
 {
   "projects": {
-    "/Users/aircannon/Claude/Jarvis": {
+    "/Users/nathanielcannon/Claude/Jarvis": {
       "mcpServers": { ... },
       "disabledMcpServers": ["github", "context7", ...]
     }

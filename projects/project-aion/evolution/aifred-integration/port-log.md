@@ -114,7 +114,7 @@ implementing hooks that were documented but not yet coded in the AIfred baseline
 
 **Modifications**:
 - All references to "AIfred" changed to "Jarvis"
-- Paths updated for Jarvis workspace structure (`/Users/aircannon/Claude/Jarvis`)
+- Paths updated for Jarvis workspace structure (`/Users/nathanielcannon/Claude/Jarvis`)
 - Session-start hook includes AIfred baseline status check
 - Skills adapted to reference Jarvis-specific commands and guardrails
 - Agent memory-bank-synchronizer adapted for Jarvis doc structure

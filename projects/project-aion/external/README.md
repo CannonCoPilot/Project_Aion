@@ -18,7 +18,7 @@ external/
 
 **Deliverables stay separate from planning.**
 
-- Project codebase → `/Users/aircannon/Claude/<ProjectName>/`
+- Project codebase → `/Users/nathanielcannon/Claude/<ProjectName>/`
 - Development workspace → `projects/project-aion/external/<project-name>/`
 
 ## What Belongs Here

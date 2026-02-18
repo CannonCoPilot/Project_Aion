@@ -19,7 +19,7 @@ This document defines smoke tests to validate that project registration works co
 
 **Input**:
 ```
-/register-project /Users/aircannon/Claude/SomeExistingProject
+/register-project /Users/nathanielcannon/Claude/SomeExistingProject
 ```
 
 **Expected Behavior**:
@@ -50,7 +50,7 @@ ls -la projects/someexistingproject.md
 
 **Expected Behavior**:
 1. ✅ GitHub URL parsed for repo name (`sample-repo`)
-2. ✅ Repository cloned to `/Users/aircannon/Claude/sample-repo/`
+2. ✅ Repository cloned to `/Users/nathanielcannon/Claude/sample-repo/`
 3. ✅ Project properties auto-detected
 4. ✅ Entry added to `paths-registry.yaml`
 5. ✅ Summary created at `Jarvis/projects/sample-repo.md`
@@ -58,7 +58,7 @@ ls -la projects/someexistingproject.md
 **Validation Commands**:
 ```bash
 # Check clone location
-ls -la /Users/aircannon/Claude/sample-repo/
+ls -la /Users/nathanielcannon/Claude/sample-repo/
 
 # Check registry
 grep -A8 "sample-repo:" paths-registry.yaml
@@ -79,7 +79,7 @@ ls -la projects/sample-repo.md
 ```
 
 **Expected Behavior**:
-1. ✅ Directory created at `/Users/aircannon/Claude/test-api/`
+1. ✅ Directory created at `/Users/nathanielcannon/Claude/test-api/`
 2. ✅ Git initialized
 3. ✅ `.claude/CLAUDE.md` created in project
 4. ✅ README.md created
@@ -90,9 +90,9 @@ ls -la projects/sample-repo.md
 **Validation Commands**:
 ```bash
 # Check project structure
-ls -la /Users/aircannon/Claude/test-api/
-ls -la /Users/aircannon/Claude/test-api/.claude/
-cat /Users/aircannon/Claude/test-api/.claude/CLAUDE.md
+ls -la /Users/nathanielcannon/Claude/test-api/
+ls -la /Users/nathanielcannon/Claude/test-api/.claude/
+cat /Users/nathanielcannon/Claude/test-api/.claude/CLAUDE.md
 
 # Check registry
 grep -A8 "test-api:" paths-registry.yaml
@@ -111,10 +111,10 @@ ls -la projects/test-api.md
 
 | Item | Expected Location | Validation |
 |------|-------------------|------------|
-| Project code | `/Users/aircannon/Claude/<name>/` | `ls -d /Users/aircannon/Claude/<name>` |
+| Project code | `/Users/nathanielcannon/Claude/<name>/` | `ls -d /Users/nathanielcannon/Claude/<name>` |
 | Project summary | `Jarvis/projects/<name>.md` | `ls projects/<name>.md` |
 | Registry entry | `paths-registry.yaml` | `grep "<name>:" paths-registry.yaml` |
-| Projects root | `/Users/aircannon/Claude` | `grep "projects_root" paths-registry.yaml` |
+| Projects root | `/Users/nathanielcannon/Claude` | `grep "projects_root" paths-registry.yaml` |
 | Summaries path | `Jarvis/projects` | `grep "summaries_path" paths-registry.yaml` |
 
 ---
@@ -125,7 +125,7 @@ ls -la projects/test-api.md
 
 **Input**:
 ```
-/register-project /Users/aircannon/Claude/AIfred
+/register-project /Users/nathanielcannon/Claude/AIfred
 ```
 
 **Expected Behavior**:
@@ -158,8 +158,8 @@ grep "jarvis:" paths-registry.yaml
 
 **Expected Output**:
 ```
-  projects_root: "/Users/aircannon/Claude"
-  summaries_path: "/Users/aircannon/Claude/Jarvis/projects"
+  projects_root: "/Users/nathanielcannon/Claude"
+  summaries_path: "/Users/nathanielcannon/Claude/Jarvis/projects"
 aifred_baseline:
 jarvis:
 ```

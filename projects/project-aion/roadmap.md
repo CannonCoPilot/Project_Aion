@@ -75,7 +75,7 @@ Adopt **Archon** terminology for Project Aion and define core Archons:
 Before doing anything else in PR-1, execute a git update of the local AIfred baseline mirror:
 
 - Ensure the local mirror exists at:  
-  `/Users/aircannon/Claude/AIfred`
+  `/Users/nathanielcannon/Claude/AIfred`
 - Run: `git pull` (or `git fetch` + status check + `git pull`) on baseline `main`.
 
 **Constraints:**
@@ -85,7 +85,7 @@ Before doing anything else in PR-1, execute a git update of the local AIfred bas
 #### PR-1.D — Session-start design pattern: always check baseline updates
 Update Jarvis design patterns/docs so that **every new Jarvis session begins with**:
 1) checking whether upstream AIfred baseline has updates, and  
-2) pulling updates into `/Users/aircannon/Claude/AIfred` if updates are found.
+2) pulling updates into `/Users/nathanielcannon/Claude/AIfred` if updates are found.
 
 This should be treated as a **default session-start checklist item**.
 
@@ -93,10 +93,10 @@ This should be treated as a **default session-start checklist item**.
 Update Jarvis design pattern code/docs to clarify:
 
 - When Jarvis works on **other projects**, their codebase and documentation must be written to that project’s own folder created under:  
-  `/Users/aircannon/Claude/<ProjectName>/`
+  `/Users/nathanielcannon/Claude/<ProjectName>/`
 
 - **Project Aion is special**: Jarvis is working on itself, evolving its own repo/codebase while it works. Therefore Project Aion documentation may live at:  
-  `/Users/aircannon/Claude/Jarvis/docs/project-aion`
+  `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion`
 
 This is the canonical location for Project Aion docs going forward.
 
@@ -119,11 +119,11 @@ This is the canonical location for Project Aion docs going forward.
 #### PR-1.H — Archive obsolete baseline plan document
 Archive the obsolete file:
 
-- Source: `/Users/aircannon/Claude/Jarvis/docs/PROJECT-PLAN.md`
-- Create archive folder: `/Users/aircannon/Claude/Jarvis/docs/archive/`
+- Source: `/Users/nathanielcannon/Claude/Jarvis/docs/PROJECT-PLAN.md`
+- Create archive folder: `/Users/nathanielcannon/Claude/Jarvis/docs/archive/`
 - Move the file into the archive folder.
 - Add a log file notation in an archive log, for example:
-  - `/Users/aircannon/Claude/Jarvis/docs/archive/archive-log.md`
+  - `/Users/nathanielcannon/Claude/Jarvis/docs/archive/archive-log.md`
 
 **Pattern requirement:** Update development patterns so that when archiving obsolete documentation:
 - it goes into `/docs/archive/`, and
@@ -142,9 +142,9 @@ Archive the obsolete file:
 
 Requirements:
 - Confirm and implement:
-  - projects live in: `/Users/aircannon/Claude/<ProjectName>/`
-  - Jarvis project summaries live in: `/Users/aircannon/Claude/Jarvis/projects/`
-  - Project Aion docs live in: `/Users/aircannon/Claude/Jarvis/docs/project-aion`
+  - projects live in: `/Users/nathanielcannon/Claude/<ProjectName>/`
+  - Jarvis project summaries live in: `/Users/nathanielcannon/Claude/Jarvis/projects/`
+  - Project Aion docs live in: `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion`
 - Ensure “Hub, Not Container” remains true: Jarvis tracks/works on projects stored elsewhere.
 - Improve/extend project registration behavior (hook- or command-driven):
   - detect GitHub URLs and “new project” requests
@@ -175,7 +175,7 @@ Validation:
 **Goal:** Keep Jarvis modern without destabilizing its divergent track.
 
 Requirements:
-1. Maintain a local upstream mirror at: `/Users/aircannon/Claude/AIfred`
+1. Maintain a local upstream mirror at: `/Users/nathanielcannon/Claude/AIfred`
 2. Pull baseline updates (Git-only) to keep mirror current.
 3. Compute diff vs Jarvis.
 4. Classify changes: safe / unsafe / manual review.
@@ -1082,7 +1082,7 @@ A minimal web app with a tiny GUI and trivial functionality, designed to validat
   - push main branch
   - tag release or add release notes file
   - generate a “run report” artifact in Jarvis summaries directory:  
-    `/Users/aircannon/Claude/Jarvis/projects/`
+    `/Users/nathanielcannon/Claude/Jarvis/projects/`
 
 #### Technology constraints (choose one, document choice)
 - Option A: Node + Express + Vite + Playwright
@@ -1321,10 +1321,10 @@ Version bumps are tied to PR/phase completion per [versioning-policy.md](./docs/
 Deliverables:
 - Jarvis Archon identity and divergence from AIfred baseline clarified in Jarvis docs.
 - Versioning and release note conventions established (including secondary archon "created using Jarvis version x.x.x" rule).
-- Session-start pattern: always check/pull baseline updates into `/Users/aircannon/Claude/AIfred`.
+- Session-start pattern: always check/pull baseline updates into `/Users/nathanielcannon/Claude/AIfred`.
 - Workspace rule clarifying:
-  - normal projects live in `/Users/aircannon/Claude/<ProjectName>/`
-  - Project Aion docs live in `/Users/aircannon/Claude/Jarvis/docs/project-aion`
+  - normal projects live in `/Users/nathanielcannon/Claude/<ProjectName>/`
+  - Project Aion docs live in `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion`
 - Archive obsolete `docs/PROJECT-PLAN.md` into `docs/archive/` with an archive log entry.
 
 Acceptance:
@@ -1466,7 +1466,7 @@ Required output:
 - A working trivial app with a small web GUI and backend endpoint. ✅
 - Tests passing (53 tests: 23 unit + 9 integration + 21 E2E). ✅
 - README with run/test instructions. ✅
-- A run report saved to `/Users/aircannon/Claude/Jarvis/projects/`. ✅
+- A run report saved to `/Users/nathanielcannon/Claude/Jarvis/projects/`. ✅
 
 Success criteria:
 - No operations outside allowlisted paths. ✅
@@ -1503,7 +1503,7 @@ Success criteria:
   - selection rule
   - test/validation
 - Treat docs as first-class artifacts: update during work, not after.
-- **Do not edit AIfred baseline repo.** Use it only as a read-only upstream mirror for diff/analysis and pull-only updates into `/Users/aircannon/Claude/AIfred`.
+- **Do not edit AIfred baseline repo.** Use it only as a read-only upstream mirror for diff/analysis and pull-only updates into `/Users/nathanielcannon/Claude/AIfred`.
 
 ---
 
@@ -1512,9 +1512,9 @@ Jarvis should ask these questions **when it reaches the relevant implementation 
 
 Workspace & repo ownership:
 - Confirm canonical paths:
-  - `projects_root` = `/Users/aircannon/Claude`
-  - Jarvis summaries dir = `/Users/aircannon/Claude/Jarvis/projects`
-  - Project Aion docs dir = `/Users/aircannon/Claude/Jarvis/docs/project-aion`
+  - `projects_root` = `/Users/nathanielcannon/Claude`
+  - Jarvis summaries dir = `/Users/nathanielcannon/Claude/Jarvis/projects`
+  - Project Aion docs dir = `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion`
 - Confirm repository strategy:
   - Jarvis as a branch in `davidmoneil/AIfred` OR
   - Jarvis as a fork under `CannonCoPilot/AIfred`
@@ -1545,11 +1545,11 @@ Copy/paste this into Claude Code to start:
 
 > **Task:** Implement Phase 1–2 (PR-1 and PR-2).  
 > **Requirements:**  
-> 1) Execute the PR-1 mandatory first step: update the local AIfred baseline mirror at `/Users/aircannon/Claude/AIfred` via `git pull` (or fetch+pull).  
+> 1) Execute the PR-1 mandatory first step: update the local AIfred baseline mirror at `/Users/nathanielcannon/Claude/AIfred` via `git pull` (or fetch+pull).  
 > 2) Update **Jarvis-only** documentation to use **Project Aion** and the **Archon** terminology (Jarvis master, Jeeves always-on, Wallace creative).  
 > 3) Add a versioning + release-notes convention (including “created using Jarvis version x.x.x” for secondary archons).  
-> 4) Implement and document the workspace path policy, including the special-case location for Project Aion docs: `/Users/aircannon/Claude/Jarvis/docs/project-aion`.  
-> 5) Archive `/Users/aircannon/Claude/Jarvis/docs/PROJECT-PLAN.md` into `/Users/aircannon/Claude/Jarvis/docs/archive/` and add an entry to an archive log file.  
+> 4) Implement and document the workspace path policy, including the special-case location for Project Aion docs: `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion`.  
+> 5) Archive `/Users/nathanielcannon/Claude/Jarvis/docs/PROJECT-PLAN.md` into `/Users/nathanielcannon/Claude/Jarvis/docs/archive/` and add an entry to an archive log file.  
 > 6) Add the default **one-shot PRD** document template (do not implement the demo app yet).  
 > **Constraints:**  
 > - **Do not modify the AIfred baseline repo** in any way beyond Git pull/fetch. No edits, commits, branches, hooks, or config changes.  

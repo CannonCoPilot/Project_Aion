@@ -361,7 +361,7 @@ AFTER (~60-80 lines, ~600 tokens):
 ```
 
 **Files to create/update**:
-- `/Users/aircannon/Claude/Jarvis/CLAUDE.md` — slim to ~60-80 lines
+- `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md` — slim to ~60-80 lines
 - Existing files already contain the details (AC specs, psyche maps, skills index)
 - No new files needed — just remove redundancy
 
@@ -392,7 +392,7 @@ AFTER:
 └────────────────────────────────────────┘
 ```
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/hooks/session-start.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/session-start.sh`
 
 ### Intervention 3: MEMORY.md Restructure (Medium Priority)
 
@@ -430,7 +430,7 @@ MEMORY.md (new format, ~500 tokens):
 ```
 
 **Files**:
-- `/Users/aircannon/.claude/projects/-Users-aircannon-Claude-Jarvis/memory/MEMORY.md` — restructure
+- `/Users/nathanielcannon/.claude/projects/-Users-aircannon-Claude-Jarvis/memory/MEMORY.md` — restructure
 - Create topic files: `bash-patterns.md`, `tmux-patterns.md`, `credential-store.md`, `jicm-thresholds.md`
 
 ### Intervention 4: Skill File Format Standard (Medium Priority)
@@ -505,7 +505,7 @@ Create `capability-map.yaml` as described in Part 1.
 4. Test: Does Jarvis use the manifest for tool selection?
 5. Iterate routing rules based on actual usage
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml`
 
 ---
 
@@ -704,13 +704,13 @@ Additional benefits:
 
 | File | Action |
 |------|--------|
-| `/Users/aircannon/Claude/Jarvis/CLAUDE.md` | Slim to ~60-80 lines |
-| `/Users/aircannon/Claude/Jarvis/.claude/hooks/session-start.sh` | Trim additionalContext output |
-| `/Users/aircannon/.claude/projects/-Users-aircannon-Claude-Jarvis/memory/MEMORY.md` | Restructure + create topic files |
-| `/Users/aircannon/Claude/Jarvis/.claude/skills/*/SKILL.md` | Reformat to Standard v2.0 |
-| `/Users/aircannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml` | Create (new) |
-| `/Users/aircannon/Claude/Jarvis/.claude/context/reference/mcp-decomposition-registry.md` | Update with pipeline protocol |
-| `/Users/aircannon/Claude/Jarvis/.claude/context/patterns/mcp-loading-strategy.md` | Update Tier 1/2 tables |
+| `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md` | Slim to ~60-80 lines |
+| `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/session-start.sh` | Trim additionalContext output |
+| `/Users/nathanielcannon/.claude/projects/-Users-aircannon-Claude-Jarvis/memory/MEMORY.md` | Restructure + create topic files |
+| `/Users/nathanielcannon/Claude/Jarvis/.claude/skills/*/SKILL.md` | Reformat to Standard v2.0 |
+| `/Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/capability-map.yaml` | Create (new) |
+| `/Users/nathanielcannon/Claude/Jarvis/.claude/context/reference/mcp-decomposition-registry.md` | Update with pipeline protocol |
+| `/Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/mcp-loading-strategy.md` | Update Tier 1/2 tables |
 | `~/.claude/logs/statusline-input.json` | Read for precise measurement |
 
 ---

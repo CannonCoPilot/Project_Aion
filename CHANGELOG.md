@@ -1522,8 +1522,8 @@ Three new hooks implementing workspace protection and safety guardrails:
 #### Settings Protection
 
 - Added AIfred baseline to `settings.json` deny patterns:
-  - `Write(/Users/aircannon/Claude/AIfred/**)`
-  - `Edit(/Users/aircannon/Claude/AIfred/**)`
+  - `Write(/Users/nathanielcannon/Claude/AIfred/**)`
+  - `Edit(/Users/nathanielcannon/Claude/AIfred/**)`
 
 ### Changed
 
@@ -1611,11 +1611,11 @@ Three new hooks implementing workspace protection and safety guardrails:
   - Creates summary in `Jarvis/projects/`
   - Documents path policy and special cases
 - **Refined /create-project Command**: Updated for workspace-path-policy compliance
-  - Creates projects at `/Users/aircannon/Claude/<name>/`
+  - Creates projects at `/Users/nathanielcannon/Claude/<name>/`
   - Initializes with `.claude/CLAUDE.md`
   - Supports `--github` flag for repo creation
 - **Updated paths-registry.yaml**: Fixed project paths
-  - `projects_root` now correctly points to `/Users/aircannon/Claude`
+  - `projects_root` now correctly points to `/Users/nathanielcannon/Claude`
   - Added `summaries_path` for clarity
   - Added `jarvis` section with version info
   - Added `aifred_baseline` section for read-only tracking
@@ -1648,7 +1648,7 @@ Three new hooks implementing workspace protection and safety guardrails:
 #### PR-1.E: Workspace Path Policy
 - **Workspace Path Policy**: Canonical locations for all projects and docs
   - `.claude/context/patterns/workspace-path-policy.md`
-  - Projects root: `/Users/aircannon/Claude/<ProjectName>/`
+  - Projects root: `/Users/nathanielcannon/Claude/<ProjectName>/`
   - Project Aion docs: `docs/project-aion/`
   - Jarvis summaries: `projects/`
 

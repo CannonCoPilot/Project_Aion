@@ -64,11 +64,11 @@ PR-4 transforms `/setup` into a "preflight + configure + verify" wizard with:
 version: "1.0"
 core_workspaces:
   jarvis:
-    path: "/Users/aircannon/Claude/Jarvis"
+    path: "/Users/nathanielcannon/Claude/Jarvis"
     permissions: [read, write, execute]
 readonly_workspaces:
   aifred_baseline:
-    path: "/Users/aircannon/Claude/AIfred"
+    path: "/Users/nathanielcannon/Claude/AIfred"
     permissions: [read]
     blocked: [write, edit, delete, commit]
 project_workspaces: []  # Populated by /register-project
@@ -111,9 +111,9 @@ forbidden_paths: ["/", "/etc", "/usr", "/bin", "~/.ssh", "~/.gnupg"]
 
 New deny patterns to add:
 ```json
-"Write(/Users/aircannon/Claude/AIfred/**)",
-"Edit(/Users/aircannon/Claude/AIfred/**)",
-"Bash(*:/Users/aircannon/Claude/AIfred/*)"
+"Write(/Users/nathanielcannon/Claude/AIfred/**)",
+"Edit(/Users/nathanielcannon/Claude/AIfred/**)",
+"Bash(*:/Users/nathanielcannon/Claude/AIfred/*)"
 ```
 
 ### Phase 4: Readiness Report

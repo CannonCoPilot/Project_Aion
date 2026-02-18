@@ -1,7 +1,7 @@
 # Redundancy Analysis Request
 
 ## Plugin: example-plugin
-## Path: /Users/aircannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin
+## Path: /Users/nathanielcannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin
 
 ## Instructions for code-analyzer agent:
 

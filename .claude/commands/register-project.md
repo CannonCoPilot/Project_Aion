@@ -11,7 +11,7 @@ Register an existing project with Jarvis so it can track and assist with it.
 **Examples**:
 ```
 /register-project ~/Code/my-app
-/register-project /Users/aircannon/Claude/SomeProject
+/register-project /Users/nathanielcannon/Claude/SomeProject
 /register-project https://github.com/user/repo
 /register-project ~/Code/api --type api --language python
 ```
@@ -46,7 +46,7 @@ Register an existing project with Jarvis so it can track and assist with it.
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ 1. Parse GitHub URL for repo name                               │
-│ 2. Clone to: /Users/aircannon/Claude/<repo-name>/               │
+│ 2. Clone to: /Users/nathanielcannon/Claude/<repo-name>/               │
 │ 3. Auto-detect project properties                               │
 │ 4. Update paths-registry.yaml                                   │
 │ 5. Create project summary in Jarvis/projects/                   │
@@ -67,7 +67,7 @@ For paths:
 For GitHub URLs:
 ```bash
 # Clone to projects_root per workspace-path-policy
-git clone https://github.com/user/repo /Users/aircannon/Claude/repo
+git clone https://github.com/user/repo /Users/nathanielcannon/Claude/repo
 ```
 
 ### 2. Auto-Detects Project Properties
@@ -92,7 +92,7 @@ git clone https://github.com/user/repo /Users/aircannon/Claude/repo
 development:
   projects:
     my-app:
-      path: "/Users/aircannon/Claude/my-app"
+      path: "/Users/nathanielcannon/Claude/my-app"
       type: "web-app"
       language: "typescript"
       repo: "github.com/user/my-app"
@@ -103,7 +103,7 @@ development:
 
 ### 4. Creates Project Summary
 
-Creates `/Users/aircannon/Claude/Jarvis/projects/<name>.md` using the template from `knowledge/templates/project-summary.md`.
+Creates `/Users/nathanielcannon/Claude/Jarvis/projects/<name>.md` using the template from `knowledge/templates/project-summary.md`.
 
 This summary:
 - Lives in Jarvis (not the project)
@@ -123,8 +123,8 @@ Per the workspace-path-policy:
 
 | What | Where |
 |------|-------|
-| Project code | `/Users/aircannon/Claude/<project-name>/` |
-| Project summary | `/Users/aircannon/Claude/Jarvis/projects/<project-name>.md` |
+| Project code | `/Users/nathanielcannon/Claude/<project-name>/` |
+| Project summary | `/Users/nathanielcannon/Claude/Jarvis/projects/<project-name>.md` |
 | Detailed context | `.claude/context/projects/<project-name>.md` (optional) |
 | Registry | `paths-registry.yaml` → `development.projects` |
 
@@ -136,7 +136,7 @@ Per the workspace-path-policy:
 
 ### Registering AIfred Baseline
 
-The AIfred baseline at `/Users/aircannon/Claude/AIfred` should NOT be registered as a normal project. It's tracked separately in `paths-registry.yaml` under `aifred_baseline` as a read-only reference.
+The AIfred baseline at `/Users/nathanielcannon/Claude/AIfred` should NOT be registered as a normal project. It's tracked separately in `paths-registry.yaml` under `aifred_baseline` as a read-only reference.
 
 ### Registering Jarvis Itself
 

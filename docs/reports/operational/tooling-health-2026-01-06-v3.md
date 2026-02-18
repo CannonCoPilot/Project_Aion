@@ -3,7 +3,7 @@
 **Generated**: 2026-01-06 21:50 MST
 **Revised**: v3 (standardized template with full MCP inventory)
 **Claude Code Version**: Claude Opus 4.5 (claude-opus-4-5-20251101)
-**Workspace**: `/Users/aircannon/Claude/Jarvis`
+**Workspace**: `/Users/nathanielcannon/Claude/Jarvis`
 **Branch**: `Project_Aion`
 
 ---
@@ -34,7 +34,7 @@
 | Server | Status | Token Cost | Tools | Notes |
 |--------|--------|------------|-------|-------|
 | memory | ✅ GO | ~8-15K | 9 | Graph empty, ready to use |
-| filesystem | ✅ GO | ~8K | 13 | Allowed: `/Users/aircannon/Claude/Jarvis` |
+| filesystem | ✅ GO | ~8K | 13 | Allowed: `/Users/nathanielcannon/Claude/Jarvis` |
 | fetch | ✅ GO | ~5K | 1 | Ready |
 | time | ✅ GO | ~3K | 2 | Tested: `2026-01-06T21:45:43-07:00` |
 | git | ✅ GO | ~6K | 13 | Branch: Project_Aion, clean status |
@@ -76,7 +76,7 @@
 | `move_file` | ✗ | GO | Available |
 | `search_files` | ✗ | GO | Available |
 | `get_file_info` | ✗ | GO | Available |
-| `list_allowed_directories` | ✓ | GO | Returns `/Users/aircannon/Claude/Jarvis` |
+| `list_allowed_directories` | ✓ | GO | Returns `/Users/nathanielcannon/Claude/Jarvis` |
 
 **Fetch MCP (1 tool)**:
 
@@ -467,10 +467,10 @@ Subagents:       5/5   (100%)
 
 ```
 memory: /opt/homebrew/bin/npx -y @anthropic-ai/claude-code-mcp-server-memory@latest
-filesystem: /opt/homebrew/bin/npx -y @anthropic-ai/claude-code-mcp-server-filesystem@latest /Users/aircannon/Claude/Jarvis
+filesystem: /opt/homebrew/bin/npx -y @anthropic-ai/claude-code-mcp-server-filesystem@latest /Users/nathanielcannon/Claude/Jarvis
 fetch: uvx mcp-server-fetch
 time: uvx mcp-server-time
-git: uvx mcp-server-git --repository /Users/aircannon/Claude/Jarvis
+git: uvx mcp-server-git --repository /Users/nathanielcannon/Claude/Jarvis
 sequential-thinking: /opt/homebrew/bin/npx -y @anthropic-ai/claude-code-mcp-server-sequential-thinking@latest
 github: FAILED - remote connection via https://api.githubcopilot.com/mcp/
 ```

@@ -2,7 +2,7 @@
 # research-ops shared utilities — credential extraction, error handling, output formatting
 # Source this from all backend scripts: source "$SCRIPT_DIR/_common.sh"
 
-CRED_FILE="/Users/aircannon/Claude/Jarvis/.claude/secrets/credentials.yaml"
+CRED_FILE="/Users/nathanielcannon/Claude/Jarvis/.claude/secrets/credentials.yaml"
 
 # Extract credential from credentials.yaml
 # Usage: KEY=$(get_credential ".search.brave")

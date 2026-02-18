@@ -146,7 +146,7 @@
           "id": "HOOK-WG-001",
           "severity": "MEDIUM",
           "title": "Hardcoded user path",
-          "description": "Line 20-21 hardcode /Users/aircannon/Claude/AIfred and /Users/aircannon/Claude/Jarvis. Not portable across users.",
+          "description": "Line 20-21 hardcode /Users/nathanielcannon/Claude/AIfred and /Users/nathanielcannon/Claude/Jarvis. Not portable across users.",
           "recommendation": "Consider environment variable or config file for portability"
         }
       ]
@@ -234,7 +234,7 @@
           "id": "HOOK-PG-001",
           "severity": "HIGH",
           "title": "Hardcoded AIfred path in pattern",
-          "description": "Line 35 contains hardcoded /Users/aircannon/Claude/AIfred in regex pattern.",
+          "description": "Line 35 contains hardcoded /Users/nathanielcannon/Claude/AIfred in regex pattern.",
           "recommendation": "Use environment variable or config"
         },
         {
@@ -265,7 +265,7 @@
           "id": "SCRIPT-MCP-001",
           "severity": "LOW",
           "title": "Hardcoded JARVIS_ROOT and CLAUDE_ROOT",
-          "description": "Lines 25-26 hardcode /Users/aircannon/Claude paths.",
+          "description": "Lines 25-26 hardcode /Users/nathanielcannon/Claude paths.",
           "recommendation": "Consider detecting from script location or environment"
         }
       ]

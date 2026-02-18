@@ -1,7 +1,7 @@
 # Decomposition Plan: ralph-loop
 
-**Source:** `/Users/aircannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop`
-**Target:** `/Users/aircannon/Claude/Jarvis/.claude`
+**Source:** `/Users/nathanielcannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/ralph-loop`
+**Target:** `/Users/nathanielcannon/Claude/Jarvis/.claude`
 **Generated:** 2026-01-17 12:55:39
 
 ## File Mapping

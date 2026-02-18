@@ -16,7 +16,7 @@ last_updated: "2026-01-05"
 
 core_workspaces:
   jarvis:
-    path: "/Users/aircannon/Claude/Jarvis"
+    path: "/Users/nathanielcannon/Claude/Jarvis"
     description: "Project Aion Master Archon - primary workspace"
     permissions:
       - read
@@ -35,7 +35,7 @@ core_workspaces:
 
 readonly_workspaces:
   aifred_baseline:
-    path: "/Users/aircannon/Claude/AIfred"
+    path: "/Users/nathanielcannon/Claude/AIfred"
     description: "AIfred upstream baseline - read-only reference"
     permissions:
       - read
@@ -54,12 +54,12 @@ readonly_workspaces:
 # PROJECT WORKSPACES
 # =============================================================================
 # Registered project directories (populated by /register-project)
-# Projects root: /Users/aircannon/Claude
+# Projects root: /Users/nathanielcannon/Claude
 
 project_workspaces:
   # Format:
   # project_name:
-  #   path: "/Users/aircannon/Claude/project-name"
+  #   path: "/Users/nathanielcannon/Claude/project-name"
   #   permissions: [read, write, execute]
   #   registered: "2026-01-XX"
 
@@ -104,7 +104,7 @@ forbidden_paths:
   - path: "/Users/*"
     reason: "Other users' home directories"
     exceptions:
-      - "/Users/aircannon"  # Current user is allowed
+      - "/Users/nathanielcannon"  # Current user is allowed
 
 # =============================================================================
 # WARN-ONLY PATHS

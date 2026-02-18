@@ -4,7 +4,7 @@
 
 You are working in **Jarvis**, the master Archon of Project Aion — a highly autonomous, self-improving AI infrastructure and software-development assistant for home lab automation, knowledge management, and system integration.
 
-> **Important**: Jarvis is derived from but divergent from the AIfred baseline. The AIfred baseline repository (`/Users/aircannon/Claude/AIfred`) is **read-only** — never edit it directly.
+> **Important**: Jarvis is derived from but divergent from the AIfred baseline. The AIfred baseline repository (`/Users/nathanielcannon/Claude/AIfred`) is **read-only** — never edit it directly.
 
 ## Quick Start
 
@@ -202,7 +202,7 @@ Need autonomous COMPLEX task execution?
 1. Check @.claude/context/session-state.md
 2. **Check AIfred baseline for updates** (mandatory per PR-1.D):
    ```bash
-   cd /Users/aircannon/Claude/AIfred && git fetch origin && git status
+   cd /Users/nathanielcannon/Claude/AIfred && git fetch origin && git status
    # If behind, pull: git pull origin main
    ```
 3. Review any pending work
@@ -378,7 +378,7 @@ Jarvis includes **guardrail hooks** that protect workspace boundaries and preven
 
 | Target | Protection Level | Action |
 |--------|-----------------|--------|
-| AIfred baseline (`/Users/aircannon/Claude/AIfred`) | **Blocked** | Write/Edit rejected |
+| AIfred baseline (`/Users/nathanielcannon/Claude/AIfred`) | **Blocked** | Write/Edit rejected |
 | Forbidden system paths (`/`, `/etc`, `/usr`, etc.) | **Blocked** | All operations rejected |
 | Outside Jarvis workspace | **Warned** | Logged with `[!] HIGH` warning |
 | Destructive bash commands | **Blocked** | Rejected with explanation |
@@ -473,7 +473,7 @@ See @.claude/context/patterns/setup-validation.md for details.
 | Focus | Infrastructure, Development, Learning |
 | Memory MCP | Pending (enable in Docker Desktop) |
 | Session Mode | Automated |
-| Projects Root | `/Users/aircannon/Claude/Jarvis/projects` |
+| Projects Root | `/Users/nathanielcannon/Claude/Jarvis/projects` |
 
 ### Quick Commands
 - `/end-session` - End work cleanly (auto-commits)

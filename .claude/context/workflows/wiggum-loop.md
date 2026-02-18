@@ -230,11 +230,11 @@ sleep 5
 Direct tmux interaction for cross-window tests.
 
 ```bash
-/Users/aircannon/bin/tmux capture-pane -t jarvis:1 -p | tail -10
-/Users/aircannon/bin/tmux list-windows -t jarvis -F "#{window_index}:#{window_name}"
+/Users/nathanielcannon/bin/tmux capture-pane -t jarvis:1 -p | tail -10
+/Users/nathanielcannon/bin/tmux list-windows -t jarvis -F "#{window_index}:#{window_name}"
 ```
 
-**tmux rules**: Always use `/Users/aircannon/bin/tmux` (absolute path). Never combine text
+**tmux rules**: Always use `/Users/nathanielcannon/bin/tmux` (absolute path). Never combine text
 and Enter in one send-keys call. Single-line strings only with `-l`.
 
 ### Pattern E: Cross-File Consistency

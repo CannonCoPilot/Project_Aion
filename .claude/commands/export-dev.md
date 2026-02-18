@@ -10,12 +10,12 @@ When the user runs `/export-dev`:
 
 1. **Create export directory** (if missing):
    ```bash
-   mkdir -p /Users/aircannon/Claude/Jarvis/.claude/exports/dev
+   mkdir -p /Users/nathanielcannon/Claude/Jarvis/.claude/exports/dev
    ```
 
 2. **Generate timestamped filename**:
    ```bash
-   EXPORT_FILE="/Users/aircannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_$(date +%Y%m%d-%H%M%S).txt"
+   EXPORT_FILE="/Users/nathanielcannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_$(date +%Y%m%d-%H%M%S).txt"
    ```
 
 3. **Capture the current pane's full scrollback** via tmux:
@@ -34,14 +34,14 @@ When the user runs `/export-dev`:
 
 5. **Prune old exports** — keep the 30 most recent, remove older ones:
    ```bash
-   ls -t /Users/aircannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_*.txt | tail -n +31 | xargs rm -f 2>/dev/null
+   ls -t /Users/nathanielcannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_*.txt | tail -n +31 | xargs rm -f 2>/dev/null
    ```
 
 ## Example Output
 
 ```
 Exported dev chat to:
-  /Users/aircannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_20260212-141530.txt
+  /Users/nathanielcannon/Claude/Jarvis/.claude/exports/dev/export_dev_chat_20260212-141530.txt
   Size: 45.2 KB | Lines: 892
   (30 exports retained, 0 pruned)
 ```

@@ -146,7 +146,7 @@ projects/project-aion/
 
 **Deliverables stay separate from planning**:
 - Planning/progress → `/Jarvis/projects/`
-- Actual code → `/Users/aircannon/Claude/<ProjectName>/`
+- Actual code → `/Users/nathanielcannon/Claude/<ProjectName>/`
 - Jarvis context → `/.claude/context/`
 
 ---
@@ -191,7 +191,7 @@ models/ ◄───────────────────────
 ### External Connections
 
 ```
-/Jarvis/ ──────────────────────────► /Users/aircannon/Claude/*  (project codebases)
+/Jarvis/ ──────────────────────────► /Users/nathanielcannon/Claude/*  (project codebases)
 docker/ ───────────────────────────► External services (via containers)
 models/ ◄──────────────────────────── External model sources
 ```

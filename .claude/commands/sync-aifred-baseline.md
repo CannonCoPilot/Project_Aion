@@ -7,7 +7,7 @@ allowed-tools: Read, Write, Edit, Bash(git:*), Glob, Grep
 
 You are running the Jarvis upstream sync workflow to analyze AIfred baseline changes.
 
-**CRITICAL CONSTRAINT**: The AIfred baseline at `/Users/aircannon/Claude/AIfred` is **READ-ONLY**.
+**CRITICAL CONSTRAINT**: The AIfred baseline at `/Users/nathanielcannon/Claude/AIfred` is **READ-ONLY**.
 Only `git fetch` and `git pull` operations are allowed. Never edit, commit, branch, or configure it.
 
 ## Arguments
@@ -36,17 +36,17 @@ Only `git fetch` and `git pull` operations are allowed. Never edit, commit, bran
 ## Phase 1: Fetch Baseline Updates
 
 ```bash
-cd /Users/aircannon/Claude/AIfred && git fetch origin && git status
+cd /Users/nathanielcannon/Claude/AIfred && git fetch origin && git status
 ```
 
 If updates are available:
 ```bash
-cd /Users/aircannon/Claude/AIfred && git pull origin main
+cd /Users/nathanielcannon/Claude/AIfred && git pull origin main
 ```
 
 Record the current baseline commit:
 ```bash
-cd /Users/aircannon/Claude/AIfred && git rev-parse HEAD
+cd /Users/nathanielcannon/Claude/AIfred && git rev-parse HEAD
 ```
 
 ## Phase 2: Generate Diff Report
@@ -61,7 +61,7 @@ Check `paths-registry.yaml` for `aifred_baseline.last_synced_commit` to find whe
 
 ```bash
 # From the AIfred baseline directory
-cd /Users/aircannon/Claude/AIfred
+cd /Users/nathanielcannon/Claude/AIfred
 
 # Get list of changed files since last sync point
 git diff --name-status <last_synced_commit>..HEAD

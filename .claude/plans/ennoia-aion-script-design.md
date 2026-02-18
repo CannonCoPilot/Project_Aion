@@ -638,7 +638,7 @@ Ennoia knows which project is active and adjusts:
 
 set -euo pipefail
 
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/aircannon/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 PRIORITIES="$PROJECT_DIR/.claude/context/current-priorities.md"
 WATCHER_STATUS="$PROJECT_DIR/.claude/context/.watcher-status"

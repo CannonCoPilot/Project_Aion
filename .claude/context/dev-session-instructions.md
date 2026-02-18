@@ -32,10 +32,10 @@ You are inside a **tmux session** named `jarvis` with 6 windows:
 
 ### Critical Environment Facts
 
-- **tmux binary**: `/Users/aircannon/bin/tmux` — use this ABSOLUTE PATH in Bash tool calls
+- **tmux binary**: `/Users/nathanielcannon/bin/tmux` — use this ABSOLUTE PATH in Bash tool calls
 - **tmux is NOT in PATH** — never use bare `tmux`, always use the full path or dev scripts
-- **CRITICAL**: `$HOME/bin/tmux` breaks when piped in zsh (`$HOME/bin/tmux ... | grep` fails). Always use `/Users/aircannon/bin/tmux` or use the dev scripts (which run in bash and handle this internally)
-- **Project root**: `/Users/aircannon/Claude/Jarvis`
+- **CRITICAL**: `$HOME/bin/tmux` breaks when piped in zsh (`$HOME/bin/tmux ... | grep` fails). Always use `/Users/nathanielcannon/bin/tmux` or use the dev scripts (which run in bash and handle this internally)
+- **Project root**: `/Users/nathanielcannon/Claude/Jarvis`
 - **All dev scripts** use `TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"` — they work out of the box
 - **You can capture any window**: `$HOME/bin/tmux capture-pane -t jarvis:N -p`
 - **You can send to any window**: `$HOME/bin/tmux send-keys -t jarvis:N -l "text"` then `$HOME/bin/tmux send-keys -t jarvis:N C-m`
@@ -142,7 +142,7 @@ See the skill for execution patterns (A-F), domain rotation, exit criteria, stat
 
 | Problem | Solution |
 |---------|----------|
-| tmux not found | Use `$HOME/bin/tmux` or `/Users/aircannon/bin/tmux` |
+| tmux not found | Use `$HOME/bin/tmux` or `/Users/nathanielcannon/bin/tmux` |
 | W0 not responding | Capture pane, check for spinner. Send ESC if stuck. |
 | W0 idle detection false negative | Capture output, grep for `❯` directly |
 | Script permission denied | `chmod +x .claude/scripts/dev/*.sh` |

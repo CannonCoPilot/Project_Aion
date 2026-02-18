@@ -1,12 +1,12 @@
 # AIfred-Jarvis Comprehensive Integration Roadmap
 
 **Generated**: 2026-01-21
-**Version**: 3.0 (Revised 2026-02-06 — status audit + JICM v5.6.2 alignment)
+**Version**: 4.0 (Revised 2026-02-17 — major sync: 18 commits, 220 files, c27ba27)
 **Scope**: Complete analysis, corrections, and phased integration plan
 
 ---
 
-## STATUS SUMMARY (2026-02-06)
+## STATUS SUMMARY (2026-02-17)
 
 | Milestone | Status | Notes |
 |-----------|--------|-------|
@@ -14,20 +14,42 @@
 | M2: Analytics & Tracking | **COMPLETE** | 3 hooks + unified logging design (2026-01-23) |
 | M3: JICM Complements | **COMPLETE** | /context-analyze, /context-loss, /capture, /history (2026-01-23) |
 | M4: Documentation & Patterns | **COMPLETE** | 5 patterns + /analyze-codebase (2026-01-23) |
-| M5: Auto-* Refactoring | **SUPERSEDED** | v4.1.0 skills migration deleted 17 auto-* commands, created autonomous-commands skill (2026-01-23) |
-| M6: Command Consolidation | **PARTIALLY SUPERSEDED** | /smart-checkpoint deprecated → /checkpoint. JICM v5.6.2 automates compaction. Manual commands remain but are secondary. |
-| M7: Parallel-Dev | NOT STARTED | Deferred — evaluate against Phase 6 roadmap priority |
+| M5: Auto-* Refactoring | **SUPERSEDED** | v4.1.0 skills migration (2026-01-23) |
+| M6: Command Consolidation | **PARTIALLY SUPERSEDED** | JICM v7 automates compaction |
+| M7: Parallel-Dev | NOT STARTED | Deferred |
 | M8: Structured Planning | NOT STARTED | Deferred |
 | M9: TELOS Framework | NOT STARTED | Deferred |
 | M10: Self-Improvement Unification | NOT STARTED | Deferred |
 | M11: Final Integration | NOT STARTED | Deferred |
+| **M12: Feb 2026 Sync — Safety** | **NEW** | document-guard.js, docker-validator.js |
+| **M13: Feb 2026 Sync — Automation** | **NEW** | /update-priorities, /check-service, statusline |
+| **M14: Feb 2026 Sync — Patterns** | **NEW** | skill-testing, skill-router, metrics |
 
-**Key Architecture Changes Since v2.0**:
-- `auto-command-watcher.sh` DELETED — `jarvis-watcher.sh` (v5.6.2) is the sole watcher
-- JICM v5.6.2: Event-driven state machine with dual-mechanism resume, lockout ceiling at ~78.5%
-- `signal-helper.sh` + `autonomous-commands` skill replace the universal wrapper concept
-- PR-12 COMPLETE (all 10 sub-PRs including AC-03 Milestone Review)
-- Version 2.3.0
+**Key Architecture Changes Since v3.0**:
+- JICM v7: Bash prep script replaces LLM compression agent (8.9x speedup)
+- Experiments 1-7 complete (compression timing, context volume, quality assessment)
+- Phase B complete (B.1-B.7 including AC-10 Ulfhedthnar)
+- Phase F complete (Aion Quartet: Ennoia, Virgil, Commands, Housekeep)
+- Version v5.10.0
+
+### 2026-02-17 Sync Summary (f531f32 → c27ba27)
+
+**Gap**: 27 days, 18 commits, 220 files (+27,954/-2,712)
+**Major new AIfred systems**: Headless Claude Jobs, Environment Profiles, Document Guard, Beads, Fabric
+
+| Classification | Count |
+|----------------|-------|
+| ADOPT | 10 |
+| ADAPT | 13 |
+| REJECT | 16 |
+| DEFER | 12 |
+
+**Top 3 adoption priorities**:
+1. **document-guard.js** — file protection for AC state files, session-state.md (HIGH)
+2. **/update-priorities** — automated priority hygiene with capability-layering (HIGH)
+3. **docker-validator.js** — pre-deploy safety for Phase C Docker operations (HIGH)
+
+**Full details**: `sync-reports/sync-report-2026-02-17.md`, `sync-reports/adhoc-assessment-2026-02-17.md`
 
 ---
 
@@ -1772,7 +1794,8 @@ At each milestone boundary:
 
 ---
 
-*Integration Roadmap v3.0 — Updated 2026-02-06*
+*Integration Roadmap v4.0 — Updated 2026-02-17*
+*v4.0: Major sync (18 commits, 220 files), M12-M14 added, JICM v7 alignment*
 *v3.0: Status audit, JICM v5.6.2 alignment, mark Phases 1-4 complete, Phase 3 superseded*
 *v2.1: Wiggum + Parallel-Dev architecture analysis, Session-based breakdown (2026-01-21)*
 *Supersedes: adhoc-assessment, code-comparison, comprehensive-analysis, integration-recommendations*

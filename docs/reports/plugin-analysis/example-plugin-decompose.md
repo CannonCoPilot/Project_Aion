@@ -1,7 +1,7 @@
 # Decomposition Plan: example-plugin
 
-**Source:** `/Users/aircannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin`
-**Target:** `/Users/aircannon/Claude/Jarvis/.claude`
+**Source:** `/Users/nathanielcannon/.claude/plugins/marketplaces/claude-plugins-official/plugins/example-plugin`
+**Target:** `/Users/nathanielcannon/Claude/Jarvis/.claude`
 **Generated:** 2026-01-17 12:03:04
 
 ## File Mapping

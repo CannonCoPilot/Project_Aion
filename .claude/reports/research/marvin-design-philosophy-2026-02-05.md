@@ -955,7 +955,7 @@ The `/sync` command enables **self-updating**:
 
 1. **Create `.jarvis-source` File**
    ```bash
-   echo "/Users/aircannon/Claude/AIfred" > /Users/aircannon/Claude/Jarvis/.jarvis-source
+   echo "/Users/nathanielcannon/Claude/AIfred" > /Users/nathanielcannon/Claude/Jarvis/.jarvis-source
    ```
    - Points to AIfred baseline (commit `2ea4e8b`)
    - Enables safe sync of read-only updates

@@ -411,7 +411,7 @@ This provides retrospective capability for performance reviews, team updates, or
 
 #### Step 1: Create Sessions Directory
 ```bash
-mkdir -p /Users/aircannon/Claude/Jarvis/.claude/sessions
+mkdir -p /Users/nathanielcannon/Claude/Jarvis/.claude/sessions
 ```
 
 #### Step 2: Update `/end-session` Command
@@ -537,7 +537,7 @@ Ask: "Want me to:
 
 #### Step 2: Create Reports Directory
 ```bash
-mkdir -p /Users/aircannon/Claude/Jarvis/.claude/reports/weekly
+mkdir -p /Users/nathanielcannon/Claude/Jarvis/.claude/reports/weekly
 ```
 
 #### Step 3: Update Skills Index

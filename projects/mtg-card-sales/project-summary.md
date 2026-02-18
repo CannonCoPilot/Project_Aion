@@ -4,12 +4,12 @@
 Data analysis project to optimize Magic: The Gathering card sales across three buyer platforms.
 
 ## Location
-- **Project Root**: `/Users/aircannon/Claude/Projects/mtg-card-sales/`
-- **Jarvis Reference**: `/Users/aircannon/Claude/Jarvis/projects/mtg-card-sales/`
+- **Project Root**: `/Users/nathanielcannon/Claude/Projects/mtg-card-sales/`
+- **Jarvis Reference**: `/Users/nathanielcannon/Claude/Jarvis/projects/mtg-card-sales/`
 
 ## Quick Start
 ```bash
-cd /Users/aircannon/Claude/Projects/mtg-card-sales
+cd /Users/nathanielcannon/Claude/Projects/mtg-card-sales
 ./run_dashboard.sh
 # Then open http://127.0.0.1:8050 in browser
 ```

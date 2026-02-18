@@ -137,7 +137,7 @@ get_current_datetime(timezone="America/Chicago")
 - `get_research_sources`: Returns structured source list with URLs
 
 **Configuration**:
-- Location: `/Users/aircannon/Claude/gptr-mcp/`
+- Location: `/Users/Jarvis/Claude/gptr-mcp/`
 - Env vars: `OPENAI_API_KEY`, `TAVILY_API_KEY`
 - Python: `.venv/bin/python` (3.13.11)
 

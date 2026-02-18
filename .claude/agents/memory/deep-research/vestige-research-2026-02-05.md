@@ -62,4 +62,4 @@
 **Recommended**: Integrate Vestige as complementary semantic memory layer alongside Memory MCP (structured knowledge graph). Vestige handles temporal decay and semantic search; Memory MCP handles entities/relationships.
 
 ## Full Report
-`/Users/aircannon/Claude/Jarvis/.claude/reports/research/vestige-analysis-2026-02-05.md` (948 lines)
+`/Users/nathanielcannon/Claude/Jarvis/.claude/reports/research/vestige-analysis-2026-02-05.md` (948 lines)

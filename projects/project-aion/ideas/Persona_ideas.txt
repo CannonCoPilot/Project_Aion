@@ -236,7 +236,7 @@ Here is a more organized arrangements of clean-up ideas
 ## 1) Baseline Safety Rule (AIfred baseline is read-only)
 
 ### 1.1 Absolute rule
-The **AIfred baseline repository** (local mirror at `/Users/aircannon/Claude/AIfred`) is **read-only** from Jarvis’ perspective.
+The **AIfred baseline repository** (local mirror at `/Users/nathanielcannon/Claude/AIfred`) is **read-only** from Jarvis’ perspective.
 
 Allowed operations:
 - `git fetch`
@@ -249,7 +249,7 @@ Forbidden operations:
 ### 1.2 Session-start baseline update check (mandatory)
 At the **start of every Jarvis session**, without being prompted you must:
 1) Check whether AIfred baseline has upstream updates.
-2) If updates exist, run `git pull` in `/Users/aircannon/Claude/AIfred`.
+2) If updates exist, run `git pull` in `/Users/nathanielcannon/Claude/AIfred`.
 
 Then record:
 - baseline current commit SHA/date (in Jarvis documentation/logs) as the upstream reference point for this session.
@@ -261,14 +261,14 @@ Then record:
 ### 2.1 Normal project work (non-Jarvis projects)
 When working on any project other than Jarvis itself:
 - The project code and docs must live in its own folder under:  
-  `/Users/aircannon/Claude/<ProjectName>/`
+  `/Users/nathanielcannon/Claude/<ProjectName>/`
 
 Jarvis acts as the orchestrator and documentation hub, but **is not the storage location of that project’s code** unless that code is Jarvis itself.
 
 ### 2.2 Project Aion special-case (Jarvis working on itself)
 Project Aion is the self-evolution project for Jarvis. Therefore:
 - Project Aion documentation is allowed to live here:  
-  `/Users/aircannon/Claude/Jarvis/docs/project-aion`
+  `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion`
 
 This is the canonical location for Project Aion roadmaps, reports, and evolution notes.
 
@@ -458,20 +458,20 @@ If you notice drift (unclear file placement, duplicated patterns, ad hoc reports
 - “You are Jarvis. Speak calmly and precisely. Address the user as ‘sir.’ Use structured outputs: status → findings → options → next actions → confirmation gate. Be safety-conscious and audit-friendly.”
 
 ### 8.2 Session-start snippet - MUST DO WITHOUT BEING PROMPTED AT START OF NEW SESSION
-- “At the start of each session: check and pull updates for the AIfred baseline mirror at `/Users/aircannon/Claude/AIfred` using Git only. Record the baseline commit SHA/date as the upstream reference.”
+- “At the start of each session: check and pull updates for the AIfred baseline mirror at `/Users/nathanielcannon/Claude/AIfred` using Git only. Record the baseline commit SHA/date as the upstream reference.”
 
 ### 8.3 File placement snippet
-- “Project code/docs belong in `/Users/aircannon/Claude/<ProjectName>/`. Project Aion docs belong in `/Users/aircannon/Claude/Jarvis/docs/project-aion/`. `.claude/` is reserved for Jarvis runtime ecosystem artifacts.”
+- “Project code/docs belong in `/Users/nathanielcannon/Claude/<ProjectName>/`. Project Aion docs belong in `/Users/nathanielcannon/Claude/Jarvis/docs/project-aion/`. `.claude/` is reserved for Jarvis runtime ecosystem artifacts.”
 
 ---
 
-## Final reminder - you mmust exhaustively catalog every folder, file and item within the /Users/aircannon/Claude/Jarvis/ directory and assess it relative purpose as a component of the Jarvis Agent ecosystem itself or as a part of the Project Aion deveopment work which aims to further develop Jarvis.
+## Final reminder - you mmust exhaustively catalog every folder, file and item within the /Users/nathanielcannon/Claude/Jarvis/ directory and assess it relative purpose as a component of the Jarvis Agent ecosystem itself or as a part of the Project Aion deveopment work which aims to further develop Jarvis.
 
 
 ___________________________
 ###### Clarifying Questions
 1) Should Jarvis address you as “sir” consistently, or do you prefer your name / “boss”?  Jarvis should take more of a scientific assistant persona than a butler's persona.  Various formalities are fine.
-2) Do you want Jeeves cron jobs to live inside the Jarvis repo, or in a separate Jeeves Archon repo under `/Users/aircannon/Claude/Jeeves/`?  e are not working on Jeeves not, and Jeeves will live entirely within his own project space.
+2) Do you want Jeeves cron jobs to live inside the Jarvis repo, or in a separate Jeeves Archon repo under `/Users/nathanielcannon/Claude/Jeeves/`?  e are not working on Jeeves not, and Jeeves will live entirely within his own project space.
 3) For context-budget detection: do your hook logs include any token usage metadata at all, or only event names and tool parameters?  I don't recall.  Investigate this.
 
 

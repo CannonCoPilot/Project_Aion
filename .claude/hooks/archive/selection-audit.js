@@ -18,7 +18,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/aircannon/Claude/Jarvis';
+const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
 const LOG_DIR = path.join(WORKSPACE_ROOT, '.claude/logs');
 const AUDIT_FILE = path.join(LOG_DIR, 'selection-audit.jsonl');
 

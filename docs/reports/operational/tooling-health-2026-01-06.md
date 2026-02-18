@@ -3,7 +3,7 @@
 **Generated**: 2026-01-06 14:26 MST
 **Revised**: 2026-01-06 (user feedback incorporated)
 **Claude Code Version**: Opus 4.5 (claude-opus-4-5-20251101)
-**Workspace**: `/Users/aircannon/Claude/Jarvis`
+**Workspace**: `/Users/nathanielcannon/Claude/Jarvis`
 **Branch**: `Project_Aion`
 
 ---
@@ -139,7 +139,7 @@ Expected: All operations succeed, graph returns to empty state
 | github | project | 6d3752c | ❌ Wrong path |
 | commit-commands | project | 6d3752c | ❌ Wrong path |
 
-**Path Issue**: Registered to `/Users/aircannon/Documents/Jarvis`, current workspace is `/Users/aircannon/Claude/Jarvis`
+**Path Issue**: Registered to `/Users/nathanielcannon/Documents/Jarvis`, current workspace is `/Users/nathanielcannon/Claude/Jarvis`
 
 #### PR-5 Target Plugin List
 
@@ -452,8 +452,8 @@ If GitHub MCP is not critical:
 #### Assessment
 
 **Path Mismatch**:
-- Registered Path: `/Users/aircannon/Documents/Jarvis`
-- Current Workspace: `/Users/aircannon/Claude/Jarvis`
+- Registered Path: `/Users/nathanielcannon/Documents/Jarvis`
+- Current Workspace: `/Users/nathanielcannon/Claude/Jarvis`
 
 **Missing Plugins**: 12 of 14 PR-5 target plugins not installed.
 
@@ -461,7 +461,7 @@ If GitHub MCP is not critical:
 
 ```bash
 # Step 1: Remove old registrations
-cd /Users/aircannon/Claude/Jarvis
+cd /Users/nathanielcannon/Claude/Jarvis
 claude plugins uninstall github
 claude plugins uninstall commit-commands
 
@@ -572,7 +572,7 @@ Two promising integrations identified for mobile/voice interaction.
 
 1. Clone repositories:
    ```bash
-   cd /Users/aircannon/Claude
+   cd /Users/nathanielcannon/Claude
    git clone https://github.com/slopus/happy
    git clone https://github.com/mbailey/voicemode
    ```
@@ -630,10 +630,10 @@ Feature Trials:  2/2   (100%) - happy + voicemode evaluated
 
 ```
 memory: npx -y @modelcontextprotocol/server-memory
-filesystem: npx -y @modelcontextprotocol/server-filesystem /Users/aircannon/Claude/Jarvis /Users/aircannon/Claude
+filesystem: npx -y @modelcontextprotocol/server-filesystem /Users/nathanielcannon/Claude/Jarvis /Users/nathanielcannon/Claude
 fetch: uvx mcp-server-fetch
 time: uvx mcp-server-time
-git: uvx mcp-server-git --repository /Users/aircannon/Claude/Jarvis
+git: uvx mcp-server-git --repository /Users/nathanielcannon/Claude/Jarvis
 sequential-thinking: npx -y @modelcontextprotocol/server-sequential-thinking
 github: https://api.githubcopilot.com/mcp/ (SSE) - FAILED
 ```
@@ -649,7 +649,7 @@ github: https://api.githubcopilot.com/mcp/ (SSE) - FAILED
     "github@claude-plugins-official": [
       {
         "scope": "project",
-        "projectPath": "/Users/aircannon/Documents/Jarvis",
+        "projectPath": "/Users/nathanielcannon/Documents/Jarvis",
         "version": "6d3752c000e2",
         "installedAt": "2026-01-02T01:39:35.191Z"
       }
@@ -657,7 +657,7 @@ github: https://api.githubcopilot.com/mcp/ (SSE) - FAILED
     "commit-commands@claude-plugins-official": [
       {
         "scope": "project",
-        "projectPath": "/Users/aircannon/Documents/Jarvis",
+        "projectPath": "/Users/nathanielcannon/Documents/Jarvis",
         "version": "6d3752c000e2",
         "installedAt": "2026-01-02T01:39:40.685Z"
       }

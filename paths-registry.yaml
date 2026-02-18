@@ -31,7 +31,7 @@ hosts:
 docker:
   socket: "/var/run/docker.sock"
   version: "29.1.3"
-  compose_base: "/Users/aircannon/Claude/Jarvis/docker"
+  compose_base: "/Users/nathanielcannon/Claude/Jarvis/docker"
 
   # Populated by /discover command:
   containers: {}
@@ -71,15 +71,15 @@ tools:
 # Jarvis is a "hub" that knows about projects but doesn't contain them.
 # Code lives in projects_root. Jarvis tracks and orchestrates.
 # Per PR-1.E workspace-path-policy:
-#   - Project code: /Users/aircannon/Claude/<ProjectName>/
-#   - Project summaries: /Users/aircannon/Claude/Jarvis/projects/
+#   - Project code: /Users/nathanielcannon/Claude/<ProjectName>/
+#   - Project summaries: /Users/nathanielcannon/Claude/Jarvis/projects/
 
 development:
   # Where project CODE lives (not in Jarvis)
-  projects_root: "/Users/aircannon/Claude"
+  projects_root: "/Users/nathanielcannon/Claude"
 
   # Where project SUMMARIES live (in Jarvis)
-  summaries_path: "/Users/aircannon/Claude/Jarvis/projects"
+  summaries_path: "/Users/nathanielcannon/Claude/Jarvis/projects"
 
   conventions:
     naming: "lowercase-with-dashes"
@@ -94,7 +94,7 @@ development:
 # =============================================================================
 
 jarvis:
-  base_path: "/Users/aircannon/Claude/Jarvis"
+  base_path: "/Users/nathanielcannon/Claude/Jarvis"
   version: "1.9.5"
   # BEHAVIOR: How Jarvis operates
   context: ".claude/context"
@@ -111,7 +111,7 @@ jarvis:
 # =============================================================================
 
 aifred_baseline:
-  path: "/Users/aircannon/Claude/AIfred"
+  path: "/Users/nathanielcannon/Claude/AIfred"
   branch: "main"
   status: "read-only"
   current_commit: "2ea4e8b"
@@ -128,11 +128,11 @@ aifred_baseline:
 # Found during setup - can be registered as projects
 
 discovered_repos:
-  - path: "/Users/aircannon/Claude/AIfred"
+  - path: "/Users/nathanielcannon/Claude/AIfred"
     status: "unregistered"
-  - path: "/Users/aircannon/Claude/ClaudeCode"
+  - path: "/Users/nathanielcannon/Claude/ClaudeCode"
     status: "unregistered"
-  - path: "/Users/aircannon/Documents/claude-flow"
+  - path: "/Users/nathanielcannon/Documents/claude-flow"
     status: "unregistered"
-  - path: "/Users/aircannon/Documents/Jarvis"
+  - path: "/Users/nathanielcannon/Documents/Jarvis"
     status: "unregistered"

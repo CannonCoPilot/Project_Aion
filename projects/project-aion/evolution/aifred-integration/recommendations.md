@@ -52,11 +52,11 @@ This document provides actionable integration recommendations based on exhaustiv
 **Implementation**:
 ```bash
 # Copy files
-cp /Users/aircannon/Claude/AIfred/.claude/hooks/credential-guard.js \
-   /Users/aircannon/Claude/Jarvis/.claude/hooks/
+cp /Users/nathanielcannon/Claude/AIfred/.claude/hooks/credential-guard.js \
+   /Users/nathanielcannon/Claude/Jarvis/.claude/hooks/
 
-cp /Users/aircannon/Claude/AIfred/.claude/hooks/branch-protection.js \
-   /Users/aircannon/Claude/Jarvis/.claude/hooks/
+cp /Users/nathanielcannon/Claude/AIfred/.claude/hooks/branch-protection.js \
+   /Users/nathanielcannon/Claude/Jarvis/.claude/hooks/
 
 # Update settings.json to register hooks
 ```

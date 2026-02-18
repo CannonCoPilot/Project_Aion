@@ -57,7 +57,7 @@ git checkout .claude/tests/test-jicm-v6.sh  # revert mock-pane Group 28
 
 ## Step 1: Add `--dev` to `launch-jarvis-tmux.sh`
 
-**File**: `/Users/aircannon/Claude/Jarvis/.claude/scripts/launch-jarvis-tmux.sh`
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/launch-jarvis-tmux.sh`
 
 ### Changes
 
@@ -297,7 +297,7 @@ This is the key workflow where Jarvis-dev autonomously drives a full JICM cycle:
    - bash .claude/scripts/dev/restart-watcher.sh --threshold 15
 
 3. Fill W0 context (send large file reads to W0)
-   - bash .claude/scripts/dev/send-to-jarvis.sh "Read the file /Users/aircannon/Claude/Jarvis/.claude/context/designs/jicm-v5-design-addendum.md and summarize it" --wait 60
+   - bash .claude/scripts/dev/send-to-jarvis.sh "Read the file /Users/nathanielcannon/Claude/Jarvis/.claude/context/designs/jicm-v5-design-addendum.md and summarize it" --wait 60
    - Repeat with more files until context grows
 
 4. Monitor state transitions (poll .jicm-state)

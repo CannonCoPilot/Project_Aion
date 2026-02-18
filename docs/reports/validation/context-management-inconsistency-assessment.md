@@ -156,7 +156,7 @@ Files referencing both:
 **Hypothesis**: Adding to `disabledMcpServers` + `/clear` will exclude MCPs (no exit required).
 
 **Steps**:
-1. Run: `jq '.projects["/Users/aircannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json`
+1. Run: `jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json`
    - Note current state
 2. Run disable-mcps.sh to add `git` to disabled list
 3. Verify config changed: `jq ... ~/.claude.json`
