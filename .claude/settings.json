@@ -51,10 +51,6 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-hook.sh"
-          },
-          {
-            "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/update-context-cache.js"
           }
         ]
       }
@@ -307,7 +303,7 @@
       "Bash(netstat:*)",
 
       "Read",
-      "Read(/Users/aircannon/Claude/Jarvis/.claude/secrets/**)",
+      "Read(/Users/Jarvis/Claude/Jarvis/.claude/secrets/**)",
       "Glob",
       "Grep",
 
@@ -322,8 +318,8 @@
       "Read(**/*password*)",
       "Read(**/*token*)",
 
-      "Write(/Users/aircannon/Claude/AIfred/**)",
-      "Edit(/Users/aircannon/Claude/AIfred/**)",
+      "Write(/Users/Jarvis/Claude/AIfred/**)",
+      "Edit(/Users/Jarvis/Claude/AIfred/**)",
 
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~/*)",
