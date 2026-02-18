@@ -8,10 +8,26 @@ model_list:
       model: ollama/qwen3:32b
       api_base: http://localhost:11434
 
+  # No-think variant for structured output tasks (Graphiti, JSON extraction)
+  # Passes think:false to suppress Qwen3 reasoning mode
+  - model_name: qwen3-32b-nothink
+    litellm_params:
+      model: ollama/qwen3:32b
+      api_base: http://localhost:11434
+      extra_body:
+        think: false
+
   - model_name: qwen3-8b
     litellm_params:
       model: ollama/qwen3:8b
       api_base: http://localhost:11434
+
+  - model_name: qwen3-8b-nothink
+    litellm_params:
+      model: ollama/qwen3:8b
+      api_base: http://localhost:11434
+      extra_body:
+        think: false
 
   - model_name: qwen3-fast
     litellm_params:
@@ -47,6 +63,9 @@ model_list:
   #   litellm_params:
   #     model: anthropic/claude-sonnet-4-6
   #     api_key: os.environ/ANTHROPIC_API_KEY
+
+general_settings:
+  drop_params: true  # Drop unsupported params (e.g., encoding_format for Ollama)
 
 router_settings:
   routing_strategy: simple-shuffle
