@@ -99,6 +99,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "date +%s > $CLAUDE_PROJECT_DIR/.claude/context/.last-prompt-ts"
+          },
+          {
+            "type": "command",
             "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/orchestration-detector.js"
           },
           {
