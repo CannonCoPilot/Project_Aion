@@ -8,11 +8,11 @@
 
 ## Current Work Status
 
-**Status**: idle — Session 24 complete
+**Status**: exit — Session 25 complete
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: (pending — session 24 exit commit)
-**Last Pushed**: (pending)
+**Last Commit**: (session 25 exit commit)
+**Last Pushed**: (session 25 exit push)
 
 **What Was Accomplished (2026-02-17 evening, session 23)**:
 - Launcher v2.3: W0 deterministic session UUID (`17612316-37f1-5cec-b456-6a79f7735a9f`)
@@ -168,13 +168,27 @@
 - Exit guard fix: added 30s heartbeat recency check to prevent false triggers during tool cancellation
   - Heartbeat written by UserPromptSubmit hook (date +%s), checked by exit-guard.sh
 
+**What Was Accomplished (2026-02-18, session 25)**:
+- Context restored via JICM v7 cycle — verified all M0-M2 infrastructure running
+  - Docker: 5/5 containers healthy (postgres, qdrant, neo4j, redis, n8n)
+  - Ollama: 7/7 models present
+  - LiteLLM: 7 routes active on :4000
+  - MCPs: 4 registered (qdrant-mcp, postgres-mcp, neo4j, local-rag)
+- MCP Context Burden Analysis provided to user:
+  - Each MCP costs ~500-1500 tokens permanently in tool definitions
+  - 4 new MCPs = ~3000-6000 tokens of always-present overhead
+  - Recommendation: hybrid approach — keep high-frequency MCPs (jarvis-rag), decompose episodic MCPs (postgres, neo4j, n8n) into on-demand Skills
+  - Best candidate for skill decomposition: n8n (workflow mgmt is episodic)
+- Launcher Script Fix plan (W0 restart loop) identified from prior session, not yet implemented
+
 **Next Session Pickup:**
 1. Complete n8n admin setup via browser (http://localhost:5678) → get API key → register n8n-mcp
-2. Milestone 3: RAG Pipeline (semantic search) — build RAG MCP server, initial indexing
-3. Test neo4j MCP (requires Claude Code restart to pick up .mcp.json change)
-4. Review 34 stale docs identified by AC-08 maintenance audit
-5. Consider R&D proposals: RD-004 (RAG chunking), RD-005 (stale doc workflow)
-6. Test launcher v2.3 by relaunching tmux session (verify W0 --resume works)
+2. Milestone 3: RAG Pipeline (semantic search) — build jarvis-rag MCP server, initial indexing
+3. Test neo4j MCP functionality (registered, untested)
+4. Implement Launcher Script Fix (W0 restart loop + dev session path correction)
+5. Consider MCP→Skill decomposition for postgres-mcp, neo4j, n8n-mcp (context savings)
+6. Review 34 stale docs identified by AC-08 maintenance audit
+7. Consider R&D proposals: RD-004 (RAG chunking), RD-005 (stale doc workflow)
 
 ---
 

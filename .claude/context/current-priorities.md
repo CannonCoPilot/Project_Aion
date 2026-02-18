@@ -234,10 +234,33 @@ All 3 Wiggum Loops + code reviews complete. Bulk replacement re-executed success
 - **Reports**: experiment-7b-protocol.md, experiment-7b-report.md, experiment-7b-data.jsonl
 - **Research**: claude-anti-poisoning-defense-2026-02-17.md
 
-### Next: Phase C — Mac Studio Infrastructure (Wed Feb 12+)
-- Docker container deployment
-- Multi-agent orchestration infrastructure
-- Blocked until Mac Studio arrives
+### Phase C — Mac Studio Infrastructure — IN PROGRESS (2026-02-17+)
+
+**Milestone 0: Foundation Bootstrap** — COMPLETE (2026-02-17)
+- Python 3.12.12, uv 0.10.3, Docker 29.2.0, Ollama 0.16.2, MLX, jq/yq/htop/git-lfs
+- Infrastructure venv: `/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/`
+
+**Milestone 1: Local Model Serving** — COMPLETE (2026-02-17)
+- 7 models pulled (53 GB): qwen3:32b, qwen3:8b, qwen3:0.6b, qwen3-coder, qwen3-vl:8b, qwen3-embedding:4b, nomic-embed-text
+- LiteLLM proxy on :4000 with 7 routes
+- Key findings: qwen3-embedding:4b outputs 2560-dim (not 2048), qwen3-coder is 30B MoE (3.3B active)
+
+**Milestone 2: Database Stack** — NEARLY COMPLETE (2026-02-18)
+- Docker Compose: 5/5 containers healthy (PostgreSQL/ParadeDB, Qdrant, Neo4j, Redis, n8n)
+- PostgreSQL: pgvector + pg_search, 3 DBs, 3 analytics tables
+- Qdrant: 4 collections (jarvis-context, codebase, research, sessions) — 2560-dim Cosine
+- Neo4j: v2026.01.4 CE + APOC
+- Redis: redis-stack, 2GB maxmemory, AOF persistence
+- MCPs registered: qdrant-mcp, postgres-mcp, neo4j (untested), local-rag
+- BLOCKED: n8n MCP (needs API key from browser setup at http://localhost:5678)
+- Decision pending: MCP→Skill decomposition for context budget optimization (~3000-6000 token savings)
+
+**Milestone 3: RAG Pipeline** — NEXT
+- Build jarvis-rag FastMCP server (search + ingest)
+- Initial indexing of context/, reports/, scripts/, hooks/, skills/
+- Test semantic search across codebase and research
+
+**Milestones 4-7**: Graphiti memory, n8n workflows, voice pipeline, service management — queued
 
 ---
 
