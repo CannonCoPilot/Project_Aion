@@ -308,6 +308,7 @@ AIfred baseline has new commits. Run /sync-aifred-baseline after greeting."
 SESSION START — $LOCAL_DATE at $LOCAL_TIME (${TIME_OF_DAY})${weather_context}
 Status: ${CURRENT_WORK:-No active work} | Next: ${NEXT_STEP:-Check priorities}${aifred_notice}
 Read session-state.md + current-priorities.md, then begin work. Do NOT just greet.
+After orientation, query jarvis-graphiti search for prior knowledge relevant to your current task.
 PROTOCOL
 }
 
