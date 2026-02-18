@@ -8,11 +8,45 @@
 
 ## Current Work Status
 
-**Status**: idle — Session 25 complete
+**Status**: active — Session 26 in progress
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 4e5da1b (docs: session 25 state update)
-**Last Pushed**: 4e5da1b (to origin/Project_Aion — all caught up)
+**Last Commit**: 63a6be0 (feat: Milestone 3 RAG pipeline)
+**Last Pushed**: 63a6be0 (to origin/Project_Aion — all caught up)
+
+**What Was Accomplished (2026-02-18, session 26)**:
+- Exit Guard v3 Final Fix: exact `/exit` match prevents false triggers
+  - Changed from broad regex to `[[ "$FIRST_LINE" != "/exit" ]]` exact comparison
+  - 5/5 dry-run tests passing, committed (7376e93) and pushed
+- Neo4j MCP verified: 438 APOC procedures, connection confirmed, empty graph ready for M4
+- **Milestone 3: RAG Pipeline — COMPLETE**
+  - Built jarvis-rag FastMCP 3.0 server (`infrastructure/rag-service/mcp_server.py`)
+  - 6 MCP tools: search, multi_search, ingest, ingest_directory, list_collections, delete_file
+  - Installed fastmcp 3.0.0, qdrant-client 1.16.2, httpx 0.28.1 into infrastructure venv
+  - Sentence-boundary-aware chunking (1000 chars, 200 overlap)
+  - Content-hash deduplication (skip unchanged files on re-index)
+  - Auto-collection detection from file paths
+  - Initial indexing: 474 files → 6,491 vectors in ~23 minutes
+    - jarvis-context: 3,300 vectors (context + plans: 199 files)
+    - research: 1,189 vectors (reports + deep-research: 93 files)
+    - codebase: 2,002 vectors (scripts + hooks + skills + agents: 182 files)
+    - sessions: 0 vectors (not yet populated)
+  - Validation: 6 semantic queries all returning highly relevant results (0.50-0.75 cosine)
+  - Registered in .mcp.json (will be available after Claude Code restart)
+  - Committed (63a6be0) and pushed
+- **Milestone 4: Graphiti Cross-Session Memory — COMPLETE**
+  - Installed graphiti-core 0.28.0 with neo4j 6.1.0 driver
+  - Created `OllamaNoThinkClient` — custom LLM client injecting `extra_body={'think': False}` for Qwen3
+  - Created `NoOpCrossEncoder` — local models can't cross-encode, use RRF instead
+  - Solved EMBEDDING_DIM mismatch: graphiti-core defaults to 1024, Qwen3-embedding is 2560
+  - Solved LiteLLM encoding_format rejection: embedder points direct to Ollama (localhost:11434/v1)
+  - Added nothink model variants to litellm-config.yaml + `drop_params: true`
+  - Seeded 4 architectural episodes into Neo4j (338s total): identity, JICM v7, codebase layers, local models
+  - Graph: 36 entity nodes, 29 entity edges, 4 episodic nodes
+  - Built jarvis-graphiti FastMCP 3.0 server (`infrastructure/rag-service/graphiti_mcp_server.py`)
+  - 6 MCP tools: search, search_nodes, add_episode, get_episodes, get_entity, graph_stats
+  - Registered in .mcp.json with all env vars (NEO4J, LiteLLM, Ollama, EMBEDDING_DIM=2560)
+  - All tool calls validated: search returns facts, episodes retrievable, stats accurate
 
 **What Was Accomplished (2026-02-17 evening, session 23)**:
 - Launcher v2.3: W0 deterministic session UUID (`17612316-37f1-5cec-b456-6a79f7735a9f`)
@@ -183,12 +217,12 @@
 
 **Next Session Pickup:**
 1. Complete n8n admin setup via browser (http://localhost:5678) → get API key → register n8n-mcp
-2. Milestone 3: RAG Pipeline (semantic search) — build jarvis-rag MCP server, initial indexing
-3. Test neo4j MCP functionality (registered, untested)
-4. Implement Launcher Script Fix (W0 restart loop + dev session path correction)
-5. Consider MCP→Skill decomposition for postgres-mcp, neo4j, n8n-mcp (context savings)
-6. Review 34 stale docs identified by AC-08 maintenance audit
-7. Consider R&D proposals: RD-004 (RAG chunking), RD-005 (stale doc workflow)
+2. Wire Graphiti into session lifecycle (AC-01 query on start, AC-09 capture on end)
+3. Milestone 5: n8n workflows — session summaries, RAG re-indexing, scheduled maintenance
+4. Create RAG re-indexing script/workflow for incremental updates
+5. Implement Launcher Script Fix (W0 restart loop + dev session path correction)
+6. Consider MCP→Skill decomposition for postgres-mcp, neo4j, n8n-mcp (context savings)
+7. Review 34 stale docs identified by AC-08 maintenance audit
 
 ---
 

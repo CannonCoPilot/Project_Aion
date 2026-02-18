@@ -255,12 +255,28 @@ All 3 Wiggum Loops + code reviews complete. Bulk replacement re-executed success
 - BLOCKED: n8n MCP (needs API key from browser setup at http://localhost:5678)
 - Decision pending: MCP→Skill decomposition for context budget optimization (~3000-6000 token savings)
 
-**Milestone 3: RAG Pipeline** — NEXT
-- Build jarvis-rag FastMCP server (search + ingest)
-- Initial indexing of context/, reports/, scripts/, hooks/, skills/
-- Test semantic search across codebase and research
+**Milestone 3: RAG Pipeline** — COMPLETE (2026-02-18)
+- jarvis-rag FastMCP 3.0 server: 6 tools (search, multi_search, ingest, ingest_directory, list_collections, delete_file)
+- Initial indexing: 474 files → 6,491 vectors (jarvis-context: 3300, research: 1189, codebase: 2002)
+- Validation: 6 semantic queries returning highly relevant results (0.50-0.75 cosine)
+- Dependencies: fastmcp 3.0.0, qdrant-client 1.16.2, httpx 0.28.1 in infrastructure venv
+- Commit: 63a6be0
 
-**Milestones 4-7**: Graphiti memory, n8n workflows, voice pipeline, service management — queued
+**Milestone 4: Graphiti Cross-Session Memory** — COMPLETE (2026-02-18)
+- graphiti-core 0.28.0, OllamaNoThinkClient for Qwen3 thinking mode suppression
+- NoOpCrossEncoder (RRF reranking, no cloud cross-encoder needed)
+- EMBEDDING_DIM=2560 (Qwen3-embedding-4B), embedder direct to Ollama (bypasses LiteLLM)
+- 4 seed episodes → 36 entity nodes, 29 entity edges in Neo4j
+- jarvis-graphiti MCP: 6 tools (search, search_nodes, add_episode, get_episodes, get_entity, graph_stats)
+- Registered in .mcp.json, all tools validated
+- TODO: Wire into session lifecycle (AC-01 query, AC-09 capture)
+
+**Milestone 5: n8n Workflows** — NEXT
+- Complete n8n admin setup (browser at http://localhost:5678)
+- Register n8n-mcp, build automation workflows
+- Session summaries, RAG re-indexing, scheduled maintenance
+
+**Milestones 6-7**: Voice pipeline, service management — queued
 
 ---
 
