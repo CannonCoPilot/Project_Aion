@@ -1,92 +1,108 @@
 #!/bin/bash
-# Exit Guard v2 — Interactive exit menu (Stop hook)
+# Exit Guard v3 — Interactive exit menu (Stop hook)
 #
-# When Claude Code exits (Stop event), this hook determines whether to
-# allow silent exit or present an interactive exit ceremony menu.
+# When Claude Code stops (Stop event), this hook determines whether to
+# allow silent pass-through or present an interactive exit ceremony menu.
 #
-# Behavior:
-#   JICM cycle active (state file) → Allow: automated context management
-#   JICM exit-mode signal          → Allow: /end-session protocol in progress
-#   Ralph loop active              → Allow: stop-hook.sh handles Ralph
-#   Exit ceremony done             → Allow: menu already presented, let user leave
-#   Otherwise                      → Block: present exit options menu
+# CRITICAL: This hook must NEVER crash (non-zero exit). A crash is treated
+# as an error by Claude Code. Use defensive error handling throughout.
+#
+# Detection layers (evaluated in order):
+#   1. stop_reason field in hook input JSON → skip non-exit stops
+#   2. Transcript analysis → skip if last user message has no exit intent
+#   3. Signal file bypasses → JICM, Ralph Loop, ceremony-done
+#   4. Default: present exit ceremony menu
 #
 # Signal files:
 #   .jicm-exit-mode.signal  — set by /end-session to suppress JICM
-#   .jicm-state             — JICM watcher state machine (HALTING/COMPRESSING/etc.)
+#   .jicm-state             — JICM watcher state machine
 #   .exit-ceremony-done     — set by THIS hook after presenting menu
 #   ralph-loop.local.md     — Ralph loop state file
 #
-# IMPORTANT: This hook uses .exit-ceremony-done (NOT .exit-guard-passed)
-# because .exit-guard-passed was cleared by UserPromptSubmit hooks,
-# defeating the second-exit pass-through mechanism and causing loops.
-#
 # Created: 2026-02-17 (Session 23)
-# Refactored: 2026-02-18 (Session 24) — removed timing heuristic, interactive menu
+# Refactored: 2026-02-18 (Session 24) — interactive menu
+# Fixed: 2026-02-18 (Session 26) — removed set -euo pipefail (caused crashes),
+#        added transcript-based exit detection, diagnostic logging
 
-set -euo pipefail
+# INTENTIONALLY no set -e or pipefail — this hook must never crash
+set +e
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 CEREMONY_DONE="$PROJECT_DIR/.claude/context/.exit-ceremony-done"
+LOG_FILE="$PROJECT_DIR/.claude/logs/exit-guard-debug.log"
 
 # Read hook input from stdin (required by Stop hook protocol)
 HOOK_INPUT=$(cat)
 
-# --- Debug logging (captures what Stop hook receives) ---
-LOG_DIR="$PROJECT_DIR/.claude/logs"
-mkdir -p "$LOG_DIR"
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | HOOK_INPUT: $HOOK_INPUT" >> "$LOG_DIR/exit-guard-debug.log"
+# --- Debug logging ---
+mkdir -p "$PROJECT_DIR/.claude/logs" 2>/dev/null
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | HOOK_INPUT: $HOOK_INPUT" >> "$LOG_FILE" 2>/dev/null
 
-# --- Check stop_reason: only trigger on actual exit, not end-of-turn ---
-# Claude Code Stop hooks fire on EVERY turn end. The hook input JSON may
-# contain a "stop_reason" field that distinguishes user exit from normal
-# turn completion. If we can identify non-exit stops, allow them silently.
-STOP_REASON=$(echo "$HOOK_INPUT" | jq -r '.stop_reason // empty' 2>/dev/null)
+# --- Layer 1: Check stop_reason field ---
+# Claude Code may include a stop_reason that distinguishes exit from turn-end.
+STOP_REASON=$(echo "$HOOK_INPUT" | jq -r '.stop_reason // empty' 2>/dev/null || echo "")
 if [[ -n "$STOP_REASON" ]]; then
-    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | stop_reason=$STOP_REASON" >> "$LOG_DIR/exit-guard-debug.log"
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | stop_reason=$STOP_REASON" >> "$LOG_FILE" 2>/dev/null
     case "$STOP_REASON" in
         end_turn|max_tokens|tool_use|stop_sequence)
-            # Normal turn completion — not a user exit
             exit 0
             ;;
     esac
 fi
 
-# --- Transcript-based exit detection (fallback if stop_reason not available) ---
-# Check the last user message in the transcript. If the user didn't send
-# an exit-related command, this Stop is just a normal turn end — allow it.
-TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+# --- Layer 2: Transcript-based exit detection ---
+# Check the user's last message. If no exit intent, this is a normal turn end.
+# JSONL format: top-level "type":"user", message at .message.content[] with
+# items of type "text" (user input) or "tool_result" (system-generated).
+TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
 if [[ -n "$TRANSCRIPT_PATH" ]] && [[ -f "$TRANSCRIPT_PATH" ]]; then
-    # Get last user message text from JSONL transcript
-    LAST_USER_MSG=$(grep '"role":"human"' "$TRANSCRIPT_PATH" 2>/dev/null | tail -1 | jq -r '.message.content | if type == "array" then map(select(.type == "text") | .text) | join(" ") elif type == "string" then . else "" end' 2>/dev/null | head -c 200)
-    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | last_user_msg: ${LAST_USER_MSG:0:100}" >> "$LOG_DIR/exit-guard-debug.log"
+    # Extract last user text message from JSONL transcript
+    # 1. Find lines with "type":"user"
+    # 2. Extract text content items from .message.content[]
+    # 3. Take the last one that has actual text
+    LAST_USER_MSG=$(grep '"type":"user"' "$TRANSCRIPT_PATH" 2>/dev/null | \
+        python3 -c "
+import json, sys
+last_text = ''
+for line in sys.stdin:
+    try:
+        data = json.loads(line)
+        msg = data.get('message', {})
+        if isinstance(msg, dict):
+            for item in msg.get('content', []):
+                if isinstance(item, dict) and item.get('type') == 'text':
+                    t = item.get('text', '').strip()
+                    if t:
+                        last_text = t[:300]
+    except:
+        pass
+print(last_text)
+" 2>/dev/null || echo "")
 
-    # If user's last message is NOT an exit-related command, this is just
-    # a normal conversation turn ending — allow silently
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | last_user_msg: ${LAST_USER_MSG:0:100}" >> "$LOG_FILE" 2>/dev/null
+
     if [[ -n "$LAST_USER_MSG" ]]; then
-        # Check for exit-intent patterns (case insensitive)
-        # Narrow patterns: /exit, /quit, "end session", "exit" as standalone
-        # Broad terms like "stop" excluded (too many false matches)
-        EXIT_INTENT=$(echo "$LAST_USER_MSG" | grep -Eic '(^/exit$|^/quit$|/end-session|end.?session|^exit$|^quit$|^bye$|^goodbye$)' 2>/dev/null || true)
-        if [[ "$EXIT_INTENT" -eq 0 ]]; then
-            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | SKIPPED: no exit intent in last user message" >> "$LOG_DIR/exit-guard-debug.log"
+        # Narrow exit-intent patterns (case insensitive)
+        # Matches: /exit, /quit, /end-session, "end session", standalone exit/quit/bye
+        # Use grep -qi (quiet, exit code only) to avoid the grep -c double-output bug
+        if ! echo "$LAST_USER_MSG" | grep -Eiq '(/exit|/quit|/end-session|end.?session|^exit$|^quit$|^bye$|^goodbye$)' 2>/dev/null; then
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | SKIPPED: no exit intent" >> "$LOG_FILE" 2>/dev/null
             exit 0
         fi
     fi
 fi
 
-# --- Bypass checks (automated/known exits) ---
+# --- Layer 3: Signal file bypasses ---
 
-# 1. JICM exit-mode signal → /end-session is running, allow silently
+# 3a. JICM exit-mode signal → /end-session in progress
 if [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
     rm -f "$CEREMONY_DONE" 2>/dev/null
     exit 0
 fi
 
-# 2. JICM watcher in active compression cycle → allow silently
-#    State file format: "state: WATCHING\ntimestamp: ...\n..."
+# 3b. JICM watcher in active compression cycle
 if [[ -f "$PROJECT_DIR/.claude/context/.jicm-state" ]]; then
-    JICM_STATE=$(head -1 "$PROJECT_DIR/.claude/context/.jicm-state" 2>/dev/null | awk '{print $2}')
+    JICM_STATE=$(head -1 "$PROJECT_DIR/.claude/context/.jicm-state" 2>/dev/null | awk '{print $2}' || echo "")
     case "${JICM_STATE:-}" in
         HALTING|COMPRESSING|CLEARING|RESTORING)
             rm -f "$CEREMONY_DONE" 2>/dev/null
@@ -95,27 +111,28 @@ if [[ -f "$PROJECT_DIR/.claude/context/.jicm-state" ]]; then
     esac
 fi
 
-# 3. Ralph loop active → stop-hook.sh handles its own blocking
+# 3c. Ralph loop active → stop-hook.sh handles its own blocking
 if [[ -f "$PROJECT_DIR/.claude/ralph-loop.local.md" ]]; then
     rm -f "$CEREMONY_DONE" 2>/dev/null
     exit 0
 fi
 
-# 4. Exit ceremony already presented → allow through (second exit)
+# 3d. Exit ceremony already presented → allow through (second exit)
 if [[ -f "$CEREMONY_DONE" ]]; then
     rm -f "$CEREMONY_DONE" 2>/dev/null
     exit 0
 fi
 
-# --- First exit: present interactive menu ---
+# --- Layer 4: Present exit ceremony menu ---
 
-# Touch ceremony-done BEFORE blocking so the next Stop passes through.
-# This file is NOT cleared by UserPromptSubmit hooks (unlike .exit-guard-passed).
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | BLOCKING: presenting exit menu" >> "$LOG_FILE" 2>/dev/null
+
+# Touch ceremony-done BEFORE blocking so the next Stop passes through
 touch "$CEREMONY_DONE"
 
 # Build context notes
 CONTEXT_NOTES=""
-CHANGES=$(cd "$PROJECT_DIR" && git status --porcelain 2>/dev/null | grep -v '^??' | head -1)
+CHANGES=$(cd "$PROJECT_DIR" && git status --porcelain 2>/dev/null | grep -v '^??' 2>/dev/null | head -1 || echo "")
 if [[ -n "$CHANGES" ]]; then
     CONTEXT_NOTES="There are uncommitted changes in the working tree. "
 fi
