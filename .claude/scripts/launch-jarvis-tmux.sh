@@ -197,7 +197,7 @@ else
     JARVIS_SESSION_TYPE="resume"
 fi
 
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE"
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
@@ -255,9 +255,9 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
     # Create watcher window (window 1, detached so we stay on window 0)
-    # Threshold=70 (accounts for queuing delay before compression starts)
+    # Threshold=50 (accounts for queuing delay before compression starts)
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --threshold 70 --interval 5; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --threshold 50 --interval 3; echo 'Watcher stopped.'; read"
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)
@@ -291,7 +291,7 @@ if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
     JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
-    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
+    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev"
     DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
     # Session file rotation — archive if > 5MB to prevent unbounded growth
     DEV_SESSION_MAX_BYTES=5242880  # 5MB
@@ -308,9 +308,9 @@ if [[ "$DEV_MODE" == "true" ]]; then
         fi
     fi
     if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
-        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --resume $JARVIS_DEV_SESSION_ID"
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
     else
-        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --session-id $JARVIS_DEV_SESSION_ID"
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
     fi
     # Preload dev instructions file into context on launch
     DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
