@@ -105,7 +105,7 @@ detect_mode() {
 
 # Get session intent from session-state.md
 get_intent() {
-    grep "Status" "$SESSION_STATE" 2>/dev/null | head -1 | sed 's/.*: //'
+    grep '^\*\*Status\*\*' "$SESSION_STATE" 2>/dev/null | head -1 | sed 's/\*\*Status\*\*:[[:space:]]*//'
 }
 
 # Get current work description from session-state.md (for recommendations)
@@ -241,7 +241,20 @@ detect_window_idle() {
 
     # Over threshold → check tmux pane for idle type
     local pane_content
-    pane_content=$("$TMUX_BIN" capture-pane -t "jarvis:${win}" -p 2>/dev/null | tail -10)
+    pane_content=$("$TMUX_BIN" capture-pane -t "jarvis:${win}" -p 2>/dev/null | tail -15)
+
+    # Guard: dialog modal open (AskUserQuestion) → not injectable
+    if echo "$pane_content" | grep -q "Enter to select"; then
+        echo "active"  # treat as active — can't inject into a dialog
+        return 0
+    fi
+
+    # Guard: no Claude Code prompt visible → session not ready for input
+    # The ❯ prompt indicates Claude Code is waiting for user input
+    if ! echo "$pane_content" | grep -q "❯"; then
+        echo "active"  # no prompt visible — Claude may be processing
+        return 0
+    fi
 
     # ESC idle: "Interrupted" banner visible
     if echo "$pane_content" | grep -q "Interrupted"; then
