@@ -1,0 +1,187 @@
+{
+  "updatedAt": "2026-02-19T16:00:36.532Z",
+  "createdAt": "2026-02-19T16:00:36.532Z",
+  "id": "Tj70JeRfngyAkH5N",
+  "name": "Jarvis - Session Summary Ingest",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-trigger",
+      "name": "Session Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "path": "jarvis/session-complete",
+        "httpMethod": "POST",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "webhookId": "jarvis-session-complete"
+    },
+    {
+      "id": "postgres-insert",
+      "name": "Log to Postgres",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO jarvis_sessions (session_id, summary, cost_usd, context_peak_pct) VALUES ($1, $2, $3, $4)",
+        "options": {
+          "queryReplacement": "={{ $json.body.session_id }},={{ $json.body.summary }},={{ $json.body.cost_usd || 0 }},={{ $json.body.context_peak_pct || 0 }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "uWm2xENqCgVCjg4O",
+          "name": "Jarvis Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Session Webhook": {
+      "main": [
+        [
+          {
+            "node": "Log to Postgres",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "c99aa1da-ff8a-4454-aead-3b5c9d39f231",
+  "activeVersionId": "c99aa1da-ff8a-4454-aead-3b5c9d39f231",
+  "versionCounter": 6,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-19T16:00:36.532Z",
+      "createdAt": "2026-02-19T16:00:36.532Z",
+      "role": "workflow:owner",
+      "workflowId": "Tj70JeRfngyAkH5N",
+      "projectId": "ZltjSwn3NOnjQkZU",
+      "project": {
+        "updatedAt": "2026-02-19T05:40:31.966Z",
+        "createdAt": "2026-02-18T19:52:54.832Z",
+        "id": "ZltjSwn3NOnjQkZU",
+        "name": "Nathaniel Cannon <nathaniel.cannon@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "d28012c3-441b-4a32-b263-25ff110553c7"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-19T16:00:36.535Z",
+    "createdAt": "2026-02-19T16:00:36.535Z",
+    "versionId": "c99aa1da-ff8a-4454-aead-3b5c9d39f231",
+    "workflowId": "Tj70JeRfngyAkH5N",
+    "nodes": [
+      {
+        "id": "webhook-trigger",
+        "name": "Session Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "path": "jarvis/session-complete",
+          "httpMethod": "POST",
+          "responseMode": "onReceived",
+          "options": {}
+        },
+        "webhookId": "jarvis-session-complete"
+      },
+      {
+        "id": "postgres-insert",
+        "name": "Log to Postgres",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          500,
+          300
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO jarvis_sessions (session_id, summary, cost_usd, context_peak_pct) VALUES ($1, $2, $3, $4)",
+          "options": {
+            "queryReplacement": "={{ $json.body.session_id }},={{ $json.body.summary }},={{ $json.body.cost_usd || 0 }},={{ $json.body.context_peak_pct || 0 }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "uWm2xENqCgVCjg4O",
+            "name": "Jarvis Postgres"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Session Webhook": {
+        "main": [
+          [
+            {
+              "node": "Log to Postgres",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Nathaniel Cannon",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-19T16:00:57.792Z",
+        "id": 1,
+        "workflowId": "Tj70JeRfngyAkH5N",
+        "versionId": "c99aa1da-ff8a-4454-aead-3b5c9d39f231",
+        "event": "activated",
+        "userId": "d28012c3-441b-4a32-b263-25ff110553c7"
+      },
+      {
+        "createdAt": "2026-02-19T16:01:02.120Z",
+        "id": 2,
+        "workflowId": "Tj70JeRfngyAkH5N",
+        "versionId": "c99aa1da-ff8a-4454-aead-3b5c9d39f231",
+        "event": "deactivated",
+        "userId": "d28012c3-441b-4a32-b263-25ff110553c7"
+      },
+      {
+        "createdAt": "2026-02-19T16:01:02.128Z",
+        "id": 3,
+        "workflowId": "Tj70JeRfngyAkH5N",
+        "versionId": "c99aa1da-ff8a-4454-aead-3b5c9d39f231",
+        "event": "activated",
+        "userId": "d28012c3-441b-4a32-b263-25ff110553c7"
+      }
+    ]
+  }
+}

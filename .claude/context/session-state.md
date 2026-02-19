@@ -75,15 +75,15 @@ Previous session histories have been archived. For full details, see:
 ## Current Priorities
 
 ### In Progress
-- Push 1 unpushed commit (d8a2788) to origin/Project_Aion
-- Overnight session 28b validation: 4 agent results need review (ccusage symlink issue flagged)
+- None currently
 
 ### Up Next
-1. Milestone 5: n8n Workflows — n8n admin at localhost:5678, needs browser API key creation
-2. Run full `/reflect` via W0 to validate all 5 /reflect phases together
-3. MCP context optimization decision — research at `.claude/context/research/mcp-cli-registration.md`
+1. Run full `/reflect` via W0 to validate all 5 /reflect phases together
+2. MCP context optimization decision — research at `.claude/context/research/mcp-cli-registration.md`
+3. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim for jarvis-rag or host volume mount)
 
 ### Recently Completed
+- ~~M5: n8n Workflows~~ — **DONE** (Session 29: 2 workflows, Postgres tables, end-session webhook)
 - ~~Overnight session 28b~~ — **28/30 tasks DONE** (10 commits, Phases 1-5 complete, Phase 6 partial)
 - ~~12 hooks converted to async~~ — **DONE** (Session 28b, ~51% latency reduction)
 - ~~8 research reports~~ — **DONE** (Session 28b, Phase 4)

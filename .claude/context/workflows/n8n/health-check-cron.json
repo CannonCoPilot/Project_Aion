@@ -1,0 +1,467 @@
+{
+  "updatedAt": "2026-02-19T16:04:02.419Z",
+  "createdAt": "2026-02-19T16:04:02.419Z",
+  "id": "wTLsa71OChm0jNsa",
+  "name": "Jarvis - Hourly Health Check",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "cron-trigger",
+      "name": "Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "check-qdrant",
+      "name": "Check Qdrant",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        150
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://jarvis-qdrant:6333/healthz",
+        "options": {
+          "timeout": 5000
+        },
+        "onError": "continueRegularOutput"
+      }
+    },
+    {
+      "id": "check-neo4j",
+      "name": "Check Neo4j",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://jarvis-neo4j:7474",
+        "options": {
+          "timeout": 5000
+        },
+        "onError": "continueRegularOutput"
+      }
+    },
+    {
+      "id": "check-ollama",
+      "name": "Check Ollama",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        450
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "http://host.docker.internal:11434/api/tags",
+        "options": {
+          "timeout": 5000
+        },
+        "onError": "continueRegularOutput"
+      }
+    },
+    {
+      "id": "log-qdrant",
+      "name": "Log Qdrant",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        750,
+        150
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO jarvis_health_events (service, status, response_time_ms) VALUES ('qdrant', CASE WHEN $1::int = 200 THEN 'healthy' ELSE 'unhealthy' END, 0)",
+        "options": {
+          "queryReplacement": "={{ $json.statusCode }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "uWm2xENqCgVCjg4O",
+          "name": "Jarvis Postgres"
+        }
+      }
+    },
+    {
+      "id": "log-neo4j",
+      "name": "Log Neo4j",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        750,
+        300
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO jarvis_health_events (service, status, response_time_ms) VALUES ('neo4j', CASE WHEN $1::int = 200 THEN 'healthy' ELSE 'unhealthy' END, 0)",
+        "options": {
+          "queryReplacement": "={{ $json.statusCode }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "uWm2xENqCgVCjg4O",
+          "name": "Jarvis Postgres"
+        }
+      }
+    },
+    {
+      "id": "log-ollama",
+      "name": "Log Ollama",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        750,
+        450
+      ],
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO jarvis_health_events (service, status, response_time_ms) VALUES ('ollama', CASE WHEN $1::int = 200 THEN 'healthy' ELSE 'unhealthy' END, 0)",
+        "options": {
+          "queryReplacement": "={{ $json.statusCode }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "uWm2xENqCgVCjg4O",
+          "name": "Jarvis Postgres"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Hour": {
+      "main": [
+        [
+          {
+            "node": "Check Qdrant",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Neo4j",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Qdrant": {
+      "main": [
+        [
+          {
+            "node": "Log Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Neo4j": {
+      "main": [
+        [
+          {
+            "node": "Log Neo4j",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Ollama": {
+      "main": [
+        [
+          {
+            "node": "Log Ollama",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Every Hour": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "81e4ee40-fcdd-481d-97ce-6aa85887ed62",
+  "activeVersionId": "81e4ee40-fcdd-481d-97ce-6aa85887ed62",
+  "versionCounter": 4,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-19T16:04:02.419Z",
+      "createdAt": "2026-02-19T16:04:02.419Z",
+      "role": "workflow:owner",
+      "workflowId": "wTLsa71OChm0jNsa",
+      "projectId": "ZltjSwn3NOnjQkZU",
+      "project": {
+        "updatedAt": "2026-02-19T05:40:31.966Z",
+        "createdAt": "2026-02-18T19:52:54.832Z",
+        "id": "ZltjSwn3NOnjQkZU",
+        "name": "Nathaniel Cannon <nathaniel.cannon@gmail.com>",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "d28012c3-441b-4a32-b263-25ff110553c7"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-02-19T16:04:02.424Z",
+    "createdAt": "2026-02-19T16:04:02.424Z",
+    "versionId": "81e4ee40-fcdd-481d-97ce-6aa85887ed62",
+    "workflowId": "wTLsa71OChm0jNsa",
+    "nodes": [
+      {
+        "id": "cron-trigger",
+        "name": "Every Hour",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "hours",
+                "hoursInterval": 1
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "check-qdrant",
+        "name": "Check Qdrant",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          500,
+          150
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "http://jarvis-qdrant:6333/healthz",
+          "options": {
+            "timeout": 5000
+          },
+          "onError": "continueRegularOutput"
+        }
+      },
+      {
+        "id": "check-neo4j",
+        "name": "Check Neo4j",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          500,
+          300
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "http://jarvis-neo4j:7474",
+          "options": {
+            "timeout": 5000
+          },
+          "onError": "continueRegularOutput"
+        }
+      },
+      {
+        "id": "check-ollama",
+        "name": "Check Ollama",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          500,
+          450
+        ],
+        "parameters": {
+          "method": "GET",
+          "url": "http://host.docker.internal:11434/api/tags",
+          "options": {
+            "timeout": 5000
+          },
+          "onError": "continueRegularOutput"
+        }
+      },
+      {
+        "id": "log-qdrant",
+        "name": "Log Qdrant",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          750,
+          150
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO jarvis_health_events (service, status, response_time_ms) VALUES ('qdrant', CASE WHEN $1::int = 200 THEN 'healthy' ELSE 'unhealthy' END, 0)",
+          "options": {
+            "queryReplacement": "={{ $json.statusCode }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "uWm2xENqCgVCjg4O",
+            "name": "Jarvis Postgres"
+          }
+        }
+      },
+      {
+        "id": "log-neo4j",
+        "name": "Log Neo4j",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          750,
+          300
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO jarvis_health_events (service, status, response_time_ms) VALUES ('neo4j', CASE WHEN $1::int = 200 THEN 'healthy' ELSE 'unhealthy' END, 0)",
+          "options": {
+            "queryReplacement": "={{ $json.statusCode }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "uWm2xENqCgVCjg4O",
+            "name": "Jarvis Postgres"
+          }
+        }
+      },
+      {
+        "id": "log-ollama",
+        "name": "Log Ollama",
+        "type": "n8n-nodes-base.postgres",
+        "typeVersion": 2.5,
+        "position": [
+          750,
+          450
+        ],
+        "parameters": {
+          "operation": "executeQuery",
+          "query": "INSERT INTO jarvis_health_events (service, status, response_time_ms) VALUES ('ollama', CASE WHEN $1::int = 200 THEN 'healthy' ELSE 'unhealthy' END, 0)",
+          "options": {
+            "queryReplacement": "={{ $json.statusCode }}"
+          }
+        },
+        "credentials": {
+          "postgres": {
+            "id": "uWm2xENqCgVCjg4O",
+            "name": "Jarvis Postgres"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Every Hour": {
+        "main": [
+          [
+            {
+              "node": "Check Qdrant",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Check Neo4j",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "Check Ollama",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Qdrant": {
+        "main": [
+          [
+            {
+              "node": "Log Qdrant",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Neo4j": {
+        "main": [
+          [
+            {
+              "node": "Log Neo4j",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Check Ollama": {
+        "main": [
+          [
+            {
+              "node": "Log Ollama",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Nathaniel Cannon",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-02-19T16:04:08.933Z",
+        "id": 4,
+        "workflowId": "wTLsa71OChm0jNsa",
+        "versionId": "81e4ee40-fcdd-481d-97ce-6aa85887ed62",
+        "event": "activated",
+        "userId": "d28012c3-441b-4a32-b263-25ff110553c7"
+      }
+    ]
+  }
+}
