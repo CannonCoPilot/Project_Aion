@@ -26,13 +26,12 @@ cat > "$CHECKPOINT_FILE" << 'CHECKPOINT'
 ## Work Summary
 
 This checkpoint was auto-generated when context approached the limit.
-Check session-state.md and current-priorities.md for work context.
+Check session-state.md (includes priorities) for work context.
 
 ## Next Steps After Restart
 
-1. Review session-state.md for current work status
-2. Check current-priorities.md for next tasks
-3. Continue from where you left off
+1. Review session-state.md for current work status and priorities
+2. Continue from where you left off
 
 ## MCP State
 
