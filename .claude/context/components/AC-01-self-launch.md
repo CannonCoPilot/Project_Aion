@@ -126,6 +126,8 @@ Detection logic:
 |------------|------------|----------|
 | DateTime | `get_current_datetime` | No (fallback to system time) |
 | Memory | `search_nodes` | No (skip context recall) |
+| jarvis-rag | `search` | No (skip session recall) |
+| jarvis-graphiti | `search` | No (skip knowledge graph recall) |
 
 ### File Dependencies
 | File | Purpose | Create if Missing |
