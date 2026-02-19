@@ -191,6 +191,9 @@ echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | BLOCKING: presenting exit menu" >> "$LOG_
 # Touch ceremony-done BEFORE blocking so the next Stop passes through
 touch "$CEREMONY_DONE"
 
+# Zero heartbeat timestamp so Ennoia won't inject into this exiting session
+echo "0" > "$PROJECT_DIR/.claude/context/.last-prompt-ts.W${WINDOW}" 2>/dev/null
+
 # Build context notes
 CONTEXT_NOTES=""
 CHANGES=$(cd "$PROJECT_DIR" && git status --porcelain 2>/dev/null | grep -v '^??' 2>/dev/null | head -1 || echo "")
