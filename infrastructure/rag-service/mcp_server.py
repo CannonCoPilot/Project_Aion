@@ -1,7 +1,7 @@
 """
 Jarvis RAG MCP Server — Milestone 3
 Exposes semantic search and document ingestion via MCP protocol.
-Uses Qdrant for vector storage, Ollama for embeddings.
+Uses Qdrant for vector storage, qwen3-embeddings-mlx for embeddings (MLX on Apple Silicon).
 
 Collections:
   jarvis-context — patterns, state, plans, context files
@@ -25,28 +25,28 @@ from qdrant_client.models import (
 )
 
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-EMBED_MODEL = os.getenv("EMBED_MODEL", "qwen3-embedding:4b")
+MLX_EMBED_URL = os.getenv("MLX_EMBED_URL", "http://localhost:8000")
 EMBED_DIM = int(os.getenv("EMBED_DIM", "2560"))
-VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions"}
+VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
+                     "dfhack", "dwarf-therapist", "df-wiki"}
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")
 
 
 async def get_embedding(text: str) -> list[float]:
-    """Get embedding vector from Ollama."""
-    async with httpx.AsyncClient(timeout=120.0) as client:
+    """Get embedding vector from qwen3-embeddings-mlx server."""
+    async with httpx.AsyncClient(timeout=30.0) as client:
         resp = await client.post(
-            f"{OLLAMA_URL}/api/embed",
-            json={"model": EMBED_MODEL, "input": text},
+            f"{MLX_EMBED_URL}/embed",
+            json={"text": text, "model": "medium"},
         )
         resp.raise_for_status()
         data = resp.json()
-        embeddings = data.get("embeddings", [])
-        if not embeddings:
-            raise ValueError(f"No embeddings returned: {data}")
-        return embeddings[0]
+        embedding = data.get("embedding")
+        if not embedding:
+            raise ValueError(f"No embedding returned: {data}")
+        return embedding
 
 
 def chunk_text(
