@@ -132,6 +132,9 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
     # Clear exit-guard signal files if stale from previous session
     rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-guard-passed" 2>/dev/null
     rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-ceremony-done" 2>/dev/null
+
+    # Clean up stale idle-hands state from previous sessions
+    rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.idle-hands-active.W"* 2>/dev/null
 fi
 
 # ============================================================================

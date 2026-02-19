@@ -25,7 +25,7 @@
 .claude/context/.continuation-injected.signal
 .claude/context/.compression-in-progress
 .claude/context/.exit-guard-passed
-.claude/context/.last-prompt-ts
+.claude/context/.last-prompt-ts*
 
 # Tool output offloading (temp files for large results)
 .claude/context/.tool-output/

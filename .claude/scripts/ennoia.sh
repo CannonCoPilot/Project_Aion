@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ennoia.sh — Session Orchestrator Aion Script v0.2
+# ennoia.sh — Session Orchestrator Aion Script v0.3
 # Runs in tmux jarvis:2, 30s refresh cycle
 # Writes: .ennoia-status (dashboard state), .ennoia-recommendation (Watcher handoff)
 #
@@ -12,11 +12,15 @@
 # v0.1: Dashboard only (display). No scheduler, no auto-actions.
 # v0.2: Writes .ennoia-recommendation signal file for Watcher consumption.
 #        Watcher reads recommendation for wake-up prompt text (graceful fallback).
-# v0.3+: session-start.sh thin dispatcher, idle scheduler
+# v0.3: Idle-hands scheduler — detects per-window idle, injects maintenance prompts
+#        via tmux send-keys. Stop hook chains phases (commit → reflect → maintain).
 
-set -euo pipefail
+# NEVER use set -euo pipefail — grep pipeline failures cause silent crashes
+set +e
 
 PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+TMUX_BIN="${TMUX_BIN:-/Users/nathanielcannon/bin/tmux}"
+IDLE_THRESHOLD="${IDLE_THRESHOLD:-900}"  # 15 minutes in seconds
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 PRIORITIES="$PROJECT_DIR/.claude/context/current-priorities.md"
 WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state"
@@ -24,6 +28,7 @@ ENNOIA_STATE="$PROJECT_DIR/.claude/context/.ennoia-state"
 ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"
 ENNOIA_RECOMMENDATION="$PROJECT_DIR/.claude/context/.ennoia-recommendation"
 ACTIVE_PLAN="$PROJECT_DIR/.claude/context/.active-plan"
+LOG="$PROJECT_DIR/.claude/logs/ennoia-debug.log"
 REFRESH=30
 
 # --- Color Constants (ANSI-C quoting for reliable escape sequences) ---
@@ -213,6 +218,150 @@ write_recommendation() {
     return 0
 }
 
+# ============== IDLE-HANDS SCHEDULER (v0.3) ==============
+
+# Per-window idle detection
+# Returns: "active", "idle_natural", "idle_esc", or "idle_hands_running"
+detect_window_idle() {
+    local win="$1"
+    local ts_file="$PROJECT_DIR/.claude/context/.last-prompt-ts.W${win}"
+    local ih_file="$PROJECT_DIR/.claude/context/.idle-hands-active.W${win}"
+
+    # Already running idle-hands → skip
+    [[ -f "$ih_file" ]] && echo "idle_hands_running" && return 0
+
+    # Read heartbeat
+    local last_ts now idle_secs
+    last_ts=$(cat "$ts_file" 2>/dev/null || echo 0)
+    now=$(date +%s)
+    idle_secs=$(( now - last_ts ))
+
+    # Under threshold → active
+    [[ $idle_secs -lt $IDLE_THRESHOLD ]] && echo "active" && return 0
+
+    # Over threshold → check tmux pane for idle type
+    local pane_content
+    pane_content=$("$TMUX_BIN" capture-pane -t "jarvis:${win}" -p 2>/dev/null | tail -10)
+
+    # ESC idle: "Interrupted" banner visible
+    if echo "$pane_content" | grep -q "Interrupted"; then
+        echo "idle_esc"
+    else
+        echo "idle_natural"
+    fi
+}
+
+# Maintenance priority queue — returns the next action to take
+evaluate_priority() {
+    local now reflect_dir maint_dir
+
+    now=$(date +%s)
+    reflect_dir="$PROJECT_DIR/.claude/reports/reflections"
+    maint_dir="$PROJECT_DIR/.claude/reports/maintenance"
+
+    # Priority 1: Uncommitted changes → commit
+    local changes
+    changes=$(cd "$PROJECT_DIR" && git status --porcelain 2>/dev/null | grep -v '^??' | head -1)
+    [[ -n "$changes" ]] && echo "commit" && return 0
+
+    # Priority 2: /reflect (if last run > 1 day)
+    if [[ -d "$reflect_dir" ]]; then
+        local latest mtime days
+        latest=$(ls -t "$reflect_dir"/*.md 2>/dev/null | head -1)
+        if [[ -n "$latest" ]]; then
+            mtime=$(stat -f %m "$latest")
+            days=$(( (now - mtime) / 86400 ))
+            [[ $days -ge 1 ]] && echo "reflect" && return 0
+        else
+            echo "reflect" && return 0  # never reflected
+        fi
+    else
+        echo "reflect" && return 0
+    fi
+
+    # Priority 3: /maintain (if last run > 7 days)
+    if [[ -d "$maint_dir" ]]; then
+        local latest mtime days
+        latest=$(ls -t "$maint_dir"/*.md 2>/dev/null | head -1)
+        if [[ -n "$latest" ]]; then
+            mtime=$(stat -f %m "$latest")
+            days=$(( (now - mtime) / 86400 ))
+            [[ $days -ge 7 ]] && echo "maintain" && return 0
+        else
+            echo "maintain" && return 0
+        fi
+    else
+        echo "maintain" && return 0
+    fi
+
+    # All current → nothing to do
+    echo "none"
+}
+
+# Activate idle-hands for a window
+inject_idle_hands() {
+    local win="$1" idle_type="$2"
+    local ih_file="$PROJECT_DIR/.claude/context/.idle-hands-active.W${win}"
+
+    if [[ "$idle_type" == "idle_esc" ]]; then
+        # ESC idle: resume interrupted work
+        cat > "$ih_file" <<EOF
+activated: $(date +%s)
+window: $win
+type: resume
+phase: resume
+cycle: 1
+EOF
+        # Dismiss "Interrupted" banner then inject resume prompt
+        "$TMUX_BIN" send-keys -t "jarvis:${win}" "" 2>/dev/null
+        sleep 1
+        "$TMUX_BIN" send-keys -t "jarvis:${win}" -l "Continue the work you were doing before the interruption. Pick up where you left off." 2>/dev/null
+        sleep 0.5
+        "$TMUX_BIN" send-keys -t "jarvis:${win}" C-m 2>/dev/null
+        echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | idle-hands: injected resume into W${win}" >> "$LOG" 2>/dev/null
+    else
+        # Natural idle: start maintenance cycle
+        local action
+        action=$(evaluate_priority)
+        [[ "$action" == "none" ]] && return 0  # nothing to do
+
+        cat > "$ih_file" <<EOF
+activated: $(date +%s)
+window: $win
+type: maintenance
+phase: $action
+cycle: 1
+EOF
+        # Inject first maintenance action
+        local prompt
+        case "$action" in
+            commit)  prompt="[IDLE-HANDS] Review and commit any uncommitted changes. Use descriptive commit messages." ;;
+            reflect) prompt="[IDLE-HANDS] Run /reflect — perform a self-reflection cycle." ;;
+            maintain) prompt="[IDLE-HANDS] Run /maintain — perform a maintenance check." ;;
+        esac
+        "$TMUX_BIN" send-keys -t "jarvis:${win}" -l "$prompt" 2>/dev/null
+        sleep 0.5
+        "$TMUX_BIN" send-keys -t "jarvis:${win}" C-m 2>/dev/null
+        echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | idle-hands: injected $action into W${win}" >> "$LOG" 2>/dev/null
+    fi
+}
+
+# Check idle-hands for all Claude windows
+check_idle_hands() {
+    for win in 0 5; do
+        # Only check if the window exists
+        if "$TMUX_BIN" list-windows -t jarvis 2>/dev/null | grep -q "^${win}:"; then
+            local state
+            state=$(detect_window_idle "$win")
+            case "$state" in
+                idle_esc|idle_natural)
+                    inject_idle_hands "$win" "$state"
+                    ;;
+            esac
+        fi
+    done
+}
+
 # Get maintenance status from report directories
 get_maintenance_status() {
     local reflect_log="$PROJECT_DIR/.claude/reports/reflections"
@@ -297,6 +446,15 @@ render() {
             maint=$(get_maintenance_status)
             echo "  ▪ /reflect — last: $(echo "$maint" | grep -o 'reflect:[^ ]*' | cut -d: -f2)"
             echo "  ▪ /maintain — last: $(echo "$maint" | grep -o 'maintain:[^ ]*' | cut -d: -f2)"
+            # Show idle-hands status per window
+            for win in 0 5; do
+                local ih_file="$PROJECT_DIR/.claude/context/.idle-hands-active.W${win}"
+                if [[ -f "$ih_file" ]]; then
+                    local ih_phase
+                    ih_phase=$(awk '/^phase:/{print $2}' "$ih_file" 2>/dev/null)
+                    echo "  ${C_GREEN}▶ W${win}: idle-hands active (phase: ${ih_phase:-?})${C_RESET}"
+                fi
+            done
             ;;
 
         resume)
@@ -307,6 +465,9 @@ render() {
 
     # Write recommendation signal file for Watcher
     write_recommendation "$mode"
+
+    # Idle-hands scheduler: check each Claude window for idle state
+    check_idle_hands
 
     # Footer
     printf '\n%.0s─' $(seq 1 "$cols"); echo
@@ -320,12 +481,18 @@ render() {
     # Update status file
     local has_rec="false"
     [[ -f "$ENNOIA_RECOMMENDATION" ]] && has_rec="true"
+    # Idle-hands state per window
+    local ih_w0="inactive" ih_w5="inactive"
+    [[ -f "$PROJECT_DIR/.claude/context/.idle-hands-active.W0" ]] && ih_w0="active"
+    [[ -f "$PROJECT_DIR/.claude/context/.idle-hands-active.W5" ]] && ih_w5="active"
     cat > "$ENNOIA_STATUS" <<EOF
 timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
-version: 0.2
+version: 0.3
 mode: $mode
 intent: $(get_intent)
 recommendation_active: $has_rec
+idle_hands_w0: $ih_w0
+idle_hands_w5: $ih_w5
 EOF
 }
 
