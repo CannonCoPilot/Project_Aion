@@ -8,21 +8,19 @@
 
 ## Current Work Status
 
-**Status**: 🟢 Idle — Session 26c complete
+**Status**: 🟢 Idle — Session 27 complete
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 3f3aa8b (feat: idle-hands autonomous maintenance system)
-**Last Pushed**: 3f3aa8b (to origin/Project_Aion)
+**Last Commit**: (pending — S27 exit commit)
+**Last Pushed**: (pending)
 
 ---
 
-## What Was Accomplished (2026-02-18, Session 26c — JICM resume)
+## What Was Accomplished (2026-02-18, Session 27 — brief orientation)
 
-- **Idle-Hands system committed + pushed**: 9 files, 289 insertions — Ennoia v0.3 idle scheduler, idle-hands-hook.sh stop hook, exit-guard/session-start integration
-- **Exit-guard root cause FIX**: Definitively fixed false trigger pattern (6th+ recurrence). Root cause: negative-match logic fell through on empty LAST_USER_MSG after /clear. Fix: inverted to positive-match `EXIT_DETECTED=false` boolean. 12/12 tests pass.
-- **Layer 0 guard added**: `stop_hook_active` re-entry check per Claude Code official docs — defense-in-depth against infinite loops
-- **Git email gotcha**: Discovered GH007 checks both author AND committer email. Documented in MEMORY.md.
-- **Self-improvement cycle**: Full AC-05→AC-08 run. 9 proposals, 2 auto-implemented (orphan container, Layer 0). 3 reports written.
+- Session orientation only — reviewed state, queried Graphiti KG, checked tmux windows
+- **Exit-guard v4 improvements** (from S26c, uncommitted): enhanced JSONL transcript parsing to handle raw character string arrays + command tags, not just text dicts
+- **Ennoia idle detection hardening** (from S26c, uncommitted): dialog modal guard (AskUserQuestion), prompt visibility check, improved intent extraction from markdown-formatted status
 
 ## Archived History
 
@@ -38,6 +36,7 @@ Previous session histories have been archived. For full details, see:
 - Two-tier memory architecture: Qdrant (fast) + Graphiti (deep)
 - 7 MCPs registered, 36 graph entities, 6,491 Qdrant vectors
 - Idle-Hands system: implemented and committed
+- Exit-guard v4 + Ennoia idle hardening (S26c→S27)
 
 ---
 
@@ -60,4 +59,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-18 21:35 MST — Session 26c exit complete*
+*Session state updated 2026-02-18 21:58 MST — Session 27 exit complete*

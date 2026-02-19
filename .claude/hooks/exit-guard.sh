@@ -1,5 +1,5 @@
 #!/bin/bash
-# Exit Guard v3 — Interactive exit menu (Stop hook)
+# Exit Guard v4 — Interactive exit menu (Stop hook)
 #
 # When Claude Code stops (Stop event), this hook determines whether to
 # allow silent pass-through or present an interactive exit ceremony menu.
@@ -15,6 +15,15 @@
 #   3. Signal file bypasses → JICM, Ralph Loop, ceremony-done
 #   4. Present exit ceremony menu (only reachable if /exit confirmed in Layer 2)
 #
+# Transcript format notes (Claude Code JSONL):
+#   - User-typed text is stored as individual character strings in content array
+#     e.g. {"type":"user","message":{"content":["h","e","l","l","o"]}}
+#   - Built-in commands like /exit are stored as:
+#     {"type":"user","message":{"content":["<","c","o","m","m","a","n","d",...]}}
+#     which joins to: <command-name>/exit</command-name>...
+#   - System text uses {"type":"text","text":"..."} dicts (e.g. skill expansions)
+#   - The Python parser must handle BOTH raw strings and text dicts
+#
 # Signal files:
 #   .jicm-exit-mode.signal  — set by /end-session to suppress JICM
 #   .jicm-state             — JICM watcher state machine
@@ -23,8 +32,8 @@
 #
 # Created: 2026-02-17 (Session 23)
 # Refactored: 2026-02-18 (Session 24) — interactive menu
-# Fixed: 2026-02-18 (Session 26) — removed set -euo pipefail (caused crashes),
-#        added transcript-based exit detection, diagnostic logging
+# Fixed: 2026-02-18 (Session 26c) — positive-match logic, crash-proof
+# Fixed: 2026-02-19 (Session 26c) — v4: parse raw char strings + command tags
 
 # INTENTIONALLY no set -e or pipefail — this hook must never crash
 set +e
@@ -73,25 +82,50 @@ EXIT_DETECTED=false
 
 TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
 if [[ -n "$TRANSCRIPT_PATH" ]] && [[ -f "$TRANSCRIPT_PATH" ]]; then
-    # Extract last user text message from JSONL transcript
-    # JSONL: top-level "type":"user", content items of "text" or "tool_result"
+    # Extract last user input from JSONL transcript
+    # Claude Code stores content in two formats:
+    #   1. Raw strings: user-typed text as individual chars ["h","e","l","l","o"]
+    #      Built-in commands appear as <command-name>/exit</command-name>
+    #   2. Dict items: {"type":"text","text":"..."} for system-generated text
+    # We check BOTH formats and look for /exit in the most recent user message.
     LAST_USER_MSG=$(grep '"type":"user"' "$TRANSCRIPT_PATH" 2>/dev/null | \
         python3 -c "
-import json, sys
+import json, sys, re
 last_text = ''
+last_command = ''
 for line in sys.stdin:
     try:
         data = json.loads(line)
         msg = data.get('message', {})
-        if isinstance(msg, dict):
-            for item in msg.get('content', []):
-                if isinstance(item, dict) and item.get('type') == 'text':
-                    t = item.get('text', '').strip()
-                    if t:
-                        last_text = t[:300]
+        if not isinstance(msg, dict):
+            continue
+        content = msg.get('content', [])
+        # Join raw string chars (user-typed text and built-in commands)
+        raw_chars = [x for x in content if isinstance(x, str)]
+        if raw_chars:
+            joined = ''.join(raw_chars).strip()
+            # Check for built-in command tag
+            m = re.search(r'<command-name>(.*?)</command-name>', joined)
+            if m:
+                last_command = m.group(1).strip()
+            elif not joined.startswith('<'):
+                # Real user text (not XML system injection)
+                last_text = joined[:300]
+                last_command = ''
+        # Check dict text items (system-generated: skill expansions, interrupts)
+        for item in content:
+            if isinstance(item, dict) and item.get('type') == 'text':
+                t = item.get('text', '').strip()
+                if t:
+                    last_text = t[:300]
+                    last_command = ''
     except:
         pass
-print(last_text)
+# Output the command if it was the last thing, otherwise the last text
+if last_command:
+    print(last_command)
+else:
+    print(last_text)
 " 2>/dev/null || echo "")
 
     if [[ -n "$LAST_USER_MSG" ]]; then
