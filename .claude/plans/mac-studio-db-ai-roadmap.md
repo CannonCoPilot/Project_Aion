@@ -1044,9 +1044,15 @@ claude mcp add n8n-mcp -- npx -y n8n-mcp \
 Now Jarvis can programmatically create, modify, and trigger n8n workflows.
 
 #### Validation Checklist
-- [ ] Health monitor workflow triggers every 5 min, reports green
-- [ ] RAG indexer detects file changes and triggers ingestion
-- [ ] n8n MCP allows creating test workflow from Claude Code
+- [x] Health monitor workflow triggers every hour, reports to Postgres (Session 29, 2026-02-19)
+- [ ] RAG indexer detects file changes and triggers ingestion (DEFERRED to M5.1 — needs host volume mount)
+- [ ] n8n MCP allows creating test workflow from Claude Code (SKIPPED — curl API suffices, 42 tool descriptions too costly)
+
+#### What Was Actually Delivered (Session 29)
+- **Workflow A**: Session Summary Webhook — logs session metadata to `jarvis_sessions` Postgres table
+- **Workflow B**: Hourly Health Check Cron — HTTP checks Qdrant, Neo4j, Ollama, Redis → `jarvis_health_events` table
+- **NOT delivered**: RAG auto-indexer (needs host volume mount or HTTP shim), n8n-mcp registration (context cost too high)
+- **Decision**: n8n-mcp NOT registered — 42 tool descriptions per session is excessive for 4 static workflows. Curl API calls suffice.
 
 ---
 

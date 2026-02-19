@@ -11,6 +11,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [5.11.0] - 2026-02-19
+
+**M5: n8n Workflow Integration + Self-Improvement Cycle + Overnight Autonomous Session**
+
+### M5: n8n Workflow Integration
+
+#### Added
+- **Workflow A**: Session Summary Webhook — logs session metadata to `jarvis_sessions` Postgres table via `/webhook/jarvis/session-complete`
+- **Workflow B**: Hourly Health Check Cron — HTTP monitors Qdrant, Neo4j, Ollama, Redis → `jarvis_health_events` table
+- Postgres tables: `jarvis_sessions`, `jarvis_health_events`
+- n8n notification step in end-session protocol (Step 7c)
+- Decision: n8n-mcp NOT registered (42 tool descriptions too costly for 4 static workflows)
+
+### Overnight Autonomous Session (28b) — 28/30 Tasks
+
+#### Added
+- 8 research reports (MCP CLI, async hooks, usage monitoring, Blitz.dev, claude-code-docs, CCTCRG, RTK, Dwarf Fortress)
+- insight-capture.js Stop hook (AC-05 integration)
+- bash-gotchas.md coding reference
+- computed-state pattern documentation
+- `/usage` command + usage-dashboard skill
+- pre-clear-context-prep.sh safety hook
+- RTK (Rust Token Killer) hook for token savings
+
+#### Changed
+- 12 hooks converted to async (~51% latency reduction)
+- Consolidated session-state + current-priorities (single source of truth)
+- MEMORY.md rewritten with clear 3-tier purpose
+- CLAUDE.md: added @-imports, anti-hedging directives, Runtime Environment section
+- Renamed README.md → CLAUDE.md in 5 directories (hooks, scripts, skills, commands, agents)
+- valedictions.yaml complete rewrite (1930s English manor house theme)
+- End-session farewell formatting with horizontal rules
+
+### Session 29 Self-Improvement Cycle
+
+#### Fixed
+- insight-capture.js regex: broadened to accept ASCII hyphens + backtick-wrapped markers
+- Stale `.jicm-exit-mode.signal` failsafe added to session-start.sh
+- RTK command interception documented in bash-gotchas.md
+
+#### Added
+- JICM idle checkpoint timer (keeps .compressed-context-ready.md fresh during idle)
+- `gather_recent_archives()` in session-start.sh for multi-depth context restoration
+- Self-improvement reports: reflection, maintenance, R&D, evolution (4 reports)
+
+---
+
 ## [5.10.0] - 2026-02-10
 
 **VERSION Realignment + Phase B Complete + AC-03 Hotfix + Aion Trinity Scaffolding**

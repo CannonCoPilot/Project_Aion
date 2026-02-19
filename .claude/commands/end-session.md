@@ -486,4 +486,4 @@ rm -f .claude/context/.jicm-exit-mode.signal
 
 ---
 
-*Jarvis v5.10.0 — Project Aion Master Archon (AC-09 exit-mode signal added 2026-02-12)*
+*Jarvis v5.11.0 — Project Aion Master Archon (AC-09 exit-mode signal added 2026-02-12)*
