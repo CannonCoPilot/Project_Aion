@@ -8,11 +8,24 @@
 
 ## Current Work Status
 
-**Status**: 🟢 Active — Session 28 (roadmap pickup)
+**Status**: 🟢 Active — Session 29 (post-overnight pickup)
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: bcd5696 (feat: AC-01 Qdrant session retrieval + watcher health check + evo triage)
-**Last Pushed**: bcd5696 (to origin/Project_Aion)
+**Last Commit**: d8a2788 (chore: update overnight plan checkboxes + gitignore statusline caches)
+**Last Pushed**: 2693be4 (to origin/Project_Aion) — 1 unpushed
+
+---
+
+## What Was Accomplished (2026-02-19, Session 28b — overnight autonomous W5:Jarvis-dev)
+
+10 commits, 28/30 tasks completed across 6 phases. W5 session died at 149k/200k from agent result flood.
+
+- **Phase 1 (Infrastructure)**: JICM compressed-context mv→cp fix, /clear safety hook, agent-awareness research, bash-gotchas reference, computed-state pattern doc
+- **Phase 2 (Documentation)**: Consolidated session-state + current-priorities, MEMORY.md rewrite, CLAUDE.md @ imports, README→CLAUDE.md renames (5 dirs), anti-hedging directives, insight-capture.js hook
+- **Phase 3 (UX)**: Farewell formatting in end-session.md, valedictions.yaml complete rewrite (1930s manor house theme)
+- **Phase 4 (Research)**: 8 parallel research reports — MCP CLI registration, async hooks, usage monitoring, Blitz.dev, claude-code-docs, CCTCRG strategies, RTK evaluation, Dwarf Fortress project plan
+- **Phase 5 (Implementation)**: RTK hook installed, 12 hooks converted to async (~51% latency reduction), ccusage statusline BLK display, CCTCRG usage logging. n8n M5 deferred (needs browser API key)
+- **Phase 6 (Validation)**: 4 validation agents dispatched and completed but results never consumed (context death)
 
 ---
 
@@ -61,40 +74,22 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-**Next**: Overnight autonomous session — see `.claude/plans/overnight-session-28b-plan.md`
-
 ### In Progress
-- Overnight session 28b: 6-phase plan (JICM fixes, documentation, UX, research, implementation, validation)
-- Phase 4: 8 parallel research agents dispatched (MCP CLI, async hooks, usage monitoring, Blitz, claude-code-docs, CCTCRG, RTK, Dwarf Fortress)
+- Push 1 unpushed commit (d8a2788) to origin/Project_Aion
+- Overnight session 28b validation: 4 agent results need review (ccusage symlink issue flagged)
 
 ### Up Next
-1. Milestone 5: n8n Workflows — complete n8n admin setup, register n8n-mcp (NOW UNBLOCKED)
-2. Consider async hooks (RD-002) for logging hooks — potential performance improvement
-3. Run full `/reflect` command (standard depth) to validate all 5 phases together
+1. Milestone 5: n8n Workflows — n8n admin at localhost:5678, needs browser API key creation
+2. Run full `/reflect` via W0 to validate all 5 /reflect phases together
+3. MCP context optimization decision — research at `.claude/context/research/mcp-cli-registration.md`
 
 ### Recently Completed
-- ~~Test idle-hands system end-to-end~~ — **DONE** (Session 27b)
-- ~~Test `/reflect` with Graphiti deep ingestion (Phase 5) end-to-end~~ — **DONE** (Session 28)
-- ~~Wire session summary → Qdrant ingestion at end-session, RAG retrieval at AC-01 start~~ — **DONE** (Session 28)
-- ~~Review evolution queue proposals~~ — **DONE** (Session 28)
-- ~~Create computed-state pattern doc~~ — **DONE** (Session 28b, EVO-2026-02-004)
-
-### Referenced Files (loaded into context this session)
-- `.claude/context/session-state.md` — this file
-- `.claude/context/dev-session-instructions.md` — W5 dev session instructions
-- `.claude/plans/overnight-session-28b-plan.md` — overnight master plan
-- `.claude/scripts/jicm-watcher.sh` — JICM v7 watcher (modified)
-- `.claude/scripts/jicm-prep-context.sh` — context prep script (verified)
-- `.claude/hooks/session-start.sh` — session start hook (modified)
-- `.claude/context/psyche/valedictions.yaml` — farewell phrases
-
-### Modified Files This Session
-- `.claude/scripts/jicm-watcher.sh` — archive_compressed_context: mv→cp for persistence
-- `.claude/hooks/session-start.sh` — /clear safety: auto-run prep script
-- `.claude/context/research/jicm-agent-awareness.md` — new research doc
-- `.claude/context/reference/bash-gotchas.md` — new reference doc
-- `.claude/context/patterns/computed-state.md` — new pattern doc (EVO-2026-02-004)
-- `CLAUDE.md` — added @plan import, version fix
+- ~~Overnight session 28b~~ — **28/30 tasks DONE** (10 commits, Phases 1-5 complete, Phase 6 partial)
+- ~~12 hooks converted to async~~ — **DONE** (Session 28b, ~51% latency reduction)
+- ~~8 research reports~~ — **DONE** (Session 28b, Phase 4)
+- ~~RTK hook installation~~ — **DONE** (Session 28b)
+- ~~Valedictions overhaul~~ — **DONE** (Session 28b)
+- ~~README→CLAUDE.md renames~~ — **DONE** (Session 28b, 5 directories)
 
 ---
 
@@ -106,4 +101,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-18 21:58 MST — Session 27 exit complete*
+*Session state updated 2026-02-19 00:28 MST — Session 29 (W0 post-overnight recovery)*
