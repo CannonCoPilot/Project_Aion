@@ -30,12 +30,14 @@ The `/reflect` command triggers Jarvis' self-reflection process, analyzing corre
 - Pattern matching with prior problems
 - Generate evolution proposals
 - Update lessons index
+- Graphiti deep ingestion (Phase 5)
 
 ### Thorough (~15-20 min)
 - All standard analysis
 - Cross-reference with Memory MCP
 - Historical trend analysis
 - Detailed pattern documentation
+- Graphiti deep ingestion (Phase 5)
 
 ## Examples
 
@@ -126,6 +128,50 @@ echo '{"component":"AC-05","event_type":"component_start","data":{"trigger":"ref
    - Write Memory MCP entities
    - Include tracker verification results in report
 
+7. **Graphiti Deep Ingestion (Phase 5: Knowledge Graph Memory)**
+
+   This phase synthesizes session knowledge into the Graphiti knowledge graph for
+   cross-session retrieval. It runs the multi-LLM entity extraction pipeline
+   (~20-30s with qwen3-8b), so it belongs here — NOT in `/end-session`.
+
+   **Context Gathering** — Assemble a rich context document from these sources:
+
+   | Source | Location | What to extract |
+   |--------|----------|----------------|
+   | Session summaries | `.claude/context/sessions/session-*-summary.md` | Recent session accomplishments, decisions |
+   | JSONL transcript | JICM checkpoint or raw transcript | Key user decisions, technical discussions |
+   | Current priorities | `.claude/context/current-priorities.md` | Active work items, completed milestones |
+   | Session state | `.claude/context/session-state.md` | Current status, blockers, key findings |
+   | Project aims | `projects/project-aion/roadmap.md` | Phase goals, PR targets, version milestones |
+   | Planning docs | `.claude/plans/mac-studio-db-ai-roadmap.md` (or active plan) | Current plan status and decisions |
+   | Corrections | `.claude/context/psyche/self-knowledge/corrections.md` | Patterns from mistakes, gotchas |
+
+   **Synthesis** — Compose a 3-5 paragraph insight document that:
+   - Summarizes key accomplishments and their architectural significance
+   - Highlights technical findings, gotchas, and patterns worth remembering
+   - Connects current work to broader project goals and next milestones
+   - Notes any corrections or lessons that should persist in the knowledge graph
+
+   **Ingestion** — Call `jarvis-graphiti add_episode`:
+   ```
+   name: "Reflection — Session [N] — [topic]"
+   content: [the synthesized insight document]
+   source_description: "Jarvis AC-05 deep reflection"
+   source_type: "text"
+   ```
+
+   **Verification** — Check that `entities_extracted > 0` and `edges_created > 0`.
+   Log results to the reflection report.
+
+   **If jarvis-graphiti MCP is unavailable** (server not running):
+   - Skip this phase
+   - Note in report: "Graphiti ingestion skipped — MCP unavailable"
+   - The session summary in Qdrant (from `/end-session` Step 7) still provides retrieval
+
+   **Timing note**: This phase adds ~20-30s to the reflection cycle. It is designed to
+   run during `/end-session` (which calls `/reflect`), during idle-hands proactive
+   periods, or when explicitly invoked by the user.
+
 ## Output
 
 ### MANDATORY: Create Report File
@@ -172,6 +218,13 @@ mkdir -p .claude/reports/reflections
 ## Evolution Proposals
 [New proposals added to queue]
 
+## Graphiti Knowledge Graph Ingestion
+- **Status**: [ingested / skipped — MCP unavailable]
+- **Episode name**: [name used for add_episode]
+- **Entities extracted**: [N]
+- **Edges created**: [N]
+- **Key entities**: [list top 3-5 entity names]
+
 ## Next Steps
 [Recommended actions]
 ```
@@ -181,6 +234,7 @@ mkdir -p .claude/reports/reflections
 - Updates `lessons/index.md`
 - Appends proposals to `evolution-queue.yaml`
 - Creates Memory MCP entities (if available)
+- Ingests synthesized knowledge episode into Graphiti knowledge graph (if available)
 
 ## Integration
 

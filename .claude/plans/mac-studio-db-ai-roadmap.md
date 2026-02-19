@@ -985,10 +985,11 @@ The real power comes from automatically capturing session knowledge:
 This will be wired into the existing session-start.sh and end-session.md workflows.
 
 #### Validation Checklist
-- [ ] Graphiti MCP server starts without errors
-- [ ] MCP tools visible: `graphiti.add_episode`, `graphiti.search`
-- [ ] Seed episodes appear in Neo4j browser (localhost:7474)
-- [ ] Search returns relevant episodes for "JICM" or "context management"
+- [x] Graphiti MCP server starts without errors
+- [x] MCP tools visible: search, search_nodes, add_episode, get_episodes, get_entity, graph_stats
+- [x] Seed episodes appear in Neo4j (4 episodes, 36 entities, 29 edges)
+- [x] Search returns relevant episodes for "JICM" or "context management"
+- [x] Session lifecycle wired: AC-01 query on start, AC-09 capture on end
 
 ---
 

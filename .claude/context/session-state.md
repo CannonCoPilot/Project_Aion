@@ -8,11 +8,11 @@
 
 ## Current Work Status
 
-**Status**: active — Session 26 in progress
+**Status**: 🟢 Idle — Session 26 complete
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 63a6be0 (feat: Milestone 3 RAG pipeline)
-**Last Pushed**: 63a6be0 (to origin/Project_Aion — all caught up)
+**Last Commit**: 38dd361 (feat: two-tier memory architecture + lancedb cleanup)
+**Last Pushed**: 38dd361 (to origin/Project_Aion)
 
 **What Was Accomplished (2026-02-18, session 26)**:
 - Exit Guard v3 Final Fix: exact `/exit` match prevents false triggers
@@ -47,6 +47,13 @@
   - 6 MCP tools: search, search_nodes, add_episode, get_episodes, get_entity, graph_stats
   - Registered in .mcp.json with all env vars (NEO4J, LiteLLM, Ollama, EMBEDDING_DIM=2560)
   - All tool calls validated: search returns facts, episodes retrievable, stats accurate
+- **Two-tier Memory Architecture** (user-directed redesign):
+  - Session exit (AC-09) now uses Qdrant/jarvis-rag for fast summary capture (~2-3s)
+  - Deep Graphiti ingestion moved to `/reflect` command (Phase 5) for async/idle periods
+  - Switched Graphiti default LLM from qwen3-32b-nothink to qwen3-8b-nothink
+  - Updated end-session.md Step 7: write summary file + ingest via jarvis-rag
+  - Updated reflect.md: new Phase 5 gathers session summaries, JSONL context, priorities, project aims → synthesizes into Graphiti episode
+  - Created `.claude/context/sessions/` directory for session summary storage
 
 **What Was Accomplished (2026-02-17 evening, session 23)**:
 - Launcher v2.3: W0 deterministic session UUID (`17612316-37f1-5cec-b456-6a79f7735a9f`)
@@ -216,13 +223,13 @@
 - Launcher Script Fix plan (W0 restart loop) identified from prior session, not yet implemented
 
 **Next Session Pickup:**
-1. Complete n8n admin setup via browser (http://localhost:5678) → get API key → register n8n-mcp
-2. Wire Graphiti into session lifecycle (AC-01 query on start, AC-09 capture on end)
-3. Milestone 5: n8n workflows — session summaries, RAG re-indexing, scheduled maintenance
-4. Create RAG re-indexing script/workflow for incremental updates
-5. Implement Launcher Script Fix (W0 restart loop + dev session path correction)
-6. Consider MCP→Skill decomposition for postgres-mcp, neo4j, n8n-mcp (context savings)
-7. Review 34 stale docs identified by AC-08 maintenance audit
+1. Milestone 5: n8n Workflows — complete n8n admin setup (http://localhost:5678), register n8n-mcp, build automation workflows
+2. Create RAG re-indexing script/workflow for incremental updates
+3. Test `/reflect` with Graphiti deep ingestion (Phase 5) end-to-end
+4. Implement Launcher Script Fix (W0 restart loop + dev session path correction)
+5. Consider MCP→Skill decomposition for postgres-mcp, neo4j, n8n-mcp (context savings)
+6. Review 34 stale docs identified by AC-08 maintenance audit
+7. Session state archival needed (currently 270+ lines)
 
 ---
 

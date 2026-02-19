@@ -273,24 +273,28 @@ ls -la .claude/reports/maintenance/maintenance-$(date +%Y-%m-%d)*.md 2>/dev/null
 | PR-10 | 2.0.0 (Phase 5) |
 | PR-14 | 3.0.0 (Phase 6) |
 
-### 7. Graphiti Knowledge Capture (AC-09 Memory)
+### 7. Session Knowledge Capture (AC-09 Memory)
 
-**Capture session knowledge** in the Jarvis knowledge graph for cross-session memory:
+**Capture session knowledge** for cross-session retrieval:
 
 1. **Compose a session summary** (2-4 paragraphs) covering:
    - What was accomplished (key decisions, implementations, fixes)
    - Key technical findings (gotchas, patterns discovered, architecture decisions)
    - Current state and next steps
 
-2. **Call jarvis-graphiti `add_episode`**:
-   - `name`: "Session [N] — [brief topic]" (e.g., "Session 26 — Graphiti MCP + RAG Pipeline")
-   - `content`: The session summary composed above
-   - `source_description`: "Jarvis AC-09 session exit capture"
-   - `source_type`: "text"
+2. **Write summary to file** and **ingest via jarvis-rag** (fast, ~2-3s):
+   ```bash
+   # Write to sessions collection source file
+   cat > .claude/context/sessions/session-NN-summary.md << 'SUMMARY'
+   [composed summary here]
+   SUMMARY
+   ```
+   Then call jarvis-rag `ingest` with the file path and `collection: "sessions"`.
 
-3. **Verify** the episode was ingested (check entities_extracted > 0)
-
-If jarvis-graphiti MCP is not available (server not running), skip this step and note in session-state.md.
+3. **Graphiti deep ingestion is handled separately** by `/reflect` — NOT during exit.
+   The `/reflect` skill runs Graphiti `add_episode` (which takes ~20-30s with qwen3-8b)
+   to extract entities and relationships into the knowledge graph. This can run during
+   idle-hands periods or as part of a self-improvement cycle while the user is AFK.
 
 ### 8. Git Commit
 
