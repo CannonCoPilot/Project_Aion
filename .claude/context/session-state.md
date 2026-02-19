@@ -71,10 +71,10 @@ Previous session histories have been archived. For full details, see:
 1. Run full `/reflect` via W0 to validate all 5 /reflect phases together
 2. MCP context optimization — research at `.claude/context/research/mcp-cli-registration.md`
 3. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim or host volume mount)
-4. Retire overnight-session-28b-plan.md from CLAUDE.md @-import (replace with current priorities ref)
-5. Re-register selection-audit.js hook in settings.json (currently unregistered, data stale since Feb 10)
 
 ### Recently Completed
+- ~~Retire overnight plan from CLAUDE.md @-import~~ — **DONE** (replaced with session-state pointer)
+- ~~Re-register selection-audit.js~~ — **NOT NEEDED** (superseded by usage-tracker.js consolidation)
 - ~~M5: n8n Workflows~~ — **DONE** (Session 29: 2 workflows, Postgres tables, end-session webhook)
 - ~~Full /self-improve cycle~~ — **DONE** (Session 29: 4 phases, 12 proposals, 5 implemented)
 - ~~Overnight session 28b~~ — **28/30 tasks DONE** (10 commits, Phases 1-5 complete, Phase 6 partial)
@@ -82,8 +82,7 @@ Previous session histories have been archived. For full details, see:
 ### Pending Approvals (from self-improvement cycle)
 1. [MEDIUM] Agent-launch context guard at 60% (prevent context death from agent flood)
 2. [MEDIUM] Session summary auto-generation in end-session protocol
-3. [MEDIUM] Retire overnight plan from CLAUDE.md @-import
-4. [LOW-MED] Archive 12 orphaned research files
+3. [LOW-MED] Archive 12 orphaned research files
 
 ---
 
