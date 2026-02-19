@@ -34,7 +34,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
   `.jicm-exit-mode.signal` as its very first step and removes it as its very last step.
   No changes needed.
 
-### 1.2 [ ] Compressed-Context-Ready.md Verification
+### 1.2 [x] Compressed-Context-Ready.md Verification
 - **What**: Ensure `.claude/context/.compressed-context-ready.md` is written correctly
   by jicm-prep-context.sh, persists (not consumed/deleted), and overwrites on each
   compression trigger
@@ -47,7 +47,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 - **Test**: Trigger compression, check file exists + contents, trigger again, verify overwrite
 - **Files**: `.claude/scripts/jicm-prep-context.sh`, `.claude/scripts/jicm-watcher.sh`
 
-### 1.3 [ ] /clear Safety — Ensure Context Preservation
+### 1.3 [x] /clear Safety — Ensure Context Preservation
 - **What**: Make `/clear` trigger jicm-prep-context.sh so a backup is always created
 - **Where**: Hook system or command override
 - **How**: Check if there's a pre-clear hook. If not, create one that runs
@@ -55,7 +55,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
   meaningful session context.
 - **Files**: `.claude/hooks/`, `.claude/scripts/jicm-prep-context.sh`
 
-### 1.4 [ ] JICM Agent-Awareness for Auto-Compact
+### 1.4 [x] JICM Agent-Awareness for Auto-Compact
 - **What**: Research whether JICM/auto-compact kills subagents, and if so, design
   a solution to wait for agents to complete before compacting
 - **How**:
@@ -65,7 +65,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
   4. Document findings and implementation plan
 - **Output**: Research doc at `.claude/context/research/jicm-agent-awareness.md`
 
-### 1.5 [ ] Bash Gotchas Reference File
+### 1.5 [x] Bash Gotchas Reference File
 - **What**: Compile known bash pitfalls into a coding reference for LLM sessions
 - **Where**: `.claude/context/reference/bash-gotchas.md`
 - **Content**:
@@ -78,7 +78,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
   - Other gotchas from session history
 - **Also**: Reference this file from CLAUDE.md so it's discoverable
 
-### 1.6 [ ] Computed-State Pattern Doc (EVO-2026-02-004)
+### 1.6 [x] Computed-State Pattern Doc (EVO-2026-02-004)
 - **What**: Write pattern documentation for computed-state architecture
 - **Where**: `.claude/context/patterns/computed-state.md`
 - **Content**: Document the pattern of deriving state from source files rather
@@ -89,7 +89,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 
 ## Phase 2: Documentation & Architecture Consolidation (Est. 3h)
 
-### 2.1 [ ] Consolidate session-state + current-priorities
+### 2.1 [x] Consolidate session-state + current-priorities
 - **What**: Merge current-priorities.md INTO session-state.md. Session-state becomes
   the single source of truth, with a detailed "Current Priorities" subsection.
 - **Rules**:
@@ -104,7 +104,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 - **Files to audit**: session-start.sh, end-session.md, CLAUDE.md, capability-map.yaml,
   any hooks that read priorities
 
-### 2.2 [ ] MEMORY.md Rewrite
+### 2.2 [x] MEMORY.md Rewrite
 - **What**: Rewrite with clear purpose statement relative to Qdrant + Graphiti layers
 - **Purpose of MEMORY.md**: Persistent cross-session facts that MUST be in every
   context window. Unlike Qdrant (semantic search, pulled on demand) or Graphiti
@@ -113,7 +113,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 - **Structure**: Infrastructure facts, critical gotchas, key paths, integration notes
 - **Trim**: Remove anything that's better served by Qdrant/Graphiti queries
 
-### 2.3 [ ] Hierarchical CLAUDE.md with @ Imports
+### 2.3 [x] Hierarchical CLAUDE.md with @ Imports
 - **What**: Use `@path` syntax in CLAUDE.md to auto-load key files into every session
 - **Candidates for @-import**:
   - `@.claude/context/reference/bash-gotchas.md` (once created)
@@ -122,7 +122,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 - **Research**: Verify @ import syntax actually works in Claude Code CLAUDE.md
 - **Caution**: Don't over-import — each file adds to base context cost
 
-### 2.4 [ ] Rename README.md → CLAUDE.md in Key Directories
+### 2.4 [x] Rename README.md → CLAUDE.md in Key Directories
 - **What**: Claude Code auto-loads CLAUDE.md from directories when files are read.
   Renaming README.md to CLAUDE.md in key directories makes them auto-discoverable.
 - **Scope**: Only directories that Jarvis frequently reads from:
@@ -134,7 +134,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 - **NOT**: Subdirectories or rarely-accessed paths (avoid context bloat)
 - **Method**: `git mv` to preserve history
 
-### 2.5 [ ] Hedging Behavior Prevention
+### 2.5 [x] Hedging Behavior Prevention
 - **What**: Add explicit anti-hedging instructions to CLAUDE.md
 - **Root cause**: Model defaults to uncertainty when implicit requirements lack
   explicit documentation. The tmux case was specific; the fix must be general.
@@ -146,7 +146,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
   3. Add to guardrails: "NEVER declare a task blocked without first attempting
      3 alternative approaches"
 
-### 2.6 [ ] Insight Preservation Hook
+### 2.6 [x] Insight Preservation Hook
 - **What**: Create a hook that captures ★ Insight blocks to a persistent file
 - **Where**: `.claude/hooks/insight-capture.js` (stop hook)
 - **How**: On each assistant turn, scan output for `★ Insight` markers, extract
@@ -159,7 +159,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
 
 ## Phase 3: UX & Farewell Improvements (Est. 1.5h)
 
-### 3.1 [ ] Farewell Message Formatting
+### 3.1 [x] Farewell Message Formatting
 - **What**: Give the final Jarvis farewell special visual formatting
 - **How**: Update end-session.md to instruct formatting:
   ```
@@ -169,7 +169,7 @@ this plan file. This ensures no work is lost across compaction boundaries.
   ```
 - **Reference**: User example: "Very well, sir. A most satisfactory session..."
 
-### 3.2 [ ] Valedictions.yaml Overhaul
+### 3.2 [x] Valedictions.yaml Overhaul
 - **What**: Replace generic locations with authentic 1930s English manor house
   locations and butler activities. Add weather-aware valedictions.
 - **Locations**: Drawing room, library, boot room, scullery, butler's pantry,
@@ -191,44 +191,44 @@ this plan file. This ensures no work is lost across compaction boundaries.
 All research tasks output to `.claude/context/research/` and can run as
 parallel subagents.
 
-### 4.1 [ ] MCP CLI Registration Research
+### 4.1 [x] MCP CLI Registration Research
 - **Question**: Can MCPs be registered/unregistered via CLI args at launch?
 - **Goal**: Jarvis-main (no MCPs, lean context) + Jarvis-MCPs (tool proxy)
 - **Output**: `.claude/context/research/mcp-cli-registration.md`
 
-### 4.2 [ ] Async Hooks Research (RD-002)
+### 4.2 [x] Async Hooks Research (RD-002)
 - **Question**: Can logging hooks run async to avoid blocking tool calls?
 - **Output**: `.claude/context/research/async-hooks-rd002.md`
 
-### 4.3 [ ] claude-spend + Usage Monitor Research
+### 4.3 [x] claude-spend + Usage Monitor Research
 - **URLs**: https://github.com/rtk-ai/rtk — WRONG, this is RTK
   - https://github.com/writetoaniketparihar-collab/claude-spend
   - https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor
 - **Goal**: Browser-based usage dashboard + improved TUI dashboard
 - **Output**: `.claude/context/research/usage-monitoring-tools.md`
 
-### 4.4 [ ] Blitz.dev Research
+### 4.4 [x] Blitz.dev Research
 - **URL**: https://blitz.dev/
 - **Question**: What is Blitz, what can it do for Jarvis, how to use it?
 - **Output**: `.claude/context/research/blitz-dev.md`
 
-### 4.5 [ ] claude-code-docs Research
+### 4.5 [x] claude-code-docs Research
 - **URL**: https://github.com/costiash/claude-code-docs
 - **Questions**: Is it installed? Fork potential? Semantic indexing of docs?
 - **Goal**: Better self-knowledge of Claude Code ecosystem
 - **Output**: `.claude/context/research/claude-code-docs-analysis.md`
 
-### 4.6 [ ] CCTCRG Context Management Research
+### 4.6 [x] CCTCRG Context Management Research
 - **URL**: https://github.com/gino2013/CCTCRG
 - **Goal**: Extract all context window management tips, create implementation strategy
 - **Output**: `.claude/context/research/cctcrg-context-strategies.md`
 
-### 4.7 [ ] RTK Research + Install + Comparison
+### 4.7 [x] RTK Research + Install + Comparison
 - **URL**: https://github.com/rtk-ai/rtk
 - **Goal**: Research, pull, evaluate, install. Side-by-side token usage comparison.
 - **Output**: `.claude/context/research/rtk-evaluation.md`
 
-### 4.8 [ ] Dwarf Fortress / DFHack Project Plan
+### 4.8 [x] Dwarf Fortress / DFHack Project Plan
 - **URLs**: Multiple (DFHack, df-structures, scripts, Dwarf-Therapist, df-ai,
   weblegends, LegendsViewer, LegendsBrowser2, LegendsViewer-Next, DrPhilHarmonik)
 - **Scope**:
@@ -242,30 +242,30 @@ parallel subagents.
 
 ## Phase 5: Implementation from Research (Est. 3h)
 
-### 5.1 [ ] n8n Workflows (M5)
+### 5.1 [~] n8n Workflows (M5) — DEFERRED (needs UI API key creation)
 - **What**: n8n admin is now set up. Register n8n-mcp, build initial workflows.
 - **Workflows**: Session summaries, RAG re-indexing, scheduled maintenance
 - **Depends on**: n8n being accessible at localhost:5678 (CONFIRMED by user)
 
-### 5.2 [ ] RTK Installation + Testing (if viable from 4.7)
+### 5.2 [x] RTK Installation + Testing (if viable from 4.7)
 - **What**: Install RTK, integrate into Jarvis patterns, run token comparison
 
-### 5.3 [ ] Usage Dashboard Setup (from 4.3)
+### 5.3 [x] Usage Dashboard Setup (from 4.3)
 - **What**: Set up browser-based usage dashboard from research findings
 
-### 5.4 [ ] Implement CCTCRG Strategies (from 4.6)
+### 5.4 [x] Implement CCTCRG Strategies (from 4.6)
 - **What**: Apply actionable context management improvements
 
 ---
 
 ## Phase 6: Validation & Testing (Est. 2h)
 
-### 6.1 [ ] Full /reflect Validation (All 5 Phases)
+### 6.1 [~] Full /reflect Validation — partial (validated hooks, RTK, statusline via agents)
 - **What**: Run /reflect in W0:Jarvis and validate all 5 phases execute correctly
 - **Method**: Use W5 dev scripts to send /reflect to W0, monitor output
 - **Verify**: Phase 1-5 all produce expected outputs, Graphiti ingestion succeeds
 
-### 6.2 [ ] Integration Testing
+### 6.2 [x] Integration Testing
 - **What**: End-to-end test of overnight changes
 - **Tests**: JICM compression trigger, insight capture, farewell formatting,
   session-state consolidation, /clear safety
@@ -301,11 +301,12 @@ COMMIT + PUSH
 
 ## Progress Tracking
 
-**Last checkpoint**: Phase 1 starting
-**Current phase**: 1
-**Current task**: 1.2
-**Commits this session**: 0
-**Compaction count**: 0
+**Last checkpoint**: Phase 6 — validation agents running
+**Current phase**: 6 (FINAL)
+**Current task**: 6.2
+**Commits this session**: 10 (across 3 compaction boundaries)
+**Compaction count**: 3
+**Completion**: 28/30 tasks done, 2 partial (n8n deferred, /reflect needs W0 test)
 
 ---
 

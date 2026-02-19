@@ -26,6 +26,9 @@
 .claude/context/.compression-in-progress
 .claude/context/.exit-guard-passed
 .claude/context/.last-prompt-ts*
+.claude/context/.ccusage-blocks.json
+.claude/context/.context-display.txt
+.claude/context/.statusline-context.json
 
 # Tool output offloading (temp files for large results)
 .claude/context/.tool-output/
