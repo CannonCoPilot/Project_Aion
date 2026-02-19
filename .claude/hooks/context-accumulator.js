@@ -269,14 +269,13 @@ async function createAutoCheckpoint(estimate) {
 
 ## Work State
 
-Check session-state.md and current-priorities.md for work context.
+Check session-state.md (includes priorities) for work context.
 The context accumulator detected threshold exceeded and triggered this checkpoint.
 
 ## Next Steps After Restart
 
-1. Review session-state.md for current work status
-2. Check current-priorities.md for next tasks
-3. Continue from where you left off
+1. Review session-state.md for current work status and priorities
+2. Continue from where you left off
 
 ## JICM Info
 

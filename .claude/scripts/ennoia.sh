@@ -22,7 +22,8 @@ PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
 TMUX_BIN="${TMUX_BIN:-/Users/nathanielcannon/bin/tmux}"
 IDLE_THRESHOLD="${IDLE_THRESHOLD:-900}"  # 15 minutes in seconds
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
-PRIORITIES="$PROJECT_DIR/.claude/context/current-priorities.md"
+# Priorities now consolidated into session-state.md (Session 28b)
+PRIORITIES="$PROJECT_DIR/.claude/context/session-state.md"
 WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state"
 ENNOIA_STATE="$PROJECT_DIR/.claude/context/.ennoia-state"
 ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"
@@ -124,8 +125,8 @@ get_current_work() {
     return 0
 }
 
-# Get next priority from current-priorities.md
-# Looks for **Next**: lines or first ### heading under ## Up Next
+# Get next priority from session-state.md (Current Priorities section)
+# Looks for **Next**: lines or first item under ## Current Priorities / ### Up Next
 get_next_priority() {
     local next_line
     # Try explicit **Next**: field first
@@ -136,9 +137,9 @@ get_next_priority() {
         echo "${next_line:0:60}"
         return 0
     fi
-    # Fallback: first ### under ## Up Next
-    next_line=$(awk '/^## Up Next/{found=1; next} found && /^### /{print; exit}' "$PRIORITIES" 2>/dev/null \
-        | sed 's/^### //' || echo "")
+    # Fallback: first numbered item under ### Up Next
+    next_line=$(awk '/^### Up Next/{found=1; next} found && /^[0-9]+\./{print; exit}' "$PRIORITIES" 2>/dev/null \
+        | sed 's/^[0-9]*\.[[:space:]]*//' || echo "")
     if [[ -n "$next_line" ]]; then
         echo "${next_line:0:60}"
         return 0
@@ -179,9 +180,9 @@ write_recommendation() {
             plan_clause=""
             [[ -n "$active_plan" ]] && plan_clause=" Active plan: ${active_plan}."
             if [[ -n "$next_priority" ]]; then
-                recommendation="[SESSION-START] New session. Current: ${current_work}.${plan_clause} Next: ${next_priority}. Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
+                recommendation="[SESSION-START] New session. Current: ${current_work}.${plan_clause} Next: ${next_priority}. Read .claude/context/session-state.md (includes priorities), begin work. Do NOT just greet."
             else
-                recommendation="[SESSION-START] New session. Current: ${current_work}.${plan_clause} Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
+                recommendation="[SESSION-START] New session. Current: ${current_work}.${plan_clause} Read .claude/context/session-state.md (includes priorities), begin work. Do NOT just greet."
             fi
             ;;
         resume)

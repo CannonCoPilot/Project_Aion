@@ -90,7 +90,7 @@ if [[ -z "$JSONL" ]]; then
         echo ""
         echo "## Resume Instructions"
         echo "Context cleared via JICM v7. No JSONL transcript found."
-        echo "Read session-state.md and current-priorities.md to orient."
+        echo "Read session-state.md (includes priorities) to orient."
     } > "$OUTPUT"
     echo "$(date +%s)" > "$SIGNAL"
     exit 0

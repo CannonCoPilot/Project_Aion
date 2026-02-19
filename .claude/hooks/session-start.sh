@@ -280,7 +280,8 @@ echo "$TIMESTAMP | SessionStart | EnvValidation complete" >> "$LOG_DIR/session-s
 
 # ============== SESSION STATE CHECK ==============
 SESSION_STATE_FILE="$CLAUDE_PROJECT_DIR/.claude/context/session-state.md"
-PRIORITIES_FILE="$CLAUDE_PROJECT_DIR/.claude/context/current-priorities.md"
+# Priorities now consolidated into session-state.md (Session 28b)
+PRIORITIES_FILE="$CLAUDE_PROJECT_DIR/.claude/context/session-state.md"
 CURRENT_WORK=""
 NEXT_STEP=""
 
@@ -322,7 +323,7 @@ AIfred baseline has new commits. Run /sync-aifred-baseline after greeting."
     cat << PROTOCOL
 SESSION START — $LOCAL_DATE at $LOCAL_TIME (${TIME_OF_DAY})${weather_context}
 Status: ${CURRENT_WORK:-No active work} | Next: ${NEXT_STEP:-Check priorities}${aifred_notice}
-Read session-state.md + current-priorities.md, then begin work. Do NOT just greet.
+Read session-state.md (includes priorities), then begin work. Do NOT just greet.
 After orientation:
 1. Query jarvis-rag search with collection 'sessions' for prior session summaries relevant to your current task (limit 3).
 2. Query jarvis-graphiti search for prior knowledge relevant to your current task.
@@ -428,7 +429,7 @@ DO NOT generate a full greeting. This is a continuation, not a fresh start.
 ${SESSION_WORK:-No session work found}
 
 === NEXT PRIORITY ===
-${NEXT_PRIORITY:-Check current-priorities.md}
+${NEXT_PRIORITY:-Check session-state.md Current Priorities}
 
 === MANDATORY ACTION ===
 You MUST immediately resume the work described above. Do NOT just summarize - actually continue the task."
@@ -448,11 +449,29 @@ You MUST immediately resume the work described above. Do NOT just summarize - ac
       }'
 
 elif [[ "$SOURCE" == "clear" ]]; then
-    # Clear without checkpoint
-    MESSAGE="CONTEXT CLEARED — No checkpoint found.$ENV_STATUS"
-    CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. No checkpoint found.
+    # Clear without JICM — run prep script to create backup context
+    PREP_SCRIPT="$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
+    if [[ -x "$PREP_SCRIPT" ]]; then
+        bash "$PREP_SCRIPT" 2>>"$LOG_DIR/session-start-diagnostic.log" || true
+        echo "$TIMESTAMP | SessionStart | /clear safety: ran jicm-prep-context.sh" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Check if compressed context is now available
+    if [[ -f "$V6_COMPRESSED" ]]; then
+        BACKUP_CONTEXT=$(cat "$V6_COMPRESSED")
+        MESSAGE="CONTEXT CLEARED — backup context prepared.$ENV_STATUS"
+        CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. Backup context auto-prepared.
+
+Compressed Context:
+$BACKUP_CONTEXT
+
+Resume: Review above context, then continue or start fresh."
+    else
+        MESSAGE="CONTEXT CLEARED — No checkpoint found.$ENV_STATUS"
+        CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. No checkpoint found.
 Read session-state.md, offer to continue previous work or start fresh.
 Tip: Suggest /checkpoint before /clear next time."
+    fi
 
     # Write state file
     echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": false, \"auto_continue\": false, \"restart_type\": \"clear_no_checkpoint\"}" > "$STATE_DIR/AC-01-launch.json"

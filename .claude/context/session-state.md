@@ -59,16 +59,42 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-## Next Session Pickup
+## Current Priorities
 
-1. ~~Test idle-hands system end-to-end~~ — **DONE** (Session 27b)
-2. Milestone 5: n8n Workflows — complete n8n admin setup, register n8n-mcp (BLOCKED: browser setup)
-3. ~~Test `/reflect` with Graphiti deep ingestion (Phase 5) end-to-end~~ — **DONE** (Session 28, 45 entities + 25 edges)
-4. ~~Wire session summary → Qdrant ingestion at end-session, RAG retrieval at AC-01 start~~ — **DONE** (Session 28)
-5. Consider async hooks (RD-002) for logging hooks — potential performance improvement
-6. ~~Review evolution queue proposals~~ — **DONE** (Session 28, 3 completed / 1 superseded / 1 deferred)
-7. Create computed-state pattern doc (EVO-2026-02-004) — only remaining queued proposal
-8. Run full `/reflect` command (standard depth) to validate all 5 phases together
+**Next**: Overnight autonomous session — see `.claude/plans/overnight-session-28b-plan.md`
+
+### In Progress
+- Overnight session 28b: 6-phase plan (JICM fixes, documentation, UX, research, implementation, validation)
+- Phase 4: 8 parallel research agents dispatched (MCP CLI, async hooks, usage monitoring, Blitz, claude-code-docs, CCTCRG, RTK, Dwarf Fortress)
+
+### Up Next
+1. Milestone 5: n8n Workflows — complete n8n admin setup, register n8n-mcp (NOW UNBLOCKED)
+2. Consider async hooks (RD-002) for logging hooks — potential performance improvement
+3. Run full `/reflect` command (standard depth) to validate all 5 phases together
+
+### Recently Completed
+- ~~Test idle-hands system end-to-end~~ — **DONE** (Session 27b)
+- ~~Test `/reflect` with Graphiti deep ingestion (Phase 5) end-to-end~~ — **DONE** (Session 28)
+- ~~Wire session summary → Qdrant ingestion at end-session, RAG retrieval at AC-01 start~~ — **DONE** (Session 28)
+- ~~Review evolution queue proposals~~ — **DONE** (Session 28)
+- ~~Create computed-state pattern doc~~ — **DONE** (Session 28b, EVO-2026-02-004)
+
+### Referenced Files (loaded into context this session)
+- `.claude/context/session-state.md` — this file
+- `.claude/context/dev-session-instructions.md` — W5 dev session instructions
+- `.claude/plans/overnight-session-28b-plan.md` — overnight master plan
+- `.claude/scripts/jicm-watcher.sh` — JICM v7 watcher (modified)
+- `.claude/scripts/jicm-prep-context.sh` — context prep script (verified)
+- `.claude/hooks/session-start.sh` — session start hook (modified)
+- `.claude/context/psyche/valedictions.yaml` — farewell phrases
+
+### Modified Files This Session
+- `.claude/scripts/jicm-watcher.sh` — archive_compressed_context: mv→cp for persistence
+- `.claude/hooks/session-start.sh` — /clear safety: auto-run prep script
+- `.claude/context/research/jicm-agent-awareness.md` — new research doc
+- `.claude/context/reference/bash-gotchas.md` — new reference doc
+- `.claude/context/patterns/computed-state.md` — new pattern doc (EVO-2026-02-004)
+- `CLAUDE.md` — added @plan import, version fix
 
 ---
 

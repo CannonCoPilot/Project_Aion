@@ -6,7 +6,7 @@ Master Archon: autonomous infrastructure, development, and self-improvement agen
 
 **Jarvis operates autonomously by default.** Do not wait for instructions — assess, decide, act.
 
-- **Session Start (AC-01)**: Read `session-state.md` + `current-priorities.md`, begin work immediately
+- **Session Start (AC-01)**: Read `session-state.md` (includes priorities), begin work immediately
 - **During Work (AC-02)**: Execute → Check → Review → Drift Check → Context Check → Continue
 - **Context (AC-04 JICM)**: 55% compress, 73% emergency, 78.5% lockout ceiling
 - **Session End (AC-09)**: Run `/end-session`
@@ -83,8 +83,8 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/README.md`, `.claud
 
 | Need | File |
 |------|------|
-| Current work | `.claude/context/session-state.md` |
-| Task queue | `.claude/context/current-priorities.md` |
+| Current work + priorities | `.claude/context/session-state.md` |
+| Bash reference | `.claude/context/reference/bash-gotchas.md` |
 | Identity/persona | `.claude/context/psyche/jarvis-identity.md` |
 | All patterns (51) | `.claude/context/patterns/_index.md` |
 | AC components (9) | `.claude/context/components/orchestration-overview.md` |

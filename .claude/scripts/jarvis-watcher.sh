@@ -1181,7 +1181,7 @@ send_prompt_by_type() {
             "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[JICM-RESUME] Continue.'
             ;;
         "session_start:RESUME")
-            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[SESSION-START] New session. Begin AC-01. Read .claude/context/session-state.md and .claude/context/current-priorities.md — assess state, decide next action, begin work. Do NOT just greet.'
+            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[SESSION-START] New session. Begin AC-01. Read .claude/context/session-state.md (includes priorities) — assess state, decide next action, begin work. Do NOT just greet.'
             ;;
         "session_start:SIMPLE")
             "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[SESSION-START] Read session-state.md and begin work.'

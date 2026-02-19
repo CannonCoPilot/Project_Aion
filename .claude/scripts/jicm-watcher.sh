@@ -606,7 +606,8 @@ archive_compressed_context() {
     ts=$(date +%Y%m%d-%H%M%S)
 
     if [[ -f "$COMPRESSED_FILE" ]]; then
-        mv "$COMPRESSED_FILE" "$ARCHIVE_DIR/compressed-${ts}.md" 2>/dev/null || rm -f "$COMPRESSED_FILE"
+        # Copy to archive (keep original in place for persistence across sessions)
+        cp "$COMPRESSED_FILE" "$ARCHIVE_DIR/compressed-${ts}.md" 2>/dev/null || true
     fi
 
     # Prune old archives (keep 20)
