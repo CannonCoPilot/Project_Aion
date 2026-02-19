@@ -96,7 +96,8 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/CLAUDE.md`, `.claud
 
 ## Active Plan
 
-@.claude/plans/overnight-session-28b-plan.md
+Current priorities and active work tracked in `.claude/context/session-state.md`.
+Milestone plans stored in `.claude/plans/` — load on demand, never via @-import.
 
 ---
 
