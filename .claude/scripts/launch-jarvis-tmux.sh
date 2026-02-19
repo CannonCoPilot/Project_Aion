@@ -139,9 +139,9 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
                 fi
             fi
             if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
-                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --resume $JARVIS_DEV_SESSION_ID"
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
             else
-                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --session-id $JARVIS_DEV_SESSION_ID"
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
             fi
             DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
             "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \

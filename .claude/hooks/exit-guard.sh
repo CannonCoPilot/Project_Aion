@@ -117,6 +117,13 @@ if [[ -f "$PROJECT_DIR/.claude/ralph-loop.local.md" ]]; then
     exit 0
 fi
 
+# 3c-bis. Idle-hands cycle active → idle-hands-hook.sh handles continuation
+WINDOW="${JARVIS_WINDOW:-0}"
+if [[ -f "$PROJECT_DIR/.claude/context/.idle-hands-active.W${WINDOW}" ]]; then
+    rm -f "$CEREMONY_DONE" 2>/dev/null
+    exit 0
+fi
+
 # 3d. Exit ceremony already presented → allow through (second exit)
 if [[ -f "$CEREMONY_DONE" ]]; then
     rm -f "$CEREMONY_DONE" 2>/dev/null
