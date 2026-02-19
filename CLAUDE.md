@@ -92,6 +92,10 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/README.md`, `.claud
 | JICM design | `.claude/context/designs/jicm-v5-design-addendum.md` |
 | Compaction essentials | `.claude/context/compaction-essentials.md` |
 
+## Active Plan
+
+@.claude/plans/overnight-session-28b-plan.md
+
 ---
 
-*Jarvis v5.9.0 — Autonomous Archon (Lean Core + Manifest Router)*
+*Jarvis v5.10.0 — Autonomous Archon (Lean Core + Manifest Router)*
