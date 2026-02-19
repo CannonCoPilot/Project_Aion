@@ -256,6 +256,13 @@ detect_window_idle() {
         return 0
     fi
 
+    # Guard: Claude Code status bar must be present (contains "tokens")
+    # Prevents injection into shell sessions where ❯ appears in scrollback
+    if ! echo "$pane_content" | grep -q "tokens"; then
+        echo "active"  # no status bar — Claude Code not running
+        return 0
+    fi
+
     # ESC idle: "Interrupted" banner visible
     if echo "$pane_content" | grep -q "Interrupted"; then
         echo "idle_esc"
@@ -361,7 +368,7 @@ EOF
 
 # Check idle-hands for all Claude windows
 check_idle_hands() {
-    for win in 0 5; do
+    for win in 0; do
         # Only check if the window exists
         if "$TMUX_BIN" list-windows -t jarvis 2>/dev/null | grep -q "^${win}:"; then
             local state
@@ -460,7 +467,7 @@ render() {
             echo "  ▪ /reflect — last: $(echo "$maint" | grep -o 'reflect:[^ ]*' | cut -d: -f2)"
             echo "  ▪ /maintain — last: $(echo "$maint" | grep -o 'maintain:[^ ]*' | cut -d: -f2)"
             # Show idle-hands status per window
-            for win in 0 5; do
+            for win in 0; do
                 local ih_file="$PROJECT_DIR/.claude/context/.idle-hands-active.W${win}"
                 if [[ -f "$ih_file" ]]; then
                     local ih_phase
@@ -494,10 +501,9 @@ render() {
     # Update status file
     local has_rec="false"
     [[ -f "$ENNOIA_RECOMMENDATION" ]] && has_rec="true"
-    # Idle-hands state per window
-    local ih_w0="inactive" ih_w5="inactive"
+    # Idle-hands state (W0 only — W5:Jarvis-dev is isolated from autonomic systems)
+    local ih_w0="inactive"
     [[ -f "$PROJECT_DIR/.claude/context/.idle-hands-active.W0" ]] && ih_w0="active"
-    [[ -f "$PROJECT_DIR/.claude/context/.idle-hands-active.W5" ]] && ih_w5="active"
     cat > "$ENNOIA_STATUS" <<EOF
 timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
 version: 0.3
@@ -505,7 +511,6 @@ mode: $mode
 intent: $(get_intent)
 recommendation_active: $has_rec
 idle_hands_w0: $ih_w0
-idle_hands_w5: $ih_w5
 EOF
 }
 

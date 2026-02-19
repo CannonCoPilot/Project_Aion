@@ -8,19 +8,27 @@
 
 ## Current Work Status
 
-**Status**: 🟢 Idle — Session 27 complete
+**Status**: 🟢 Active — Session 27b (idle-hands E2E testing)
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: (pending — S27 exit commit)
-**Last Pushed**: (pending)
+**Last Commit**: 0272b6f (fix: exit-guard v4 JSONL parsing + Ennoia idle hardening)
+**Last Pushed**: 0272b6f (to origin/Project_Aion)
 
 ---
 
-## What Was Accomplished (2026-02-18, Session 27 — brief orientation)
+## What Was Accomplished (2026-02-18, Session 27b — idle-hands E2E testing)
 
+- **Idle-hands E2E test**: Full pipeline validated — Ennoia detection → tmux injection → Claude processing → autonomous commit
+- **get_intent() bug fix**: Fixed grep pattern matching heading instead of value in session-state.md
+- **4 injection guards added**: dialog modal, prompt visibility, status bar, ESC-interrupted
+- **Heartbeat zeroing on exit**: exit-guard zeros `.last-prompt-ts.W{n}` when exit ceremony fires
+- **Hook phase chaining**: 5/5 tests pass (commit→reflect→maintain→cycle wrap→cap cleanup→resume cleanup)
+- **W5 autonomous commit**: Idle-hands injection triggered W5 to commit pending changes (0272b6f) — proving the system works
+
+### Session 27a — brief orientation
 - Session orientation only — reviewed state, queried Graphiti KG, checked tmux windows
-- **Exit-guard v4 improvements** (from S26c, uncommitted): enhanced JSONL transcript parsing to handle raw character string arrays + command tags, not just text dicts
-- **Ennoia idle detection hardening** (from S26c, uncommitted): dialog modal guard (AskUserQuestion), prompt visibility check, improved intent extraction from markdown-formatted status
+- **Exit-guard v4 improvements** (from S26c): enhanced JSONL transcript parsing
+- **Ennoia idle detection hardening** (from S26c): dialog modal guard, prompt visibility check
 
 ## Archived History
 
@@ -42,7 +50,7 @@ Previous session histories have been archived. For full details, see:
 
 ## Next Session Pickup
 
-1. Test idle-hands system end-to-end (verify Ennoia injection + hook phase chaining)
+1. ~~Test idle-hands system end-to-end~~ — **DONE** (Session 27b)
 2. Milestone 5: n8n Workflows — complete n8n admin setup, register n8n-mcp
 3. Test `/reflect` with Graphiti deep ingestion (Phase 5) end-to-end
 4. Wire session summary → Qdrant ingestion at end-session, RAG retrieval at AC-01 start
