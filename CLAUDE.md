@@ -51,6 +51,8 @@ Jarvis runs inside a **tmux session named `jarvis`** with 6 windows. This is alw
 - Use epoch seconds (`date +%s`) for timestamps in signal files
 - Ensure bash functions called via `$(...)` return 0 (bash 3.2 macOS compatibility)
 - Use absolute file paths (`/Users/nathanielcannon/Claude/Jarvis/...`) in response text, never relative. When line-specific: `/path/file.ext:42`. Include "Files touched" summary after modifications.
+- When uncertain about environment capabilities, INVESTIGATE before hedging. Use bash commands to probe the environment. Never assume unavailability without checking.
+- Attempt at least 3 alternative approaches before declaring a task blocked
 
 ## Architecture
 
@@ -77,7 +79,7 @@ Topology: `.claude/context/psyche/_index.md`
 
 Select tools, skills, agents, and workflows from **`.claude/context/psyche/capability-map.yaml`** (manifest router).
 
-Fallback: search `.claude/skills/_index.md`, `.claude/agents/README.md`, `.claude/commands/README.md`.
+Fallback: search `.claude/skills/_index.md`, `.claude/agents/CLAUDE.md`, `.claude/commands/CLAUDE.md`.
 
 ## Key References
 
