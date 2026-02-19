@@ -1,6 +1,6 @@
 ---
 description: Clean session exit with documentation
-allowed-tools: Read, Write, Edit, Bash(git:*), Bash(echo:*), Bash(node:*), Bash(rm:*), Bash(date:*), Bash(wc:*), Bash(ls:*), Bash(mkdir:*), Bash(touch:*)
+allowed-tools: Read, Write, Edit, Bash(git:*), Bash(echo:*), Bash(node:*), Bash(rm:*), Bash(date:*), Bash(wc:*), Bash(ls:*), Bash(mkdir:*), Bash(touch:*), Bash(curl:*), Bash(yq:*)
 ---
 
 # End Session
@@ -309,6 +309,25 @@ echo "{\"date\":\"$(date -u +%Y-%m-%d)\",\"session\":\"$(basename $(pwd))\",\"ta
 ```
 
 Replace `[BRIEF_TASK_DESCRIPTION]` with a summary of the session's primary task.
+
+### 7c. n8n Session Event Notification (M5)
+
+Notify n8n that the session has completed, providing structured metadata for the `jarvis_sessions` table:
+
+```bash
+SESSION_NUM=$(ls .claude/context/sessions/session-*-summary.md 2>/dev/null | wc -l | tr -d ' ')
+BLOCK_COST=$(jq -r '[.blocks[] | select(.isActive==true)] | first | .costUSD // 0' .claude/context/.ccusage-blocks.json 2>/dev/null || echo "0")
+PEAK_PCT=$(jq -r '.context_window.used_percentage // 0' ~/.claude/logs/statusline-input.json 2>/dev/null || echo "0")
+SUMMARY_FILE=".claude/context/sessions/session-${SESSION_NUM}-summary.md"
+SUMMARY_TEXT=$(head -10 "$SUMMARY_FILE" 2>/dev/null | tr '\n' ' ' | tr '"' "'" | cut -c1-500)
+
+curl -s -X POST "http://localhost:5678/webhook/jarvis/session-complete" \
+  -H "Content-Type: application/json" \
+  -d "{\"session_id\":\"session-${SESSION_NUM}\",\"summary\":\"${SUMMARY_TEXT}\",\"cost_usd\":${BLOCK_COST},\"context_peak_pct\":${PEAK_PCT}}" \
+  --max-time 5 || echo "[n8n] Webhook notification skipped (n8n not reachable)"
+```
+
+**Note**: The `--max-time 5` + `|| echo` fallback ensures this never blocks session exit if n8n is down.
 
 ### 8. Git Commit
 
