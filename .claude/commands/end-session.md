@@ -296,6 +296,20 @@ ls -la .claude/reports/maintenance/maintenance-$(date +%Y-%m-%d)*.md 2>/dev/null
    to extract entities and relationships into the knowledge graph. This can run during
    idle-hands periods or as part of a self-improvement cycle while the user is AFK.
 
+### 7b. Per-Task Usage Log (CCTCRG Integration)
+
+**Append a structured entry** to `.claude/context/usage-log.jsonl` for cross-session analytics:
+
+```bash
+# Read ccusage block data if available
+BLOCK_COST=$(jq -r '[.blocks[] | select(.isActive==true)] | first | .costUSD // 0' .claude/context/.ccusage-blocks.json 2>/dev/null || echo "0")
+
+# Append usage entry
+echo "{\"date\":\"$(date -u +%Y-%m-%d)\",\"session\":\"$(basename $(pwd))\",\"task\":\"[BRIEF_TASK_DESCRIPTION]\",\"context_peak_pct\":$(jq -r '.context_window.used_percentage // 0' ~/.claude/logs/statusline-input.json 2>/dev/null || echo 0),\"block_cost_usd\":$BLOCK_COST,\"duration_min\":$(( $(date +%s - $(stat -f %m .claude/context/session-state.md 2>/dev/null || echo $(date +%s))) / 60 ))}" >> .claude/context/usage-log.jsonl
+```
+
+Replace `[BRIEF_TASK_DESCRIPTION]` with a summary of the session's primary task.
+
 ### 8. Git Commit
 
 If there are uncommitted changes:

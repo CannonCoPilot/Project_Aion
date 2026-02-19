@@ -71,6 +71,24 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/idle-hands-hook.sh"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/insight-capture.js"
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/refresh-ccusage-cache.sh &"
+          }
+        ]
       }
     ],
     "PreToolUse": [
@@ -80,6 +98,10 @@
           {
             "type": "command",
             "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/bash-safety-guard.js"
+          },
+          {
+            "type": "command",
+            "command": "/Users/nathanielcannon/.claude/hooks/rtk-rewrite.sh"
           }
         ]
       },
@@ -116,7 +138,8 @@
           },
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/self-correction-capture.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/self-correction-capture.js",
+            "async": true
           },
           {
             "type": "command",
@@ -124,7 +147,8 @@
           },
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/wiggum-loop-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/wiggum-loop-tracker.js",
+            "async": true
           },
           {
             "type": "command",
@@ -147,7 +171,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/cross-project-commit-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/cross-project-commit-tracker.js",
+            "async": true
           }
         ]
       },
@@ -156,7 +181,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/docker-monitor.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/docker-monitor.js",
+            "async": true
           }
         ]
       },
@@ -165,7 +191,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/usage-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/usage-tracker.js",
+            "async": true
           }
         ]
       },
@@ -174,7 +201,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/observation-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/observation-tracker.js",
+            "async": true
           }
         ]
       },
@@ -192,7 +220,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/memory-mirror.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/memory-mirror.js",
+            "async": true
           }
         ]
       },
@@ -210,7 +239,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/virgil-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/virgil-tracker.js",
+            "async": true
           }
         ]
       },
@@ -219,7 +249,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/plan-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/plan-tracker.js",
+            "async": true
           }
         ]
       }
@@ -230,7 +261,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/session-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/session-tracker.js",
+            "async": true
           }
         ]
       }
@@ -241,7 +273,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/subagent-stop.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/subagent-stop.js",
+            "async": true
           },
           {
             "type": "command",
@@ -249,7 +282,8 @@
           },
           {
             "type": "command",
-            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/virgil-tracker.js"
+            "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/virgil-tracker.js",
+            "async": true
           }
         ]
       }
