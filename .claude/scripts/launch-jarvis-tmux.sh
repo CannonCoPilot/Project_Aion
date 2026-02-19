@@ -197,7 +197,7 @@ else
     JARVIS_SESSION_TYPE="resume"
 fi
 
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE"
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
@@ -291,7 +291,7 @@ if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
     JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
-    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev"
+    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5"
     DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
     # Session file rotation — archive if > 5MB to prevent unbounded growth
     DEV_SESSION_MAX_BYTES=5242880  # 5MB
