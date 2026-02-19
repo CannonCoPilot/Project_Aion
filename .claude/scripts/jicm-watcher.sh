@@ -109,6 +109,11 @@ DASHBOARD_DRAWN=0
 
 LAST_CYCLE_SUMMARY=""
 
+# Idle checkpoint: run prep-context every 30s of idle to keep files fresh
+IDLE_CHECKPOINT_INTERVAL=30       # Seconds of idle before running checkpoint
+LAST_IDLE_CHECKPOINT=0            # Epoch time of last idle checkpoint
+IDLE_CHECKPOINT_COUNT=0           # Number of idle checkpoints this session
+
 # Metrics timing (E5: telemetry — track cycle phase durations)
 CYCLE_START_TIME=0
 CYCLE_START_PCT=0
@@ -619,6 +624,58 @@ archive_compressed_context() {
 }
 
 # =============================================================================
+# IDLE CHECKPOINT (keeps .compressed-context-ready.md fresh during idle)
+# =============================================================================
+# Reads .last-prompt-ts.W0 (written by UserPromptSubmit hook) to detect idle.
+# After IDLE_CHECKPOINT_INTERVAL seconds of no user prompts, runs
+# jicm-prep-context.sh to keep context preservation files current.
+# Only runs once per idle period (resets when user becomes active again).
+
+do_idle_checkpoint() {
+    local now
+    now=$(date +%s)
+
+    # Read last user prompt timestamp
+    local prompt_ts_file="$PROJECT_DIR/.claude/context/.last-prompt-ts.W${JARVIS_WINDOW:-0}"
+    local last_prompt_ts=0
+    if [[ -f "$prompt_ts_file" ]]; then
+        last_prompt_ts=$(cat "$prompt_ts_file" 2>/dev/null | tr -d '[:space:]')
+        # Guard against empty or non-numeric
+        if ! [[ "$last_prompt_ts" =~ ^[0-9]+$ ]]; then
+            last_prompt_ts=0
+        fi
+    fi
+
+    # Skip if no prompt timestamp (session just started, no user activity yet)
+    if [[ "$last_prompt_ts" -eq 0 ]]; then
+        return 0
+    fi
+
+    local idle_seconds=$((now - last_prompt_ts))
+
+    # Not idle long enough
+    if [[ "$idle_seconds" -lt "$IDLE_CHECKPOINT_INTERVAL" ]]; then
+        return 0
+    fi
+
+    # Already checkpointed during this idle period
+    if [[ "$LAST_IDLE_CHECKPOINT" -ge "$last_prompt_ts" ]]; then
+        return 0
+    fi
+
+    # Run the prep script
+    local prep_script="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
+    if [[ -x "$prep_script" ]]; then
+        bash "$prep_script" 2>>"$LOG_FILE" || true
+        LAST_IDLE_CHECKPOINT=$now
+        IDLE_CHECKPOINT_COUNT=$((IDLE_CHECKPOINT_COUNT + 1))
+        log INFO "Idle checkpoint #${IDLE_CHECKPOINT_COUNT} (idle ${idle_seconds}s)"
+    fi
+
+    return 0
+}
+
+# =============================================================================
 # METRICS / TELEMETRY (E5: cycle performance tracking)
 # =============================================================================
 
@@ -846,11 +903,12 @@ do_restore() {
     # The hook fires on /clear and injects compressed context via JSON
     sleep 5
 
-    # JICM v7: Simplified restore prompt.
+    # JICM v7: Resume prompt with multi-archive awareness.
     # - [JICM-RESUME] tag signals this is a JICM continuation
     # - CLAUDE.md and capability-map.yaml are auto-loaded — no need to read
     # - Compressed context is injected by session-start hook via additionalContext
-    local resume_prompt='[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md then resume work immediately. Do NOT greet. Do NOT ask what to work on.'
+    # - Recent archives (<3h old) provide additional continuity depth
+    local resume_prompt='[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md for current state. For deeper continuity, also check recent archives in .claude/logs/jicm/archive/ (files less than 3 hours old). The active plan in CLAUDE.md @-import provides task alignment. Resume work immediately. Do NOT greet. Do NOT ask what to work on.'
     tmux_send_prompt "$resume_prompt"
 
     transition_to "RESTORING"
@@ -1081,6 +1139,10 @@ main() {
             # State file update (every 6 polls = ~30s to avoid I/O thrashing)
             if [[ $((poll_count % 6)) -eq 0 ]]; then
                 write_state
+                # Idle checkpoint: keep .compressed-context-ready.md fresh
+                # Runs only if user has been idle for IDLE_CHECKPOINT_INTERVAL
+                # and we haven't already checkpointed during this idle period
+                do_idle_checkpoint
             fi
 
             # Check cooldown

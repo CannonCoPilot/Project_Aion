@@ -8,11 +8,19 @@
 
 ## Current Work Status
 
-**Status**: 🟢 Active — Session 29 (post-overnight pickup)
+**Status**: 🟡 Idle — Session 29 complete
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: d8a2788 (chore: update overnight plan checkboxes + gitignore statusline caches)
-**Last Pushed**: 2693be4 (to origin/Project_Aion) — 1 unpushed
+**Last Commit**: 2e7bbc1 (feat: M5 n8n workflow integration)
+**Last Pushed**: 2e7bbc1 (to origin/Project_Aion)
+
+---
+
+## What Was Accomplished (2026-02-19, Session 29 — M5 + self-improve + cleanup)
+
+- **M5 n8n Workflow Integration**: Created `jarvis_sessions` and `jarvis_health_events` Postgres tables, built Workflow A (session summary webhook at `/webhook/jarvis/session-complete`), built Workflow B (hourly health check cron monitoring Qdrant/Neo4j/Ollama/Redis). End-session command updated with n8n notification step.
+- **Self-Improvement Cycle**: Ran `/self-improve` — generated reflection, maintenance, and R&D reports for session 29
+- **Infrastructure tweaks**: Enhanced bash-gotchas reference, improved JICM watcher resilience, updated session-start.sh with additional context loading, added pre-clear context prep hook
 
 ---
 
@@ -81,6 +89,7 @@ Previous session histories have been archived. For full details, see:
 1. Run full `/reflect` via W0 to validate all 5 /reflect phases together
 2. MCP context optimization decision — research at `.claude/context/research/mcp-cli-registration.md`
 3. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim for jarvis-rag or host volume mount)
+4. Review overnight Phase 6 validation results (agents completed but results never consumed)
 
 ### Recently Completed
 - ~~M5: n8n Workflows~~ — **DONE** (Session 29: 2 workflows, Postgres tables, end-session webhook)
@@ -101,4 +110,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-19 00:28 MST — Session 29 (W0 post-overnight recovery)*
+*Session state updated 2026-02-19 12:42 MST — Session 29 exit (M5 complete, self-improve done)*

@@ -72,7 +72,9 @@ async function captureInsights() {
 
   // Extract insight blocks from assistant messages
   const insights = [];
-  const insightRegex = /★ Insight[─\s]*\n([\s\S]*?)─{10,}/g;
+  // Match insight blocks with either Unicode box-drawing ─ or ASCII - separators
+  // Also handle backtick-wrapped markers from Explanatory output style
+  const insightRegex = /`?★ Insight[─\-\s]*`?\n([\s\S]*?)`?[─\-]{10,}`?/g;
 
   for (const line of lines) {
     try {
