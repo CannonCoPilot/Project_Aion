@@ -11,8 +11,8 @@
 **Status**: 🟢 Active — Session 28 (roadmap pickup)
 **Version**: v5.10.0
 **Branch**: Project_Aion
-**Last Commit**: 3641f50 (fix: idle-hands E2E hardening + W5 isolation)
-**Last Pushed**: 3641f50 (to origin/Project_Aion)
+**Last Commit**: bcd5696 (feat: AC-01 Qdrant session retrieval + watcher health check + evo triage)
+**Last Pushed**: bcd5696 (to origin/Project_Aion)
 
 ---
 
