@@ -130,6 +130,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/pre-clear-context-prep.sh"
+          },
+          {
+            "type": "command",
             "command": "W=${JARVIS_WINDOW:-0}; date +%s > $CLAUDE_PROJECT_DIR/.claude/context/.last-prompt-ts.W${W} && rm -f $CLAUDE_PROJECT_DIR/.claude/context/.idle-hands-active.W${W}"
           },
           {

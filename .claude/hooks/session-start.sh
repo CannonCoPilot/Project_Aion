@@ -57,6 +57,15 @@ if [[ "$JARVIS_MANUAL_MODE" == "true" ]]; then
     AUTO_CONTINUE="false"
 fi
 
+# ============== STALE SIGNAL CLEANUP (MAINT-004 failsafe) ==============
+# If .jicm-exit-mode.signal exists at session start, a prior end-session was
+# interrupted. Remove it so JICM isn't permanently suppressed.
+STALE_EXIT_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-exit-mode.signal"
+if [[ -f "$STALE_EXIT_SIGNAL" ]]; then
+    rm -f "$STALE_EXIT_SIGNAL"
+    echo "$TIMESTAMP | SessionStart | CLEANUP: Removed stale .jicm-exit-mode.signal from interrupted exit" >> "$LOG_DIR/session-start-diagnostic.log"
+fi
+
 # ============== PHASE A: TIME-OF-DAY GREETING ==============
 # Determine greeting based on hour
 if (( HOUR >= 5 && HOUR < 12 )); then
@@ -331,6 +340,36 @@ Use insights from both to inform your work approach.
 PROTOCOL
 }
 
+# ============== RECENT ARCHIVE HELPER ==============
+# Gather compressed context archives less than 3 hours old for deeper continuity.
+# The current .compressed-context-ready.md has the latest state;
+# recent archives provide a sliding window of context history.
+gather_recent_archives() {
+    local archive_dir="$CLAUDE_PROJECT_DIR/.claude/logs/jicm/archive"
+    local max_age=10800  # 3 hours in seconds
+    local now
+    now=$(date +%s)
+    local archive_context=""
+
+    if [[ -d "$archive_dir" ]]; then
+        for f in $(ls -1t "$archive_dir"/compressed-*.md 2>/dev/null | head -5); do
+            local file_age=$(( now - $(stat -f %m "$f" 2>/dev/null || echo "$now") ))
+            if [[ "$file_age" -lt "$max_age" ]]; then
+                local basename
+                basename=$(basename "$f")
+                local file_lines
+                file_lines=$(wc -l < "$f" | tr -d ' ')
+                archive_context="${archive_context}
+--- Archive: ${basename} (${file_age}s ago, ${file_lines} lines) ---
+$(head -30 "$f")
+..."
+            fi
+        done
+    fi
+
+    echo "$archive_context"
+}
+
 # ============== JICM v7 — STOP-AND-WAIT ARCHITECTURE ==============
 # JICM v7 uses a single .jicm-state file instead of multiple signal files.
 # The watcher handles all state transitions; this hook just injects context.
@@ -351,6 +390,12 @@ if [[ "$SOURCE" == "clear" ]] && [[ -f "$V6_STATE_FILE" ]]; then
             echo "$TIMESTAMP | SessionStart | JICM v7: Loaded compressed context ($(wc -c < "$V6_COMPRESSED") bytes)" >> "$LOG_DIR/session-start-diagnostic.log"
         fi
 
+        # Gather recent archives for deeper continuity
+        RECENT_ARCHIVES=$(gather_recent_archives)
+        if [[ -n "$RECENT_ARCHIVES" ]]; then
+            echo "$TIMESTAMP | SessionStart | JICM v7: Found recent archives for continuity" >> "$LOG_DIR/session-start-diagnostic.log"
+        fi
+
         # NOTE: Session-state.md deliberately NOT loaded for mid-session restores.
         # It is stale during active work. Compressed context contains current state.
         # Session-state is for NEW session starts only (created at session end).
@@ -362,10 +407,13 @@ Resume work immediately. Do NOT greet. Do NOT ask what to work on.
 
 Current datetime: $LOCAL_DATE at $LOCAL_TIME
 
-Compressed Context:
+Compressed Context (current):
 $V6_CONTEXT
-
-Resume: Parse above, continue from interruption point."
+${RECENT_ARCHIVES:+
+Recent Archives (for additional continuity):
+$RECENT_ARCHIVES
+}
+Resume: Parse the compressed context above, check the active plan referenced in CLAUDE.md, then continue from the interruption point."
 
         # Write state file (AC-01)
         echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"compression_type\": \"jicm_v6\", \"restart_type\": \"v6_stop_and_wait\"}" > "$STATE_DIR/AC-01-launch.json"
@@ -456,21 +504,30 @@ elif [[ "$SOURCE" == "clear" ]]; then
         echo "$TIMESTAMP | SessionStart | /clear safety: ran jicm-prep-context.sh" >> "$LOG_DIR/session-start-diagnostic.log"
     fi
 
+    # Gather recent archives for continuity
+    RECENT_ARCHIVES=$(gather_recent_archives)
+
     # Check if compressed context is now available
     if [[ -f "$V6_COMPRESSED" ]]; then
         BACKUP_CONTEXT=$(cat "$V6_COMPRESSED")
         MESSAGE="CONTEXT CLEARED — backup context prepared.$ENV_STATUS"
         CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. Backup context auto-prepared.
 
-Compressed Context:
+Compressed Context (current):
 $BACKUP_CONTEXT
-
-Resume: Review above context, then continue or start fresh."
+${RECENT_ARCHIVES:+
+Recent Archives (for additional continuity):
+$RECENT_ARCHIVES
+}
+Resume: Review above context, check the active plan referenced in CLAUDE.md, then continue or start fresh."
     else
         MESSAGE="CONTEXT CLEARED — No checkpoint found.$ENV_STATUS"
         CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. No checkpoint found.
-Read session-state.md, offer to continue previous work or start fresh.
-Tip: Suggest /checkpoint before /clear next time."
+${RECENT_ARCHIVES:+
+Recent Archives (may contain relevant context):
+$RECENT_ARCHIVES
+}
+Read session-state.md, offer to continue previous work or start fresh."
     fi
 
     # Write state file

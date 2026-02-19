@@ -216,6 +216,33 @@ pgrep -f "watcher"
 pgrep -f "jicm-watcher.sh"
 ```
 
+## RTK (Rust Token Killer) Command Interception
+
+RTK rewrites certain commands to reduce token output. Some flags get rejected
+as unknown when RTK intercepts them.
+
+### Commands that break under RTK
+```bash
+# WRONG — RTK intercepts docker and rejects --format
+docker ps --format '{{.Names}}\t{{.Status}}'
+
+# RIGHT — bypass RTK with proxy mode
+rtk proxy docker ps --format '{{.Names}}\t{{.Status}}'
+
+# WRONG — RTK intercepts find and rejects -mmin
+find . -mmin -60
+
+# RIGHT — use rtk proxy
+rtk proxy find . -mmin -60
+```
+
+### RTK meta commands (use directly, not via proxy)
+```bash
+rtk gain              # Token savings analytics
+rtk gain --history    # Command usage history
+rtk discover          # Analyze Claude Code history for missed opportunities
+```
+
 ---
 
-*Bash Gotchas Reference v1.0 — Compiled from Jarvis session learnings*
+*Bash Gotchas Reference v1.1 — Compiled from Jarvis session learnings*
