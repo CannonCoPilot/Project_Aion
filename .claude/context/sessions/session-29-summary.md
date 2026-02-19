@@ -12,9 +12,13 @@ Session 29 picked up from the overnight W5:Jarvis-dev autonomous session (28b) w
 
 Two additional workflows (RAG re-index and cost report) were deferred to M5.1 because jarvis-rag runs inside Docker and ccusage runs on the host — both need either HTTP shims or volume mounts to work from n8n's container context.
 
-**Self-Improvement Cycle**: Ran a `/self-improve` cycle producing reflection, maintenance, and R&D reports. The reflection captured patterns from the overnight session including agent result flooding causing W5 context death at 149k/200k tokens.
+**Full Self-Improvement Cycle** (`/self-improve` — all 4 phases):
+- AC-05 Reflection: 5 proposals — identified agent flood context death pattern, insight-capture not firing, missing session summaries
+- AC-08 Maintenance: Fixed stale `.jicm-exit-mode.signal` (14h old from overnight), identified 12 orphaned research files, all 9 key docs FRESH
+- AC-07 R&D: Research agenda 32 days stale, classified overnight discoveries (4 ADOPTED: RTK, async hooks, CCTCRG, ccusage)
+- AC-06 Evolution: 4 low-risk auto-implemented — insight-capture regex fix (ASCII+backtick), RTK note in bash-gotchas, exit-mode signal failsafe, selection-audit confirmed unregistered
 
-**Infrastructure Hardening**: Enhanced bash-gotchas reference with additional macOS-specific gotchas, improved JICM watcher with better error handling, updated session-start.sh with richer context loading for post-compaction recovery.
+**JICM Continuity Improvements**: Added `gather_recent_archives()` to session-start.sh for multi-depth context restoration, idle checkpoint timer in jicm-watcher.sh (runs prep-context every 30s of idle), pre-clear-context-prep.sh safety hook.
 
 ## Key Technical Findings
 

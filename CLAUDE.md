@@ -100,4 +100,4 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/CLAUDE.md`, `.claud
 
 ---
 
-*Jarvis v5.10.0 — Autonomous Archon (Lean Core + Manifest Router)*
+*Jarvis v5.11.0 — Autonomous Archon (Lean Core + Manifest Router)*
