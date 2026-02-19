@@ -8,10 +8,12 @@
 # as an error by Claude Code. Use defensive error handling throughout.
 #
 # Detection layers (evaluated in order):
+#   0. stop_hook_active check → if true, a hook already blocked; allow through
 #   1. stop_reason field in hook input JSON → skip non-exit stops
-#   2. Transcript analysis → skip if last user message has no exit intent
+#   2. Transcript analysis → POSITIVE MATCH: only proceed if "/exit" confirmed
+#      (empty, missing, error, non-/exit → all pass through silently)
 #   3. Signal file bypasses → JICM, Ralph Loop, ceremony-done
-#   4. Default: present exit ceremony menu
+#   4. Present exit ceremony menu (only reachable if /exit confirmed in Layer 2)
 #
 # Signal files:
 #   .jicm-exit-mode.signal  — set by /end-session to suppress JICM
@@ -38,6 +40,15 @@ HOOK_INPUT=$(cat)
 mkdir -p "$PROJECT_DIR/.claude/logs" 2>/dev/null
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | HOOK_INPUT: $HOOK_INPUT" >> "$LOG_FILE" 2>/dev/null
 
+# --- Layer 0: stop_hook_active re-entry guard ---
+# Per Claude Code docs: if stop_hook_active is true, a Stop hook already blocked
+# on a previous attempt. Allow through to prevent infinite loops.
+STOP_HOOK_ACTIVE=$(echo "$HOOK_INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null || echo "false")
+if [[ "$STOP_HOOK_ACTIVE" == "true" ]]; then
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | PASS-THROUGH: stop_hook_active=true (re-entry)" >> "$LOG_FILE" 2>/dev/null
+    exit 0
+fi
+
 # --- Layer 1: Check stop_reason field ---
 # Claude Code may include a stop_reason that distinguishes exit from turn-end.
 STOP_REASON=$(echo "$HOOK_INPUT" | jq -r '.stop_reason // empty' 2>/dev/null || echo "")
@@ -50,16 +61,20 @@ if [[ -n "$STOP_REASON" ]]; then
     esac
 fi
 
-# --- Layer 2: Transcript-based exit detection ---
-# Check the user's last message. If no exit intent, this is a normal turn end.
-# JSONL format: top-level "type":"user", message at .message.content[] with
-# items of type "text" (user input) or "tool_result" (system-generated).
+# --- Layer 2: Transcript-based exit detection (POSITIVE MATCH REQUIRED) ---
+# DEFAULT: pass through (exit 0). Only proceed to ceremony if we POSITIVELY
+# confirm "/exit" as the last user text. All ambiguity → exit 0.
+#
+# Why positive match? After /clear, JICM cycles, or session start, the
+# transcript often has NO text-type user messages (only tool_result entries).
+# A negative-match approach ("skip if not /exit") falls through on empty,
+# causing false ceremony triggers on every post-clear turn end.
+EXIT_DETECTED=false
+
 TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path // empty' 2>/dev/null || echo "")
 if [[ -n "$TRANSCRIPT_PATH" ]] && [[ -f "$TRANSCRIPT_PATH" ]]; then
     # Extract last user text message from JSONL transcript
-    # 1. Find lines with "type":"user"
-    # 2. Extract text content items from .message.content[]
-    # 3. Take the last one that has actual text
+    # JSONL: top-level "type":"user", content items of "text" or "tool_result"
     LAST_USER_MSG=$(grep '"type":"user"' "$TRANSCRIPT_PATH" 2>/dev/null | \
         python3 -c "
 import json, sys
@@ -79,17 +94,22 @@ for line in sys.stdin:
 print(last_text)
 " 2>/dev/null || echo "")
 
-    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | last_user_msg: ${LAST_USER_MSG:0:100}" >> "$LOG_FILE" 2>/dev/null
-
     if [[ -n "$LAST_USER_MSG" ]]; then
-        # Only trigger on exact "/exit" — the actual Claude Code exit command.
-        # Everything else (normal messages, tool results, embedded text) passes through.
         FIRST_LINE=$(echo "$LAST_USER_MSG" | head -1 | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-        if [[ "$FIRST_LINE" != "/exit" ]]; then
-            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | SKIPPED: last msg is not /exit" >> "$LOG_FILE" 2>/dev/null
-            exit 0
+        if [[ "$FIRST_LINE" == "/exit" ]]; then
+            EXIT_DETECTED=true
         fi
     fi
+
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | exit_detected=$EXIT_DETECTED last_user_msg: ${LAST_USER_MSG:0:100}" >> "$LOG_FILE" 2>/dev/null
+else
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | exit_detected=false (no transcript)" >> "$LOG_FILE" 2>/dev/null
+fi
+
+# Gate: if /exit was NOT positively detected, pass through silently
+if [[ "$EXIT_DETECTED" != "true" ]]; then
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | PASS-THROUGH: /exit not positively detected" >> "$LOG_FILE" 2>/dev/null
+    exit 0
 fi
 
 # --- Layer 3: Signal file bypasses ---
