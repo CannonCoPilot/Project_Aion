@@ -6,7 +6,7 @@ proposals:
     date: "2026-01-20"
     source: reflection
     priority: low
-    status: queued
+    status: superseded
     summary: "Session State Auto-Update"
     problem: |
       Session state can drift from actual work when context compaction occurs mid-task.
@@ -21,6 +21,8 @@ proposals:
       - Update checkpoint creation logic
       - Parse todo content to update "Current Work" section
     estimated_effort: low
+    resolution: "Superseded by JICM v7 — extracts state from JSONL transcript, making session-state drift low-impact. Session-state is now only authoritative at session boundaries."
+    resolved_date: "2026-02-18"
     related:
       - ".claude/hooks/context-accumulator.js"
       - ".claude/context/session-state.md"
@@ -79,7 +81,7 @@ proposals:
     date: "2026-02-05"
     source: reflection
     priority: low
-    status: queued
+    status: completed
     summary: "Watcher Health Check at Session Start"
     problem: |
       No visibility into watcher state at session start. Duplicate watcher bug was only
@@ -95,6 +97,8 @@ proposals:
       - Log to session-start-diagnostic.log
       - Warning only, no action (avoids race conditions)
     estimated_effort: low
+    resolution: "Implemented as Check 6 in session-start.sh environment validation (Session 28). Uses pgrep -f jicm-watcher.sh, logs to diagnostic, warns on 0 or >1 instances."
+    resolved_date: "2026-02-18"
     related:
       - ".claude/hooks/session-start.sh"
       - "PAT-006: Single authority for process launch"
@@ -104,7 +108,7 @@ proposals:
     date: "2026-02-08"
     source: reflection
     priority: medium
-    status: queued
+    status: deferred
     summary: "Auto-Sync State Files After Validation"
     problem: |
       AC component state JSON files diverge from spec markdown validation checklists.
@@ -117,6 +121,7 @@ proposals:
       - Modify milestone-review-pattern.md to include state sync step
       - Consider automated sync via /review-milestone command
     estimated_effort: low
+    resolution: "Deferred — low operational impact. The computed-state pattern (EVO-2026-02-004) is the better long-term solution."
     related:
       - ".claude/state/components/AC-03-review.json"
       - ".claude/context/components/AC-03-milestone-review.md"
@@ -126,7 +131,7 @@ proposals:
     date: "2026-02-08"
     source: reflection-omc
     priority: medium
-    status: queued
+    status: completed
     summary: "Model Tier Routing in Capability Map"
     problem: |
       Jarvis uses ad-hoc model selection per task. OMC demonstrates 30-50% cost savings
@@ -140,6 +145,8 @@ proposals:
       - Add `recommended_model` field to capability-map.yaml skill entries
       - Update manifest router to surface model recommendation
     estimated_effort: low
+    resolution: "Already implemented — capability-map.yaml v3 has `model` field on all skills and agents (haiku/sonnet/opus), plus Model Tier Reference comment. Predates this proposal."
+    resolved_date: "2026-02-10"
     related:
       - ".claude/context/psyche/capability-map.yaml"
       - ".claude/context/research/omc-patterns-analysis.md"
@@ -168,4 +175,4 @@ proposals:
       - ".claude/state/components/"
       - ".claude/reports/reflections/reflection-2026-02-08.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-02-08
+# Queue maintained by AC-05/AC-06 — Updated 2026-02-18 (Session 28 triage)

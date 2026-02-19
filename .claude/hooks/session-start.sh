@@ -250,6 +250,18 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
     if [[ ! -f "$CLAUDE_PROJECT_DIR/.claude/context/session-state.md" ]]; then
         ENV_WARNINGS="${ENV_WARNINGS}- session-state.md missing (run /setup)\n"
     fi
+
+    # Check 6: Watcher health (evo-2026-02-001)
+    WATCHER_COUNT=$(pgrep -f "jicm-watcher.sh" 2>/dev/null | wc -l | xargs)
+    if [[ "$WATCHER_COUNT" -eq 0 ]]; then
+        ENV_WARNINGS="${ENV_WARNINGS}- JICM watcher not running (will be started by tmux launcher)\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: Watcher not running" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "$WATCHER_COUNT" -gt 1 ]]; then
+        ENV_WARNINGS="${ENV_WARNINGS}- Multiple JICM watchers detected ($WATCHER_COUNT) — check for duplicates\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: WARNING - $WATCHER_COUNT watchers running" >> "$LOG_DIR/session-start-diagnostic.log"
+    else
+        echo "$TIMESTAMP | SessionStart | EnvCheck: Watcher healthy (1 instance)" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
 fi
 
 # Build environment status message
@@ -311,7 +323,10 @@ AIfred baseline has new commits. Run /sync-aifred-baseline after greeting."
 SESSION START — $LOCAL_DATE at $LOCAL_TIME (${TIME_OF_DAY})${weather_context}
 Status: ${CURRENT_WORK:-No active work} | Next: ${NEXT_STEP:-Check priorities}${aifred_notice}
 Read session-state.md + current-priorities.md, then begin work. Do NOT just greet.
-After orientation, query jarvis-graphiti search for prior knowledge relevant to your current task.
+After orientation:
+1. Query jarvis-rag search with collection 'sessions' for prior session summaries relevant to your current task (limit 3).
+2. Query jarvis-graphiti search for prior knowledge relevant to your current task.
+Use insights from both to inform your work approach.
 PROTOCOL
 }
 
