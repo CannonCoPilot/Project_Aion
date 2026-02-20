@@ -28,7 +28,9 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 MLX_EMBED_URL = os.getenv("MLX_EMBED_URL", "http://localhost:8000")
 EMBED_DIM = int(os.getenv("EMBED_DIM", "2560"))
 VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
-                     "dfhack", "dwarf-therapist", "df-wiki"}
+                     "dfhack", "dwarf-therapist", "df-wiki",
+                     "df-ai", "weblegends", "df-structures",
+                     "df-narrator", "dfhack-client-python"}
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")
