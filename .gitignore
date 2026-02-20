@@ -112,6 +112,10 @@ scripts/config.sh
 .claude/logs/telemetry/
 .claude/logs/jicm/
 
+# Archive logs (rotated operational logs, can be large)
+.claude/archive/logs/
+.claude/logs/*.log.*
+
 # Large experiment artifacts (28MB+ transcript captures)
 .claude/reports/testing/experiment-7-captures/clean-transcript.jsonl
 
@@ -125,7 +129,8 @@ projects/mtg-card-sales/archived/*.png
 infrastructure/.venv/
 infrastructure/.env
 
-# Cloned reference repos (external projects with their own .git)
+# Cloned reference repos moved to ~/Claude/GitRepos/ (2026-02-20)
+# Kept for safety in case any are re-cloned here accidentally
 projects/df-ai/
 projects/df-narrator/
 projects/df-structures/

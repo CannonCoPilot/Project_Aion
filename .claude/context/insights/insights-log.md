@@ -176,3 +176,31 @@ DFHack's remote server exposes the same protobuf RPC interface internally that p
 ### 2026-02-20 [41adf1245a85]
 
 Windows 11 defaults to blocking all unsolicited inbound traffic. Since DFHack's remote server listens on port 5000 but Windows doesn't know about it, the firewall silently drops the connection. Even ICMP ping is blocked by default on Windows 11 — that's why both `ping` and `nc` fail.
+
+### 2026-02-20 [5bb6d000bd9d]
+
+The branch is now 10 commits ahead of remote. The only remaining untracked file is `.claude/logs/jicm-watcher.log.1` — a rotated log from the JICM watcher process. Log rotations like this happen when the watcher restarts; the `.1` suffix is the previous log preserved for debugging but not version-controlled.
+
+### 2026-02-20 [b2f4c491c4d9]
+
+The 6 stale AC components (AC-02 through AC-08, AC-10) haven't been touched in 9-34 days. These are autonomic subsystems (Wiggum review loop, JICM state tracker, evolution/R&D cycles, Ulfhedthnar). They're not broken — they just haven't run their self-update routines recently. A `/maintain` cycle would refresh them, but it's not urgent.
+
+### 2026-02-20 [0fcfef1242ea]
+
+**Why PowerShell over SMB/shared folders?** UTM supports shared directories but requires a VM restart to configure. SMB would work (Windows has it built-in) but needs firewall rules and share setup. PowerShell's `HttpListener` gives us an instant file server with zero configuration — and we already confirmed the network path works via port 5000.
+
+### 2026-02-20 [49be9f2cd8b8]
+
+The error is a classic chicken-and-egg: `get_pool()` registers the pgvector type codec on every new connection, but the `vector` extension hasn't been installed yet (that's in `schema.sql`). The fix: `init_db()` must run the schema *before* creating the pool, using a plain connection without vector codec registration.
+
+### 2026-02-20 [c5297bce2dc3]
+
+**Why CP437 cleaning matters**: Dwarf Fortress uses the old IBM Code Page 437 character set (the DOS-era extended ASCII with box-drawing characters and special symbols). The `_clean_legends_xml()` function reads with `encoding="cp437"` and strips control characters that would cause XML parsing to fail. Without this, characters like `♠♣♦♥` in dwarf names would crash the parser.
+
+**The JSONB overflow pattern**: The schema uses typed columns for the ~30 most common event fields (`hf_id_1`, `site_id`, etc.) plus a JSONB `details` column for everything else. This gives us fast indexed queries for the common case while still capturing 100% of the data — no information loss. This is a proven pattern for semi-structured game data.
+
+### 2026-02-20 [3b1275bed265]
+
+**The three-zone separation**: This mirrors how professional software organizations structure things: (1) a project management zone (Jira, Confluence = `Jarvis/projects/chronicler/`), (2) a source code zone (GitHub = `Projects/DwarfCron/`), and (3) a vendor/reference zone (package manager caches, SDK docs = `GitRepos/`). Each zone has different lifecycles — process artifacts accumulate over time, product code is versioned and released, reference repos are pulled and updated independently.
+
+**Validated**: The `chronicler validate` command confirms all 109,466 database records are still accessible from the new location. Path-relative config (`__file__`-based) meant zero code changes were needed for the move.
