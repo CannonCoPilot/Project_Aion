@@ -1,7 +1,7 @@
 #!/bin/bash
 # Idle-Hands Phase Continuation Hook (Stop hook)
 # When an idle-hands maintenance cycle is running, chains phases:
-#   commit → reflect → maintain → (re-evaluate or stop)
+#   commit → maintain → reflect → (re-evaluate or stop)
 #
 # Fires on every turn end. If .idle-hands-active.W{n} exists for this
 # window, reads current phase, advances to next, and blocks with prompt.
@@ -43,9 +43,9 @@ fi
 
 # Maintenance type: advance to next phase
 case "$CURRENT_PHASE" in
-    commit)   NEXT_PHASE="reflect" ;;
-    reflect)  NEXT_PHASE="maintain" ;;
-    maintain)
+    commit)   NEXT_PHASE="maintain" ;;
+    maintain) NEXT_PHASE="reflect" ;;
+    reflect)
         # Full cycle done — re-evaluate
         NEXT_CYCLE=$(( ${CURRENT_CYCLE:-1} + 1 ))
         # Cap at 3 cycles to prevent infinite loops
@@ -59,7 +59,7 @@ case "$CURRENT_PHASE" in
         if [[ -n "$CHANGES" ]]; then
             NEXT_PHASE="commit"
         else
-            NEXT_PHASE="reflect"
+            NEXT_PHASE="maintain"
         fi
         # Update cycle counter
         sed -i '' "s/^cycle: .*/cycle: $NEXT_CYCLE/" "$IH_FILE" 2>/dev/null
@@ -77,9 +77,9 @@ sed -i '' "s/^phase: .*/phase: $NEXT_PHASE/" "$IH_FILE" 2>/dev/null
 
 # Build next prompt
 case "$NEXT_PHASE" in
-    commit)  PROMPT="[IDLE-HANDS] Review and commit any uncommitted changes." ;;
+    commit)  PROMPT="[IDLE-HANDS] Review and commit any uncommitted changes. Use descriptive commit messages." ;;
+    maintain) PROMPT="[IDLE-HANDS] Run /housekeep — perform a quick infrastructure cleanup." ;;
     reflect) PROMPT="[IDLE-HANDS] Run /reflect — perform a self-reflection cycle." ;;
-    maintain) PROMPT="[IDLE-HANDS] Run /maintain — perform a maintenance check." ;;
 esac
 
 echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | W${WINDOW} | advancing: $CURRENT_PHASE → $NEXT_PHASE (cycle ${CURRENT_CYCLE:-1})" >> "$LOG" 2>/dev/null
