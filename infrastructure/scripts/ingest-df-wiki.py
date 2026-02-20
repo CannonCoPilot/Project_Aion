@@ -7,6 +7,7 @@ Strategy: Fetch pages from curated category list + standalone pages.
 Target: ~500-800 high-value core articles (not all 10k).
 """
 import hashlib
+import re
 import time
 import sys
 from pathlib import Path
@@ -110,12 +111,53 @@ def get_category_members(category: str, limit: int = 500) -> list[dict]:
     return pages[:limit]
 
 
+def strip_wikitext(wikitext: str) -> str:
+    """Convert MediaWiki markup to readable plain text."""
+    text = wikitext
+    # Remove <ref>...</ref> and <ref ... />
+    text = re.sub(r"<ref[^>]*/\s*>", "", text)
+    text = re.sub(r"<ref[^>]*>.*?</ref>", "", text, flags=re.DOTALL)
+    # Remove HTML comments
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    # Remove <nowiki> tags but keep content
+    text = re.sub(r"</?nowiki>", "", text)
+    # Remove remaining HTML tags
+    text = re.sub(r"<[^>]+>", "", text)
+    # Remove wiki tables {| ... |}
+    text = re.sub(r"\{\|.*?\|\}", "", text, flags=re.DOTALL)
+    # Remove templates {{...}} (handle nested up to 3 levels)
+    for _ in range(3):
+        text = re.sub(r"\{\{[^{}]*\}\}", "", text)
+    # Remove categories [[Category:...]]
+    text = re.sub(r"\[\[Category:[^\]]*\]\]", "", text, flags=re.IGNORECASE)
+    # Remove file/image links [[File:...|...]]
+    text = re.sub(r"\[\[(?:File|Image):[^\]]*\]\]", "", text, flags=re.IGNORECASE)
+    # Convert [[link|display]] to display
+    text = re.sub(r"\[\[[^|\]]*\|([^\]]+)\]\]", r"\1", text)
+    # Convert [[link]] to link
+    text = re.sub(r"\[\[([^\]]+)\]\]", r"\1", text)
+    # Remove external links [url text] → text
+    text = re.sub(r"\[https?://\S+\s+([^\]]+)\]", r"\1", text)
+    text = re.sub(r"\[https?://\S+\]", "", text)
+    # Strip bold/italic markers
+    text = re.sub(r"'{2,3}", "", text)
+    # Convert section headers == Title == → Title
+    text = re.sub(r"^={2,6}\s*(.+?)\s*={2,6}$", r"\1", text, flags=re.MULTILINE)
+    # Decode HTML entities
+    text = text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+    text = text.replace("&nbsp;", " ").replace("&ndash;", "-").replace("&mdash;", "--")
+    # Collapse multiple blank lines
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
 def get_page_text(title: str) -> str | None:
-    """Get plain-text content of a wiki page."""
+    """Get page content via revisions API (works without TextExtracts extension)."""
     params = {
         "action": "query",
-        "prop": "extracts",
-        "explaintext": "true",
+        "prop": "revisions",
+        "rvprop": "content",
+        "rvslots": "main",
         "titles": title,
         "format": "json",
     }
@@ -125,7 +167,15 @@ def get_page_text(title: str) -> str | None:
     for page_id, page in pages.items():
         if page_id == "-1":
             return None
-        return page.get("extract", "")
+        revisions = page.get("revisions", [])
+        if not revisions:
+            return None
+        content = revisions[0].get("slots", {}).get("main", {}).get("*", "")
+        if not content:
+            content = revisions[0].get("*", "")
+        if not content:
+            return None
+        return strip_wikitext(content)
     return None
 
 
