@@ -70,3 +70,89 @@ The indexing was interrupted when JICM triggered context compression in the prev
 ### 2026-02-20 [154fb3f65d18]
 
 **DF Wiki is a MediaWiki site with 43,621 pages (10,131 articles).** The API supports bulk fetching via `action=query&list=categorymembers`. The DF2014 pseudo-namespace holds the bulk of relevant content. Key categories are large: Creatures (689 pages), Creature raw pages (769), Fortress mode (65), Guides (47), Game mechanics (34), Buildings (26), Items (52). For RAG, we want the core gameplay/mechanics pages (~500-800 high-value articles), NOT all 10k articles (many are individual creature variants, bug reports, or stubs).
+
+### 2026-02-20 [b01bb9908d17]
+
+**Idle-hands infinite-commit bug**: The original `settings.json` had an inline command that unconditionally deleted `.idle-hands-active.W{n}` on every `UserPromptSubmit`. But idle-hands *itself* injects prompts — so its own injections were killing its state file before the `Stop` hook could advance phases. The fix extracts this to `prompt-timestamp.sh` which checks if the prompt starts with `[IDLE-HANDS]` and preserves the state file in that case. Classic case of a hook interfering with its own lifecycle.
+
+### 2026-02-20 [812a601d6ab1]
+
+**The "Cooking" guard is the critical addition.** Without it, the existing guards would have passed W0 as "idle" right now — the `❯` prompt is visible, the status bar has "tokens", there's no text at the prompt, and no "Interrupted" banner. Only the "Cooking..." indicator reveals the model is actively processing. In a long-running task (>15min), the timestamp would expire and Ennoia would have incorrectly injected an idle-hands prompt on top of active work.
+
+### 2026-02-20 [e9aaf1f0101b]
+
+**Chunking distribution**: The pages ranged from 1 chunk (short stubs like "Bone meal") to 88 chunks ("Stupid dwarf trick" — a massive community compilation). The biggest pages were: Stupid dwarf trick (88), Minecart (81), Quickstart guide (71), Megaproject (62), Defense guide (53). These dense guides are exactly the kind of content that makes RAG valuable — they contain detailed procedural knowledge that's hard to summarize into a single embedding.
+
+**Skip rate**: Only 24/564 pages (4%) were too short (<100 chars after wikitext stripping). These were mostly redirect pages or stubs where the wikitext was primarily templates with no substantive content. The "Reaction token" page that was skipped likely had its content entirely in templates.
+
+### 2026-02-20 [9120456ad8ee]
+
+**Hash-based dedup worked perfectly**: The myDFHackScripts collection correctly detected all 21 Lua files had identical hashes to what was already indexed — saving 156 redundant embedding calls. This is the `file_hash` check in the ingestion pipeline: compute SHA-256 of the full text, check if Qdrant already has a point with that hash, skip if matched. Cheap guard against re-indexing unchanged content.
+
+**df-wiki count discrepancy**: The final stats show `df-wiki: 1976` but we just ingested 4,232 points in the wiki run. This is likely because the codebase ingestion script ran its stats snapshot *during* the wiki ingestion (they were concurrent background tasks), catching it mid-flight. The actual count from the completed wiki task was 4,232.
+
+### 2026-02-20 [92af4d563dcc]
+
+The reflection uncovered a significant **configuration drift** problem. Three separate systems reference the evolution queue at three different paths (`.claude/evolution/`, `.claude/state/queues/`, and just `evolution-queue.yaml`), and none of the files actually exist. This means every reflection that generates proposals has been writing them into the report but they never reach an actionable queue. Similarly, the corrections files are referenced at `.claude/context/lessons/` in the AC-05 state file but actually live at `.claude/context/psyche/self-knowledge/`. This kind of path fragmentation is a hallmark of rapid organic growth without periodic consistency audits.
+
+### 2026-02-20 [94a2f1086716]
+
+**Reflection #12 complete.** The key finding is that the AC-05 → AC-06 pipeline (reflect → evolve) is structurally broken because the evolution queue file doesn't exist. This means 7+ proposals across multiple reflections have been "generated" only in report markdown, never reaching an actionable queue. The fix (REFL-012) is straightforward — create the file and update references — but its absence explains why `/evolve` cycles haven't been consuming reflection output.
+
+The Graphiti ingestion (23 entities, 21 edges) ensures these findings persist across context boundaries, so even if this session compresses, the configuration drift pattern is retrievable.
+
+### 2026-02-20 [19e6576a9982]
+
+**Pattern matching on TUI indicators must be structural, not lexical.** Claude Code randomizes the processing verb from a pool (Cooking, Deliberating, Brewing, Pondering, etc.), so matching specific words creates a fragile guard. The reliable pattern is `● [A-Za-z]+…` — the `●` bullet is the constant structural element, and the unicode `…` (U+2026) terminates the verb. This same principle applies to any future TUI scraping: match the layout grammar, not the content vocabulary.
+
+### 2026-02-20 [c9b64090394c]
+
+The power of semantic search over code becomes clear with cross-collection queries. Instead of `grep` which matches literal strings, a query like "reading dwarf job assignments from memory" can find:
+- C++ code in `dfhack` that accesses `df::unit::job` structures
+- XML structure definitions in `df-structures` for the `unit_labor` type
+- Lua scripts in `myDFHackScripts` that manipulate labor assignments
+- Wiki documentation about how DF internally manages dwarves
+
+All from a single natural language query, without knowing the exact variable names or file locations.
+
+### 2026-02-20 [f1dbae344df5]
+
+The key changes to `ingest_directory`:
+1. **Default pattern changed**: `**/*.md` → `**/*` — now matches all files by default, not just markdown
+2. **Comma-separated patterns**: `"**/*.cpp,**/*.h,**/*.lua"` now works, since we split on comma and union the results
+3. **Binary file filter**: Auto-skips known binary extensions (images, archives, compiled objects) so the `**/*` default is safe
+4. **Hidden/build dir filter**: Auto-skips `.git`, `build`, `node_modules`, `__pycache__`, `.venv`
+
+This means a simple `ingest_directory("/path/to/repo", "my-collection")` will now index ALL text-based source files with zero configuration.
+
+### 2026-02-20 [f1f0d7f07abf]
+
+**Qdrant vs PostgreSQL/pgvector for this use case:**
+
+At 28.8K points with 2560-dim vectors, **Qdrant is the right choice**. Here's why:
+
+1. **Dimension matters**: Qwen3-Embedding-4B produces 2560-dim vectors (10 KB each). pgvector uses IVFFlat or HNSW indexing, but performance degrades noticeably above ~1536 dimensions. Qdrant's HNSW implementation is optimized for high-dimensional vectors.
+
+2. **Storage efficiency**: Qdrant stores vectors in memory-mapped files, giving near-RAM speed with disk-backed persistence. pgvector stores vectors as Postgres rows, adding per-row overhead.
+
+3. **At current scale (585 MB)**: Either would work fine. The choice becomes meaningful at ~100K+ points where Qdrant's dedicated vector index (segment-based HNSW) outperforms pgvector's table-scan approach for filtered queries.
+
+4. **When pgvector would make sense**: If you wanted to JOIN vector search results with relational data (e.g., session metadata in Postgres) in a single query. But Qdrant's payload filtering + Postgres for relational data (as we have now) is actually the cleaner architecture.
+
+Bottom line: **stay with Qdrant**. At the current ~600 MB, scaling to 500K points (~10 GB) is well within a Mac Studio's capacity. The dedicated Docker volume makes backup/migration straightforward.
+
+### 2026-02-20 [080e552f96fe]
+
+The indexing is comprehensive — 22K vectors covering the entire DFHack ecosystem codebase plus 4K wiki articles. This gives us deep domain knowledge about DF's memory structures, API surfaces, Lua scripting patterns, and game mechanics. The **indexing phase is complete** and ready to support downstream work.
+
+The research report at `/Users/nathanielcannon/Claude/Jarvis/.claude/context/research/dwarf-fortress-project-plan.md` defines "Chronicler" — a 5-phase project (Foundation → CDM → AI Storyteller → Data Viewer → Release). No actual Chronicler code exists yet.
+
+### 2026-02-20 [0b50ee7fc975]
+
+**Why four pillars in parallel rather than sequential?** The DF ecosystem is wide but loosely coupled. The game bot (Pillar 3) is pure Lua inside DFHack — no Python dependency. The legends viewer (Pillar 2) needs only an XML file, not a running game. The mod detector (Pillar 4) needs nothing. This means we can validate all four concepts before committing to deep integration, and each pillar produces a standalone "it works!" demo.
+
+**The two-track command pattern** from df-ai is the key architectural insight for Pillar 3: most game interactions can be done via direct memory writes (dig designations, labor toggling, item flags) without navigating DF's UI menus. The df-ai uses Boost coroutines for complex menu navigation, but in Lua we can use DFHack's built-in `repeatutil` and direct `df.*` struct access for the simple PoC.
+
+### 2026-02-20 [f3130bc34995]
+
+The `dfhack-client-python` reference (`/Users/nathanielcannon/Claude/Jarvis/projects/dfhack-client-python/dfhack_remote.py`) gives us the complete DFHack RPC wire protocol: `DFHack?\n` handshake → `CoreBindRequest` to register methods → 8-byte headers (2-byte ID + 2 padding + 4-byte size) → protobuf payloads. The `@remote()` decorator pattern with type annotations for input/output messages is elegant and we'll adapt it into a cleaner class-based client.

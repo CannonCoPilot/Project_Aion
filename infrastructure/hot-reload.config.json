@@ -1,0 +1,11 @@
+{
+  "serverCommand": "node",
+  "serverArgs": [
+    "dist/index.js"
+  ],
+  "buildCommand": "npm run build",
+  "watchPattern": [
+    "./src"
+  ],
+  "debounceMs": 300
+}

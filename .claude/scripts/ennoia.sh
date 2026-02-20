@@ -264,6 +264,29 @@ detect_window_idle() {
         return 0
     fi
 
+    # Guard: processing indicators → model is actively working
+    # Claude Code shows "● <RandomVerb>… (time · tokens)" while generating.
+    # The verb changes randomly (Cooking, Deliberating, Brewing, etc.)
+    # Also catches "⎿  Running…" for tool execution.
+    if echo "$pane_content" | grep -qE '● [A-Za-z]+…|⎿  Running'; then
+        echo "active"  # model processing — not idle
+        return 0
+    fi
+
+    # Guard: text present at prompt → user is composing input
+    # If the ❯ line has content after it, someone typed but didn't submit
+    local prompt_line after_prompt
+    prompt_line=$(echo "$pane_content" | grep '❯' | tail -1)
+    if [[ -n "$prompt_line" ]]; then
+        after_prompt="${prompt_line#*❯}"
+        # Trim whitespace (tmux pads lines to terminal width)
+        after_prompt=$(echo "$after_prompt" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        if [[ -n "$after_prompt" ]]; then
+            echo "active"  # text at prompt — user composing
+            return 0
+        fi
+    fi
+
     # ESC idle: "Interrupted" banner visible
     if echo "$pane_content" | grep -q "Interrupted"; then
         echo "idle_esc"

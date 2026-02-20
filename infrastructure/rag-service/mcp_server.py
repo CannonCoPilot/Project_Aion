@@ -30,7 +30,8 @@ EMBED_DIM = int(os.getenv("EMBED_DIM", "2560"))
 VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
                      "dfhack", "dwarf-therapist", "df-wiki",
                      "df-ai", "weblegends", "df-structures",
-                     "df-narrator", "dfhack-client-python"}
+                     "df-narrator", "dfhack-client-python",
+                     "df-logger", "mydfhack-scripts"}
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")
@@ -100,6 +101,22 @@ def chunk_text(
 def file_to_collection(file_path: str) -> str:
     """Auto-detect the best collection for a file based on its path."""
     p = file_path.lower()
+    # DF project repos (check before generic patterns)
+    if "/projects/df-ai/" in p:
+        return "df-ai"
+    if "/projects/weblegends/" in p:
+        return "weblegends"
+    if "/projects/df-structures/" in p:
+        return "df-structures"
+    if "/projects/df-narrator/" in p:
+        return "df-narrator"
+    if "/projects/dfhack-client-python/" in p:
+        return "dfhack-client-python"
+    if "/projects/dwarffortresslogger/" in p:
+        return "df-logger"
+    if "/projects/mydfhackscripts/" in p:
+        return "mydfhack-scripts"
+    # Jarvis internal
     if "/reports/" in p or "/deep-research/" in p or "/research/" in p:
         return "research"
     if "/scripts/" in p or "/hooks/" in p or "/skills/" in p or "/agents/" in p:
@@ -306,20 +323,53 @@ async def ingest(
 async def ingest_directory(
     directory: str,
     collection: str | None = None,
-    pattern: str = "**/*.md",
+    pattern: str = "**/*",
 ) -> dict:
     """Ingest all matching files in a directory into the RAG knowledge base.
+
+    Supports all text-based source files by default (code, docs, config).
+    Binary files are automatically skipped. Comma-separated patterns are
+    supported (e.g., "**/*.cpp,**/*.h,**/*.lua").
 
     Args:
         directory: Absolute path to the directory.
         collection: Target collection. Auto-detected per file if omitted.
-        pattern: Glob pattern for files to include (default: all markdown).
+        pattern: Glob pattern(s) for files to include. Comma-separated
+            for multiple patterns. Default: all files (binary auto-skipped).
     """
     dir_path = Path(directory)
     if not dir_path.is_dir():
         return {"error": f"Not a directory: {directory}"}
 
-    files = sorted(dir_path.glob(pattern))
+    # Support comma-separated patterns (pathlib doesn't support brace expansion)
+    file_set: set[Path] = set()
+    for pat in pattern.split(","):
+        pat = pat.strip()
+        if pat:
+            file_set.update(dir_path.glob(pat))
+    files = sorted(file_set)
+
+    # Filter: skip hidden dirs, build dirs, binary-like extensions
+    _skip_dirs = {".git", "build", "node_modules", "__pycache__", ".venv"}
+    _binary_exts = {
+        ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".ico", ".svg",
+        ".pdf", ".zip", ".gz", ".tar", ".7z", ".rar",
+        ".exe", ".dll", ".so", ".dylib", ".o", ".a",
+        ".woff", ".woff2", ".ttf", ".eot",
+        ".pyc", ".pyo", ".class",
+        ".db", ".sqlite", ".sqlite3",
+    }
+    filtered = []
+    for f in files:
+        if not f.is_file():
+            continue
+        parts = f.relative_to(dir_path).parts
+        if any(p in _skip_dirs or p.startswith(".") for p in parts):
+            continue
+        if f.suffix.lower() in _binary_exts:
+            continue
+        filtered.append(f)
+    files = filtered
     results = {
         "ingested": 0,
         "skipped": 0,
