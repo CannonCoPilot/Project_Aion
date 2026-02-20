@@ -156,3 +156,23 @@ The research report at `/Users/nathanielcannon/Claude/Jarvis/.claude/context/res
 ### 2026-02-20 [f3130bc34995]
 
 The `dfhack-client-python` reference (`/Users/nathanielcannon/Claude/Jarvis/projects/dfhack-client-python/dfhack_remote.py`) gives us the complete DFHack RPC wire protocol: `DFHack?\n` handshake → `CoreBindRequest` to register methods → 8-byte headers (2-byte ID + 2 padding + 4-byte size) → protobuf payloads. The `@remote()` decorator pattern with type annotations for input/output messages is elegant and we'll adapt it into a cleaner class-based client.
+
+### 2026-02-20 [b7b0f73ae44c]
+
+**Why UTM?** UTM is a QEMU-based virtualization frontend for macOS that supports Apple Hypervisor.framework on Apple Silicon. Unlike Parallels (paid) or VirtualBox (no ARM Windows support), UTM is free and handles Windows 11 ARM natively. The key detail: Windows on ARM includes "Prism" — Microsoft's x86/x64 translation layer (similar to Rosetta). Since the October 2025 Windows Update, Prism gained AVX2 emulation, which Dwarf Fortress's Steam version requires.
+
+### 2026-02-20 [4e08f3cd99c5]
+
+UTM's "Virtualize" mode uses Apple's Hypervisor.framework for near-native performance. The "Emulate" mode uses QEMU's software emulation (much slower). Since we're running Windows ARM on Apple Silicon ARM, virtualization is the right choice — the CPU architecture matches natively. The Prism translation layer inside Windows handles x86→ARM translation for Steam and DF.
+
+### 2026-02-20 [35926347ab99]
+
+The UEFI shell is the firmware's fallback when no boot device is found in the boot order. `startup.nsh` is a script the firmware tries to auto-run (like AUTOEXEC.BAT from DOS days). `exit` drops you back to the firmware's boot manager UI. The `FS0:\EFI\Boot\bootaa64.efi` path is the standard ARM64 UEFI boot loader location — `aa64` = AArch64 (ARM 64-bit).
+
+### 2026-02-20 [fa12db19fe30]
+
+DFHack's remote server exposes the same protobuf RPC interface internally that plugins use — `CoreBindRequest` to register methods, then numbered RPC calls. By default it only listens on `127.0.0.1` (localhost inside the VM). Setting `allow_remote: true` binds it to `0.0.0.0`, making it reachable from the host macOS through UTM's shared network bridge. Port 5000 is the default — no firewall rules needed since UTM's shared networking uses macOS's vmnet framework.
+
+### 2026-02-20 [41adf1245a85]
+
+Windows 11 defaults to blocking all unsolicited inbound traffic. Since DFHack's remote server listens on port 5000 but Windows doesn't know about it, the firewall silently drops the connection. Even ICMP ping is blocked by default on Windows 11 — that's why both `ping` and `nc` fail.
