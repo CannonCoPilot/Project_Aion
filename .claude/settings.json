@@ -134,7 +134,7 @@
           },
           {
             "type": "command",
-            "command": "W=${JARVIS_WINDOW:-0}; date +%s > $CLAUDE_PROJECT_DIR/.claude/context/.last-prompt-ts.W${W} && rm -f $CLAUDE_PROJECT_DIR/.claude/context/.idle-hands-active.W${W}"
+            "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/prompt-timestamp.sh"
           },
           {
             "type": "command",

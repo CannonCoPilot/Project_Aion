@@ -357,8 +357,8 @@ EOF
         local prompt
         case "$action" in
             commit)  prompt="[IDLE-HANDS] Review and commit any uncommitted changes. Use descriptive commit messages." ;;
+            maintain) prompt="[IDLE-HANDS] Run /housekeep — perform a quick infrastructure cleanup." ;;
             reflect) prompt="[IDLE-HANDS] Run /reflect — perform a self-reflection cycle." ;;
-            maintain) prompt="[IDLE-HANDS] Run /maintain — perform a maintenance check." ;;
         esac
         "$TMUX_BIN" send-keys -t "jarvis:${win}" -l "$prompt" 2>/dev/null
         sleep 0.5
