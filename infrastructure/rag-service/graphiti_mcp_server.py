@@ -10,8 +10,8 @@ Exposes graph operations as MCP tools:
   get_entity     — look up a specific entity and its edges
   graph_stats    — collection/node/edge counts
 
-Uses OllamaNoThinkClient (Qwen3-32B via LiteLLM) for LLM,
-OpenAIEmbedder (qwen3-embedding:4b direct to Ollama) for embeddings.
+Uses OllamaNoThinkClient (Qwen3-8B via LiteLLM) for LLM,
+OpenAIEmbedder (qwen3-embedding:4b via MLX on Apple Silicon) for embeddings.
 Neo4j for graph storage.
 """
 
