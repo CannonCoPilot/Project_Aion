@@ -663,13 +663,31 @@ do_idle_checkpoint() {
         return 0
     fi
 
-    # Run the prep script
+    # Run the prep script (now includes LLM enrichment, ~3-6s)
     local prep_script="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
     if [[ -x "$prep_script" ]]; then
+        # Save hash of current output to detect no-change checkpoints
+        local old_hash=""
+        local ctx_file="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
+        if [[ -f "$ctx_file" ]]; then
+            old_hash=$(md5 -q "$ctx_file" 2>/dev/null || echo "")
+        fi
+
         bash "$prep_script" 2>>"$LOG_FILE" || true
         LAST_IDLE_CHECKPOINT=$now
         IDLE_CHECKPOINT_COUNT=$((IDLE_CHECKPOINT_COUNT + 1))
-        log INFO "Idle checkpoint #${IDLE_CHECKPOINT_COUNT} (idle ${idle_seconds}s)"
+
+        # Check if content actually changed
+        local new_hash=""
+        if [[ -f "$ctx_file" ]]; then
+            new_hash=$(md5 -q "$ctx_file" 2>/dev/null || echo "")
+        fi
+
+        if [[ "$old_hash" == "$new_hash" ]] && [[ -n "$old_hash" ]]; then
+            log INFO "Idle checkpoint #${IDLE_CHECKPOINT_COUNT} (idle ${idle_seconds}s) — no change"
+        else
+            log INFO "Idle checkpoint #${IDLE_CHECKPOINT_COUNT} (idle ${idle_seconds}s) — content updated"
+        fi
     fi
 
     return 0

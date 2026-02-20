@@ -65,7 +65,7 @@ Previous session histories have been archived. For full details, see:
 ## Current Priorities
 
 ### In Progress
-- None currently
+- JICM checkpoint enrichment — two-tier system implemented and tested (6.2s, 230 lines)
 
 ### Up Next
 1. Run full `/reflect` via W0 to validate all 5 /reflect phases together

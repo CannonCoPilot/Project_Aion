@@ -1,113 +1,260 @@
-# M5: n8n Workflow Integration
+# Enrich JICM Context Checkpoints
 
 ## Context
 
-n8n is running at localhost:5678 (Docker container `jarvis-n8n`, queue mode with Redis + PostgreSQL, on `jarvis-net` bridge). The API key is verified working. This milestone delivers the first automated workflows — session logging and infrastructure health monitoring — completing the orchestration layer of Jarvis's infrastructure stack.
+The auto-generated `.compressed-context-ready.md` files are thin and often broken — 28 lines of mostly empty sections ("no messages extracted", "No active tasks"), with only a single status line from session-state.md. Compare to manually written checkpoints which are 150+ lines with specific task progress, bug fix details, protocol documentation, exact next-step commands, and key file paths.
 
-## Scope: 2 Workflows Now, 2 Deferred
+**Root causes identified:**
+1. **Wrong JSONL after /clear** — `ls -t | head -1` picks the new empty post-clear JSONL, not the productive session
+2. **Only 1 line of session-state.md** — `grep -m1` captures just the status line, missing priorities/next steps
+3. **No TodoWrite dump** — `.active-tasks.txt` is a stale placeholder, no hook writes to it
+4. **No git state** — uncommitted changes and recently modified files not included
+5. **[IDLE-HANDS] messages pollute output** — no filter for `[IDLE-HANDS]` prefix
+6. **Assistant messages disabled** — `INCLUDE_ASSISTANT=false` by default
+7. **No narrative synthesis** — bash can only do structural extraction, not semantic summary
 
-**Delivering now:**
-- **Workflow A**: Session Summary Webhook — logs session metadata to Postgres on `/end-session`
-- **Workflow B**: Hourly Health Check Cron — HTTP checks against Qdrant, Neo4j, Ollama, Redis
+**LLM summarization is viable** — `qwen3-8b-nothink` via LiteLLM (localhost:4000) returns structured summaries in ~2s. This is the quality multiplier that bridges the gap.
 
-**Deferred to M5.1** (need host volume mount or HTTP shim for jarvis-rag):
-- Scheduled RAG Re-index (daily 3am)
-- Weekly Cost Report (ccusage runs on host only)
+## Architecture: Two-Tier Checkpoint
 
-**No n8n-mcp registration** — 42 tool descriptions per session is too much context overhead for 4 static workflows. Curl API calls suffice.
+```
+Tier 1: Enhanced Bash Extraction (~1s, always runs)
+  ├── Fix JSONL selection (scan 3 most recent, find richest)
+  ├── Include full session-state.md key sections
+  ├── Extract TodoWrite tasks from JSONL
+  ├── Add git status + recently modified files
+  ├── Filter [IDLE-HANDS] messages
+  ├── Enable assistant messages (INCLUDE_ASSISTANT=true)
+  └── Increase message truncation (500 → 2000 chars)
+       │
+       ▼
+Tier 2: Local LLM Narrative Pass (~2-5s, graceful fallback)
+  ├── Feed Tier 1 raw extraction to qwen3-8b-nothink
+  ├── LLM produces structured narrative checkpoint
+  ├── Sections: Current Task, Progress, Critical Context, Key Paths, Next Step
+  └── Falls back to Tier 1 output if LiteLLM unavailable
+```
+
+**Time budget**: ~3-6s total (vs current <1s). Acceptable for idle checkpoints (30s interval) and pre-/clear hooks.
 
 ## Implementation Steps
 
-### Step 1: Create Postgres Tables
-Use `postgres-mcp` or direct SQL to create `jarvis_sessions` and `jarvis_health_events` tables in the `jarvis` database (not the `n8n` database).
+### Step 1: Fix JSONL Selection
 
-```sql
-CREATE TABLE IF NOT EXISTS jarvis_sessions (
-    id SERIAL PRIMARY KEY,
-    session_id TEXT NOT NULL,
-    summary TEXT,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    cost_usd NUMERIC(10,4),
-    context_peak_pct REAL
-);
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
 
-CREATE TABLE IF NOT EXISTS jarvis_health_events (
-    id SERIAL PRIMARY KEY,
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    service TEXT NOT NULL,
-    status TEXT NOT NULL,
-    response_time_ms INTEGER,
-    error_message TEXT
-);
-
-CREATE INDEX idx_sessions_ts ON jarvis_sessions(timestamp DESC);
-CREATE INDEX idx_health_svc ON jarvis_health_events(service, timestamp DESC);
-```
-
-### Step 2: Create Workflow A — Session Summary Webhook
-POST to `http://localhost:5678/api/v1/workflows` with workflow JSON:
-- Webhook trigger at path `jarvis/session-complete` (POST, respond immediately with 202)
-- Postgres Insert node writing to `jarvis_sessions` table
-- Use credential ID `uWm2xENqCgVCjg4O` (Jarvis Postgres, already created)
-- Activate via `POST /api/v1/workflows/{id}/activate`
-
-### Step 3: Create Workflow B — Hourly Health Check Cron
-POST workflow JSON with:
-- Schedule Trigger (every hour)
-- Parallel HTTP Request nodes checking:
-  - `http://jarvis-qdrant:6333/healthz` (Docker-internal)
-  - `http://jarvis-neo4j:7474` (Docker-internal)
-  - `http://host.docker.internal:11434/api/tags` (Ollama on host)
-- Merge results → Postgres Insert to `jarvis_health_events`
-- Activate via API
-
-### Step 4: Wire end-session.md Step 7c
-**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/commands/end-session.md`
-
-Changes:
-1. Add `Bash(curl:*)` to `allowed-tools` frontmatter
-2. Insert Step 7c after existing Step 7b:
+Replace `ls -t | head -1` (line 76) with a function that scans the 3 most recent JSONLs and picks the one with the most genuine user messages:
 
 ```bash
-curl -s -X POST "http://localhost:5678/webhook/jarvis/session-complete" \
-  -H "Content-Type: application/json" \
-  -d "{\"session_id\":\"session-NN\",\"summary\":\"...\",\"cost_usd\":$BLOCK_COST}" \
-  --max-time 5 || echo "[n8n] Webhook skipped (n8n unreachable)"
+find_best_jsonl() {
+    local dir="$1"
+    local best="" best_count=0
+    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -3); do
+        local count
+        count=$(tail -5000 "$f" | jq -c '
+            select(.type == "user")
+            | select(.toolUseResult == null)
+            | .message.content
+            | if type == "array" then
+                [.[] | select(.type == "text") | .text] | join(" ")
+              elif type == "string" then . else empty end
+            | select(length > 30)
+            | select(startswith("<") | not)
+            | select(startswith("[JICM-") | not)
+            | select(startswith("[IDLE-HANDS]") | not)
+        ' 2>/dev/null | wc -l | tr -d ' ')
+        if [[ $count -gt $best_count ]]; then
+            best="$f"
+            best_count=$count
+        fi
+    done
+    echo "$best"
+}
 ```
 
-The `--max-time 5` + `|| echo` ensures end-session never blocks if n8n is down.
+### Step 2: Include Key Session-State Sections
 
-### Step 5: Export & Version-Control Workflow JSON
-Create `/Users/nathanielcannon/Claude/Jarvis/.claude/context/workflows/n8n/`:
-- `session-summary-ingest.json` — exported via GET /api/v1/workflows/{id}
-- `health-check-cron.json` — exported via GET /api/v1/workflows/{id}
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
 
-These serve as backup/reproducibility if the n8n Docker volume is lost.
+Replace the single `grep -m1` (line 174) with extraction of multiple sections:
+- Status line (existing)
+- Current Priorities section (In Progress + Up Next)
+- Notes section (if present)
 
-### Step 6: Update Documentation
-- Update `session-state.md` with M5 completion
-- Update `n8n-setup-guide.md` with workflow IDs and credential references
-- Commit: `feat: M5 n8n workflow integration (session webhook + health cron)`
+Use `sed` to extract between section headers:
+```bash
+echo "## Session Status"
+# Status line
+grep -m1 '^\*\*Status\*\*' "$SESSION_STATE" 2>/dev/null | sed 's/\*\*//g' || echo "Status: unknown"
+echo ""
+# Current Priorities (everything from "## Current Priorities" to next "## " or EOF)
+sed -n '/^## Current Priorities/,/^## [^C]/p' "$SESSION_STATE" 2>/dev/null | head -30
+```
 
-## Verification
+### Step 3: Extract TodoWrite Tasks from JSONL
 
-1. **Webhook test**: `curl -X POST http://localhost:5678/webhook/jarvis/session-complete -H "Content-Type: application/json" -d '{"session_id":"test","summary":"test","cost_usd":0}'` → verify row in `jarvis_sessions`
-2. **Health cron**: Check n8n execution log at localhost:5678 after 1 hour (or trigger manually)
-3. **End-to-end**: Run `/end-session` dry-run of Step 7c curl call
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+
+Instead of reading the stale `.active-tasks.txt`, extract the most recent `.todos` array from JSONL entries:
+
+```bash
+TODOS=$(tail -2000 "$JSONL" | jq -c '
+    select(.todos != null and (.todos | length > 0))
+    | .todos
+' 2>/dev/null | tail -1)  # Last entry with todos = most recent state
+
+if [[ -n "$TODOS" ]] && [[ "$TODOS" != "[]" ]]; then
+    echo "## Active Tasks"
+    echo "$TODOS" | jq -r '.[] | "- [\(.status)] \(.subject)"' 2>/dev/null
+    echo ""
+fi
+```
+
+### Step 4: Add Git State Section
+
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+
+Add after the session status section:
+```bash
+echo "## Git State"
+echo "Branch: $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo unknown)"
+UNCOMMITTED=$(git -C "$PROJECT_DIR" status --porcelain 2>/dev/null | grep -v '^??' | head -10)
+if [[ -n "$UNCOMMITTED" ]]; then
+    echo "Uncommitted changes:"
+    echo "$UNCOMMITTED" | while read -r line; do echo "  $line"; done
+fi
+RECENT_FILES=$(git -C "$PROJECT_DIR" diff --stat HEAD~3..HEAD 2>/dev/null | tail -5)
+if [[ -n "$RECENT_FILES" ]]; then
+    echo "Recent commits touched:"
+    echo "$RECENT_FILES" | while read -r line; do echo "  $line"; done
+fi
+echo ""
+```
+
+### Step 5: Filter [IDLE-HANDS] and Enable Assistant Messages
+
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+
+Two changes to the jq filter chain (line 116-136):
+1. Add `| select(startswith("[IDLE-HANDS]") | not)` to the user message filter
+2. Change `INCLUDE_ASSISTANT=false` default to `INCLUDE_ASSISTANT=true` (line 40)
+3. Increase `MSG_TRUNCATE_CHARS=500` to `MSG_TRUNCATE_CHARS=2000` (line 38)
+
+### Step 6: Add LLM Narrative Summarization (Tier 2)
+
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+
+Add new configuration variables:
+```bash
+LLM_SUMMARIZE=true           # Enable local LLM narrative pass
+LLM_ENDPOINT="http://localhost:4000/v1/chat/completions"
+LLM_MODEL="qwen3-8b-nothink"
+LLM_TIMEOUT=15               # Max seconds for LLM call
+LLM_MAX_TOKENS=800           # Output cap
+```
+
+After writing the Tier 1 output to `$OUTPUT`, attempt the LLM pass:
+```bash
+if [[ "$LLM_SUMMARIZE" == "true" ]]; then
+    TIER1_CONTENT=$(cat "$OUTPUT")
+
+    # Check LiteLLM availability (fast health check)
+    if curl -sf --max-time 2 "$LLM_ENDPOINT" >/dev/null 2>&1 || \
+       curl -sf --max-time 2 "http://localhost:4000/health" >/dev/null 2>&1; then
+
+        SYSTEM_PROMPT="You are Jarvis's context preservation system. Given raw session data, produce a structured checkpoint for resuming work after context is cleared. Include these sections:
+1. **Current Task**: What is Jarvis working on? Be specific about the project and immediate goal.
+2. **Progress**: Numbered steps — what's done (DONE) vs remaining (TODO/IN PROGRESS).
+3. **Critical Context**: Protocols, configurations, bug fixes, or discoveries that must not be lost. Include exact commands, code, credentials where relevant.
+4. **Key Paths**: Important files and directories for the current work.
+5. **Next Step**: The exact next action to take — ideally a runnable command.
+6. **Resume Instructions**: Specific guidance for picking up where we left off.
+Be thorough but concise. Preserve exact file paths, commands, and technical details."
+
+        # Build payload — escape the content for JSON embedding
+        ESCAPED_CONTENT=$(echo "$TIER1_CONTENT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+        ESCAPED_SYSTEM=$(echo "$SYSTEM_PROMPT" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read()))")
+
+        LLM_RESPONSE=$(curl -sf --max-time "$LLM_TIMEOUT" \
+            "$LLM_ENDPOINT" \
+            -H "Content-Type: application/json" \
+            -d "{\"model\":\"$LLM_MODEL\",\"messages\":[
+                {\"role\":\"system\",\"content\":$ESCAPED_SYSTEM},
+                {\"role\":\"user\",\"content\":$ESCAPED_CONTENT}
+            ],\"stream\":false,\"max_tokens\":$LLM_MAX_TOKENS}" 2>/dev/null)
+
+        if [[ -n "$LLM_RESPONSE" ]]; then
+            NARRATIVE=$(echo "$LLM_RESPONSE" | python3 -c "
+import sys, json
+try:
+    r = json.load(sys.stdin)
+    print(r['choices'][0]['message']['content'])
+except: pass" 2>/dev/null)
+
+            if [[ -n "$NARRATIVE" ]] && [[ ${#NARRATIVE} -gt 100 ]]; then
+                # Prepend LLM narrative, keep Tier 1 as raw appendix
+                {
+                    echo "# JICM v7 Context Checkpoint"
+                    echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                    echo "Method: LLM-enriched (qwen3-8b-nothink)"
+                    echo ""
+                    echo "$NARRATIVE"
+                    echo ""
+                    echo "---"
+                    echo ""
+                    echo "## Raw Session Data (Tier 1 extraction)"
+                    echo ""
+                    echo "$TIER1_CONTENT" | tail -n +3  # Skip duplicate header
+                } > "$OUTPUT"
+                echo "LLM enrichment applied ($(echo "$NARRATIVE" | wc -l | tr -d ' ') lines)" >&2
+            else
+                echo "LLM response too short or empty — keeping Tier 1 output" >&2
+            fi
+        else
+            echo "LLM call failed — keeping Tier 1 output" >&2
+        fi
+    else
+        echo "LiteLLM unavailable — keeping Tier 1 output" >&2
+    fi
+fi
+```
+
+### Step 7: Skip Post-Clear Idle Checkpoints
+
+**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh` (in `do_idle_checkpoint()`)
+
+If the most recent JSONL has <5 genuine user messages, skip the idle checkpoint — there's nothing new to capture:
+```bash
+# Quick check: does the current JSONL have real content?
+local msg_count
+msg_count=$(tail -1000 "$BEST_JSONL" | jq -c 'select(.type == "user") | ...' | wc -l)
+if [[ $msg_count -lt 3 ]]; then
+    log INFO "Idle checkpoint skipped — session too fresh (${msg_count} messages)"
+    return 0
+fi
+```
 
 ## Files Modified
 
 | File | Change |
 |------|--------|
-| `.claude/commands/end-session.md` | Add `Bash(curl:*)` to allowed-tools, add Step 7c |
-| `.claude/context/workflows/n8n/*.json` | NEW — exported workflow definitions |
-| `.claude/context/research/n8n-setup-guide.md` | Update status + workflow IDs |
-| `.claude/context/session-state.md` | M5 completion |
+| `.claude/scripts/jicm-prep-context.sh` | All 6 extraction improvements + LLM pass |
+| `.claude/scripts/jicm-watcher.sh` | Skip post-clear idle checkpoints |
 
-## Key Design Decisions
+## Verification
 
-- **No n8n-mcp**: Context overhead not justified for 4 static workflows
-- **Credentials via API**: Postgres credential `uWm2xENqCgVCjg4O` already created programmatically — no browser needed
-- **Docker networking**: n8n reaches other containers by name (`jarvis-qdrant`, `jarvis-neo4j`) on `jarvis-net`; reaches host via `host.docker.internal`
-- **Webhook over Stop hook**: Session summary is composed during end-session, not available at Stop hook time
-- **5s timeout on webhook**: n8n is not in the critical path of session exit
+1. **Tier 1 only**: Set `LLM_SUMMARIZE=false` in `.prep-override`, trigger idle checkpoint, verify output has git state, session priorities, todos, assistant messages
+2. **Tier 2**: Set `LLM_SUMMARIZE=true` (default), trigger idle checkpoint, verify LLM narrative is prepended with structured sections
+3. **Fallback**: Stop LiteLLM (`kill` the process), trigger checkpoint, verify graceful fallback to Tier 1
+4. **JSONL selection**: After a /clear, verify the script picks the previous session's JSONL (with real messages) instead of the new empty one
+5. **Timing**: Measure total prep time — target <6s with LLM, <1s without
+6. **Compare**: Run checkpoint, compare output quality to the manual `manual-checkpoint-20260220-152500.md`
+
+## Design Decisions
+
+- **LLM default ON**: The 2-5s cost is acceptable for idle checkpoints (30s interval) and pre-/clear. Quality improvement is dramatic.
+- **qwen3-8b-nothink**: Best balance of speed (~2s) and quality. The `-nothink` variant is essential — with thinking enabled, Qwen3 burns all tokens on internal COT.
+- **Tier 1 preserved as appendix**: The raw extraction stays in the output as a fallback reference, even when LLM enriches. This ensures no data is lost.
+- **python3 for JSON escaping**: Bash JSON escaping is brittle. python3 is always available on macOS and handles unicode/newlines correctly.
+- **15s timeout**: Generous but bounded. If the LLM is under heavy load, we fall back gracefully.
+- **No `.active-tasks.txt` writer**: Instead of adding a hook to write this file, we extract TodoWrite state directly from JSONL. This follows the computed-state pattern (derive from source data, don't maintain separate state).
