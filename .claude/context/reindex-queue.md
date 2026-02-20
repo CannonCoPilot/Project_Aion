@@ -1,8 +1,8 @@
 # Reindex Queue
 
 **Created**: 2026-02-19
-**Updated**: 2026-02-19 16:02 MST
-**Status**: Repos cloned, partial indexing done, awaiting MCP restart for Graphiti
+**Updated**: 2026-02-19 18:20 MST
+**Status**: Wiki ingestion COMPLETE (4,232 points), repos partially done, Graphiti awaiting MCP restart
 
 ---
 
@@ -40,7 +40,7 @@ Files to ingest as episodes via `mcp__jarvis-graphiti__add_episode`:
 Updated collection stats after myDFHackScripts indexing:
 - `dwarf-therapist`: 912 points
 - `dfhack`: ~5,587 points (+156 new chunks)
-- `df-wiki`: 4 points
+- `df-wiki`: 4,232 points (540 wiki pages, 4,228 chunks — COMPLETE)
 
 ---
 
@@ -51,6 +51,7 @@ Updated collection stats after myDFHackScripts indexing:
 3. [ ] Index remaining DF repos via `ingest_directory` calls (direct, not via subagents)
 4. [ ] Index claude-code-docs (598 markdown files into `codebase`)
 5. [ ] After MCP restart: Run Graphiti self-knowledge reindex (Priority 1)
+6. [x] DF wiki ingestion — 540/564 pages, 4,228 chunks into `df-wiki` (2026-02-19, 22.6 min)
 
 ## Notes
 
