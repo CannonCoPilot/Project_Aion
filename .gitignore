@@ -125,5 +125,18 @@ projects/mtg-card-sales/archived/*.png
 infrastructure/.venv/
 infrastructure/.env
 
+# Cloned reference repos (external projects with their own .git)
+projects/df-ai/
+projects/df-narrator/
+projects/df-structures/
+projects/dfhack-client-python/
+projects/DwarfFortressLogger/
+projects/myDFHackScripts/
+projects/weblegends/
+projects/claude-code-docs/
+
+# Embedded git repos (infrastructure tools with their own .git)
+infrastructure/qwen3-embeddings-mlx/
+
 # LanceDB (local-rag MCP runtime data)
 lancedb/

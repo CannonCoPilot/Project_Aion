@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "status": "active",
   "created": "2026-01-17T00:00:00.000Z",
-  "last_modified": "2026-02-08T10:15:00.000Z",
+  "last_modified": "2026-02-19T18:26:00.000Z",
   "implementation": {
     "spec_complete": true,
     "pattern_complete": true,
@@ -13,7 +13,7 @@
     "lessons_directory": true,
     "lessons_index": true,
     "reflect_command": true,
-    "evolution_queue": true,
+    "evolution_queue": false,
     "triggers_tested": true,
     "integration_tested": true,
     "metrics_emission": true
@@ -31,11 +31,11 @@
   },
   "dependencies": {
     "corrections_file": {
-      "path": ".claude/context/lessons/corrections.md",
+      "path": ".claude/context/psyche/self-knowledge/corrections.md",
       "status": "active"
     },
     "self_corrections_file": {
-      "path": ".claude/context/lessons/self-corrections.md",
+      "path": ".claude/context/psyche/self-knowledge/self-corrections.md",
       "status": "active"
     },
     "lessons_index": {
@@ -44,7 +44,7 @@
     },
     "evolution_queue": {
       "path": ".claude/state/queues/evolution-queue.yaml",
-      "status": "active"
+      "status": "missing"
     },
     "memory_mcp": {
       "status": "available",
@@ -52,20 +52,20 @@
     }
   },
   "last_reflection": {
-    "date": "2026-02-08",
+    "date": "2026-02-19",
     "depth": "standard",
-    "report": ".claude/reports/reflections/reflection-2026-02-08.md",
-    "corrections_analyzed": 12,
-    "problems_identified": 3,
-    "proposals_generated": 3
+    "report": ".claude/reports/reflections/reflection-2026-02-19-2.md",
+    "corrections_analyzed": 0,
+    "problems_identified": 5,
+    "proposals_generated": 4
   },
-  "reflections_completed": 10,
+  "reflections_completed": 12,
   "metrics": {
-    "total_reflections": 10,
-    "problems_identified": 3,
+    "total_reflections": 12,
+    "problems_identified": 8,
     "solutions_proposed": 3,
-    "patterns_discovered": 3,
-    "proposals_generated": 3
+    "patterns_discovered": 5,
+    "proposals_generated": 7
   },
-  "notes": "Fully operationalized 2026-02-08. 10th reflection total (9 prior in .claude/reports/reflections/). All key capabilities tested: trigger (manual /reflect), data collection (corrections + self-corrections), analysis (pattern identification), output (report file + evolution proposals), metrics emission (telemetry-emitter.js wired to reflect.md, CLI test passed 2026-02-08). Remaining: failure mode testing."
+  "notes": "Reflection #12 (2026-02-19) found configuration drift: evolution queue missing at all 3 referenced paths, corrections file paths wrong in state, planning tracker stale. Graphiti ingestion successful (23 entities, 21 edges). Evolution queue marked 'missing' — needs creation at canonical path before AC-06 can consume proposals."
 }
