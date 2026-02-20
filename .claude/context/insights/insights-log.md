@@ -204,3 +204,73 @@ The error is a classic chicken-and-egg: `get_pool()` registers the pgvector type
 **The three-zone separation**: This mirrors how professional software organizations structure things: (1) a project management zone (Jira, Confluence = `Jarvis/projects/chronicler/`), (2) a source code zone (GitHub = `Projects/DwarfCron/`), and (3) a vendor/reference zone (package manager caches, SDK docs = `GitRepos/`). Each zone has different lifecycles — process artifacts accumulate over time, product code is versioned and released, reference repos are pulled and updated independently.
 
 **Validated**: The `chronicler validate` command confirms all 109,466 database records are still accessible from the new location. Path-relative config (`__file__`-based) meant zero code changes were needed for the move.
+
+### 2026-02-20 [3739e5d2f0e1]
+
+The CDM schema mirrors Dwarf Fortress's own data model: **figures** have **links** (relationships), belong to **entities** (civilizations), and participate in **history events** which are grouped into **collections** (wars, beast attacks). The `legends_plus.xml` provides richer data than the base `legends.xml` — it includes things like entity positions, detailed site structures, and artifact descriptions that the standard legends mode omits.
+
+### 2026-02-20 [28ba4de330f4]
+
+**XPath gotcha**: `.//entity` matches ANY `<entity>` element at any depth in the document — not just those under the `<entities>` section. In legends_plus.xml, there are likely `<entity>` sub-elements inside other sections (e.g. `<entity_populations>` or event details). The `_parse_entities()` for legends.xml works because that file doesn't have nested `<entity>` elements elsewhere. Fix: use a section-specific path like `root.find("entities")` then `.findall("entity")`.
+
+### 2026-02-20 [d347c65eb24e]
+
+**XPath `.//entity` is a trap in DF XML**: The `<entity>` tag name appears not just under `<entities>` but also nested inside `<historical_figure>` entity links, event details, and other sections. The broad XPath `.//entity` captures all of them (hence the earlier 2,460 count from research). The precise path `root.find("entities").findall("entity")` gets only the 441 actual entity records. This is a general gotcha with XML legends parsing — always scope to the parent section.
+
+**The 69 nameless entities**: These are entities whose `<name>` tag in legends.xml was empty or absent. This is normal for DF — some site governments and minor organizations don't have formal names. The `name IS NULL` count (69) is consistent before and after the fix.
+
+### 2026-02-20 [501b9cf909e8]
+
+**Near-linear scaling**: Throughput held steady at ~44-48K rows/sec across a 14x data increase. The pipeline processes 527 MB of XML and inserts 1.58M rows in 36 seconds — no memory blowup, no exponential slowdown.
+
+**Where time goes**: The breakdown is roughly 6s XML parsing (legends.xml), 7s parsing (legends_plus.xml), and ~23s database inserts. The `executemany` batch inserts (1000 rows/batch) keep DB round-trips manageable. The heaviest tables — `history_events` (567K rows, ~9s) and `hf_links` (351K rows, ~4s) — dominate insert time.
+
+**Superlinear data growth**: Events scale at 19x and relationships at 23x for a 3x increase in world-gen years. This is because older civilizations accumulate more interactions per year — a 309-year world has more HFs alive simultaneously, producing combinatorial event growth.
+
+### 2026-02-20 [24352c15fd51]
+
+The entity merge uses a classic **upsert pattern** via `ON CONFLICT (id) DO UPDATE SET` with `COALESCE`. This is the right approach because:
+1. `legends.xml` has `name` but not `type`/`race` — it's inserted first
+2. `legends_plus.xml` has `type`/`race` but not `name` — `COALESCE(EXCLUDED.type, entities.type)` fills in only the NULL fields
+3. New entities from legends_plus (sub-entities like site governments) that don't exist in legends.xml are inserted fresh
+
+This is the same merge strategy used by Java-based Legends Viewer — parse base graph first, then augment in-place.
+
+### 2026-02-20 [c31a15a2218a]
+
+**Gitignore strategy**: The `.gitignore` excludes by content type, not blanket directory:
+- `data/legends/*.xml` blocks the huge DF export files but keeps the `data/wiki/` markdown articles in the repo — these are scraped reference data that's useful for code review and AI context
+- `repos/` blocks cloned reference repos (dfhack, Dwarf-Therapist) which are third-party and shouldn't be vendored
+- The repo stays at ~3.5MB instead of ~1.1GB
+
+**Note**: `chronicler/config.py` contains a hardcoded DB password fallback (`OSDbeydP6TOBGoJUym6rTBfULKJYqqPE`). Since the repo is private and this is a local Docker postgres password, it's low risk — but if you ever make the repo public, that should be moved to env-only.
+
+### 2026-02-20 [05460e52ad36]
+
+**Architecture**: The system follows a clean pipeline: **User Query → Keyword Extraction → CDM SQL Search → Context Assembly → LLM Prompt → SSE Token Stream → Browser Render**. No vector embeddings are used for retrieval here — that's intentional because proper nouns (character names, site names, war names) are better served by exact ILIKE matching with trigram indexes than by embedding similarity. The fallback to world overview (top civilizations, major wars, legendary fighters) ensures the user always gets something useful.
+
+**Performance**: The pg_trgm GIN indexes make ILIKE `%keyword%` queries use index scans on 55K+ historical figures. The LLM response arrives via SSE streaming, so the user sees the first tokens within ~1 second of submitting a query — much better UX than waiting for the full response.
+
+### 2026-02-20 [7bc2c9e9de0a]
+
+**Architecture**: This is an htmx + SSE pattern — the browser sends a POST to `/api/ask`, which returns an `EventSourceResponse`. htmx's `hx-ext="sse"` handles reconnecting and appending tokens in real-time. No JavaScript framework needed — just htmx for interactivity and a bit of vanilla JS for SSE consumption, since htmx's native SSE support doesn't handle streaming token-by-token well. The server streams JSON chunks with `{token: "..."}` until `{done: true}`.
+
+**Styling**: DF-themed means dark stone/parchment tones — think `#1a1a2e` backgrounds, amber/gold text (`#d4a574`), fortress-style borders. The Chronicler narrator persona calls for something that feels like reading ancient scrolls in a dimly lit library.
+
+### 2026-02-20 [e29e53244cce]
+
+**Ollama API `think` parameter placement**: For Qwen3 models, `think: false` must be at the **top level** of the request payload, not nested inside `options`. When inside `options`, it's silently ignored, causing the model to generate internal thinking tokens before the actual response — potentially doubling or tripling latency.
+
+### 2026-02-20 [cc7795d151cd]
+
+**Three key optimizations that matter most for local LLM checkpoint quality**:
+1. **`think: false` at payload root, not in `options`** — Ollama silently ignores it inside `options`, doubling latency
+2. **Condensed LLM input** — Feed structured data + truncated messages (~3KB) instead of full Tier 1 output (~20KB). Full data stays in the raw appendix.
+3. **Output token cap at 400** — The model naturally stops at 100-300 tokens for concise structured tasks. Higher caps only matter when the model needs to be verbose.
+
+### 2026-02-20 [4011ca5559ce]
+
+**Monitoring architecture choices:**
+1. **`time.monotonic()` over `time.time()`** — monotonic clocks can't go backwards (NTP adjustments, system sleep). Critical for latency measurement where even a 1ms jitter from clock correction would corrupt timing data.
+2. **`first_token()` is idempotent** — the `if _t_first_token == 0.0` guard means it only records the *first* call, even though it's called on every token. This avoids branching logic in the hot SSE loop.
+3. **Silent failure in `flush()`** — the bare `except: pass` is intentional. Monitoring must *never* break the user's storytelling experience. If Postgres is down, the query still works; you just lose the log entry.

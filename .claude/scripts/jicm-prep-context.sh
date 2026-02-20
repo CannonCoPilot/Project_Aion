@@ -1,19 +1,25 @@
 #!/bin/bash
 # ============================================================================
-# jicm-prep-context.sh — JICM v7 Fast Context Preparation
+# jicm-prep-context.sh — JICM v7 Rich Context Preparation
 # ============================================================================
 #
-# Replaces the LLM compression agent (210s) with a fast bash script (3-5s).
+# Two-tier checkpoint system:
+#   Tier 1: Fast bash extraction (~1s) — structured data from JSONL, git, plans
+#   Tier 2: Local LLM narrative pass (~2-5s) — qwen3-8b-nothink synthesizes
+#           a rich, resumable checkpoint from the Tier 1 data
+#
 # Extracts what Jarvis actually needs after /clear:
-#   1. Session status (what am I doing?)
+#   1. Session status + priorities (what am I doing, what's next?)
 #   2. Active plan context (why am I doing it?)
-#   3. Active tasks (what's on my todo list?)
-#   4. Recent user messages from JSONL (what was the conversation about?)
+#   3. Active tasks from TodoWrite (what's on my todo list?)
+#   4. Git state (what files changed, what's uncommitted?)
+#   5. Recent user + assistant messages (what was the conversation about?)
+#   6. LLM narrative summary (structured checkpoint for seamless resumption)
 #
 # Foundation docs (CLAUDE.md, identity, capability-map, indexes) are NOT
 # included — Claude Code auto-loads them on every session start.
 #
-# Called by: jicm-watcher.sh do_compress() as a synchronous subprocess
+# Called by: jicm-watcher.sh do_compress(), idle checkpoint, pre-clear hook
 # Output:   .claude/context/.compressed-context-ready.md
 #            .claude/context/.compression-done.signal
 #
@@ -29,22 +35,24 @@ PROJECTS_DIR="$HOME/.claude/projects/-Users-nathanielcannon-Claude-Jarvis"
 OUTPUT="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
 SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
 ACTIVE_PLAN_FILE="$PROJECT_DIR/.claude/context/.active-plan"
-TASKS_FILE="$PROJECT_DIR/.claude/context/.active-tasks.txt"
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 
 # Configuration (defaults — can be overridden via .prep-override file)
 JSONL_TAIL_LINES=5000    # Scan last N JSONL entries for user messages
-USER_MSG_COUNT=10        # Number of recent user messages to include
-MSG_TRUNCATE_CHARS=500   # Max chars per user message
-INCLUDE_PLAN=true        # Include active plan context in checkpoint
-INCLUDE_ASSISTANT=false  # Include assistant messages (for v7-mixed treatment)
-JSONL_PATH=""            # Override JSONL path (for experiments with clean transcripts)
+USER_MSG_COUNT=10         # Number of recent user messages to include
+MSG_TRUNCATE_CHARS=2000   # Max chars per user message (was 500)
+INCLUDE_PLAN=true         # Include active plan context in checkpoint
+INCLUDE_ASSISTANT=true    # Include assistant messages for richer context
+JSONL_PATH=""             # Override JSONL path (for experiments)
+LLM_SUMMARIZE=true        # Enable local LLM narrative pass (Tier 2)
+LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13s overhead)
+LLM_MODEL="qwen3:8b"
+LLM_TIMEOUT=20            # Max seconds for LLM call
+LLM_MAX_TOKENS=400        # Output token cap (model naturally stops at ~100-300)
 
 # ============================================================================
 # Override support (for experiments / treatment variations)
 # ============================================================================
-# If .prep-override exists, read KEY=VALUE pairs to override defaults.
-# Used by Experiment 7 to test different prep configurations.
 OVERRIDE_FILE="$PROJECT_DIR/.claude/context/.prep-override"
 
 if [[ -f "$OVERRIDE_FILE" ]]; then
@@ -59,27 +67,83 @@ if [[ -f "$OVERRIDE_FILE" ]]; then
             INCLUDE_ASSISTANT)  INCLUDE_ASSISTANT="$value" ;;
             JSONL_TAIL_LINES)   JSONL_TAIL_LINES="$value" ;;
             JSONL_PATH)         JSONL_PATH="$value" ;;
+            LLM_SUMMARIZE)      LLM_SUMMARIZE="$value" ;;
+            LLM_ENDPOINT)       LLM_ENDPOINT="$value" ;;
+            LLM_MODEL)          LLM_MODEL="$value" ;;
+            LLM_TIMEOUT)        LLM_TIMEOUT="$value" ;;
+            LLM_MAX_TOKENS)     LLM_MAX_TOKENS="$value" ;;
         esac
     done < "$OVERRIDE_FILE"
-    echo "Override applied: msgs=$USER_MSG_COUNT trunc=$MSG_TRUNCATE_CHARS plan=$INCLUDE_PLAN asst=$INCLUDE_ASSISTANT" >&2
+    echo "Override applied: msgs=$USER_MSG_COUNT trunc=$MSG_TRUNCATE_CHARS plan=$INCLUDE_PLAN asst=$INCLUDE_ASSISTANT llm=$LLM_SUMMARIZE" >&2
 fi
 
 # ============================================================================
-# Step 1: Find most recent JSONL transcript
+# Shared jq filter for genuine user messages
 # ============================================================================
+# Reused by both find_best_jsonl() and the main extraction.
+# Filters out: tool results, system tags, JICM commands, IDLE-HANDS,
+# interrupts, session continuations, end-session commands.
+
+JQ_USER_FILTER='
+    select(.type == "user")
+    | select(.toolUseResult == null)
+    | .message.content
+    | if type == "array" then
+        [.[] | select(.type == "text") | .text] | join(" ")
+      elif type == "string" then .
+      else empty end
+    | select(type == "string")
+    | select(length > 30)
+    | select(startswith("<") | not)
+    | select(startswith("[JICM-") | not)
+    | select(startswith("[IDLE-HANDS]") | not)
+    | select(startswith("[Request interrupted") | not)
+    | select(startswith("This session is being continued") | not)
+    | select(startswith("# End Session") | not)
+'
+
+# ============================================================================
+# Step 1: Find best JSONL transcript
+# ============================================================================
+# After /clear, the newest JSONL is often the new empty post-clear session.
+# Scan the 3 most recent and pick the one with the most genuine user messages.
+
+find_best_jsonl() {
+    local dir="$1"
+    local best="" best_count=0
+
+    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -3); do
+        local count
+        count=$(tail -5000 "$f" 2>/dev/null \
+            | jq -c "$JQ_USER_FILTER" 2>/dev/null \
+            | wc -l | tr -d ' ')
+        if [[ $count -gt $best_count ]]; then
+            best="$f"
+            best_count=$count
+        fi
+    done
+
+    if [[ -n "$best" ]]; then
+        echo "$best"
+    else
+        # Fallback: just use the newest
+        ls -t "$dir"/*.jsonl 2>/dev/null | head -1
+    fi
+}
 
 JSONL=""
 if [[ -n "$JSONL_PATH" ]] && [[ -f "$JSONL_PATH" ]]; then
     JSONL="$JSONL_PATH"
     echo "Using override JSONL: $JSONL" >&2
 elif [[ -d "$PROJECTS_DIR" ]]; then
-    JSONL=$(ls -t "$PROJECTS_DIR"/*.jsonl 2>/dev/null | head -1)
+    JSONL=$(find_best_jsonl "$PROJECTS_DIR")
+    if [[ -n "$JSONL" ]]; then
+        echo "Selected JSONL: $(basename "$JSONL")" >&2
+    fi
 fi
 
 if [[ -z "$JSONL" ]]; then
     echo "WARN: No JSONL transcript found (checked $PROJECTS_DIR) — writing minimal checkpoint" >&2
-    echo "WARN: This usually means PROJECTS_DIR is wrong. Current: $PROJECTS_DIR" >&2
-    # Graceful fallback: minimal checkpoint with just session status
     {
         echo "# JICM v7 Context Checkpoint (minimal)"
         echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -99,48 +163,16 @@ fi
 # ============================================================================
 # Step 2: Extract recent user messages from JSONL transcript
 # ============================================================================
-# Filter chain:
-#   - type == "user", no tool results, not meta
-#   - content: handle both string and array formats
-#     - string: use as-is
-#     - array: extract text blocks, join them
-#   - not starting with "<" (system tags: <command-name>, <local-command-*>)
-#   - not starting with "[JICM-" (watcher commands: [JICM-HALT], [JICM-RESUME])
-#   - not "[Request interrupted" (user interrupts)
-#   - not "This session is being continued" (context restoration preambles)
-#   - length > 30 (skip empty/trivial entries)
-#   - truncate to MSG_TRUNCATE_CHARS chars per message
-#   - take last USER_MSG_COUNT messages
-# Output: one JSON string per line (compact mode), then decode to raw text
 
 USER_MSGS=$(tail -"$JSONL_TAIL_LINES" "$JSONL" \
-    | jq -c "
-        select(.type == \"user\")
-        | select(.toolUseResult == null)
-        | .message.content
-        | if type == \"array\" then
-            [.[] | select(.type == \"text\") | .text] | join(\" \")
-          elif type == \"string\" then .
-          else empty end
-        | select(type == \"string\")
-        | select(length > 30)
-        | select(startswith(\"<\") | not)
-        | select(startswith(\"[JICM-\") | not)
-        | select(startswith(\"[Request interrupted\") | not)
-        | select(startswith(\"This session is being continued\") | not)
-        | select(startswith(\"# End Session\") | not)
-        | .[0:${MSG_TRUNCATE_CHARS}]
-    " 2>/dev/null \
+    | jq -c "${JQ_USER_FILTER} | .[0:${MSG_TRUNCATE_CHARS}]" 2>/dev/null \
     | tail -"$USER_MSG_COUNT" \
     | jq -r '.' 2>/dev/null \
-    || echo "(no user messages extracted)")
+    || echo "")
 
 # ============================================================================
-# Step 2b: Extract assistant messages (if INCLUDE_ASSISTANT=true)
+# Step 2b: Extract assistant messages
 # ============================================================================
-# For v7-mixed treatment: also capture assistant text responses.
-# Assistant messages have content as string OR array of content blocks.
-# We extract only text blocks, skip tool_use/tool_result.
 
 ASST_MSGS=""
 if [[ "$INCLUDE_ASSISTANT" == "true" ]]; then
@@ -152,7 +184,7 @@ if [[ "$INCLUDE_ASSISTANT" == "true" ]]; then
                 [.[] | select(.type == \"text\") | .text] | join(\" \")
               else . end
             | select(type == \"string\")
-            | select(length > 10)
+            | select(length > 50)
             | .[0:${MSG_TRUNCATE_CHARS}]
         " 2>/dev/null \
         | tail -"$USER_MSG_COUNT" \
@@ -161,7 +193,22 @@ if [[ "$INCLUDE_ASSISTANT" == "true" ]]; then
 fi
 
 # ============================================================================
-# Step 3: Build compressed context checkpoint
+# Step 2c: Extract TodoWrite tasks from JSONL
+# ============================================================================
+# The .todos array on JSONL entries contains the live task list state.
+# Take the most recent entry that has a non-empty todos array.
+
+TODOS=""
+TODOS_RAW=$(tail -2000 "$JSONL" \
+    | jq -c 'select(.todos != null and (.todos | length > 0)) | .todos' 2>/dev/null \
+    | tail -1)
+
+if [[ -n "$TODOS_RAW" ]] && [[ "$TODOS_RAW" != "[]" ]]; then
+    TODOS=$(echo "$TODOS_RAW" | jq -r '.[] | "- [\(.status // "?")] \(.subject // "untitled")"' 2>/dev/null || echo "")
+fi
+
+# ============================================================================
+# Step 3: Build Tier 1 compressed context checkpoint
 # ============================================================================
 
 {
@@ -169,10 +216,41 @@ fi
     echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
     echo ""
 
-    # --- Session status (1 line from session-state.md) ---
+    # --- Session status + priorities ---
     echo "## Session Status"
     grep -m1 '^\*\*Status\*\*' "$SESSION_STATE" 2>/dev/null \
         | sed 's/\*\*//g' || echo "Status: unknown"
+    echo ""
+
+    # Current Priorities section (multi-line extraction)
+    if [[ -f "$SESSION_STATE" ]]; then
+        PRIORITIES=$(sed -n '/^## Current Priorities/,/^## [^C]/p' "$SESSION_STATE" 2>/dev/null \
+            | grep -v '^## [^C]' | head -40)
+        if [[ -n "$PRIORITIES" ]]; then
+            echo "$PRIORITIES"
+            echo ""
+        fi
+    fi
+
+    # --- Git state ---
+    echo "## Git State"
+    echo "Branch: $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo unknown)"
+    UNCOMMITTED=$(git -C "$PROJECT_DIR" status --porcelain 2>/dev/null | grep -v '^??' | head -15)
+    if [[ -n "$UNCOMMITTED" ]]; then
+        echo "### Uncommitted Changes"
+        echo '```'
+        echo "$UNCOMMITTED"
+        echo '```'
+    else
+        echo "Working tree clean."
+    fi
+    RECENT_DIFF=$(git -C "$PROJECT_DIR" diff --stat HEAD~3..HEAD 2>/dev/null | tail -8)
+    if [[ -n "$RECENT_DIFF" ]]; then
+        echo "### Recent Commits"
+        echo '```'
+        echo "$RECENT_DIFF"
+        echo '```'
+    fi
     echo ""
 
     # --- Active plan (title + context section from tracked plan file) ---
@@ -181,28 +259,26 @@ fi
         if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
             echo "## Active Plan"
             # Extract title + context section (up to first ---)
-            head -30 "$plan_path" | sed -n '1,/^---$/p'
+            head -40 "$plan_path" | sed -n '1,/^---$/p'
             echo ""
         fi
     fi
 
-    # --- Active tasks (if TodoWrite tasks were dumped) ---
-    if [[ -f "$TASKS_FILE" ]] && [[ -s "$TASKS_FILE" ]]; then
-        echo "## Active Tasks"
-        cat "$TASKS_FILE"
+    # --- Active tasks (from TodoWrite via JSONL) ---
+    if [[ -n "$TODOS" ]]; then
+        echo "## Active Tasks (TodoWrite)"
+        echo "$TODOS"
         echo ""
     fi
 
-    # --- Recent messages (conversation thread for continuity) ---
-    if [[ "$INCLUDE_ASSISTANT" == "true" ]]; then
-        echo "## Recent Conversation (last ${USER_MSG_COUNT} user + assistant messages)"
-    else
-        echo "## Recent Conversation (last ${USER_MSG_COUNT} user messages)"
-    fi
+    # --- Recent conversation ---
+    echo "## Recent Conversation (last ${USER_MSG_COUNT} messages)"
     if [[ -n "$USER_MSGS" ]]; then
+        echo ""
+        echo "### User Messages"
         echo "$USER_MSGS"
     else
-        echo "(no messages extracted)"
+        echo "(no user messages extracted)"
     fi
     if [[ "$INCLUDE_ASSISTANT" == "true" ]] && [[ -n "$ASST_MSGS" ]]; then
         echo ""
@@ -215,12 +291,199 @@ fi
     echo "## Resume Instructions"
     echo "You are Jarvis. Context was cleared via JICM v7 stop-and-wait cycle."
     echo "Foundation docs (CLAUDE.md, capability-map.yaml, identity) are auto-loaded."
-    echo "Review the conversation thread above, then continue the work."
+    echo "Review the session status, active plan, and conversation above, then continue the work."
+    echo "If the conversation is sparse, read session-state.md for full priorities."
 
 } > "$OUTPUT"
 
 # ============================================================================
-# Step 4: Write completion signal
+# Step 4: Tier 2 — Local LLM narrative summarization
+# ============================================================================
+# Feed Tier 1 extraction to qwen3-8b-nothink for a rich narrative checkpoint.
+# Falls back gracefully to Tier 1 output if LiteLLM is unavailable.
+
+if [[ "$LLM_SUMMARIZE" == "true" ]]; then
+    TIER1_CONTENT=$(cat "$OUTPUT")
+
+    # Quick health check — Ollama /api/tags is fast and reliable
+    LLM_AVAILABLE=false
+    if curl -sf --max-time 2 "http://localhost:11434/api/tags" >/dev/null 2>&1; then
+        LLM_AVAILABLE=true
+    fi
+
+    if [[ "$LLM_AVAILABLE" == "true" ]]; then
+        # Build CONDENSED input for LLM — structured data + truncated messages
+        # Full data stays in Tier 1 raw appendix. This cuts input tokens ~60%.
+        LLM_INPUT_FILE=$(mktemp)
+        {
+            # Session status + priorities (high-value structured data)
+            echo "## Session Status"
+            grep -m1 '^\*\*Status\*\*' "$SESSION_STATE" 2>/dev/null \
+                | sed 's/\*\*//g' || echo "Status: unknown"
+            echo ""
+            if [[ -f "$SESSION_STATE" ]]; then
+                sed -n '/^## Current Priorities/,/^## [^C]/p' "$SESSION_STATE" 2>/dev/null \
+                    | grep -v '^## [^C]' | head -15
+                echo ""
+            fi
+
+            # Git state (compact)
+            echo "## Git State"
+            echo "Branch: $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo unknown)"
+            git -C "$PROJECT_DIR" status --porcelain 2>/dev/null | grep -v '^??' | head -10
+            echo ""
+
+            # Active tasks
+            if [[ -n "$TODOS" ]]; then
+                echo "## Active Tasks"
+                echo "$TODOS"
+                echo ""
+            fi
+
+            # Plan title only
+            if [[ "$INCLUDE_PLAN" == "true" ]] && [[ -f "$ACTIVE_PLAN_FILE" ]]; then
+                plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN_FILE")
+                if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
+                    echo "## Active Plan"
+                    head -5 "$plan_path"
+                    echo ""
+                fi
+            fi
+
+            # Condensed conversation — last 5 messages, first 150 chars each
+            # Full messages are in the Tier 1 raw appendix; LLM just needs the gist
+            echo "## Recent Conversation (condensed)"
+            if [[ -n "$USER_MSGS" ]]; then
+                echo "### User Messages (last 5)"
+                # Split on double-newline (message boundaries) and take first 150 chars
+                echo "$USER_MSGS" | tail -5000 | python3 -c '
+import sys
+msgs = sys.stdin.read().strip().split("\n")
+seen = []
+for m in msgs[-50:]:
+    m = m.strip()
+    if len(m) > 30 and m not in seen:
+        seen.append(m[:150])
+for m in seen[-5:]:
+    print(m)
+' 2>/dev/null
+            fi
+            if [[ "$INCLUDE_ASSISTANT" == "true" ]] && [[ -n "$ASST_MSGS" ]]; then
+                echo "### Assistant Responses (last 3)"
+                echo "$ASST_MSGS" | python3 -c '
+import sys
+msgs = [m.strip() for m in sys.stdin.read().strip().split("\n") if len(m.strip()) > 30]
+for m in msgs[-3:]:
+    print(m[:150])
+' 2>/dev/null
+            fi
+        } > "$LLM_INPUT_FILE"
+
+        LLM_INPUT_SIZE=$(wc -c < "$LLM_INPUT_FILE" | tr -d ' ')
+        echo "LLM condensed input: ${LLM_INPUT_SIZE} bytes" >&2
+
+        # Call Ollama via python3 for safe JSON escaping
+        LLM_RESPONSE=$(PREP_INPUT="$LLM_INPUT_FILE" \
+            PREP_MODEL="$LLM_MODEL" \
+            PREP_TIMEOUT="$LLM_TIMEOUT" \
+            PREP_MAX_TOKENS="$LLM_MAX_TOKENS" \
+            PREP_ENDPOINT="$LLM_ENDPOINT" \
+            python3 -c '
+import json, subprocess, sys, os
+
+SYSTEM_PROMPT = """You are Jarvis context preservation system. Given raw session data, produce a structured checkpoint for resuming work after context is cleared. Include ONLY these sections:
+
+## Current Task
+What is Jarvis working on? Be specific about the project and immediate goal.
+
+## Progress
+Numbered steps — what is done (DONE) vs remaining (TODO/IN PROGRESS).
+
+## Critical Context
+Protocols, configurations, bug fixes, or discoveries that must not be lost. Include exact commands, file paths, code snippets where relevant.
+
+## Key Paths
+Important files and directories for the current work.
+
+## Next Step
+The exact next action to take — ideally a runnable command or clear instruction.
+
+## Resume Instructions
+Specific guidance for picking up where we left off.
+
+Rules: Be concise. Preserve exact file paths and commands. Do NOT hallucinate."""
+
+input_file = os.environ["PREP_INPUT"]
+model = os.environ["PREP_MODEL"]
+timeout = os.environ["PREP_TIMEOUT"]
+max_tokens = int(os.environ["PREP_MAX_TOKENS"])
+endpoint = os.environ["PREP_ENDPOINT"]
+
+try:
+    content = open(input_file).read()
+except FileNotFoundError:
+    sys.exit(1)
+
+payload = json.dumps({
+    "model": model,
+    "messages": [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": content}
+    ],
+    "stream": False,
+    "think": False,
+    "options": {"num_predict": max_tokens}
+})
+
+result = subprocess.run(
+    ["curl", "-sf", "--max-time", timeout,
+     endpoint,
+     "-H", "Content-Type: application/json",
+     "-d", payload],
+    capture_output=True, text=True
+)
+
+if result.returncode == 0 and result.stdout:
+    try:
+        r = json.loads(result.stdout)
+        print(r["message"]["content"])
+    except (KeyError, json.JSONDecodeError):
+        sys.exit(1)
+else:
+    sys.exit(1)
+' 2>/dev/null)
+        rm -f "$LLM_INPUT_FILE"
+
+        LLM_EXIT=$?
+
+        if [[ $LLM_EXIT -eq 0 ]] && [[ -n "$LLM_RESPONSE" ]] && [[ ${#LLM_RESPONSE} -gt 100 ]]; then
+            # Prepend LLM narrative, keep Tier 1 as raw appendix
+            {
+                echo "# JICM v7 Context Checkpoint"
+                echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+                echo "Method: LLM-enriched ($LLM_MODEL)"
+                echo ""
+                echo "$LLM_RESPONSE"
+                echo ""
+                echo "---"
+                echo ""
+                echo "## Raw Session Data (Tier 1 extraction)"
+                echo ""
+                # Skip the first 2 lines of Tier 1 (duplicate header + timestamp)
+                echo "$TIER1_CONTENT" | tail -n +3
+            } > "$OUTPUT"
+            NARRATIVE_LINES=$(echo "$LLM_RESPONSE" | wc -l | tr -d ' ')
+            echo "LLM enrichment applied (${NARRATIVE_LINES} lines)" >&2
+        else
+            echo "LLM response insufficient (exit=$LLM_EXIT len=${#LLM_RESPONSE:-0}) — keeping Tier 1" >&2
+        fi
+    else
+        echo "LiteLLM unavailable — keeping Tier 1 output" >&2
+    fi
+fi
+
+# ============================================================================
+# Step 5: Write completion signal
 # ============================================================================
 
 echo "$(date +%s)" > "$SIGNAL"

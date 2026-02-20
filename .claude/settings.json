@@ -98,10 +98,6 @@
           {
             "type": "command",
             "command": "node $CLAUDE_PROJECT_DIR/.claude/hooks/bash-safety-guard.js"
-          },
-          {
-            "type": "command",
-            "command": "/Users/nathanielcannon/.claude/hooks/rtk-rewrite.sh"
           }
         ]
       },
