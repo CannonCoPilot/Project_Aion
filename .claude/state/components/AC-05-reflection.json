@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "status": "active",
   "created": "2026-01-17T00:00:00.000Z",
-  "last_modified": "2026-02-19T18:26:00.000Z",
+  "last_modified": "2026-02-21T02:35:00.000Z",
   "implementation": {
     "spec_complete": true,
     "pattern_complete": true,
@@ -13,7 +13,7 @@
     "lessons_directory": true,
     "lessons_index": true,
     "reflect_command": true,
-    "evolution_queue": false,
+    "evolution_queue": true,
     "triggers_tested": true,
     "integration_tested": true,
     "metrics_emission": true
@@ -44,7 +44,7 @@
     },
     "evolution_queue": {
       "path": ".claude/state/queues/evolution-queue.yaml",
-      "status": "missing"
+      "status": "active"
     },
     "memory_mcp": {
       "status": "available",
@@ -52,20 +52,22 @@
     }
   },
   "last_reflection": {
-    "date": "2026-02-19",
+    "date": "2026-02-20",
     "depth": "standard",
-    "report": ".claude/reports/reflections/reflection-2026-02-19-2.md",
+    "report": ".claude/reports/reflections/reflection-2026-02-20-session30.md",
     "corrections_analyzed": 0,
-    "problems_identified": 5,
-    "proposals_generated": 4
+    "problems_identified": 6,
+    "proposals_generated": 5,
+    "proposals_queued": 5
   },
-  "reflections_completed": 12,
+  "reflections_completed": 13,
   "metrics": {
-    "total_reflections": 12,
-    "problems_identified": 8,
+    "total_reflections": 13,
+    "problems_identified": 14,
     "solutions_proposed": 3,
-    "patterns_discovered": 5,
-    "proposals_generated": 7
+    "patterns_discovered": 7,
+    "proposals_generated": 12,
+    "proposals_queued": 5
   },
-  "notes": "Reflection #12 (2026-02-19) found configuration drift: evolution queue missing at all 3 referenced paths, corrections file paths wrong in state, planning tracker stale. Graphiti ingestion successful (23 entities, 21 edges). Evolution queue marked 'missing' — needs creation at canonical path before AC-06 can consume proposals."
+  "notes": "Reflection #13 (2026-02-20) identified proposal dead-letter pattern — proposals from #11/#12 never reached evolution queue. Self-healed by appending REFL-016 through REFL-020 directly. Also found JICM checkpoint narrative hallucination (Qwen3:8b reports completed tasks as in-progress). Evolution queue now active at canonical path."
 }

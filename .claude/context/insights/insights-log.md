@@ -381,3 +381,23 @@ The hybrid approach needs only one prerequisite: `allow_remote: true` in `dfhack
 1. **Upsert pattern** — `ON CONFLICT (id) DO UPDATE` means repeated syncs are safe and idempotent. Running `sync-live` multiple times just updates positions, professions, and skill XP as the game progresses.
 2. **JSONB `details` column** — Skills, labors, flags, and custom profession are stored as structured JSON, queryable via PostgreSQL's `->` and `->>` operators (e.g., `details->'skills'`). This avoids schema changes when we add new data fields.
 3. **`hist_fig_id` is the bridge** — Each named dwarf has a historical figure ID that joins directly to the `historical_figures` table (populated from legends XML). Vabôk (HF:689) can be cross-referenced with their legends history — we can tell stories that blend *live gameplay* with *historical context*.
+
+### 2026-02-21 [dd4c4c33c8d6]
+
+**The live↔legends join reveals a critical data quirk.** Historical figure IDs from the live game map to legends records that often show different names and even *different races* (HF:5702 is "HUMAN/FEMALE" in legends but "Litast" the WOODWORKER in-game). This happens because:
+
+1. **DF reuses HF IDs** — In a reclaimed/restarted embark, the game may assign historical figure IDs that previously belonged to different entities in the world history. The legends XML captures the *world-generation* identities, while the live game shows the *current embark's* identities.
+2. **Name discrepancies** — Legends stores the original world-gen name ("asmel ceilinghall"), while the game shows the *translated dwarf name* ("Dumat Kodkib"). These are the same figure expressed in different language modes.
+3. **Death records** — The "death years" in legends may refer to the *world-gen simulation* deaths, not actual gameplay deaths. When you embark, the game generates new figures or reuses slots.
+
+**For storytelling, this means we need to treat legends data as *world context* and live data as *ground truth* for the current state.** The join is still extremely valuable for relationship networks and entity affiliations.
+
+### 2026-02-21 [5f54aac76e8d]
+
+**The evolution queue exists but is stale.** Reflection #12 incorrectly flagged it as missing — the file existed (Feb 18) but wasn't found because the reflect workflow checked the wrong path. More critically, REFL-012 through REFL-015 proposals were never added to the queue, confirming the "write-only proposals" pattern. The queue has 7 entries (all from Jan-Feb 8), while 2 reflections generated 4+ proposals each since then.
+
+**JICM checkpoint narrative hallucination is consistent.** All 5 JICM checkpoints from this session repeat "Implementing observability for Chronicler Monitoring System — IN PROGRESS" despite `current-plans.md` saying "(none — picking next priority)". The Qwen3:8b enrichment layer doesn't cross-reference completion status.
+
+### 2026-02-21 [c66d74145c3a]
+
+**Self-healing the pipeline**: REFL-016 says "add evolution queue append step to /reflect." Rather than just writing the proposal and leaving it for a future `/evolve` cycle (which would repeat the exact dead-letter problem), I'll append the proposals to the queue *now* as part of this reflection — proving the fix works by using it.
