@@ -48,7 +48,7 @@ LLM_SUMMARIZE=true        # Enable local LLM narrative pass (Tier 2)
 LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13s overhead)
 LLM_MODEL="qwen3:8b"
 LLM_TIMEOUT=20            # Max seconds for LLM call
-LLM_MAX_TOKENS=400        # Output token cap (model naturally stops at ~100-300)
+LLM_MAX_TOKENS=2000       # Output token cap (was 400 — caused truncation)
 
 # ============================================================================
 # Override support (for experiments / treatment variations)
@@ -185,6 +185,10 @@ if [[ "$INCLUDE_ASSISTANT" == "true" ]]; then
               else . end
             | select(type == \"string\")
             | select(length > 50)
+            | select(startswith(\"Context restored\") | not)
+            | select(contains(\"JICM\") | not)
+            | select(contains(\"compressed-context-ready\") | not)
+            | select(startswith(\"Resuming from JICM\") | not)
             | .[0:${MSG_TRUNCATE_CHARS}]
         " 2>/dev/null \
         | tail -"$USER_MSG_COUNT" \
@@ -220,6 +224,16 @@ fi
     echo "## Session Status"
     grep -m1 '^\*\*Status\*\*' "$SESSION_STATE" 2>/dev/null \
         | sed 's/\*\*//g' || echo "Status: unknown"
+
+    # Staleness indicator — helps LLM know if session-state is outdated
+    if [[ -f "$SESSION_STATE" ]]; then
+        STATE_MTIME=$(stat -f %m "$SESSION_STATE" 2>/dev/null || echo 0)
+        NOW=$(date +%s)
+        STALE_MINS=$(( (NOW - STATE_MTIME) / 60 ))
+        if [[ $STALE_MINS -gt 60 ]]; then
+            echo "(session-state.md last updated ${STALE_MINS}m ago — may be stale, prefer conversation for current task)"
+        fi
+    fi
     echo ""
 
     # Current Priorities section (multi-line extraction)
@@ -320,6 +334,14 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
             echo "## Session Status"
             grep -m1 '^\*\*Status\*\*' "$SESSION_STATE" 2>/dev/null \
                 | sed 's/\*\*//g' || echo "Status: unknown"
+            if [[ -f "$SESSION_STATE" ]]; then
+                STATE_MTIME=$(stat -f %m "$SESSION_STATE" 2>/dev/null || echo 0)
+                NOW=$(date +%s)
+                STALE_MINS=$(( (NOW - STATE_MTIME) / 60 ))
+                if [[ $STALE_MINS -gt 60 ]]; then
+                    echo "WARNING: session-state.md is ${STALE_MINS}m stale. Derive current task from conversation, not this status."
+                fi
+            fi
             echo ""
             if [[ -f "$SESSION_STATE" ]]; then
                 sed -n '/^## Current Priorities/,/^## [^C]/p' "$SESSION_STATE" 2>/dev/null \
@@ -350,12 +372,11 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
                 fi
             fi
 
-            # Condensed conversation — last 5 messages, first 150 chars each
-            # Full messages are in the Tier 1 raw appendix; LLM just needs the gist
+            # Condensed conversation — last 8 messages, first 300 chars each
+            # Full messages are in the Tier 1 raw appendix; LLM needs enough to derive current task
             echo "## Recent Conversation (condensed)"
             if [[ -n "$USER_MSGS" ]]; then
-                echo "### User Messages (last 5)"
-                # Split on double-newline (message boundaries) and take first 150 chars
+                echo "### User Messages (last 8)"
                 echo "$USER_MSGS" | tail -5000 | python3 -c '
 import sys
 msgs = sys.stdin.read().strip().split("\n")
@@ -363,18 +384,18 @@ seen = []
 for m in msgs[-50:]:
     m = m.strip()
     if len(m) > 30 and m not in seen:
-        seen.append(m[:150])
-for m in seen[-5:]:
+        seen.append(m[:300])
+for m in seen[-8:]:
     print(m)
 ' 2>/dev/null
             fi
             if [[ "$INCLUDE_ASSISTANT" == "true" ]] && [[ -n "$ASST_MSGS" ]]; then
-                echo "### Assistant Responses (last 3)"
+                echo "### Assistant Responses (last 5)"
                 echo "$ASST_MSGS" | python3 -c '
 import sys
 msgs = [m.strip() for m in sys.stdin.read().strip().split("\n") if len(m.strip()) > 30]
-for m in msgs[-3:]:
-    print(m[:150])
+for m in msgs[-5:]:
+    print(m[:300])
 ' 2>/dev/null
             fi
         } > "$LLM_INPUT_FILE"
@@ -394,16 +415,16 @@ import json, subprocess, sys, os
 SYSTEM_PROMPT = """You are Jarvis context preservation system. Given raw session data, produce a structured checkpoint for resuming work after context is cleared. Include ONLY these sections:
 
 ## Current Task
-What is Jarvis working on? Be specific about the project and immediate goal.
+What is Jarvis working on RIGHT NOW? Be specific about the project and immediate goal. Derive this from the conversation and active tasks, NOT from stale session-state.
 
 ## Progress
-Numbered steps — what is done (DONE) vs remaining (TODO/IN PROGRESS).
+Numbered steps — what is done (DONE) vs remaining (TODO/IN PROGRESS). Include items from BOTH the session-state priorities AND any new work visible in the conversation.
 
 ## Critical Context
 Protocols, configurations, bug fixes, or discoveries that must not be lost. Include exact commands, file paths, code snippets where relevant.
 
 ## Key Paths
-Important files and directories for the current work.
+Important files and directories for the current work. Use full absolute paths.
 
 ## Next Step
 The exact next action to take — ideally a runnable command or clear instruction.
@@ -411,23 +432,31 @@ The exact next action to take — ideally a runnable command or clear instructio
 ## Resume Instructions
 Specific guidance for picking up where we left off.
 
-Rules: Be concise. Preserve exact file paths and commands. Do NOT hallucinate."""
+Rules:
+- Be concise but thorough. Preserve exact file paths and commands.
+- ALWAYS preserve the Current Priorities section from session-state verbatim — do not paraphrase or omit items.
+- Derive the Current Task from the MOST RECENT conversation messages, not from stale session status.
+- The project root is: {project_dir}. Use this for all file paths — do NOT guess or use generic paths like /home/user.
+- Do NOT hallucinate. If uncertain, say so."""
 
 input_file = os.environ["PREP_INPUT"]
 model = os.environ["PREP_MODEL"]
 timeout = os.environ["PREP_TIMEOUT"]
 max_tokens = int(os.environ["PREP_MAX_TOKENS"])
 endpoint = os.environ["PREP_ENDPOINT"]
+project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis"))
 
 try:
     content = open(input_file).read()
 except FileNotFoundError:
     sys.exit(1)
 
+system_prompt = SYSTEM_PROMPT.replace("{project_dir}", project_dir)
+
 payload = json.dumps({
     "model": model,
     "messages": [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": content}
     ],
     "stream": False,
