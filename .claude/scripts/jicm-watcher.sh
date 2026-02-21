@@ -441,15 +441,29 @@ detect_activity() {
 WAIT_RESULT=""
 wait_for_idle() {
     local max_wait=${1:-30}
+    local skip_trigger=${2:-false}
     local waited=0
 
-    # First check: send ESC and check pattern (triggered)
-    local state
-    state=$(trigger_idle_check)
-    if [[ "$state" == "idle" ]]; then
-        WAIT_RESULT="idle"
-        log INFO "Idle confirmed via triggered check"
-        return 0
+    if [[ "$skip_trigger" != "true" ]]; then
+        # Normal path: send ESC and check pattern (triggered)
+        local state
+        state=$(trigger_idle_check)
+        if [[ "$state" == "idle" ]]; then
+            WAIT_RESULT="idle"
+            log INFO "Idle confirmed via triggered check"
+            return 0
+        fi
+    else
+        # HALT path: Jarvis was just given a prompt — do NOT send ESC.
+        # Wait for the HALT response to complete, then check.
+        sleep 3
+        local pane
+        pane=$(tmux_capture)
+        if [[ -n "$pane" ]] && echo "$pane" | grep -qiE '(understood|halted|stopping)'; then
+            WAIT_RESULT="idle"
+            log INFO "HALT acknowledged — proceeding"
+            return 0
+        fi
     fi
 
     # Subsequent checks: poll pattern without re-sending ESC
@@ -831,8 +845,8 @@ do_halt() {
     # - Requests minimal confirmation (reduces token waste)
     tmux_send_prompt "[JICM-HALT] STOP. Context at ${pct}%. JICM compression cycle starting. HALT all work immediately. Do NOT continue interrupted tasks. Do NOT ask questions. Reply ONLY: Understood. Then STOP."
 
-    # Step 3: Wait for Jarvis to become idle
-    wait_for_idle "$HALT_TIMEOUT"
+    # Step 3: Wait for Jarvis to acknowledge HALT (skip_trigger=true to avoid ESC #2)
+    wait_for_idle "$HALT_TIMEOUT" true
 
     if [[ "$WAIT_RESULT" == "idle" ]]; then
         log JICM "Jarvis confirmed idle — proceeding to compression"

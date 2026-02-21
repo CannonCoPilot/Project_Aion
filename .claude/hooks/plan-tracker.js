@@ -34,6 +34,22 @@ try {
 
     if (files.length > 0) {
         fs.writeFileSync(activePlanFile, files[0].fullPath);
+
+        // Also update current-plans.md Active section if the plan isn't already listed
+        const currentPlansFile = path.join(projectDir, '.claude/context/current-plans.md');
+        try {
+            let content = fs.readFileSync(currentPlansFile, 'utf8');
+            const planName = files[0].name.replace('.md', '');
+            if (!content.includes(planName)) {
+                content = content.replace(
+                    /^## Active\n/m,
+                    `## Active\n- [${planName}](${files[0].fullPath}) — (auto-tracked)\n`
+                );
+                fs.writeFileSync(currentPlansFile, content);
+            }
+        } catch (e2) {
+            // Non-fatal — current-plans.md may not exist yet
+        }
     }
 } catch (e) {
     // Non-fatal — plan tracking is advisory
