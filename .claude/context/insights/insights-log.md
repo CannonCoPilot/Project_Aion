@@ -437,3 +437,7 @@ The hybrid approach needs only one prerequisite: `allow_remote: true` in `dfhack
 ### 2026-02-21 [ce0e3fb25fe7]
 
 **The commit groups reflection output with its actionable consequences.** By including the reflection report, the lessons index refresh, the queue updates, and the session state update in a single commit, the entire "reflect → discover → update" cycle is atomically traceable. `git show 5c1e971` reconstructs the complete Reflection #14 artifact set — useful for validating that the AC-05 pipeline produces coherent, self-consistent output.
+
+### 2026-02-21 [cbf22a5dd50a]
+
+**The execution compressed the original 5-phase plan into parallel tracks.** The plan assumed sequential phases (environment → CDM → storyteller → viewer → polish), but actual development interleaved them — the storyteller was built *alongside* the CDM parser, and the live data client was built in the same session. This "build the pipeline end-to-end first, then widen" approach is faster for PoCs because it validates the full data flow early. The trade-off: each pillar is functional but shallow rather than deep.
