@@ -421,3 +421,11 @@ The hybrid approach needs only one prerequisite: `allow_remote: true` in `dfhack
 ### 2026-02-21 [a8651e272a81]
 
 **The dead-letter bug was a skill specification gap, not a code bug.** The `/reflect` command's Side Effects section (line 235) correctly listed "Appends proposals to evolution-queue.yaml" as an expected outcome, but the Workflow section (Phase 4) only said "Generate evolution proposals" without specifying the append format. The model reasonably interpreted "generate" as "write to the report" rather than "write to the report AND the queue." The fix adds an explicit YAML template with a `MANDATORY` label, ensuring the model can't miss the append step. This is a pattern: **side effects must be actionable instructions, not just documentation.**
+
+### 2026-02-21 [6432f8d62dc3]
+
+**Evolution queue throughput jumped from 0 to 4 proposals/session.** The dead-letter problem meant that despite 13 reflection cycles, proposals accumulated in markdown reports without reaching the queue. Session 30's self-healing (manually appending REFL-016 through REFL-020) broke the logjam, and this session immediately consumed 4 of 5 queued proposals. The REFL-016 fix (explicit append instructions in `/reflect`) should prevent future dead-lettering, making the AC-05 → AC-06 pipeline genuinely self-sustaining.
+
+### 2026-02-21 [0efa6004558c]
+
+**The commit message mirrors the evolution queue structure.** By listing each proposal ID with its priority level and one-line summary, the commit becomes a queryable record of which proposals were implemented together. This makes `git log --grep="REFL-017"` work for tracing any proposal back to its implementing commit — useful for the AC-05 → AC-06 pipeline audit trail.

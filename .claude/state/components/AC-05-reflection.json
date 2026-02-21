@@ -52,22 +52,22 @@
     }
   },
   "last_reflection": {
-    "date": "2026-02-20",
-    "depth": "standard",
-    "report": ".claude/reports/reflections/reflection-2026-02-20-session30.md",
+    "date": "2026-02-21",
+    "depth": "quick",
+    "report": ".claude/reports/reflections/reflection-2026-02-21-session31.md",
     "corrections_analyzed": 0,
-    "problems_identified": 6,
-    "proposals_generated": 5,
-    "proposals_queued": 5
+    "problems_identified": 2,
+    "proposals_generated": 2,
+    "proposals_queued": 2
   },
-  "reflections_completed": 13,
+  "reflections_completed": 14,
   "metrics": {
-    "total_reflections": 13,
-    "problems_identified": 14,
+    "total_reflections": 14,
+    "problems_identified": 16,
     "solutions_proposed": 3,
-    "patterns_discovered": 7,
-    "proposals_generated": 12,
-    "proposals_queued": 5
+    "patterns_discovered": 12,
+    "proposals_generated": 14,
+    "proposals_queued": 7
   },
-  "notes": "Reflection #13 (2026-02-20) identified proposal dead-letter pattern — proposals from #11/#12 never reached evolution queue. Self-healed by appending REFL-016 through REFL-020 directly. Also found JICM checkpoint narrative hallucination (Qwen3:8b reports completed tasks as in-progress). Evolution queue now active at canonical path."
+  "notes": "Reflection #14 (2026-02-21, quick): Session 31 was clean evolution queue drain (4/5 proposals implemented). 5 new patterns discovered (PAT-007 through PAT-011). Two new proposals queued (REFL-021, REFL-022). Corrections files still empty — /correct command created but unused. Lessons index refreshed with REFL-020."
 }

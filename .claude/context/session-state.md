@@ -11,35 +11,39 @@
 **Status**: 🟢 Active — Session 31
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: e7696a9 (AC-05 reflection #13, 5 proposals queued)
+**Last Commit**: 192d651 (AC-06 evolution queue triage — 4 proposals implemented)
 **Last Pushed**: 2e7bbc1 (to origin/Project_Aion)
+
+---
+
+## What Was Accomplished (2026-02-20/21, Session 31 — Evolution Queue Triage + Reflection #14)
+
+- **Evolution Queue Drain (AC-06)**: Implemented 4/5 queued proposals from Reflection #13:
+  - REFL-016: Added evolution queue append step to /reflect workflow (HIGH)
+  - REFL-017: Included current-plans.md in JICM LLM prompt to fix hallucination (MEDIUM)
+  - REFL-018: Created /correct command for corrections capture (MEDIUM)
+  - REFL-019: Batch-fixed stale path references across AC state and lessons (LOW)
+- **Reflection #14 (AC-05)**: Quick depth reflection — 0 corrections, 5 new patterns (PAT-007 through PAT-011), 2 new proposals (REFL-021, REFL-022)
+- **REFL-020: Lessons Index Refresh**: Processed 50+ unindexed insights, added 5 new patterns to categorical index
+- **REFL-021: Proposal Status Sync**: Updated lessons index evolution proposal statuses
+- **JICM v7.1 Fixes**: Session targeting via signal fingerprinting, double-ESC prevention, archive inclusion, num_predict increase (400→2000), path injection for Qwen3:8b
+
+---
+
+## What Was Accomplished (2026-02-20, Session 30 — Chronicler + Reflection #13)
+
+- **Chronicler AI Storyteller**: Built complete NL→SQL pipeline with SSE streaming, categorical routing (~45 keywords), monitoring system with TTFT/latency tracking
+- **DFHack Live Data Pipeline**: TCP client, protobuf RPC, live game → PostgreSQL sync (CDM-compatible)
+- **Reflection #13 (AC-05)**: Standard depth — identified dead-letter pipeline, JICM hallucination. Self-healed by appending 5 proposals directly to queue
+- **JICM v7.1**: HALT fix, session targeting, multi-plan tracking
 
 ---
 
 ## What Was Accomplished (2026-02-19, Session 29 — M5 + self-improve + exit)
 
-- **M5 n8n Workflow Integration**: Created `jarvis_sessions` and `jarvis_health_events` Postgres tables, built Workflow A (session summary webhook at `/webhook/jarvis/session-complete`), built Workflow B (hourly health check cron monitoring Qdrant/Neo4j/Ollama/Redis). End-session command updated with n8n notification step.
-- **JICM Continuity Improvements**: Added `gather_recent_archives()` to session-start.sh for multi-depth context restoration. Added idle checkpoint timer to jicm-watcher.sh (runs prep-context every 30s of idle). Created pre-clear-context-prep.sh safety hook.
-- **Self-Improvement Cycle (full /self-improve)**:
-  - AC-05 Reflection: 5 proposals — context death from agent flood, insight-capture not firing, missing session summaries
-  - AC-08 Maintenance: Fixed stale `.jicm-exit-mode.signal` (14h old), 12 orphaned research files identified, all 9 key docs FRESH
-  - AC-07 R&D: Research agenda 32 days stale, 4 overnight discoveries ADOPTED (RTK, async hooks, CCTCRG, ccusage)
-  - AC-06 Evolution: 4 low-risk changes implemented — insight-capture regex fix, RTK note in bash-gotchas, exit-mode signal failsafe in session-start.sh, selection-audit.js confirmed unregistered
-- **New artifacts**: `/usage` command + usage-dashboard skill, validate-phase1.sh script
-- **Roadmap**: Updated mac-studio-db-ai-roadmap.md M5 checklist with delivery details
-
----
-
-## What Was Accomplished (2026-02-19, Session 28b — overnight autonomous W5:Jarvis-dev)
-
-10 commits, 28/30 tasks completed across 6 phases. W5 session died at 149k/200k from agent result flood.
-
-- **Phase 1 (Infrastructure)**: JICM compressed-context mv→cp fix, /clear safety hook, agent-awareness research, bash-gotchas reference, computed-state pattern doc
-- **Phase 2 (Documentation)**: Consolidated session-state + current-priorities, MEMORY.md rewrite, CLAUDE.md @ imports, README→CLAUDE.md renames (5 dirs), anti-hedging directives, insight-capture.js hook
-- **Phase 3 (UX)**: Farewell formatting in end-session.md, valedictions.yaml complete rewrite (1930s manor house theme)
-- **Phase 4 (Research)**: 8 parallel research reports — MCP CLI registration, async hooks, usage monitoring, Blitz.dev, claude-code-docs, CCTCRG strategies, RTK evaluation, Dwarf Fortress project plan
-- **Phase 5 (Implementation)**: RTK hook installed, 12 hooks converted to async (~51% latency reduction), ccusage statusline BLK display, CCTCRG usage logging. n8n M5 deferred (needs browser API key)
-- **Phase 6 (Validation)**: 4 validation agents dispatched and completed but results never consumed (context death)
+- **M5 n8n Workflow Integration**: 2 workflows, Postgres tables, end-session webhook
+- **Self-Improvement Cycle (full /self-improve)**: 4 phases, 12 proposals, 5 implemented
+- **New artifacts**: /usage command + usage-dashboard skill
 
 ---
 
@@ -56,30 +60,29 @@ Previous session histories have been archived. For full details, see:
 - M0-M4 complete: Foundation, Models, Database, RAG, Graphiti — all operational
 - Two-tier memory architecture: Qdrant (fast) + Graphiti (deep)
 - 7 MCPs registered, 36 graph entities, 6,491 Qdrant vectors
-- Idle-Hands system: implemented and committed
-- Exit-guard v4 + Ennoia idle hardening (S26c→S27)
-- Memory pipeline + triage (S28), idle-hands E2E (S27b)
 
 ---
 
 ## Current Priorities
 
 ### In Progress
-- Evolution queue triage — implementing queued proposals from Reflection #13
+(none — all queued work complete)
 
 ### Up Next
-1. REFL-016: Add evolution queue append step to /reflect workflow (HIGH)
-2. REFL-018: Implement /correct command for corrections capture (MEDIUM)
-3. REFL-020: Lessons index refresh — process 50+ unindexed insights (MEDIUM)
-4. MCP context optimization — evaluate mcpToolSearch `true` vs `auto:15`
-5. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim or host volume mount)
+1. EVO-2026-02-004: Computed state over maintained state pattern (LOW)
+2. REFL-022: Auto-capture self-corrections for JICM hallucination events (LOW)
+3. MCP context optimization — evaluate mcpToolSearch `true` vs `auto:15`
+4. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim or host volume mount)
 
 ### Recently Completed
-- ~~Run full /reflect via W0~~ — **DONE** (Session 30: all 5 phases validated, Reflection #13)
-- ~~REFL-017: Include current-plans.md in JICM LLM prompt~~ — **DONE** (Session 31)
-- ~~REFL-019: Batch fix stale path references~~ — **DONE** (Session 31)
-- ~~M5: n8n Workflows~~ — **DONE** (Session 29: 2 workflows, Postgres tables, end-session webhook)
-- ~~Full /self-improve cycle~~ — **DONE** (Session 29: 4 phases, 12 proposals, 5 implemented)
+- ~~REFL-016: Evolution queue append step~~ — **DONE** (Session 31)
+- ~~REFL-017: current-plans.md in JICM LLM prompt~~ — **DONE** (Session 31)
+- ~~REFL-018: /correct command~~ — **DONE** (Session 31)
+- ~~REFL-019: Stale path references~~ — **DONE** (Session 31)
+- ~~REFL-020: Lessons index refresh~~ — **DONE** (Session 31)
+- ~~REFL-021: Proposal status sync~~ — **DONE** (Session 31)
+- ~~Reflection #14~~ — **DONE** (Session 31: quick depth, 5 patterns, 2 proposals)
+- ~~Run full /reflect via W0~~ — **DONE** (Session 30)
 
 ### Pending Approvals (from self-improvement cycle)
 1. [MEDIUM] Agent-launch context guard at 60% (prevent context death from agent flood)
@@ -96,4 +99,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-19 13:32 MST — Session 29 exit (/self-improve complete, M5 delivered)*
+*Session state updated 2026-02-21 22:55 MST — Session 31 (Reflection #14 + REFL-020 lessons refresh)*
