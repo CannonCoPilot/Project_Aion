@@ -274,3 +274,28 @@ This is the same merge strategy used by Java-based Legends Viewer — parse base
 1. **`time.monotonic()` over `time.time()`** — monotonic clocks can't go backwards (NTP adjustments, system sleep). Critical for latency measurement where even a 1ms jitter from clock correction would corrupt timing data.
 2. **`first_token()` is idempotent** — the `if _t_first_token == 0.0` guard means it only records the *first* call, even though it's called on every token. This avoids branching logic in the hot SSE loop.
 3. **Silent failure in `flush()`** — the bare `except: pass` is intentional. Monitoring must *never* break the user's storytelling experience. If Postgres is down, the query still works; you just lose the log entry.
+
+### 2026-02-20 [afa37c58b201]
+
+The Chronicler `llm.py` uses the standard OpenAI `/v1/chat/completions` SSE protocol. Ollama natively supports this same endpoint, so switching from LiteLLM to Ollama direct is a one-line config change (`LITELLM_URL`). For a user-facing streaming UI, Ollama direct gives dramatically better TTFT (time-to-first-token).
+
+### 2026-02-20 [d8c1a8af3936]
+
+**What the monitoring data already reveals:**
+1. **TTFT of 405ms** is solid for a local 8B model — user sees text start in under half a second
+2. **Only 1 context record** was retrieved — the keyword extraction from "most legendary warriors" likely didn't match many entity names via ILIKE. This is expected for broad/abstract queries; the `_world_overview()` fallback kicked in
+3. **13.6s total** for 651 tokens = ~48 tok/s generation speed, which is typical for qwen3:8b on Apple Silicon
+
+### 2026-02-20 [433f9250a32a]
+
+**What the monitoring data reveals about system behavior:**
+
+1. **Query #2 (wars) found 20 context records** — the most of any query. This makes sense: "wars" matches `history_event_collections` with type='war' directly, plus related entities. The rich context led to a focused 514-token response in only 7.9s total.
+
+2. **Queries #3 and #4 had high TTFT (6.8s and 14.5s)** because they ran concurrently with #2 — Ollama serializes model inference, so they queued behind each other. Single-query TTFT is ~400-800ms (queries #1 and #2).
+
+3. **Query #4 (Ormon, vampires) only generated 11 tokens** despite finding 6 context records — the model likely found the context insufficient and gave a very short response. Worth investigating whether Ormon's vampire/necromancer data is sparse in the CDM.
+
+### 2026-02-21 [9201e6716f17]
+
+**JICM checkpoint quality finding**: The Tier 2 LLM narrative hallucinated an incomplete task. The qwen3:8b model picked up "observability" from the plan document but didn't cross-reference the actual file timestamps or git state to verify completion. This is a known limitation of summary-based checkpoints — they capture intent but not verified state. A fix would be to include a "recently modified files" section in the Tier 1 data.
