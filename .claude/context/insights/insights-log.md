@@ -323,3 +323,61 @@ The Chronicler `llm.py` uses the standard OpenAI `/v1/chat/completions` SSE prot
 **Why only W1:Watcher needs restart**: The watcher (PID 73592) is a long-running bash process that loaded `jicm-watcher.sh` into memory at startup. Our `wait_for_idle()` and `do_halt()` changes won't take effect until the process restarts. However, `jicm-prep-context.sh` is called via `bash "$prep_script"` on every compression — so our JSONL targeting, plan enrichment, and archive inclusion changes are already live (bash re-reads the script file each time it's invoked). Only Fix 1 (the double-ESC) requires a watcher restart.
 
 Ennoia (PID 10857) doesn't use the modified code, so no restart needed there.
+
+### 2026-02-21 [f8fd7f80c49f]
+
+**Two-phase search architecture: categorical routing + name matching**
+
+The core problem was a *vocabulary mismatch* — users speak in categories ("deities", "megabeasts") while the data uses attributes (`is_deity=TRUE`) and race identifiers (`FORGOTTEN_BEAST_55`). This is a classic information retrieval challenge.
+
+The fix uses a **routing table pattern**: a static dictionary maps ~45 conceptual keywords to structured query strategies (boolean flags, LIKE patterns, entity types, collection types). Keywords not in the routing table fall through to the existing ILIKE name search. This gives us the best of both worlds — categorical queries now work, while specific name searches ("Tell me about Urist") are unaffected.
+
+The `_VALID_HF_FLAGS` allowlist prevents SQL injection even though we use f-strings for the column name — the param is validated against a known-good set before interpolation.
+
+### 2026-02-21 [b4708564f293]
+
+**Where we actually are vs. the plan:**
+
+The PoC roadmap was written before any code existed. Since then, significant execution has happened, but it diverged from the plan in interesting ways:
+- **Pillar 0**: DONE (UTM VM at `192.168.64.2`)
+- **Pillar 2 / Phase 1**: Largely DONE — the CDM schema exists, XML parser ingested 109K records (Namoram) + 1.54M records (Ormon), `chronicler` CLI works
+- **Pillar 2 / Phase 2**: Partially DONE — the storyteller has a web UI with SSE streaming, context retrieval with categorical routing, and the monitoring system we just committed. But the embedding/RAG pipeline was skipped in favor of direct SQL context retrieval (simpler, works well enough for PoC)
+- **Pillar 2 / Phase 3**: Partially DONE — FastAPI serves the storyteller UI, but the full REST viewer (figures/sites/events/demographics endpoints) hasn't been built yet
+- **Pillar 1** (live DFHack RPC): NOT STARTED — the protobuf client hasn't been built
+- **Pillar 3** (game bot Lua): NOT STARTED
+- **Pillar 4** (mod conflict): NOT STARTED
+
+The actual execution compressed Phases 1-2-3 of the Legends track while deferring the live data and bot tracks entirely.
+
+### 2026-02-21 [2691299e7067]
+
+**The CDM already has live data scaffolding**
+
+The schema at `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/db/schema.sql:224-241` already defines a `units` table with `pos_x/y/z`, `hist_fig_id`, `civ_id`, and `last_synced_at` — explicitly designed for DFHack RPC data. There's also a `chronicler/dfhack/__init__.py` directory already created (likely empty). The schema was forward-designed for exactly this use case.
+
+### 2026-02-21 [736ee13ff1b8]
+
+**Why hybrid RPC + Lua beats any single approach**
+
+There are three roads to live data:
+1. **Pure RPC** (`GetUnitList` etc.) — structured but *shallow*: units come back as (id, pos, race, profession) with no skills, moods, or relationships
+2. **Pure Lua scripts + file polling** — deep but *asynchronous*: events are logged to a CSV file on the VM, requiring HTTP polling with latency
+3. **Hybrid: RPC for structure + `RunLua` for depth** — best of both: use RPC for the communication channel, `RunLua` to execute custom Lua that accesses the full `df.global` tree and returns JSON
+
+The hybrid approach needs only one prerequisite: `allow_remote: true` in `dfhack-config/remote-server.json` on the VM. After that, a single TCP connection gives us everything.
+
+### 2026-02-21 [3fa9cd2729f6]
+
+**End-to-end live game data pipeline achieved.** The `DFHackClient` connects to DFHack v53.10-r1 over TCP, performs the custom handshake protocol, binds methods dynamically via `BindMethod(0)`, and returns rich unit data with resolved profession/skill names. Key design decisions:
+
+1. **Method binding is lazy + cached** — each RPC method is bound on first use, then the assigned ID is reused for subsequent calls. This avoids binding all methods upfront.
+2. **CDM-compatible output** — `_unit_to_dict()` maps protobuf fields directly to our Chronicler Data Model columns (id, name, race, profession, hist_fig_id, civ_id), so data flows straight into PostgreSQL.
+3. **No `allow_remote` needed** — Core API methods (ListUnits, ListEnums, GetWorldInfo) work over the network by default. Only plugin methods like RemoteFortressReader require the `allow_remote` flag.
+
+### 2026-02-21 [8a657cc567e4]
+
+**Live game → PostgreSQL pipeline complete.** Key architectural points:
+
+1. **Upsert pattern** — `ON CONFLICT (id) DO UPDATE` means repeated syncs are safe and idempotent. Running `sync-live` multiple times just updates positions, professions, and skill XP as the game progresses.
+2. **JSONB `details` column** — Skills, labors, flags, and custom profession are stored as structured JSON, queryable via PostgreSQL's `->` and `->>` operators (e.g., `details->'skills'`). This avoids schema changes when we add new data fields.
+3. **`hist_fig_id` is the bridge** — Each named dwarf has a historical figure ID that joins directly to the `historical_figures` table (populated from legends XML). Vabôk (HF:689) can be cross-referenced with their legends history — we can tell stories that blend *live gameplay* with *historical context*.

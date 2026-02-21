@@ -1,10 +1,11 @@
 # Current Plans
 
 ## Active
-- [JICM v7.1 Fixes](.claude/plans/cheerful-yawning-lobster.md) — HALT fix, session targeting, data enrichment
-- [Chronicler Monitoring System](.claude/plans/effervescent-bouncing-feather.md) — observability for Chronicler/Qwen3
+(none — picking next priority)
 
 ## Recently Completed
+- [JICM v7.1 Fixes](.claude/plans/cheerful-yawning-lobster.md) — HALT fix, session targeting, data enrichment
+- [Chronicler Monitoring System](.claude/plans/effervescent-bouncing-feather.md) — observability for Chronicler/Qwen3
 - [DF Ingestion Plan](.claude/plans/df-ingestion-plan.md) — Dwarf Fortress legends data pipeline
 
 ## Reference
