@@ -429,3 +429,11 @@ The hybrid approach needs only one prerequisite: `allow_remote: true` in `dfhack
 ### 2026-02-21 [0efa6004558c]
 
 **The commit message mirrors the evolution queue structure.** By listing each proposal ID with its priority level and one-line summary, the commit becomes a queryable record of which proposals were implemented together. This makes `git log --grep="REFL-017"` work for tracing any proposal back to its implementing commit — useful for the AC-05 → AC-06 pipeline audit trail.
+
+### 2026-02-21 [eb16aa332614]
+
+**Session 31 completed 7 evolution proposals in a single session** — a throughput record. The pipeline went from 0 proposals/session (13 reflections with dead-letter bug) to 4 proposals (first working drain) to 7 proposals (drain + reflection + inline completion). The key enabler was PAT-009: fixing the meta-system *during* the reflection rather than queuing fixes for a broken pipeline. This demonstrates compound returns — each pipeline fix makes the next improvement cycle faster.
+
+### 2026-02-21 [ce0e3fb25fe7]
+
+**The commit groups reflection output with its actionable consequences.** By including the reflection report, the lessons index refresh, the queue updates, and the session state update in a single commit, the entire "reflect → discover → update" cycle is atomically traceable. `git show 5c1e971` reconstructs the complete Reflection #14 artifact set — useful for validating that the AC-05 pipeline produces coherent, self-consistent output.
