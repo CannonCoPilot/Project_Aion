@@ -123,10 +123,36 @@ echo '{"component":"AC-05","event_type":"component_start","data":{"trigger":"ref
 
 6. **Output (Phase 4: Proposal)**
    - Generate evolution proposals
+   - **MANDATORY: Append proposals to evolution queue** (see format below)
    - Create/update lessons entries
    - Update lessons index
    - Write Memory MCP entities
    - Include tracker verification results in report
+
+   **Evolution Queue Append Format** — For each proposal generated, append a YAML entry to
+   `.claude/state/queues/evolution-queue.yaml` under the `proposals:` list:
+
+   ```yaml
+   - id: REFL-NNN          # Sequential ID (check last entry for next number)
+     date: "YYYY-MM-DD"
+     source: reflection-N   # Reflection number
+     priority: high|medium|low
+     status: queued
+     summary: "Short title"
+     problem: |
+       Description of the problem observed.
+     proposal: |
+       What to do about it.
+     implementation:
+       - Step 1
+       - Step 2
+     estimated_effort: low|medium|high
+     related:
+       - "path/to/relevant/file"
+   ```
+
+   **This step is critical.** Without it, proposals are dead-lettered in the report markdown
+   and never reach AC-06 `/evolve` for implementation.
 
 7. **Graphiti Deep Ingestion (Phase 5: Knowledge Graph Memory)**
 

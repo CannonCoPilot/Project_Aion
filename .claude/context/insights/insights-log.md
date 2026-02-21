@@ -401,3 +401,23 @@ The hybrid approach needs only one prerequisite: `allow_remote: true` in `dfhack
 ### 2026-02-21 [c66d74145c3a]
 
 **Self-healing the pipeline**: REFL-016 says "add evolution queue append step to /reflect." Rather than just writing the proposal and leaving it for a future `/evolve` cycle (which would repeat the exact dead-letter problem), I'll append the proposals to the queue *now* as part of this reflection — proving the fix works by using it.
+
+### 2026-02-21 [84fac09e1434]
+
+**Self-healing pipelines are more valuable than proposals.** Reflection #12 identified the dead-letter problem and proposed REFL-012 — but that proposal itself became a dead letter. Reflection #13 broke the cycle by *implementing the fix as part of the reflection itself*, appending proposals directly to the queue. The lesson: when a meta-system is broken (the system that improves the system), the fix must be applied immediately, not queued for a future cycle that depends on the broken system.
+
+**Graphiti captures structural relationships, not just facts.** The 68 edges from this ingestion encode things like "REFL-016 resolves proposal dead-letter pattern" and "AC-05 has pipeline to AC-06" — relationships that a flat document search would miss. Future queries like "what proposals address the dead-letter problem?" will resolve directly through graph traversal.
+
+### 2026-02-21 [45f9d33bd848]
+
+**The commit captures a complete self-improvement cycle.** 6 files changed: the reflection report itself, the evolution queue with 5 new proposals appended, the corrected AC-05 state file, and the insights log with new entries. This is the first time the AC-05 → evolution queue pipeline has actually worked end-to-end — every previous reflection wrote proposals only to the report markdown.
+
+### 2026-02-21 [4e011893e119]
+
+**The 16 unpushed commits are notable.** Branch `Project_Aion` has diverged significantly from `origin/Project_Aion`. This accumulated across sessions 29-30 (JICM v7.1 fixes, checkpoint quality, reflection #13). A push would be prudent before the next session boundary.
+
+**6 stale AC components** (AC-02 Wiggum at 35 days is the oldest) aren't broken — they're autonomic subsystems that haven't run their self-update routines. A `/maintain` cycle would refresh them, but it's low urgency since the components themselves function correctly; only their state tracking metadata is stale.
+
+### 2026-02-21 [a8651e272a81]
+
+**The dead-letter bug was a skill specification gap, not a code bug.** The `/reflect` command's Side Effects section (line 235) correctly listed "Appends proposals to evolution-queue.yaml" as an expected outcome, but the Workflow section (Phase 4) only said "Generate evolution proposals" without specifying the append format. The model reasonably interpreted "generate" as "write to the report" rather than "write to the report AND the queue." The fix adds an explicit YAML template with a `MANDATORY` label, ensuring the model can't miss the append step. This is a pattern: **side effects must be actionable instructions, not just documentation.**

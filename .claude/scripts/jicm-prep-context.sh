@@ -410,15 +410,12 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
                 echo ""
             fi
 
-            # Plan content (title + context section, not just title)
-            if [[ "$INCLUDE_PLAN" == "true" ]] && [[ -f "$ACTIVE_PLAN_FILE" ]]; then
-                plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN_FILE")
-                if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
-                    echo "## Active Plan"
-                    head -50 "$plan_path"
-                    echo "..."
-                    echo ""
-                fi
+            # Plan status (current-plans.md shows Active vs Recently Completed)
+            CURRENT_PLANS_FILE="$PROJECT_DIR/.claude/context/current-plans.md"
+            if [[ "$INCLUDE_PLAN" == "true" ]] && [[ -f "$CURRENT_PLANS_FILE" ]]; then
+                echo "## Plan Status"
+                cat "$CURRENT_PLANS_FILE"
+                echo ""
             fi
 
             # Most recent archived checkpoint (multi-cycle continuity signal)
@@ -497,6 +494,7 @@ Rules:
 - Be concise but thorough. Preserve exact file paths and commands.
 - ALWAYS preserve the Current Priorities section from session-state verbatim — do not paraphrase or omit items.
 - Derive the Current Task from the MOST RECENT conversation messages, not from stale session status.
+- CRITICAL: If Plan Status is provided, ONLY report tasks as IN PROGRESS if they appear under "## Active" in Plan Status. Plans under "## Recently Completed" are DONE — do not report them as in-progress.
 - The project root is: {project_dir}. Use this for all file paths — do NOT guess or use generic paths like /home/user.
 - Do NOT hallucinate. If uncertain, say so."""
 

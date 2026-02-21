@@ -179,7 +179,9 @@ proposals:
     date: "2026-02-20"
     source: reflection-13
     priority: high
-    status: queued
+    status: completed
+    resolution: "Fixed in session 31 — added explicit Evolution Queue Append Format section to /reflect Phase 4 with YAML template and mandatory instruction. Also added critical note about dead-letter risk."
+    resolved_date: "2026-02-21"
     summary: "Add evolution queue append step to /reflect workflow"
     problem: |
       Proposals generated during /reflect are written only to the reflection report markdown.
@@ -202,7 +204,9 @@ proposals:
     date: "2026-02-20"
     source: reflection-13
     priority: medium
-    status: queued
+    status: completed
+    resolution: "Fixed in session 31 — replaced legacy .active-plan with current-plans.md in Tier 2 LLM input. Added CRITICAL instruction to LLM system prompt about Active vs Recently Completed distinction."
+    resolved_date: "2026-02-21"
     summary: "Include current-plans.md in JICM prep-context LLM prompt"
     problem: |
       Qwen3:8b checkpoint enrichment hallucinates completed tasks as IN PROGRESS because it
@@ -223,7 +227,9 @@ proposals:
     date: "2026-02-20"
     source: reflection-13
     priority: medium
-    status: queued
+    status: completed
+    resolution: "Created /correct command (.claude/commands/correct.md) in session 31. Supports both user corrections and self-corrections (--self flag). Appends to corrections.md or self-corrections.md respectively. Integrates with AC-05 /reflect Phase 1."
+    resolved_date: "2026-02-21"
     summary: "Implement corrections capture mechanism"
     problem: |
       Both corrections.md and self-corrections.md have been empty since creation (2026-02-18).
@@ -247,7 +253,9 @@ proposals:
     date: "2026-02-20"
     source: reflection-13
     priority: low
-    status: queued
+    status: completed
+    resolution: "Fixed in session 31 — lessons index evolution-queue path corrected from .claude/evolution/ to .claude/state/queues/. EVO-2026-01-020 status updated to Superseded. AC-05 state paths were already correct (fixed during reflection #13 self-healing)."
+    resolved_date: "2026-02-21"
     summary: "Batch fix stale path references across AC state and lessons"
     problem: |
       Configuration drift from session 28b restructuring remains unresolved:
