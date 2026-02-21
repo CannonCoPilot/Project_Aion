@@ -8,10 +8,10 @@
 
 ## Current Work Status
 
-**Status**: 🟡 Idle — Session 29 complete
+**Status**: 🟢 Active — Session 31
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: (pending — end-session commit)
+**Last Commit**: e7696a9 (AC-05 reflection #13, 5 proposals queued)
 **Last Pushed**: 2e7bbc1 (to origin/Project_Aion)
 
 ---
@@ -65,19 +65,21 @@ Previous session histories have been archived. For full details, see:
 ## Current Priorities
 
 ### In Progress
-- (none — both active plans completed this session)
+- Evolution queue triage — implementing queued proposals from Reflection #13
 
 ### Up Next
-1. Run full `/reflect` via W0 to validate all 5 /reflect phases together
-2. MCP context optimization — research at `.claude/context/research/mcp-cli-registration.md`
-3. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim or host volume mount)
+1. REFL-016: Add evolution queue append step to /reflect workflow (HIGH)
+2. REFL-018: Implement /correct command for corrections capture (MEDIUM)
+3. REFL-020: Lessons index refresh — process 50+ unindexed insights (MEDIUM)
+4. MCP context optimization — evaluate mcpToolSearch `true` vs `auto:15`
+5. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim or host volume mount)
 
 ### Recently Completed
-- ~~Retire overnight plan from CLAUDE.md @-import~~ — **DONE** (replaced with session-state pointer)
-- ~~Re-register selection-audit.js~~ — **NOT NEEDED** (superseded by usage-tracker.js consolidation)
+- ~~Run full /reflect via W0~~ — **DONE** (Session 30: all 5 phases validated, Reflection #13)
+- ~~REFL-017: Include current-plans.md in JICM LLM prompt~~ — **DONE** (Session 31)
+- ~~REFL-019: Batch fix stale path references~~ — **DONE** (Session 31)
 - ~~M5: n8n Workflows~~ — **DONE** (Session 29: 2 workflows, Postgres tables, end-session webhook)
 - ~~Full /self-improve cycle~~ — **DONE** (Session 29: 4 phases, 12 proposals, 5 implemented)
-- ~~Overnight session 28b~~ — **28/30 tasks DONE** (10 commits, Phases 1-5 complete, Phase 6 partial)
 
 ### Pending Approvals (from self-improvement cycle)
 1. [MEDIUM] Agent-launch context guard at 60% (prevent context death from agent flood)

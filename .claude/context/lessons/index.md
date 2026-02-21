@@ -75,7 +75,7 @@ Recurring patterns discovered through reflection and R&D.
 - **Full log**: `lessons/insights.md`
 - **Purpose**: Captures `★ Insight` blocks that would otherwise vanish after /clear or session end
 - **Updated**: During sessions as insights are generated; reviewed during AC-05 reflection
-- **Current count**: 7 insights (INS-001 through INS-007)
+- **Current count**: 50+ insights (INS-001+; full refresh pending via REFL-020)
 - **Categories**: Git, Context Management, YAML/Tooling, Authentication, Project Management, Self-Improvement
 
 ### Documentation
@@ -115,10 +115,15 @@ Key discoveries from full-scale R&D cycle:
 
 | Date | ID | Summary | Priority | Status |
 |------|----|---------|----------|--------|
-| 2026-01-20 | EVO-2026-01-020 | Session State Auto-Update | Low | Queued |
+| 2026-01-20 | EVO-2026-01-020 | Session State Auto-Update | Low | Superseded |
+| 2026-02-20 | REFL-016 | Add queue append step to /reflect | High | Queued |
+| 2026-02-20 | REFL-017 | Include current-plans.md in JICM LLM prompt | Medium | Completed |
+| 2026-02-20 | REFL-018 | Implement corrections capture mechanism | Medium | Queued |
+| 2026-02-20 | REFL-019 | Batch fix stale path references | Low | Completed |
+| 2026-02-20 | REFL-020 | Lessons index refresh — 50+ unindexed insights | Medium | Queued |
 
-See `.claude/evolution/evolution-queue.yaml` for full proposal details.
+See `.claude/state/queues/evolution-queue.yaml` for full proposal details.
 
 ---
 
-*Index maintained by AC-05 Self-Reflection — Updated 2026-02-06*
+*Index maintained by AC-05 Self-Reflection — Updated 2026-02-21*
