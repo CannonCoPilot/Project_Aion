@@ -110,9 +110,35 @@ JQ_USER_FILTER='
 
 find_best_jsonl() {
     local dir="$1"
-    local best="" best_count=0
 
-    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -3); do
+    # Priority 1: Find JSONL with most recent [JICM-HALT] marker.
+    # This text appears ONLY in W0's JSONL (watcher sends HALT only to W0).
+    # Guaranteed correct targeting during compression cycles.
+    local halt_match=""
+    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -5); do
+        if tail -200 "$f" 2>/dev/null | grep -q '\[JICM-HALT\]' 2>/dev/null; then
+            halt_match="$f"
+            break  # Most recently modified file with HALT wins
+        fi
+    done
+    if [[ -n "$halt_match" ]]; then
+        echo "JSONL targeted via [JICM-HALT] marker: $(basename "$halt_match")" >&2
+        echo "$halt_match"
+        return 0
+    fi
+
+    # Priority 2: Message count, but only files modified in the last 10 minutes.
+    # This prevents stale, large W5 sessions from being selected during idle checkpoints.
+    local best="" best_count=0
+    local cutoff=$(( $(date +%s) - 600 ))
+
+    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -5); do
+        local fmtime
+        fmtime=$(stat -f %m "$f" 2>/dev/null || echo 0)
+        if [[ $fmtime -lt $cutoff ]]; then
+            continue  # Skip files not modified in last 10 min
+        fi
+
         local count
         count=$(tail -5000 "$f" 2>/dev/null \
             | jq -c "$JQ_USER_FILTER" 2>/dev/null \
@@ -124,9 +150,10 @@ find_best_jsonl() {
     done
 
     if [[ -n "$best" ]]; then
+        echo "JSONL selected via message count (${best_count} msgs, <10min): $(basename "$best")" >&2
         echo "$best"
     else
-        # Fallback: just use the newest
+        # Last resort: newest file (no recency filter)
         ls -t "$dir"/*.jsonl 2>/dev/null | head -1
     fi
 }
@@ -267,14 +294,35 @@ fi
     fi
     echo ""
 
-    # --- Active plan (title + context section from tracked plan file) ---
-    if [[ "$INCLUDE_PLAN" == "true" ]] && [[ -f "$ACTIVE_PLAN_FILE" ]]; then
-        plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN_FILE")
-        if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
-            echo "## Active Plan"
-            # Extract title + context section (up to first ---)
-            head -40 "$plan_path" | sed -n '1,/^---$/p'
+    # --- Active plans (from current-plans.md, falling back to .active-plan) ---
+    CURRENT_PLANS_FILE="$PROJECT_DIR/.claude/context/current-plans.md"
+    if [[ "$INCLUDE_PLAN" == "true" ]]; then
+        if [[ -f "$CURRENT_PLANS_FILE" ]]; then
+            echo "## Active Plans"
+            # Extract the Active section entries
+            sed -n '/^## Active/,/^## /p' "$CURRENT_PLANS_FILE" 2>/dev/null \
+                | grep -v '^## [^A]' | head -10
             echo ""
+
+            # Include body of first active plan (title + context section)
+            FIRST_PLAN_REL=$(sed -n '/^## Active/,/^## /p' "$CURRENT_PLANS_FILE" 2>/dev/null \
+                | grep -oE '\([^)]+\.md\)' | head -1 | tr -d '()')
+            if [[ -n "$FIRST_PLAN_REL" ]]; then
+                FIRST_PLAN_FULL="$PROJECT_DIR/$FIRST_PLAN_REL"
+                if [[ -f "$FIRST_PLAN_FULL" ]]; then
+                    echo "### Plan Details"
+                    head -40 "$FIRST_PLAN_FULL" | sed -n '1,/^---$/p'
+                    echo ""
+                fi
+            fi
+        elif [[ -f "$ACTIVE_PLAN_FILE" ]]; then
+            # Fallback to single .active-plan tracker
+            plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN_FILE")
+            if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
+                echo "## Active Plan"
+                head -40 "$plan_path" | sed -n '1,/^---$/p'
+                echo ""
+            fi
         fi
     fi
 
@@ -362,12 +410,25 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
                 echo ""
             fi
 
-            # Plan title only
+            # Plan content (title + context section, not just title)
             if [[ "$INCLUDE_PLAN" == "true" ]] && [[ -f "$ACTIVE_PLAN_FILE" ]]; then
                 plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN_FILE")
                 if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
                     echo "## Active Plan"
-                    head -5 "$plan_path"
+                    head -50 "$plan_path"
+                    echo "..."
+                    echo ""
+                fi
+            fi
+
+            # Most recent archived checkpoint (multi-cycle continuity signal)
+            ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
+            if [[ -d "$ARCHIVE_DIR" ]]; then
+                LATEST_ARCHIVE=$(ls -t "$ARCHIVE_DIR"/compressed-*.md 2>/dev/null | head -1)
+                if [[ -n "$LATEST_ARCHIVE" ]]; then
+                    echo "## Previous Checkpoint (last compression)"
+                    sed -n '/^## Current Task/,/^## Key Paths/p' "$LATEST_ARCHIVE" 2>/dev/null \
+                        | head -30
                     echo ""
                 fi
             fi

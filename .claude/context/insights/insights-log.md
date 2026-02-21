@@ -299,3 +299,27 @@ The Chronicler `llm.py` uses the standard OpenAI `/v1/chat/completions` SSE prot
 ### 2026-02-21 [9201e6716f17]
 
 **JICM checkpoint quality finding**: The Tier 2 LLM narrative hallucinated an incomplete task. The qwen3:8b model picked up "observability" from the plan document but didn't cross-reference the actual file timestamps or git state to verify completion. This is a known limitation of summary-based checkpoints — they capture intent but not verified state. A fix would be to include a "recently modified files" section in the Tier 1 data.
+
+### 2026-02-21 [6f52e4d8a888]
+
+**Why 400 → 2000 tokens matters**: Ollama's `num_predict` controls the max output tokens. At 400, the model was being cut off mid-sentence — it would generate "Key Paths: AC-0" and hit the wall. Qwen3:8b naturally stops at ~200-400 tokens when given a concise task, so 2000 isn't wasteful — it just removes the ceiling. The model self-regulates output length based on input complexity.
+
+**Path hallucination in small LLMs**: Qwen3:8b doesn't know the actual filesystem layout. Without the project path in the prompt, it falls back to training priors (`/home/user/`). Injecting the real path via `{project_dir}` template substitution is a clean fix that costs ~10 tokens of input for correct output paths.
+
+**Meta-capture filtering**: The jq filters (`startswith("Context restored") | not`) run at extraction time, before the data ever reaches the LLM — this is more reliable than asking the LLM to ignore certain messages, which it might not do consistently.
+
+### 2026-02-21 [7dff9df4779e]
+
+**Cross-session JSONL contamination**: The `find_best_jsonl()` function picks the JSONL with the most genuine user messages. Our W5 session (8MB, 4102 lines) has far more messages than any W0 session (which get compressed frequently). So the checkpoint always captures W5's conversation (about JICM enrichment) instead of W0's conversation (about Chronicler work). The LLM narrative looks correct only because session-state.md provides the task context — the actual conversation data in the checkpoint is from the wrong session.
+
+### 2026-02-21 [f788186690c6]
+
+**Signal-based session fingerprinting**: The `[JICM-HALT]` marker approach is an example of exploiting existing protocol artifacts as implicit metadata. Rather than adding explicit session tracking (which would require modifying the JSONL format or adding IPC between processes), we search for a string that already uniquely identifies the target session. This is the "passive fingerprint" pattern — data you already emit becomes your identifier.
+
+**Cascading idle detection**: The `skip_trigger` parameter illustrates a common issue in state machines where a function designed for one context (probing for idle) causes harm in another (post-HALT). The fix is minimal — a boolean parameter rather than a redesign — because the state machine transitions are otherwise correct. The principle: when you find a bug at a state transition, the smallest fix that respects the existing architecture is usually the right one.
+
+### 2026-02-21 [078e3009912b]
+
+**Why only W1:Watcher needs restart**: The watcher (PID 73592) is a long-running bash process that loaded `jicm-watcher.sh` into memory at startup. Our `wait_for_idle()` and `do_halt()` changes won't take effect until the process restarts. However, `jicm-prep-context.sh` is called via `bash "$prep_script"` on every compression — so our JSONL targeting, plan enrichment, and archive inclusion changes are already live (bash re-reads the script file each time it's invoked). Only Fix 1 (the double-ESC) requires a watcher restart.
+
+Ennoia (PID 10857) doesn't use the modified code, so no restart needed there.
