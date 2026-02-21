@@ -175,4 +175,118 @@ proposals:
       - ".claude/state/components/"
       - ".claude/reports/reflections/reflection-2026-02-08.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-02-18 (Session 28 triage)
+  - id: REFL-016
+    date: "2026-02-20"
+    source: reflection-13
+    priority: high
+    status: queued
+    summary: "Add evolution queue append step to /reflect workflow"
+    problem: |
+      Proposals generated during /reflect are written only to the reflection report markdown.
+      They are never appended to evolution-queue.yaml, making them invisible to AC-06 /evolve.
+      This has caused 2+ reflections of proposals to be dead-lettered.
+    proposal: |
+      After generating proposals in Phase 4, the /reflect workflow must append each proposal
+      to .claude/state/queues/evolution-queue.yaml in the standard YAML format.
+      This makes proposals consumable by /evolve without manual copying.
+    implementation:
+      - Add "Append to Queue" step after Phase 4 in reflect skill
+      - Write YAML entries matching existing queue format
+      - Update queue timestamp comment
+    estimated_effort: low
+    related:
+      - ".claude/reports/reflections/reflection-2026-02-20-session30.md"
+      - ".claude/state/queues/evolution-queue.yaml"
+
+  - id: REFL-017
+    date: "2026-02-20"
+    source: reflection-13
+    priority: medium
+    status: queued
+    summary: "Include current-plans.md in JICM prep-context LLM prompt"
+    problem: |
+      Qwen3:8b checkpoint enrichment hallucinates completed tasks as IN PROGRESS because it
+      sees plan file references but has no completion status. Across 5+ JICM cycles in session 30,
+      every checkpoint falsely reported Chronicler monitoring as in-progress.
+    proposal: |
+      Add current-plans.md content to the Tier 2 LLM prompt in jicm-prep-context.sh.
+      The LLM can then distinguish active plans from completed ones.
+    implementation:
+      - In jicm-prep-context.sh, cat current-plans.md into the LLM prompt section
+      - Add instruction: "Only report tasks as IN PROGRESS if they appear under Active in current-plans.md"
+    estimated_effort: low
+    related:
+      - ".claude/scripts/jicm-prep-context.sh"
+      - ".claude/context/current-plans.md"
+
+  - id: REFL-018
+    date: "2026-02-20"
+    source: reflection-13
+    priority: medium
+    status: queued
+    summary: "Implement corrections capture mechanism"
+    problem: |
+      Both corrections.md and self-corrections.md have been empty since creation (2026-02-18).
+      Sessions 28b-30 had multiple correctable events (agent flood, insight-capture failures,
+      JICM hallucination, double-ESC bug) but none were captured. No capture mechanism exists.
+    proposal: |
+      Create a /correct command or integrate into existing hooks to append corrections.
+      Option A: Manual /correct command that prompts for category, correction, and lesson.
+      Option B: Auto-detect from user messages containing correction keywords.
+      Option A is simpler and more reliable.
+    implementation:
+      - Create .claude/commands/correct.md with frontmatter
+      - Command appends formatted entry to corrections.md
+      - Include date, category selection, and lesson extraction
+    estimated_effort: medium
+    related:
+      - ".claude/context/psyche/self-knowledge/corrections.md"
+      - ".claude/context/psyche/self-knowledge/self-corrections.md"
+
+  - id: REFL-019
+    date: "2026-02-20"
+    source: reflection-13
+    priority: low
+    status: queued
+    summary: "Batch fix stale path references across AC state and lessons"
+    problem: |
+      Configuration drift from session 28b restructuring remains unresolved:
+      - AC-05 state: evolution_queue marked false (file exists)
+      - AC-05 state: corrections paths point to lessons/ (actual: psyche/self-knowledge/)
+      - Lessons index: references .claude/evolution/evolution-queue.yaml (wrong path)
+    proposal: |
+      One-pass correction of all known stale path references.
+      Subsumes REFL-013 from Reflection #12.
+    implementation:
+      - Fix AC-05-reflection.json dependency paths and evolution_queue flag
+      - Fix lessons/index.md evolution queue reference
+      - Verify no other state files reference old paths
+    estimated_effort: low
+    related:
+      - ".claude/state/components/AC-05-reflection.json"
+      - ".claude/context/lessons/index.md"
+
+  - id: REFL-020
+    date: "2026-02-20"
+    source: reflection-13
+    priority: low
+    status: queued
+    summary: "Lessons index refresh — process 50+ unindexed insights"
+    problem: |
+      Lessons index last updated 2026-02-06. Contains 6 patterns and 7 insights.
+      Insights log has grown to 50+ entries covering sessions 29-30.
+      43+ insights are unindexed, meaning categorical pattern discovery is limited.
+    proposal: |
+      Process insights-log.md entries since INS-007, extract new patterns,
+      update categorical index sections.
+    implementation:
+      - Read all insights since 2026-02-06
+      - Identify new patterns (expect 3-5 from JICM, Chronicler, DFHack work)
+      - Add PAT-007+ entries to index
+      - Update insight count and date
+    estimated_effort: medium
+    related:
+      - ".claude/context/insights/insights-log.md"
+      - ".claude/context/lessons/index.md"
+
+# Queue maintained by AC-05/AC-06 — Updated 2026-02-20 (Reflection #13, Session 30)
