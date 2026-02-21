@@ -1,7 +1,7 @@
 # Current Plans
 
 ## Active
-(none — picking next priority)
+- [Chronicler Live Polling Daemon](.claude/plans/merry-wandering-ullman.md) — DFHack continuous ETL with change detection
 
 ## Recently Completed
 - [JICM v7.1 Fixes](.claude/plans/cheerful-yawning-lobster.md) — HALT fix, session targeting, data enrichment
