@@ -278,7 +278,9 @@ proposals:
     date: "2026-02-20"
     source: reflection-13
     priority: low
-    status: queued
+    status: completed
+    resolution: "Completed in session 31 — processed 50+ insights, added PAT-007 through PAT-011 to lessons index, updated categorical sections and insight count."
+    resolved_date: "2026-02-21"
     summary: "Lessons index refresh — process 50+ unindexed insights"
     problem: |
       Lessons index last updated 2026-02-06. Contains 6 patterns and 7 insights.
@@ -297,4 +299,47 @@ proposals:
       - ".claude/context/insights/insights-log.md"
       - ".claude/context/lessons/index.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-02-20 (Reflection #13, Session 30)
+  - id: REFL-021
+    date: "2026-02-21"
+    source: reflection-14
+    priority: low
+    status: completed
+    resolution: "Completed immediately during Reflection #14 — synced all proposal statuses in lessons index."
+    resolved_date: "2026-02-21"
+    summary: "Update lessons index evolution proposal statuses"
+    problem: |
+      Lessons index still shows REFL-016 and REFL-018 as "Queued" — both are completed.
+      Evolution proposal status table is stale.
+    proposal: |
+      Sync lessons index Evolution Proposals table with evolution-queue.yaml statuses.
+    implementation:
+      - Update lessons/index.md Evolution Proposals table
+      - Mark REFL-016 and REFL-018 as Completed
+    estimated_effort: low
+    related:
+      - ".claude/context/lessons/index.md"
+      - ".claude/state/queues/evolution-queue.yaml"
+
+  - id: REFL-022
+    date: "2026-02-21"
+    source: reflection-14
+    priority: low
+    status: queued
+    summary: "Auto-capture self-corrections for JICM hallucination events"
+    problem: |
+      JICM checkpoint hallucination (PAT-008) was only detected via manual analysis.
+      No automated detection exists for when checkpoint narratives contradict current-plans.md.
+    proposal: |
+      Add validation step to jicm-prep-context.sh that compares checkpoint "Current Task"
+      against current-plans.md and logs discrepancies to self-corrections.md.
+    implementation:
+      - After LLM enrichment in prep-context.sh, extract Current Task line
+      - Compare against current-plans.md Active section
+      - If mismatch, append entry to self-corrections.md
+    estimated_effort: medium
+    related:
+      - ".claude/scripts/jicm-prep-context.sh"
+      - ".claude/context/current-plans.md"
+      - ".claude/context/psyche/self-knowledge/self-corrections.md"
+
+# Queue maintained by AC-05/AC-06 — Updated 2026-02-21 (Reflection #14, Session 31)

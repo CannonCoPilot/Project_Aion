@@ -2,7 +2,7 @@
 
 **Purpose**: Categorical and chronological index of problems, solutions, and patterns.
 
-**Updated**: 2026-02-04 (PAT-005: tmux self-injection limitation)
+**Updated**: 2026-02-21 (PAT-007 through PAT-011: Reflection #14 batch)
 
 ---
 
@@ -39,6 +39,11 @@ Recurring patterns discovered through reflection and R&D.
 | 2026-01-18 | PAT-004 | Single-agent ReAct loop (Wiggum) more reliable than multi-agent swarms | Confirmed |
 | 2026-02-04 | PAT-005 | **tmux self-injection fails from within Claude Code** | Critical Discovery |
 | 2026-02-05 | PAT-006 | **Single authority for process launch** — avoid duplicate launcher race conditions | New Discovery |
+| 2026-02-21 | PAT-007 | **Evolution queue throughput** — 0→4/session when pipeline unblocked | Confirmed |
+| 2026-02-21 | PAT-008 | **Small LLM checkpoint hallucination** — needs explicit state, not inferrable | Confirmed |
+| 2026-02-21 | PAT-009 | **Self-healing over queuing for meta-systems** — fix immediately, don't queue | Confirmed |
+| 2026-02-21 | PAT-010 | **Signal fingerprinting for session targeting** — passive fingerprints > explicit metadata | New Discovery |
+| 2026-02-21 | PAT-011 | **Categorical routing for NL→SQL** — static keyword→query routing table | New Discovery |
 
 ---
 
@@ -47,6 +52,8 @@ Recurring patterns discovered through reflection and R&D.
 ### Context Management
 - PAT-002: MCP tool deferral (auto:N) reduces context usage
 - PAT-003: PreToolUse additionalContext enables dynamic context injection
+- PAT-008: Small LLM checkpoint hallucination — Qwen3:8b needs explicit completion status, not inferrable from plan files
+- PAT-010: Signal fingerprinting for session targeting — use protocol artifacts (e.g. `[JICM-HALT]`) as implicit session IDs
 
 ### Tool Selection
 - PAT-001: Claude Code features evolve rapidly; regular R&D review valuable
@@ -75,8 +82,15 @@ Recurring patterns discovered through reflection and R&D.
 - **Full log**: `lessons/insights.md`
 - **Purpose**: Captures `★ Insight` blocks that would otherwise vanish after /clear or session end
 - **Updated**: During sessions as insights are generated; reviewed during AC-05 reflection
-- **Current count**: 50+ insights (INS-001+; full refresh pending via REFL-020)
+- **Current count**: 75+ insights (INS-001+; refreshed 2026-02-21 via REFL-020)
 - **Categories**: Git, Context Management, YAML/Tooling, Authentication, Project Management, Self-Improvement
+
+### Self-Improvement Pipeline
+- PAT-007: Evolution queue throughput — machine-readable YAML proposals in a consumable queue are the minimum viable AC-05→AC-06 pipeline
+- PAT-009: Self-healing over queuing — when the meta-system is broken, fix it during the current cycle, don't queue for the broken pipeline
+
+### Data Architecture
+- PAT-011: Categorical routing for NL→SQL — static keyword→query routing table bridges vocabulary mismatch without embeddings. Simpler, faster, more debuggable for known-vocabulary domains
 
 ### Documentation
 *None yet*
@@ -116,11 +130,13 @@ Key discoveries from full-scale R&D cycle:
 | Date | ID | Summary | Priority | Status |
 |------|----|---------|----------|--------|
 | 2026-01-20 | EVO-2026-01-020 | Session State Auto-Update | Low | Superseded |
-| 2026-02-20 | REFL-016 | Add queue append step to /reflect | High | Queued |
+| 2026-02-20 | REFL-016 | Add queue append step to /reflect | High | Completed |
 | 2026-02-20 | REFL-017 | Include current-plans.md in JICM LLM prompt | Medium | Completed |
-| 2026-02-20 | REFL-018 | Implement corrections capture mechanism | Medium | Queued |
+| 2026-02-20 | REFL-018 | Implement corrections capture mechanism | Medium | Completed |
 | 2026-02-20 | REFL-019 | Batch fix stale path references | Low | Completed |
-| 2026-02-20 | REFL-020 | Lessons index refresh — 50+ unindexed insights | Medium | Queued |
+| 2026-02-20 | REFL-020 | Lessons index refresh — 50+ unindexed insights | Medium | Completed |
+| 2026-02-21 | REFL-021 | Update lessons index proposal statuses | Low | Completed |
+| 2026-02-21 | REFL-022 | Auto-capture self-corrections for JICM hallucination | Low | Queued |
 
 See `.claude/state/queues/evolution-queue.yaml` for full proposal details.
 
