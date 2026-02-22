@@ -347,6 +347,20 @@ inject_idle_hands() {
     local win="$1" idle_type="$2"
     local ih_file="$PROJECT_DIR/.claude/context/.idle-hands-active.W${win}"
 
+    # Cooldown check: don't reactivate if recently completed a full cycle
+    local cooldown_file="$PROJECT_DIR/.claude/context/.idle-hands-cooldown.W${win}"
+    if [[ -f "$cooldown_file" ]]; then
+        local cooldown_until now_epoch
+        cooldown_until=$(cat "$cooldown_file" 2>/dev/null)
+        now_epoch=$(date +%s)
+        if [[ -n "$cooldown_until" ]] && [[ "$now_epoch" -lt "$cooldown_until" ]]; then
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | idle-hands: W${win} in cooldown, skipping" >> "$LOG" 2>/dev/null
+            return 0
+        else
+            rm -f "$cooldown_file"
+        fi
+    fi
+
     if [[ "$idle_type" == "idle_esc" ]]; then
         # ESC idle: resume interrupted work
         cat > "$ih_file" <<EOF
