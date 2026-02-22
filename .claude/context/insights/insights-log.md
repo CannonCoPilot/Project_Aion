@@ -640,3 +640,24 @@ The emergency/lockout system was a **defense-in-depth** pattern from when JICM c
 **JICM Context Propagation Issue**: The compressed context has been carrying forward "fix wait_for_idle() double-ESC" for 3+ compression cycles, but examining the code and metrics reveals this was already fixed. The `skip_trigger=true` parameter in `do_halt()` → `wait_for_idle()` prevents the second ESC. All recent cycles show `outcome: success` with 3-4s halt times.
 
 **Real Issue Found**: The threshold is set to 38% instead of the production 70%. This explains the rapid-fire compression cycles (40% triggers at 38% threshold).
+
+### 2026-02-22 [72fb4595bd10]
+
+**JICM v7 Performance Summary** (126 cycles total, 94.4% success rate):
+- **v7 (bash+LLM enrichment)**: 44s avg cycle (77 cycles, range 22-147s)
+- **Older (LLM agent)**: 282s avg cycle (42 cycles, range 43-379s)  
+- **Speedup**: 6.4x faster
+
+**Bottleneck shift**: Compression went from 70% of cycle time (198s) to just 17% (7.3s) — a 27x improvement. The new bottleneck is `/clear` confirmation (44% of cycle, 19.4s avg) — waiting for Claude Code's TUI to reflect the cleared context. This is unavoidable TUI latency.
+
+**Zero restore retries** across all 119 successful cycles — the resume prompt works reliably on first attempt.
+
+### 2026-02-22 [8206c937a5a5]
+
+**Validation Finding #1**: All boolean flags (`is_deity`, `is_vampire`, `is_necromancer`, etc.) are `false` across all 49,855 historical figures in World 2. The XML parser likely didn't extract these from the legends export. This means the Chronicler's categorical routing for "tell me about deities" or "who are the vampires" will return **empty results** — a significant gap in the ingestion pipeline.
+
+### 2026-02-22 [eac574ab367b]
+
+**Validation Finding #2 (confirmed)**: All boolean flags (`is_deity`, `is_vampire`, `is_necromancer`, `is_werebeast`, `is_force`) are `false` across **all 49,855 HFs in World 2** AND all 5,466 in World 1. This is a systematic gap in the XML parser — the legends XML likely uses nested tags like `<deity/>` that the parser doesn't capture. This means **categorical routing for supernatural beings will always return empty results**.
+
+**World 2 (Ormon) landscape**: 575 civilizations (mostly cave creatures!), 11 goblin civs, 8 each of dwarf/human/elf. The `owner_entity_id` isn't populated for sites — another ingestion gap.
