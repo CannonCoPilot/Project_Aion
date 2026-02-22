@@ -11,12 +11,22 @@
 **Status**: 🟢 Active — Session 32
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: 661f26f (fix JICM stale context feedback loop)
+**Last Commit**: eac3314 (Chronicler gap closure Phase 1-4)
 **Last Pushed**: 661f26f (to origin/Project_Aion)
 
 ---
 
-## What Was Accomplished (2026-02-21/22, Session 32 — Chronicler Bridge + JICM Fixes)
+## What Was Accomplished (2026-02-21/22, Session 32 — Chronicler Gap Closure + JICM Fixes)
+
+### Chronicler Gap Closure (Phase 1-4)
+- **Phase 1**: Bridge v6 Lua script written — cursor-based events, unit flags, emotions, zones, squads
+- **Phase 2**: Python parsers for v6 bridge data, expanded change detector
+- **Phase 3**: Storyteller live data retrieval, cross-reference queries, enhanced prompts
+- **Phase 4.1 DONE**: XML parser boolean flag fix — deities (1,300 via spheres), vampires (54 via DEITY_MAJOR_CURSE), necromancers (247 via SECRET knowledge), werebeasts (132 via DEITY_CURSE_WEREBEAST). Details JSONB enriched.
+- **Phase 4.2 DONE**: Site ownership — 1,145/1,899 World 2 sites now have owner_entity_id from legends_plus
+- **BUG-004 identified**: `historical_figures` PK collision between worlds (5,466 HFs including 1,294 deities missing from World 2)
+- **DwarfCron commits**: `dea89fb` (parser fix), `5666420` (Phase 1-3)
+- **Jarvis commit**: `eac3314` (plan updates + deploy scripts)
 
 ### JICM v7 Quality Fixes (Late Session 32)
 - **Stale context feedback loop fixed**: Removed previous checkpoint's "Current Task" from LLM enrichment input, breaking infinite echo where stale tasks propagated across 6+ compression cycles
@@ -126,4 +136,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-22 ~04:50 UTC — Session 32 (JICM feedback loop fix + performance assessment)*
+*Session state updated 2026-02-22 ~07:50 UTC — Session 32 (Gap closure Phase 4 parser fixes)*

@@ -702,3 +702,17 @@ Exit code 28 from curl means "operation timeout" — the client disconnected aft
 3. **Military squads** — Returns 0 squad records because `lua_probes` doesn't have v6 data yet (watcher hasn't run). Falls through to entity search which finds "military"-matching civilizations. Will work once watcher runs.
 4. **Recent events** — Shows ARRIVED/DEPARTED events with numeric race IDs (pre-enrichment data). Will improve as watcher captures more events.
 5. **Context grouping** — The new `format_context` groups by category with headers, making it easier for the LLM to distinguish Historical Figures from Live Status from Recent Events.
+
+### 2026-02-22 [46c634171b16]
+
+**Phase 4.1 + 4.2 complete — summary of XML parser fixes:**
+
+1. **Boolean flags (4.1)**: Fixed detection of deities (sphere tags), vampires (DEITY_MAJOR_CURSE), necromancers (SECRET knowledge), werebeasts (DEITY_CURSE_WEREBEAST). Now 6 deities, 54 vampires, 247 necromancers, 132 werebeasts in World 2. Also enriched `details` JSONB with spheres/interactions/knowledge.
+
+2. **Site ownership (4.2)**: Added `<cur_owner_id>` extraction from legends_plus. 1,145 World 2 sites now have entity ownership ("The Silvery Deceivers" owns Soundedgrowled, etc.).
+
+3. **Schema collision (BUG-004)**: Identified but deferred — `historical_figures` PK is `id` alone, causing World 2 to miss 5,466 HFs (including 1,294 deities) that collide with World 1 IDs. Needs composite PK `(id, world_id)`.
+
+**Files modified:**
+- `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/ingest/xml_parser.py` — fixed supernatural detection + site ownership parsing
+- `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py` — added details column to flag queries + sphere display
