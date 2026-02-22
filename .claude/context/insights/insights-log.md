@@ -624,3 +624,19 @@ The change detector correctly produced 0 events in cycle 2 because no units arri
 ### 2026-02-22 [2e7e9a44f6c0]
 
 Note that the unit count jumped from 179 (earlier) to 185 — 6 new units appeared in the fortress in the ~20 minutes of game time that elapsed. These could be migrants, births, or visiting merchants. The watcher didn't catch them as ARRIVED events because they appeared during the bootstrap cycle. In continuous operation, subsequent arrivals would be detected.
+
+### 2026-02-22 [3ca18ffcbf99]
+
+**The JICM safety net is layered**: Even if the watcher's prep script fails, the `pre-clear-context-prep.sh` hook fires on every `/clear` submission, running the same prep script as a backup. And the `session-start.sh` hook checks the `.jicm-state` file to decide whether to inject compressed context. Three independent mechanisms work together — this is the "defense in depth" pattern applied to context preservation.
+
+**The `set -euo pipefail` in the watcher is a latent risk**: The watcher uses `set -euo pipefail` (line 22), which is listed in MEMORY.md as a known gotcha. The watcher survives because every function returns 0 explicitly and grep calls are guarded, but it's still fragile — one missed guard and the watcher dies silently.
+
+### 2026-02-22 [5d06881fd146]
+
+The emergency/lockout system was a **defense-in-depth** pattern from when JICM compression was unreliable (v5-era LLM-based agent took ~210s and could fail). The idea was: if the normal cycle fails, fire a raw `/compact` as a hail mary before Claude's native context lockout kicks in. With v7's bash-based prep script (~0.06s, near-zero failure rate), that safety net is no longer needed. Claude Code's own native `/compact` at ~80% serves as sufficient backstop if JICM somehow misses.
+
+### 2026-02-22 [f3f9f81b35b7]
+
+**JICM Context Propagation Issue**: The compressed context has been carrying forward "fix wait_for_idle() double-ESC" for 3+ compression cycles, but examining the code and metrics reveals this was already fixed. The `skip_trigger=true` parameter in `do_halt()` → `wait_for_idle()` prevents the second ESC. All recent cycles show `outcome: success` with 3-4s halt times.
+
+**Real Issue Found**: The threshold is set to 38% instead of the production 70%. This explains the rapid-fire compression cycles (40% triggers at 38% threshold).

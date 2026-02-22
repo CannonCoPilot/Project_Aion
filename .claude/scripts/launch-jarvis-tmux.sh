@@ -255,9 +255,9 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
     # Create watcher window (window 1, detached so we stay on window 0)
-    # Threshold=50 (accounts for queuing delay before compression starts)
+    # Threshold=70 (default) — single compression threshold, no emergency/lockout
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --threshold 50 --interval 3; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)

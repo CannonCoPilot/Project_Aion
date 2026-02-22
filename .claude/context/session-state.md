@@ -112,7 +112,7 @@ Previous session histories have been archived. For full details, see:
 **Branch**: Project_Aion
 **Baseline**: main (read-only AIfred baseline at 2ea4e8b)
 **MCPs**: 7 active
-**JICM threshold**: 75% (raised from 55% for research-heavy DF sessions)
+**JICM threshold**: 70%
 **HomeServer HTTP**: PowerShell on port 8888 — may need manual restart after idle
 
 ---

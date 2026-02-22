@@ -44,7 +44,7 @@ ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
 EXPORTS_DIR="$PROJECT_DIR/.claude/exports"
 
 # Thresholds and timing
-JICM_THRESHOLD=${JICM_THRESHOLD:-75}
+JICM_THRESHOLD=${JICM_THRESHOLD:-70}
 POLL_INTERVAL=${POLL_INTERVAL:-5}
 HALT_TIMEOUT=60
 COMPRESS_TIMEOUT=300
@@ -55,10 +55,6 @@ COOLDOWN_PERIOD=600
 
 # Context window constants
 MAX_CONTEXT_TOKENS=200000
-RESERVED_OUTPUT_TOKENS=${RESERVED_OUTPUT_TOKENS:-15000}
-COMPACT_BUFFER=${COMPACT_BUFFER:-28000}
-LOCKOUT_PCT=$(( (MAX_CONTEXT_TOKENS - RESERVED_OUTPUT_TOKENS - COMPACT_BUFFER) * 100 / MAX_CONTEXT_TOKENS ))
-EMERGENCY_PCT=$((LOCKOUT_PCT - 5))
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -1021,9 +1017,7 @@ draw_progress_bar() {
     for ((i=0; i<empty; i++)); do bar+="░"; done
 
     # Color based on percentage
-    if [[ $pct -ge $EMERGENCY_PCT ]]; then
-        echo "${C_RED}${bar}${C_RESET}"
-    elif [[ $pct -ge $JICM_THRESHOLD ]]; then
+    if [[ $pct -ge $JICM_THRESHOLD ]]; then
         echo "${C_YELLOW}${bar}${C_RESET}"
     else
         echo "${C_GREEN}${bar}${C_RESET}"
@@ -1098,7 +1092,7 @@ draw_dashboard() {
     echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7${C_RESET}                          ${state_ind}  ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╠══════════════════════════════════════════════════════╣${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Context: ${bar} ${pct}%%  ${tokens} tokens$(printf '%*s' $((14 - ${#tokens} - ${#pct})) '')${C_CYAN}║${C_RESET}"
-    echo -e "${C_CYAN}║${C_RESET}  Threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}  Emergency: ${C_RED}${EMERGENCY_PCT}%${C_RESET}  Lockout: ~${LOCKOUT_PCT}%     ${C_CYAN}║${C_RESET}"
+    echo -e "${C_CYAN}║${C_RESET}  Threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}                                      ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Session: ${uptime}  Comps: ${COMPRESSION_COUNT}  Errs: ${ERROR_COUNT}  Poll: ${ts}  ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Last: ${cycle_info}$(printf '%*s' $((42 - ${#LAST_CYCLE_SUMMARY})) '' 2>/dev/null || true)${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╚══════════════════════════════════════════════════════╝${C_RESET}"
@@ -1112,7 +1106,7 @@ banner() {
     echo -e "${C_CYAN}╔══════════════════════════════════════════════════════╗${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7 WATCHER${C_RESET} —  Stop-and-Wait Architecture       ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╚══════════════════════════════════════════════════════╝${C_RESET}"
-    echo -e "  threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}  emergency: ${C_RED}${EMERGENCY_PCT}%${C_RESET}  lockout: ~${LOCKOUT_PCT}%  interval: ${POLL_INTERVAL}s"
+    echo -e "  threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}  interval: ${POLL_INTERVAL}s"
     echo ""
 }
 
@@ -1220,16 +1214,6 @@ main() {
                     log INFO "JICM paused — exit protocol active (threshold checks suspended)"
                 fi
                 write_state
-                sleep "$POLL_INTERVAL"
-                continue
-            fi
-
-            # Emergency /compact (last resort before lockout)
-            if [[ "$pct" -ge "$EMERGENCY_PCT" ]] && [[ "$pct" != "0" ]]; then
-                log JICM "EMERGENCY: ${pct}% — sending /compact (lockout at ~${LOCKOUT_PCT}%)"
-                tmux_send_command "/compact"
-                COOLDOWN_UNTIL=$(( $(date +%s) + COOLDOWN_PERIOD ))
-                ERROR_COUNT=$((ERROR_COUNT + 1))
                 sleep "$POLL_INTERVAL"
                 continue
             fi
