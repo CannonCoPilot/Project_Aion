@@ -8,86 +8,102 @@
 
 ## Current Work Status
 
-**Status**: 🟢 Active — Session 31
+**Status**: 🟢 Active — Session 32
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: 192d651 (AC-06 evolution queue triage — 4 proposals implemented)
+**Last Commit**: 8d7eddb (plan Chronicler live polling daemon)
 **Last Pushed**: 2e7bbc1 (to origin/Project_Aion)
+
+---
+
+## What Was Accomplished (2026-02-21/22, Session 32 — Chronicler Bridge Expansion)
+
+### Phase 0: Remote Access + Deployment (COMPLETE)
+- **SMB file deployment working**: impacket `SMBConnection` to `Users` share (C$ blocked by UAC)
+- **DFHack RPC verified**: 173 sane units, world "The Realm of Portents", year 253
+- **Bridge pipeline verified end-to-end**: Lua repeat job → JSON → HTTP → Python → PostgreSQL
+
+### Bridge Lua Script Expanded (v5, 10,437 bytes — was 1,502)
+- **chronicler-bridge.lua** now captures 7 data domains from `df.global`:
+  - Game time (year, tick, season)
+  - Creature raws (934 creature types)
+  - **Unit summary**: 22 fortress dwarves with full names, stress, focus, longterm_stress, combat_hardened, squad, position
+  - **Armies**: 142+ armies with positions, member counts, controller IDs
+  - **Buildings**: 205+ buildings by type (16 building types)
+  - **Artifacts**: named artifacts with both DF-language and English translations via `dfhack.translation.translateName()`
+  - **Announcements**: last 20 game reports ("A human caravan from Solgil has arrived")
+  - **Diplomacy**: player civ relations via `entity.resources.diplomacy.state` (NOT `world.diplomacy` — doesn't exist)
+  - **History**: figure count (3,616), event count (35,946), last 50 events with type/year
+- **CP437→UTF-8 fix**: All name access uses `dfhack.df2utf()` helper; dwarf names like "Mörulzokun" render correctly
+- **pcall safety**: Each section wrapped in pcall so failure in one doesn't break others
+
+### Python Code Updated
+- **bridge.py**: Added accessor functions for all new sections (get_fortress_units, get_armies, get_buildings, get_artifacts, get_announcements, get_diplomacy, get_history)
+- **watcher.py**: Replaced hanging RPC Lua probes (probe_armies/probe_diplomacy) with bridge data storage via `_store_bridge_sections()`. Bridge data now stored in `lua_probes` table.
+- **config.py + client.py**: IP updated 192.168.64.2 → 192.168.4.194 (done in prior session)
+
+### Research Completed
+- **df-structures deep dive**: Confirmed exact Lua field paths for all 9 data domains
+- **Key finding**: `df.global.world.diplomacy` does NOT exist — diplomacy is per-entity at `entity.resources.diplomacy`
+- **Key finding**: `dfhack.translation.translateName(name_obj, true)` for English artifact/unit names
+- **Key finding**: `unit.status.current_soul.personality.stress` confirmed path; always nil-check `current_soul`
+
+### Deploy Scripts Created
+- `projects/chronicler/experiments/deploy-bridge.py` — deploys bridge.lua via SMB
+- `projects/chronicler/experiments/deploy-setup.py` — deploys one-time setup (firewall, init files)
+
+### Files on HomeServer
+- `C:\Users\Nathaniel\dfhack-scripts\chronicler-bridge.lua` (10,437 bytes, v5)
+- `C:\Users\Nathaniel\Desktop\chronicler-setup.ps1` (run as admin — firewall + init config)
+- `C:\Users\Nathaniel\Desktop\start-http-server.ps1` (PowerShell HTTP server on port 8888)
 
 ---
 
 ## What Was Accomplished (2026-02-20/21, Session 31 — Evolution Queue Triage + Reflection #14)
 
-- **Evolution Queue Drain (AC-06)**: Implemented 4/5 queued proposals from Reflection #13:
-  - REFL-016: Added evolution queue append step to /reflect workflow (HIGH)
-  - REFL-017: Included current-plans.md in JICM LLM prompt to fix hallucination (MEDIUM)
-  - REFL-018: Created /correct command for corrections capture (MEDIUM)
-  - REFL-019: Batch-fixed stale path references across AC state and lessons (LOW)
-- **Reflection #14 (AC-05)**: Quick depth reflection — 0 corrections, 5 new patterns (PAT-007 through PAT-011), 2 new proposals (REFL-021, REFL-022)
-- **REFL-020: Lessons Index Refresh**: Processed 50+ unindexed insights, added 5 new patterns to categorical index
-- **REFL-021: Proposal Status Sync**: Updated lessons index evolution proposal statuses
-- **JICM v7.1 Fixes**: Session targeting via signal fingerprinting, double-ESC prevention, archive inclusion, num_predict increase (400→2000), path injection for Qwen3:8b
-
----
-
-## What Was Accomplished (2026-02-20, Session 30 — Chronicler + Reflection #13)
-
-- **Chronicler AI Storyteller**: Built complete NL→SQL pipeline with SSE streaming, categorical routing (~45 keywords), monitoring system with TTFT/latency tracking
-- **DFHack Live Data Pipeline**: TCP client, protobuf RPC, live game → PostgreSQL sync (CDM-compatible)
-- **Reflection #13 (AC-05)**: Standard depth — identified dead-letter pipeline, JICM hallucination. Self-healed by appending 5 proposals directly to queue
-- **JICM v7.1**: HALT fix, session targeting, multi-plan tracking
-
----
-
-## What Was Accomplished (2026-02-19, Session 29 — M5 + self-improve + exit)
-
-- **M5 n8n Workflow Integration**: 2 workflows, Postgres tables, end-session webhook
-- **Self-Improvement Cycle (full /self-improve)**: 4 phases, 12 proposals, 5 implemented
-- **New artifacts**: /usage command + usage-dashboard skill
+- **Evolution Queue Drain (AC-06)**: Implemented 4/5 queued proposals
+- **Reflection #14 (AC-05)**: Quick depth reflection — 5 new patterns, 2 new proposals
+- **JICM v7.1 Fixes**: Session targeting, double-ESC prevention, archive inclusion
 
 ---
 
 ## Archived History
 
 Previous session histories have been archived. For full details, see:
-
 - session-state-2026-01-20.md
 - session-state-2026-02-06.md
 - session-state-2026-02-18.md
-
-### Most Recent Archive (Session 28, 2026-02-18)
-
-- M0-M4 complete: Foundation, Models, Database, RAG, Graphiti — all operational
-- Two-tier memory architecture: Qdrant (fast) + Graphiti (deep)
-- 7 MCPs registered, 36 graph entities, 6,491 Qdrant vectors
 
 ---
 
 ## Current Priorities
 
-### In Progress
-(none — all queued work complete)
+### COMPLETE — Chronicler Live Polling Daemon (All Phases Done)
+1. **Bridge pipeline is LIVE** — all 7 data domains flowing from DF → JSON → HTTP → Python
+2. **Watcher E2E verified** — `chronicler watch` ran 3 cycles successfully (RPC units + bridge sections → change detection → PostgreSQL)
+3. **DB populated**: 36 lua_probes rows, 60 sync_snapshots, 339 units, 1.65M total CDM records
+4. **Graceful shutdown** — SIGTERM/SIGINT handled cleanly
 
-### Up Next
+### Remaining Plan Items (from merry-wandering-ullman.md) — ALL COMPLETE
+- Phase 0: Remote access + deployment → DONE (SMB + HTTP server)
+- Phase 1: Schema + event model → DONE (pre-existing)
+- Phase 2: Expand Lua probes → DONE via bridge expansion
+- Phase 3: Enhanced bridge script → DONE (v5, 10,437 bytes, 7 data domains)
+- Phase 4: Change detector → DONE (verified working)
+- Phase 5: Watcher → DONE (E2E verified, bridge sections stored, graceful shutdown)
+- Phase 6: CLI command → DONE (`chronicler watch` verified)
+
+### Next Steps (Chronicler)
+1. **Commit DwarfCron changes** — bridge.py, watcher.py, probe.py, scripts/, deploy/
+2. **Create world entry** for "The Realm of Portents" (currently using world_id=1)
+3. **Expand bridge further** — entity/civilization data, per-unit skills (supplement RPC)
+4. **Run watcher during active gameplay** — verify change detection (arrivals, deaths, skill-ups)
+
+### Up Next (deferred — do NOT work on until DF data access is complete)
 1. EVO-2026-02-004: Computed state over maintained state pattern (LOW)
-2. REFL-022: Auto-capture self-corrections for JICM hallucination events (LOW)
-3. MCP context optimization — evaluate mcpToolSearch `true` vs `auto:15`
-4. M5.1: RAG Re-index + Cost Report workflows (need HTTP shim or host volume mount)
-
-### Recently Completed
-- ~~REFL-016: Evolution queue append step~~ — **DONE** (Session 31)
-- ~~REFL-017: current-plans.md in JICM LLM prompt~~ — **DONE** (Session 31)
-- ~~REFL-018: /correct command~~ — **DONE** (Session 31)
-- ~~REFL-019: Stale path references~~ — **DONE** (Session 31)
-- ~~REFL-020: Lessons index refresh~~ — **DONE** (Session 31)
-- ~~REFL-021: Proposal status sync~~ — **DONE** (Session 31)
-- ~~Reflection #14~~ — **DONE** (Session 31: quick depth, 5 patterns, 2 proposals)
-- ~~Run full /reflect via W0~~ — **DONE** (Session 30)
-
-### Pending Approvals (from self-improvement cycle)
-1. [MEDIUM] Agent-launch context guard at 60% (prevent context death from agent flood)
-2. [MEDIUM] Session summary auto-generation in end-session protocol
-3. [LOW-MED] Archive 12 orphaned research files
+2. REFL-022: Auto-capture self-corrections (LOW)
+3. MCP context optimization
+4. M5.1: RAG Re-index + Cost Report workflows
 
 ---
 
@@ -95,8 +111,10 @@ Previous session histories have been archived. For full details, see:
 
 **Branch**: Project_Aion
 **Baseline**: main (read-only AIfred baseline at 2ea4e8b)
-**MCPs**: 7 active (qdrant-mcp, postgres-mcp, neo4j, local-rag, jarvis-rag, jarvis-graphiti, + standard set)
+**MCPs**: 7 active
+**JICM threshold**: 75% (raised from 55% for research-heavy DF sessions)
+**HomeServer HTTP**: PowerShell on port 8888 — may need manual restart after idle
 
 ---
 
-*Session state updated 2026-02-21 22:55 MST — Session 31 (Reflection #14 + REFL-020 lessons refresh)*
+*Session state updated 2026-02-22 ~04:55 MST — Session 32 (All phases complete, E2E verified)*

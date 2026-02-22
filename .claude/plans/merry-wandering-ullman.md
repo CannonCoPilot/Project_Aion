@@ -1,27 +1,68 @@
-# Chronicler Live Polling Daemon — Implementation Plan
+# Chronicler Live Polling Daemon — Implementation Plan (Revised)
 
 ## Context
 
 Chronicler's `sync-live` command is a one-shot pull: connect to DFHack, dump all sane units into PostgreSQL, disconnect. There's no continuous capture, no change detection, no event logging. To build a real narrative engine that tracks fortress life over time, we need a **polling daemon** that continuously captures game state and detects meaningful changes (arrivals, deaths, skill-ups, mood shifts).
 
-Research confirmed:
-- **Worldgen capture via RPC is not viable** — no worldgen-specific RPC methods exist. Post-worldgen data comes via `legends.xml` (already handled by `chronicler ingest`).
-- **Core API** (`ListUnits`, `GetWorldInfo`, `ListEnums`, `ListSquads`) works without special config.
-- **RemoteFortressReader** (game time, creature raws, buildings, reports) requires `allow_remote=true` — we'll enable this as Step 0.
-- **Change detection pattern**: Two-level approach from reference repos — count-based mass detection + key-based per-unit diffing.
-- **First cycle**: Silent bootstrap (populate detector state, no events emitted).
+### Environment (Ground Truth)
 
-**Goal**: Enable `allow_remote`, then build a `chronicler watch` command that polls DFHack every N seconds, tracks in-game time, resolves race names, detects changes, and logs events to PostgreSQL.
+- **HomeServer**: Windows 10 Pro x86_64 at `192.168.4.194` (machine name `WIN-48L3R2QLQN0`) — physical PC on local network, NOT a VM
+- **DF**: Dwarf Fortress 53.10, **DFHack**: 53.10-r1 (release) on x86_64
+- **DFHack RPC**: TCP port 5000 (firewall rule "DFHack RPC" created, port open and responding)
+- **RemoteFortressReader**: NOT AVAILABLE — `enable RemoteFortressReader` returns "Cannot enable plugin". Not shipped with DFHack 53.10-r1.
+- **DF install path**: `C:\Program Files (x86)\Steam\steamapps\common\Dwarf Fortress\`
+- **DFHack init chain**: `dfhack.init` → `onLoad.init` → `onMapLoad.init`
+- **DFHack config scripts**: `dfhack-config/scripts/` — custom scripts placed here are auto-discoverable
+- **User**: Nathaniel / DwarfF0rtress. RDP enabled on HomeServer.
+
+### Data Access Strategy
+
+**Lua scripting via `df.global` is the primary approach.** This is the officially supported method for community modders. Two complementary mechanisms:
+
+1. **Bridge Lua script** (`chronicler-bridge.lua` as a `repeat` job) — PRIMARY MECHANISM. Runs every 100 ticks on the DFHack console thread (where `CoreSuspend` works), writes comprehensive game state to JSON served over HTTP. Captures: game time, creature raws, unit summaries w/ stress, armies, buildings, artifacts, announcements, diplomacy, history.
+
+2. **Core RPC API** (`ListUnits`, `GetWorldInfo`, `ListEnums`, `ListSquads`) — Always works. Provides unit lists with full skill/profession data, world info, enum definitions. This is the baseline.
+
+3. ~~**RPC Lua probes**~~ — `run_command('lua', ...)` HANGS due to CoreSuspend deadlock on RPC thread. Do NOT use. All data these probes would provide is now in the bridge.
+
+**IMPORTANT**: `df.global.world.diplomacy` does NOT exist. Diplomacy is per-entity at `entity.resources.diplomacy.state`.
+
+**What the bridge captures via `df.global`** (verified working):
+- `df.global.world.units.active` — fortress dwarves with stress, focus, names, squads
+- `df.global.world.armies.all` — army positions, member counts, controller IDs
+- `df.global.world.buildings.all` — building counts by type
+- `df.global.world.artifacts.all` — named artifacts with translated names
+- `df.global.world.history.figures` / `.events` — counts + recent events
+- `df.global.world.status.reports` — last 20 game announcements
+- `entity.resources.diplomacy.state` — player civ diplomatic relations
+- `df.global.cur_year` / `cur_year_tick` / `cur_season` — game time
+- `df.global.world.raws.creatures.all` — 934 creature type definitions
+
+Research confirmed via: df-structures XML, DFHack scripts repo, myDFHackScripts, df-ai. All indexed in Qdrant.
 
 ---
 
-## Phase 0: Enable `allow_remote` on VM DFHack
+## Phase 0: Remote Access + Deploy Lua Bridge
 
-**On the VM** (192.168.64.2): Set DFHack to allow remote plugin calls. This is typically done by adding to the DFHack init file or running `remote-server-security allow-remote` at the DFHack console. We'll verify by calling `GetCreatureRaws` and `GetWorldMap` from the host — the same calls that previously timed out.
+**Goal**: Establish reliable file transfer and command execution to HomeServer so we can deploy and update Lua scripts without manual intervention.
 
-**Smoke test from host**:
-- `GetWorldMap` → should return `cur_year`, `cur_year_tick`
-- `GetCreatureRaws` → should return race definitions (DWARF, ELF, GOBLIN, etc.)
+**Current blockers**: impacket remote exec auth is failing. SMB signing required, null sessions disabled. Possible causes: account lockout from failed attempts, credential format issues, UAC token filtering for admin shares.
+
+**Approach options** (try in order):
+1. **SMB to Users share** — `smbclient //192.168.4.194/Users -U Nathaniel` should give access to `C:\Users\Nathaniel\`. Place scripts there, then add to `script-paths.txt`.
+2. **RDP from Mac** — Install Microsoft Remote Desktop, connect to HomeServer, manually place files
+3. **PowerShell remoting (WinRM)** — Enable on HomeServer, use `evil-winrm` or Python `pywinrm`
+4. **SSH server on Windows** — Install OpenSSH Server feature on HomeServer
+5. **DFHack RPC `run_command`** — Execute commands like `ls` or `lua` remotely via the existing RPC connection (already works for Lua probes!)
+
+**Deploy steps once access works**:
+1. Copy `chronicler-bridge.lua` to `dfhack-config/scripts/` (or a custom script dir)
+2. Add `show` to dfhack.init (auto-show DFHack console on launch)
+3. Start bridge: `repeat --name chronicler --time 100 --timeUnits ticks --command [ chronicler-bridge ]`
+4. Start PowerShell HTTP server on port 8888 to serve `chronicler-state.json`
+5. Verify bridge from Mac: `curl http://192.168.4.194:8888/chronicler-state.json`
+
+**Smoke test**: Bridge returns JSON with `cur_year`, `cur_year_tick`, `creature_raws`.
 
 ---
 
@@ -29,237 +70,136 @@ Research confirmed:
 
 **File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/db/schema.sql`
 
-Add `unit_events` table:
-```sql
-CREATE TABLE IF NOT EXISTS unit_events (
-    id SERIAL PRIMARY KEY,
-    unit_id INT NOT NULL,
-    world_id INT NOT NULL REFERENCES worlds(id),
-    event_type TEXT NOT NULL,        -- ARRIVED, DIED, SKILL_UP, PROFESSION_CHANGED, SQUAD_CHANGED
-    old_value JSONB,                 -- previous state (null for ARRIVED)
-    new_value JSONB,                 -- current state (null for DIED)
-    game_year INT,                   -- in-game year from GetWorldMap
-    game_tick INT,                   -- in-game tick (0-403199 per year)
-    detected_at TIMESTAMPTZ DEFAULT now()
-);
-CREATE INDEX IF NOT EXISTS idx_unit_events_unit ON unit_events(unit_id);
-CREATE INDEX IF NOT EXISTS idx_unit_events_type ON unit_events(event_type);
-CREATE INDEX IF NOT EXISTS idx_unit_events_time ON unit_events(detected_at);
-```
-
-Add `sync_snapshots` table for tracking poll cycles:
-```sql
-CREATE TABLE IF NOT EXISTS sync_snapshots (
-    id SERIAL PRIMARY KEY,
-    world_id INT NOT NULL REFERENCES worlds(id),
-    unit_count INT NOT NULL,
-    event_count INT DEFAULT 0,
-    game_year INT,
-    game_tick INT,
-    synced_at TIMESTAMPTZ DEFAULT now()
-);
-```
+Already designed — `unit_events` and `sync_snapshots` tables. Also `lua_probes` table for storing probe results. No changes needed from original plan.
 
 ---
 
-## Phase 2: DFHack Client — Add RFR Methods (~40 LOC Python)
+## Phase 2: Expand Lua Probes for ALL Game Data (~120 LOC Python)
 
-**File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/client.py`
+**File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/probe.py`
 
-Add two new methods to `DFHackClient`:
+The probe framework already works (armies, diplomacy, unit detail). Expand to cover all data domains accessible via `df.global`:
 
 ```python
-def get_world_map(self) -> dict:
-    """Get world map data including cur_year/cur_year_tick. Requires allow_remote."""
-    # Calls RemoteFortressReader::GetWorldMap → WorldMap message
-    # Returns {'cur_year': int, 'cur_year_tick': int, ...}
+# Already implemented:
+probe_armies(client)        # df.global.world.armies.all
+probe_diplomacy(client)     # df.global.world.diplomacy.agreements
+probe_unit_detail(client, id)  # df.unit.find(id) — stress, personality
 
-def get_creature_raws(self) -> dict[int, str]:
-    """Build race_id → race_name mapping from creature raws. Requires allow_remote."""
-    # Calls RemoteFortressReader::GetCreatureRaws → CreatureRawList
-    # Returns {0: 'DWARF', 1: 'ELF', ...}
-    # Cached after first call (creature raws don't change during a game)
+# New probes to add:
+probe_game_time(client)     # df.global.cur_year, cur_year_tick, cur_season
+probe_population(client)    # df.global.world.units.active count by race
+probe_buildings(client)     # df.global.world.buildings.all — count, types
+probe_items_summary(client) # df.global.world.items.all — counts by type
+probe_artifacts(client)     # df.global.world.artifacts.all — named artifacts
+probe_history_figures(client)  # df.global.world.history.figures — notable figures
+probe_sites(client)         # df.global.world.entities.all — active sites/civs
+probe_reports(client)       # df.global.world.status.reports — combat/announcements
+probe_weather(client)       # df.global.cur_season_tick, weather state
+probe_unit_full(client, id) # Full unit: skills, attributes, personality, beliefs, goals
 ```
 
-The protobuf definitions already exist at `chronicler/dfhack/proto/RemoteFortressReader_pb2.py`. The client's `_call()` method supports plugin calls — just pass `plugin='RemoteFortressReader'`.
+Each probe is a single-line Lua snippet returning JSON via `print(string.format(...))`.
 
 ---
 
-## Phase 3: Change Detector (~80 LOC Python)
+## Phase 3: Enhanced Bridge Script (~80 LOC Lua)
 
-**New file**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/detector.py`
+**File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua`
 
-Two-level change detection (pattern from `Helper.lua` in reference repos):
+Expand from current (game time + creature raws only) to a comprehensive data dump:
+
+```lua
+-- Current: game time + creature raws (51 lines)
+-- Enhanced: add unit summary, building counts, recent events, artifact list
+-- Runs every 100 ticks as repeat job
+-- Writes chronicler-state.json with all sections
+```
+
+Key additions:
+- Unit count by race/caste
+- Building type summary
+- Recent announcement text (last 20)
+- Named artifact list
+- Active army positions
+- Fortress wealth/population stats
+
+---
+
+## Phase 4: Change Detector (~80 LOC Python) — Already Built
+
+**File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/detector.py`
+
+Already implemented. Tracks: ARRIVED, DIED, SKILL_UP, PROFESSION_CHANGED, SQUAD_CHANGED.
+
+---
+
+## Phase 5: Polling Daemon (~300 LOC Python) — Already Built, Needs Update
+
+**File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/watcher.py`
+
+Already has RFR > bridge > core fallback chain. The key update: when neither RFR nor bridge is available, use Lua probes for game time instead of giving up:
 
 ```python
-class ChangeDetector:
-    """Compares consecutive unit snapshots to emit events."""
-
-    def __init__(self):
-        self.previous: dict[int, dict] = {}
-        self._bootstrapped = False
-
-    def detect(self, current_units: list[dict]) -> list[dict]:
-        """Compare current vs previous. First call = silent bootstrap (no events)."""
-        current_by_id = {u['id']: u for u in current_units}
-
-        if not self._bootstrapped:
-            self.previous = current_by_id
-            self._bootstrapped = True
-            return []  # Silent bootstrap
-
-        events = []
-        # New arrivals
-        for uid, unit in current_by_id.items():
-            if uid not in self.previous:
-                events.append(...)
-        # Departures
-        for uid in self.previous:
-            if uid not in current_by_id:
-                events.append(...)
-        # Per-unit diffs (alive, profession, skills, squad)
-        for uid, unit in current_by_id.items():
-            if uid in self.previous:
-                events.extend(_diff_unit(uid, self.previous[uid], unit))
-
-        self.previous = current_by_id
-        return events
+# Current fallback: game_year = None, game_tick = None
+# New fallback: probe_game_time(client) via run_command('lua', ...)
 ```
 
-**Tracked changes** (in `_diff_unit`):
-- `is_alive` True→False → `DIED`
-- `profession` changed → `PROFESSION_CHANGED`
-- Skill level increased → `SKILL_UP` (batched per unit per cycle)
-- Squad assignment changed → `SQUAD_CHANGED`
+This means the watcher can operate at full capability using ONLY the RPC connection — no HTTP bridge needed as a hard requirement.
 
 ---
 
-## Phase 4: Polling Daemon (~100 LOC Python)
-
-**New file**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/watcher.py`
-
-```python
-async def watch_loop(pool, world_id: int, interval: float = 30.0):
-    """Continuous polling loop. Runs until SIGINT/SIGTERM."""
-    detector = ChangeDetector()
-    client = DFHackClient()
-    client.connect()
-
-    # One-time: build race cache from creature raws
-    race_map = client.get_creature_raws()
-
-    try:
-        while not _shutdown_event.is_set():
-            # 1. Get game time
-            world_map = client.get_world_map()
-            game_year = world_map.get('cur_year')
-            game_tick = world_map.get('cur_year_tick')
-
-            # 2. Pull current units (with race names resolved)
-            units = client.list_units(sane=True, skills=True, profession=True)
-            for u in units:
-                u['race_name'] = race_map.get(u['race'], str(u['race']))
-
-            # 3. Detect changes
-            events = detector.detect(units)
-
-            # 4. Upsert units + insert events + record snapshot (single txn)
-            async with pool.acquire() as conn:
-                async with conn.transaction():
-                    await _upsert_units(conn, units, world_id)
-                    await _insert_events(conn, events, world_id, game_year, game_tick)
-                    await _record_snapshot(conn, world_id, len(units), len(events),
-                                           game_year, game_tick)
-
-            # 5. Log summary
-            _log_cycle(game_year, game_tick, len(units), len(events), events)
-
-            # 6. Wait (interruptible)
-            try:
-                await asyncio.wait_for(_shutdown_event.wait(), timeout=interval)
-            except asyncio.TimeoutError:
-                continue
-    finally:
-        client.close()
-```
-
-Key design decisions:
-- **Reuse existing `DFHackClient`** — synchronous TCP, fine at 30s intervals
-- **Race resolution at startup** — creature raws cached once, applied to every unit
-- **Game time on every cycle** — `GetWorldMap` gives year/tick for event timestamps
-- **Single transaction** per cycle — atomic commit of units + events + snapshot
-- **Graceful shutdown** via `asyncio.Event` + signal handlers
-- **Refactor `sync.py`**: Extract upsert logic so both `sync-live` and `watch` share it
-
----
-
-## Phase 5: CLI Command (~30 LOC Python)
+## Phase 6: CLI Command — Already Built
 
 **File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/cli.py`
 
-```python
-@cli.command("watch")
-@click.option("--world-id", default=1, type=int)
-@click.option("--interval", default=30.0, type=float, help="Seconds between polls")
-def watch(world_id, interval):
-    """Continuously poll DFHack and log changes to the CDM."""
-    from chronicler.dfhack.watcher import watch_loop
-    # Setup pool, register SIGINT/SIGTERM handlers, run watch_loop
-```
+`chronicler watch` command exists with `--bridge-host`, `--interval`, `--enable-reports`, `--probe-interval` options.
 
 ---
 
-## Phase 6: Refactor sync.py (~20 LOC changed)
-
-**File**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/sync.py`
-
-Extract the 14-column UPSERT into `upsert_units(conn, units, world_id)` — reused by both `sync_units()` and `watch_loop`.
-
----
-
-## File Summary
+## File Summary (Remaining Work)
 
 | File | Action | ~LOC |
 |------|--------|------|
-| `chronicler/db/schema.sql` | Modify | +20 |
-| `chronicler/dfhack/client.py` | Modify | +40 (RFR methods) |
-| `chronicler/dfhack/detector.py` | Create | +80 |
-| `chronicler/dfhack/watcher.py` | Create | +100 |
-| `chronicler/dfhack/sync.py` | Modify | +/-20 (refactor upsert) |
-| `chronicler/cli.py` | Modify | +30 |
+| `chronicler/config.py` | Modified | IP updated to 192.168.4.194 |
+| `chronicler/dfhack/client.py` | Modified | IP updated to 192.168.4.194 |
+| `chronicler/dfhack/probe.py` | Expand | +80 (new probes) |
+| `chronicler/dfhack/scripts/chronicler-bridge.lua` | Expand | +40 (more data sections) |
+| `chronicler/dfhack/watcher.py` | Minor update | +10 (Lua probe fallback for game time) |
 
-**Total**: ~270 LOC, 2 new files, 4 modified files. No new dependencies.
+**Total remaining**: ~130 LOC changes. No new files needed.
 
 ---
 
 ## What This Intentionally Does NOT Do
 
-- **No worldgen capture** — RPC has no worldgen methods; `legends.xml` is the right path
+- **No RemoteFortressReader** — plugin not available in DFHack 53.10-r1
+- **No worldgen capture via RPC** — no worldgen-specific RPC methods; `legends.xml` is the right path
 - **No systemd/launchd service** — foreground CLI; Ctrl+C to stop
 - **No websocket push** — monitoring dashboard already polls; events queryable via SQL
-- **No building/item tracking** — future enhancement once unit polling is stable
 
 ---
 
-## Follow-Up Tasks (Out of Scope)
+## Blocking Issue: Remote Access to HomeServer
 
-1. **Narrative event synthesis** — Feed unit_events into the storyteller LLM for real-time fortress narratives
-2. **Building/item capture** — extend watcher to poll RFR's `GetBuildingDefList`, `GetItemList`
-3. **Report/announcement capture** — `GetReports` for combat logs, mood announcements
-4. **Monitoring integration** — Add watcher stats to the existing `/monitoring` dashboard
+The primary blocker is deploying files to HomeServer. Until we can place Lua scripts in the DF directory and start the PowerShell HTTP server, the bridge approach requires manual setup. Options ranked by feasibility:
+
+1. **User manually copies files via RDP** (works now, manual)
+2. **SMB to C:\Users\Nathaniel** + DFHack `script-paths.txt` pointing there (try next)
+3. **WinRM/SSH** for full remote command execution (needs HomeServer config)
+4. **DFHack RPC** can already execute arbitrary Lua — could bootstrap file writes from there
 
 ---
 
 ## Verification
 
-1. **Enable allow_remote** on VM DFHack, verify `GetWorldMap` and `GetCreatureRaws` respond
-2. Run schema migration: `psql -U jarvis -d chronicler -f chronicler/db/schema.sql`
-3. Ensure DF is running on VM with DFHack (port 5000)
-4. Run one-shot sync: `chronicler sync-live` (verify baseline still works)
-5. Start watcher: `chronicler watch --interval 10` (shorter for testing)
-6. First cycle: should see "Synced N units, 0 events" + game year/tick (silent bootstrap)
-7. Second cycle: events only if something actually changed in-game
-8. Cause a change in DF (e.g., assign dwarf to squad) → verify SQUAD_CHANGED event
-9. Ctrl+C → verify graceful shutdown (no partial transactions)
+1. Verify RPC connection: `chronicler sync-live` (already works)
+2. Deploy bridge script to HomeServer
+3. Start bridge: `repeat --name chronicler --time 100 --timeUnits ticks --command [ chronicler-bridge ]`
+4. Start HTTP server on HomeServer port 8888
+5. Verify bridge: `curl http://192.168.4.194:8888/chronicler-state.json`
+6. Start watcher: `chronicler watch --interval 10 --probe-interval 60`
+7. First cycle: "Synced N units, 0 events" + game year/tick (silent bootstrap)
+8. Verify Lua probes: `SELECT * FROM lua_probes ORDER BY probed_at DESC LIMIT 10;`
+9. Cause a change in DF → verify change event detected
 10. `SELECT * FROM unit_events ORDER BY detected_at DESC LIMIT 20;`
-11. `SELECT * FROM sync_snapshots ORDER BY synced_at DESC LIMIT 10;`
