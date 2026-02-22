@@ -418,17 +418,11 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
                 echo ""
             fi
 
-            # Most recent archived checkpoint (multi-cycle continuity signal)
-            ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
-            if [[ -d "$ARCHIVE_DIR" ]]; then
-                LATEST_ARCHIVE=$(ls -t "$ARCHIVE_DIR"/compressed-*.md 2>/dev/null | head -1)
-                if [[ -n "$LATEST_ARCHIVE" ]]; then
-                    echo "## Previous Checkpoint (last compression)"
-                    sed -n '/^## Current Task/,/^## Key Paths/p' "$LATEST_ARCHIVE" 2>/dev/null \
-                        | head -30
-                    echo ""
-                fi
-            fi
+            # Previous checkpoint inclusion REMOVED (2026-02-22).
+            # It created a feedback loop: LLM copied stale "Current Task" and
+            # "Critical Context" from prior checkpoints, propagating indefinitely.
+            # Tier 1 already provides session-state, git, tasks, conversation,
+            # and plans — sufficient for resumption without prior checkpoint echo.
 
             # Condensed conversation — last 8 messages, first 300 chars each
             # Full messages are in the Tier 1 raw appendix; LLM needs enough to derive current task
@@ -495,6 +489,7 @@ Rules:
 - ALWAYS preserve the Current Priorities section from session-state verbatim — do not paraphrase or omit items.
 - Derive the Current Task from the MOST RECENT conversation messages, not from stale session status.
 - CRITICAL: If Plan Status is provided, ONLY report tasks as IN PROGRESS if they appear under "## Active" in Plan Status. Plans under "## Recently Completed" are DONE — do not report them as in-progress.
+- CRITICAL: The "Previous Checkpoint Reference" section is from a PRIOR compression cycle. Do NOT copy its Current Task or Next Step. Derive Current Task ONLY from Recent Conversation and Active Tasks. If conversation is empty, say "No active conversation — check session-state.md for priorities."
 - The project root is: {project_dir}. Use this for all file paths — do NOT guess or use generic paths like /home/user.
 - Do NOT hallucinate. If uncertain, say so."""
 
