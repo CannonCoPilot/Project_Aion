@@ -16,7 +16,17 @@
 # Promotion threshold: frequency >= 3 AND complexity <= medium
 # High-complexity candidates become evolution proposals instead.
 
-candidates: []
+candidates:
+  - name: chronicler-schema-cache
+    description: "Dump Chronicler DB schema (table names, columns, types, row counts) to a reference file for rapid ad-hoc querying without information_schema round-trips"
+    trigger: "Any Chronicler DB exploration or validation session"
+    frequency: 1
+    complexity: low
+    first_seen: 2026-02-22
+    last_seen: 2026-02-22
+    source_sessions: [2026-02-22]
+    status: candidate
+    notes: "6+ iterative query failures this session from wrong column/table names. A cached schema.md would eliminate all of them."
 # Example:
 # - name: credential-rotation
 #   description: "Manual PAT extraction + remote URL update + push"

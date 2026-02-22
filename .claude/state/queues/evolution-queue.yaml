@@ -342,4 +342,72 @@ proposals:
       - ".claude/context/current-plans.md"
       - ".claude/context/psyche/self-knowledge/self-corrections.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-02-21 (Reflection #14, Session 31)
+  - id: REFL-023
+    date: "2026-02-22"
+    source: reflection-15
+    priority: high
+    status: queued
+    summary: "Fix XML parser boolean flag extraction for HF supernatural types"
+    problem: |
+      Legends XML contains deity/vampire/necromancer/werebeast/force tags but the parser
+      doesn't extract them, leaving all 55K+ HFs with false flags across both worlds.
+      This completely breaks categorical routing for supernatural beings.
+    proposal: |
+      Audit the XML parser's HF extraction to handle presence-based boolean tags
+      (e.g. <deity/>, <vampire/>, <necromancer/>). Re-ingest legends XML after fix.
+    implementation:
+      - Examine XML parser code for HF boolean tag handling
+      - Add extraction for deity, vampire, necromancer, werebeast, force, ghost tags
+      - Re-run ingest on existing legends XML files
+      - Verify counts with SELECT count(*) WHERE is_deity = TRUE
+    estimated_effort: medium
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/"
+      - ".claude/reports/reflections/reflection-2026-02-22-session32.md"
+
+  - id: REFL-024
+    date: "2026-02-22"
+    source: reflection-15
+    priority: medium
+    status: queued
+    summary: "Add confidence signaling to storyteller when context is sparse"
+    problem: |
+      Qwen3 8B hallucinates extensively when context retrieval returns minimal data
+      (<5 records or <200 chars). The system prompt says "don't fabricate" but the model
+      treats sparse context as creative license. Firebronze query (1 record, 28 chars)
+      generated entirely fabricated narrative.
+    proposal: |
+      In format_context(), prepend a confidence signal when records are sparse:
+      "WARNING: Very few records found. Base your response strictly on the records
+      below and clearly indicate when information is limited."
+    implementation:
+      - Add record count / char count check in format_context()
+      - Prepend warning text when below threshold
+      - Consider also adding to system prompt as reinforcement
+    estimated_effort: low
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/prompts.py"
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py"
+
+  - id: REFL-025
+    date: "2026-02-22"
+    source: reflection-15
+    priority: low
+    status: queued
+    summary: "Enrich war event collection context with belligerent entity names"
+    problem: |
+      War queries retrieve collection metadata but don't resolve attacker/defender entity IDs
+      to names. The LLM fabricates belligerent identities. The Barbarous Conflict was
+      attributed to wrong factions because entity names weren't in the context.
+    proposal: |
+      In retrieve_context(), when a war collection is found, JOIN or subquery to fetch
+      attacker and defender entity names and include them in the context text.
+    implementation:
+      - Add entity name JOINs to the collection_type war query in _run_category_query()
+      - Also add to the name-based collection search in retrieve_context()
+      - Format as "Attacker: [name] ([race]) vs Defender: [name] ([race])"
+    estimated_effort: low
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py"
+
+# Queue maintained by AC-05/AC-06 — Updated 2026-02-22 (Reflection #15, Session 32)
