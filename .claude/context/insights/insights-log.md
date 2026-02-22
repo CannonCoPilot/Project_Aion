@@ -673,3 +673,32 @@ The `/reflect` cycle is a 5-phase autonomic process (AC-05): data inventory → 
 ### 2026-02-22 [482167325634]
 
 The spatial correlation between units, items (corpses), buildings, and zones is perhaps the single most valuable enrichment for storytelling. DF gives us a full 3D spatial model — every entity has coordinates, and every room has bounds. By resolving positions to named locations at capture time, we transform raw coordinates into narrative context: "Urist sat alone in the tavern, staring at the spot where Bomrek had fallen" — all derivable from data that already exists in memory.
+
+### 2026-02-22 [974f02c8285b]
+
+The gap analysis document (`projects/chronicler/reports/data-gap-analysis-2026-02-22.md`) is ~1,200 lines covering every identified gap across all layers. It's structured as a reference guide for multi-session implementation — each gap has a severity rating, root cause, proposed fix, effort estimate, and file locations. The implementation plan (`chronicler-gap-closure.md`) breaks the work into 4 phases with concrete checkboxes.
+
+### 2026-02-22 [53269477c913]
+
+The crash is classic for PowerShell HttpListener servers: when a client disconnects mid-response (e.g., curl's 5-second timeout expires while the 130KB+ `chronicler-state.json` is being written), the `OutputStream.Write()` call throws an `HttpListenerException` with "I/O operation aborted." Because the `try/catch` only wraps the outer loop (not individual request handling), any single failed write kills the entire server. The fix is to wrap each request in its own `try/catch` so a client disconnect just logs a warning and moves to the next request.
+
+### 2026-02-22 [7e0b54208387]
+
+The key architectural change is **two-level error isolation**: 
+- **Inner try/catch** (per-request): catches `OutputStream.Write` failures when clients disconnect mid-response. The server logs the error and moves to the next request.
+- **Outer try/catch** (listener-level): catches `HttpListenerException` if the listener itself dies (port conflict, permission loss). Waits 3 seconds and creates a new listener.
+
+The original script had only one try/finally wrapping the entire loop — any exception from any request would fall through to the `finally` block, calling `$listener.Stop()` and printing "Server stopped." which is exactly what the screenshot showed.
+
+### 2026-02-22 [7ff0966ef7c1]
+
+Exit code 28 from curl means "operation timeout" — the client disconnected after 50ms while the server was still writing the 125KB response. In the old script, this would have triggered the `HttpListenerException` and killed the server. The new per-request try/catch catches it, logs it as a yellow warning, and continues serving.
+
+### 2026-02-22 [794cd0685da4]
+
+**Storyteller test results analysis:**
+1. **Fortress inhabitants** — 29 units returned with HF cross-references (kill counts, birth years). Working perfectly.
+2. **Wars** — Pulling from legends data. 10 named wars with date ranges.
+3. **Military squads** — Returns 0 squad records because `lua_probes` doesn't have v6 data yet (watcher hasn't run). Falls through to entity search which finds "military"-matching civilizations. Will work once watcher runs.
+4. **Recent events** — Shows ARRIVED/DEPARTED events with numeric race IDs (pre-enrichment data). Will improve as watcher captures more events.
+5. **Context grouping** — The new `format_context` groups by category with headers, making it easier for the LLM to distinguish Historical Figures from Live Status from Recent Events.

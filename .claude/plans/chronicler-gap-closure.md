@@ -143,17 +143,24 @@ Expand `chronicler-bridge.lua` from v5 (11 sections) to v6 with lossless event c
 
 ## Phase 4: XML Parser Fixes
 
-### 4.1 Boolean Flag Debugging (REFL-023)
-- [ ] Find a known deity in legends XML by manual grep
-- [ ] Trace parser execution for that HF to find where boolean detection fails
-- [ ] Fix tag detection for `<deity/>`, `<force/>`, `<ghost/>` presence tags
-- [ ] Re-import world data, verify flags are now TRUE for known supernaturals
-- [ ] Validate: "tell me about the gods" returns deity records
+### 4.1 Boolean Flag Debugging (REFL-023) — DONE
+- [x] Find a known deity in legends XML by manual grep
+- [x] Trace parser execution for that HF to find where boolean detection fails
+- [x] Fix tag detection — root cause: parser looked for nonexistent `<deity>`, `<force>`, `<ghost>` tags
+  - Deities detected via `<sphere>` child elements (1,300 in World 2 XML, 154 in World 1)
+  - Vampires detected via `<active_interaction>` starting with `DEITY_MAJOR_CURSE` (54 in World 2)
+  - Necromancers detected via `<interaction_knowledge>` starting with `SECRET` (247 in World 2)
+  - Werebeasts detected via `<active_interaction>` starting with `DEITY_CURSE_WEREBEAST` (132 in World 2)
+  - Also stores spheres/interactions/knowledge in `details` JSONB for enriched queries
+- [x] Updated both World 1 and World 2 HFs in DB with corrected flags
+- [x] Validated: supernatural HFs now query correctly
+- **NOTE (BUG-004)**: Schema uses `id INT PRIMARY KEY` without `world_id` composite key. World 2 is missing 5,466 HFs (including 1,294 deities) due to ID collision with World 1. Requires schema migration to fix.
 
-### 4.2 Site Ownership Fix (BUG-003)
-- [ ] Examine legends XML for `<entity_site_link>` structure within entities
-- [ ] During entity parsing, extract site links and update sites.owner_entity_id
-- [ ] Re-import, verify site ownership populated
+### 4.2 Site Ownership Fix (BUG-003) — DONE
+- [x] Examined legends_plus XML for `<cur_owner_id>` inside `<site>` elements
+- [x] Added site ownership extraction to `_parse_legends_plus()`
+- [x] Added pipeline step to UPDATE `sites.owner_entity_id` from cur_owner_id
+- [x] Applied fix: World 2: 1,145/1,899 sites now have owners; World 1: 226 sites updated
 
 ### 4.3 Region/Geography Parsing
 - [ ] Add `<regions>` parsing → regions table (name, type, coords, evilness, rainfall, etc.)
