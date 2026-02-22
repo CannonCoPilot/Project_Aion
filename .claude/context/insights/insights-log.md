@@ -862,3 +862,39 @@ This plan touched every layer of the Chronicler stack:
 **Graph explosion prevention via the deity filter and per-hop cap**
 
 The `FILTERED_LINK_TYPES = {"deity"}` filter is crucial — without it, any HF connected to a deity through worship would pull in *all* 146K deity links. The `MAX_NODES_PER_HOP = 50` cap handles entity membership explosion (civilizations with 2,759 members get capped to 50 displayed, with the UI showing "showing 50 of 2,759 members"). These two guards together keep even 2-hop graphs manageable (87 nodes for a necromancer, which has richer-than-average connections through master/apprentice chains and entity memberships).
+
+### 2026-02-22 [8dd26e2fecc4]
+
+**Data-driven revision of Knowledge Horizon caveats**
+
+The exploration revealed several things that change our design assumptions:
+
+1. **CAV-004 (starting dwarf backgrounds) may be unnecessary** — All 339 units in world 5 have matching HF records. DF appears to retroactively create HF entries for embark dwarves. This needs verification across more worlds, but if it holds, we can drop the synthetic background generation entirely.
+
+2. **Religion is the social glue, not cults** — The original caveat assumed cult-like organizations would be small and distinct. In reality, multi-membership is *overwhelmingly religious* — dwarves join 6+ religions simultaneously. A dwarf knowing all members of all their religions could expose thousands of HFs. Religion needs its own tier, not the same treatment as guilds/military.
+
+3. **Noble positions are a CDM gap** — `position_name` is entirely NULL in `hf_entity_links`. Positions are only recorded as numeric IDs in `history_events.details` JSONB. To implement CAV-002 (civilization nobles always visible), we'd first need to extract `<entity_position>` mappings from the XML and resolve the position IDs.
+
+### 2026-02-22 [c0de247d87a5]
+
+**Position extraction results reveal DF's organizational depth**
+
+1. **Gendered position naming**: Civilization positions carry male/female variants (king/queen, duke/duchess, baron/baroness). This is significant for the Knowledge Horizon because when a dwarf knows "the monarch of entity X," we can resolve the *specific title* based on the holder's sex — enabling natural language like "Queen Urist" rather than "Monarch Urist."
+
+2. **Religion positions are dynamically named**: Notice "sacred lake," "holy drool," "sacred spine" in the results — these are procedurally generated titles unique to each religion. This confirms the user's earlier observation: religion positions cannot be discovered from static game files, only from the legends XML on a per-world basis.
+
+3. **Dual-source merging worked perfectly**: 24,021 position links from standard legends + 6,823 from legends_plus = 30,844 total (after dedup via `DO NOTHING` on the unique constraint). The overlap was ~0 because standard legends has the historical links (with start/end years) while legends_plus has the current assignments (without dates).
+
+### 2026-02-22 [b9bafb0065e3]
+
+**Position extraction results reveal the three-layer architecture**
+
+The data confirms exactly the structure predicted by the plan:
+
+1. **Definition layer**: 11,712 `entity_positions` — each entity defines its own position roster. Civilizations have king/queen/duke/count/baron hierarchies. Religions have dynamically-generated names like "holy drool", "sacred spine", "high slaughter".
+
+2. **Assignment layer**: 6,823 current position assignments from legends_plus merged into `hf_position_links`, filling in who currently holds each position.
+
+3. **History layer**: 24,021 position links from standard legends (active + former), yielding a merged total of 30,844 rows — 13,666 active, 17,178 former.
+
+The gendered variant columns (`name_male`/`name_female`) are populated for nobility (king/queen, duke/duchess, baron/baroness) but not for administrative roles (general, captain, diplomat). Spouse titles like "queen consort" are also captured.

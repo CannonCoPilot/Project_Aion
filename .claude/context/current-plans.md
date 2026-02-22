@@ -1,6 +1,7 @@
 # Current Plans
 
 ## Active
+- [sparkling-sauteeing-snowglobe](/Users/nathanielcannon/Claude/Jarvis/.claude/plans/sparkling-sauteeing-snowglobe.md) — (auto-tracked)
 - [woolly-swinging-naur](/Users/nathanielcannon/Claude/Jarvis/.claude/plans/woolly-swinging-naur.md) — (auto-tracked)
 *(No active plans — ready for next initiative)*
 
