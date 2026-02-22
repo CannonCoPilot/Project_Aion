@@ -44,7 +44,7 @@ ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
 EXPORTS_DIR="$PROJECT_DIR/.claude/exports"
 
 # Thresholds and timing
-JICM_THRESHOLD=${JICM_THRESHOLD:-55}
+JICM_THRESHOLD=${JICM_THRESHOLD:-75}
 POLL_INTERVAL=${POLL_INTERVAL:-5}
 HALT_TIMEOUT=60
 COMPRESS_TIMEOUT=300
@@ -466,27 +466,42 @@ wait_for_idle() {
         fi
     fi
 
-    # Subsequent checks: poll pattern without re-sending ESC
+    # Subsequent checks: poll for idle state
     while [[ $waited -lt $max_wait ]]; do
         sleep 2
         waited=$((waited + 2))
 
-        state=$(poll_idle_pattern)
-        if [[ "$state" == "idle" ]]; then
-            WAIT_RESULT="idle"
-            log INFO "Idle confirmed via pattern poll (${waited}s)"
-            return 0
-        fi
-
-        # Fallback: bare prompt with no activity indicators nearby
         local pane
         pane=$(tmux_capture)
-        if [[ -n "$pane" ]] && echo "$pane" | tail -3 | grep -qE '^❯\s*$'; then
-            if ! echo "$pane" | tail -8 | grep -qE '↑ [1-9][0-9]* tokens'; then
+
+        if [[ "$skip_trigger" == "true" ]]; then
+            # HALT path: Do NOT use poll_idle_pattern — the "Interrupted" text
+            # on screen is stale (from ESC #1 in do_halt). Using it causes
+            # unreliable detection (content between stale Interrupted and
+            # separator → "not_idle" even when Jarvis has finished responding).
+            # Instead: check for acknowledgment keywords + bare prompt.
+            if [[ -n "$pane" ]] && echo "$pane" | tail -20 | grep -qiE '(understood|halted|stopping|acknowledged|context restored)'; then
                 WAIT_RESULT="idle"
-                log INFO "Idle confirmed via prompt fallback (${waited}s)"
+                log INFO "HALT acknowledged via polling (${waited}s)"
                 return 0
             fi
+        else
+            # Normal path: use idle pattern detection (ESC was just sent)
+            state=$(poll_idle_pattern)
+            if [[ "$state" == "idle" ]]; then
+                WAIT_RESULT="idle"
+                log INFO "Idle confirmed via pattern poll (${waited}s)"
+                return 0
+            fi
+        fi
+
+        # Fallback (both paths): bare prompt (❯ alone on a recent line)
+        # NOTE: Removed false token-activity guard — the CC status bar always
+        # shows "↑ NNN tokens" (static count), which isn't an activity signal.
+        if [[ -n "$pane" ]] && echo "$pane" | tail -3 | grep -qE '^❯\s*$'; then
+            WAIT_RESULT="idle"
+            log INFO "Idle confirmed via prompt fallback (${waited}s)"
+            return 0
         fi
     done
 

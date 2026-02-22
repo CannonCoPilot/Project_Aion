@@ -8,7 +8,7 @@ Master Archon: autonomous infrastructure, development, and self-improvement agen
 
 - **Session Start (AC-01)**: Read `session-state.md` (includes priorities), begin work immediately
 - **During Work (AC-02)**: Execute → Check → Review → Drift Check → Context Check → Continue
-- **Context (AC-04 JICM)**: 55% compress, 73% emergency, 78.5% lockout ceiling
+- **Context (AC-04 JICM)**: 75% compress, 73% emergency, 78.5% lockout ceiling
 - **Session End (AC-09)**: Run `/end-session`
 
 Use **TodoWrite** for any task with 2+ steps. Iterate until verified.
