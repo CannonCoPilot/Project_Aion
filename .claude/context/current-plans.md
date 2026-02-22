@@ -1,9 +1,11 @@
 # Current Plans
 
 ## Active
-- [Chronicler Gap Closure](.claude/plans/chronicler-gap-closure.md) — Lossless event capture, narrative enrichment, storyteller integration, XML fixes
+- [woolly-swinging-naur](/Users/nathanielcannon/Claude/Jarvis/.claude/plans/woolly-swinging-naur.md) — (auto-tracked)
+*(No active plans — ready for next initiative)*
 
 ## Recently Completed
+- [Chronicler Gap Closure](.claude/plans/chronicler-gap-closure.md) — Data integrity, narrative enrichment, XML completeness, 131-test suite
 - [Chronicler Live Polling Daemon](.claude/plans/merry-wandering-ullman.md) — DFHack continuous ETL with change detection
 
 - [JICM v7.1 Fixes](.claude/plans/cheerful-yawning-lobster.md) — HALT fix, session targeting, data enrichment
