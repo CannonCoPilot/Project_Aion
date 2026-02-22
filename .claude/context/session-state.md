@@ -11,12 +11,21 @@
 **Status**: 🟢 Active — Session 32
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: 8d7eddb (plan Chronicler live polling daemon)
-**Last Pushed**: 2e7bbc1 (to origin/Project_Aion)
+**Last Commit**: 661f26f (fix JICM stale context feedback loop)
+**Last Pushed**: 661f26f (to origin/Project_Aion)
 
 ---
 
-## What Was Accomplished (2026-02-21/22, Session 32 — Chronicler Bridge Expansion)
+## What Was Accomplished (2026-02-21/22, Session 32 — Chronicler Bridge + JICM Fixes)
+
+### JICM v7 Quality Fixes (Late Session 32)
+- **Stale context feedback loop fixed**: Removed previous checkpoint's "Current Task" from LLM enrichment input, breaking infinite echo where stale tasks propagated across 6+ compression cycles
+- **Emergency/lockout system removed**: Simplified JICM to single 70% threshold (v5-era emergency `/compact` and lockout ceiling no longer needed with v7's 7s compression)
+- **Performance assessed**: 126 total cycles, 94.4% success rate. v7 averages 44s per cycle (6.4x faster than older 282s approach). Zero restore retries.
+- **Threshold normalized**: 70% across all scripts (watcher, restart-watcher, launch-jarvis-tmux, CLAUDE.md)
+- **Commits pushed**: `661f26f` to `origin/Project_Aion`
+
+### Chronicler Bridge Expansion (Earlier Session 32)
 
 ### Phase 0: Remote Access + Deployment (COMPLETE)
 - **SMB file deployment working**: impacket `SMBConnection` to `Users` share (C$ blocked by UAC)
@@ -117,4 +126,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-22 ~05:15 MST — Session 32 (Bridge v6.2 with 10 domains, 3 change events captured)*
+*Session state updated 2026-02-22 ~04:50 UTC — Session 32 (JICM feedback loop fix + performance assessment)*
