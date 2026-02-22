@@ -818,3 +818,47 @@ The correct computation should group by `hf_id_2` (the **slayer**), counting how
 The composite PK issue is a foundational corruption. Every query that JOINs across legends tables — historical figures to events, events to sites, HFs to relationships — is operating on incomplete data. Adding richer storyteller queries (Phase 2) without fixing the PKs (Phase 1) would mean building more elaborate views of corrupted data. The kill_count bug compounds this: the "Notable figures" world overview shows arbitrary dead figures instead of legendary warriors.
 
 **The architectural lesson**: `ON CONFLICT DO NOTHING` is a silent data destroyer when your uniqueness constraints are wrong. It's the database equivalent of `catch: pass` — errors disappear without a trace.
+
+### 2026-02-22 [950b485e01d1]
+
+**Design intent vs implementation drift:**
+
+The original project plan (Feb 18) explicitly specified world_id-namespaced IDs. The schema implemented 4 days later used single-column `INT PRIMARY KEY` — likely a simplification during rapid prototyping that never got corrected. This is a common pattern: when building fast, FK integrity and multi-tenancy get deferred and then forgotten. Phase 1 isn't adding a new feature — it's completing the original design.
+
+### 2026-02-22 [faaba7d9f62b]
+
+**Confidence signaling** lets the storyteller LLM know how much context it has to work with. When the context retriever finds only 1-2 records, the storyteller might fabricate details to fill the gap. By explicitly flagging "Context is limited — be cautious about specifics", we reduce hallucination. Conversely, "Rich context available" encourages the LLM to weave the data into detailed narrative rather than hedging unnecessarily.
+
+### 2026-02-22 [d463b2460412]
+
+**Phase 2 architecture recap**: The storyteller context retriever now has a 3-layer enrichment pipeline:
+1. **Static relationships** (hf_links, hf_entity_links, hf_site_links) — these are stable historical data from XML imports, giving the LLM family trees, political positions, and site associations.
+2. **Dynamic probe data** (emotions, zones) — these come from the live bridge and change every poll cycle, providing real-time fortress state.
+3. **Meta-signals** (confidence notes) — these tell the LLM about its own context quality, reducing hallucination when data is sparse.
+
+This separation matters because each layer has different freshness guarantees and the storyteller prompt can weight them accordingly.
+
+### 2026-02-22 [23c4b3f97997]
+
+**Phase 3 design decisions**:
+
+1. **Dual-source parsing pattern**: Written contents and underground regions both require data from two XML files. The approach — parse the richer source first (`legends.xml` for forms/types/depth), then enrich from the other (`legends_plus.xml` for coords/pages) via `ON CONFLICT DO UPDATE SET ... COALESCE` — prevents data loss while respecting FK insertion order. This same pattern was already used for entities and sites.
+
+2. **The underground_regions bug**: A subtle data loss issue where `type` and `depth` were silently NULL because the parser only read from `legends_plus.xml` (which has coords but not type/depth). The fix adds `_parse_underground_regions()` from `legends.xml` first, then enriches coords from plus. This is a good example of why verification tasks (3.3) are worth doing — the count matched (no missing rows), but the data quality was degraded.
+
+3. **Historical eras gotcha**: The `_int()` helper skips "-1" values (treating them as null references), but for eras, `-1` means "the beginning of time". The fix uses raw `int()` parsing. This is a cross-cutting concern — any field where `-1` has semantic meaning instead of "null" needs explicit handling.
+
+### 2026-02-22 [1739fe813b03]
+
+**Chronicler Gap Closure — A Complete Data Pipeline Overhaul**:
+
+This plan touched every layer of the Chronicler stack:
+1. **Data integrity (Phase 0-1)**: The composite PK migration was the most impactful change — recovering 5,466 historical figures that were silently lost to cross-world ID collisions. This is a classic problem when importing multi-tenant data into a single-tenant schema.
+2. **Query enrichment (Phase 2)**: Moving from raw IDs to resolved names in the storyteller makes the difference between "hf_id_2=4527 killed hf_id_1=892" and "Bomrek was slain by Urist at Goldenhall in year 253" — the data was always there, it just wasn't being joined.
+3. **Test safety net (Phase 4)**: 131 tests in 0.19s means the full suite runs faster than a developer can switch windows. This low-friction testing is what makes future changes safe.
+
+### 2026-02-22 [736c11451f33]
+
+**Graph explosion prevention via the deity filter and per-hop cap**
+
+The `FILTERED_LINK_TYPES = {"deity"}` filter is crucial — without it, any HF connected to a deity through worship would pull in *all* 146K deity links. The `MAX_NODES_PER_HOP = 50` cap handles entity membership explosion (civilizations with 2,759 members get capped to 50 displayed, with the UI showing "showing 50 of 2,759 members"). These two guards together keep even 2-hop graphs manageable (87 nodes for a necromancer, which has richer-than-average connections through master/apprentice chains and entity memberships).

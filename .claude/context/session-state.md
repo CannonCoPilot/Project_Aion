@@ -112,13 +112,19 @@ Previous session histories have been archived. For full details, see:
 - Phase 5: Watcher → DONE (E2E verified, bridge sections stored, graceful shutdown)
 - Phase 6: CLI command → DONE (`chronicler watch` verified)
 
+### COMPLETE — Chronicler Gap Closure (All 5 Phases Done)
+- **Phase 0**: 3 data integrity bugs fixed (kill_count, link dedup, region parsing)
+- **Phase 1**: Composite PK migration (13 tables, 5,466 HFs recovered)
+- **Phase 2**: Storyteller enrichment (relationships, events, emotions, wars, confidence)
+- **Phase 3**: XML completeness (written_contents, eras, underground_regions)
+- **Phase 4**: Operational hardening (131 tests, lua_probes retention, bridge health)
+
 ### Next Steps (Chronicler)
 1. **Run watcher long-term** — extended session to capture arrivals, deaths, profession changes
 2. **Narrative engine** — use bridge + event data to generate natural language fortress stories
 3. **Skills time-series** — track skill progression over time from dwarf_skills snapshots
-4. **Bridge health monitoring** — detect HTTP server outages, auto-reconnect
 
-### Up Next (deferred — do NOT work on until DF data access is complete)
+### Up Next (DF data access is complete — these are now eligible)
 1. EVO-2026-02-004: Computed state over maintained state pattern (LOW)
 2. REFL-022: Auto-capture self-corrections (LOW)
 3. MCP context optimization
