@@ -748,3 +748,73 @@ Key details:
 | **3. Log Rotation** | Truncated 5 oversized log files | **84MB → 5.8MB** (93% reduction) |
 
 The `debug.log` at 84MB was the main offender — likely accumulated across 30+ sessions without ever being rotated. The `orchestration-detections.jsonl` at 3.5MB suggests the orchestration detector hook fires very frequently (possibly on every prompt submit).
+
+### 2026-02-22 [f03c3976cedf]
+
+**Idle-hands infinite loop root cause + fix:**
+
+The bug was a **missing cooldown between cycles**. The flow was:
+1. Hook cycles through commit → housekeep → reflect (3 phases × 3 cycles = 9 turns)
+2. Cycle cap reached → state file deleted
+3. Ennoia (session orchestrator in W2) detects idle again ~15 min later → recreates state file
+4. New cycle starts at phase 1 — infinite loop at the Ennoia level
+
+The fix adds a **30-minute cooldown file** (`.idle-hands-cooldown.W0`) written when the cycle cap is hit. On subsequent activations, the hook checks the cooldown epoch and refuses to run until it expires. This gives the user time to provide actual work before maintenance cycles resume.
+
+### 2026-02-22 [734953f61649]
+
+**Root cause of the infinite idle-hands loop:**
+
+The loop was caused by a **producer-consumer desync**. Two independent systems interact:
+- **Producer** (Ennoia, runs in W2): Detects idle, creates `.idle-hands-active.W0`
+- **Consumer** (idle-hands-hook.sh, stop hook): Reads state, advances phases, eventually cleans up
+
+The consumer had a cycle cap (3 cycles → delete state file), but the producer had no knowledge of this. It would re-detect idle and recreate the file immediately. The fix required adding cooldown awareness to **both** sides — the consumer writes a cooldown timestamp, and the producer respects it.
+
+This is a classic distributed coordination pattern: when two processes share state via files, both must agree on the lifecycle protocol.
+
+### 2026-02-22 [a9b0fecad416]
+
+**Claude Code hook caching behavior:**
+
+Claude Code appears to cache hook scripts at session start. Edits to `.sh` hook files during an active session don't take effect — the cached version continues to run. This means:
+- Hook bug fixes require session restart to take effect
+- The only way to stop a misbehaving hook mid-session is to deregister it from `settings.json`
+- Settings.json changes ARE picked up live (since the block stopped after deregistration)
+
+This is worth recording in MEMORY.md as a gotcha.
+
+### 2026-02-22 [1a7e1edeb538]
+
+**The `/dev/null` symlink trick:**
+
+When a file path is symlinked to `/dev/null`:
+- `[[ -f path ]]` returns **false** (it's a character device, not a regular file)
+- `cat > path` succeeds but **discards all output**
+- `rm -f path` removes the **symlink**, not `/dev/null` itself
+
+This makes it a useful "black hole" for state files that keep getting recreated by external processes — writes succeed silently but reads find nothing, and existence checks fail.
+
+### 2026-02-22 [75297e2765d7]
+
+**Architecture at a glance — what's actually built:**
+
+Chronicler has a remarkably complete two-tier data system. The Lua bridge (923 lines, 16 data domains) feeds live fortress state through HTTP to a Python watcher (355 lines) with two-level change detection (core RPC + bridge enriched fields). The XML parser (733 lines) handles 8 of 14+ legends sections. The storyteller (723-line context retriever + 93-line prompt system) does categorical routing across 44 keywords into both historical and live data.
+
+**The critical gap isn't missing features — it's data integrity.** The `ON CONFLICT DO NOTHING` with single-column PKs silently drops 5,466 historical figures from World 2. Every subsequent improvement (better parsing, richer storytelling) is built on incomplete data.
+
+### 2026-02-22 [80498995bb5d]
+
+**The kill_count bug (lines 708-712 of xml_parser.py):**
+
+The query groups by `hf_id_1` (the **victim** in death events) and counts how many death events each victim appears in. Since each HF can only die once, this gives kill_count=1 for every figure that was killed, and 0 for everyone else. The field is named "kill_count" but actually computes "was_killed_by_someone" — a boolean masquerading as a count.
+
+The correct computation should group by `hf_id_2` (the **slayer**), counting how many victims each killer has dispatched. A legendary dragon-slayer with 200 kills currently shows kill_count=0 (if alive) or kill_count=1 (if dead).
+
+### 2026-02-22 [9ec50aadc3c0]
+
+**Why data integrity must come before features:**
+
+The composite PK issue is a foundational corruption. Every query that JOINs across legends tables — historical figures to events, events to sites, HFs to relationships — is operating on incomplete data. Adding richer storyteller queries (Phase 2) without fixing the PKs (Phase 1) would mean building more elaborate views of corrupted data. The kill_count bug compounds this: the "Notable figures" world overview shows arbitrary dead figures instead of legendary warriors.
+
+**The architectural lesson**: `ON CONFLICT DO NOTHING` is a silent data destroyer when your uniqueness constraints are wrong. It's the database equivalent of `catch: pass` — errors disappear without a trace.
