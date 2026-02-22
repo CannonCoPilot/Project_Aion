@@ -410,4 +410,32 @@ proposals:
     related:
       - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-02-22 (Reflection #15, Session 32)
+  - id: REFL-026
+    date: "2026-02-22"
+    source: reflection-15b
+    priority: high
+    status: queued
+    summary: "Migrate CDM tables to composite primary key (world_id, id)"
+    problem: |
+      The historical_figures table uses `id INT PRIMARY KEY` without world_id in the composite key.
+      When World 2 was imported with ON CONFLICT DO NOTHING, 5,466 HFs (including 1,294 deities)
+      silently collided with World 1 IDs and were dropped. Every multi-world table with simple id PK
+      has this problem: historical_figures, entities, sites, regions, artifacts, written_contents,
+      event_collections. Future world imports will silently lose data.
+    proposal: |
+      Migrate all CDM tables to composite primary keys (world_id, id). Update all foreign key
+      references accordingly. Re-import World 2 data after migration.
+    implementation:
+      - Generate migration script: ALTER TABLE ... DROP CONSTRAINT ... ADD PRIMARY KEY (world_id, id)
+      - Update all FK references (e.g., hf_links.hf_id → (world_id, hf_id))
+      - Update Python model layer (chronicler/models/) with composite PKs
+      - Update storyteller context queries to include world_id filter
+      - Re-import World 2 legends XML
+      - Validate count comparison between XML parse and DB records per world
+    estimated_effort: medium-high
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/models/"
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py"
+      - ".claude/reports/reflections/reflection-2026-02-22-session32b.md"
+
+# Queue maintained by AC-05/AC-06 — Updated 2026-02-22 (Reflection #15b, Session 32b)
