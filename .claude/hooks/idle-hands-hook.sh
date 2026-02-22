@@ -67,10 +67,10 @@ case "$CURRENT_PHASE" in
         # Cap at 3 cycles to prevent infinite loops
         if [[ $NEXT_CYCLE -gt 3 ]]; then
             rm -f "$IH_FILE"
-            # Set 30-minute cooldown to prevent Ennoia from immediately recreating
-            COOLDOWN_EPOCH=$(( $(date +%s) + 1800 ))
+            # Set 2-hour cooldown to prevent repeated cycles when all maintenance is done
+            COOLDOWN_EPOCH=$(( $(date +%s) + 7200 ))
             echo "$COOLDOWN_EPOCH" > "$PROJECT_DIR/.claude/context/.idle-hands-cooldown.W${WINDOW}"
-            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | W${WINDOW} | cycle cap reached (3), cleaned up, cooldown until +30m" >> "$LOG" 2>/dev/null
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | W${WINDOW} | cycle cap reached (3), cleaned up, cooldown until +2h" >> "$LOG" 2>/dev/null
             exit 0
         fi
         # Re-evaluate: uncommitted changes?
