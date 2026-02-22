@@ -94,10 +94,10 @@ Previous session histories have been archived. For full details, see:
 - Phase 6: CLI command → DONE (`chronicler watch` verified)
 
 ### Next Steps (Chronicler)
-1. **Commit DwarfCron changes** — bridge.py, watcher.py, probe.py, scripts/, deploy/
-2. **Create world entry** for "The Realm of Portents" (currently using world_id=1)
-3. **Expand bridge further** — entity/civilization data, per-unit skills (supplement RPC)
-4. **Run watcher during active gameplay** — verify change detection (arrivals, deaths, skill-ups)
+1. **Run watcher long-term** — extended session to capture arrivals, deaths, profession changes
+2. **Narrative engine** — use bridge + event data to generate natural language fortress stories
+3. **Skills time-series** — track skill progression over time from dwarf_skills snapshots
+4. **Bridge health monitoring** — detect HTTP server outages, auto-reconnect
 
 ### Up Next (deferred — do NOT work on until DF data access is complete)
 1. EVO-2026-02-004: Computed state over maintained state pattern (LOW)
@@ -117,4 +117,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-02-22 ~04:55 MST — Session 32 (All phases complete, E2E verified)*
+*Session state updated 2026-02-22 ~05:15 MST — Session 32 (Bridge v6.2 with 10 domains, 3 change events captured)*
