@@ -716,3 +716,23 @@ Exit code 28 from curl means "operation timeout" — the client disconnected aft
 **Files modified:**
 - `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/ingest/xml_parser.py` — fixed supernatural detection + site ownership parsing
 - `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py` — added details column to flag queries + sphere display
+
+### 2026-02-22 [ed33c5e4d454]
+
+**Session progress summary — Chronicler Gap Closure:**
+
+All 4 phases of the gap closure plan are now implemented (Phases 1-3 coded, Phase 4 coded + validated):
+
+| Phase | Description | Status |
+|-------|
+
+### 2026-02-22 [db94f1c2866b]
+
+**REFL-026: The Silent Data Loss Pattern**
+
+The composite PK migration proposal addresses a subtle but critical data integrity issue: `ON CONFLICT DO NOTHING` combined with non-unique primary keys across multi-tenant (multi-world) data creates **silent data loss**. This is a well-known antipattern in multi-tenant systems — when the PK uses only the entity ID without the tenant discriminator, imports from different tenants collide on shared ID spaces.
+
+Key details:
+- **7 CDM tables** share this problem — not just `historical_figures`
+- The fix requires a **coordinated migration**: PK changes cascade through all FK references, the Python model layer, and the storyteller query layer
+- **Re-import is necessary** after the migration since the lost data was never stored (it was discarded at insert time, not overwritten)
