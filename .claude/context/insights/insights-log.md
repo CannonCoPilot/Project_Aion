@@ -736,3 +736,15 @@ Key details:
 - **7 CDM tables** share this problem — not just `historical_figures`
 - The fix requires a **coordinated migration**: PK changes cascade through all FK references, the Python model layer, and the storyteller query layer
 - **Re-import is necessary** after the migration since the lost data was never stored (it was discarded at insert time, not overwritten)
+
+### 2026-02-22 [b401cb92d6c9]
+
+**Housekeeping summary:**
+
+| Phase | Action | Result |
+|-------|--------|--------|
+| **1. JICM Reset** | Removed `.compressed-context-ready.md` + `.compression-done.signal` | 2 stale files cleaned |
+| **2. Signal Files** | Checked — no stale signals found | Clean |
+| **3. Log Rotation** | Truncated 5 oversized log files | **84MB → 5.8MB** (93% reduction) |
+
+The `debug.log` at 84MB was the main offender — likely accumulated across 30+ sessions without ever being rotated. The `orchestration-detections.jsonl` at 3.5MB suggests the orchestration detector hook fires very frequently (possibly on every prompt submit).
