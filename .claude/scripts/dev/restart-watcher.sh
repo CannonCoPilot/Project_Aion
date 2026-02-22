@@ -19,7 +19,7 @@ WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
 CONTEXT_DIR="$PROJECT_DIR/.claude/context"
 PID_FILE="$CONTEXT_DIR/.jicm-watcher.pid"
 
-THRESHOLD=55
+THRESHOLD=70
 INTERVAL=5
 KILL_ONLY=false
 
@@ -38,14 +38,14 @@ restart-watcher.sh — Kill and restart JICM watcher
 Usage: restart-watcher.sh [options]
 
 Options:
-  --threshold PCT     Compression trigger % (default: 55)
+  --threshold PCT     Compression trigger % (default: 70)
   --interval SEC      Poll interval (default: 5)
   --kill-only         Kill watcher without restarting
   -h, --help          Show this help
 
 Examples:
   restart-watcher.sh --threshold 15     # Fast cycle testing
-  restart-watcher.sh --threshold 55     # Restore production threshold
+  restart-watcher.sh --threshold 70     # Restore production threshold
   restart-watcher.sh --kill-only        # Stop watcher
 EOF
     exit 0
