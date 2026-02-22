@@ -1,198 +1,182 @@
-# Chronicler Gap Closure — Implementation Plan
+# Chronicler Gap Closure — Revised Implementation Plan (v2)
 
 ## Context
 
-Comprehensive data gap analysis identified that Chronicler captures ~15-20% of available DF data. This plan closes the highest-impact gaps across 4 phases, focusing on lossless event capture, narrative enrichment, storyteller integration, and XML parser fixes.
+Comprehensive code audit (2026-02-22) revealed that ~70% of the original plan's tasks were already implemented. Bridge is v6 (16 sections), Python pipeline handles all sections, storyteller has live data retrieval.
 
-**Reference**: `projects/chronicler/reports/data-gap-analysis-2026-02-22.md`
+**The critical gap is data integrity, not missing features.**
+
+**Full critical review**: `projects/chronicler/reports/gap-closure-critical-review.md`
+**Data gap analysis**: `projects/chronicler/reports/data-gap-analysis-2026-02-22.md`
 **Branch**: Project_Aion
 **Product code**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/`
 
 ---
 
-## Phase 1: Bridge Expansion (Lua-Side)
+## Phase 0: Quick Data Integrity Fixes — NOT STARTED
 
-Expand `chronicler-bridge.lua` from v5 (11 sections) to v6 with lossless event capture, enriched unit data, and spatial context.
+### 0.1 Fix kill_count computation (BUG-005)
+- [ ] Change `hf_id_1` to `hf_id_2` in kill subquery (`xml_parser.py:710-711`)
+- [ ] Run corrected computation against live database
+- [ ] Verify top-kill-count HFs are actual warriors, not random dead figures
 
-### 1.1 Report Cursor Tracking (T1-1)
-- [ ] Add `last_seen_report_id` to bridge state (persisted across ticks via global)
-- [ ] Replace `start = count - 20` with cursor-based fetch
-- [ ] Fetch all reports since cursor (cap 200 per tick)
-- [ ] Include report `id` in output for Python-side cursor tracking
-- [ ] Validate: run bridge, generate burst of events, confirm none lost
+### 0.2 Add link table UNIQUE constraints (BUG-006)
+- [ ] Deduplicate existing rows in `hf_links`, `hf_entity_links`, `hf_site_links`
+- [ ] Add UNIQUE constraints: `(hf_id, target_hf_id, link_type)`, etc.
+- [ ] Update `ON CONFLICT` clauses to reference new constraints
 
-### 1.2 Unit Flag Extraction (T1-2)
-- [ ] Add to fortress_units loop: `has_mood`, `mood` enum, `in_tantrum`, `ghostly`, `active_invader`, `pregnancy_timer`, `emotionally_overloaded`
-- [ ] Access paths: `u.flags1.has_mood`, `u.mood`, `u.flags3.in_tantrum`, `u.flags3.ghostly`, `u.flags1.active_invader`, `u.pregnancy_timer`, `u.flags2.emotionally_overloaded`
-- [ ] Validate: check a dwarf in-game with known mood state
-
-### 1.3 History Event Cursor + Payloads (T1-3, T1-4)
-- [ ] Add `last_seen_event_id` to bridge state
-- [ ] Fetch all events since cursor (cap 100 per tick)
-- [ ] For each event, extract: `id`, `type`, `year`, `seconds`
-- [ ] Extract common payload fields: iterate event children for hfid/site_id/artifact_id/entity_id fields
-- [ ] Use pcall for safety (some event types may have unusual structures)
-- [ ] Validate: advance game time, confirm new events captured with payloads
-
-### 1.4 Emotion/Thought Capture (T2-1)
-- [ ] New section `dwarf_emotions` in bridge output
-- [ ] For each fortress dwarf, read `status.current_soul.personality.emotions` vector
-- [ ] Per emotion: extract `type`, `thought`, `subthought`, `strength`, `year`, `year_tick`
-- [ ] Resolve `subthought` to name where possible (if it's an HF ID, look up `df.historical_figure.find()`)
-- [ ] Cap at 10 most recent emotions per dwarf
-- [ ] Validate: check a stressed dwarf's emotions match expectations
-
-### 1.5 Zone Data Capture (T2-2)
-- [ ] New section `zones` in bridge output
-- [ ] Iterate `world.buildings.all`, filter to `building_type.Civzone`
-- [ ] Per zone: `id`, `type` (civzone_type enum), `x1`, `y1`, `x2`, `y2`, `z`, `name` (if named)
-- [ ] Also capture zone `assigned_units` count
-- [ ] Cap at 200 zones
-- [ ] Validate: verify tavern/temple/bedroom zones appear with correct bounds
-
-### 1.6 Event Collection Capture (T2-4)
-- [ ] New section `event_collections` in bridge output
-- [ ] Read `world.history.event_collections` — focus on active/recent ones
-- [ ] Per collection: `id`, `type`, `name`, `start_year`, `end_year`, `attacker_entity_id`, `defender_entity_id`, `site_id`
-- [ ] Resolve entity names inline where feasible
-- [ ] Cap at 50 most recent collections
-- [ ] Validate: check known war collections match expectations
-
-### 1.7 Squads + Mandates + Crimes (T3-1)
-- [ ] New section `squads`: read `world.squads.all` — id, name, members, leader, orders
-- [ ] New section `mandates`: read `world.mandates` — type, item, quantity, punishments
-- [ ] New section `crimes`: read `world.incidents` — type, status, victim, criminal
-- [ ] Cap each at 50 entries
-- [ ] Validate: check if fortress has squads/mandates to verify
-
-### Deploy & Test
-- [ ] Deploy updated bridge to HomeServer via `deploy-bridge.py`
-- [ ] Run DFHack `repeat` command to start bridge
-- [ ] Verify HTTP output contains all new sections
-- [ ] Run Python `fetch_bridge_data()` and confirm parsing
+### 0.3 Fix region parsing scope (BUG-008)
+- [ ] Verify `.//region` captures spurious elements (grep XML for `<region>` outside `<regions>`)
+- [ ] If confirmed, change to `root.findall("regions/region")`
 
 ---
 
-## Phase 2: Python Pipeline Updates
+## Phase 1: Composite PK Migration — NOT STARTED
 
-### 2.1 Bridge Accessor Functions
-- [ ] Add `get_zones(bridge_data)` → list of zone dicts
-- [ ] Add `get_dwarf_emotions(bridge_data)` → list of per-dwarf emotion dicts
-- [ ] Add `get_event_collections(bridge_data)` → list of collection dicts
-- [ ] Add `get_squads(bridge_data)` → list of squad dicts
-- [ ] Add `get_mandates(bridge_data)` → list of mandate dicts
-- [ ] Add `get_crimes(bridge_data)` → list of crime dicts
-- [ ] Update `get_announcements()` to handle cursor-based report list
-- [ ] Update `get_history()` to handle cursor-based event list with payloads
+### 1.1 Design composite PK schema
+- [ ] All 12 legends tables: `PRIMARY KEY (world_id, id)`
+- [ ] Link tables: add `world_id` column + composite UNIQUE constraints
+- [ ] `structures`: PK becomes `(world_id, site_id, id)`
+- [ ] Write new `schema.sql` with composite PKs throughout
 
-### 2.2 Watcher Updates
-- [ ] Track announcement cursor: store `last_seen_report_id` in watcher state
-- [ ] Track event cursor: store `last_seen_event_id` in watcher state
-- [ ] Store all new announcements to `game_reports` table (not just last 20)
-- [ ] Store enriched events to `history_events` table (bridging legends ↔ live)
-- [ ] Store new bridge sections to `lua_probes` table
+### 1.2 Update foreign key references
+- [ ] All child tables get explicit `world_id` column
+- [ ] FK references become `(world_id, parent_id)` pairs
+- [ ] `collection_events`, `collection_subcollections` FKs updated
 
-### 2.3 Change Detector Expansion
-- [ ] New event type: `MOOD_CHANGED` — detect `has_mood` flag changes
-- [ ] New event type: `MOOD_RESOLVED` — detect mood completion (artifact created or failed)
-- [ ] New event type: `TANTRUM` — detect `in_tantrum` flag
-- [ ] New event type: `PREGNANCY_DETECTED` — detect non-zero `pregnancy_timer`
-- [ ] New event type: `ZONE_CHANGED` — detect unit moving between zones (optional, may be noisy)
-- [ ] New event type: `EMOTION_TRIGGER` — detect high-severity emotions (grief, horror)
+### 1.3 Update import pipeline
+- [ ] `_batch_insert` default conflict → table-specific strategies
+- [ ] All import calls pass `world_id` correctly in composite contexts
+- [ ] Test: re-import same world twice → no duplicates
 
-### 2.4 Location Resolution
-- [ ] Function `resolve_unit_location(unit_pos, zones)` → zone_type, zone_name
-- [ ] Call during watcher cycle, store resolved location in unit details JSONB
-- [ ] Include location name in unit_events context (e.g., "DIED in the tavern")
+### 1.4 Update storyteller queries
+- [ ] All JOINs in `context.py` include `world_id`
+- [ ] `_world_overview()` queries updated
+- [ ] Name search queries updated
 
-### 2.5 Schema Migrations
-- [ ] Add columns to `units`: `mood` (TEXT), `has_mood` (BOOLEAN), `in_tantrum` (BOOLEAN), `location_zone` (TEXT)
-- [ ] Add columns to `unit_events`: `location` (TEXT)
-- [ ] Evaluate if new tables needed for emotions, zones, squads, mandates, crimes (vs lua_probes JSONB)
+### 1.5 Execute migration
+- [ ] `pg_dump -Fc chronicler > chronicler-pre-migration.dump`
+- [ ] Apply new schema (DROP + CREATE)
+- [ ] Re-import World 1 and World 2 from XML
+- [ ] Verify: World 2 HF count includes previously-lost 5,466 records
+- [ ] Verify: total records exceed pre-migration totals
 
 ---
 
-## Phase 3: Storyteller Enhancement
+## Phase 2: Storyteller Enrichment — NOT STARTED
 
-### 3.1 Live Data Retrieval
-- [ ] Add `_retrieve_live_units(pool, world_id)` — query units table for fortress inhabitants
-- [ ] Add `_retrieve_live_events(pool, world_id, limit)` — query unit_events for recent changes
-- [ ] Add `_retrieve_live_reports(pool, world_id, limit)` — query game_reports for announcements
-- [ ] Add `_retrieve_fortress_state(pool, world_id)` — armies, buildings, diplomacy from lua_probes
-- [ ] Integrate into `retrieve_context()` main flow
+### 2.1 Relationship traversal on HF match
+- [ ] Query `hf_links` for spouse/children/parents when HF found
+- [ ] Query `hf_entity_links` for civ memberships and positions
+- [ ] Query `hf_site_links` for associated sites
+- [ ] Format relationship data into context text
 
-### 3.2 Cross-Reference Queries
-- [ ] When matching a live unit, JOIN to historical_figures via hist_fig_id
-- [ ] When matching an HF, check if they're alive in units table
-- [ ] Traverse hf_links for family/relationship context
-- [ ] Traverse hf_entity_links for membership/position context
+### 2.2 Event payload enrichment
+- [ ] JOIN event queries to resolve hf_id → name, site_id → name
+- [ ] Format: "Bomrek was slain by Urist at Goldenhall in year 253"
 
-### 3.3 System Prompt Enhancement
-- [ ] Add data structure guidance: describe what data categories exist
-- [ ] Add confidence signaling: "If context is sparse, note uncertainty"
-- [ ] Add emotional/spatial awareness: "Emotions have causes; locations have names"
-- [ ] Distinguish legends (historical) vs live (current) data in context formatting
-- [ ] Increase context budget from 8000 chars to ~12000 chars for richer narratives
+### 2.3 Emotion/zone integration in live unit queries
+- [ ] Pull latest `dwarf_emotions` probe, match to unit IDs
+- [ ] Pull latest `zones` probe, resolve unit pos → zone name
+- [ ] Include in `_retrieve_live_units()` output
 
-### 3.4 Keyword Routing Expansion
-- [ ] Add fortress-related routes: "fortress", "dwarves", "stress", "mood" → live unit queries
-- [ ] Add event routes: "recent", "today", "happened" → unit_events + game_reports
-- [ ] Add military routes: "army", "siege", "squad" → armies + squads from lua_probes
+### 2.4 War name resolution
+- [ ] JOIN collection queries to resolve entity IDs → names
+- [ ] Format: "The War of Daggers (Dwarves vs Goblins, year 200-253)"
 
----
-
-## Phase 4: XML Parser Fixes
-
-### 4.1 Boolean Flag Debugging (REFL-023) — DONE
-- [x] Find a known deity in legends XML by manual grep
-- [x] Trace parser execution for that HF to find where boolean detection fails
-- [x] Fix tag detection — root cause: parser looked for nonexistent `<deity>`, `<force>`, `<ghost>` tags
-  - Deities detected via `<sphere>` child elements (1,300 in World 2 XML, 154 in World 1)
-  - Vampires detected via `<active_interaction>` starting with `DEITY_MAJOR_CURSE` (54 in World 2)
-  - Necromancers detected via `<interaction_knowledge>` starting with `SECRET` (247 in World 2)
-  - Werebeasts detected via `<active_interaction>` starting with `DEITY_CURSE_WEREBEAST` (132 in World 2)
-  - Also stores spheres/interactions/knowledge in `details` JSONB for enriched queries
-- [x] Updated both World 1 and World 2 HFs in DB with corrected flags
-- [x] Validated: supernatural HFs now query correctly
-- **NOTE (BUG-004)**: Schema uses `id INT PRIMARY KEY` without `world_id` composite key. World 2 is missing 5,466 HFs (including 1,294 deities) due to ID collision with World 1. Requires schema migration to fix.
-
-### 4.2 Site Ownership Fix (BUG-003) — DONE
-- [x] Examined legends_plus XML for `<cur_owner_id>` inside `<site>` elements
-- [x] Added site ownership extraction to `_parse_legends_plus()`
-- [x] Added pipeline step to UPDATE `sites.owner_entity_id` from cur_owner_id
-- [x] Applied fix: World 2: 1,145/1,899 sites now have owners; World 1: 226 sites updated
-
-### 4.3 Region/Geography Parsing
-- [ ] Add `<regions>` parsing → regions table (name, type, coords, evilness, rainfall, etc.)
-- [ ] Add `<underground_regions>` parsing → underground_regions table
-- [ ] Add `<world_constructions>` parsing → world_constructions table
-
-### 4.4 Written Contents + Eras
-- [ ] Add `written_contents` table (id, title, author_hf_id, type, year, subject_type, subject_id)
-- [ ] Parse `<written_contents>` from legends_plus.xml
-- [ ] Add `historical_eras` table (id, name, type, start_year, end_year)
-- [ ] Parse `<historical_eras>` from legends.xml
+### 2.5 Confidence signaling
+- [ ] Add context density note to system prompt
+- [ ] If < 3 records: "Context is limited"
+- [ ] If > 10 records: "Rich context available"
 
 ---
 
-## Validation Strategy
+## Phase 3: XML Completeness — NOT STARTED
 
-After each phase:
-1. Deploy updated bridge, verify HTTP output
-2. Run watcher for 3+ cycles, confirm new data captured
-3. Query database for new data, verify correctness
-4. Test storyteller with queries targeting new data
-5. Check for hallucinations or data gaps in LLM responses
+### 3.1 Written contents table + parser
+- [ ] Create `written_contents` table with composite PK
+- [ ] Parse from legends_plus.xml
+- [ ] Add "book"/"poem"/"scroll" keywords to storyteller routing
 
----
+### 3.2 Historical eras table + parser
+- [ ] Create `historical_eras` table with composite PK
+- [ ] Parse from legends.xml
+- [ ] Use in storyteller for temporal context
 
-## Dependencies
-
-- HomeServer must be running (DF + DFHack + HTTP server)
-- PostgreSQL must be accessible
-- LiteLLM must be running for storyteller tests
-- Bridge deploy requires SMB access to HomeServer
+### 3.3 Verify/fix region, underground_region, world_construction parsing
+- [ ] Confirm parsers exist and populate tables correctly
+- [ ] Fix scoping issues if found
 
 ---
 
-*Plan created 2026-02-22, Session 32*
+## Phase 4: Operational Hardening — NOT STARTED
+
+### 4.1 Test suite
+- [ ] `test_xml_parser.py` — boolean flags, field mapping, composite PKs
+- [ ] `test_context.py` — keyword routing, query generation
+- [ ] `test_detector.py` — change detection across snapshots
+- [ ] `test_schema.py` — FK constraints, composite PK enforcement
+
+### 4.2 lua_probes cleanup
+- [ ] Add retention policy (keep last N per probe_name per world_id)
+- [ ] Run cleanup after each watcher cycle
+
+### 4.3 Bridge health monitoring
+- [ ] Track consecutive bridge failures
+- [ ] Warn after 3 failures, continue with core-only data
+
+---
+
+## Previously Completed (from original plan)
+
+### Phase 1 Bridge (ALL DONE)
+- [x] T1-1: Report cursor tracking → bridge v6
+- [x] T1-2: Unit flag extraction → bridge v6
+- [x] T1-3/T1-4: History event cursor + payloads → bridge v6
+- [x] T2-1: Emotion/thought capture → bridge v6
+- [x] T2-2: Zone data capture → bridge v6
+- [x] T2-4: Event collection capture → bridge v6
+- [x] T3-1: Squads + mandates + incidents → bridge v6
+
+### Phase 2 Python (ALL DONE)
+- [x] Bridge accessor functions → `bridge.py` (24 functions)
+- [x] Watcher bridge storage → `watcher.py` (16 sections to lua_probes)
+- [x] Change detector expansion → `detector.py` (11 event types)
+
+### Phase 3 Storyteller (PARTIALLY DONE)
+- [x] Live data retrieval → `context.py` (5 retrieval functions)
+- [x] Keyword routing → `context.py` (23 live-data routes)
+- [x] System prompt → `prompts.py` (dual-tier, 12K chars)
+- [x] HF-to-unit cross-reference → `_retrieve_live_units()` JOINs to historical_figures
+- [ ] **Relationship traversal** — NOT DONE
+- [ ] **Event payload enrichment** — NOT DONE
+- [ ] **Emotion/zone integration** — NOT DONE
+- [ ] **War name resolution** — NOT DONE
+- [ ] **Confidence signaling** — NOT DONE
+
+### Phase 4 XML (PARTIALLY DONE)
+- [x] Boolean flag debugging (BUG-001/REFL-023) — deities/vampires/necromancers/werebeasts
+- [x] Site ownership fix (BUG-003) — from legends_plus cur_owner_id
+- [ ] **Written contents** — NOT DONE
+- [ ] **Historical eras** — NOT DONE
+- [ ] **Region parsing verification** — NOT DONE
+
+---
+
+## Dependency Graph
+
+```
+Phase 0 (Quick Fixes)     ← No dependencies
+    ↓
+Phase 1 (Composite PKs)   ← Requires Phase 0 clean data
+    ↓
+Phase 2 (Storyteller)     ← Needs Phase 1 correct queries
+Phase 3 (XML)             ← Needs Phase 1 composite PK schema (parallel with Phase 2)
+    ↓
+Phase 4 (Hardening)       ← Tests cover Phase 1-3 changes
+```
+
+---
+
+*Revised plan v2, 2026-02-22, Session 32*
+*Previous: v1 (original plan, 70% superseded by implementation)*
