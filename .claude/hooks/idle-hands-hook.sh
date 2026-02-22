@@ -26,6 +26,22 @@ mkdir -p "$PROJECT_DIR/.claude/logs" 2>/dev/null
 # No idle-hands cycle → pass through silently
 [[ ! -f "$IH_FILE" ]] && exit 0
 
+# Cooldown check: if recently completed a full cycle, don't restart
+COOLDOWN_FILE="$PROJECT_DIR/.claude/context/.idle-hands-cooldown.W${WINDOW}"
+if [[ -f "$COOLDOWN_FILE" ]]; then
+    COOLDOWN_UNTIL=$(cat "$COOLDOWN_FILE" 2>/dev/null)
+    NOW_EPOCH=$(date +%s)
+    if [[ -n "$COOLDOWN_UNTIL" ]] && [[ "$NOW_EPOCH" -lt "$COOLDOWN_UNTIL" ]]; then
+        # Still in cooldown — remove the state file and pass through
+        rm -f "$IH_FILE"
+        echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | W${WINDOW} | cooldown active until $(date -r "$COOLDOWN_UNTIL" +%H:%M 2>/dev/null || echo $COOLDOWN_UNTIL), skipping" >> "$LOG" 2>/dev/null
+        exit 0
+    else
+        # Cooldown expired — clean it up
+        rm -f "$COOLDOWN_FILE"
+    fi
+fi
+
 # Read current state
 CURRENT_PHASE=$(awk '/^phase:/{print $2}' "$IH_FILE" 2>/dev/null)
 CURRENT_TYPE=$(awk '/^type:/{print $2}' "$IH_FILE" 2>/dev/null)
@@ -51,7 +67,10 @@ case "$CURRENT_PHASE" in
         # Cap at 3 cycles to prevent infinite loops
         if [[ $NEXT_CYCLE -gt 3 ]]; then
             rm -f "$IH_FILE"
-            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | W${WINDOW} | cycle cap reached (3), cleaned up" >> "$LOG" 2>/dev/null
+            # Set 30-minute cooldown to prevent Ennoia from immediately recreating
+            COOLDOWN_EPOCH=$(( $(date +%s) + 1800 ))
+            echo "$COOLDOWN_EPOCH" > "$PROJECT_DIR/.claude/context/.idle-hands-cooldown.W${WINDOW}"
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | W${WINDOW} | cycle cap reached (3), cleaned up, cooldown until +30m" >> "$LOG" 2>/dev/null
             exit 0
         fi
         # Re-evaluate: uncommitted changes?
