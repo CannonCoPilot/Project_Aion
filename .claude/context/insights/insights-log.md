@@ -661,3 +661,15 @@ The emergency/lockout system was a **defense-in-depth** pattern from when JICM c
 **Validation Finding #2 (confirmed)**: All boolean flags (`is_deity`, `is_vampire`, `is_necromancer`, `is_werebeast`, `is_force`) are `false` across **all 49,855 HFs in World 2** AND all 5,466 in World 1. This is a systematic gap in the XML parser — the legends XML likely uses nested tags like `<deity/>` that the parser doesn't capture. This means **categorical routing for supernatural beings will always return empty results**.
 
 **World 2 (Ormon) landscape**: 575 civilizations (mostly cave creatures!), 11 goblin civs, 8 each of dwarf/human/elf. The `owner_entity_id` isn't populated for sites — another ingestion gap.
+
+### 2026-02-22 [22843d376b12]
+
+**Context retrieval is blazing fast** — 8-28ms for structured queries, well under 100ms even for complex multi-table searches. The bottleneck is entirely in LLM generation (5-16s on Qwen3 8B). First-token latency correlates with context size — 204ms for 1 record vs 2.2s for 89 records, showing prompt processing overhead.
+
+### 2026-02-22 [f923d8b3c8c0]
+
+The `/reflect` cycle is a 5-phase autonomic process (AC-05): data inventory → problem identification → pattern matching → evolution proposals → knowledge graph ingestion. The Graphiti ingestion at Phase 5 creates a persistent relational graph from the session's learnings, meaning future sessions can query "what corrections have been made about XML parsing?" and get structured answers rather than scanning flat files.
+
+### 2026-02-22 [482167325634]
+
+The spatial correlation between units, items (corpses), buildings, and zones is perhaps the single most valuable enrichment for storytelling. DF gives us a full 3D spatial model — every entity has coordinates, and every room has bounds. By resolving positions to named locations at capture time, we transform raw coordinates into narrative context: "Urist sat alone in the tavern, staring at the spot where Bomrek had fallen" — all derivable from data that already exists in memory.
