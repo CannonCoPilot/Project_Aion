@@ -898,3 +898,27 @@ The data confirms exactly the structure predicted by the plan:
 3. **History layer**: 24,021 position links from standard legends (active + former), yielding a merged total of 30,844 rows — 13,666 active, 17,178 former.
 
 The gendered variant columns (`name_male`/`name_female`) are populated for nobility (king/queen, duke/duchess, baron/baroness) but not for administrative roles (general, captain, diplomat). Spouse titles like "queen consort" are also captured.
+
+### 2026-02-22 [2cadffef5c22]
+
+**The explorer is already complete — all 3 phases implemented**
+
+Looking at the `woolly-swinging-naur.md` plan, every item is implemented:
+
+1. **Phase 1 (Schema Browser)**: Shared nav, table list with row counts grouped by category, column metadata, PK/FK navigation, indexes — all working
+2. **Phase 2 (Data Browser)**: Paginated rows, text filtering, column sorting, FK clickable links, JSONB expansion, SQL runner with readonly protection — all working  
+3. **Phase 3 (Entity Graph)**: vis.js ego-network, typeahead search, 1-3 hop depth, node styling by type (deity/vampire/necromancer), edge coloring by relationship, incremental expansion, performance guards — all working
+
+The new `entity_positions` and `hf_position_links` tables now appear in the Relationships group thanks to the TABLE_GROUPS update we just committed.
+
+### 2026-02-23 [625ae693f24e]
+
+**World: Thadar En (The Planet of Legends)** — a 200-year history with 35,334 historical figures, 3,684 entities, 312K events, and 7,594 entity positions. This is a mid-sized world — about 60% the density of Ormon but with significantly richer position/entity data per capita.
+
+### 2026-02-23 [85c8b87b260f]
+
+**The data exploration revealed a critical architectural detail for Knowledge Horizon.**
+
+The 20 starting dwarves have **zero connections** in the legends data — no family, no organizations, no site links, no positions. This means the initial Knowledge Horizon is entirely bootstrapped from civilization-level knowledge (CAV-002: the 25 nobles/admins of "the moist arches") plus whatever the watcher captures as the game runs. The horizon literally starts as a tiny dot and grows organically — exactly the "fog of war" metaphor we're building.
+
+Also notable: site_id 1984 (the player fortress) doesn't exist in legends data because it was founded after world-gen. The foundation layer needs to handle this gracefully — the fortress itself is always visible even without a legends entry.
