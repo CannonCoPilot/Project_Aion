@@ -922,3 +922,31 @@ The new `entity_positions` and `hf_position_links` tables now appear in the Rela
 The 20 starting dwarves have **zero connections** in the legends data — no family, no organizations, no site links, no positions. This means the initial Knowledge Horizon is entirely bootstrapped from civilization-level knowledge (CAV-002: the 25 nobles/admins of "the moist arches") plus whatever the watcher captures as the game runs. The horizon literally starts as a tiny dot and grows organically — exactly the "fog of war" metaphor we're building.
 
 Also notable: site_id 1984 (the player fortress) doesn't exist in legends data because it was founded after world-gen. The foundation layer needs to handle this gracefully — the fortress itself is always visible even without a legends entry.
+
+### 2026-02-23 [3d7b715975ab]
+
+**What changed in this rewrite:**
+1. **6-tab architecture** — The explorer now has `People | Civilizations | Geography | Events | Database | Graph` tabs instead of the original 3. Lazy-loading ensures tabs only fetch data when first visited.
+2. **Cross-tab navigation** — A `navigateTo(tab, type, worldId, id)` dispatcher enables clicking any entity name in any tab to jump to its detail view in the appropriate tab. This creates a web of interconnected views across the entire Dwarf Fortress dataset.
+3. **Database tab absorbs Schema+Data** — The old Schema and Data tabs became sub-views within a single Database tab, using an internal toggle instead of top-level tabs. This keeps the raw DB explorer accessible while prioritizing domain-specific views.
+
+### 2026-02-23 [7401b614f7e2]
+
+**How the Chronicler graph works — and the deeper design questions it raises**
+
+### 2026-02-23 [1df288ddfb45]
+
+**Personality trait visualization**: DF personality traits use a 0-100 scale where 50 is average. Traits far from 50 define a dwarf's character — a "ANXIETY_PROPENSITY" of 90 means extremely anxious, while 10 means stoic. The renderer filters for "notable" traits (≤25 or ≥75) and colors them: green for high values, red for low. This makes it immediately visible which traits define a dwarf's personality without information overload from all 50 facets.
+
+**Need focus levels**: DF need satisfaction uses a signed integer where positive = satisfied and negative = frustrated. The bar maps [-400, +400] to [0%, 100%], with color coding: green (happy), amber (neutral), red (frustrated). This directly correlates with dwarf stress — unmet needs are the primary driver of tantrum spirals.
+
+### 2026-02-23 [d549bea8879e]
+
+**Bridge → DB pipeline completion**: The Chronicler now has a 4-stage pipeline for unit data:
+
+1. **Lua extraction** (bridge v7): 100+ fields per dwarf — biographical, relationships, personality (50 traits, values, needs, dreams), physical/mental attributes
+2. **JSON transport**: Bridge writes `chronicler-state.json`, watcher fetches it via HTTP, stores raw sections in `lua_probes`
+3. **Merge + Upsert**: `merge_bridge_into_units()` matches bridge data by unit ID to RPC units, promotes `birth_year`/`sex`/`death_cause` to columns, folds personality into `details` JSONB. COALESCE preserves values across bridge-absent cycles.
+4. **API + Frontend**: `get_unit()` endpoint resolves relationship HF IDs to names. Frontend renders personality traits as color-coded bars, values as badges, needs with satisfaction indicators, dreams with accomplished flags, and physical/mental attributes as paired bar charts.
+
+This transforms units from 15-field stubs to rich character sheets suitable for LLM narrative generation.
