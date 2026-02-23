@@ -950,3 +950,101 @@ Also notable: site_id 1984 (the player fortress) doesn't exist in legends data b
 4. **API + Frontend**: `get_unit()` endpoint resolves relationship HF IDs to names. Frontend renders personality traits as color-coded bars, values as badges, needs with satisfaction indicators, dreams with accomplished flags, and physical/mental attributes as paired bar charts.
 
 This transforms units from 15-field stubs to rich character sheets suitable for LLM narrative generation.
+
+### 2026-02-23 [43a9f2b82fc5]
+
+**PowerShell HttpListener deadlock**: The TCP connection succeeds (port 8888 is open) but the server never sends a response. This is a classic PowerShell HttpListener issue — after serving one request without properly calling `response.Close()`, or if the script hit an unhandled exception, the listener stays bound to the port but stops processing requests. The fix is to kill the hung PowerShell process and restart it.
+
+### 2026-02-23 [84fdd421a482]
+
+**v3 HTTP server fix for the hang**: The root cause was `GetContext()` being synchronous — it blocks the entire server thread until a complete HTTP request arrives. If any client (scanner, broken connection, browser prefetch) opens a TCP socket but never sends the request headers, the server hangs forever. v3 uses `BeginGetContext()` + `AsyncWaitHandle.WaitOne(30000)` to poll with a 30-second timeout. If no request completes in time, the loop continues and checks a watchdog timer. It also kills any existing listener on startup to avoid port conflicts.
+
+**Bridge v6 → v7 delta**: +154 lines of Lua adding `birth_year`, `sex`, `old_year`, `caste`, 9 relationship slots, `death_cause`, `cultural_identity` to `unit_summary`, plus a new `get_dwarf_personality()` function extracting 50 trait facets, values, needs, dreams, and 18 physical+mental attributes per dwarf.
+
+### 2026-02-23 [a4235ea8fe91]
+
+**Chronicler Live Polling Daemon — E2E Test Results:**
+
+1. **Watcher ran 4 cycles** in 47s, clean SIGINT shutdown (exit code 0)
+2. **Bridge v7**: 17 data sections flowing (plus `dwarf_personality` stored separately = 18 unique probe types in DB)
+3. **Data flow**: DF → Lua bridge → JSON → HTTP (port 8888) → Python watcher → PostgreSQL
+4. **DB after test**: 276 lua_probes (was 176 → +100 new), 1,700 sync_snapshots (+7), 49 units per cycle
+5. **All 17 bridge sections stored**: armies, artifacts, buildings, diplomacy, emotions, skills, entities, events, history, incidents, mandates, squads, units, world_info, zones, announcements, `dwarf_personality`
+6. **Key architecture**: The watcher probes RFR first (times out after 5s since it's unavailable in DFHack 53.10-r1), then falls back to the bridge — a resilient dual-source design
+
+### 2026-02-23 [a34be6fdc4a4]
+
+**What the tick progression tells us:**
+- Tick 73790 → 74290 in ~20 seconds = +500 ticks
+- DF runs at ~1200 ticks per day, so that's ~10 game-hours of fortress time per real-world 20s
+- Over 30 minutes, we should capture roughly **3-4 in-game months** of fortress life
+- With the game unpaused, we'll see the change detector fire on unit stat changes (stress, focus, skills), possible new arrivals, and any combat or deaths
+
+**Key data flowing each cycle:**
+- 50 units via DFHack RPC (includes wildlife/visitors beyond the 20 fortress dwarves)
+- 17 bridge sections via HTTP (personality, emotions, skills, armies, squads, etc.)
+- All stored in PostgreSQL `lua_probes` + `sync_snapshots` tables
+
+### 2026-02-23 [51216657b13e]
+
+The `lua_probes` count went *down* from 221 to 204 — this is the **retention policy** working as designed (Phase 4 of gap closure added automatic pruning of old probe data to prevent unbounded table growth). Meanwhile `sync_snapshots` grows monotonically (+39 in 5 min = ~7-8 per minute), confirming every cycle writes a snapshot row.
+
+### 2026-02-23 [80943e3a39c0]
+
+**52 events in 17 minutes** — the change detector is catching a rich stream of fortress life. The 100-cycle summary line is from the Python wrapper's periodic reporting. At tick 99,390 we're approaching **tick 100,800** which would be the start of a new season (DF has 403,200 ticks/year, divided into 4 seasons of 100,800 each). We might see a **caravan or migrant wave** if we cross a season boundary!
+
+### 2026-02-23 [d854ef7e529e]
+
+**Why the game paused:** DF automatically pauses at season boundaries when certain events trigger (like caravan arrivals, migrant waves, or diplomats). Tick 100,790 is just past 100,800 (the start of Spring). The game likely paused for a **migrant wave or caravan event**. The watcher handles this gracefully — it keeps polling and will immediately detect changes once the game resumes.
+
+### 2026-02-23 [7d91fb252ab2]
+
+**Key takeaways from the long-term run:**
+
+1. **The change detector works beautifully** — 58 events across 4 event types (ARRIVED, DEPARTED, SKILL_UP, PROFESSION_CHANGED) were automatically detected by diffing unit snapshots between cycles. No manual event configuration needed.
+
+2. **Cavern activity is rich** — Crundles, troglodytes, magma crabs, and even DEMONS appearing suggests the fortress has breached deep cavern layers. This is prime narrative material for the storyteller engine.
+
+3. **The RPC timeout bug is the top priority fix** — The watcher should catch `TimeoutError` on the RPC socket and attempt reconnection rather than crashing. A simple try/except with reconnect logic would make it production-grade for extended sessions.
+
+4. **27,000 ticks = ~22.5 game-days** covered in ~19 min of active gameplay — equivalent to about 3 weeks of fortress time. Extended sessions would capture full seasons of data.
+
+### 2026-02-23 [a7455d071a0a]
+
+**Interesting: PROFESSION_CHANGED to STANDARD** — unit 15022 *lost* their profession designation. In DF, this happens when a dwarf's highest skill drops below the threshold for a profession title (e.g., they were a dabbling Carpenter but the game recalculated). "STANDARD" is the default when no skill is high enough to name a profession. Check if you saw any profession changes in-game around 11:58.
+
+### 2026-02-23 [644697c08801]
+
+**Validation highlights:**
+
+1. **Two miners both hit Mining 6 within 10 seconds of each other** (units 15000 and 14999) — they're likely working the same mining project. Do you see two miners digging in the same area?
+
+2. **Unit 15013 gained Music skill** — this is probably a dwarf attending a performance or practicing. Earlier this same unit gained Speaking 3→4 in the first run. They're on a social/artistic skill track.
+
+3. **Crundle infestation continues** — 3 more crundles spawning in this run. Your caverns are very active. These small 4-legged cave creatures are generally harmless but indicate open cavern access.
+
+4. **Zero crashes in 59 cycles** — the RPC timeout only happens at season boundaries when DF is doing heavy world-state processing. Mid-season operation is rock solid.
+
+### 2026-02-23 [f6cabdd4dbbe]
+
+**Root Cause Analysis — Why the Chronicler can't find Vabok:**
+
+The failure has **three compounding causes**:
+
+1. **HF ID Gap**: Fortress dwarves have `hist_fig_id` range 36468-36487, but the historical_figures table max ID is 35333. These dwarves didn't exist when the legends XML was exported — they're "live" fortress dwarves not yet in the historical record. **Data coverage gap.**
+
+2. **Storyteller searches HF only**: The storyteller's name search (`context.py:125-138`) queries `historical_figures` exclusively. The `units` table is only accessed via categorical keywords ("fortress", "dwarves") or as a cross-reference after an HF is found. **Architecture gap.**
+
+3. **No unaccent()**: The storyteller uses plain `ILIKE` while the People API uses `unaccent()`. "Vabôk" won't match "Vabok". **Query gap.**
+
+Even if #2 and #3 were fixed, Vabok's HF record literally doesn't exist in the DB (problem #1), so the storyteller would need to also search the `units` table by name.
+
+### 2026-02-23 [0108d903a461]
+
+**The validation suite revealed 9 concrete gaps across 5 layers.** The failures organize into 3 root cause clusters:
+
+1. **Temporal coverage gap** — Fortress dwarves (HF IDs 36468-36487) were born AFTER the legends XML was exported (max HF ID = 35333). This is inherent to DF's architecture: legends exports are point-in-time snapshots while the game continues generating new historical figures. **20/20 citizen dwarves have unresolvable HF references.**
+
+2. **Event detection gap** — The watcher captures ARRIVED/DEPARTED changes but doesn't detect is_alive transitions or game announcements. Cerol Aludsibrek drowned, but her record still shows `is_alive=True`. Zero game reports were captured. The change detector compares snapshots but death events require either parsing DFHack announcements or checking the `death_id` field in unit flags.
+
+3. **Query architecture gap** — The storyteller's name search (Phase 2, line 128-138 of `context.py`) searches ONLY `historical_figures` with plain ILIKE. It never falls through to `units`. When someone asks "Tell me about Vabok Solonotin," the storyteller finds 10 OTHER Vaboks from the HF table but not the fortress leader. The bard query also fails because "bards" isn't a category route keyword, and the bards' unit names (native: "Ducin Lolokgan") don't match their HF names (English: "ducim granitedish").
