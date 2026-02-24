@@ -34,7 +34,8 @@ DF-Windows VM (UTM)
 ├── Dwarf Fortress 53.10  → C:\Program Files (x86)\Steam\...\Dwarf Fortress\
 ├── DFHack 53.10-r1       → RPC on TCP :5000
 ├── chronicler-bridge.lua → HTTP JSON server on :8888
-└── OpenSSH               → SSH on :22, user=Jarvis
+├── file-server.ps1       → HTTP file server on :8889 (start via http-serve)
+└── OpenSSH ARM64 v10.0   → SSH on :22, user=Jarvis, key=~/.ssh/df-vm
 
 HomeServer (Physical — 192.168.4.194)
 ├── Windows 10 Pro x86_64 → Native DF performance
@@ -48,6 +49,8 @@ HomeServer (Physical — 192.168.4.194)
 
 | Need | Action |
 |------|--------|
+| Transfer file from VM (fast) | Workflow 0 below |
+| Start file server on VM | `vm-lifecycle.sh http-serve start` |
 | Check VM status | `/vm` or `/vm health` |
 | Boot VM | `/vm start` |
 | Check DF connection | `/df` |
@@ -88,6 +91,7 @@ HomeServer (Physical — 192.168.4.194)
 | DFHack RPC (VM) | 192.168.64.3 | 5000 | TCP/protobuf |
 | Bridge HTTP (VM) | 192.168.64.3 | 8888 | HTTP/JSON |
 | SSH (VM) | 192.168.64.3 | 22 | SSH (key: ~/.ssh/df-vm) |
+| File Server (VM) | 192.168.64.3 | 8889 | HTTP (file serving) |
 | DFHack RPC (HomeServer) | 192.168.4.194 | 5000 | TCP/protobuf |
 | Bridge HTTP (HomeServer) | 192.168.4.194 | 8888 | HTTP/JSON |
 | PostgreSQL | localhost | 5432 | TCP (db=chronicler) |
@@ -107,6 +111,92 @@ HomeServer (Physical — 192.168.4.194)
 | Race ID | 572 (Dwarf) |
 | DFHack | 53.10-r1 |
 | DF | 53.10 |
+
+---
+
+## Workflow 0: File Transfer
+
+Transfer files between VM and Mac. Three methods in priority order.
+
+### Method 1: SCP (Primary — 40-80 MB/s)
+
+Best for ad-hoc transfers. No server dependency — just SSH.
+
+**Single file**:
+```bash
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh scp-pull \
+  'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends.xml' \
+  /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/
+```
+
+**Multiple files in parallel**:
+```bash
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh scp-pull-multi \
+  /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-post-embark \
+  'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/autosave 1-00250-01-15-legends.xml' \
+  'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/autosave 1-00250-01-15-legends_plus.xml'
+```
+
+**Smart pull** (auto-selects SCP if SSH available, else Guest Agent):
+```bash
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh pull \
+  'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/legends.xml' /tmp/
+```
+
+### Method 2: HTTP File Server (Fallback — 50-120 MB/s)
+
+Use when SSH is unavailable, or for persistent serving across many downloads.
+
+1. **Start file server** (port 8889, serves DF directory):
+   ```bash
+   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh http-serve start
+   ```
+
+2. **Download file** (path relative to DF directory):
+   ```bash
+   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh http-pull \
+     'autosave 1-00250-01-15-legends.xml' /tmp/
+   ```
+
+3. **Or use curl directly for parallel downloads**:
+   ```bash
+   VM_IP=$(/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh ip)
+   curl -o /tmp/legends.xml "http://${VM_IP}:8889/autosave%201-00250-01-15-legends.xml" &
+   curl -o /tmp/legends_plus.xml "http://${VM_IP}:8889/autosave%201-00250-01-15-legends_plus.xml" &
+   wait
+   ```
+
+4. **Stop when done**:
+   ```bash
+   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh http-serve stop
+   ```
+
+### Method 3: Guest Agent (Emergency Only — 1-5 MB/s)
+
+Only use when both SSH and HTTP are unavailable.
+```bash
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh pull-ga \
+  "C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\Dwarf Fortress\\\\legends.xml"
+```
+**Warning**: Double-backslash escaping required. Exit code 0 even on failure. Serial port transfer.
+
+### Transfer Speed Hierarchy (Benchmarked 2026-02-24)
+
+| Method | Speed | 115 MB file | Startup | Dependency |
+|--------|-------|-------------|---------|------------|
+| HTTP + curl | ~105 MB/s | 1.1s | ~15s (first start) | File server running |
+| SCP (`-O -T`) | ~19 MB/s | 6.8s | 0s | SSH key deployed + sshd running |
+| Guest Agent | ~0.24 MB/s | 8m 10s | 0s | Guest agent only (440x slower) |
+
+**Both SSH and HTTP are operational.** HTTP is ~5x faster for bulk transfers but requires starting the file server. SCP works instantly with zero setup once sshd is installed.
+
+### Performance Baselines
+
+| Method | File | Size | Time | Speed |
+|--------|------|------|------|-------|
+| SCP | legends.xml | TBD | TBD | TBD |
+| HTTP | legends.xml | TBD | TBD | TBD |
+| GA | (not benchmarked) | | | ~1-5 MB/s |
 
 ---
 
@@ -233,14 +323,11 @@ Parse and load Dwarf Fortress legends XML exports into the PostgreSQL CDM schema
 
 1. **Pull legends XML from VM** (if not already local):
    ```bash
-   VM_IP=$(/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh ip)
    mkdir -p /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-pre-embark
-   scp -i ~/.ssh/df-vm \
-     "Jarvis@${VM_IP}:\"C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends.xml\"" \
-     /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-pre-embark/
-   scp -i ~/.ssh/df-vm \
-     "Jarvis@${VM_IP}:\"C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends_plus.xml\"" \
-     /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-pre-embark/
+   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh scp-pull-multi \
+     /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-pre-embark \
+     'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends.xml' \
+     'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends_plus.xml'
    ```
 
 2. **Ingest into PostgreSQL**:
@@ -470,6 +557,10 @@ Measure DF and pipeline performance for capacity planning.
 | `disconnect` error on client | Method is `close()` not `disconnect()` | Use `client.close()` |
 | Path escaping in utmctl | Needs double-backslash in bash | `"C:\\\\Windows\\\\Temp\\\\file.txt"` |
 | VM disk UUID changes | Recreating VM changes UUID | Use `vm-config.sh` auto-detection (glob `*.qcow2`) |
+| HTTP file server won't start | Missing URL ACL + firewall rule | `http-serve start` auto-provisions both via GA. Manual: `netsh http add urlacl url=http://+:8889/ user=Everyone` + `New-NetFirewallRule -DisplayName "Chronicler File Server 8889" -Direction Inbound -Protocol TCP -LocalPort 8889 -Action Allow` |
+| SSH port 22 closed on VM | OpenSSH not installed/started | Install ARM64 MSI: `projects/chronicler/scripts/install-sshd.ps1` |
+| SCP "no such file" on Windows paths | OpenSSH 8.0+ defaults to SFTP mode | `scp-pull` already uses `-O -T` flags; if using raw scp, add `-O -T` |
+| OpenSSH x64 crashes on ARM VM | Prism can't emulate x86 crypto intrinsics | Use ARM64 MSI from GitHub (`OpenSSH-ARM64-v10.0.0.0.msi`) |
 
 ---
 

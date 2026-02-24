@@ -273,6 +273,13 @@ cmd_health() {
     else
         echo "Bridge HTTP (8888): NOT AVAILABLE"
     fi
+
+    # File server HTTP check
+    if curl -sf --max-time 2 "http://$ip:$FILE_SERVE_PORT/" >/dev/null 2>&1; then
+        echo "File Server ($FILE_SERVE_PORT): OK"
+    else
+        echo "File Server ($FILE_SERVE_PORT): NOT AVAILABLE"
+    fi
 }
 
 cmd_push() {
@@ -289,12 +296,257 @@ cmd_push() {
     log "Push complete"
 }
 
-cmd_pull() {
+cmd_pull_ga() {
+    # Legacy pull via QEMU Guest Agent (1-5 MB/s). Use scp-pull for large files.
     local guest_path="$1"
     if [ -z "$guest_path" ]; then
-        err "Usage: vm-lifecycle.sh pull <guest-path>"
+        err "Usage: vm-lifecycle.sh pull-ga <guest-path>"
     fi
     "$UTMCTL" file pull "$VM_NAME" "$guest_path"
+}
+
+cmd_scp_pull() {
+    # Fast file download via SCP (40-80 MB/s vs 1-5 MB/s for GA).
+    # Requires SSH to be bootstrapped on the VM.
+    local guest_path="$1"
+    local local_path="${2:-.}"
+    if [ -z "$guest_path" ]; then
+        err "Usage: vm-lifecycle.sh scp-pull <guest-path> [local-path]"
+    fi
+    local ip
+    ip=$(get_ip)
+    if [ -z "$ip" ]; then
+        err "No VM IP. Is the VM running?"
+    fi
+    if [ ! -f "$SSH_KEY" ]; then
+        err "SSH key not found at $SSH_KEY. Run vm-bootstrap.sh first."
+    fi
+    log "SCP pull: $guest_path → $local_path"
+    local start_time
+    start_time=$(date +%s)
+    # -O forces legacy SCP protocol (OpenSSH 8.0+ defaults to SFTP mode,
+    # which breaks on Windows absolute paths like C:/path).
+    # -T disables strict filename checking (needed for paths with parens/spaces).
+    # The remote path must be quoted for the remote shell (spaces in paths).
+    scp -O -T -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout="$SSH_TIMEOUT" \
+        "$SSH_USER@$ip:\"$guest_path\"" "$local_path"
+    local rc=$?
+    local end_time
+    end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+    if [ $rc -eq 0 ]; then
+        log "SCP pull complete in ${elapsed}s"
+    else
+        err "SCP pull failed (rc=$rc) after ${elapsed}s"
+    fi
+}
+
+cmd_scp_pull_multi() {
+    # Parallel SCP download of multiple files.
+    local local_dir="$1"
+    shift
+    if [ -z "$local_dir" ] || [ $# -eq 0 ]; then
+        err "Usage: vm-lifecycle.sh scp-pull-multi <local-dir> <guest-path1> [guest-path2] ..."
+    fi
+    if [ ! -d "$local_dir" ]; then
+        err "Local directory does not exist: $local_dir"
+    fi
+    local ip
+    ip=$(get_ip)
+    if [ -z "$ip" ]; then
+        err "No VM IP. Is the VM running?"
+    fi
+    if [ ! -f "$SSH_KEY" ]; then
+        err "SSH key not found at $SSH_KEY. Run vm-bootstrap.sh first."
+    fi
+
+    local start_time
+    start_time=$(date +%s)
+    local pids=""
+    local count=0
+
+    for guest_path in "$@"; do
+        count=$((count + 1))
+        log "Starting SCP #$count: $(basename "$guest_path")"
+        scp -O -T -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout="$SSH_TIMEOUT" \
+            "$SSH_USER@$ip:\"$guest_path\"" "$local_dir/" &
+        pids="$pids $!"
+    done
+
+    log "Waiting for $count parallel SCP transfers..."
+    local failed=0
+    for pid in $pids; do
+        if ! wait "$pid"; then
+            failed=$((failed + 1))
+        fi
+    done
+
+    local end_time
+    end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+
+    if [ $failed -eq 0 ]; then
+        log "All $count transfers complete in ${elapsed}s"
+    else
+        log "WARNING: $failed of $count transfers failed (${elapsed}s total)"
+        return 1
+    fi
+}
+
+cmd_http_serve() {
+    # Start/stop/status for PowerShell HTTP file server on VM (port FILE_SERVE_PORT).
+    local action="${1:-start}"
+    local ip
+    ip=$(get_ip)
+    if [ -z "$ip" ]; then
+        err "No VM IP. Is the VM running?"
+    fi
+
+    case "$action" in
+        start)
+            # Check if already running
+            if curl -sf --max-time 2 "http://$ip:$FILE_SERVE_PORT/" >/dev/null 2>&1; then
+                log "HTTP file server already running on port $FILE_SERVE_PORT"
+                return 0
+            fi
+
+            log "Starting HTTP file server on port $FILE_SERVE_PORT..."
+            local template="$VM_SCRIPTS_DIR/file-server.ps1"
+            if [ ! -f "$template" ]; then
+                err "file-server.ps1 template not found at $template"
+            fi
+
+            local ssh_ok=false
+            if [ -f "$SSH_KEY" ] && nc -z -w 2 "$ip" 22 2>/dev/null; then
+                ssh_ok=true
+            fi
+
+            if [ "$ssh_ok" = true ]; then
+                # Fast path: deploy + start via SSH
+                local ps1_path="C:/Users/$SSH_USER/file-server.ps1"
+                scp -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+                    "$template" "$SSH_USER@$ip:\"$ps1_path\"" 2>/dev/null
+                ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout="$SSH_TIMEOUT" \
+                    "$SSH_USER@$ip" \
+                    "powershell.exe -ExecutionPolicy Bypass -File \"$ps1_path\"" &
+                local ssh_pid=$!
+                disown "$ssh_pid" 2>/dev/null
+            else
+                # Slow path: exec-ps (no SSH or SSH unreachable)
+                log "SSH not available — using Guest Agent (slower, ~10s PowerShell startup)"
+
+                # Ensure URL ACL + firewall rule exist (idempotent, requires GA SYSTEM privileges)
+                cmd_exec_ps "netsh http show urlacl url=http://+:${FILE_SERVE_PORT}/ | Select-String 'Reserved URL' | Out-Null; if (-not \$?) { netsh http add urlacl url=http://+:${FILE_SERVE_PORT}/ user=Everyone }" 2>/dev/null
+                cmd_exec_ps "if (-not (Get-NetFirewallRule -DisplayName 'Chronicler File Server ${FILE_SERVE_PORT}' -ErrorAction SilentlyContinue)) { New-NetFirewallRule -DisplayName 'Chronicler File Server ${FILE_SERVE_PORT}' -Direction Inbound -Protocol TCP -LocalPort ${FILE_SERVE_PORT} -Action Allow | Out-Null }" 2>/dev/null
+
+                "$UTMCTL" file push "$VM_NAME" "C:\\Users\\$SSH_USER\\file-server.ps1" < "$template"
+                cmd_exec_ps "Start-Process powershell.exe -ArgumentList '-ExecutionPolicy','Bypass','-File','C:\\Users\\$SSH_USER\\file-server.ps1' -WindowStyle Hidden"
+                sleep 5
+            fi
+
+            # Wait for server to be ready
+            local elapsed=0
+            local max_wait=20
+            while [ $elapsed -lt $max_wait ]; do
+                sleep 2
+                elapsed=$((elapsed + 2))
+                if curl -sf --max-time 2 "http://$ip:$FILE_SERVE_PORT/" >/dev/null 2>&1; then
+                    log "HTTP file server running on http://$ip:$FILE_SERVE_PORT/"
+                    return 0
+                fi
+            done
+            log "WARNING: HTTP file server may not have started after ${max_wait}s"
+            return 1
+            ;;
+        stop)
+            log "Stopping HTTP file server..."
+            if [ -f "$SSH_KEY" ] && nc -z -w 2 "$ip" 22 2>/dev/null; then
+                ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no -o ConnectTimeout="$SSH_TIMEOUT" \
+                    "$SSH_USER@$ip" \
+                    'powershell.exe -Command "Get-Process powershell | Where-Object { $_.MainWindowTitle -like \"*File Server*\" } | Stop-Process -Force"' 2>/dev/null
+            else
+                cmd_exec_ps 'Get-Process powershell | Where-Object { $_.MainWindowTitle -like "*File Server*" } | Stop-Process -Force'
+            fi
+            log "Stop signal sent"
+            ;;
+        status)
+            if curl -sf --max-time 2 "http://$ip:$FILE_SERVE_PORT/" >/dev/null 2>&1; then
+                echo "running (http://$ip:$FILE_SERVE_PORT/)"
+            else
+                echo "not running"
+            fi
+            ;;
+        *)
+            err "Usage: vm-lifecycle.sh http-serve {start|stop|status}"
+            ;;
+    esac
+}
+
+cmd_http_pull() {
+    # Download a file from the VM's HTTP file server.
+    # The path is relative to the DF install directory.
+    local remote_file="$1"
+    local local_path="${2:-.}"
+    if [ -z "$remote_file" ]; then
+        err "Usage: vm-lifecycle.sh http-pull <filename> [local-path]"
+    fi
+    local ip
+    ip=$(get_ip)
+    if [ -z "$ip" ]; then
+        err "No VM IP. Is the VM running?"
+    fi
+
+    # URL-encode spaces in filename
+    local encoded
+    encoded=$(printf '%s' "$remote_file" | sed 's/ /%20/g')
+
+    local url="http://$ip:$FILE_SERVE_PORT/$encoded"
+    log "HTTP pull: $url"
+
+    local start_time
+    start_time=$(date +%s)
+
+    if [ -d "$local_path" ]; then
+        local basename
+        basename=$(basename "$remote_file")
+        curl -sfL --max-time 600 -o "$local_path/$basename" "$url"
+    else
+        curl -sfL --max-time 600 -o "$local_path" "$url"
+    fi
+    local rc=$?
+    local end_time
+    end_time=$(date +%s)
+    local elapsed=$((end_time - start_time))
+
+    if [ $rc -eq 0 ]; then
+        log "HTTP pull complete in ${elapsed}s"
+    else
+        err "HTTP pull failed (rc=$rc) after ${elapsed}s. Is http-serve running?"
+    fi
+}
+
+cmd_pull() {
+    # Smart pull dispatcher: SCP if SSH available, else Guest Agent fallback.
+    local guest_path="$1"
+    local local_path="${2:-.}"
+    if [ -z "$guest_path" ]; then
+        err "Usage: vm-lifecycle.sh pull <guest-path> [local-path]"
+    fi
+
+    # Try SCP first (fast path)
+    if [ -f "$SSH_KEY" ]; then
+        local ip
+        ip=$(get_ip)
+        if [ -n "$ip" ] && ssh -i "$SSH_KEY" -o StrictHostKeyChecking=no \
+               -o ConnectTimeout=2 -o BatchMode=yes "$SSH_USER@$ip" "echo ok" >/dev/null 2>&1; then
+            cmd_scp_pull "$guest_path" "$local_path"
+            return $?
+        fi
+    fi
+
+    # Fallback to Guest Agent
+    log "SSH unavailable — falling back to Guest Agent pull (slow)"
+    cmd_pull_ga "$guest_path"
 }
 
 cmd_exec() {
@@ -421,31 +673,47 @@ case "${1:-}" in
     snapshots) cmd_snapshots ;;
     clone)     cmd_clone "$2" ;;
     health)    cmd_health ;;
-    push)      shift; cmd_push "$@" ;;
-    pull)      shift; cmd_pull "$@" ;;
-    exec)          shift; cmd_exec "$@" ;;
-    exec-capture)  shift; cmd_exec_capture "$@" ;;
-    exec-ps)       shift; cmd_exec_ps "$@" ;;
+    push)           shift; cmd_push "$@" ;;
+    pull)           shift; cmd_pull "$@" ;;
+    pull-ga)        shift; cmd_pull_ga "$@" ;;
+    scp-pull)       shift; cmd_scp_pull "$@" ;;
+    scp-pull-multi) shift; cmd_scp_pull_multi "$@" ;;
+    http-serve)     shift; cmd_http_serve "$@" ;;
+    http-pull)      shift; cmd_http_pull "$@" ;;
+    exec)           shift; cmd_exec "$@" ;;
+    exec-capture)   shift; cmd_exec_capture "$@" ;;
+    exec-ps)        shift; cmd_exec_ps "$@" ;;
     *)
-        echo "Usage: vm-lifecycle.sh {start|stop|suspend|status|ip|ssh|exec|exec-capture|exec-ps|push|pull|snapshot|restore|snapshots|clone|health}"
+        echo "Usage: vm-lifecycle.sh <command> [args...]"
         echo ""
-        echo "Commands:"
+        echo "Lifecycle:"
         echo "  start              Boot VM, wait for SSH, print IP"
         echo "  stop               Graceful shutdown"
         echo "  suspend            Suspend to memory"
         echo "  status             Print VM status"
         echo "  ip                 Print VM IP address"
         echo "  ssh [cmd]          SSH into VM (or run command)"
+        echo "  health             Check VM + SSH + services health"
+        echo ""
+        echo "File transfer (fastest first):"
+        echo "  scp-pull <guest> [local]     Fast download via SCP (40-80 MB/s)"
+        echo "  scp-pull-multi <dir> <g1>... Parallel SCP downloads"
+        echo "  http-serve {start|stop|status}  Manage HTTP file server on VM"
+        echo "  http-pull <file> [local]     Download via HTTP file server"
+        echo "  pull <guest> [local]         Smart pull (SCP if available, else GA)"
+        echo "  pull-ga <guest-path>         Legacy pull via Guest Agent (1-5 MB/s)"
+        echo "  push <local> <guest-path>    Upload file to VM via guest agent"
+        echo ""
+        echo "Execution:"
         echo "  exec <cmd...>      Execute command via QEMU guest agent"
-        echo "  exec-capture <cmd> Execute via GA with reliable output capture (simple cmds)"
+        echo "  exec-capture <cmd> Execute via GA with reliable output capture"
         echo "  exec-ps <ps-cmd>   Execute complex PowerShell via base64 encoding"
-        echo "  push <local> <guest-path>  Upload file to VM via guest agent"
-        echo "  pull <guest-path>          Download file from VM via guest agent"
+        echo ""
+        echo "Snapshots:"
         echo "  snapshot <name>    Create disk snapshot (requires: brew install qemu)"
         echo "  restore <name>     Restore disk snapshot (requires: brew install qemu)"
         echo "  snapshots          List disk snapshots (requires: brew install qemu)"
         echo "  clone <name>       Clone entire VM (no qemu-img needed)"
-        echo "  health             Check VM + SSH + services health"
         exit 1
         ;;
 esac
