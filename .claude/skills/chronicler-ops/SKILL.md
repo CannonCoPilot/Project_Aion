@@ -40,7 +40,11 @@ DF-Windows VM (UTM)
 HomeServer (Physical — 192.168.4.194)
 ├── Windows 10 Pro x86_64 → Native DF performance
 ├── DF + DFHack           → Same versions, RPC on :5000
-└── PowerShell HTTP       → File server on :8888
+├── PowerShell HTTP       → File server on :8888 (serves DF root dir)
+├── SMB (Users share)     → File deploy via impacket (no C$ admin access)
+├── chronicler-bridge.lua → In ~/dfhack-scripts/ (deployed via SMB)
+├── chronicler-export.lua → Legends export wrapper with manifest
+└── chronicler-setup.ps1  → One-time setup (Run as Admin on Desktop)
 ```
 
 ---
@@ -60,6 +64,9 @@ HomeServer (Physical — 192.168.4.194)
 | Ingest legends XML | Workflow 3 below |
 | Compare legends snapshots | Workflow 4 below |
 | Full deploy cycle | Workflow 5 below |
+| Deploy scripts to HomeServer | Workflow 8 below |
+| Legends export + transfer + ingest | Workflow 9 below |
+| Backup game state | Workflow 10 below |
 | Check DF framerate | `/df fps` |
 | Pause/unpause game | `/df pause` / `/df unpause` |
 | Create VM snapshot | `/vm snapshot <name>` |
@@ -74,10 +81,13 @@ HomeServer (Physical — 192.168.4.194)
 | CLI entrypoint | `/Users/nathanielcannon/Claude/Projects/DwarfCron/.venv/bin/chronicler` |
 | DFHack client | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/client.py` |
 | Proto definitions | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/proto/` |
-| Bridge Lua script | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/chronicler-bridge.lua` |
+| Bridge Lua script | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua` |
+| Export Lua script | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-export.lua` |
 | VM scripts | `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-{config,lifecycle,bootstrap}.sh` |
 | VM config (shared) | `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-config.sh` |
+| HomeServer deploy | `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh` |
 | Legends data | `/Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/` |
+| Game backups | `/Users/nathanielcannon/Claude/Projects/DwarfCron/data/backups/` |
 | Pre-embark legends | `.../data/legends/region1-pre-embark/` |
 | Post-embark legends | `.../data/legends/region1-post-embark/` |
 | DB schema | PostgreSQL `chronicler` — CDM tables (units, historical_figures, events, etc.) |
@@ -539,6 +549,69 @@ Measure DF and pipeline performance for capacity planning.
 | PowerShell startup (Prism) | ~10s |
 | SSH connection | <1s |
 | Bridge HTTP response | <100ms |
+
+---
+
+## Workflow 8: HomeServer Script Deployment
+
+Deploy Lua scripts and configuration to the HomeServer (192.168.4.194) via SMB.
+
+```bash
+# Deploy bridge + export scripts
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh bridge
+
+# Check deployment status (network, files, versions)
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh status
+
+# Deploy everything
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh all
+```
+
+**HomeServer access limitations**: No SSH, no admin shares (C$), no WMI, no WinRM. File deployment uses SMB `Users` share via impacket. Remote execution not available — use DFHack console or Startup folder scripts.
+
+**One-time setup**: The user must run `chronicler-setup.ps1` (right-click → Run as Administrator) on the HomeServer Desktop. This configures:
+- Firewall rule (TCP 8888)
+- `script-paths.txt` — adds `+C:\Users\Nathaniel\dfhack-scripts`
+- `onMapLoad.init` — bridge repeat job auto-start on fort load
+- HTTP server scheduled task (auto-start on logon)
+
+---
+
+## Workflow 9: Legends Export Automation
+
+Full pipeline: export legends in-game → transfer XMLs → ingest to PostgreSQL.
+
+### Step 1: Export (in-game, manual)
+In DFHack console, while in Legends mode:
+```
+chronicler-export
+```
+This runs `exportlegends all` and writes `chronicler-export-manifest.json` with file names.
+
+### Step 2: Transfer + Ingest (automated)
+```bash
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh legends
+```
+This reads the manifest (or constructs filenames from bridge data), downloads XMLs via HTTP, and runs `chronicler ingest`.
+
+**Pre-requisites**:
+- HTTP file server running on HomeServer (port 8888)
+- Legends already exported via DFHack in Legends mode
+- `chronicler-export.lua` deployed to dfhack-scripts/
+
+---
+
+## Workflow 10: Game State Backup
+
+Snapshot the current live game state from the bridge.
+
+```bash
+/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh backup-save
+```
+
+Saves a timestamped JSON snapshot of all 17 bridge data sections to `/Users/nathanielcannon/Claude/Projects/DwarfCron/data/backups/`. Also lists available local legends XML backups.
+
+**Limitation**: Full DF save directory backup requires access to `C:\Program Files (x86)\...\Dwarf Fortress\data\save\` which is not available via the Users SMB share. For full saves, use `chronicler-setup.ps1` to configure admin access or export legends via Workflow 9.
 
 ---
 
