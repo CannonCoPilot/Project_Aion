@@ -40,20 +40,30 @@ Jarvis needs autonomous control over a Windows environment for: file transfers, 
 8. Install PowerShell 7: `winget install Microsoft.PowerShell`
 
 ### Exit Criteria
-- [ ] `utmctl exec` returns output from guest (pending: Windows install + guest tools)
-- [ ] SSH key-based auth works from Mac (pending: run vm-bootstrap.sh after guest tools)
-- [x] `utmctl ip-address` returns valid IP (verified: utmctl works, VM exists)
+- [x] `utmctl exec` returns output from guest — verified: hostname=`WIN-MRGFUCCV202`
+- [ ] SSH key-based auth works from Mac (pending: run vm-bootstrap.sh)
+- [x] `utmctl ip-address` returns valid IP — verified: `192.168.64.3`
 
 ### Jarvis Pre-work Complete
-- [x] `vm-lifecycle.sh` created + tested (start/stop/status/ip/ssh/exec/push/pull/snapshot/clone/health)
-- [x] `vm-bootstrap.sh` created (OpenSSH install + SSH key deploy + PS7, runs autonomously)
+- [x] `vm-lifecycle.sh` created + tested (19-command VM control wrapper, 451 lines)
+- [x] `vm-bootstrap.sh` created (OpenSSH + SSH key + SSH config + PS7, 343 lines)
+- [x] `vm-config.sh` shared config (auto-detects disk UUID, DRY constants)
 - [x] SSH key pair generated: `~/.ssh/df-vm` (ed25519, jarvis-vm-control)
 - [x] `utmctl` API fully mapped: list, status, start, stop, suspend, exec, file push/pull, ip-address, clone
-- [x] Disk path verified: `FBC249A3-0D3A-43A1-B64E-170E9132CE76.qcow2` (29.6 GB)
-- Note: `qemu-img` is a dylib inside UTM (not executable). Snapshot commands require `brew install qemu`.
+- [x] Disk auto-detected: `B4514AD5-3F19-4D5C-9FA8-6BE14C59DE42.qcow2` (14.8 GB)
+- [x] `qemu-img` installed via `brew install qemu` (v10.2.1) — snapshot/restore ready
+- [x] `exec-capture` + `exec-ps` verified against running VM
+- **OS confirmed**: Windows 11 Pro ARM 64-bit (10.0.26200)
 
-### Files Created
-- `projects/chronicler/scripts/vm-lifecycle.sh` — 16-command VM control wrapper
+### Key Findings
+- `utmctl exec` is fire-and-forget — no stdout relay. Use `exec-capture` (simple) or `exec-ps` (complex PS)
+- `utmctl file pull` returns exit 0 even on failure — must check output content
+- PowerShell takes ~10s to start under Prism ARM emulation — polling with done-marker is essential
+- Disk UUID changes on VM re-create — config auto-detects via glob
+
+### Files Created/Updated
+- `projects/chronicler/scripts/vm-config.sh` — shared config (auto-detect disk, DRY)
+- `projects/chronicler/scripts/vm-lifecycle.sh` — 19-command VM control wrapper
 - `projects/chronicler/scripts/vm-bootstrap.sh` — autonomous Phase 0 bootstrap
 
 ---

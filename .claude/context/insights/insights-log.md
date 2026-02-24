@@ -1167,3 +1167,7 @@ The PRD needs to reconcile several layers of analysis:
 ### 2026-02-24 [54f912cd43c2]
 
 **Two paths forward**: We can either (a) delete the existing `DF-Windows` VM and create a fresh one with the same name (preserving script compatibility), or (b) create a new VM alongside it with a different name (requires updating script config). Option (a) is cleaner since the old VM has an unknown password state. The plan explicitly recommends fresh install over password recovery.
+
+### 2026-02-24 [b5cb6a99905b]
+
+**`utmctl exec` output capture**: The QEMU Guest Agent's `exec` command runs the process but may not capture stdout in all implementations. The exit code (0) confirms the command ran successfully. We may need to write output to a file and `pull` it, or use the SSH path once it's set up.

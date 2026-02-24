@@ -20,11 +20,8 @@
 # ===========================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/vm-config.sh"
 LIFECYCLE="$SCRIPT_DIR/vm-lifecycle.sh"
-UTMCTL="/Applications/UTM.app/Contents/MacOS/utmctl"
-VM_NAME="DF-Windows"
-SSH_KEY="$HOME/.ssh/df-vm"
-SSH_USER="Chronicler"
 
 # --- Helpers ---
 log() { echo "[vm-bootstrap] $*" >&2; }
@@ -133,7 +130,7 @@ setup_ssh_key() {
         "New-Item -ItemType Directory -Force -Path \"C:\\Users\\$SSH_USER\\.ssh\" | Out-Null" 2>&1
 
     # Write authorized_keys via guest agent file push
-    echo "$pubkey" | "$UTMCTL" file push "$VM_NAME" "C:\\Users\\$SSH_USER\\.ssh\\authorized_keys" --input 2>&1
+    echo "$pubkey" | "$UTMCTL" file push "$VM_NAME" "C:\\Users\\$SSH_USER\\.ssh\\authorized_keys" 2>&1
     local rc=$?
 
     if [ $rc -ne 0 ]; then
@@ -167,7 +164,54 @@ setup_ssh_key() {
     fi
 }
 
-# --- Step 3: Install PowerShell 7 (best-effort) ---
+# --- Step 3: Configure SSH Config Entry ---
+setup_ssh_config() {
+    log "Step 3: Configuring SSH config entry..."
+
+    local ssh_config="$HOME/.ssh/config"
+    local ip
+    ip=$("$LIFECYCLE" ip 2>/dev/null)
+
+    # Check if entry already exists
+    if [ -f "$ssh_config" ] && grep -q "Host df-vm" "$ssh_config" 2>/dev/null; then
+        log "SSH config entry 'df-vm' already exists"
+        # Update HostName if IP changed
+        if [ -n "$ip" ]; then
+            local current_host
+            current_host=$(awk '/Host df-vm/{found=1} found && /HostName/{print $2; exit}' "$ssh_config")
+            if [ "$current_host" != "$ip" ]; then
+                log "Updating HostName from $current_host to $ip"
+                sed -i '' "s/HostName $current_host/HostName $ip/" "$ssh_config"
+            fi
+        fi
+        return 0
+    fi
+
+    if [ -z "$ip" ]; then
+        warn "Cannot determine VM IP — SSH config entry will use placeholder. Update after VM starts."
+        ip="VM_IP_PLACEHOLDER"
+    fi
+
+    # Append config block
+    log "Adding 'df-vm' host entry to $ssh_config"
+    {
+        echo ""
+        echo "# DF-Windows UTM VM (managed by vm-bootstrap.sh)"
+        echo "Host df-vm"
+        echo "    HostName $ip"
+        echo "    User $SSH_USER"
+        echo "    IdentityFile $SSH_KEY"
+        echo "    StrictHostKeyChecking no"
+        echo "    UserKnownHostsFile /dev/null"
+        echo "    LogLevel ERROR"
+        echo "    ConnectTimeout $SSH_TIMEOUT"
+    } >> "$ssh_config"
+
+    chmod 600 "$ssh_config"
+    log "SSH config entry added. Use: ssh df-vm"
+}
+
+# --- Step 4: Install PowerShell 7 (best-effort) ---
 install_pwsh7() {
     log "Step 3: Installing PowerShell 7 (best-effort)..."
 
@@ -251,6 +295,13 @@ check_status() {
         check_fail "VM IP not available"
     fi
 
+    # SSH config
+    if [ -f "$HOME/.ssh/config" ] && grep -q "Host df-vm" "$HOME/.ssh/config" 2>/dev/null; then
+        check_pass "SSH config entry (df-vm)"
+    else
+        check_fail "SSH config entry (df-vm not in ~/.ssh/config)"
+    fi
+
     # PowerShell 7
     local pwsh_check
     pwsh_check=$("$UTMCTL" exec "$VM_NAME" --cmd cmd.exe /c "where pwsh" 2>/dev/null)
@@ -275,6 +326,7 @@ case "${1:-}" in
         preflight
         install_openssh
         setup_ssh_key
+        setup_ssh_config
         install_pwsh7
         log ""
         log "=== Bootstrap Complete ==="
