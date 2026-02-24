@@ -1179,3 +1179,20 @@ The PRD needs to reconcile several layers of analysis:
 ### 2026-02-24 [ecdf80e76ca6]
 
 **Phase 1 verdict: VM is viable**. DFHack RPC at 0.3ms latency and 89ms for a full unit list means the VM isn't just functional — it's fast. The double-emulation stack (QEMU ARM virtualization + Prism x86-64 translation) doesn't appreciably affect network I/O or RPC response times. The real performance question is DF's framerate under Prism (we should check that), but for our primary use case (data pipeline: RPC + bridge → change detection → PostgreSQL), the VM is fully capable. This means we can consolidate everything on the local VM instead of the split HomeServer architecture — simpler deployment, offline-capable development, and snapshotable state.
+
+### 2026-02-24 [b51ae036e61e]
+
+**Skill vs Command architecture**: The `/vm` and `/df` commands are thin wrappers for single actions — they get loaded into context only when invoked via slash command. The `chronicler-ops` skill, by contrast, is loaded by the model *automatically* when it detects Chronicler-related work in the conversation (via the description's trigger words). This means when you ask "deploy the bridge and start the watcher," the model loads the skill's 7 workflows as context to guide multi-step orchestration — without needing to remember the exact sequence. The skill acts as procedural memory: the model knows *how* to do complex operations, not just *what* individual commands do.
+
+**Why 7 workflows instead of 7 commands**: Each workflow involves 4-6 steps across multiple systems (bash scripts, Python RPC, curl, SQL). Making these individual commands would create either oversimplified wrappers that hide critical verification steps, or complex scripts that are hard to debug. The skill pattern lets the model compose the right sequence dynamically, including branching on failures.
+
+### 2026-02-24 [19f31d084c14]
+
+The commit captures the transformation from a placeholder skill (180 lines with pseudocode snippets) to a production-ready operational guide (486 lines with 7 workflows, real paths, and tested code). The previous commit `1311685` had created the skeleton during the initial `/vm` + `/df` command registration — this commit fills in the actual procedural knowledge that makes the skill useful as contextual guidance during complex operations.
+
+### 2026-02-24 [a0fc03226363]
+
+**Transfer Speed Comparison (115 MB XML file)**:
+
+| Method | Time | Throughput | Ratio |
+|--------|------|

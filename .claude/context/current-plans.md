@@ -1,6 +1,7 @@
 # Current Plans
 
 ## Active
+- [wiggly-splashing-lollipop](/Users/nathanielcannon/Claude/Jarvis/.claude/plans/wiggly-splashing-lollipop.md) — (auto-tracked)
 - [UTM VM + Chronicler Automation](.claude/plans/buzzing-twirling-newell.md) — Phases 0-5: VM bootstrap, DF risk validation, automation stack, HomeServer SSH, deliverable app
 
 ## Recently Completed
