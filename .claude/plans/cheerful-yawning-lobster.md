@@ -1,288 +1,197 @@
-# JICM v7.1 — Fix HALT Interruption, Session Targeting, and Data Enrichment
+# JICM Watcher TUI Redesign — CSR Split-Screen Dashboard
 
 ## Context
 
-After monitoring 3 JICM compression cycles (#25-#27) on W0:Jarvis while it worked on the Chronicler project, we identified 4 critical issues causing **task drift after compression**:
+The W1:Watcher terminal output is garbled. The current dashboard uses `printf '\e[8A'` to move the cursor up 8 lines and overwrite in place, but `log()` calls between draws shift the cursor position. The next `\e[8A` lands at the wrong row, producing overlapping box fragments:
 
-1. **Double-ESC HALT interruption**: `wait_for_idle()` sends a second ESC immediately after the HALT prompt is submitted, interrupting Jarvis's "Understood" response before it completes.
-2. **Cross-session JSONL contamination**: `find_best_jsonl()` selects by message count — W5:Jarvis-dev's 8MB/4102-line JSONL always beats W0's smaller, frequently-compressed sessions (96-472 lines). Result: W0 resumes with W5's conversation context, causing task drift.
-3. **Thin LLM input**: Condensed input includes only 5 lines of plan title, no archived checkpoint data for multi-cycle continuity.
-4. **No multi-plan tracking**: `.active-plan` tracks one file path. No `@`-imported reference for current/recent plans.
-
-**Root Cause Trace (Double-ESC)**:
 ```
-do_halt()                               (jicm-watcher.sh)
-  L823: tmux_send_escape                ← ESC #1 (correct: clears pending input)
-  L824: sleep 0.3
-  L832: tmux_send_prompt "[JICM-HALT]"  ← Sends HALT text + Enter
-  L835: wait_for_idle()                 ← Enters wait loop
-    L448: trigger_idle_check()          ← IMMEDIATE call
-      L367: tmux_send_escape            ← ESC #2 — INTERRUPTS the HALT response
+╔══════════════════════════════════════════════════════╗
+╔══════════════════════════════════════════════════════╗
+║  JICM v7                          ● WATCHING  ║══════╣2s)
+```
+
+**Root cause**: Header and log output share the same unbounded screen buffer with no positional separation.
+
+**Solution**: Use ANSI `tput csr` (Change Scroll Region) to split the terminal into a frozen header panel (rows 0-9) and a scrolling log area (rows 10+). Log output can never corrupt the header; header updates can never corrupt the log.
+
+---
+
+## File Modified
+
+**`/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`** — sole file. All changes are within the dashboard, logging, cleanup, and main loop sections.
+
+---
+
+## Technical Approach: CSR Scroll Region
+
+Confirmed working on target system:
+- `TERM=xterm-256color` inside tmux, `tput csr 8 44` confirmed available
+- tmux 3.4 supports CSR — `capture-pane` sees both frozen header and scroll content
+- W1 pane: 189x45, bash 3.2.57 (no associative arrays, no readarray)
+- **NOT using alternate screen** (`smcup`/`rmcup`) — W5 reads W1 via `capture-pane` without `-a`
+
+---
+
+## Header Layout (10 rows, 0-9)
+
+```
+Row 0:  ┌─ JICM v7 ──────────────────────────────────────────────────────────────────┐
+Row 1:  │ State: ● WATCHING     Context: ████████████░░░░░░░░ 48% (95,819 tok)       │
+Row 2:  │ Threshold: 70%        Session: 2h 15m      Poll: 21:40:07 (5s)             │
+Row 3:  │ Cycles: 23 success, 0 errors    Cooldown: —      Idle ckpts: 47            │
+Row 4:  │ Last cycle: 35s (h:4 c:11 cl:12 r:8) success                              │
+Row 5:  ├─ Activity ──────────────────────────────────────────────────────────────────┤
+Row 6:  │ 21:39:28  48% (95819 tok)                                                  │
+Row 7:  │ 21:39:23  47% (93500 tok)                                                  │
+Row 8:  │ 21:39:18  47% (93500 tok)                                                  │
+Row 9:  └────────────────────────────────────────────────────────────────────────────┘
+Row 10+: [scrolling log area — CSR boundary]
+```
+
+- **Rows 0, 5, 9**: Static borders (drawn once at init and on SIGWINCH)
+- **Rows 1-4**: Dynamic metrics (refreshed every poll cycle)
+- **Rows 6-8**: Activity log circular buffer (last 3 readings, most recent first)
+- **Row 10+**: Scrolling log — all `log()` output flows here naturally via CSR
+
+Box width: 80 chars (fixed, left-aligned in the 189-col pane).
+
+---
+
+## CSR Lifecycle
+
+```
+STARTUP
+  ├─ query_terminal_size()           # Read TERM_ROWS, TERM_COLS
+  ├─ init_tui()
+  │    ├─ tput clear                 # Blank slate
+  │    ├─ tput cup 0..9 → draw static borders (rows 0, 5, 9)
+  │    ├─ tput csr HEADER_ROWS (TERM_ROWS-1)   # Lock scroll region
+  │    └─ tput cup HEADER_ROWS 0     # Cursor in scroll area
+  v
+MAIN LOOP (every POLL_INTERVAL seconds)
+  ├─ log() → echo → stdout          # Scrolls naturally in rows 10+
+  ├─ refresh_header()
+  │    ├─ tput sc                    # Save cursor (in scroll area)
+  │    ├─ tput csr 0 (TERM_ROWS-1)  # LIFT CSR temporarily
+  │    ├─ tput civis                 # Hide cursor (anti-flicker)
+  │    ├─ tput cup R C → printf      # Update rows 1,2,3,4,6,7,8
+  │    ├─ tput csr HEADER_ROWS (TERM_ROWS-1)  # RESTORE CSR
+  │    ├─ tput cnorm                 # Show cursor
+  │    └─ tput rc                    # Restore cursor to scroll area
+  v
+SIGWINCH → query_terminal_size() → init_tui()   # Full redraw on resize
+SHUTDOWN → tput csr 0 (TERM_ROWS-1) → tput cnorm → exit   # Reset terminal
 ```
 
 ---
 
-## Fix 1: Eliminate Double-ESC in HALT Flow
+## Implementation: Functions to Add
 
-**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`
+### 1. `query_terminal_size()` — NEW (after line ~168)
 
-Add a `skip_trigger` parameter to `wait_for_idle()`. When called from `do_halt()`, skip the initial `trigger_idle_check()` (which sends ESC) and instead wait for the HALT response to complete before polling.
+Read terminal dimensions via `tput lines`/`tput cols`. Fallback to 45x80. Minimum 20 rows enforced.
 
-### Changes
+### 2. `init_tui()` — REPLACES `banner()` (lines 1104-1111)
 
-**`wait_for_idle()` (~L442-481)**: Add `skip_trigger` parameter:
+One-time setup: clear screen, draw static border frame (rows 0, 5, 9), fill dynamic rows with placeholders, set CSR, position cursor in scroll area. Sets `TUI_INITIALIZED=1`.
 
-```bash
-wait_for_idle() {
-    local max_wait=${1:-30}
-    local skip_trigger=${2:-false}
-    local waited=0
+### 3. `refresh_header()` — REPLACES `draw_dashboard()` (lines 1064-1102)
 
-    if [[ "$skip_trigger" != "true" ]]; then
-        # Original: send ESC and check pattern
-        local state
-        state=$(trigger_idle_check)
-        if [[ "$state" == "idle" ]]; then
-            WAIT_RESULT="idle"
-            log INFO "Idle confirmed via triggered check"
-            return 0
-        fi
-    else
-        # After HALT: give Jarvis time to generate "Understood", then check
-        sleep 3
-        local pane
-        pane=$(tmux_capture)
-        if echo "$pane" | grep -qiE '(understood|halted|stopping)'; then
-            WAIT_RESULT="idle"
-            log INFO "HALT acknowledged — proceeding"
-            return 0
-        fi
-    fi
+Atomic header update using `tput sc`/`tput rc`. Updates only dynamic rows (1-4, 6-8). Uses `tput el` (erase to EOL) + fixed-column right border to avoid ANSI color width issues. No `log()` calls between save/restore cursor.
 
-    # Polling loop (unchanged)
-    while [[ $waited -lt $max_wait ]]; do
-        sleep 2
-        waited=$((waited + 2))
-        # ... existing poll logic ...
-    done
+Right border strategy: `printf` content → `tput el` (clear rest of line) → `tput cup ROW (WIDTH-1)` → `printf "│"`. Robust regardless of ANSI escape code lengths.
 
-    WAIT_RESULT="timeout"
-    return 0
-}
-```
+### 4. `handle_winch()` — NEW (after cleanup, ~line 1128)
 
-**`do_halt()` (~L835)**: Pass `true` for skip_trigger:
-
-```bash
-# Change:  wait_for_idle "$HALT_TIMEOUT"
-# To:
-wait_for_idle "$HALT_TIMEOUT" true
-```
+SIGWINCH handler: re-query size → `init_tui()`. Log history in scroll area is lost on resize (preserved in log file).
 
 ---
 
-## Fix 2: Session-Targeted JSONL Selection
+## Implementation: Functions to Modify
 
-**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
+### 5. `cleanup()` (lines 1117-1124) — ADD CSR reset
 
-Replace `find_best_jsonl()` (~L111-132) with a two-priority selection:
+Must reset CSR to full terminal, show cursor, move to bottom before exit. Plus an EXIT trap as safety net.
 
-1. **Priority 1 — HALT marker**: Search for the JSONL containing `[JICM-HALT]` in recent entries. This text appears ONLY in W0's JSONL (because the watcher sends HALT only to W0). Guaranteed correct targeting during compression cycles.
-
-2. **Priority 2 — Recency-capped message count**: For idle checkpoints (no HALT marker), use the existing message-count heuristic BUT only consider files modified in the last 10 minutes. This prevents stale, large W5 sessions from being selected.
+### 6. Signal traps (lines 1126-1128) — ADD WINCH + EXIT
 
 ```bash
-find_best_jsonl() {
-    local dir="$1"
-
-    # Priority 1: JSONL with most recent [JICM-HALT] marker (compression trigger)
-    local halt_match=""
-    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -5); do
-        if tail -200 "$f" | grep -q '\[JICM-HALT\]' 2>/dev/null; then
-            halt_match="$f"
-            break
-        fi
-    done
-    if [[ -n "$halt_match" ]]; then
-        echo "JSONL targeted via [JICM-HALT] marker: $(basename "$halt_match")" >&2
-        echo "$halt_match"
-        return 0
-    fi
-
-    # Priority 2: Message count, but only files modified in last 10 min
-    local best="" best_count=0
-    local cutoff=$(( $(date +%s) - 600 ))
-    for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -5); do
-        local fmtime
-        fmtime=$(stat -f %m "$f" 2>/dev/null || echo 0)
-        [[ $fmtime -lt $cutoff ]] && continue
-
-        local count
-        count=$(tail -5000 "$f" 2>/dev/null \
-            | jq -c "$JQ_USER_FILTER" 2>/dev/null \
-            | wc -l | tr -d ' ')
-        if [[ $count -gt $best_count ]]; then
-            best="$f"
-            best_count=$count
-        fi
-    done
-
-    if [[ -n "$best" ]]; then
-        echo "JSONL selected via message count (${best_count} msgs): $(basename "$best")" >&2
-        echo "$best"
-    else
-        ls -t "$dir"/*.jsonl 2>/dev/null | head -1
-    fi
-}
+trap 'cleanup INT' INT
+trap 'cleanup TERM' TERM
+trap 'cleanup HUP' HUP
+trap 'handle_winch' WINCH
+# EXIT safety: reset CSR even on unexpected exit
 ```
+
+### 7. `main()` (line 1135) — `banner` → `init_tui`
+
+### 8. Main loop WATCHING handler (line 1174-1178) — `draw_dashboard` → `refresh_header`
+
+The "Waiting for context data..." message (line 1177) changes from inline `echo -e` to `log INFO` for consistency.
+
+### 9. Main loop COMPRESSING handler (line 1268) — change inline echo to `log JICM`
 
 ---
 
-## Fix 3: Enrich LLM Input with Plan Body + Archived Checkpoint
+## Implementation: Remove
 
-**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
-
-### 3a: Plan body in LLM condensed input (~L366-373)
-
-Change `head -5` to `head -50` for plan content in the LLM input builder:
-
-```bash
-# Change:   head -5 "$plan_path"
-# To:
-head -50 "$plan_path"
-echo "..."
-```
-
-### 3b: Add archived checkpoint for multi-cycle continuity
-
-Insert after the plan section in the LLM input builder (~L373):
-
-```bash
-# Most recent archived checkpoint (multi-cycle continuity signal)
-ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
-if [[ -d "$ARCHIVE_DIR" ]]; then
-    LATEST_ARCHIVE=$(ls -t "$ARCHIVE_DIR"/compressed-*.md 2>/dev/null | head -1)
-    if [[ -n "$LATEST_ARCHIVE" ]]; then
-        echo "## Previous Checkpoint (last compression)"
-        sed -n '/^## Current Task/,/^## Key Paths/p' "$LATEST_ARCHIVE" 2>/dev/null \
-            | head -30
-        echo ""
-    fi
-fi
-```
+- `draw_dashboard()` function (lines 1064-1102) — replaced by `refresh_header()`
+- `banner()` function (lines 1104-1111) — replaced by `init_tui()`
+- `DASHBOARD_DRAWN` variable (line 104) — no longer needed (CSR handles positioning)
 
 ---
 
-## Fix 4: Create `current-plans.md` with `@` Import
+## Implementation: Unchanged
 
-### 4a: New file
-
-**Create**: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/current-plans.md`
-
-```markdown
-# Current Plans
-
-## Active
-- [Chronicler Monitoring System](.claude/plans/effervescent-bouncing-feather.md) — observability for Chronicler/Qwen3
-
-## Recently Completed
-- [JICM Checkpoint Enrichment](.claude/plans/cheerful-yawning-lobster.md) — two-tier compression
-
-## Reference
-- [Overnight Session 28b](.claude/plans/overnight-session-28b-plan.md) — infrastructure sprint
-- [Mac Studio Roadmap](.claude/plans/mac-studio-db-ai-roadmap.md) — long-term roadmap
-```
-
-### 4b: Update plan-tracker.js
-
-**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/plan-tracker.js`
-
-After writing `.active-plan`, also add new plans to `current-plans.md` Active section:
-
-```javascript
-const currentPlansFile = path.join(projectDir, '.claude/context/current-plans.md');
-try {
-    let content = fs.readFileSync(currentPlansFile, 'utf8');
-    const planName = files[0].name.replace('.md', '');
-    if (!content.includes(planName)) {
-        content = content.replace(
-            /^## Active\n/m,
-            `## Active\n- [${planName}](${files[0].fullPath}) — (auto-tracked)\n`
-        );
-        fs.writeFileSync(currentPlansFile, content);
-    }
-} catch (e) { /* Non-fatal */ }
-```
-
-### 4c: Update CLAUDE.md `@` import
-
-**File**: `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md`
-
-Replace the Active Plan section's `@` reference:
-```
-# Before:
-@.claude/plans/overnight-session-28b-plan.md
-
-# After:
-@.claude/context/current-plans.md
-```
-
-### 4d: Update prep script to read current-plans.md
-
-**File**: `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
-
-In the Tier 1 output builder (~L270-279), read from `current-plans.md` and include the first active plan's body:
-
-```bash
-CURRENT_PLANS="$PROJECT_DIR/.claude/context/current-plans.md"
-if [[ -f "$CURRENT_PLANS" ]]; then
-    echo "## Active Plans"
-    sed -n '/^## Active/,/^## /p' "$CURRENT_PLANS" | grep -v '^## [^A]' | head -10
-    echo ""
-
-    # Include body of first active plan
-    FIRST_PLAN=$(sed -n '/^## Active/,/^## /p' "$CURRENT_PLANS" \
-        | grep -oE '\([^)]+\.md\)' | head -1 | tr -d '()')
-    if [[ -n "$FIRST_PLAN" ]]; then
-        # Resolve relative path
-        local plan_full="$PROJECT_DIR/$FIRST_PLAN"
-        if [[ -f "$plan_full" ]]; then
-            head -50 "$plan_full"
-            echo "..."
-            echo ""
-        fi
-    fi
-fi
-```
+- `draw_progress_bar()` (1008-1025) — still returns string, called by `refresh_header()`
+- `draw_state_indicator()` (1027-1036) — still returns string
+- `format_duration()` (1038-1047) — still returns string
+- `log_activity()` (1049-1062) — circular buffer, `MAX_LOG_ENTRIES=5`, display last 3 in header
+- `log()` (174-195) — **zero changes**. Console echo goes to scroll region automatically via CSR.
 
 ---
 
-## Files Modified
+## New Global Variables (after line ~104)
 
-| File | Changes |
-|------|---------|
-| `.claude/scripts/jicm-watcher.sh` | Fix 1: `wait_for_idle()` skip_trigger param + `do_halt()` call |
-| `.claude/scripts/jicm-prep-context.sh` | Fix 2: HALT-marker JSONL targeting; Fix 3: plan body + archive; Fix 4d: current-plans reader |
-| `.claude/hooks/plan-tracker.js` | Fix 4b: maintain current-plans.md |
-| `.claude/context/current-plans.md` | Fix 4a: NEW — plan index |
-| `CLAUDE.md` | Fix 4c: `@` import current-plans.md |
+```bash
+TERM_ROWS=0          # Terminal height
+TERM_COLS=0          # Terminal width
+HEADER_ROWS=10       # Fixed header height (rows 0-9)
+HEADER_WIDTH=80      # Box width including borders
+TUI_INITIALIZED=0    # Has init_tui() been called?
+TUI_HAS_CSR=0        # Does terminal support scroll regions?
+```
+
+Remove: `DASHBOARD_DRAWN=0`
+
+---
+
+## Fallback: No CSR Support
+
+If `tput csr` fails (edge-case terminal), set `TUI_HAS_CSR=0` and fall back to the current `\e[8A` overwrite pattern via a `draw_dashboard_legacy()` copy. The script is never worse than today on unsupported terminals.
 
 ---
 
 ## Verification
 
-1. **HALT no longer interrupted**: Trigger compression, check watcher log for "HALT acknowledged" (not "Interrupted"), verify W0 shows "Understood"
-2. **JSONL targeting**: With W5 running, trigger W0 compression — log should show "targeted via [JICM-HALT] marker" and select W0's JSONL (not the 8MB W5 file)
-3. **Enriched checkpoint**: Archived checkpoint should contain 50-line plan context and "Previous Checkpoint" section from prior cycle
-4. **Plan tracking**: ExitPlanMode should update both `.active-plan` and `current-plans.md`
-5. **End-to-end**: Run W0 on Chronicler with W5 concurrent, let 2 compressions complete, verify W0 resumes Chronicler (not JICM work) each time
+1. **Startup**: Header frame renders cleanly with 10 rows of box-drawing characters
+2. **Header refresh**: Dynamic rows update every poll cycle; borders stay intact
+3. **Log scrolling**: `log()` output scrolls below row 9; header does NOT move
+4. **Interleave**: Multiple poll cycles with both header refresh and log output — no corruption
+5. **`tmux capture-pane`**: `$HOME/bin/tmux capture-pane -t jarvis:1 -p` shows both header AND log area cleanly
+6. **SIGWINCH**: Resize W1 pane → header redraws, scroll region adjusts
+7. **Cleanup**: Ctrl-C → terminal left clean (no broken scroll region, cursor visible)
+8. **JICM cycle**: Trigger compression → header shows HALTING→COMPRESSING→CLEARING→RESTORING→WATCHING; log area shows timestamped phase entries
+9. **W5 compatibility**: Dev scripts that read W1 continue to work unchanged
 
 ---
 
-## Design Decisions
+## Risks
 
-- **`[JICM-HALT]` as session fingerprint**: Already in the protocol, zero-cost. Appears ONLY in W0's JSONL. Reliable session targeting without needing tmux window IDs in JSONL records.
-- **10-minute recency cap**: Prevents 27-hour W5 sessions from being selected during idle checkpoints (which lack HALT markers). Active sessions are always modified within the last few minutes.
-- **`skip_trigger` boolean vs separate function**: Adding a parameter is simpler than duplicating the polling loop. The only difference is whether the initial ESC is sent.
-- **3s sleep after HALT**: Jarvis needs ~2-3s to generate "Understood." Net ~2.5s increase per compression cycle — negligible given cycles run every 15-30 minutes.
-- **`current-plans.md` manually maintained sections**: Auto-tracking adds new plans. Moving Active→Completed is manual — plan lifecycle is a judgment call.
+| Risk | Mitigation |
+|------|-----------|
+| `tput csr` not supported | `TUI_HAS_CSR` flag + legacy fallback |
+| ANSI colors break column alignment | `tput el` + fixed-column right border |
+| Log during atomic header update | No `log()` between `tput sc` and `tput rc` |
+| `set -euo pipefail` + tput failures | All `tput` calls guarded with `2>/dev/null \|\| true` |
+| Scroll history lost on SIGWINCH | Acceptable — log file preserves full history |
