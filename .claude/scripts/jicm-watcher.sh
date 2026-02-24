@@ -101,9 +101,16 @@ RESTORE_ATTEMPTS=0
 CLEAR_RETRIES=0
 LAST_PCT=0
 LAST_TOKENS=0
-DASHBOARD_DRAWN=0
 
 LAST_CYCLE_SUMMARY=""
+
+# TUI geometry (populated by query_terminal_size)
+TERM_ROWS=0
+TERM_COLS=0
+HEADER_ROWS=10       # Fixed header height (rows 0-9)
+HEADER_WIDTH=80      # Box width including borders
+TUI_INITIALIZED=0    # Has init_tui() been called?
+TUI_HAS_CSR=0        # Does terminal support scroll regions?
 
 # Idle checkpoint: run prep-context every 30s of idle to keep files fresh
 IDLE_CHECKPOINT_INTERVAL=30       # Seconds of idle before running checkpoint
@@ -166,6 +173,20 @@ rotate_log() {
 }
 
 rotate_log
+
+# =============================================================================
+# TUI TERMINAL QUERY
+# =============================================================================
+
+query_terminal_size() {
+    TERM_ROWS=$(tput lines 2>/dev/null || echo 45)
+    TERM_COLS=$(tput cols 2>/dev/null || echo 80)
+    # Minimum 20 rows (10 header + 10 scroll)
+    if [[ "$TERM_ROWS" -lt 20 ]]; then
+        TERM_ROWS=20
+    fi
+    return 0
+}
 
 # =============================================================================
 # LOGGING
@@ -1061,9 +1082,90 @@ log_activity() {
     done
 }
 
-draw_dashboard() {
+# ─── draw_header_border: render a horizontal border line ─────────────────────
+# Args: $1=left_char  $2=label (optional)  $3=right_char
+draw_header_border() {
+    local left="$1" label="${2:-}" right="$3"
+    local inner=$((HEADER_WIDTH - 2))
+    local line=""
+    if [[ -n "$label" ]]; then
+        local label_len=${#label}
+        local fill=$((inner - label_len - 2))  # 2 for surrounding ─
+        line="${left}─${label}─"
+        local i
+        for ((i=0; i<fill; i++)); do line+="─"; done
+        line+="${right}"
+    else
+        line="${left}"
+        local i
+        for ((i=0; i<inner; i++)); do line+="─"; done
+        line+="${right}"
+    fi
+    printf '%s' "${C_CYAN}${line}${C_RESET}"
+}
+
+# ─── init_tui: one-time TUI setup (replaces banner) ─────────────────────────
+init_tui() {
+    query_terminal_size
+
+    # Clear screen
+    tput clear 2>/dev/null || printf '\e[2J\e[H'
+
+    # Hide cursor during initial draw
+    tput civis 2>/dev/null || true
+
+    # Row 0: top border
+    tput cup 0 0 2>/dev/null
+    draw_header_border "┌" " JICM v7 " "┐"
+
+    # Row 5: activity separator
+    tput cup 5 0 2>/dev/null
+    draw_header_border "├" " Activity " "┤"
+
+    # Row 9: bottom border
+    tput cup 9 0 2>/dev/null
+    draw_header_border "└" "" "┘"
+
+    # Fill dynamic rows (1-4, 6-8) with empty bordered lines
+    local row
+    for row in 1 2 3 4 6 7 8; do
+        tput cup "$row" 0 2>/dev/null
+        printf "${C_CYAN}│${C_RESET}"
+        printf "%-$((HEADER_WIDTH - 2))s" ""
+        printf "${C_CYAN}│${C_RESET}"
+    done
+
+    # Test CSR support and set scroll region
+    if tput csr "$HEADER_ROWS" "$((TERM_ROWS - 1))" 2>/dev/null; then
+        TUI_HAS_CSR=1
+    else
+        TUI_HAS_CSR=0
+    fi
+
+    # Position cursor at top of scroll region
+    tput cup "$HEADER_ROWS" 0 2>/dev/null || true
+
+    # Show cursor
+    tput cnorm 2>/dev/null || true
+
+    TUI_INITIALIZED=1
+    return 0
+}
+
+# ─── refresh_header: atomic header update (replaces draw_dashboard) ──────────
+refresh_header() {
     local pct=${1:-0}
     local tokens=${2:-0}
+
+    if [[ "$TUI_INITIALIZED" -ne 1 ]]; then
+        return 0
+    fi
+
+    # If CSR not supported, fall back to legacy overwrite
+    if [[ "$TUI_HAS_CSR" -ne 1 ]]; then
+        refresh_header_legacy "$pct" "$tokens"
+        return 0
+    fi
 
     local session_duration=$(( $(date +%s) - SESSION_START_TIME ))
     local bar
@@ -1074,20 +1176,115 @@ draw_dashboard() {
     uptime=$(format_duration "$session_duration")
     local ts
     ts=$(date +%H:%M:%S)
+    local w=$((HEADER_WIDTH - 1))  # column for right border
 
-    # Move cursor up to overwrite previous dashboard (8 lines)
-    if [[ ${DASHBOARD_DRAWN:-0} -gt 0 ]]; then
+    # Cooldown display
+    local cooldown_str="—"
+    local now
+    now=$(date +%s)
+    if [[ "$now" -lt "$COOLDOWN_UNTIL" ]]; then
+        cooldown_str="$((COOLDOWN_UNTIL - now))s"
+    fi
+
+    # Last cycle
+    local cycle_info="no cycles yet"
+    if [[ -n "$LAST_CYCLE_SUMMARY" ]]; then
+        cycle_info="$LAST_CYCLE_SUMMARY"
+    fi
+
+    # Format token count with commas (bash 3.2 compatible)
+    local tok_display="$tokens"
+    if [[ "$tokens" -ge 1000 ]] 2>/dev/null; then
+        tok_display=$(printf "%d" "$tokens" | rev | sed 's/.\{3\}/&,/g' | rev | sed 's/^,//')
+    fi
+
+    # === ATOMIC HEADER UPDATE ===
+    tput sc 2>/dev/null || true                          # save cursor (in scroll region)
+    tput csr 0 "$((TERM_ROWS - 1))" 2>/dev/null || true # lift CSR
+    tput civis 2>/dev/null || true                       # hide cursor
+
+    # Row 1: State + Context
+    tput cup 1 0 2>/dev/null
+    printf "${C_CYAN}│${C_RESET} State: %s   Context: %s %d%% (%s tok)" \
+        "$state_ind" "$bar" "$pct" "$tok_display"
+    tput el 2>/dev/null || true
+    tput cup 1 "$w" 2>/dev/null
+    printf "${C_CYAN}│${C_RESET}"
+
+    # Row 2: Threshold, Session, Poll
+    tput cup 2 0 2>/dev/null
+    printf "${C_CYAN}│${C_RESET} Threshold: ${C_YELLOW}%d%%${C_RESET}        Session: %-8s  Poll: %s (%ds)" \
+        "$JICM_THRESHOLD" "$uptime" "$ts" "$POLL_INTERVAL"
+    tput el 2>/dev/null || true
+    tput cup 2 "$w" 2>/dev/null
+    printf "${C_CYAN}│${C_RESET}"
+
+    # Row 3: Cycles, Cooldown, Idle checkpoints
+    tput cup 3 0 2>/dev/null
+    printf "${C_CYAN}│${C_RESET} Cycles: %d ok, %d err    Cooldown: %-6s  Idle ckpts: %d" \
+        "$COMPRESSION_COUNT" "$ERROR_COUNT" "$cooldown_str" "$IDLE_CHECKPOINT_COUNT"
+    tput el 2>/dev/null || true
+    tput cup 3 "$w" 2>/dev/null
+    printf "${C_CYAN}│${C_RESET}"
+
+    # Row 4: Last cycle summary
+    tput cup 4 0 2>/dev/null
+    printf "${C_CYAN}│${C_RESET} Last cycle: %s" "$cycle_info"
+    tput el 2>/dev/null || true
+    tput cup 4 "$w" 2>/dev/null
+    printf "${C_CYAN}│${C_RESET}"
+
+    # Rows 6-8: Activity log (most recent first)
+    local log_count=${#ACTIVITY_LOG[@]}
+    local row
+    for row in 6 7 8; do
+        local idx=$((row - 6))
+        local arr_idx=$((log_count - 1 - idx))
+        tput cup "$row" 0 2>/dev/null
+        if [[ $arr_idx -ge 0 ]] && [[ $arr_idx -lt $log_count ]]; then
+            printf "${C_CYAN}│${C_RESET} ${C_DIM}%s${C_RESET}" "${ACTIVITY_LOG[$arr_idx]}"
+        else
+            printf "${C_CYAN}│${C_RESET}"
+        fi
+        tput el 2>/dev/null || true
+        tput cup "$row" "$w" 2>/dev/null
+        printf "${C_CYAN}│${C_RESET}"
+    done
+
+    # Restore CSR + cursor
+    tput csr "$HEADER_ROWS" "$((TERM_ROWS - 1))" 2>/dev/null || true
+    tput cnorm 2>/dev/null || true
+    tput rc 2>/dev/null || true
+    # === END ATOMIC HEADER UPDATE ===
+
+    log_activity "${pct}% (${tok_display} tok)"
+    return 0
+}
+
+# ─── refresh_header_legacy: fallback when CSR unavailable ────────────────────
+refresh_header_legacy() {
+    local pct=${1:-0}
+    local tokens=${2:-0}
+    local session_duration=$(( $(date +%s) - SESSION_START_TIME ))
+    local bar
+    bar=$(draw_progress_bar "$pct")
+    local state_ind
+    state_ind=$(draw_state_indicator)
+    local uptime
+    uptime=$(format_duration "$session_duration")
+    local ts
+    ts=$(date +%H:%M:%S)
+    local cycle_info="no cycles yet"
+    if [[ -n "$LAST_CYCLE_SUMMARY" ]]; then
+        cycle_info="$LAST_CYCLE_SUMMARY"
+    fi
+
+    # Legacy: cursor-up overwrite (same as old draw_dashboard)
+    if [[ ${LEGACY_DRAWN:-0} -gt 0 ]]; then
         printf '\e[8A'
     fi
-    DASHBOARD_DRAWN=1
+    LEGACY_DRAWN=1
 
-    # Last cycle display (show metrics if available)
-    local cycle_info="${C_DIM}no cycles yet${C_RESET}"
-    if [[ -n "$LAST_CYCLE_SUMMARY" ]]; then
-        cycle_info="${C_GREEN}${LAST_CYCLE_SUMMARY}${C_RESET}"
-    fi
-
-    # Dashboard (8 lines)
     echo -e "${C_CYAN}╔══════════════════════════════════════════════════════╗${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7${C_RESET}                          ${state_ind}  ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╠══════════════════════════════════════════════════════╣${C_RESET}"
@@ -1097,17 +1294,7 @@ draw_dashboard() {
     echo -e "${C_CYAN}║${C_RESET}  Last: ${cycle_info}$(printf '%*s' $((42 - ${#LAST_CYCLE_SUMMARY})) '' 2>/dev/null || true)${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╚══════════════════════════════════════════════════════╝${C_RESET}"
 
-    # Log the activity
     log_activity "${pct}% (${tokens} tok)"
-}
-
-banner() {
-    echo ""
-    echo -e "${C_CYAN}╔══════════════════════════════════════════════════════╗${C_RESET}"
-    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7 WATCHER${C_RESET} —  Stop-and-Wait Architecture       ${C_CYAN}║${C_RESET}"
-    echo -e "${C_CYAN}╚══════════════════════════════════════════════════════╝${C_RESET}"
-    echo -e "  threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}  interval: ${POLL_INTERVAL}s"
-    echo ""
 }
 
 # =============================================================================
@@ -1116,6 +1303,10 @@ banner() {
 
 cleanup() {
     local sig="${1:-unknown}"
+    # Reset TUI: restore full scroll region, show cursor, move to bottom
+    tput csr 0 "$((TERM_ROWS - 1))" 2>/dev/null || printf '\e[r' 2>/dev/null || true
+    tput cnorm 2>/dev/null || true
+    tput cup "$((TERM_ROWS - 1))" 0 2>/dev/null || true
     echo ""
     log INFO "Watcher shutting down (signal: $sig)"
     rm -f "$STATE_FILE"
@@ -1123,16 +1314,25 @@ cleanup() {
     exit 0
 }
 
+handle_winch() {
+    query_terminal_size
+    init_tui
+    return 0
+}
+
 trap 'cleanup INT' INT
 trap 'cleanup TERM' TERM
 trap 'cleanup HUP' HUP
+trap 'handle_winch' WINCH
+# Safety net: reset CSR even on unexpected exit
+trap 'tput csr 0 "$((TERM_ROWS - 1))" 2>/dev/null; tput cnorm 2>/dev/null' EXIT
 
 # =============================================================================
 # MAIN LOOP
 # =============================================================================
 
 main() {
-    banner
+    init_tui
 
     if ! tmux_has_session; then
         log ERROR "tmux session '$TMUX_SESSION' not found"
@@ -1170,11 +1370,9 @@ main() {
                 rotate_log
             fi
 
-            # Dashboard update
-            if [[ "$pct" != "0" ]]; then
-                draw_dashboard "$pct" "$tokens"
-            elif [[ $((poll_count % 6)) -eq 0 ]]; then
-                echo -e "$(date +%H:%M:%S) ${C_DIM}· Waiting for context data...${C_RESET}"
+            # "Waiting for context data" message when no metrics available
+            if [[ "$pct" == "0" ]] && [[ $((poll_count % 6)) -eq 0 ]]; then
+                log INFO "Waiting for context data..."
             fi
 
             # State file update (every 6 polls = ~30s to avoid I/O thrashing)
@@ -1265,7 +1463,7 @@ main() {
             else
                 # Show waiting status
                 if [[ $((age % 15)) -lt "$POLL_INTERVAL" ]]; then
-                    echo -e "$(date +%H:%M:%S) ${C_YELLOW}◑${C_RESET} Compression running... (${age}s)"
+                    log JICM "Compression running... (${age}s)"
                 fi
             fi
 
@@ -1275,6 +1473,8 @@ main() {
             pct=$(get_context_percentage)
             local tokens
             tokens=$(get_token_count)
+            LAST_PCT="$pct"
+            LAST_TOKENS="$tokens"
             local age
             age=$(state_age)
 
@@ -1330,6 +1530,11 @@ main() {
             elif [[ $((age % RESTORE_RETRY_DELAY)) -lt "$POLL_INTERVAL" ]] && [[ $age -ge "$RESTORE_RETRY_DELAY" ]]; then
                 do_restore_retry
             fi
+        fi
+
+        # Refresh header on every iteration (shows current state indicator)
+        if [[ "$LAST_PCT" != "0" ]] || [[ "$JICM_STATE" != "WATCHING" ]]; then
+            refresh_header "$LAST_PCT" "$LAST_TOKENS"
         fi
 
         sleep "$POLL_INTERVAL"
