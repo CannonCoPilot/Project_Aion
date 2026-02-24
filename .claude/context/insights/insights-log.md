@@ -1196,3 +1196,7 @@ The commit captures the transformation from a placeholder skill (180 lines with 
 
 | Method | Time | Throughput | Ratio |
 |--------|------|
+
+### 2026-02-24 [1fdfaa0a99d9]
+
+DFHack is alive (v53.10-r1, MODE_DWARF, "The Planet of Legends"), but `RunCommand` hangs universally due to the CoreSuspend thread issue. Core API methods (GetVersion, GetWorldInfo) work fine because they bypass CoreSuspend. This means we can't write files from within DFHack via RPC — we need another approach for init file configuration.
