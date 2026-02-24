@@ -1136,3 +1136,13 @@ The PRD needs to reconcile several layers of analysis:
 4. **Enum values are inline, not in a separate section**: Rather than a separate "enums" section (which the LLM might not cross-reference), entity types, site types, event types, and link types are listed directly on the column they apply to. This reduces the cognitive load for the LLM — it sees the valid values right where it needs them.
 
 5. **Safety rules at the bottom act as a "system guardrail"**: The 5 safety rules prevent SQL injection and destructive queries. These are positioned last so they're fresh in the LLM's recency-biased attention window when it starts generating SQL.
+
+### 2026-02-24 [d2c567ea2527]
+
+**GH007 email privacy and `git filter-branch`:**
+
+1. **The root cause**: GitHub's GH007 check rejects pushes where commit author/committer emails are marked private in account settings. The global git config had `tb236@byu.edu` which GitHub flags. The remote-accepted email is `nathanielcannon@JARVIS.local` (a synthetic local email that doesn't trigger privacy checks).
+
+2. **`filter-branch` vs `rebase --exec`**: For batch email rewrites on unpushed commits, `git filter-branch --env-filter` is the right tool — it rewrites the commit objects in-place with new author/committer metadata. A `rebase --exec 'git commit --amend --reset-author'` would work too but is slower and riskier (each step could conflict). `filter-branch` is atomic per-ref.
+
+3. **Prevention**: Setting `git config user.email nathanielcannon@JARVIS.local` in each repo (or globally) would prevent this from recurring. Currently the global config still has the BYU email, so this will happen again on future commits.
