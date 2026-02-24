@@ -18,15 +18,9 @@
 #   vm-lifecycle.sh health            # Check VM + SSH + services health
 # ===========================================================================
 
-# --- Configuration ---
-UTMCTL="/Applications/UTM.app/Contents/MacOS/utmctl"
-QEMU_IMG="$(which qemu-img 2>/dev/null)"  # Requires: brew install qemu
-VM_NAME="DF-Windows"
-VM_DISK="/Users/nathanielcannon/Library/Containers/com.utmapp.UTM/Data/Documents/DF-Windows.utm/Data/FBC249A3-0D3A-43A1-B64E-170E9132CE76.qcow2"
-SSH_KEY="$HOME/.ssh/df-vm"
-SSH_USER="Chronicler"
-SSH_TIMEOUT=5
-SSH_MAX_WAIT=120  # seconds to wait for SSH after boot
+# --- Configuration (shared) ---
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/vm-config.sh"
 
 # --- Helpers ---
 log() { echo "[vm-lifecycle] $*" >&2; }
@@ -310,6 +304,110 @@ cmd_exec() {
     "$UTMCTL" exec "$VM_NAME" --cmd "$@"
 }
 
+cmd_exec_capture() {
+    # Reliable exec with output capture via temp file on guest.
+    # QEMU Guest Agent's exec doesn't relay stdout back to the host.
+    # This redirects output to a temp file, polls for completion, then pulls it.
+    #
+    # Uses a done-marker file pattern: command writes output, then creates .done file.
+    # We poll for .done, which guarantees the output file is complete.
+    #
+    # LIMITATION: Commands pass through cmd.exe, so | " & are interpreted by cmd.exe.
+    # For complex PowerShell with pipes/quotes, use exec-ps or SSH once available.
+    if [ $# -eq 0 ]; then
+        err "Usage: vm-lifecycle.sh exec-capture <command>"
+        err "  Example: vm-lifecycle.sh exec-capture hostname"
+        err "  Example: vm-lifecycle.sh exec-capture 'powershell.exe -Command Get-Date'"
+    fi
+    local cmd_str="$*"
+    local tmp_name="utmctl-output-$$"
+    local guest_out="C:\\Windows\\Temp\\${tmp_name}.txt"
+    local guest_done="C:\\Windows\\Temp\\${tmp_name}.done"
+    local pull_out="C:\\\\Windows\\\\Temp\\\\${tmp_name}.txt"
+    local pull_done="C:\\\\Windows\\\\Temp\\\\${tmp_name}.done"
+    local max_wait=30
+    local elapsed=0
+
+    # Run command with output redirect, then create done marker
+    "$UTMCTL" exec "$VM_NAME" --cmd cmd.exe /c \
+        "$cmd_str > $guest_out 2>&1 & echo done > $guest_done" 2>/dev/null
+
+    # Poll for done marker (utmctl file pull returns exit 0 even on failure,
+    # so we must check actual output content, not exit code)
+    while [ $elapsed -lt $max_wait ]; do
+        sleep 2
+        elapsed=$((elapsed + 2))
+        local marker
+        marker=$("$UTMCTL" file pull "$VM_NAME" "$pull_done" 2>/dev/null)
+        if [ -n "$marker" ]; then
+            break
+        fi
+    done
+
+    if [ $elapsed -ge $max_wait ]; then
+        log "WARNING: exec-capture timed out after ${max_wait}s"
+    fi
+
+    # Pull the output file
+    local output
+    output=$("$UTMCTL" file pull "$VM_NAME" "$pull_out" 2>/dev/null)
+
+    # Clean up both temp files
+    "$UTMCTL" exec "$VM_NAME" --cmd cmd.exe /c "del $guest_out $guest_done" 2>/dev/null
+
+    echo "$output"
+}
+
+cmd_exec_ps() {
+    # Execute complex PowerShell commands via -EncodedCommand (base64 UTF-16LE).
+    # Avoids all quoting issues with pipes, quotes, and special characters.
+    # Output captured via temp file + done marker (same as exec-capture).
+    if [ $# -eq 0 ]; then
+        err "Usage: vm-lifecycle.sh exec-ps <powershell-command>"
+        err "  Example: vm-lifecycle.sh exec-ps 'Get-Service sshd | Select-Object Status'"
+    fi
+    local ps_cmd="$*"
+    local tmp_name="utmctl-ps-$$"
+    local guest_out="C:\\Windows\\Temp\\${tmp_name}.txt"
+    local guest_done="C:\\Windows\\Temp\\${tmp_name}.done"
+    local pull_out="C:\\\\Windows\\\\Temp\\\\${tmp_name}.txt"
+    local pull_done="C:\\\\Windows\\\\Temp\\\\${tmp_name}.done"
+    local max_wait=30
+    local elapsed=0
+
+    # Wrap: execute PS, redirect to file, then create done marker
+    local full_cmd="${ps_cmd} | Out-File -FilePath '${guest_out}' -Encoding ASCII; 'done' | Out-File -FilePath '${guest_done}' -Encoding ASCII"
+
+    # Encode as UTF-16LE base64 for -EncodedCommand
+    local encoded
+    encoded=$(printf '%s' "$full_cmd" | iconv -f UTF-8 -t UTF-16LE | base64 | tr -d '\n')
+
+    "$UTMCTL" exec "$VM_NAME" --cmd powershell.exe -EncodedCommand "$encoded" 2>/dev/null
+
+    # Poll for done marker
+    while [ $elapsed -lt $max_wait ]; do
+        sleep 2
+        elapsed=$((elapsed + 2))
+        local marker
+        marker=$("$UTMCTL" file pull "$VM_NAME" "$pull_done" 2>/dev/null)
+        if [ -n "$marker" ]; then
+            break
+        fi
+    done
+
+    if [ $elapsed -ge $max_wait ]; then
+        log "WARNING: exec-ps timed out after ${max_wait}s"
+    fi
+
+    local output
+    output=$("$UTMCTL" file pull "$VM_NAME" "$pull_out" 2>/dev/null)
+
+    # Clean up
+    "$UTMCTL" exec "$VM_NAME" --cmd cmd.exe /c "del $guest_out $guest_done" 2>/dev/null
+
+    echo "$output"
+}
+
 # --- Main dispatch ---
 case "${1:-}" in
     start)     cmd_start ;;
@@ -325,9 +423,11 @@ case "${1:-}" in
     health)    cmd_health ;;
     push)      shift; cmd_push "$@" ;;
     pull)      shift; cmd_pull "$@" ;;
-    exec)      shift; cmd_exec "$@" ;;
+    exec)          shift; cmd_exec "$@" ;;
+    exec-capture)  shift; cmd_exec_capture "$@" ;;
+    exec-ps)       shift; cmd_exec_ps "$@" ;;
     *)
-        echo "Usage: vm-lifecycle.sh {start|stop|suspend|status|ip|ssh|exec|push|pull|snapshot|restore|snapshots|clone|health}"
+        echo "Usage: vm-lifecycle.sh {start|stop|suspend|status|ip|ssh|exec|exec-capture|exec-ps|push|pull|snapshot|restore|snapshots|clone|health}"
         echo ""
         echo "Commands:"
         echo "  start              Boot VM, wait for SSH, print IP"
@@ -337,6 +437,8 @@ case "${1:-}" in
         echo "  ip                 Print VM IP address"
         echo "  ssh [cmd]          SSH into VM (or run command)"
         echo "  exec <cmd...>      Execute command via QEMU guest agent"
+        echo "  exec-capture <cmd> Execute via GA with reliable output capture (simple cmds)"
+        echo "  exec-ps <ps-cmd>   Execute complex PowerShell via base64 encoding"
         echo "  push <local> <guest-path>  Upload file to VM via guest agent"
         echo "  pull <guest-path>          Download file from VM via guest agent"
         echo "  snapshot <name>    Create disk snapshot (requires: brew install qemu)"
