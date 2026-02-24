@@ -26,6 +26,7 @@
 - `tooling-health.md`, `design-review.md`, `validate-selection.md`
 
 ### Context & Testing
+- `jicm.md` — Manual JICM cycle (preserve + compress + prepare for /clear)
 - `dev-test.md`, `context-analyze.md`, `smart-compact.md`, `context-budget.md`
 
 ### Dev Session

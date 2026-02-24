@@ -3,7 +3,7 @@
 **Priority**: HIGH
 **Component**: AC-04 (JICM) / jarvis-watcher.sh
 **Filed**: 2026-02-10
-**Status**: PROPOSED
+**Status**: CONFIRMED OPEN (verified 2026-02-24 AC-05 reflection)
 **Origin**: Live failure observed — watcher entered standdown with valid checkpoint on disk, never triggered /clear
 
 ---
@@ -101,6 +101,16 @@ The ESC interrupt is safe because:
 ## Priority Justification
 
 This failure mode was observed in production: the watcher entered standdown with a valid checkpoint on disk, context climbed to 85%, and no recovery path existed. The user had to manually diagnose and clear state files. This should be fully autonomous.
+
+---
+
+## AC-05 Verification (2026-02-24)
+
+**Gap 1 Status**: OPEN — JICM v7 watcher (`jicm-watcher.sh`) line 140 unconditionally `rm -f "$COMPRESSION_SIGNAL"` on startup. No recovery check exists. Valid checkpoints from prior cycles are destroyed.
+
+**Gap 2 Status**: OPEN — No emergency ESC interrupt at critical context levels.
+
+**Next**: Implement Gap 1 recovery check after line 140 in `jicm-watcher.sh`. Gap 2 remains defense-in-depth priority.
 
 ---
 
