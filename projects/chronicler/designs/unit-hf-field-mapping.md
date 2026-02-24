@@ -117,9 +117,11 @@ Units (live game entities) and Historical Figures (legends data) often represent
 2. Overlay HF data for historical depth (relationships, events, positions)
 3. For conflicts, prefer Unit for real-time state, HF for historical facts
 4. Personality data is Unit-only (not in legends XML)
-5. Event history is HF-only (legends XML)
-6. If unit has no HF record: note "Born after legends export" — personality and skills available, but no historical context
+5. Event history comes from TWO sources: HF events (legends XML) + live-generated events (watcher state transitions) — both stored in `history_events` table, distinguished by `live_generated` flag and `source` column (see PRD v2.1 Section 5)
+6. If unit has no HF record and is an embark dwarf: flag `embark: true` — personality and skills available, event history grows from live event generation
+7. The `fortress_denizens` registry tracks fortress relevance (status, NVS, embark flag) and serves as the routing layer for the agentic storyteller — it determines which beings the LLM prioritizes
 
 ---
 
 *Created 2026-02-23, Session 33*
+*Updated 2026-02-23, Session 34 — corrected event history source (was HF-only, now HF + live), added denizen registry reference*
