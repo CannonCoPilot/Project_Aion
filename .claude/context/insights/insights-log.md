@@ -1048,3 +1048,91 @@ Even if #2 and #3 were fixed, Vabok's HF record literally doesn't exist in the D
 2. **Event detection gap** — The watcher captures ARRIVED/DEPARTED changes but doesn't detect is_alive transitions or game announcements. Cerol Aludsibrek drowned, but her record still shows `is_alive=True`. Zero game reports were captured. The change detector compares snapshots but death events require either parsing DFHack announcements or checking the `death_id` field in unit flags.
 
 3. **Query architecture gap** — The storyteller's name search (Phase 2, line 128-138 of `context.py`) searches ONLY `historical_figures` with plain ILIKE. It never falls through to `units`. When someone asks "Tell me about Vabok Solonotin," the storyteller finds 10 OTHER Vaboks from the HF table but not the fortress leader. The bard query also fails because "bards" isn't a category route keyword, and the bards' unit names (native: "Ducin Lolokgan") don't match their HF names (English: "ducim granitedish").
+
+### 2026-02-24 [813505a24778]
+
+The PRD needs to reconcile several layers of analysis:
+1. The original gap analysis (T1-T4 tiers) — but the critical review showed ~70% of T1-T2 bridge work is already done
+2. Your G1/G2 feedback — which introduces the **denizen registry** concept (a new architectural element not in any existing plan)
+3. Four implementation plans already exist (Explorer UI, Explorer Redesign, Position Extraction, DB Explorer) — the PRD should integrate rather than duplicate
+
+### 2026-02-24 [f374a3c292d6]
+
+**The PRD introduces a key architectural shift**: Instead of the LLM searching all 60K+ historical figures equally, the `fortress_denizens` table acts as a **gateway/root node**. Every user query first routes through "who do we know about?" before searching the broader database. This is the concrete implementation of your G2 feedback — the table that tracks everyone who's lived at, visited, attacked, or otherwise interacted with the fortress.
+
+**Three novel elements not in any existing plan:**
+1. **Narrative Value Scoring (NVS)** — a composite 0-100 score per denizen weighting screen time, event density, relationship depth, recency, and status
+2. **Absence-based death detection** — when a `resident` disappears without a death event, they're marked `missing` rather than silently forgotten
+3. **Unified Person Builder** — a new module that merges Unit + HF data into a single JSON object for the LLM, following the field mapping's merge strategy
+
+### 2026-02-24 [7558a468c4b6]
+
+**The field mapping correction is architecturally significant:**
+- The original "Event history is HF-only" statement was a pre-v2.1 assumption that would have caused the storyteller to miss all fortress-born events
+- With live event generation, the `history_events` table becomes a **unified event store** — the LLM doesn't need to know the source distinction, but the Knowledge Horizon can use `source` for confidence weighting
+- The denizen registry as "routing layer" means queries start from fortress relevance, not from the 60K+ global HF pool
+
+### 2026-02-24 [c864287b57ea]
+
+**The roadmap reveals three architectural layers in the v0.8→v1.0 transition:**
+1. **Data layer** (Phases 1-2): The denizen registry and live event generator transform Chronicler from a static data importer into a living database that grows organically with fortress gameplay. The key innovation is that `history_events` becomes a unified store — the LLM doesn't care whether an event came from legends XML or live observation.
+2. **Intelligence layer** (Phase 3): The agentic storyteller replaces brittle keyword→SQL routing with autonomous database exploration. This is the same architectural pattern used in modern AI coding assistants — give the LLM tools and let it decide what to query.
+3. **Visibility layer** (Phase 4): Knowledge Horizon scoping is implemented as prompt engineering (advisory) rather than SQL views (enforcement), which is the right call at this stage — it's reversible and doesn't risk hiding data the user actually needs.
+
+### 2026-02-24 [b56396d2b8ac]
+
+**The Wiki agent uncovered critical requirements we hadn't captured:**
+1. **seconds72 time encoding** — every date in DF uses seconds72 (403,200 per year). Chronicler needs a first-class conversion utility throughout
+2. **50 personality facets + 33 values + 13 goals** — three-layer personality model, far richer than what we're currently extracting. Ghost type is derivable from personality + death cause
+3. **RAW file load order** is deterministic (language → descriptor → material_template → ... → interaction) — the mod manager must parse in this exact order for correct conflict detection
+4. **CUSTOM_OFFICIAL_* positions** are auto-generated in worldgen — 17 additional position types not defined in entity RAWs
+5. **Election mechanics** happen on the 17th of Summer at 4:00 PM — highest sum of ALL relevant skill levels wins. This is a live event Chronicler should capture
+
+### 2026-02-24 [7de9b386fde0]
+
+**df-ai provides a complete "DF management encyclopedia" for Chronicler:**
+1. The **5-subsystem architecture** (Population/Plan/Stocks/Camera/Trade) maps directly to Chronicler advisory domains — each becomes an LLM system prompt context section
+2. The **stock threshold model** (Needed/NeededPerDwarf/WatchStock with ~100 item categories) is the exact vocabulary Chronicler needs for resource monitoring
+3. The **exclusive callback pattern** — one multi-step action at a time, queue others — is the right model for LLM action chains via DFHack Lua RPC
+
+### 2026-02-24 [ea2b679babd4]
+
+**Cross-referencing 12 repositories revealed convergence**: All successful DF legends tools independently arrived at the same architecture — event-driven narrative with cross-linked entity references, perspective-aware rendering, and a post-parse resolution pipeline. The only real disagreement is on visualization (Cytoscape vs SVG vs D3), where each tool made its own choice.
+
+**The 144 vs 132 vs 115 vs 94 event type spread** tells a story of ecosystem maturity: df-structures (the canonical memory layout) defines 144; LegendsBrowser2 (Go, actively maintained) handles 132; LegendsViewer-Next (.NET, newer) handles 115; weblegends (C++, older but extremely detailed per-type) handles 94. The gap narrows over time as tools catch up to DF's evolving event system.
+
+**Chronicler's genuine novelty**: No existing tool combines persistent DB, live polling, XML ingestion, LLM narrative, AND worldgen monitoring. The worldgen monitor is particularly notable — the research confirmed that despite `world_generatorst` being fully mapped in df-structures since DF 0.47, zero tools have ever polled it during generation. Chronicler would be first.
+
+### 2026-02-24 [0c57e451512a]
+
+**Importance scoring design decisions:**
+
+1. **SQL-native computation**: The scores are computed entirely via SQL `UPDATE ... FROM LATERAL` queries rather than Python loops. This lets PostgreSQL batch the work — 35K HFs scored in under 2 seconds. The LATERAL joins avoid N+1 query patterns by computing all sub-counts in a single pass per entity type.
+
+2. **Capped components prevent dominance**: `LEAST(event_count * 2, 500)` and similar caps ensure no single factor overwhelms the total. A figure with 1000 events still caps at 500 points from that component, preventing event-dense but narratively dull entities (like merchant-visited sites) from outranking genuinely important ones.
+
+3. **Filtering is a query-time concern, not a scoring concern**: The user asked for filtering by region/civ/site. The `importance_score` column is absolute — the filtering happens via `WHERE entity_id = X` or `JOIN hf_entity_links` at query time. This is deliberate: the annotated schema will document these query patterns so the LLM knows how to scope its searches.
+
+### 2026-02-24 [1b04665ce156]
+
+**Event type taxonomy findings:**
+
+1. **The 144 number was wrong**: The df-structures enum has exactly 133 entries, and with 8 DF 50.x additions, the total is 141. The synthesis report counted incorrectly (likely including sub-enums or comments in the count).
+
+2. **Chronicler's TEXT column is the right approach**: Unlike LB2 (which needs a Go struct per type) or LV-Next (which needs a C# class per type), Chronicler stores `event_type TEXT`. This means it already handles ALL event types — past, present, and future. No code changes needed when DF adds new types.
+
+3. **8 DF 50.x event types are novel**: `hf prayed inside structure`, `hf equipment purchase`, `hf performed horrible experiments`, etc. These represent the Steam release's enriched event model. No existing legends browser handles these either — Chronicler is the first system to store them.
+
+### 2026-02-24 [2c9ddcfdfc6a]
+
+**Annotated schema design decisions:**
+
+1. **~2,700 tokens is the sweet spot**: The schema fits alongside the narrative persona prompt (~400 tokens) and a user query with context (~4,000 tokens) within an 8K context window. This leaves ~900 tokens for generation — tight but workable for Qwen3-8B. For larger models (32K+), there's ample headroom.
+
+2. **Query patterns over raw DDL**: Rather than dumping `CREATE TABLE` statements (which waste tokens on syntax noise like `DEFAULT`, `IF NOT EXISTS`, constraints), the schema uses prose descriptions with inline column listings. The key innovation is the **query patterns section** — these are copy-paste-ready SQL templates the LLM can adapt, dramatically reducing hallucination risk on join conditions.
+
+3. **Composite PK warning is critical**: The single most common SQL error an LLM would make is joining on `id` alone (forgetting `world_id`). The schema front-loads this with a bold warning and a concrete example: `ON a.world_id = b.world_id AND a.id = b.some_id`. Every query pattern reinforces this.
+
+4. **Enum values are inline, not in a separate section**: Rather than a separate "enums" section (which the LLM might not cross-reference), entity types, site types, event types, and link types are listed directly on the column they apply to. This reduces the cognitive load for the LLM — it sees the valid values right where it needs them.
+
+5. **Safety rules at the bottom act as a "system guardrail"**: The 5 safety rules prevent SQL injection and destructive queries. These are positioned last so they're fresh in the LLM's recency-biased attention window when it starts generating SQL.
