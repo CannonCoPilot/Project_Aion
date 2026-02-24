@@ -27,6 +27,7 @@ SSH_MAX_WAIT=120  # seconds to wait for SSH after boot
 # --- Network Ports ---
 DFHACK_RPC_PORT=5000
 BRIDGE_HTTP_PORT=8888
+FILE_SERVE_PORT=8889
 
 # --- Script Directory ---
 VM_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
