@@ -1146,3 +1146,24 @@ The PRD needs to reconcile several layers of analysis:
 2. **`filter-branch` vs `rebase --exec`**: For batch email rewrites on unpushed commits, `git filter-branch --env-filter` is the right tool — it rewrites the commit objects in-place with new author/committer metadata. A `rebase --exec 'git commit --amend --reset-author'` would work too but is slower and riskier (each step could conflict). `filter-branch` is atomic per-ref.
 
 3. **Prevention**: Setting `git config user.email nathanielcannon@JARVIS.local` in each repo (or globally) would prevent this from recurring. Currently the global config still has the BYU email, so this will happen again on future commits.
+
+### 2026-02-24 [9c4fb6188854]
+
+**Why `/jicm` is two keystrokes, not one**: The JICM cycle fundamentally requires a context reset (`/clear`), which destroys the very execution environment running the command. This creates an "observer problem" — the command can't execute its own termination. The cleanest solution is a 2-step flow: `/jicm` prepares everything, then `/clear` executes the reset. The SessionStart hook on the other side handles restoration. This is the same pattern used by operating system hibernation: save state, then power off is a separate step.
+
+### 2026-02-24 [ac14745e098b]
+
+**Why Phase 1 gates everything**: The double-emulation stack (QEMU ARM virtualization + Windows Prism x86-64 translation) is unprecedented territory for DFHack. DFHack uses direct memory introspection of DF's process — it reads struct layouts from `df-structures` XML definitions and applies them to live process memory. Prism translates x86-64 instructions to ARM64 at the binary level, but the memory layout should be preserved (Prism emulates x86-64 virtual address space faithfully). The higher risk is performance: DF is single-threaded and CPU-cache-bound, and Prism's JIT compilation adds overhead on first-touch code paths. If Phase 1 shows >10 FPS with working RPC, we have a fully autonomous local development environment. If not, the hybrid approach (HomeServer for DF, VM for packaging) is still a strong outcome.
+
+### 2026-02-24 [a4227509a647]
+
+**Phase 1 Risk Assessment (from research)**:
+- DFHack attaches via **SDL.dll replacement** — fully in-process, user-mode, no kernel drivers. This is the architecturally favorable case for Prism.
+- Prism (Win11 24H2+) now supports AVX/AVX2, removing the instruction-set barrier that would have killed DF on older ARM Windows.
+- **Zero public reports** of DF+DFHack on Windows 11 ARM — we are pioneers. Closest analog: DF reportedly works via Wine+Rosetta 2 (same architectural pattern).
+- **No GPU accel in UTM** — DF Premium tiles may need software rendering, but ASCII/classic is fine.
+- The double-translation chain (QEMU virtualization → Prism JIT) adds overhead but keeps the entire stack user-mode.
+
+### 2026-02-24 [54f912cd43c2]
+
+**Two paths forward**: We can either (a) delete the existing `DF-Windows` VM and create a fresh one with the same name (preserving script compatibility), or (b) create a new VM alongside it with a different name (requires updating script config). Option (a) is cleaner since the old VM has an unknown password state. The plan explicitly recommends fresh install over password recovery.

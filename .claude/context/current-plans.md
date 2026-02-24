@@ -1,7 +1,7 @@
 # Current Plans
 
 ## Active
-*(No active plans — ready for next initiative)*
+- [UTM VM + Chronicler Automation](.claude/plans/buzzing-twirling-newell.md) — Phases 0-5: VM bootstrap, DF risk validation, automation stack, HomeServer SSH, deliverable app
 
 ## Recently Completed
 - [Explorer UI Enhancements](.claude/plans/rippling-honking-crescent.md) — Phases 1-7: accent search, age, positions, sort/filter, members

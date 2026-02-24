@@ -98,3 +98,18 @@
 - During worldgen: hf.worldgen_site/region/relationships pointers are non-null; histfig_flags.worldgen_acted tracks activity
 **Status**: Complete
 **Report**: `projects/chronicler/reports/research/dfhack-infrastructure-research.md`
+
+## [dfhack-windows11-arm-2026-02-24](dfhack-windows11-arm-2026-02-24.md)
+**Date**: 2026-02-24
+**Topic**: DFHack 53.10-r1 on Windows 11 ARM under Prism x86-64 emulation — architecture, community reports, emulation risks
+**Key Findings**:
+- DFHack is x86-64 only — no ARM build exists for any platform
+- DF Wiki explicitly states "ARM versions of Windows will not be able to run DF"
+- DFHack attaches via SDL.dll replacement (in-process, user-mode only) — no kernel drivers required
+- Prism handles x86-64 user-mode code well; kernel-mode is the only hard blocker, which DFHack avoids
+- Zero public reports of DF + DFHack running on Windows 11 ARM (bare metal or VM)
+- UTM scenario: run Windows 11 ARM guest (not x86-64), let Prism handle DF/DFHack translation inside guest; no GPU accel
+- Linux x86-64 in UTM is a cleaner fallback (avoids Prism entirely)
+**Verdict**: Likely to work on Prism, architecturally sound, but untested in the wild
+**Status**: Complete
+**Report**: `.claude/agents/memory/deep-research/dfhack-windows11-arm-2026-02-24.md`
