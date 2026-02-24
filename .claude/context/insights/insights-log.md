@@ -1171,3 +1171,11 @@ The PRD needs to reconcile several layers of analysis:
 ### 2026-02-24 [b5cb6a99905b]
 
 **`utmctl exec` output capture**: The QEMU Guest Agent's `exec` command runs the process but may not capture stdout in all implementations. The exit code (0) confirms the command ran successfully. We may need to write output to a file and `pull` it, or use the SSH path once it's set up.
+
+### 2026-02-24 [57f313005c14]
+
+**Pre vs post-embark legends**: The 1.2 MB difference between pre-embark (310.8M) and post-embark (312.1M) legends represents ~15 in-game days of world simulation after embark. This delta is exactly what we need for validating change detection — the post-embark file should contain new historical events (expedition arrival, site establishment, initial encounters) that don't exist in the pre-embark export. The `legends_plus.xml` files contain extended data (relationships, entity positions, written contents) that the standard `legends.xml` omits — these are critical for the storyteller and gap-closure features we already built.
+
+### 2026-02-24 [ecdf80e76ca6]
+
+**Phase 1 verdict: VM is viable**. DFHack RPC at 0.3ms latency and 89ms for a full unit list means the VM isn't just functional — it's fast. The double-emulation stack (QEMU ARM virtualization + Prism x86-64 translation) doesn't appreciably affect network I/O or RPC response times. The real performance question is DF's framerate under Prism (we should check that), but for our primary use case (data pipeline: RPC + bridge → change detection → PostgreSQL), the VM is fully capable. This means we can consolidate everything on the local VM instead of the split HomeServer architecture — simpler deployment, offline-capable development, and snapshotable state.
