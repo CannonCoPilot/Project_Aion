@@ -1200,3 +1200,42 @@ The commit captures the transformation from a placeholder skill (180 lines with 
 ### 2026-02-24 [1fdfaa0a99d9]
 
 DFHack is alive (v53.10-r1, MODE_DWARF, "The Planet of Legends"), but `RunCommand` hangs universally due to the CoreSuspend thread issue. Core API methods (GetVersion, GetWorldInfo) work fine because they bypass CoreSuspend. This means we can't write files from within DFHack via RPC — we need another approach for init file configuration.
+
+### 2026-02-24 [a8fa97dd398e]
+
+The deploy script uses two heredoc quoting styles intentionally: `<< 'PYEOF'` (quoted, no expansion) for commands with hardcoded credentials, and `<< PYEOF` (unquoted, allows `$VAR` expansion) for commands that need shell variables like `$MANIFEST_FILE`. This is a clean pattern for mixing shell and Python in the same script.
+
+### 2026-02-24 [45608a494936]
+
+GH007 checks both author AND committer email against GitHub's privacy settings. The last 4 commits have `tb236@byu.edu` as committer (the older 4 have the correct `nathanielcannon@JARVIS.local` committer but all 8 share the private author email). Need to rewrite all 8 unpushed commits.
+
+### 2026-02-25 [8189dc231aca]
+
+The critical change between v0.47 and v53: the **embark screen integration is commented out** in v53 (lines 1843-1849, 1907-1914) with the note `//FIXME: Get get this info from the new embark screen.` The DF Premium embark UI changed, so the `viewscreen_choose_start_sitest` lookups no longer work. However, the world map RPC functions (`GetWorldMap`, `GetWorldMapNew`, `GetRegionMaps`, `GetWorldMapCenter`) still access `df::global::world->world_data` directly and **should work in any game state where world data exists**.
+
+### 2026-02-25 [0673bc90b560]
+
+The memory scanning story is **much better than expected**. The entire `memscan.lua` toolkit is preserved in v53, and the C++ `Process` class retains all read/write/scan primitives. The `MemoryPatcher` removal is trivial — `patchMemory()` still exists on `Process`. The only real regression is the embark screen integration in RemoteFortressReader (commented out due to DF Premium's new UI), which is fixable by either uncommenting and updating the viewscreen type, or by using Lua to read the embark cursor position directly.
+
+### 2026-02-25 [296c99431e96]
+
+DFHack's RPC dispatch model has two layers: **bind** (protocol-level, always works) and **call** (game-thread, needs an active frame loop). The bind success proves RemoteFortressReader IS loaded in DFHack 53.10-r1 — we were wrong to mark it "NOT AVAILABLE". The timeout on call just means the game thread wasn't processing requests at that moment (paused state or frame lag under Prism emulation).
+
+### 2026-02-25 [c2fb89ae220d]
+
+`GetWorldInfo` returns instantly but `RunCommand` and all RFR calls timeout. This reveals how DFHack's RPC dispatch works: `GetWorldInfo` reads cached state without needing the Core suspend mutex. All other calls — including `RunCommand` — need `CoreSuspender` to lock the game thread. The game thread appears to be unavailable, likely because DF is paused (DF auto-pauses on many events like combat, migrants, etc.).
+
+### 2026-02-25 [909d15b3583d]
+
+The Core is responsive — `dfhack-run` via SSH executes Lua instantly (year=250). `allow_remote=true` is set. The issue is **specifically the TCP RPC server's thread failing to acquire CoreSuspender for game-thread dispatch**. This might be a known DFHack 53.x bug or a Prism emulation issue with the thread scheduling. The bind (no Core lock) works but the call dispatch (needs Core lock from a network thread) doesn't.
+
+### 2026-02-25 [5cf75a332bfb]
+
+We now have **direct live access** to the complete world state via `dfhack-run` over SSH:
+- **4,901 entities** (civilizations, sites, groups) — race 572 = dwarves, type 1 = civilization
+- **48,366 historical figures** — every birth, death, and life event trackable
+- **442,716 history events** — wars, beast attacks, site foundings, murders, everything
+- **8,035 artifacts** — named items with full histories
+- **2,154 sites** — every fortress, town, camp, and lair
+
+This is far richer than the XML export, which only captures a snapshot. The live memory access lets us query relationships, enumerate by type, and cross-reference entities in ways the XML parser can't.

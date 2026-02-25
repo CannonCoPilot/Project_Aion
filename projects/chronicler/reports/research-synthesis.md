@@ -207,6 +207,19 @@ The research confirms Chronicler's `chronicler-bridge.lua` approach is architect
 | Data access | `df::world->units.active` | `df.global.world.units.active` | `df.global.world.units.active` |
 | Death cause lookup | Direct memory | `df.global.world.incidents.all` | Not yet |
 
+### Transport Discovery (2026-02-24)
+
+**TCP RPC is broken** for game-thread calls on DFHack 53.x running under Prism (ARM Windows VM). Only cached calls (GetVersion, GetWorldInfo) work — all other calls (RunCommand, RFR plugin calls) hang waiting for CoreSuspender. This appears to be a thread scheduling issue where the TCP server's network thread cannot acquire the Core lock for game-thread dispatch.
+
+**Working transport**: `dfhack-run` over SSH executes Lua commands directly on the DFHack Core thread, bypassing TCP dispatch entirely. Verified access to all data domains:
+- `df.global.world.history.figures` (48,366 HFs)
+- `df.global.world.history.events` (442,716 events)
+- `df.global.world.entities.all` (4,901 entities)
+- `df.global.world.artifacts.all` (8,035 artifacts)
+- `df.global.world.world_data.sites` (2,154 sites)
+
+This means the Chronicler watcher can use `dfhack-run` for real-time Lua probes alongside the bridge's HTTP-served JSON for bulk data. The bridge itself (Lua-side) is unaffected since it runs within DFHack's process.
+
 ### Bridge Enhancement Priorities
 
 1. **Add `eventful` subscriptions** — `UNIT_DEATH`, `ITEM_CREATED`, `JOB_COMPLETED`, `UNIT_NEW_ACTIVE`, `SYNDROME` for reactive event capture (currently polling-only)
@@ -443,6 +456,7 @@ Outcast, Semi-Megabeast, Mega-Beast, Unknown
 | XML legends ingestion | Built (CDM schema) | Need all 144 event types |
 | XML+ merge (legends_plus) | Built | Need audit vs LV-Next merge rules |
 | Live polling (bridge) | Built (7 data domains) | Need eventful subscriptions + death cause |
+| dfhack-run SSH transport | Verified (all data domains) | Need watcher integration (replaces broken TCP RPC) |
 | Change detection | Built (snapshot comparison) | Adequate |
 | PostgreSQL persistence | Built (1.65M records) | Need schema extensions for missing fields |
 | 131-test suite | Built | Need event type coverage tests |

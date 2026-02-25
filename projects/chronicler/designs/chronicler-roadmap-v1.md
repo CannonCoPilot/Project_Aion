@@ -2,7 +2,8 @@
 ## From Data Pipeline to Fortress Intelligence
 
 **Created**: 2026-02-23, Session 34
-**Source**: PRD v2.1 + 4 active plan files + gap analysis + user corrections
+**Updated**: 2026-02-24, Session 34
+**Source**: PRD v2.2 + 4 active plan files + gap analysis + user corrections + dfhack-run SSH transport discovery
 **Branch**: Project_Aion
 **Product code**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/`
 
@@ -24,6 +25,17 @@
 | **Storyteller** | COMPLETE | Keyword→SQL routing, dual-tier context, 12K char budget |
 | **Test Suite** | COMPLETE | 131 tests, composite PK correctness |
 | **Explorer UI Enhancements** | COMPLETE | Phases 1-7 of rippling-honking-crescent |
+
+### Runtime Environment
+
+| Component | Detail |
+|-----------|--------|
+| **DF Host** | UTM Win11 VM (`DF-Windows` / `192.168.64.3`) |
+| **DF Version** | 53.10 + DFHack 53.10-r1 |
+| **Data Transport** | `dfhack-run` over SSH (primary); TCP RPC broken for game-thread calls |
+| **SSH Key** | `~/.ssh/df-vm` |
+| **File Transfer** | HTTP server port 8889 (~105 MB/s) or SCP (~19 MB/s) |
+| **Current World** | "The Land of Dawning" — year 250, 257×257, 48K HFs, 442K events |
 
 ### What's Missing (v0.8 → v1.0 Gap)
 
@@ -63,7 +75,7 @@ Registry    Events       Storyteller  Horizon      Long-term
 
 **File**: `chronicler/db/schema.sql`
 
-Create the denizen registry table with status tracking, NVS scoring, and embark detection. Schema defined in PRD v2.1 Section 3 — includes `embark BOOLEAN`, `narrative_value FLOAT`, `status TEXT` (resident/departed/deceased/missing/visitor/attacker/skulker/historical), and `last_seen_tick INT`.
+Create the denizen registry table with status tracking, NVS scoring, and embark detection. Schema defined in PRD v2.2 Section 3 — includes `embark BOOLEAN`, `narrative_value FLOAT`, `status TEXT` (resident/departed/deceased/missing/visitor/attacker/skulker/historical), and `last_seen_tick INT`.
 
 Indexes: status, narrative_value DESC, hf_id, embark flag.
 
@@ -99,7 +111,7 @@ Compare current unit list to previous cycle:
 - **Absence detection**: Unit in previous cycle but not current → `missing`
 - **Threshold**: After N consecutive missing cycles → escalate to `presumed_deceased`
 
-Logic defined in PRD v2.1 Section 4.3.
+Logic defined in PRD v2.2 Section 4.3.
 
 ### 1.5 NVS Computation
 
@@ -184,7 +196,7 @@ After legends import + first watcher cycle:
    - Mark HF as `synthetic = True` in details JSONB
    - `ON CONFLICT DO UPDATE` ensures re-import replaces synthetic with authoritative data
 
-Logic defined in PRD v2.1 Section 4.1.
+Logic defined in PRD v2.2 Section 4.1.
 
 ### 2.4 Bridge Expansion (from rippling-honking-crescent Phase 3)
 
@@ -293,7 +305,7 @@ Read-only `query_database` tool with:
 - Safety: keyword blocklist + `asyncpg readonly=True` transaction
 - Row limit: 50 rows max, LIMIT injection if not present
 - Timeout: 5s per query
-- Schema defined in PRD v2.1 Section 7.
+- Schema defined in PRD v2.2 Section 7.
 
 ### 3.2 Agentic Loop
 
@@ -326,7 +338,7 @@ Top 10 denizens by NVS + recent events for LLM context.
 
 **File**: `chronicler/storyteller/prompts.py`
 
-In-world chronicler persona with database access instructions. Includes schema summary, denizen context, world_id constraint. Full prompt defined in PRD v2.1 Section 7.
+In-world chronicler persona with database access instructions. Includes schema summary, denizen context, world_id constraint. Full prompt defined in PRD v2.2 Section 7.
 
 ### 3.7 Config Toggle
 
@@ -497,13 +509,13 @@ Add horizon constraints to agentic system prompt:
 | 3 | Position table enhancement (gender-appropriate titles) | rippling Phase 5 | 1 hr |
 | 4 | Sidebar sort/filter | rippling Phase 6 | 2 hrs |
 | 5 | Load members enhancement | rippling Phase 7 | 1 hr |
-| 6 | Additional live event types (marriage, birth, artifact, mood, arrival/departure) | PRD v2.1 §5 | 4 hrs |
+| 6 | Additional live event types (marriage, birth, artifact, mood, arrival/departure) | PRD v2.2 §5 | 4 hrs |
 | 7 | Narrative engine (proactive story generation) | session-state | 6-8 hrs |
 | 8 | Skills time-series tracking | session-state | 3-4 hrs |
 | 9 | Full Knowledge Horizon with all 7 caveats | knowledge-horizon.md | 6-8 hrs |
 | 10 | Interactive maps (Leaflet.js) | benchmark LegendsViewer-Next | 6-8 hrs |
 | 11 | Family tree visualization | benchmark LegendsViewer-Next | 4-6 hrs |
-| 12 | Global figure scoring (df-narrator formula) alongside NVS | PRD v2.1 §10 | 2 hrs |
+| 12 | Global figure scoring (df-narrator formula) alongside NVS | PRD v2.2 §10 | 2 hrs |
 
 ### Items 1-5: Deferred from rippling-honking-crescent
 
@@ -570,7 +582,7 @@ Phase 5 (independent items):
 | `rippling-honking-crescent.md` | Phases 1-7 | Phase 3 (unit data expansion), Phase 8 (KH stub) | Phase 2 (bridge expansion), Phase 4 (KH) |
 | `shiny-churning-sprout.md` | People, Civs, Geo tabs | Events & Timeline tab | Phase 4 (events tab) |
 
-### PRD v2.1 Sections → Roadmap Phases
+### PRD v2.2 Sections → Roadmap Phases
 
 | PRD Section | Content | Roadmap Phase |
 |-------------|---------|---------------|
@@ -589,7 +601,8 @@ Phase 5 (independent items):
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Bridge deployment failures (HomeServer offline) | MEDIUM | Test locally with mock data; bridge changes are Lua-only |
+| Bridge deployment failures (VM offline) | MEDIUM | Test locally with mock data; deploy via SCP to VM |
+| TCP RPC broken for game-thread calls | HIGH | Use `dfhack-run` over SSH as primary transport; TCP RPC only for cached calls |
 | NVS formula bias toward oldest dwarves | LOW | Tune weights iteratively; recency decay prevents stale dominance |
 | Post-embark legends re-export unavailable | LOW | Synthetic HF fallback works automatically |
 | Synthetic HF data conflicts with later re-import | LOW | `ON CONFLICT DO UPDATE` replaces synthetic; `embark` preserved |
@@ -625,7 +638,8 @@ Proactive narrative generation, full Knowledge Horizon with all 7 caveats, inter
 
 | Document | Path | Role |
 |----------|------|------|
-| PRD v2.1 | `projects/chronicler/designs/chronicler-prd-v2.md` | Source of truth for architecture |
+| PRD v2.2 | `projects/chronicler/designs/chronicler-prd-v2.md` | Source of truth for architecture |
+| Phase 1 Detailed Plan | `projects/chronicler/designs/phase-1-denizen-registry.md` | Standalone Phase 1 implementation plan |
 | Unit-HF Field Mapping | `projects/chronicler/designs/unit-hf-field-mapping.md` | Merge strategy |
 | Knowledge Horizon Design | `projects/chronicler/designs/knowledge-horizon.md` | Phase 4+ architecture |
 | Data Gap Analysis | `projects/chronicler/reports/data-gap-analysis-2026-02-22.md` | Gap catalog |
@@ -636,6 +650,6 @@ Proactive narrative generation, full Knowledge Horizon with all 7 caveats, inter
 
 ---
 
-*Chronicler Development Roadmap v1.0*
-*Session 34, 2026-02-23*
-*Consolidates: PRD v2.1, 4 active plans, gap analysis, user corrections*
+*Chronicler Development Roadmap v1.1*
+*Session 34, 2026-02-24*
+*Consolidates: PRD v2.2, 4 active plans, gap analysis, user corrections, dfhack-run SSH transport discovery*
