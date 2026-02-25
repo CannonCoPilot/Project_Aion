@@ -1,6 +1,6 @@
-# Chronicler PRD v2.1 — From Data Pipeline to Fortress Intelligence
+# Chronicler PRD v2.2 — From Data Pipeline to Fortress Intelligence
 
-**Date**: 2026-02-23 (Revised)
+**Date**: 2026-02-24 (Revised)
 **Session**: 33
 **Status**: Active development plan
 **Supersedes**: PRD v2.0 (same file, pre-revision), `gap-closure-critical-review.md` (Phase 0-4 COMPLETE), `data-gap-analysis-2026-02-22.md` (reference only)
@@ -13,6 +13,7 @@
 |---------|------|---------|
 | v2.0 | 2026-02-23 | Initial PRD synthesizing gap analysis + user G1/G2 feedback |
 | v2.1 | 2026-02-23 | 5 major corrections: embark-aware HF fallback, Unit-based relationships, live event generation, embark flag, agentic LLM queries |
+| v2.2 | 2026-02-24 | Environment update: HomeServer → UTM Win11 VM; data access architecture revised (dfhack-run over SSH replaces broken TCP RPC); live world data confirmed (48K HFs, 442K events) |
 
 ---
 
@@ -86,18 +87,36 @@ Chronicler becomes a **fortress intelligence system** with three pillars:
 
 ## 2. Architecture Overview
 
+### Runtime Environment
+
+**DF runs on UTM Win11 VM** (`DF-Windows` / `192.168.64.3`). DF 53.10 + DFHack 53.10-r1.
+
+**Data access transport**: `dfhack-run` over SSH (key: `~/.ssh/df-vm`). TCP RPC is broken for game-thread calls on DFHack 53.x — only cached calls (GetVersion/GetWorldInfo) work; all other calls hang waiting for CoreSuspender. The `dfhack-run` command executes Lua directly on the DFHack Core thread via SSH, bypassing the TCP dispatch entirely.
+
+**Confirmed live data** (world "The Land of Dawning", year 250, 257×257):
+- 48,366 historical figures
+- 442,716 history events
+- 4,901 entities (8 dwarf civs, 8 human, 8 elf, 9 goblin, 8 kobold + underground)
+- 8,035 artifacts
+- 2,154 sites
+- 2,278 regions
+
+**File transfer**: HTTP file server on port 8889 (~105 MB/s) or SCP via SSH (~19 MB/s). Guest Agent is emergency-only (~0.24 MB/s).
+
 ### Data Flow (Current → Target)
 
 ```
 CURRENT:
   Legends XML → Parser → PostgreSQL (35 tables) → Keyword Routing → Context Assembly → LLM → Chat
   Live Bridge → Watcher → PostgreSQL (units/events/probes) → Keyword Routing ↗ (partial)
+  dfhack-run (SSH) → Lua commands → stdout (verified working for all data domains)
 
 TARGET:
   Legends XML → Parser ──────────────────────────────→ PostgreSQL (40+ tables)
   Post-Embark Legends Re-export → Parser (with embark detection) ↗
   Live Bridge → Watcher ──────────────────────────────↗
   Live Bridge → Event Generator → history_events ─────↗
+  dfhack-run (SSH) → Lua probes → Watcher ────────────↗
   Embark HF Fallback (if no post-embark export) ──────↗
                                                           ↓
                                                     Denizen Registry
@@ -1117,14 +1136,15 @@ The key difference: df-narrator ranks globally (who is most important in world h
 | Bridge v6 (16 sections) | Phase 1 denizen tracking | COMPLETE |
 | Explorer 6-tab structure | Phases 3-4 UI integration | COMPLETE |
 | Entity position extraction | Phase 3 position display | COMPLETE |
-| HomeServer access | Phase 2 bridge deployment | Available (SMB + HTTP) |
+| UTM Win11 VM access | Phase 2 bridge deployment | Available (SSH + HTTP file server + SCP) |
 | LLM with tool-use support | Phase 3 agentic storyteller | Available (Qwen3 32B, Claude API) |
 
 ### Risks
 
 | Risk | Severity | Mitigation |
 |------|----------|------------|
-| Bridge deployment failures (HomeServer offline) | MEDIUM | Phase 2 bridge changes can be tested locally with mock data |
+| Bridge deployment failures (VM offline) | MEDIUM | Phase 2 bridge changes can be tested locally with mock data; deploy via SCP to VM |
+| TCP RPC broken for game-thread calls | HIGH | Use `dfhack-run` over SSH as primary transport; TCP RPC only for cached calls (GetVersion/GetWorldInfo) |
 | NVS formula over-weights screen time (bias toward oldest dwarves) | LOW | Tune weights iteratively; add recency decay |
 | Post-embark legends re-export unavailable (user can't/won't do it) | LOW | Synthetic HF fallback works automatically; user just gets less HF data |
 | Synthetic HF data conflicts with later legends re-import | LOW | `ON CONFLICT DO UPDATE` replaces synthetic data with authoritative legends data; `embark` flag preserved |
@@ -1192,6 +1212,6 @@ The key difference: df-narrator ranks globally (who is most important in world h
 
 ---
 
-*Chronicler PRD v2.1 — From Data Pipeline to Fortress Intelligence*
-*Session 33, 2026-02-23*
-*Synthesizes: gap-analysis, critical-review, knowledge-horizon, unit-hf-mapping, user G1/G2 feedback, 5 user corrections, 10 reference repo analyses*
+*Chronicler PRD v2.2 — From Data Pipeline to Fortress Intelligence*
+*Session 34, 2026-02-24*
+*Synthesizes: gap-analysis, critical-review, knowledge-horizon, unit-hf-mapping, user G1/G2 feedback, 5 user corrections, 10 reference repo analyses, dfhack-run SSH transport discovery*
