@@ -1239,3 +1239,9 @@ We now have **direct live access** to the complete world state via `dfhack-run` 
 - **2,154 sites** — every fortress, town, camp, and lair
 
 This is far richer than the XML export, which only captures a snapshot. The live memory access lets us query relationships, enumerate by type, and cross-reference entities in ways the XML parser can't.
+
+### 2026-02-25 [16d9ec07969e]
+
+**Why these three documents form a hierarchy**: The PRD (`chronicler-prd-v2.md`) is the architectural source of truth — it defines *what* to build and *why*. The roadmap (`chronicler-roadmap-v1.md`) is the execution plan — it defines *when* and *in what order*. The research synthesis (`research-synthesis.md`) is the evidence base — it defines *what's possible* based on ecosystem analysis. Updates flow top-down: when the environment changes (HomeServer → VM, TCP RPC → SSH), the PRD captures the new architecture, the roadmap adjusts dependencies/risks, and the research synthesis adds validated findings.
+
+The new Phase 1 detailed plan (`phase-1-denizen-registry.md`) serves a different purpose: it's a **standalone execution document** that a developer can pick up and implement without cross-referencing 3 other files. This aligns with the user's requirement that "we will not proceed through any work without first having a fully detailed PRD and roadmap of the specific phase."
