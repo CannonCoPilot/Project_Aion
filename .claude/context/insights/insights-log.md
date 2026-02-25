@@ -1245,3 +1245,11 @@ This is far richer than the XML export, which only captures a snapshot. The live
 **Why these three documents form a hierarchy**: The PRD (`chronicler-prd-v2.md`) is the architectural source of truth — it defines *what* to build and *why*. The roadmap (`chronicler-roadmap-v1.md`) is the execution plan — it defines *when* and *in what order*. The research synthesis (`research-synthesis.md`) is the evidence base — it defines *what's possible* based on ecosystem analysis. Updates flow top-down: when the environment changes (HomeServer → VM, TCP RPC → SSH), the PRD captures the new architecture, the roadmap adjusts dependencies/risks, and the research synthesis adds validated findings.
 
 The new Phase 1 detailed plan (`phase-1-denizen-registry.md`) serves a different purpose: it's a **standalone execution document** that a developer can pick up and implement without cross-referencing 3 other files. This aligns with the user's requirement that "we will not proceed through any work without first having a fully detailed PRD and roadmap of the specific phase."
+
+### 2026-02-25 [c7b7cd7fe465]
+
+The merge-reduce tree has been progressively consolidating 27 documents across 3 completed rounds. The remaining work is small — just 3 more agent dispatches (2 for Round 4 + 1 for Round 5) — but we're gated on the usage limit. Recording exact state now ensures zero rework on resumption.
+
+### 2026-02-25 [7b6174ad2587]
+
+The merge-reduce tree completed successfully: **27 source documents → 5 rounds → 1 canonical document** (107KB, 2,065 lines, 15 sections). The 107KB final size vs 366KB combined Round 4 inputs reflects aggressive deduplication — the same features, schemas, and research findings appeared in multiple source documents from different perspectives, and the final merge unified them under a single coherent structure. All 15 sections map exactly to the outline we specified.
