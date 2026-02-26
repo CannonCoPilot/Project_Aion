@@ -1261,3 +1261,21 @@ The Data ETL agent (component-08) was remarkably productive — it completed its
 ### 2026-02-25 [9107e952e172]
 
 **Stage 1.1 complete**: 5 new tables (art_forms, rivers, event_entity_xref, worldgen_snapshots, world_modpacks), 1 column addition (mountain_peaks.is_volcano), 4 column additions to identities, 11 column additions to historical_figures with GIN indexes on array columns. The database went from 33 → 38 tables and HF columns from 22 → 33. Schema.sql now matches the live database exactly.
+
+### 2026-02-25 [3e7088940605]
+
+**World 1: Tar Thran (The Land of Dawning) — fully ingested and verified.** The DB contains 2,197,401 total records across all CDM tables. Key metrics for this 250-year world:
+- 48,273 historical figures (with family links, position history, supernatural flags, importance scores)
+- 436,455 history events (with 871,761 cross-reference index entries)
+- 4,847 civilizations/entities (with war lists and positions)
+- 8,035 artifacts (with importance scoring)
+- 37,486 written contents
+- 0 referential integrity violations — clean data
+
+The "live data" tables (units, unit_events, game_reports, etc.) are empty since we haven't connected the fortress watcher yet — those get populated in Phase 2.
+
+### 2026-02-26 [e58feae273b1]
+
+**CASCADE optimization** — The initial `delete_world()` used explicit FK-ordered DELETE statements for each of 33 tables. This caused a 15+ minute lock contention when interacting with CASCADE constraints. The optimized version counts rows first (via SELECT, read-only), then does a single `DELETE FROM worlds` that CASCADE handles in seconds. The `_DELETE_ORDER` constant is retained for the count queries and as documentation of the FK dependency graph.
+
+**asyncpg mock pattern** — Mocking asyncpg's `pool.acquire()` and `conn.transaction()` requires `MagicMock` (not `AsyncMock`) wrapping a custom `_AsyncContextManager` class, because these methods return async context managers synchronously — `AsyncMock` wraps them in an extra coroutine that breaks `async with`.

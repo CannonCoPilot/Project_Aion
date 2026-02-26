@@ -54,6 +54,9 @@ Jarvis runs inside a **tmux session named `jarvis`** with 6 windows. This is alw
 - When uncertain about environment capabilities, INVESTIGATE before hedging. Use bash commands to probe the environment. Never assume unavailability without checking.
 - Attempt at least 3 alternative approaches before declaring a task blocked
 
+### Overriding Rule MANDATORY:
+You must not substitute or short-cut any functionality which ought to be part of the deliverable Chronicler Application by executing your own ad hoc commands or scripts.  No Phase is complete unless a fully stand-alone executable has been finished and packaged in such a way as to be able to be run hands-off with no special handling by you.  Everything must be created with the User's experience and control of the software as the paramount end goal.
+
 ## Architecture
 
 | Layer | Location | Contains |
@@ -121,9 +124,18 @@ The Chronicler project has a complete set of canonical planning documents. These
 6. **When in doubt, put it in**: Default to inclusion. Do not scope-chop.
 7. **Consult Phase PRD before coding**: Read the relevant Phase PRD/Roadmap document before starting any task within that phase.
 
+### World Data for testing:
+Projects/DwarfCron/data/legends/region1-post-embark
+Projects/DwarfCron/data/legends/region1-pre-embark
+World name: "Tar Thran" aka "The Land of Dawning"
+
+### Overriding Rule MANDATORY:
+You must not substitute or short-cut any functionality which ought to be part of the deliverable Chronicler Application by executing your own ad hoc commands or scripts.  No Phase is complete unless a fully stand-alone executable has been finished and packaged in such a way as to be able to be run hands-off with no special handling by you.  Everything must be created with the User's experience and control of the software as the paramount end goal.
+
 ### Current Phase: Phase 1 -- Data Foundation
 
 See `projects/chronicler/reports/phases/phase-1-data-foundation.md` for full details.
+# Mandatory: You may not mark a Phase as completed without providing the standalone script for the User to run, aand a full report for the User which will include a summary of completed features and a mini-tutorial for the User to follow for validation.
 
 ---
 
