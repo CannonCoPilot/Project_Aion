@@ -99,10 +99,7 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/CLAUDE.md`, `.claud
 
 ## Active Jarvis
 @.claude/context/psyche/jarvis-identity.md
-@.claude/context/psyche/valedictions.yaml
 @.claude/context/components/orchestration-overview.md
-@.claude/context/psyche/self-knowledge/strengths.md
-@.claude/context/psyche/self-knowledge/weaknesses.md
 @.claude/context/psyche/_index.md
 @.claude/context/psyche/autopoietic-paradigm.md
 @.claude/context/psyche/capability-map.yaml
@@ -110,6 +107,11 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/CLAUDE.md`, `.claud
 @.claude/context/psyche/pneuma-map.md
 @.claude/context/psyche/soma-map.md
 @.claude/context/psyche/README.md
+
+## Misc Resources
+`.claude/context/psyche/valedictions.yaml`
+`.claude/context/psyche/self-knowledge/strengths.md`
+`.claude/context/psyche/self-knowledge/weaknesses.md`
 
 ## Active Plans
 @.claude/context/current-plans.md

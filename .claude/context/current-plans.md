@@ -30,7 +30,7 @@ Single source of truth for all Chronicler development. Consult in this order:
 | Phase | Name | Status | Milestone |
 |-------|------|--------|-----------|
 | 1 | Data Foundation | COMPLETE (64/64 checks) | M1 -- Data Complete |
-| **2** | **Explorer Core** | **ACTIVE** | **M2 -- Explorer Complete** |
+| **2** | **Explorer Core** | **COMPLETE (30/30 checks)** | **M2 -- Explorer Complete** |
 | 3 | Narrative Engine | Pending | M3 -- Narrative Complete |
 | 4 | Visualization | Pending | M4 -- Visualization Complete |
 | 5 | Live Integration | Pending | M5 -- Live Complete |
