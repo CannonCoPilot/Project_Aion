@@ -1,0 +1,1099 @@
+==============================================================================
+  CHRONICLER CDM SCHEMA — 39 tables
+==============================================================================
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: art_forms  (240 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  world_id                            integer                      NO   PK  
+  id                                  integer                      NO   PK  
+  name                                text                        YES       
+  form_type                           text                         NO       
+  description                         text                        YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    art_forms_pkey
+      CREATE UNIQUE INDEX art_forms_pkey ON public.art_forms USING btree (world_id, id)
+    idx_art_forms_name
+      CREATE INDEX idx_art_forms_name ON public.art_forms USING btree (world_id, name)
+    idx_art_forms_type
+      CREATE INDEX idx_art_forms_type ON public.art_forms USING btree (world_id, form_type)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: artifacts  (8,035 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  item_type                           text                        YES       
+  item_subtype                        text                        YES       
+  material                            text                        YES       
+  creator_hf_id                       integer                     YES       
+  holder_hf_id                        integer                     YES       
+  site_id                             integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+  importance_score                    double precision            YES       0.0
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    artifacts_pkey
+      CREATE UNIQUE INDEX artifacts_pkey ON public.artifacts USING btree (world_id, id)
+    idx_artifacts_importance
+      CREATE INDEX idx_artifacts_importance ON public.artifacts USING btree (world_id, importance_score DESC)
+    idx_artifacts_name
+      CREATE INDEX idx_artifacts_name ON public.artifacts USING btree (name)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: collection_events  (92,868 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  world_id                            integer                      NO   PK  
+  collection_id                       integer                      NO   PK  
+  event_id                            integer                      NO   PK  
+
+  Foreign Keys:
+    world_id -> history_event_collections.id
+    collection_id -> history_event_collections.id
+    world_id -> history_events.id
+    event_id -> history_events.id
+
+  Indexes:
+    collection_events_pkey
+      CREATE UNIQUE INDEX collection_events_pkey ON public.collection_events USING btree (world_id, collection_id, event_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: collection_subcollections  (22,201 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  world_id                            integer                      NO   PK  
+  parent_id                           integer                      NO   PK  
+  child_id                            integer                      NO   PK  
+
+  Foreign Keys:
+    world_id -> history_event_collections.id
+    child_id -> history_event_collections.world_id
+    world_id -> history_event_collections.world_id
+    parent_id -> history_event_collections.id
+
+  Indexes:
+    collection_subcollections_pkey
+      CREATE UNIQUE INDEX collection_subcollections_pkey ON public.collection_subcollections USING btree (world_id, parent_id, child_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: embeddings  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('embeddings_id_seq'...
+  entity_type                         text                         NO       
+  entity_id                           integer                      NO       
+  chunk_index                         integer                      NO       0
+  chunk_text                          text                         NO       
+  content_hash                        text                         NO       
+  embedding                           vector                      YES       
+  created_at                          timestamptz                 YES       now()
+
+  Indexes:
+    embeddings_pkey
+      CREATE UNIQUE INDEX embeddings_pkey ON public.embeddings USING btree (id)
+    idx_embeddings_entity
+      CREATE INDEX idx_embeddings_entity ON public.embeddings USING btree (entity_type, entity_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: entities  (4,847 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  type                                text                        YES       
+  race                                text                        YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Referenced By:
+    entity_positions.world_id -> id
+    entity_positions.entity_id -> id
+    hf_entity_links.world_id -> id
+    hf_entity_links.entity_id -> id
+    hf_position_links.world_id -> id
+    hf_position_links.entity_id -> id
+
+  Indexes:
+    entities_pkey
+      CREATE UNIQUE INDEX entities_pkey ON public.entities USING btree (world_id, id)
+    idx_entities_name
+      CREATE INDEX idx_entities_name ON public.entities USING btree (name)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: entity_populations  (810 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  race                                text                        YES       
+  count                               integer                     YES       
+  civ_id                              integer                     YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    entity_populations_pkey
+      CREATE UNIQUE INDEX entity_populations_pkey ON public.entity_populations USING btree (world_id, id)
+    idx_entity_populations_civ
+      CREATE INDEX idx_entity_populations_civ ON public.entity_populations USING btree (world_id, civ_id)
+    idx_entity_populations_race
+      CREATE INDEX idx_entity_populations_race ON public.entity_populations USING btree (world_id, race)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: entity_positions  (8,852 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('entity_positions_i...
+  world_id                            integer                      NO       
+  entity_id                           integer                      NO       
+  position_id                         integer                      NO       
+  name                                text                        YES       
+  name_male                           text                        YES       
+  name_female                         text                        YES       
+  spouse                              text                        YES       
+  spouse_male                         text                        YES       
+  spouse_female                       text                        YES       
+
+  Foreign Keys:
+    world_id -> entities.id
+    entity_id -> entities.id
+
+  Indexes:
+    entity_positions_pkey
+      CREATE UNIQUE INDEX entity_positions_pkey ON public.entity_positions USING btree (id)
+    entity_positions_world_id_entity_id_position_id_key
+      CREATE UNIQUE INDEX entity_positions_world_id_entity_id_position_id_key ON public.entity_positions USING btree (world_id, entity_id, position_id)
+    idx_entity_positions_entity
+      CREATE INDEX idx_entity_positions_entity ON public.entity_positions USING btree (world_id, entity_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: event_entity_xref  (871,761 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  world_id                            integer                      NO   PK  
+  event_id                            integer                      NO   PK  
+  entity_type                         text                         NO   PK  
+  entity_id                           integer                      NO   PK  
+  role                                text                        YES       
+
+  Foreign Keys:
+    world_id -> history_events.id
+    event_id -> history_events.id
+
+  Indexes:
+    event_entity_xref_pkey
+      CREATE UNIQUE INDEX event_entity_xref_pkey ON public.event_entity_xref USING btree (world_id, event_id, entity_type, entity_id)
+    idx_event_entity_xref_entity
+      CREATE INDEX idx_event_entity_xref_entity ON public.event_entity_xref USING btree (world_id, entity_type, entity_id)
+    idx_event_entity_xref_event
+      CREATE INDEX idx_event_entity_xref_event ON public.event_entity_xref USING btree (world_id, event_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: event_relationships  (113,085 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('event_relationship...
+  world_id                            integer                      NO       
+  event_id                            integer                     YES       
+  relationship                        text                        YES       
+  source_hf                           integer                     YES       
+  target_hf                           integer                     YES       
+  year                                integer                     YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    event_relationships_pkey
+      CREATE UNIQUE INDEX event_relationships_pkey ON public.event_relationships USING btree (id)
+    idx_event_rels_source
+      CREATE INDEX idx_event_rels_source ON public.event_relationships USING btree (source_hf)
+    idx_event_rels_target
+      CREATE INDEX idx_event_rels_target ON public.event_relationships USING btree (target_hf)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: fortress_denizens  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('fortress_denizens_...
+  world_id                            integer                      NO       
+  unit_id                             integer                     YES       
+  hf_id                               integer                     YES       
+  name                                text                         NO       
+  english_name                        text                        YES       
+  race                                text                        YES       
+  status                              text                         NO       'unknown'::text
+  embark                              boolean                     YES       false
+  arrival_year                        integer                     YES       
+  arrival_tick                        integer                     YES       
+  departure_year                      integer                     YES       
+  departure_tick                      integer                     YES       
+  departure_cause                     text                        YES       
+  narrative_value                     double precision            YES       0.0
+  last_seen_tick                      integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+  created_at                          timestamptz                 YES       now()
+  updated_at                          timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    fortress_denizens_pkey
+      CREATE UNIQUE INDEX fortress_denizens_pkey ON public.fortress_denizens USING btree (id)
+    fortress_denizens_world_id_hf_id_key
+      CREATE UNIQUE INDEX fortress_denizens_world_id_hf_id_key ON public.fortress_denizens USING btree (world_id, hf_id)
+    fortress_denizens_world_id_unit_id_key
+      CREATE UNIQUE INDEX fortress_denizens_world_id_unit_id_key ON public.fortress_denizens USING btree (world_id, unit_id)
+    idx_fortress_denizens_embark
+      CREATE INDEX idx_fortress_denizens_embark ON public.fortress_denizens USING btree (world_id) WHERE (embark = true)
+    idx_fortress_denizens_hf
+      CREATE INDEX idx_fortress_denizens_hf ON public.fortress_denizens USING btree (world_id, hf_id) WHERE (hf_id IS NOT NULL)
+    idx_fortress_denizens_narrative
+      CREATE INDEX idx_fortress_denizens_narrative ON public.fortress_denizens USING btree (world_id, narrative_value DESC)
+    idx_fortress_denizens_status
+      CREATE INDEX idx_fortress_denizens_status ON public.fortress_denizens USING btree (world_id, status)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: game_reports  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('game_reports_id_se...
+  world_id                            integer                      NO       
+  report_id                           integer                      NO       
+  report_type                         integer                     YES       
+  text                                text                         NO       
+  game_year                           integer                     YES       
+  game_tick                           integer                     YES       
+  pos_x                               integer                     YES       
+  pos_y                               integer                     YES       
+  pos_z                               integer                     YES       
+  is_announcement                     boolean                     YES       false
+  detected_at                         timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    game_reports_pkey
+      CREATE UNIQUE INDEX game_reports_pkey ON public.game_reports USING btree (id)
+    game_reports_world_id_report_id_key
+      CREATE UNIQUE INDEX game_reports_world_id_report_id_key ON public.game_reports USING btree (world_id, report_id)
+    idx_game_reports_world
+      CREATE INDEX idx_game_reports_world ON public.game_reports USING btree (world_id)
+    idx_game_reports_year
+      CREATE INDEX idx_game_reports_year ON public.game_reports USING btree (game_year)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: hf_entity_links  (193,711 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('hf_entity_links_id...
+  world_id                            integer                      NO       
+  hf_id                               integer                      NO       
+  entity_id                           integer                      NO       
+  link_type                           text                        YES       
+  position_name                       text                        YES       
+
+  Foreign Keys:
+    world_id -> entities.id
+    entity_id -> entities.world_id
+    world_id -> historical_figures.world_id
+    hf_id -> historical_figures.id
+
+  Indexes:
+    hf_entity_links_pkey
+      CREATE UNIQUE INDEX hf_entity_links_pkey ON public.hf_entity_links USING btree (id)
+    hf_entity_links_world_id_hf_id_entity_id_link_type_key
+      CREATE UNIQUE INDEX hf_entity_links_world_id_hf_id_entity_id_link_type_key ON public.hf_entity_links USING btree (world_id, hf_id, entity_id, link_type)
+    idx_hf_entity_links_hf
+      CREATE INDEX idx_hf_entity_links_hf ON public.hf_entity_links USING btree (hf_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: hf_links  (282,332 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('hf_links_id_seq'::...
+  world_id                            integer                      NO       
+  hf_id                               integer                      NO       
+  target_hf_id                        integer                      NO       
+  link_type                           text                        YES       
+
+  Foreign Keys:
+    world_id -> historical_figures.id
+    hf_id -> historical_figures.id
+    world_id -> historical_figures.id
+    target_hf_id -> historical_figures.id
+
+  Indexes:
+    hf_links_pkey
+      CREATE UNIQUE INDEX hf_links_pkey ON public.hf_links USING btree (id)
+    hf_links_world_id_hf_id_target_hf_id_link_type_key
+      CREATE UNIQUE INDEX hf_links_world_id_hf_id_target_hf_id_link_type_key ON public.hf_links USING btree (world_id, hf_id, target_hf_id, link_type)
+    idx_hf_links_hf
+      CREATE INDEX idx_hf_links_hf ON public.hf_links USING btree (hf_id)
+    idx_hf_links_target
+      CREATE INDEX idx_hf_links_target ON public.hf_links USING btree (target_hf_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: hf_position_links  (21,778 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('hf_position_links_...
+  world_id                            integer                      NO       
+  hf_id                               integer                      NO       
+  entity_id                           integer                      NO       
+  position_id                         integer                      NO       
+  start_year                          integer                     YES       
+  end_year                            integer                     YES       
+
+  Foreign Keys:
+    world_id -> entities.id
+    entity_id -> entities.world_id
+    world_id -> historical_figures.world_id
+    hf_id -> historical_figures.id
+
+  Indexes:
+    hf_position_links_pkey
+      CREATE UNIQUE INDEX hf_position_links_pkey ON public.hf_position_links USING btree (id)
+    hf_position_links_world_id_hf_id_entity_id_position_id_star_key
+      CREATE UNIQUE INDEX hf_position_links_world_id_hf_id_entity_id_position_id_star_key ON public.hf_position_links USING btree (world_id, hf_id, entity_id, position_id, start_year)
+    idx_hf_position_links_current
+      CREATE INDEX idx_hf_position_links_current ON public.hf_position_links USING btree (world_id, entity_id) WHERE (end_year IS NULL)
+    idx_hf_position_links_entity
+      CREATE INDEX idx_hf_position_links_entity ON public.hf_position_links USING btree (world_id, entity_id)
+    idx_hf_position_links_hf
+      CREATE INDEX idx_hf_position_links_hf ON public.hf_position_links USING btree (world_id, hf_id)
+    idx_hf_position_links_null_start_dedup
+      CREATE UNIQUE INDEX idx_hf_position_links_null_start_dedup ON public.hf_position_links USING btree (world_id, hf_id, entity_id, position_id) WHERE (start_year IS NULL)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: hf_site_links  (2,074 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('hf_site_links_id_s...
+  world_id                            integer                      NO       
+  hf_id                               integer                      NO       
+  site_id                             integer                      NO       
+  link_type                           text                        YES       
+
+  Foreign Keys:
+    world_id -> historical_figures.id
+    hf_id -> historical_figures.id
+    world_id -> sites.id
+    site_id -> sites.id
+
+  Indexes:
+    hf_site_links_pkey
+      CREATE UNIQUE INDEX hf_site_links_pkey ON public.hf_site_links USING btree (id)
+    hf_site_links_world_id_hf_id_site_id_link_type_key
+      CREATE UNIQUE INDEX hf_site_links_world_id_hf_id_site_id_link_type_key ON public.hf_site_links USING btree (world_id, hf_id, site_id, link_type)
+    idx_hf_site_links_hf
+      CREATE INDEX idx_hf_site_links_hf ON public.hf_site_links USING btree (hf_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: historical_eras  (1 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  world_id                            integer                      NO   PK  
+  name                                text                         NO   PK  
+  start_year                          integer                     YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    historical_eras_pkey
+      CREATE UNIQUE INDEX historical_eras_pkey ON public.historical_eras USING btree (world_id, name)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: historical_figures  (48,273 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  race                                text                        YES       
+  caste                               text                        YES       
+  sex                                 int2                        YES       
+  birth_year                          integer                     YES       
+  birth_seconds                       integer                     YES       
+  death_year                          integer                     YES       
+  death_seconds                       integer                     YES       
+  death_cause                         text                        YES       
+  entity_id                           integer                     YES       
+  is_deity                            boolean                     YES       false
+  is_force                            boolean                     YES       false
+  is_vampire                          boolean                     YES       false
+  is_necromancer                      boolean                     YES       false
+  is_werebeast                        boolean                     YES       false
+  is_ghost                            boolean                     YES       false
+  kill_count                          integer                     YES       0
+  event_count                         integer                     YES       0
+  details                             jsonb                       YES       '{}'::jsonb
+  importance_score                    double precision            YES       0.0
+  spheres                             text[]                      YES       
+  goals                               jsonb                       YES       '[]'::jsonb
+  skills                              jsonb                       YES       '[]'::jsonb
+  kills                               jsonb                       YES       '{}'::jsonb
+  whereabouts                         jsonb                       YES       '{}'::jsonb
+  entity_reputations                  jsonb                       YES       '[]'::jsonb
+  intrigue_actors                     jsonb                       YES       '[]'::jsonb
+  used_identities                     jsonb                       YES       '[]'::jsonb
+  journey_pets                        jsonb                       YES       '[]'::jsonb
+  holds_artifact                      integer[]                   YES       
+  active_interactions                 text[]                      YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Referenced By:
+    hf_entity_links.world_id -> id
+    hf_entity_links.hf_id -> id
+    hf_links.world_id -> id
+    hf_links.target_hf_id -> id
+    hf_links.hf_id -> id
+    hf_position_links.hf_id -> world_id
+    hf_position_links.world_id -> id
+    hf_site_links.world_id -> id
+    hf_site_links.hf_id -> id
+
+  Indexes:
+    historical_figures_pkey
+      CREATE UNIQUE INDEX historical_figures_pkey ON public.historical_figures USING btree (world_id, id)
+    idx_hf_importance
+      CREATE INDEX idx_hf_importance ON public.historical_figures USING btree (world_id, importance_score DESC)
+    idx_hf_interactions
+      CREATE INDEX idx_hf_interactions ON public.historical_figures USING gin (active_interactions)
+    idx_hf_name
+      CREATE INDEX idx_hf_name ON public.historical_figures USING btree (name)
+    idx_hf_race
+      CREATE INDEX idx_hf_race ON public.historical_figures USING btree (race)
+    idx_hf_spheres
+      CREATE INDEX idx_hf_spheres ON public.historical_figures USING gin (spheres)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: history_event_collections  (34,861 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  type                                text                        YES       
+  name                                text                        YES       
+  parent_id                           integer                     YES       
+  start_year                          integer                     YES       
+  start_seconds                       integer                     YES       
+  end_year                            integer                     YES       
+  end_seconds                         integer                     YES       
+  attacker_entity_id                  integer                     YES       
+  defender_entity_id                  integer                     YES       
+  site_id                             integer                     YES       
+  region_id                           integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Referenced By:
+    collection_events.world_id -> id
+    collection_events.collection_id -> id
+    collection_subcollections.world_id -> id
+    collection_subcollections.parent_id -> id
+    collection_subcollections.child_id -> id
+
+  Indexes:
+    history_event_collections_pkey
+      CREATE UNIQUE INDEX history_event_collections_pkey ON public.history_event_collections USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: history_events  (436,455 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  year                                integer                     YES       
+  seconds                             integer                     YES       
+  event_type                          text                        YES       
+  hf_id_1                             integer                     YES       
+  hf_id_2                             integer                     YES       
+  site_id                             integer                     YES       
+  region_id                           integer                     YES       
+  entity_id_1                         integer                     YES       
+  entity_id_2                         integer                     YES       
+  artifact_id                         integer                     YES       
+  structure_id                        integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Referenced By:
+    collection_events.world_id -> id
+    collection_events.event_id -> id
+    event_entity_xref.world_id -> id
+    event_entity_xref.event_id -> id
+
+  Indexes:
+    history_events_pkey
+      CREATE UNIQUE INDEX history_events_pkey ON public.history_events USING btree (world_id, id)
+    idx_events_entity1
+      CREATE INDEX idx_events_entity1 ON public.history_events USING btree (entity_id_1)
+    idx_events_hf1
+      CREATE INDEX idx_events_hf1 ON public.history_events USING btree (hf_id_1)
+    idx_events_hf2
+      CREATE INDEX idx_events_hf2 ON public.history_events USING btree (hf_id_2)
+    idx_events_site
+      CREATE INDEX idx_events_site ON public.history_events USING btree (site_id)
+    idx_events_type
+      CREATE INDEX idx_events_type ON public.history_events USING btree (event_type)
+    idx_events_year
+      CREATE INDEX idx_events_year ON public.history_events USING btree (year)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: identities  (2,928 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  histfig_id                          integer                     YES       
+  birth_year                          integer                     YES       
+  birth_second                        integer                     YES       
+  entity_id                           integer                     YES       
+  race                                text                        YES       
+  caste                               text                        YES       
+  profession                          text                        YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    identities_pkey
+      CREATE UNIQUE INDEX identities_pkey ON public.identities USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: landmasses  (100 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  coord_1                             text                        YES       
+  coord_2                             text                        YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    landmasses_pkey
+      CREATE UNIQUE INDEX landmasses_pkey ON public.landmasses USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: lua_probes  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('lua_probes_id_seq'...
+  world_id                            integer                      NO       
+  probe_name                          text                         NO       
+  data                                jsonb                        NO       
+  game_year                           integer                     YES       
+  game_tick                           integer                     YES       
+  captured_at                         timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    idx_lua_probes_name
+      CREATE INDEX idx_lua_probes_name ON public.lua_probes USING btree (probe_name)
+    idx_lua_probes_world
+      CREATE INDEX idx_lua_probes_world ON public.lua_probes USING btree (world_id)
+    lua_probes_pkey
+      CREATE UNIQUE INDEX lua_probes_pkey ON public.lua_probes USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: mountain_peaks  (16 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  coords                              text                        YES       
+  height                              integer                     YES       
+  is_volcano                          boolean                     YES       false
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    mountain_peaks_pkey
+      CREATE UNIQUE INDEX mountain_peaks_pkey ON public.mountain_peaks USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: regions  (2,278 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  type                                text                        YES       
+  coords                              text                        YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    regions_pkey
+      CREATE UNIQUE INDEX regions_pkey ON public.regions USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: rivers  (7,465 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  world_id                            integer                      NO   PK  
+  id                                  integer                      NO   PK  
+  name                                text                        YES       
+  name_english                        text                        YES       
+  path                                text                        YES       
+  end_type                            text                        YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    idx_rivers_name
+      CREATE INDEX idx_rivers_name ON public.rivers USING btree (world_id, name)
+    rivers_pkey
+      CREATE UNIQUE INDEX rivers_pkey ON public.rivers USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: sites  (2,154 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  type                                text                        YES       
+  coord_x                             integer                     YES       
+  coord_y                             integer                     YES       
+  coords                              text                        YES       
+  owner_entity_id                     integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+  importance_score                    double precision            YES       0.0
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Referenced By:
+    hf_site_links.site_id -> world_id
+    hf_site_links.world_id -> id
+    structures.world_id -> id
+    structures.site_id -> id
+
+  Indexes:
+    idx_sites_importance
+      CREATE INDEX idx_sites_importance ON public.sites USING btree (world_id, importance_score DESC)
+    idx_sites_name
+      CREATE INDEX idx_sites_name ON public.sites USING btree (name)
+    sites_pkey
+      CREATE UNIQUE INDEX sites_pkey ON public.sites USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: storyteller_log  (25 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('storyteller_log_id...
+  timestamp                           timestamptz                  NO       now()
+  query                               text                         NO       
+  world_id                            integer                     YES       
+  world_name                          text                        YES       
+  keywords                            text[]                      YES       
+  context_records                     integer                     YES       0
+  context_chars                       integer                     YES       0
+  context_categories                  jsonb                       YES       '{}'::jsonb
+  model                               text                        YES       
+  temperature                         float4                      YES       
+  max_tokens                          integer                     YES       
+  tokens_streamed                     integer                     YES       0
+  response_chars                      integer                     YES       0
+  context_latency_ms                  integer                     YES       
+  first_token_ms                      integer                     YES       
+  llm_latency_ms                      integer                     YES       
+  total_latency_ms                    integer                     YES       
+  status                              text                        YES       'ok'::text
+  error                               text                        YES       
+
+  Indexes:
+    idx_storyteller_log_ts
+      CREATE INDEX idx_storyteller_log_ts ON public.storyteller_log USING btree ("timestamp" DESC)
+    idx_storyteller_log_world
+      CREATE INDEX idx_storyteller_log_world ON public.storyteller_log USING btree (world_id)
+    storyteller_log_pkey
+      CREATE UNIQUE INDEX storyteller_log_pkey ON public.storyteller_log USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: structures  (1,833 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  site_id                             integer                      NO   PK  
+  name                                text                        YES       
+  type                                text                        YES       
+  entity_id                           integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> sites.id
+    site_id -> sites.id
+
+  Indexes:
+    structures_pkey
+      CREATE UNIQUE INDEX structures_pkey ON public.structures USING btree (world_id, site_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: sync_snapshots  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('sync_snapshots_id_...
+  world_id                            integer                      NO       
+  unit_count                          integer                      NO       
+  event_count                         integer                     YES       0
+  game_year                           integer                     YES       
+  game_tick                           integer                     YES       
+  synced_at                           timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    sync_snapshots_pkey
+      CREATE UNIQUE INDEX sync_snapshots_pkey ON public.sync_snapshots USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: underground_regions  (1,445 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  type                                text                        YES       
+  depth                               integer                     YES       
+  coords                              text                        YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    underground_regions_pkey
+      CREATE UNIQUE INDEX underground_regions_pkey ON public.underground_regions USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: unit_events  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('unit_events_id_seq...
+  unit_id                             integer                      NO       
+  world_id                            integer                      NO       
+  event_type                          text                         NO       
+  old_value                           jsonb                       YES       
+  new_value                           jsonb                       YES       
+  game_year                           integer                     YES       
+  game_tick                           integer                     YES       
+  detected_at                         timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    idx_unit_events_time
+      CREATE INDEX idx_unit_events_time ON public.unit_events USING btree (detected_at)
+    idx_unit_events_type
+      CREATE INDEX idx_unit_events_type ON public.unit_events USING btree (event_type)
+    idx_unit_events_unit
+      CREATE INDEX idx_unit_events_unit ON public.unit_events USING btree (unit_id)
+    unit_events_pkey
+      CREATE UNIQUE INDEX unit_events_pkey ON public.unit_events USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: units  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                     YES       
+  name                                text                        YES       
+  race                                text                        YES       
+  caste                               text                        YES       
+  profession                          text                        YES       
+  pos_x                               integer                     YES       
+  pos_y                               integer                     YES       
+  pos_z                               integer                     YES       
+  is_alive                            boolean                     YES       true
+  hist_fig_id                         integer                     YES       
+  civ_id                              integer                     YES       
+  details                             jsonb                       YES       '{}'::jsonb
+  last_synced_at                      timestamptz                 YES       now()
+  english_name                        text                        YES       
+  birth_year                          integer                     YES       
+  sex                                 int2                        YES       
+  death_cause                         text                        YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    units_pkey
+      CREATE UNIQUE INDEX units_pkey ON public.units USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: world_constructions  (311 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  name                                text                        YES       
+  type                                text                        YES       
+  coords                              text                        YES       
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    world_constructions_pkey
+      CREATE UNIQUE INDEX world_constructions_pkey ON public.world_constructions USING btree (world_id, id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: world_map_snapshots  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('world_map_snapshot...
+  world_id                            integer                      NO       
+  world_width                         integer                      NO       
+  world_height                        integer                      NO       
+  name                                text                        YES       
+  name_english                        text                        YES       
+  geography                           jsonb                        NO       
+  captured_at                         timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    world_map_snapshots_pkey
+      CREATE UNIQUE INDEX world_map_snapshots_pkey ON public.world_map_snapshots USING btree (id)
+    world_map_snapshots_world_id_key
+      CREATE UNIQUE INDEX world_map_snapshots_world_id_key ON public.world_map_snapshots USING btree (world_id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: world_modpacks  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('world_modpacks_id_...
+  world_id                            integer                      NO       
+  name                                text                         NO       
+  version                             text                        YES       
+  source                              text                        YES       
+  active                              boolean                     YES       true
+  details                             jsonb                       YES       '{}'::jsonb
+  recorded_at                         timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    idx_world_modpacks_world
+      CREATE INDEX idx_world_modpacks_world ON public.world_modpacks USING btree (world_id)
+    world_modpacks_pkey
+      CREATE UNIQUE INDEX world_modpacks_pkey ON public.world_modpacks USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: worldgen_snapshots  (0 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('worldgen_snapshots...
+  world_id                            integer                      NO       
+  phase                               text                         NO       
+  progress_pct                        double precision            YES       
+  year                                integer                     YES       
+  pop_count                           integer                     YES       
+  site_count                          integer                     YES       
+  hf_count                            integer                     YES       
+  entity_count                        integer                     YES       
+  event_count                         integer                     YES       
+  data                                jsonb                       YES       '{}'::jsonb
+  captured_at                         timestamptz                 YES       now()
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    idx_worldgen_snapshots_world
+      CREATE INDEX idx_worldgen_snapshots_world ON public.worldgen_snapshots USING btree (world_id)
+    worldgen_snapshots_pkey
+      CREATE UNIQUE INDEX worldgen_snapshots_pkey ON public.worldgen_snapshots USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: worlds  (1 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  nextval('worlds_id_seq'::re...
+  name                                text                        YES       
+  alt_name                            text                        YES       
+  import_path                         text                        YES       
+  imported_at                         timestamptz                 YES       now()
+
+  Referenced By:
+    art_forms.world_id -> id
+    artifacts.world_id -> id
+    entities.world_id -> id
+    entity_populations.world_id -> id
+    event_relationships.world_id -> id
+    fortress_denizens.world_id -> id
+    game_reports.world_id -> id
+    historical_eras.world_id -> id
+    historical_figures.world_id -> id
+    history_event_collections.world_id -> id
+    history_events.world_id -> id
+    identities.world_id -> id
+    landmasses.world_id -> id
+    lua_probes.world_id -> id
+    mountain_peaks.world_id -> id
+    regions.world_id -> id
+    rivers.world_id -> id
+    sites.world_id -> id
+    sync_snapshots.world_id -> id
+    underground_regions.world_id -> id
+    unit_events.world_id -> id
+    units.world_id -> id
+    world_constructions.world_id -> id
+    world_map_snapshots.world_id -> id
+    world_modpacks.world_id -> id
+    worldgen_snapshots.world_id -> id
+    written_contents.world_id -> id
+
+  Indexes:
+    worlds_pkey
+      CREATE UNIQUE INDEX worlds_pkey ON public.worlds USING btree (id)
+
+──────────────────────────────────────────────────────────────────────────────
+TABLE: written_contents  (37,486 rows)
+──────────────────────────────────────────────────────────────────────────────
+
+  Column                              Type                       Null   PK  Default
+  ─────────────────────────────────── ───────────────────────── ─────  ───  ──────────────────────────────
+  id                                  integer                      NO   PK  
+  world_id                            integer                      NO   PK  
+  title                               text                        YES       
+  author_hf_id                        integer                     YES       
+  form                                text                        YES       
+  type                                text                        YES       
+  page_start                          integer                     YES       
+  page_end                            integer                     YES       
+  styles                              text[]                      YES       
+  details                             jsonb                       YES       '{}'::jsonb
+
+  Foreign Keys:
+    world_id -> worlds.id
+
+  Indexes:
+    idx_written_contents_author
+      CREATE INDEX idx_written_contents_author ON public.written_contents USING btree (author_hf_id)
+    written_contents_pkey
+      CREATE UNIQUE INDEX written_contents_pkey ON public.written_contents USING btree (world_id, id)
+
+==============================================================================
+  TOTAL: 39 tables
+==============================================================================

@@ -1,0 +1,306 @@
+{
+  "document_id": "product-requirements.md",
+  "total_sections": 51,
+  "total_word_count": 9800,
+  "sections": [
+    {
+      "section_id": "1",
+      "taxonomy_mapping": "1",
+      "heading_text": "## 1. Product Vision",
+      "heading_level": 2,
+      "line_number": 32,
+      "start_marker": "### 1.1 Mission Statement\n\n**Chronicler** is a living",
+      "end_marker": "...Worldgen monitoring, Dynamic Knowledge Horizon masking",
+      "word_count": 220,
+      "anchor_phrases": ["first tool in the DF ecosystem", "eight combined capabilities"],
+      "subsections": [
+        {
+          "section_id": "1.1",
+          "heading_text": "### 1.1 Mission Statement",
+          "line_number": 34,
+          "start_marker": "**Chronicler** is a living record of every world Dwarf",
+          "end_marker": "...dynamic Knowledge Horizon masking in a single integrated"
+        },
+        {
+          "section_id": "1.2",
+          "heading_text": "### 1.2 Two Core Purposes",
+          "line_number": 38,
+          "start_marker": "**Purpose 1 -- The AI Storyteller**: A conversational interf",
+          "end_marker": "...current fortress population in real time."
+        },
+        {
+          "section_id": "1.3",
+          "heading_text": "### 1.3 Unique Position",
+          "line_number": 44,
+          "start_marker": "Chronicler is the only tool that combines ALL of:",
+          "end_marker": "...8. Labor/population management (Dwarf Therapist-equivalent)"
+        }
+      ]
+    },
+    {
+      "section_id": "2",
+      "taxonomy_mapping": "2",
+      "heading_text": "## 2. Product Architecture",
+      "heading_level": 2,
+      "line_number": 58,
+      "start_marker": "### 2.1 Component Hierarchy\n\n```\nChronicler Application",
+      "end_marker": "...(fortress-centric views)\n```",
+      "word_count": 130,
+      "anchor_phrases": [],
+      "subsections": [
+        {
+          "section_id": "2.1",
+          "heading_text": "### 2.1 Component Hierarchy",
+          "line_number": 60,
+          "start_marker": "```\nChronicler Application\n|\n+-- Main Components (6)",
+          "end_marker": "...+-- Calendar System\n```"
+        },
+        {
+          "section_id": "2.2",
+          "heading_text": "### 2.2 Data Flow",
+          "line_number": 84,
+          "start_marker": "```\nLegends XML --> Parser --> PostgreSQL (40+ tables)",
+          "end_marker": "...(fortress-centric views)\n```"
+        }
+      ]
+    },
+    {
+      "section_id": "5",
+      "taxonomy_mapping": "5",
+      "heading_text": "## 3. MC-1: World History & Demographics Visualizer",
+      "heading_level": 2,
+      "line_number": 102,
+      "start_marker": "### REQ-VIS-001: Interactive World Map (Leaflet.js)",
+      "end_marker": "...Custom bar/line graph with slider controls for live fortress",
+      "word_count": 1050,
+      "anchor_phrases": ["24 REQ-VIS requirements", "Leaflet.js site markers charts graphs"],
+      "subsections": []
+    },
+    {
+      "section_id": "6",
+      "taxonomy_mapping": "6",
+      "heading_text": "## 4. MC-2: Database Explorer Tools",
+      "heading_level": 2,
+      "line_number": 266,
+      "start_marker": "### REQ-EXP-001: Schema Browser -- Table List with Row Counts",
+      "end_marker": "...1-3 hop depth, forceAtlas2Based physics\n- Node info panel",
+      "word_count": 870,
+      "anchor_phrases": ["30 REQ-EXP requirements", "schema browser data browser entity detail pages"],
+      "subsections": []
+    },
+    {
+      "section_id": "7",
+      "taxonomy_mapping": "7",
+      "heading_text": "## 5. MC-3: AI Storyteller (Narrative Engine)",
+      "heading_level": 2,
+      "line_number": 442,
+      "start_marker": "### REQ-STR-001: Conversational World Q&A",
+      "end_marker": "...Confidence adjustment based on horizon scope",
+      "word_count": 870,
+      "anchor_phrases": ["32 REQ-STR requirements", "agentic SQL LLM narrative templates death cause"],
+      "subsections": []
+    },
+    {
+      "section_id": "8",
+      "taxonomy_mapping": "8",
+      "heading_text": "## 6. MC-4: AI Fortress Player (Advisor)",
+      "heading_level": 2,
+      "line_number": 609,
+      "start_marker": "### REQ-ADV-001: Tick-Based Multi-Rate Polling",
+      "end_marker": "...Auto-queue new embark on fortress loss",
+      "word_count": 620,
+      "anchor_phrases": ["25 REQ-ADV requirements", "autonomous mode labor stocks military"],
+      "subsections": []
+    },
+    {
+      "section_id": "9",
+      "taxonomy_mapping": "9",
+      "heading_text": "## 7. MC-5: Mod Manager",
+      "heading_level": 2,
+      "line_number": 726,
+      "start_marker": "### REQ-MOD-001: Mod Discovery via Filesystem Scan",
+      "end_marker": "...`chronicler mods list/profiles/activate/check`",
+      "word_count": 520,
+      "anchor_phrases": ["20 REQ-MOD requirements", "conflict detection load order raw compiler"],
+      "subsections": []
+    },
+    {
+      "section_id": "10",
+      "taxonomy_mapping": "10",
+      "heading_text": "## 8. MC-6: Labor Manager",
+      "heading_level": 2,
+      "line_number": 828,
+      "start_marker": "### REQ-LAB-001: Labor Toggle Grid (Dwarf Therapist-style)",
+      "end_marker": "...4 detection mechanisms: flag, absence, announcement, histor",
+      "word_count": 570,
+      "anchor_phrases": ["25 REQ-LAB requirements", "labor grid skills personality stress squad"],
+      "subsections": []
+    },
+    {
+      "section_id": "3",
+      "taxonomy_mapping": "3",
+      "heading_text": "## 9. FS-1: Common Data Model & Database",
+      "heading_level": 2,
+      "line_number": 955,
+      "start_marker": "### REQ-CDM-001: PostgreSQL 16 with Extensions",
+      "end_marker": "...For in-database semantic search\n- 2560-dim embeddings",
+      "word_count": 310,
+      "anchor_phrases": ["12 REQ-CDM requirements", "composite PKs JSONB 40 tables pgvector"],
+      "subsections": []
+    },
+    {
+      "section_id": "4",
+      "taxonomy_mapping": "4",
+      "heading_text": "## 10. FS-2: Data ETL Systems",
+      "heading_level": 2,
+      "line_number": 1014,
+      "start_marker": "### REQ-ETL-001: Legends XML Parser (Streaming)",
+      "end_marker": "...Qwen3-Embedding-4B via MLX, 2560-dim",
+      "word_count": 480,
+      "anchor_phrases": ["16 REQ-ETL requirements", "legends XML bridge watcher change detection"],
+      "subsections": []
+    },
+    {
+      "section_id": "11",
+      "taxonomy_mapping": "11",
+      "heading_text": "## 11. Cross-Cutting: Knowledge Horizon",
+      "heading_level": 2,
+      "line_number": 1105,
+      "start_marker": "### REQ-KH-001: Geographic Scope Masking",
+      "end_marker": "...Phase 4: Full KH with 7 caveats",
+      "word_count": 280,
+      "anchor_phrases": ["12 REQ-KH requirements", "geographic civilization individual masking phased rollout"],
+      "subsections": []
+    },
+    {
+      "section_id": "12",
+      "taxonomy_mapping": "12",
+      "heading_text": "## 12. Cross-Cutting: Scoring & Ranking",
+      "heading_level": 2,
+      "line_number": 1163,
+      "start_marker": "### REQ-SCR-001: Figure Importance Score",
+      "end_marker": "...Werebeast: \"WEREBEAST\"",
+      "word_count": 200,
+      "anchor_phrases": ["8 REQ-SCR requirements", "NVS importance score rivalry megabeast supernatural"],
+      "subsections": []
+    },
+    {
+      "section_id": "13",
+      "taxonomy_mapping": "13",
+      "heading_text": "## 13. Cross-Cutting: Navigation & UX Patterns",
+      "heading_level": 2,
+      "line_number": 1201,
+      "start_marker": "### REQ-NAV-001: Cross-Linked Entity References",
+      "end_marker": "...Consistent formatting across all views and narrative",
+      "word_count": 110,
+      "anchor_phrases": [],
+      "subsections": []
+    },
+    {
+      "section_id": "14",
+      "taxonomy_mapping": "14",
+      "heading_text": "## 14. Non-Functional Requirements",
+      "heading_level": 2,
+      "line_number": 1227,
+      "start_marker": "### REQ-NFR-001: Performance -- XML Parsing",
+      "end_marker": "...Target: DF 53.10 + DFHack 53.10-r1",
+      "word_count": 250,
+      "anchor_phrases": ["performance security reliability scalability observability"],
+      "subsections": []
+    },
+    {
+      "section_id": "15",
+      "taxonomy_mapping": "15",
+      "heading_text": "## 15. DFHack Reference Guide",
+      "heading_level": 2,
+      "line_number": 1276,
+      "start_marker": "### 15.1 Data Access Paths (Lua via dfhack-run)",
+      "end_marker": "...Use `dfhack-run` over SSH instead.",
+      "word_count": 620,
+      "anchor_phrases": ["dfhack-run Lua unit HF item world data access", "TCP RPC broken Prism SSH transport"],
+      "subsections": [
+        {
+          "section_id": "15.1",
+          "heading_text": "### 15.1 Data Access Paths (Lua via dfhack-run)",
+          "line_number": 1278,
+          "start_marker": "**Unit Access**:\n```lua\ndf.global.world.units.active",
+          "end_marker": "...df.global.world.worldgen_status.cur_year  -- current gen year"
+        },
+        {
+          "section_id": "15.2",
+          "heading_text": "### 15.2 DFHack eventful Module",
+          "line_number": 1408,
+          "start_marker": "```lua\nlocal eventful = require('plugins.eventful')",
+          "end_marker": "...dfhack.timeout(500, 'ticks', function() ... end)"
+        },
+        {
+          "section_id": "15.3",
+          "heading_text": "### 15.3 DFHack Repeat Job Pattern",
+          "line_number": 1427,
+          "start_marker": "```lua\n-- The bridge uses this pattern:\nlocal repeatUtil",
+          "end_marker": "...f:close()\nend)"
+        },
+        {
+          "section_id": "15.4",
+          "heading_text": "### 15.4 DFHack State Change Hook",
+          "line_number": 1441,
+          "start_marker": "```lua\ndfhack.onStateChange.my_monitor = function(code)",
+          "end_marker": "...-- World unloaded, stop monitoring\n    end\nend"
+        },
+        {
+          "section_id": "15.5",
+          "heading_text": "### 15.5 RemoteFortressReader (41 Functions)",
+          "line_number": 1453,
+          "start_marker": "RFR is loaded (41 functions registered) but ALL game-thread",
+          "end_marker": "...All other calls require CoreSuspender which is broken."
+        },
+        {
+          "section_id": "15.6",
+          "heading_text": "### 15.6 Key DFHack Gotchas",
+          "line_number": 1461,
+          "start_marker": "- **TCP RPC broken**: Game-thread calls hang on DFHack 53.x",
+          "end_marker": "...`entity.resources.diplomacy.state` (NOT `world.diplomacy`)"
+        }
+      ]
+    },
+    {
+      "section_id": "16",
+      "taxonomy_mapping": "16",
+      "heading_text": "## 16. Technology Stack",
+      "heading_level": 2,
+      "line_number": 1472,
+      "start_marker": "| Component | Technology | Version/Notes |",
+      "end_marker": "...| Test Framework | pytest | 131 tests, 0.19s |",
+      "word_count": 130,
+      "anchor_phrases": [],
+      "subsections": []
+    },
+    {
+      "section_id": "17",
+      "taxonomy_mapping": "17",
+      "heading_text": "## 17. Current State (v0.8)",
+      "heading_level": 2,
+      "line_number": 1497,
+      "start_marker": "### Built and Working\n- CDM PostgreSQL schema (35 tables,",
+      "end_marker": "...Family tree / warfare graphs\n- Chart visualizations",
+      "word_count": 140,
+      "anchor_phrases": ["built working not yet started gap analysis"],
+      "subsections": [
+        {
+          "section_id": "17.1",
+          "heading_text": "### Built and Working",
+          "line_number": 1499,
+          "start_marker": "- CDM PostgreSQL schema (35 tables, composite PKs, 1.65M rec",
+          "end_marker": "...131-test suite"
+        },
+        {
+          "section_id": "17.2",
+          "heading_text": "### Not Yet Started",
+          "line_number": 1515,
+          "start_marker": "- Interactive world map (Leaflet.js)\n- Agentic SQL storytell",
+          "end_marker": "...Family tree / warfare graphs\n- Chart visualizations"
+        }
+      ]
+    }
+  ]
+}

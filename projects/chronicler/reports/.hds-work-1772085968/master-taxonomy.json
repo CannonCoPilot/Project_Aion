@@ -1,0 +1,1975 @@
+{
+  "master_taxonomy": {
+    "version": "1.0",
+    "created_from_documents": [
+      "product-requirements.md",
+      "full-project-roadmap.md",
+      "research-synthesis-v2.md"
+    ],
+    "total_sections": 25,
+    "sections": [
+      {
+        "section_id": "1",
+        "canonical_title": "Product Vision & Overview",
+        "aliases": [
+          "Product Vision",
+          "Roadmap Overview",
+          "Landscape Overview",
+          "Mission Statement"
+        ],
+        "description": "High-level product identity, mission statement, core purposes, unique positioning among DF tools, roadmap summary, phase dependencies, estimated timeline, and reference repository inventory.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "1.1",
+            "canonical_title": "Mission Statement & Core Purposes",
+            "aliases": [
+              "Mission Statement",
+              "Two Core Purposes",
+              "Unique Position"
+            ],
+            "description": "Chronicler's mission, the two core purposes (historical record + live advisor), and its unique position relative to existing DF tools.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "1.2",
+            "canonical_title": "Roadmap Overview & Phase Dependencies",
+            "aliases": [
+              "Roadmap Overview",
+              "Phase Dependencies",
+              "Estimated Timeline"
+            ],
+            "description": "7-phase roadmap summary, dependency chain between phases, and high-level timeline estimates.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "1.3",
+            "canonical_title": "Reference Repository Inventory",
+            "aliases": [
+              "Reference Repository Inventory",
+              "Landscape Overview"
+            ],
+            "description": "Catalog of 17+ third-party repositories studied during research (df-ai, df-narrator, weblegends, DwarfFortressLogger, dfhack-client-python, etc.) with relevance notes.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "2",
+        "canonical_title": "Product Architecture & Component Map",
+        "aliases": [
+          "Product Architecture",
+          "Component Architecture",
+          "Component Hierarchy",
+          "Main Components",
+          "Foundational Systems",
+          "Cross-Cutting Concerns"
+        ],
+        "description": "Overall system architecture including the six main components (MC-1 through MC-6), two foundational systems (FS-1 CDM, FS-2 ETL), cross-cutting concerns, data flow between layers, and feature inventory summary.",
+        "source_documents": [
+          "product-requirements.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "2.1",
+            "canonical_title": "Component Hierarchy",
+            "aliases": ["Component Hierarchy", "Main Components"],
+            "description": "Diagram and list of all six main components (Visualizer, Explorer, Storyteller, Advisor, Mod Manager, Labor Manager) and two foundational systems.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "2.2",
+            "canonical_title": "Data Flow",
+            "aliases": ["Data Flow", "Bridge Data Flow Architecture"],
+            "description": "End-to-end data flow: DF game -> DFHack bridge -> ETL pipeline -> PostgreSQL CDM -> API -> UI components.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "2.3",
+            "canonical_title": "Feature Inventory Summary",
+            "aliases": ["Feature Inventory Summary"],
+            "description": "Consolidated table of all features across all components with priority and phase assignments.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "3",
+        "canonical_title": "Common Data Model & Database",
+        "aliases": [
+          "FS-1: Common Data Model & Database",
+          "Data Model & CDM Schema",
+          "CDM Schema",
+          "Database Configuration",
+          "CDM Schema Extensions"
+        ],
+        "description": "PostgreSQL 16 database schema design: composite PKs, JSONB columns, complete table set (40+ tables), missing entity types, HF field extensions, importance score columns, knowledge horizon table, worldgen snapshots, world modpacks, and pgvector embedding tables.",
+        "source_documents": [
+          "product-requirements.md",
+          "research-synthesis-v2.md",
+          "full-project-roadmap.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "3.1",
+            "canonical_title": "Database Configuration & Extensions",
+            "aliases": [
+              "REQ-CDM-001: PostgreSQL 16 with Extensions",
+              "Database Configuration"
+            ],
+            "description": "PostgreSQL 16 with PostGIS, pg_trgm, unaccent, pgvector. Connection pooling, ParadeDB/pg_search extensions.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "3.2",
+            "canonical_title": "Schema Design Principles",
+            "aliases": [
+              "REQ-CDM-002: Composite Primary Keys",
+              "REQ-CDM-003: JSONB Details Columns",
+              "REQ-CDM-004: Event Types as TEXT"
+            ],
+            "description": "Composite PKs (world_id, entity_id), JSONB details columns for flexible data, event types stored as TEXT strings.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "3.3",
+            "canonical_title": "Complete Table Inventory",
+            "aliases": [
+              "REQ-CDM-005: Complete Table Set (40+ tables)",
+              "Complete Table Inventory",
+              "Data Entity Coverage Comparison"
+            ],
+            "description": "All 40+ CDM tables covering historical figures, entities, sites, regions, artifacts, events, written content, structures, populations, etc. Includes coverage comparison against reference repos.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "3.4",
+            "canonical_title": "Missing & Extended Entity Types",
+            "aliases": [
+              "REQ-CDM-006: Missing CDM Entity Types",
+              "REQ-CDM-007: HF Field Extensions",
+              "HF Field Completeness Audit"
+            ],
+            "description": "Entity types not yet in CDM (dancing forms, musical forms, poetic forms, etc.) and HF field extensions needed beyond baseline. Full HF field completeness audit.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "3.5",
+            "canonical_title": "Ancillary Schema Tables",
+            "aliases": [
+              "REQ-CDM-008: Importance Score Columns",
+              "REQ-CDM-009: Knowledge Horizon Table",
+              "REQ-CDM-010: Worldgen Snapshots Table",
+              "REQ-CDM-011: World Modpacks Table",
+              "REQ-CDM-012: pgvector Embedding Tables"
+            ],
+            "description": "Additional tables for importance scores, knowledge horizon tracking, worldgen parameter snapshots, world modpack records, and pgvector entity embeddings.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "4",
+        "canonical_title": "Data ETL Systems",
+        "aliases": [
+          "FS-2: Data ETL Systems",
+          "Data ETL Systems",
+          "Legends XML Pipeline",
+          "XML Parser Completion"
+        ],
+        "description": "All data ingestion and transformation systems: Legends XML streaming parser, dual-file merge, 14+ XML section handling, 10-step post-parse pipeline, live DFHack bridge, change detection, file transfer, and RAG/vector indexing.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "4.1",
+            "canonical_title": "Legends XML Parser",
+            "aliases": [
+              "REQ-ETL-001: Legends XML Parser (Streaming)",
+              "REQ-ETL-002: Dual-File Merge (legends.xml + legends_plus.xml)",
+              "REQ-ETL-003: Parse All 14+ XML Sections",
+              "Legends XML Pipeline",
+              "Stage 1.2: XML Parser Completion"
+            ],
+            "description": "Streaming SAX/iterparse XML parser handling legends.xml and legends_plus.xml dual-file merge, parsing all 14+ XML sections.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "4.2",
+            "canonical_title": "Post-Parse Processing Pipeline",
+            "aliases": [
+              "REQ-ETL-004: Post-Parse Processing Pipeline (10 Steps)",
+              "Stage 1.3: Post-Parse Processing Pipeline",
+              "Post-Parse Processing Pipeline"
+            ],
+            "description": "10-step post-parse pipeline: relationship resolution, importance scoring, NVS computation, rivalry detection, family chain construction, embedding generation, etc.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "4.3",
+            "canonical_title": "Live Bridge System (chronicler-bridge.lua)",
+            "aliases": [
+              "REQ-ETL-005: Live Bridge (chronicler-bridge.lua v6)",
+              "Live Bridge System",
+              "Stage 5.1: Bridge Enhancements"
+            ],
+            "description": "DFHack Lua bridge (v6) providing real-time game data via HTTP JSON server. Core bridge plus enhancements for eventful subscriptions, death cause enrichment, family chain, book detection, personality/soul data, and skill progression.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": [
+              {
+                "section_id": "4.3.1",
+                "canonical_title": "Bridge Enhancement -- eventful Subscriptions",
+                "aliases": ["REQ-ETL-006: Bridge Enhancement -- eventful Subscriptions"],
+                "description": "Subscribe to DFHack eventful module for real-time in-game event capture.",
+                "source_documents": ["product-requirements.md"],
+                "subsections": []
+              },
+              {
+                "section_id": "4.3.2",
+                "canonical_title": "Bridge Enhancement -- Death Cause Enrichment",
+                "aliases": ["REQ-ETL-007: Bridge Enhancement -- Death Cause Enrichment"],
+                "description": "Enrich death events with full cause detail from DFHack unit data.",
+                "source_documents": ["product-requirements.md"],
+                "subsections": []
+              },
+              {
+                "section_id": "4.3.3",
+                "canonical_title": "Bridge Enhancement -- Family Chain",
+                "aliases": ["REQ-ETL-008: Bridge Enhancement -- Family Chain"],
+                "description": "Traverse and serialize full family relationship chains from DFHack unit/HF data.",
+                "source_documents": ["product-requirements.md"],
+                "subsections": []
+              },
+              {
+                "section_id": "4.3.4",
+                "canonical_title": "Bridge Enhancement -- Book Detection",
+                "aliases": ["REQ-ETL-009: Bridge Enhancement -- Book Detection"],
+                "description": "Detect written content (books, scrolls) in fortress inventory via bridge.",
+                "source_documents": ["product-requirements.md"],
+                "subsections": []
+              },
+              {
+                "section_id": "4.3.5",
+                "canonical_title": "Bridge Enhancement -- Personality & Soul Data",
+                "aliases": ["REQ-ETL-010: Bridge Enhancement -- Personality/Soul Data"],
+                "description": "Export unit soul/personality facet data (50 facets) via bridge.",
+                "source_documents": ["product-requirements.md"],
+                "subsections": []
+              },
+              {
+                "section_id": "4.3.6",
+                "canonical_title": "Bridge Enhancement -- Skill Progression",
+                "aliases": ["REQ-ETL-011: Bridge Enhancement -- Skill Progression"],
+                "description": "Export unit skill levels and experience values via bridge.",
+                "source_documents": ["product-requirements.md"],
+                "subsections": []
+              }
+            ]
+          },
+          {
+            "section_id": "4.4",
+            "canonical_title": "Worldgen Monitoring",
+            "aliases": [
+              "REQ-ETL-012: Worldgen Monitoring (worldgen-bridge.lua)",
+              "Stage 5.2: Worldgen Monitoring",
+              "Worldgen Monitoring"
+            ],
+            "description": "worldgen-bridge.lua Lua script that monitors world generation progress and captures parameter snapshots.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "4.5",
+            "canonical_title": "Change Detection & Event Types",
+            "aliases": [
+              "REQ-ETL-013: Change Detection (11 Event Types)",
+              "Change Detection & Events"
+            ],
+            "description": "11 live change event types detected and dispatched by the bridge/watcher system (death, birth, migration, etc.).",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "4.6",
+            "canonical_title": "File Transfer Mechanisms",
+            "aliases": [
+              "REQ-ETL-014: File Transfer",
+              "File Transfer Mechanisms"
+            ],
+            "description": "VM-to-host file transfer via HTTP server (port 8889, ~105 MB/s) and SCP fallback. Used to retrieve legends exports from Windows VM.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "4.7",
+            "canonical_title": "DFHack SSH Transport",
+            "aliases": [
+              "REQ-ETL-015: dfhack-run SSH Transport",
+              "DFHack Integration"
+            ],
+            "description": "SSH-based dfhack-run transport for executing Lua commands remotely on the Windows VM. Replaces broken TCP RPC for game-thread calls.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "4.8",
+            "canonical_title": "RAG & Vector Indexing",
+            "aliases": [
+              "REQ-ETL-016: RAG/Vector Indexing",
+              "RAG/Vector Indexing"
+            ],
+            "description": "pgvector-based entity embedding and semantic search indexing pipeline. Enables similarity search over historical figures, events, and narratives.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "5",
+        "canonical_title": "MC-1: World History & Demographics Visualizer",
+        "aliases": [
+          "MC-1: World History & Demographics Visualizer",
+          "Visualization & Map System",
+          "Phase 4: Visualization"
+        ],
+        "description": "Interactive world map, demographic charts, event timelines, genealogy trees, network graphs, and all other data visualizations for the historical record.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "5.1",
+            "canonical_title": "Interactive World Map (Leaflet.js)",
+            "aliases": [
+              "REQ-VIS-001: Interactive World Map (Leaflet.js)",
+              "Interactive World Map (Leaflet.js)",
+              "Stage 4.1: World Map"
+            ],
+            "description": "Leaflet.js-based interactive world map with zoom/pan on the DF world PNG image.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md", "full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.2",
+            "canonical_title": "Map Layer Groups",
+            "aliases": [
+              "REQ-VIS-002: Map Layer Groups (Toggleable)",
+              "Map Layer Groups (Toggleable)"
+            ],
+            "description": "Toggleable layer groups for sites, civilizations, regions, trade routes, etc.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.3",
+            "canonical_title": "Site Markers & Shapes",
+            "aliases": [
+              "REQ-VIS-003: Site Marker Shapes by Type",
+              "Site Marker Shapes (by Type)"
+            ],
+            "description": "Distinct marker shapes per site type (fortress, city, cave, etc.) on the map.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.4",
+            "canonical_title": "Civilization Color System",
+            "aliases": [
+              "REQ-VIS-004: Civilization Color System",
+              "Civilization Color System"
+            ],
+            "description": "Consistent per-civilization color coding applied across map markers, charts, and network graphs.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.5",
+            "canonical_title": "Per-Object Mini-Maps",
+            "aliases": [
+              "REQ-VIS-005: Per-Object Mini-Maps",
+              "Per-Object Mini-Maps"
+            ],
+            "description": "Small embedded map widget on entity detail pages showing the entity's location(s).",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.6",
+            "canonical_title": "Map Timeline Scrubber",
+            "aliases": [
+              "REQ-VIS-006: Map Timeline Scrubber",
+              "Timeline Scrubber"
+            ],
+            "description": "Draggable year-range slider that animates map state (site ownership, civilization extent) across historical time.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.7",
+            "canonical_title": "Civilization Territory Overlays",
+            "aliases": [
+              "REQ-VIS-007: Civilization Territory Overlays",
+              "Civilization Territory Overlays"
+            ],
+            "description": "Polygon overlays on the map showing territorial extent of civilizations at a given point in time.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.8",
+            "canonical_title": "Worldgen Live Map Preview",
+            "aliases": [
+              "REQ-VIS-008: Worldgen Live Map Preview",
+              "Worldgen Live Map Preview"
+            ],
+            "description": "Real-time preview of the world map as it is being generated by DF (worldgen phase).",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.9",
+            "canonical_title": "Map Search and Jump",
+            "aliases": ["REQ-VIS-009: Map Search and Jump"],
+            "description": "Search box that pans and zooms the map to a named site or entity location.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.10",
+            "canonical_title": "Site Bounding Box Display",
+            "aliases": ["REQ-VIS-010: Site Bounding Box Display"],
+            "description": "Visual bounding rectangles on the map for sites with known coordinate extents.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.11",
+            "canonical_title": "Charts & Demographic Visualizations",
+            "aliases": [
+              "REQ-VIS-012: Population Charts (Doughnut/Pie)",
+              "REQ-VIS-013: Event Timeline (Line Chart)",
+              "REQ-VIS-014: Event Type Breakdown (Bar Chart)",
+              "Stage 4.2: Charts and Demographics",
+              "Chart Visualizations"
+            ],
+            "description": "Population doughnut/pie charts, event count line chart over time, event type bar chart breakdown. Covers demographic analytics.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.12",
+            "canonical_title": "Network & Relationship Graphs",
+            "aliases": [
+              "REQ-VIS-015: War Chord Diagram (D3.js)",
+              "REQ-VIS-016: Warfare Graph (Force-Directed)",
+              "REQ-VIS-019: Entity Relationship Graph (vis.js)",
+              "Stage 4.3: Genealogy and Network Graphs",
+              "Stage 4.4: Advanced Visualizations (P3)"
+            ],
+            "description": "D3.js war chord diagram, force-directed warfare graph, vis.js entity relationship graph. Covers all inter-entity network visualizations.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.13",
+            "canonical_title": "Genealogy & Lineage Visualizations",
+            "aliases": [
+              "REQ-VIS-017: Family Tree Visualization",
+              "REQ-VIS-018: Curse Lineage Tree"
+            ],
+            "description": "Family tree rendering for historical figures and curse lineage trees for supernatural entities.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.14",
+            "canonical_title": "World Summary Dashboard",
+            "aliases": ["REQ-VIS-020: World Summary Dashboard"],
+            "description": "Landing dashboard with aggregate world statistics: population totals, event counts, civilization count, notable figures.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.15",
+            "canonical_title": "Historical Eras & Years Browsers",
+            "aliases": [
+              "REQ-VIS-021: Historical Eras Browser",
+              "REQ-VIS-022: Years and Events Browser",
+              "REQ-VIS-023: Event Collection Hierarchy"
+            ],
+            "description": "Browseable list of historical eras, year-by-year event browser, and hierarchical event collection viewer.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.16",
+            "canonical_title": "In-Game Data Curve Widget",
+            "aliases": ["REQ-VIS-024: In-Game Data Curve Widget"],
+            "description": "Sparkline or mini-chart widget showing real-time data curves (population, stress, etc.) sourced from the live bridge.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "5.17",
+            "canonical_title": "Hover Popovers (Map and Entity Links)",
+            "aliases": ["REQ-VIS-011: Hover Popovers (Map and All Entity Links)"],
+            "description": "Tooltip/popover UI on map markers and all entity hyperlinks showing a summary card on hover.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "6",
+        "canonical_title": "MC-2: Database Explorer Tools",
+        "aliases": [
+          "MC-2: Database Explorer Tools",
+          "Database Explorer",
+          "Phase 2: Explorer Core"
+        ],
+        "description": "Schema browser, data grid browser, entity detail pages, full-text search, advanced query builder, SQL runner, and data export tools.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "6.1",
+            "canonical_title": "Schema Browser",
+            "aliases": [
+              "REQ-EXP-001 through REQ-EXP-004",
+              "Schema Browser"
+            ],
+            "description": "Table list with row counts, column/type/PK/FK/index detail, visual FK relationship lines, and JSONB column field inventory.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "6.2",
+            "canonical_title": "Data Browser (Paginated Grid)",
+            "aliases": [
+              "REQ-EXP-005 through REQ-EXP-010",
+              "Data Browser"
+            ],
+            "description": "Paginated data grid with column-level filtering, column sorting, FK link navigation, JSONB collapsible expansion, and row detail overlay.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "6.3",
+            "canonical_title": "Entity Detail Pages",
+            "aliases": [
+              "REQ-EXP-011 through REQ-EXP-019",
+              "Entity Detail Pages",
+              "Stage 2.1: Entity Detail Page Framework",
+              "Stage 2.2: Primary Entity Detail Pages",
+              "Stage 2.3: Secondary Entity Detail Pages"
+            ],
+            "description": "Rich detail pages for all entity types: Historical Figure (24 sections), Entity/Civilization (5 tabs), Site (3 tabs), Artifact, Region, Structure, Written Content, Event Collection, plus additional entity types.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "6.4",
+            "canonical_title": "Search Infrastructure",
+            "aliases": [
+              "REQ-EXP-020: Accent-Insensitive Full-Text Search",
+              "REQ-EXP-021: Global Search with Live Autocomplete",
+              "REQ-EXP-022: HF Filtering by Type Flags",
+              "Search Infrastructure",
+              "Stage 2.4: Search and Navigation"
+            ],
+            "description": "Accent-insensitive full-text search (pg_trgm/unaccent), global search with live autocomplete, and Historical Figure filtering by type flags.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "6.5",
+            "canonical_title": "Advanced Query Builder & SQL Runner",
+            "aliases": [
+              "REQ-EXP-023: Advanced Query Builder (Visual)",
+              "REQ-EXP-024: Raw SQL Explorer (SQL Runner)"
+            ],
+            "description": "Visual query builder with drag-and-drop conditions and a raw SQL runner for power users.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "6.6",
+            "canonical_title": "Data Export",
+            "aliases": [
+              "REQ-EXP-025: Query Results Export (CSV/JSON)",
+              "REQ-EXP-026: Entity Data Export (Full Entity JSON)",
+              "Data Export"
+            ],
+            "description": "Export query results as CSV/JSON and export full entity records as JSON blobs.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "6.7",
+            "canonical_title": "Cross-Linked References & Navigation UX",
+            "aliases": [
+              "REQ-EXP-027: Cross-Linked Entity References",
+              "REQ-EXP-028: Perspective-Aware Event Rendering",
+              "REQ-EXP-029: Breadcrumb / Prev-Next Navigation",
+              "REQ-EXP-030: Ego-Network Graph (vis.js)"
+            ],
+            "description": "Inline hyperlinks between entity types, perspective-aware event text, breadcrumb trails, prev/next navigation within lists, and per-entity ego-network graph.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "7",
+        "canonical_title": "MC-3: AI Storyteller & Narrative Engine",
+        "aliases": [
+          "MC-3: AI Storyteller (Narrative Engine)",
+          "AI Storyteller & Narrative Engine",
+          "Phase 3: Narrative Engine"
+        ],
+        "description": "LLM-powered conversational world Q&A, agentic SQL tool use, event narrative template system, character biography generation, war chronicles, template/LLM hybrid rendering, SSE streaming, monitoring dashboard, and proactive narrative engine.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "7.1",
+            "canonical_title": "Conversational World Query Engine",
+            "aliases": [
+              "REQ-STR-001: Conversational World Q&A",
+              "REQ-STR-002: Dual-Tier Context (HISTORICAL + LIVE)",
+              "REQ-STR-003: SSE Streaming Responses",
+              "REQ-STR-004: Multi-World Support",
+              "Conversational World Query Engine (Built)"
+            ],
+            "description": "LLM chat interface for asking questions about the DF world. Dual-tier context (historical legends + live bridge data), SSE streaming, multi-world support.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.2",
+            "canonical_title": "Agentic Storyteller",
+            "aliases": [
+              "REQ-STR-007: Agentic SQL Tool Use",
+              "Agentic Storyteller (Planned v1.0)",
+              "Stage 3.3: Agentic Storyteller"
+            ],
+            "description": "LLM agent with SQL tool use, able to autonomously query the CDM to answer complex questions about world history.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.3",
+            "canonical_title": "Confidence Signaling & Honesty",
+            "aliases": [
+              "REQ-STR-005: Confidence Signaling",
+              "REQ-STR-006: \"No Record\" Honesty"
+            ],
+            "description": "LLM must signal confidence levels and clearly state when no record exists rather than hallucinating.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.4",
+            "canonical_title": "Event Narrative Template System",
+            "aliases": [
+              "REQ-STR-016: Per-Type Event Narrative Templates (132+ types)",
+              "REQ-STR-017: Death Cause Rendering (50+ variants)",
+              "REQ-STR-018: Circumstance/Reason Rendering",
+              "REQ-STR-020: Temporal Context in Events",
+              "REQ-STR-021: Interaction Text from Game Raws",
+              "REQ-STR-022: Missing Event Fallback",
+              "REQ-STR-023: Event Payload Enrichment",
+              "Stage 3.1: Event Narrative Template System",
+              "Event Narrative Engine"
+            ],
+            "description": "Template-driven rendering for 132+ event types with 50+ death cause variants, circumstance/reason rendering, temporal context, game raws interaction text, fallback for unknown events, and event payload enrichment.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.5",
+            "canonical_title": "Narrative Enrichment & Context Building",
+            "aliases": [
+              "REQ-STR-008: Character Profile & Biography Generation",
+              "REQ-STR-009: Unified Person View (Unit + HF Merge)",
+              "REQ-STR-010: Personality-Driven Voice Emulation",
+              "REQ-STR-011: Relationship Traversal on HF Match",
+              "REQ-STR-012: Emotion/Zone Integration",
+              "REQ-STR-025: Narrative Value Score (NVS) for Denizens",
+              "REQ-STR-026: Rivalry Detection (Co-Appearance)",
+              "REQ-STR-027: Top-N Entity Selection for LLM Context",
+              "Stage 3.2: Narrative Enrichment",
+              "Character Profile & Biography Generation"
+            ],
+            "description": "Biography generation, unit+HF unified person view, personality-driven voice emulation, relationship traversal, emotion/zone integration, NVS scoring, rivalry detection, and top-N entity selection for LLM context window.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.6",
+            "canonical_title": "War Chronicles & Civilization Histories",
+            "aliases": [
+              "REQ-STR-013: War Narrative Generation",
+              "REQ-STR-014: Battle Detail Rendering",
+              "REQ-STR-015: Civilization Rise-and-Fall Narratives",
+              "War Chronicles & Civilization Histories"
+            ],
+            "description": "Generated prose narratives for wars, individual battles, and full civilization rise-and-fall arcs.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.7",
+            "canonical_title": "Template vs. LLM Hybrid Rendering",
+            "aliases": [
+              "REQ-STR-030: Template vs. LLM Hybrid Rendering",
+              "Template vs. LLM Hybrid"
+            ],
+            "description": "Decision logic for when to use deterministic Jinja templates vs. LLM generation, balancing quality, latency, and cost.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.8",
+            "canonical_title": "LLM Configuration & Monitoring",
+            "aliases": [
+              "REQ-STR-028: Per-Interaction LLM Logging",
+              "REQ-STR-029: Monitoring Dashboard",
+              "Stage 3.4: Monitoring and Observability",
+              "LLM Configuration",
+              "Monitoring & Observability"
+            ],
+            "description": "LLM provider configuration (model selection, temperature, max tokens), per-interaction logging, and a monitoring dashboard showing latency, token usage, and error rates.",
+            "source_documents": ["product-requirements.md", "full-project-roadmap.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.9",
+            "canonical_title": "DF Calendar Formatting",
+            "aliases": [
+              "REQ-STR-024: DF Calendar Formatting",
+              "REQ-NAV-005: DF Calendar System"
+            ],
+            "description": "Format all timestamps using the DF in-game calendar (months, seasons, years) consistently across narrative output.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "7.10",
+            "canonical_title": "Post-v1.0 Storyteller Features",
+            "aliases": [
+              "REQ-STR-031: Proactive Narrative Engine (Post-v1.0)",
+              "REQ-STR-032: Knowledge Horizon Integration"
+            ],
+            "description": "Future features: proactive narrative push (LLM-initiated story events), and deep integration with Knowledge Horizon scope masking.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "8",
+        "canonical_title": "MC-4: AI Fortress Player & Advisor",
+        "aliases": [
+          "MC-4: AI Fortress Player (Advisor)",
+          "AI Fortress Player & Advisor",
+          "Stage 6.3: AI Fortress Advisor Core",
+          "Stage 6.6: Advanced Advisor (Deferred/P4)"
+        ],
+        "description": "Reactive AI control architecture for autonomous fortress management or advisory mode: polling, population cycle, action queue, military sizing, resource management, construction planning, trade cycle, threat assessment, and LLM-powered advice.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "8.1",
+            "canonical_title": "Core Architecture & Polling",
+            "aliases": [
+              "REQ-ADV-001: Tick-Based Multi-Rate Polling",
+              "REQ-ADV-002: Ten-Phase Population Update Cycle",
+              "REQ-ADV-003: Reactive Control Architecture",
+              "REQ-ADV-004: Exclusive Action Queue",
+              "REQ-ADV-005: Advisor vs. Autonomous Mode Toggle",
+              "Core Architecture (from df-ai)",
+              "Exclusive Action Queue (from df-ai)",
+              "Polling + Events Hybrid (from myDFHackScripts)"
+            ],
+            "description": "Tick-based multi-rate polling loop, 10-phase population update cycle, reactive control architecture, exclusive action queue preventing conflicting actions, and advisor vs. autonomous mode toggle.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.2",
+            "canonical_title": "Population Management",
+            "aliases": [
+              "REQ-ADV-008: Citizen Arrival/Departure Tracking",
+              "REQ-ADV-009: Noble Assignment Advisor",
+              "REQ-ADV-010: Job Stall Detection",
+              "Population Management"
+            ],
+            "description": "Citizen arrival/departure tracking, noble position assignment recommendations, job stall detection and alerting.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.3",
+            "canonical_title": "Military Management",
+            "aliases": [
+              "REQ-ADV-011: Military Sizing Advisor",
+              "REQ-ADV-012: Squad Creation and Sizing",
+              "Military Management"
+            ],
+            "description": "Advisor recommendations for military force size relative to population and threat level, plus squad creation and sizing actions.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.4",
+            "canonical_title": "Resource & Production Management",
+            "aliases": [
+              "REQ-ADV-013: Three-Tier Stock Threshold Model",
+              "REQ-ADV-014: Automatic Production Ordering",
+              "REQ-ADV-015: Farm Management",
+              "REQ-ADV-016: Metalworking Chain",
+              "Resource Management"
+            ],
+            "description": "Three-tier stock thresholds (critical/low/target), automatic production order placement, farm plot management, and metalworking production chain management.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.5",
+            "canonical_title": "Construction Planning",
+            "aliases": [
+              "REQ-ADV-017: Construction Planning (22 Room Types)",
+              "Construction and Planning"
+            ],
+            "description": "Automated construction planning for 22 room types based on population needs and available space.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.6",
+            "canonical_title": "Trade Cycle Management",
+            "aliases": [
+              "REQ-ADV-018: Trade Cycle Management (9 steps)",
+              "Trade Management"
+            ],
+            "description": "9-step trade cycle automation: caravan detection, goods selection, negotiation, and post-trade inventory reconciliation.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.7",
+            "canonical_title": "Threat Assessment & Response",
+            "aliases": [
+              "REQ-ADV-019: Threat Assessment and Response",
+              "REQ-ADV-006: Fortress Health Summary",
+              "REQ-ADV-007: Event-Driven Reactive Alerts",
+              "REQ-ADV-022: Context-Aware Proactive Alerts"
+            ],
+            "description": "Threat assessment heuristics, fortress health summary, event-driven reactive alerts (goblin siege, tantrum spiral, etc.), and context-aware proactive alerts.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.8",
+            "canonical_title": "LLM-Enhanced Advisor Features",
+            "aliases": [
+              "REQ-ADV-020: Natural Language Fortress Advice (LLM)",
+              "REQ-ADV-021: Multi-Step Action Plans",
+              "REQ-ADV-023: Fortress Post-Mortem Narrative",
+              "LLM-Enhanced Advisor Features"
+            ],
+            "description": "Natural language fortress advice, multi-step action plans generated by LLM, and fortress post-mortem narrative generation after fortress death.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "8.9",
+            "canonical_title": "Embark Advisor",
+            "aliases": [
+              "REQ-ADV-024: Embark Site Evaluation",
+              "REQ-ADV-025: Random Embark with Auto-Restart"
+            ],
+            "description": "Embark site scoring and evaluation, plus random embark with automatic world restart for unattended play.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "9",
+        "canonical_title": "MC-5: Mod Manager",
+        "aliases": [
+          "MC-5: Mod Manager",
+          "Mod Management",
+          "Stage 6.1: Mod Manager Core",
+          "Stage 6.4: Advanced Mod Management (Deferred/P4)"
+        ],
+        "description": "Full mod lifecycle management: discovery, info.txt parsing, modpack CRUD, profile import/export, load order management, multi-level conflict detection, raw file tokenizer, three-way merge, vanilla baseline management, full raw compiler, modpack snapshot, Steam Workshop integration, and CLI interface.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "9.1",
+            "canonical_title": "Mod Discovery & Metadata",
+            "aliases": [
+              "REQ-MOD-001: Mod Discovery via Filesystem Scan",
+              "REQ-MOD-002: DFHack Live Mod Discovery",
+              "REQ-MOD-003: info.txt Parser (All v50 Fields)",
+              "Core Mod Manager (Tier 1: \"Modpack Manager\")"
+            ],
+            "description": "Filesystem scan for installed mods, live mod discovery via DFHack, and info.txt parser covering all DF v50 metadata fields.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "9.2",
+            "canonical_title": "Modpack CRUD & Profile Management",
+            "aliases": [
+              "REQ-MOD-004: Modpack CRUD",
+              "REQ-MOD-005: Profile Import/Export",
+              "REQ-MOD-006: Load Order Management",
+              "REQ-MOD-011: LOOT-Style Auto-Order"
+            ],
+            "description": "Create/read/update/delete modpacks, import/export profiles as JSON, manual and LOOT-style automatic load order management.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "9.3",
+            "canonical_title": "Conflict Detection System",
+            "aliases": [
+              "REQ-MOD-007: Level 1 Conflict Detection (Metadata)",
+              "REQ-MOD-008: Level 2 Conflict Detection (Object ID)",
+              "REQ-MOD-009: Level 3 Conflict Detection (Semantic)",
+              "REQ-MOD-010: Visual Conflict Indicators",
+              "Conflict Detection (Tier 1-2)"
+            ],
+            "description": "Three-tier conflict detection: Level 1 (metadata incompatibility), Level 2 (object ID collision), Level 3 (semantic raw conflicts). Visual conflict indicators in UI.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "9.4",
+            "canonical_title": "Raw File Processing & Merge",
+            "aliases": [
+              "REQ-MOD-012: Raw File Tokenizer",
+              "REQ-MOD-013: Three-Way File Merge",
+              "REQ-MOD-014: Vanilla Baseline Management",
+              "REQ-MOD-015: Full Raw Compiler",
+              "Raw File Parsing (Tier 2: \"Raw Analyzer\")",
+              "Three-Way Merge System (Tier 2-3)",
+              "Full Raw Compiler (Tier 3)"
+            ],
+            "description": "DF raw file tokenizer/parser, three-way merge of conflicting raw files, vanilla baseline snapshot management, and full raw compiler producing merged output.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "9.5",
+            "canonical_title": "Modpack Snapshot & History",
+            "aliases": [
+              "REQ-MOD-016: Modpack Snapshot at World Creation",
+              "REQ-MOD-017: Mod History in Database",
+              "REQ-MOD-018: Mod Annotation in Legends Display",
+              "Chronicler-Unique Features"
+            ],
+            "description": "Snapshot active modpack at world creation, store mod history in CDM, annotate legends/entity displays with mod-of-origin information.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "9.6",
+            "canonical_title": "Steam Workshop Integration & CLI",
+            "aliases": [
+              "REQ-MOD-019: Steam Workshop Integration",
+              "REQ-MOD-020: CLI Interface"
+            ],
+            "description": "Browse and install mods from Steam Workshop. CLI interface for headless/scripted mod management operations.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "10",
+        "canonical_title": "MC-6: Labor Manager",
+        "aliases": [
+          "MC-6: Labor Manager",
+          "Labor Manager",
+          "Stage 6.2: Labor Manager Core",
+          "Stage 6.5: Advanced Labor Management (Deferred/P4)"
+        ],
+        "description": "Dwarf Therapist-style labor management: toggle grid, skill display, personality visualization, happiness/stress monitoring, squad assignment, noble management, profession management, filtering, thought/emotion display, need satisfaction, attribute display, citizen roster polling, AI labor advisor, skill-based auto-assignment, migration tracking, job management, wound tracking, inventory display, relationship visualization, skill analytics, stress trends, batch operations, and optimization engine.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "10.1",
+            "canonical_title": "Core Labor Grid & Citizen Roster",
+            "aliases": [
+              "REQ-LAB-001: Labor Toggle Grid (Dwarf Therapist-style)",
+              "REQ-LAB-012: Citizen Roster with Configurable Polling",
+              "Core Features"
+            ],
+            "description": "Labor toggle grid (dwarf x labor matrix), configurable polling citizen roster displaying all current dwarves with live data.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.2",
+            "canonical_title": "Skill & Attribute Display",
+            "aliases": [
+              "REQ-LAB-002: Skill Display and Progression",
+              "REQ-LAB-011: Attribute Display",
+              "REQ-LAB-020: Skill Distribution Analytics"
+            ],
+            "description": "Per-dwarf skill levels and progression bars, physical/mental attribute scores, and fortress-wide skill distribution analytics.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.3",
+            "canonical_title": "Personality & Psychological State",
+            "aliases": [
+              "REQ-LAB-003: Personality Trait Visualization (50 Facets)",
+              "REQ-LAB-004: Happiness/Stress Monitoring",
+              "REQ-LAB-009: Thought/Emotion Display",
+              "REQ-LAB-010: Need Satisfaction Tracking",
+              "REQ-LAB-021: Stress Trend Analysis"
+            ],
+            "description": "50-facet personality trait visualization, happiness/stress score monitoring, thought and emotion display, need satisfaction tracking, and stress trend analysis over time.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.4",
+            "canonical_title": "Assignment & Position Management",
+            "aliases": [
+              "REQ-LAB-005: Squad Assignment Management",
+              "REQ-LAB-006: Noble/Position Management",
+              "REQ-LAB-007: Profession Management"
+            ],
+            "description": "Squad assignment UI, noble/position holder management, and custom profession label management.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.5",
+            "canonical_title": "Filtering, Sorting & Batch Operations",
+            "aliases": [
+              "REQ-LAB-008: Dwarf Filtering/Sorting",
+              "REQ-LAB-022: Batch Labor Operations"
+            ],
+            "description": "Multi-criteria dwarf filtering and sorting, plus batch labor enable/disable operations across groups.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.6",
+            "canonical_title": "AI Labor Advisor & Auto-Assignment",
+            "aliases": [
+              "REQ-LAB-013: AI-Powered Labor Assignment Advisor",
+              "REQ-LAB-014: Skill-Based Labor Auto-Assignment",
+              "REQ-LAB-023: Labor Optimization Engine",
+              "Advanced Features",
+              "Integration Features"
+            ],
+            "description": "LLM-powered labor assignment recommendations, skill-based automatic labor assignment, and a labor optimization engine that maximizes production given workforce constraints.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.7",
+            "canonical_title": "Population Tracking & Lifecycle",
+            "aliases": [
+              "REQ-LAB-015: Population Migration Tracking",
+              "REQ-LAB-016: Job Management and Stall Detection",
+              "REQ-LAB-024: Newcomer Orientation View",
+              "REQ-LAB-025: Deathwatch and Casualty Tracking"
+            ],
+            "description": "Immigrant arrival/wave tracking, job stall detection, newcomer orientation view for recently arrived dwarves, and deathwatch/casualty log.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "10.8",
+            "canonical_title": "Health, Inventory & Relationships",
+            "aliases": [
+              "REQ-LAB-017: Wound/Health Tracking",
+              "REQ-LAB-018: Inventory/Equipment Display",
+              "REQ-LAB-019: Relationship Visualization"
+            ],
+            "description": "Per-dwarf wound and health status tracking, inventory and equipment display, and relationship graph visualization (friends, family, rivals).",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "11",
+        "canonical_title": "Knowledge Horizon System",
+        "aliases": [
+          "Cross-Cutting: Knowledge Horizon",
+          "Knowledge Horizon",
+          "Stage 5.3: Knowledge Horizon"
+        ],
+        "description": "Perspective-based information masking system that limits what Chronicler reveals to match what the player's civilization would realistically know: geographic, civilization, and individual scope masking; seven visibility caveats; database architecture; and phased rollout plan.",
+        "source_documents": [
+          "product-requirements.md",
+          "full-project-roadmap.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "11.1",
+            "canonical_title": "Core Concept & Three Masking Dimensions",
+            "aliases": [
+              "REQ-KH-001: Geographic Scope Masking",
+              "REQ-KH-002: Civilization Scope Masking",
+              "REQ-KH-003: Individual Scope Masking",
+              "Core Concept",
+              "Three Masking Dimensions"
+            ],
+            "description": "Geographic scope (known regions), civilization scope (allied/enemy civilizations), and individual scope (known HFs) masking dimensions.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "11.2",
+            "canonical_title": "Seven Visibility Caveats (CAV-001 through CAV-007)",
+            "aliases": [
+              "REQ-KH-004 through REQ-KH-010",
+              "Seven Visibility Caveats"
+            ],
+            "description": "Seven special-case visibility rules: organization membership propagation, nobles always visible, previous residence knowledge, starting dwarf background generation, family chain propagation, event-based revelation, LLM inference restrictions.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "11.3",
+            "canonical_title": "View-Based Masking Architecture & Phased Rollout",
+            "aliases": [
+              "REQ-KH-011: View-Based Masking Architecture",
+              "REQ-KH-012: Phased Rollout",
+              "Database Architecture",
+              "Phased Rollout"
+            ],
+            "description": "PostgreSQL view-based masking (not application-layer filtering) and phased rollout plan from full-data mode to progressively tighter scope masking.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "12",
+        "canonical_title": "Scoring & Ranking System",
+        "aliases": [
+          "Cross-Cutting: Scoring & Ranking",
+          "Scoring & Ranking System"
+        ],
+        "description": "Multi-dimensional importance scoring for entities (figures, sites, conflicts, artifacts), Narrative Value Score for live denizens, rivalry detection, megabeast detection, and supernatural detection.",
+        "source_documents": [
+          "product-requirements.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "12.1",
+            "canonical_title": "Entity Importance Scores",
+            "aliases": [
+              "REQ-SCR-001: Figure Importance Score",
+              "REQ-SCR-002: Site Importance Score",
+              "REQ-SCR-003: Conflict Importance Score",
+              "REQ-SCR-004: Artifact Importance Score",
+              "Figure Importance Score (df-narrator)",
+              "Site Importance Score",
+              "Conflict Importance Score",
+              "Artifact Importance Score"
+            ],
+            "description": "Computed importance scores for historical figures (df-narrator algorithm), sites, conflicts, and artifacts, stored in CDM for sorting and LLM context prioritization.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "12.2",
+            "canonical_title": "Narrative Value Score (NVS) for Denizens",
+            "aliases": [
+              "REQ-SCR-005: NVS for Denizens",
+              "Narrative Value Score (NVS) for Denizens"
+            ],
+            "description": "Per-dwarf narrative value score combining skill rarity, personality extremity, relationship depth, and event history for storytelling prioritization.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "12.3",
+            "canonical_title": "Rivalry Detection",
+            "aliases": [
+              "REQ-SCR-006: Rivalry Detection",
+              "Rivalry Detection (Co-Appearance)"
+            ],
+            "description": "Co-appearance analysis to detect figure pairs with frequent adversarial event co-occurrence, flagging as rivals.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "12.4",
+            "canonical_title": "Megabeast & Supernatural Detection",
+            "aliases": [
+              "REQ-SCR-007: Megabeast Detection",
+              "REQ-SCR-008: Supernatural Detection",
+              "Megabeast Detection",
+              "Supernatural Detection"
+            ],
+            "description": "Flag historical figures as megabeasts (dragons, titans, etc.) or supernaturally cursed (vampires, werebeast, necromancers) based on type fields and event history.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "13",
+        "canonical_title": "Cross-Cutting Navigation & UX Patterns",
+        "aliases": [
+          "Cross-Cutting: Navigation & UX Patterns",
+          "Cross-Linking & Navigation Patterns"
+        ],
+        "description": "Universal UX patterns applied across all components: cross-linked entity references, perspective-aware event rendering, hover popovers, breadcrumb/prev-next navigation, and DF calendar system.",
+        "source_documents": [
+          "product-requirements.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "13.1",
+            "canonical_title": "Cross-Linked Entity References",
+            "aliases": [
+              "REQ-NAV-001: Cross-Linked Entity References",
+              "REQ-EXP-027: Cross-Linked Entity References",
+              "The Core UX Pattern"
+            ],
+            "description": "Every entity name anywhere in the UI is a hyperlink navigating to its detail page. Canonical UX pattern applied globally.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "13.2",
+            "canonical_title": "Perspective-Aware Event Rendering",
+            "aliases": [
+              "REQ-NAV-002: Perspective-Aware Event Rendering",
+              "REQ-EXP-028: Perspective-Aware Event Rendering",
+              "Perspective-Aware Rendering"
+            ],
+            "description": "Event descriptions rendered from the perspective of the currently-viewed entity (e.g., 'was slain by' vs. 'slew').",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "13.3",
+            "canonical_title": "Hover Popovers",
+            "aliases": [
+              "REQ-NAV-003: Hover Popovers",
+              "REQ-VIS-011: Hover Popovers (Map and All Entity Links)"
+            ],
+            "description": "Summary card popovers on hover for all entity links and map markers.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "13.4",
+            "canonical_title": "Breadcrumb & Prev-Next Navigation",
+            "aliases": [
+              "REQ-NAV-004: Breadcrumb / Prev-Next Navigation",
+              "REQ-EXP-029: Breadcrumb / Prev-Next Navigation",
+              "Breadcrumb / Prev-Next Navigation"
+            ],
+            "description": "Breadcrumb trail showing navigation history and prev/next controls for iterating through entity lists.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "13.5",
+            "canonical_title": "DF Calendar System",
+            "aliases": [
+              "REQ-NAV-005: DF Calendar System",
+              "REQ-STR-024: DF Calendar Formatting",
+              "DF Calendar System"
+            ],
+            "description": "In-game DF calendar with months, seasons, and year formatting applied consistently across all date/time displays.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "14",
+        "canonical_title": "Non-Functional Requirements",
+        "aliases": ["Non-Functional Requirements"],
+        "description": "Performance targets (XML parsing speed, explorer response time, graph rendering), security requirements (SQL injection prevention, credentials management), reliability (watcher uptime), scalability (multi-world), observability (storyteller logging), accessibility (search), and DF version compatibility.",
+        "source_documents": ["product-requirements.md"],
+        "subsections": [
+          {
+            "section_id": "14.1",
+            "canonical_title": "Performance Requirements",
+            "aliases": [
+              "REQ-NFR-001: Performance -- XML Parsing",
+              "REQ-NFR-002: Performance -- Explorer Response Time",
+              "REQ-NFR-003: Performance -- Graph Rendering"
+            ],
+            "description": "XML parsing speed target, sub-second explorer page load target, and graph rendering performance target for large datasets.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "14.2",
+            "canonical_title": "Security Requirements",
+            "aliases": [
+              "REQ-NFR-004: Security -- SQL Injection Prevention",
+              "REQ-NFR-005: Security -- Credentials"
+            ],
+            "description": "Parameterized queries for all user input, credentials stored outside tracked files.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "14.3",
+            "canonical_title": "Reliability, Scalability & Observability",
+            "aliases": [
+              "REQ-NFR-006: Reliability -- Watcher",
+              "REQ-NFR-007: Scalability -- Multi-World Support",
+              "REQ-NFR-008: Observability -- Storyteller",
+              "REQ-NFR-009: Accessibility -- Search",
+              "REQ-NFR-010: Compatibility -- DF Version"
+            ],
+            "description": "Watcher uptime/recovery requirements, multi-world data isolation, storyteller observability, search accessibility, and DF version compatibility constraints.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "15",
+        "canonical_title": "DFHack Integration Reference",
+        "aliases": [
+          "DFHack Reference Guide",
+          "DFHack Integration"
+        ],
+        "description": "Comprehensive DFHack technical reference: data access paths (Lua via dfhack-run), eventful module, repeat job pattern, state change hook, RemoteFortressReader (41 functions), and key gotchas (RPC broken for game-thread calls on DFHack 53.x).",
+        "source_documents": [
+          "product-requirements.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "15.1",
+            "canonical_title": "Data Access Paths (Lua via dfhack-run)",
+            "aliases": ["15.1 Data Access Paths (Lua via dfhack-run)"],
+            "description": "All Lua data access paths available via dfhack-run over SSH, covering units, HFs, sites, items, artifacts, etc.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "15.2",
+            "canonical_title": "DFHack eventful Module",
+            "aliases": ["15.2 DFHack eventful Module"],
+            "description": "eventful module API for subscribing to in-game events (onDeath, onAttack, onJobInitiated, etc.).",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "15.3",
+            "canonical_title": "DFHack Repeat Job Pattern",
+            "aliases": ["15.3 DFHack Repeat Job Pattern"],
+            "description": "Pattern for scheduling recurring Lua jobs via dfhack.timeout_active / repeat for bridge polling loops.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "15.4",
+            "canonical_title": "DFHack State Change Hook",
+            "aliases": ["15.4 DFHack State Change Hook"],
+            "description": "onStateChange hook for detecting game state transitions (game load, save, worldgen complete, etc.).",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "15.5",
+            "canonical_title": "RemoteFortressReader Plugin (41 Functions)",
+            "aliases": ["15.5 RemoteFortressReader (41 Functions)"],
+            "description": "All 41 RFR RPC functions. Note: game-thread calls hang on DFHack 53.x under Prism; use dfhack-run SSH instead.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "15.6",
+            "canonical_title": "Key DFHack Gotchas",
+            "aliases": ["15.6 Key DFHack Gotchas"],
+            "description": "Known DFHack integration pitfalls: broken TCP RPC for game-thread calls, enable plugin behavior, SSH transport requirements.",
+            "source_documents": ["product-requirements.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "16",
+        "canonical_title": "Technology Stack",
+        "aliases": ["Technology Stack"],
+        "description": "Full technology stack for Chronicler: Python backend (FastAPI/Flask), PostgreSQL 16 with extensions, Leaflet.js + D3.js + vis.js for visualization, LLM provider integration, DFHack Lua bridge, pgvector, and deployment tooling.",
+        "source_documents": ["product-requirements.md"],
+        "subsections": []
+      },
+      {
+        "section_id": "17",
+        "canonical_title": "Implementation Status",
+        "aliases": [
+          "Current State (v0.8)",
+          "Implementation Status"
+        ],
+        "description": "Current build status: what is implemented and working (CDM, XML parser, conversational Q&A, bridge v6, etc.) versus what is not yet started (Explorer UI, Visualizer, Mod Manager, Labor Manager, Advisor, etc.).",
+        "source_documents": [
+          "product-requirements.md",
+          "research-synthesis-v2.md"
+        ],
+        "subsections": [
+          {
+            "section_id": "17.1",
+            "canonical_title": "Built and Working",
+            "aliases": ["Built and Working", "What Is Built"],
+            "description": "Components fully or substantially implemented as of the synthesis date.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "17.2",
+            "canonical_title": "Not Yet Started / Planned",
+            "aliases": ["Not Yet Started", "What Is Planned / Not Started"],
+            "description": "Components not yet implemented, planned for future phases.",
+            "source_documents": ["product-requirements.md", "research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "18",
+        "canonical_title": "Event Type Taxonomy",
+        "aliases": [
+          "Event Type Taxonomy",
+          "4. Event Type Taxonomy"
+        ],
+        "description": "Complete taxonomy of DF world event types: canonical reference source, merged event categories, and 19 event collection types. Covers 132+ event types used in narrative template system.",
+        "source_documents": ["research-synthesis-v2.md"],
+        "subsections": [
+          {
+            "section_id": "18.1",
+            "canonical_title": "Canonical Event Type Reference",
+            "aliases": ["4.1 Canonical Reference"],
+            "description": "Master list of all DF legend event types with their XML tag names and field inventories.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "18.2",
+            "canonical_title": "Event Categories (Merged Taxonomy)",
+            "aliases": ["4.2 Event Categories (Merged Taxonomy)"],
+            "description": "Events grouped into semantic categories: combat, political, religious, cultural, supernatural, etc.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "18.3",
+            "canonical_title": "Event Collection Types (19 Types)",
+            "aliases": ["4.3 Event Collection Types (19 Types)"],
+            "description": "The 19 event collection container types (wars, raids, beasts, etc.) that group individual events.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "19",
+        "canonical_title": "Reference Data & Game Taxonomies",
+        "aliases": [
+          "Reference Data & Taxonomies",
+          "17. Reference Data & Taxonomies"
+        ],
+        "description": "All canonical DF game data taxonomies referenced in design and implementation: HF fields, site types, entity types, biome types, structure types, HF relationship types, room types, furniture types, calendar system, material categories, personality facets, worship strength thresholds, and noble position categories.",
+        "source_documents": ["research-synthesis-v2.md"],
+        "subsections": [
+          {
+            "section_id": "19.1",
+            "canonical_title": "Historical Figure (HF) Fields",
+            "aliases": ["HF_FIELDS -- Canonical HF Reference Field List"],
+            "description": "Canonical list of all HF data fields available from legends XML and DFHack bridge.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.2",
+            "canonical_title": "Site Type Taxonomy (24 types)",
+            "aliases": ["Site Type Taxonomy (24 types)"],
+            "description": "All 24 DF site types with their internal identifiers and display names.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.3",
+            "canonical_title": "Entity Type Taxonomy",
+            "aliases": ["Entity Type Taxonomy"],
+            "description": "All civilization/entity types in DF legends (dwarven, elven, human, goblin, kobold, etc.).",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.4",
+            "canonical_title": "Biome Types (10)",
+            "aliases": ["Biome Types (10)"],
+            "description": "10 biome classification types used in site and region data.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.5",
+            "canonical_title": "Structure Types (12+)",
+            "aliases": ["Structure Types (12+)"],
+            "description": "12+ structure types found within sites (temples, market, library, guildhall, etc.).",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.6",
+            "canonical_title": "HF Relationship Types",
+            "aliases": ["HF Relationship Types"],
+            "description": "All HF relationship type strings (spouse, parent, child, deity, master, slave, etc.).",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.7",
+            "canonical_title": "Room Types (22) & Furniture Types (28)",
+            "aliases": ["Room Types (22)", "Furniture Types (28)"],
+            "description": "22 constructable room types and 28 furniture types used in construction planning (MC-4 Advisor).",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.8",
+            "canonical_title": "DF Calendar System",
+            "aliases": ["DF Calendar System", "17.9 DF Calendar System"],
+            "description": "DF calendar structure: tick counts, months, seasons, year length conversion formulas.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.9",
+            "canonical_title": "Material Categories",
+            "aliases": ["Material Categories (from myDFHackScripts)"],
+            "description": "Material category taxonomy from myDFHackScripts used in resource management and construction planning.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.10",
+            "canonical_title": "Personality Facets (50)",
+            "aliases": ["Personality Facets (50)"],
+            "description": "All 50 DF personality facets (beliefs, values, traits) with their internal names and display labels.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.11",
+            "canonical_title": "Worship Strength Thresholds",
+            "aliases": ["Worship Strength Thresholds"],
+            "description": "Numeric thresholds for DF worship strength categories (pray, sacrifice, etc.).",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "19.12",
+            "canonical_title": "Noble Position Categories",
+            "aliases": ["Noble Position Categories"],
+            "description": "Categories of noble positions in DF (fortress nobility, entity nobility, etc.) used by Labor Manager and Advisor.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "20",
+        "canonical_title": "Architectural Patterns",
+        "aliases": [
+          "Architectural Patterns",
+          "16. Architectural Patterns"
+        ],
+        "description": "Reusable software design patterns extracted from reference repositories and applied in Chronicler: event rendering pipeline, post-parse processing pipeline, exclusive action queue, polling+events hybrid, generic watcher factory, and bridge data flow architecture.",
+        "source_documents": ["research-synthesis-v2.md"],
+        "subsections": [
+          {
+            "section_id": "20.1",
+            "canonical_title": "Event Rendering Pipeline",
+            "aliases": ["Event Rendering Pipeline"],
+            "description": "Pipeline pattern for rendering raw event records into human-readable narrative strings: fetch -> enrich -> template/LLM -> format.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "20.2",
+            "canonical_title": "Post-Parse Processing Pipeline",
+            "aliases": ["Post-Parse Processing Pipeline"],
+            "description": "10-step sequential pipeline run after XML parsing completes: relationship resolution, importance scoring, NVS, rivalry, embeddings, etc.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "20.3",
+            "canonical_title": "Exclusive Action Queue",
+            "aliases": ["Exclusive Action Queue (from df-ai)"],
+            "description": "Queue pattern ensuring only one DFHack action executes at a time, preventing race conditions in AI advisor.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "20.4",
+            "canonical_title": "Polling + Events Hybrid",
+            "aliases": ["Polling + Events Hybrid (from myDFHackScripts)"],
+            "description": "Combine periodic polling for bulk state with event subscriptions for immediate reaction to discrete events.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "20.5",
+            "canonical_title": "Generic Watcher Factory Pattern",
+            "aliases": ["Generic Watcher Factory Pattern"],
+            "description": "Factory pattern for creating typed game-state watchers that detect changes and emit typed events.",
+            "source_documents": ["research-synthesis-v2.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "21",
+        "canonical_title": "Full Project Roadmap Phases",
+        "aliases": [
+          "Chronicler -- Full Project Roadmap",
+          "Phase 1 through Phase 7"
+        ],
+        "description": "The seven development phases with all stages and tasks, representing the chronological implementation plan. Phases are: Data Foundation, Explorer Core, Narrative Engine, Visualization, Live Integration, Advanced Components, and Polish & Production.",
+        "source_documents": ["full-project-roadmap.md"],
+        "subsections": [
+          {
+            "section_id": "21.1",
+            "canonical_title": "Phase 1: Data Foundation",
+            "aliases": ["Phase 1: Data Foundation"],
+            "description": "CDM schema extensions, XML parser completion, post-parse processing pipeline, test suite extension.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "21.2",
+            "canonical_title": "Phase 2: Explorer Core",
+            "aliases": ["Phase 2: Explorer Core"],
+            "description": "Entity detail page framework, primary and secondary entity detail pages, search and navigation.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "21.3",
+            "canonical_title": "Phase 3: Narrative Engine",
+            "aliases": ["Phase 3: Narrative Engine"],
+            "description": "Event narrative template system, narrative enrichment, agentic storyteller, monitoring and observability.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "21.4",
+            "canonical_title": "Phase 4: Visualization",
+            "aliases": ["Phase 4: Visualization"],
+            "description": "World map, charts and demographics, genealogy and network graphs, advanced visualizations.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "21.5",
+            "canonical_title": "Phase 5: Live Integration",
+            "aliases": ["Phase 5: Live Integration"],
+            "description": "Bridge enhancements, worldgen monitoring, knowledge horizon implementation.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "21.6",
+            "canonical_title": "Phase 6: Advanced Components",
+            "aliases": ["Phase 6: Advanced Components"],
+            "description": "Mod Manager core, Labor Manager core, AI Fortress Advisor core, plus deferred advanced features for all three.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          },
+          {
+            "section_id": "21.7",
+            "canonical_title": "Phase 7: Polish & Production",
+            "aliases": ["Phase 7: Polish & Production"],
+            "description": "Performance optimization, comprehensive test suite, packaging/deployment, and documentation.",
+            "source_documents": ["full-project-roadmap.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "22",
+        "canonical_title": "Roadmap Appendices",
+        "aliases": [
+          "Appendix A: Priority Mapping",
+          "Appendix B: Milestone Definitions",
+          "Appendix C: Risk Register"
+        ],
+        "description": "Priority mapping (P1-P4 labels mapped to phases), milestone definitions (v0.5, v1.0, v2.0 criteria), and risk register (technical risks and mitigations).",
+        "source_documents": ["full-project-roadmap.md"],
+        "subsections": []
+      },
+      {
+        "section_id": "23",
+        "canonical_title": "Consolidated Action Items & Prioritized Backlog",
+        "aliases": [
+          "Consolidated Action Items",
+          "19. Consolidated Action Items"
+        ],
+        "description": "Prioritized action item list from research synthesis: Tier 1 Critical (blocks Narrative Engine/Explorer), Tier 2 High Value (visualization, data completeness), Tier 3 Bridge & Live Data Enhancements, Tier 4 Stretch/Advanced Features.",
+        "source_documents": ["research-synthesis-v2.md"],
+        "subsections": []
+      },
+      {
+        "section_id": "24",
+        "canonical_title": "Sources & References",
+        "aliases": [
+          "Sources & References",
+          "20. Sources & References"
+        ],
+        "description": "Component research reports, repository research reports, and planning & design documents that informed the research synthesis.",
+        "source_documents": ["research-synthesis-v2.md"],
+        "subsections": []
+      },
+      {
+        "section_id": "UNCATEGORIZED",
+        "canonical_title": "Uncategorized Content",
+        "aliases": [],
+        "description": "Content that does not fit existing categories. Currently empty -- all topics from the three source documents have been accommodated in the taxonomy above.",
+        "source_documents": [],
+        "subsections": []
+      }
+    ]
+  },
+  "mapping_notes": {
+    "merged_sections": [
+      {
+        "canonical": "Interactive World Map (Leaflet.js)",
+        "merged_from": [
+          "REQ-VIS-001: Interactive World Map (Leaflet.js)",
+          "7.1 Interactive World Map (Leaflet.js)",
+          "Stage 4.1: World Map"
+        ]
+      },
+      {
+        "canonical": "Charts & Demographic Visualizations",
+        "merged_from": [
+          "REQ-VIS-012: Population Charts (Doughnut/Pie)",
+          "REQ-VIS-013: Event Timeline (Line Chart)",
+          "REQ-VIS-014: Event Type Breakdown (Bar Chart)",
+          "7.8 Chart Visualizations",
+          "Stage 4.2: Charts and Demographics"
+        ]
+      },
+      {
+        "canonical": "Network & Relationship Graphs",
+        "merged_from": [
+          "REQ-VIS-015: War Chord Diagram (D3.js)",
+          "REQ-VIS-016: Warfare Graph (Force-Directed)",
+          "REQ-VIS-019: Entity Relationship Graph (vis.js)",
+          "Stage 4.3: Genealogy and Network Graphs",
+          "Stage 4.4: Advanced Visualizations (P3)"
+        ]
+      },
+      {
+        "canonical": "Entity Detail Pages",
+        "merged_from": [
+          "REQ-EXP-011 through REQ-EXP-019",
+          "8.3 Entity Detail Pages",
+          "Stage 2.2: Primary Entity Detail Pages",
+          "Stage 2.3: Secondary Entity Detail Pages"
+        ]
+      },
+      {
+        "canonical": "Event Narrative Template System",
+        "merged_from": [
+          "REQ-STR-016 through REQ-STR-023",
+          "9.4 Event Narrative Engine",
+          "Stage 3.1: Event Narrative Template System"
+        ]
+      },
+      {
+        "canonical": "Narrative Enrichment & Context Building",
+        "merged_from": [
+          "REQ-STR-008 through REQ-STR-012",
+          "REQ-STR-025 through REQ-STR-027",
+          "9.3 Character Profile & Biography Generation",
+          "Stage 3.2: Narrative Enrichment"
+        ]
+      },
+      {
+        "canonical": "Core Architecture & Polling (MC-4 Advisor)",
+        "merged_from": [
+          "REQ-ADV-001 through REQ-ADV-005",
+          "10.1 Core Architecture (from df-ai)",
+          "16.3 Exclusive Action Queue (from df-ai)",
+          "16.4 Polling + Events Hybrid (from myDFHackScripts)"
+        ]
+      },
+      {
+        "canonical": "Conflict Detection System (Mod Manager)",
+        "merged_from": [
+          "REQ-MOD-007 through REQ-MOD-010",
+          "11.2 Conflict Detection (Tier 1-2)"
+        ]
+      },
+      {
+        "canonical": "Raw File Processing & Merge (Mod Manager)",
+        "merged_from": [
+          "REQ-MOD-012 through REQ-MOD-015",
+          "11.3 Raw File Parsing (Tier 2)",
+          "11.4 Three-Way Merge System (Tier 2-3)",
+          "11.5 Full Raw Compiler (Tier 3)"
+        ]
+      },
+      {
+        "canonical": "Cross-Linked Entity References",
+        "merged_from": [
+          "REQ-NAV-001",
+          "REQ-EXP-027",
+          "15.1 The Core UX Pattern"
+        ]
+      },
+      {
+        "canonical": "Perspective-Aware Event Rendering",
+        "merged_from": [
+          "REQ-NAV-002",
+          "REQ-EXP-028",
+          "15.2 Perspective-Aware Rendering"
+        ]
+      },
+      {
+        "canonical": "Breadcrumb & Prev-Next Navigation",
+        "merged_from": [
+          "REQ-NAV-004",
+          "REQ-EXP-029",
+          "15.3 Breadcrumb / Prev-Next Navigation"
+        ]
+      },
+      {
+        "canonical": "DF Calendar System",
+        "merged_from": [
+          "REQ-NAV-005",
+          "REQ-STR-024",
+          "17.9 DF Calendar System"
+        ]
+      },
+      {
+        "canonical": "Knowledge Horizon System",
+        "merged_from": [
+          "11. Cross-Cutting: Knowledge Horizon (PRD)",
+          "13. Knowledge Horizon (Research Synthesis)",
+          "Stage 5.3: Knowledge Horizon (Roadmap)"
+        ]
+      },
+      {
+        "canonical": "Scoring & Ranking System",
+        "merged_from": [
+          "12. Cross-Cutting: Scoring & Ranking (PRD)",
+          "14. Scoring & Ranking System (Research Synthesis)"
+        ]
+      },
+      {
+        "canonical": "Post-Parse Processing Pipeline",
+        "merged_from": [
+          "REQ-ETL-004",
+          "Stage 1.3: Post-Parse Processing Pipeline",
+          "16.2 Post-Parse Processing Pipeline"
+        ]
+      },
+      {
+        "canonical": "LLM Configuration & Monitoring",
+        "merged_from": [
+          "REQ-STR-028: Per-Interaction LLM Logging",
+          "REQ-STR-029: Monitoring Dashboard",
+          "9.7 LLM Configuration",
+          "9.8 Monitoring & Observability",
+          "Stage 3.4: Monitoring and Observability"
+        ]
+      },
+      {
+        "canonical": "Implementation Status",
+        "merged_from": [
+          "17. Current State (v0.8) (PRD)",
+          "18. Implementation Status (Research Synthesis)"
+        ]
+      },
+      {
+        "canonical": "Room Types & Furniture Types",
+        "merged_from": [
+          "17.7 Room Types (22)",
+          "17.8 Furniture Types (28)"
+        ]
+      }
+    ],
+    "structural_decisions": [
+      "The six Main Components (MC-1 through MC-6) and two Foundational Systems (FS-1, FS-2) from the PRD are preserved as top-level taxonomy nodes (sections 3-10) since they represent the fundamental product decomposition agreed upon across all three documents.",
+      "The Phase Roadmap (sections 21.1-21.7) is kept as a separate node even though it overlaps thematically with the component sections, because the roadmap organizes topics by implementation sequence rather than functional domain.",
+      "Cross-cutting concerns (Knowledge Horizon, Scoring, Navigation/UX, Non-Functional Requirements) are given dedicated top-level sections (11-14) rather than being folded into individual components, matching their 'cross-cutting' designation in both PRD and Research Synthesis.",
+      "DFHack Integration Reference (section 15) is preserved as a standalone section since it is a reference guide rather than a feature specification, even though its content informs ETL (section 4) and the Advisor (section 8).",
+      "Architectural Patterns (section 20) from Research Synthesis are preserved separately from the components they serve, because they represent reusable design knowledge extracted from reference repos that applies across multiple components.",
+      "Reference Data & Game Taxonomies (section 19) covers pure DF game data (site types, entity types, biomes, etc.) distinct from Chronicler product features, warranting its own top-level section.",
+      "The Research Synthesis 'Landscape Overview' and 'Reference Repository Inventory' are placed under section 1 (Product Vision & Overview) as they provide the research context that motivates the product vision.",
+      "REQ-VIS-011 (Hover Popovers on Map AND entity links) appears in both section 5.17 (Visualizer map context) and section 13.3 (Cross-Cutting UX) with the cross-cutting UX section being the canonical home, since the requirement spans both map and non-map contexts.",
+      "The 'Feature Inventory Summary' from Research Synthesis (a consolidated feature table) is placed under section 2.3 (Product Architecture) as a view across all components rather than a section of its own.",
+      "Consolidated Action Items (section 23) from Research Synthesis is kept as its own section because it represents a prioritized backlog view cutting across all components, useful for planning independently of the component taxonomy.",
+      "Sources & References (section 24) from Research Synthesis is preserved as-is since it documents the research methodology and provenance of the synthesis, which is metadata about the document set itself."
+    ]
+  }
+}

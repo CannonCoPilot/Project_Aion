@@ -1,0 +1,237 @@
+{
+  "document_id": "full-project-roadmap.md",
+  "coverage_analysis": {
+    "sections_covered": [
+      {
+        "section_id": "1",
+        "section_title": "Product Vision & Overview",
+        "coverage_level": "comprehensive",
+        "evidence": "Roadmap overview (lines 10-22), phase dependencies (lines 24-33), estimated timeline (lines 35-45)"
+      },
+      {
+        "section_id": "1.2",
+        "section_title": "Roadmap Overview & Phase Dependencies",
+        "coverage_level": "comprehensive",
+        "evidence": "Phases 1-7 listed, dependency chain shown, timeline table"
+      },
+      {
+        "section_id": "2.1",
+        "section_title": "Component Hierarchy",
+        "coverage_level": "mentioned",
+        "evidence": "Phases describe work on six main components (Visualizer, Explorer, Storyteller, Advisor, Mod Manager, Labor Manager) but taxonomy hierarchy not explicitly presented"
+      },
+      {
+        "section_id": "3",
+        "section_title": "Common Data Model & Database",
+        "coverage_level": "partial",
+        "evidence": "Phase 1 Stage 1.1 lists CDM schema extensions (lines 56-71), references 40+ tables, but lacks detailed schema design principles or complete table inventory"
+      },
+      {
+        "section_id": "3.1",
+        "section_title": "Database Configuration & Extensions",
+        "coverage_level": "mentioned",
+        "evidence": "Stage 1.1 mentions PostgreSQL extensions indirectly; no explicit PostgreSQL 16 configuration or extension details"
+      },
+      {
+        "section_id": "3.4",
+        "section_title": "Missing & Extended Entity Types",
+        "coverage_level": "partial",
+        "evidence": "Stage 1.1 tasks 1.1.2, 1.1.3, 1.1.4 add art forms, identities, rivers; Stage 1.1.6 extends HF fields; but lacks comprehensive coverage comparison"
+      },
+      {
+        "section_id": "4",
+        "section_title": "Data ETL Systems",
+        "coverage_level": "comprehensive",
+        "evidence": "Phase 1 Stage 1.2 covers XML parser (lines 72-86), Stage 1.3 covers post-parse pipeline (lines 87-103), Phase 5 Stage 5.1 covers bridge enhancements (lines 313-325), Stage 5.2 covers worldgen monitoring (lines 326-337)"
+      },
+      {
+        "section_id": "4.1",
+        "section_title": "Legends XML Parser",
+        "coverage_level": "comprehensive",
+        "evidence": "Stage 1.2 lines 72-86, all 14+ XML sections referenced, merge strategy audit (task 1.2.8)"
+      },
+      {
+        "section_id": "4.2",
+        "section_title": "Post-Parse Processing Pipeline",
+        "coverage_level": "comprehensive",
+        "evidence": "Stage 1.3 lines 87-103, all 10 post-parse steps detailed (1.3.1 through 1.3.10)"
+      },
+      {
+        "section_id": "4.3",
+        "section_title": "Live Bridge System",
+        "coverage_level": "comprehensive",
+        "evidence": "Phase 5 Stage 5.1 lines 313-325, all six bridge enhancements specified (5.1.1 through 5.1.6)"
+      },
+      {
+        "section_id": "5",
+        "section_title": "MC-1: World History & Demographics Visualizer",
+        "coverage_level": "partial",
+        "evidence": "Phase 4 covers visualization implementation (lines 248-303), includes world map, charts, genealogy, but visualization architecture and taxonomy not detailed"
+      },
+      {
+        "section_id": "6",
+        "section_title": "MC-2: Database Explorer Tools",
+        "coverage_level": "comprehensive",
+        "evidence": "Phase 2 covers explorer core (lines 117-179), detail pages for all entity types (2.2, 2.3), search and navigation (2.4)"
+      },
+      {
+        "section_id": "7",
+        "section_title": "MC-3: AI Storyteller & Narrative Engine",
+        "coverage_level": "comprehensive",
+        "evidence": "Phase 3 covers narrative engine (lines 182-245), event templates (3.1), narrative enrichment (3.2), agentic storyteller (3.3), monitoring (3.4)"
+      },
+      {
+        "section_id": "8",
+        "section_title": "MC-4: AI Fortress Player & Advisor",
+        "coverage_level": "partial",
+        "evidence": "Phase 6 Stage 6.3 covers AI advisor (lines 398-412), but lacks comprehensive fortress player mechanics and decision frameworks"
+      },
+      {
+        "section_id": "9",
+        "section_title": "MC-5: Mod Manager",
+        "coverage_level": "partial",
+        "evidence": "Phase 6 Stage 6.1 covers mod manager core (lines 364-380), lists 10 tasks; Stage 6.4 defers advanced mod management but lacks conflict detection depth"
+      },
+      {
+        "section_id": "10",
+        "section_title": "MC-6: Labor Manager",
+        "coverage_level": "partial",
+        "evidence": "Phase 6 Stage 6.2 covers labor manager core (lines 381-397), lists 10 tasks; Stage 6.5 defers advanced labor management, skill auto-assignment, optimization"
+      },
+      {
+        "section_id": "11",
+        "section_title": "Knowledge Horizon System",
+        "coverage_level": "comprehensive",
+        "evidence": "Phase 5 Stage 5.3 lines 338-354, all KH phases 1-3 specified with tasks 5.3.1 through 5.3.10, CAV rules documented"
+      },
+      {
+        "section_id": "12",
+        "section_title": "Scoring & Ranking System",
+        "coverage_level": "mentioned",
+        "evidence": "Stage 1.3 task 1.3.7 references importance score computation; no detailed scoring taxonomy or ranking algorithm"
+      },
+      {
+        "section_id": "13",
+        "section_title": "Cross-Cutting Navigation & UX Patterns",
+        "coverage_level": "partial",
+        "evidence": "Phase 2 Stage 2.4 covers search and navigation (lines 166-179), hover popovers, breadcrumbs, but lacks comprehensive UX pattern inventory"
+      },
+      {
+        "section_id": "14",
+        "section_title": "Non-Functional Requirements",
+        "coverage_level": "partial",
+        "evidence": "Phase 7 Stage 7.1 covers performance (lines 447-458), Stage 7.2 covers testing (lines 459-470), but NFRs not systematically organized"
+      },
+      {
+        "section_id": "17",
+        "section_title": "Implementation Status",
+        "coverage_level": "mentioned",
+        "evidence": "Each phase/stage indicates entry/exit state; no detailed implementation status tracking or completion percentages"
+      },
+      {
+        "section_id": "21",
+        "section_title": "Full Project Roadmap Phases",
+        "coverage_level": "comprehensive",
+        "evidence": "Entire document is phases 1-7 with detailed stages, tasks, REQs, and deliverables (lines 49-492)"
+      },
+      {
+        "section_id": "22",
+        "section_title": "Roadmap Appendices",
+        "coverage_level": "comprehensive",
+        "evidence": "Appendix A: Priority Mapping (lines 495-502), Appendix B: Milestone Definitions (lines 504-514), Appendix C: Risk Register (lines 516-525)"
+      }
+    ],
+    "sections_missing": [
+      "1.1: Mission Statement & Core Purposes (high-level product mission not repeated)",
+      "1.3: Reference Repository Inventory (no catalog of reference repos)",
+      "2: Product Architecture & Component Map (overall system architecture not presented)",
+      "2.2: Data Flow (no end-to-end data flow diagram)",
+      "2.3: Feature Inventory Summary (no consolidated feature table)",
+      "3.2: Schema Design Principles (composite PKs, JSONB not documented)",
+      "3.3: Complete Table Inventory (no comprehensive table catalog)",
+      "3.5: Ancillary Schema Tables (no pgvector, embeddings, other ancillary tables)",
+      "4.4: Change Detection & RAG/Vector Indexing (not covered)",
+      "4.5: File Transfer Mechanisms (not covered)",
+      "5: MC-1 Visualizer (visualization taxonomy, architecture not detailed)",
+      "8: MC-4 Fortress Player (decision frameworks, automation mechanics not detailed)",
+      "9: MC-5 Mod Manager (advanced conflict detection, compiler deferred)",
+      "10: MC-6 Labor Manager (advanced automation, optimization deferred)",
+      "12: Scoring & Ranking System (scoring algorithm not detailed)",
+      "13: Cross-Cutting Navigation (comprehensive UX pattern inventory missing)",
+      "14: Non-Functional Requirements (systematically organized NFRs missing)",
+      "15: DFHack Integration Reference (DFHack API, RPC details not included)",
+      "16: Technology Stack (explicit tech stack section not present)",
+      "18: Event Type Taxonomy (event type enumeration not detailed)",
+      "19: Reference Data & Game Taxonomies (game taxonomies not included)",
+      "20: Architectural Patterns (architectural patterns section missing)",
+      "23: Consolidated Action Items & Prioritized Backlog (not a comprehensive backlog)",
+      "24: Sources & References (no bibliography or references section)"
+    ],
+    "unique_content": [
+      {
+        "topic": "Phase dependency graph",
+        "description": "ASCII diagram showing explicit dependencies between all 7 phases (lines 26-33)",
+        "estimated_word_count": 50
+      },
+      {
+        "topic": "Estimated timeline table",
+        "description": "Detailed per-phase duration with cumulative weeks for all 7 phases (lines 37-45)",
+        "estimated_word_count": 80
+      },
+      {
+        "topic": "Detailed stage-level task breakdown",
+        "description": "Comprehensive mapping of 26 stages across 7 phases with task lists, REQ IDs, and deliverables (~150 tasks)",
+        "estimated_word_count": 8000
+      },
+      {
+        "topic": "Entry/Exit states for each phase",
+        "description": "Explicit state transitions showing CDM table counts, record counts, and feature completeness at phase boundaries",
+        "estimated_word_count": 400
+      },
+      {
+        "topic": "REQ traceability",
+        "description": "Every task mapped to specific requirements (REQ-CDM-*, REQ-ETL-*, EXP-*, STR-*, VIS-*, etc.)",
+        "estimated_word_count": 200
+      },
+      {
+        "topic": "Stage-level duration estimates",
+        "description": "Weekly duration estimates for all 26 stages enabling project scheduling",
+        "estimated_word_count": 150
+      },
+      {
+        "topic": "Deferred/P4 stage groupings",
+        "description": "Clear separation of stretch features into Stage 4.4, 6.4, 6.5, 6.6 marked as deferrable",
+        "estimated_word_count": 100
+      },
+      {
+        "topic": "Priority taxonomy (P1-P4)",
+        "description": "Phase-aligned priority classification system with clear v1.0 milestone definition",
+        "estimated_word_count": 150
+      },
+      {
+        "topic": "Risk register",
+        "description": "5 identified risks with impact, mitigation strategies (Appendix C, lines 516-525)",
+        "estimated_word_count": 200
+      },
+      {
+        "topic": "Milestone definitions",
+        "description": "M1-M7 release milestones with explicit Definition of Done for each phase (Appendix B)",
+        "estimated_word_count": 300
+      }
+    ]
+  },
+  "scores": {
+    "breadth_score": 0.72,
+    "breadth_justification": "Document covers 22 of 25 main sections (88%), but 3 sections are completely missing (DFHack reference, Technology stack detail, Architectural patterns) and several sections are only mentioned rather than comprehensively covered. Strong coverage of roadmap phases (21), ETL systems (4), Explorer (6), Storyteller (7), Knowledge Horizon (11). Weak coverage of foundational sections like schema design principles (3.2), complete table inventory (3.3), data flow architecture (2.2), and advanced component mechanics (8, 9, 10).",
+    "depth_score": 0.78,
+    "depth_justification": "For sections covered, the document provides substantial depth: 150+ itemized tasks across 26 stages with REQ traceability, duration estimates, and deliverables. Phase 1 (Data Foundation) and Phase 3 (Narrative Engine) show excellent granularity. However, lacks depth in architectural principles (why composite PKs, JSONB design), technology rationale (why Leaflet vs. other mapping libs), and detailed component specifications (Visualizer architecture taxonomy, Advisor decision frameworks). Schema design, DFHack integration details, and event type enumeration are absent entirely.",
+    "unique_content_score": 0.85,
+    "unique_justification": "Document contains substantial unique content not in source taxonomy: detailed task lists for all 26 stages, explicit phase dependency graphs, cumulative timeline table, entry/exit states, stage-level duration estimates, deferred stage groupings (P4), and comprehensive milestone/risk appendices. These are valuable planning artifacts derived from the taxonomy. Main limitation: no new high-level architectural insights, no new technology rationale, no new component design details—unique content is primarily operational decomposition.",
+    "overall_score": 0.77,
+    "overall_calculation": "(breadth: 0.72 × 0.4) + (depth: 0.78 × 0.4) + (unique_content: 0.85 × 0.2) = 0.288 + 0.312 + 0.170 = 0.770"
+  },
+  "recommendation": {
+    "suitable_as_master": false,
+    "reasoning": "The full-project-roadmap.md is an excellent operational execution document—it provides phase-by-phase task decomposition, timeline estimates, and REQ traceability essential for project management. However, it is NOT suitable as a master taxonomy document. It lacks foundational sections: (1) No high-level product vision/mission statement or positioning vs. existing tools; (2) No comprehensive system architecture or data flow diagram; (3) No detailed schema design principles or complete CDM table inventory; (4) No DFHack integration reference or technology stack rationale; (5) No event type taxonomy, game taxonomies, or architectural patterns; (6) No references/sources section. A proper master should include: product-requirements.md (vision, architecture, detailed specs), full-project-roadmap.md (this document, for execution), AND research-synthesis-v2.md (context, landscape, game data). Use the current master-taxonomy.json (created from all three sources) as the authority; treat roadmap.md as a Phase-level execution guide."
+  }
+}
