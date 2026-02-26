@@ -1310,3 +1310,28 @@ The "live data" tables (units, unit_events, game_reports, etc.) are empty since 
 ### 2026-02-26 [c5976b1cf616]
 
 **PostgreSQL username case sensitivity**: PostgreSQL stores unquoted identifiers as lowercase. The role was created as `jarvis` (lowercase). When you type `-U Jarvis`, psql sends "Jarvis" which doesn't match the role "jarvis". Always use lowercase for the username unless the role was created with `CREATE ROLE "Jarvis"` (double-quoted, which preserves case).
+
+### 2026-02-26 [909eba71a408]
+
+- **PostgreSQL case rules**: Unquoted identifiers (like in `CREATE ROLE jarvis`) are folded to lowercase. Only `"Jarvis"` (double-quoted) preserves the capital J. Since Docker Compose set `POSTGRES_USER: jarvis`, the role is lowercase.
+- **`pg_hba.conf`**: The container uses `md5` or `scram-sha-256` auth for TCP connections, which is why a password is required even from localhost — unlike socket connections inside the container which may use `trust`.
+
+### 2026-02-26 [64b7322b7175]
+
+- **Commit granularity**: Grouping by logical theme (new feature → documentation → housekeeping) rather than by file proximity makes `git log --oneline` and `git bisect` more useful. Each commit answers "what was the intent?" rather than "what happened to be dirty."
+- **The 46-file commit**: The HDS intermediate artifacts (`.hds-work-*/`, `tmp/round*`) are included for reproducibility — if the planning history ever needs re-merging, the delta extractions and consolidation pairs are preserved.
+
+### 2026-02-26 [60b01726f55a]
+
+- **GH007 email privacy**: GitHub's push protection checks both the **author** and **committer** email fields in every commit. If either contains an email that GitHub considers private (like a personal university email), the push is rejected — even if the same email worked before (GitHub may update its privacy rules).
+- **Safe local rewrite**: Since the 4 commits hadn't been pushed yet, `git rebase --exec` with `git commit --amend --author=...` was a safe way to rewrite them. The key was also setting `GIT_COMMITTER_EMAIL` as an env var during the rebase so the committer field was updated too.
+
+### 2026-02-26 [b590e1694fb1]
+
+- **GitHub noreply emails**: GitHub provides each account a `ID+username@users.noreply.github.com` address. Using this for commits avoids GH007 privacy blocks while still correctly attributing commits to your GitHub profile. GitHub automatically maps this noreply address to your account in the commit graph.
+- **Two places to set it**: The author email (set via `--author` or `git config user.email`) and the committer email (set via `GIT_COMMITTER_EMAIL` env var) must both use the noreply address — GitHub checks both.
+
+### 2026-02-26 [6dff2cd32d58]
+
+- **`user.email` vs `GIT_COMMITTER_EMAIL`**: Git uses `user.email` for *both* author and committer by default. `GIT_COMMITTER_EMAIL` only overrides the committer field when explicitly set as an env var. By fixing the global config, we no longer need env var workarounds on every push.
+- **Test-and-rollback pattern**: `git commit --allow-empty` + `git reset HEAD~1 --soft` is a safe way to verify git config changes without touching the working tree or leaving artifacts behind.

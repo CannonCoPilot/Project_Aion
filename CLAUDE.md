@@ -97,9 +97,23 @@ Fallback: search `.claude/skills/_index.md`, `.claude/agents/CLAUDE.md`, `.claud
 | JICM design | `.claude/context/designs/jicm-v5-design-addendum.md` |
 | Compaction essentials | `.claude/context/compaction-essentials.md` |
 
-## Active Plans
+## Active Jarvis
+@.claude/context/psyche/jarvis-identity.md
+@.claude/context/psyche/valedictions.yaml
+@.claude/context/components/orchestration-overview.md
+@.claude/context/psyche/self-knowledge/strengths.md
+@.claude/context/psyche/self-knowledge/weaknesses.md
+@.claude/context/psyche/_index.md
+@.claude/context/psyche/autopoietic-paradigm.md
+@.claude/context/psyche/capability-map.yaml
+@.claude/context/psyche/nous-map.md
+@.claude/context/psyche/pneuma-map.md
+@.claude/context/psyche/soma-map.md
+@.claude/context/psyche/README.md
 
-#@.claude/context/current-plans.md
+## Active Plans
+@.claude/context/current-plans.md
+@.projects/chronicler/reports/phases/phase-2-explorer-core.md
 
 ## Chronicler Development Process
 
@@ -132,10 +146,11 @@ World name: "Tar Thran" aka "The Land of Dawning"
 ### Overriding Rule MANDATORY:
 You must not substitute or short-cut any functionality which ought to be part of the deliverable Chronicler Application by executing your own ad hoc commands or scripts.  No Phase is complete unless a fully stand-alone executable has been finished and packaged in such a way as to be able to be run hands-off with no special handling by you.  Everything must be created with the User's experience and control of the software as the paramount end goal.
 
-### Current Phase: Phase 1 -- Data Foundation
+### Current Phase: Phase 2 -- Explorer Core
 
-See `projects/chronicler/reports/phases/phase-1-data-foundation.md` for full details.
-# Mandatory: You may not mark a Phase as completed without providing the standalone script for the User to run, aand a full report for the User which will include a summary of completed features and a mini-tutorial for the User to follow for validation.
+See `projects/chronicler/reports/phases/phase-2-explorer-core.md` for full details.
+Phase 1 (Data Foundation) is COMPLETE -- 64/64 checks passed, User-reviewed.
+# Mandatory: You may not mark a Phase as completed without providing the standalone script for the User to run, and a full report for the User which will include a summary of completed features and a mini-tutorial for the User to follow for validation.
 
 ---
 

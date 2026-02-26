@@ -23,7 +23,8 @@ If the CLI is not found, install it:
 cd /Users/nathanielcannon/Claude/Projects/DwarfCron
 .venv/bin/pip install -e .
 ```
-
+user: jarvis
+pass: OSDbeydP6TOBGoJUym6rTBfULKJYqqPE
 ---
 
 ## Overview: What the Phase 1 DoD Requires
@@ -544,13 +545,13 @@ For reference, here is the complete check-by-check listing as produced by the va
 
 Use this checklist to track your validation:
 
-- [ ] **Step 1**: Run `chronicler validate-phase1 --world-id 2` → 64/64 passed
-- [ ] **Step 2**: Run `chronicler validate` → ~2.2M records across 39 tables
-- [ ] **Step 3**: Ingest a second world (region30 or region2) → new world_id assigned
-- [ ] **Step 4**: Run `chronicler validate-phase1 --world-id <NEW>` → 64/64 passed on new world
-- [ ] **Step 5**: Run `pytest tests/` (excluding E2E tests) → 190 passed
-- [ ] **Step 6**: Run `chronicler serve` and verify web UI loads with all 6 tabs functional
-- [ ] **Step 7**: Confirm no regressions in CLI commands (worlds list, validate, ingest)
+- [+] **Step 1**: Run `chronicler validate-phase1 --world-id 2` → 64/64 passed
+- [+] **Step 2**: Run `chronicler validate` → ~2.2M records across 39 tables
+- [+] **Step 3**: Ingest a second world (region30 or region2) → new world_id assigned
+- [+] **Step 4**: Run `chronicler validate-phase1 --world-id <NEW>` → 64/64 passed on new world
+- [+] **Step 5**: Run `pytest tests/` (excluding E2E tests) → 190 passed
+- [+] **Step 6**: Run `chronicler serve` and verify web UI loads with all 6 tabs functional
+- [+] **Step 7**: Confirm no regressions in CLI commands (worlds list, validate, ingest)
 
 When all 7 steps pass, Phase 1 exit criteria are fully satisfied.
 
