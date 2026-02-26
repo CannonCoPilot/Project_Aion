@@ -1300,3 +1300,13 @@ The "live data" tables (units, unit_events, game_reports, etc.) are empty since 
 - `information_schema.constraint_column_usage` stores FK column pairs *without* ordinal position, so joining to `key_column_usage` on a composite FK like `(world_id, site_id) REFERENCES sites(world_id, id)` produces a Cartesian product: 4 rows instead of 2. This was causing the duplicate relationship lines.
 - `pg_constraint.conkey` and `confkey` are parallel arrays — `conkey[1]` maps to `confkey[1]` — so `CROSS JOIN LATERAL unnest(...) WITH ORDINALITY` gives exact column-to-column mapping with no duplicates.
 - The Mermaid format distinguishes cardinality: `}o--||` means "many from-side, exactly-one to-side" (used when all FK columns are part of the PK, indicating a junction/associative table). `}o--o|` means "many-to-zero-or-one" (regular FK columns).
+
+### 2026-02-26 [9b3cdee3e501]
+
+**Architectural shift rationale**: The current explorer.html renders everything client-side via JS (fetch JSON → build HTML in browser). Phase 2 shifts to server-side Jinja2 templates because: (1) each entity gets a bookmarkable URL, (2) cross-linking is simpler when the server controls HTML generation, (3) perspective-aware rendering needs DB access (entity name resolution) which is cleaner server-side, and (4) the PRD explicitly mandates it. The existing explorer.html stays functional — detail pages are purely additive.
+
+**Scale awareness**: The DB has 871K event-entity cross-references indexed on `(world_id, entity_type, entity_id)`. This means event queries for any entity detail page will use index scans, not table scans. The 48K HF table is the largest entity table — the HF detail page (24 sections) needs concurrent queries via `asyncio.gather()` to stay under the 2-second load target.
+
+### 2026-02-26 [c5976b1cf616]
+
+**PostgreSQL username case sensitivity**: PostgreSQL stores unquoted identifiers as lowercase. The role was created as `jarvis` (lowercase). When you type `-U Jarvis`, psql sends "Jarvis" which doesn't match the role "jarvis". Always use lowercase for the username unless the role was created with `CREATE ROLE "Jarvis"` (double-quoted, which preserves case).
