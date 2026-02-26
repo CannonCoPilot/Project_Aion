@@ -1,0 +1,563 @@
+erDiagram
+
+    %% ── Geography & World ─────────────────────────────────
+
+    %% Top-level world record (one per DF export) (1 rows)
+    worlds {
+        int id "PK"
+        text name
+        text alt_name
+        text import_path
+        timestamptz imported_at
+    }
+
+    %% Continents and major landmasses (100 rows)
+    landmasses {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text coord_1
+        text coord_2
+    }
+
+    %% Named peaks, volcanoes (16 rows)
+    mountain_peaks {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text coords
+        int height
+        bool is_volcano
+    }
+
+    %% Surface biome regions (2,278 rows)
+    regions {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text type
+        text coords
+    }
+
+    %% Cavern layers, magma sea, underworld (1,445 rows)
+    underground_regions {
+        int id "PK"
+        int world_id "PK,FK"
+        text type
+        int depth
+        text coords
+    }
+
+    %% Cities, fortresses, lairs, camps (2,154 rows)
+    sites {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text type
+        int coord_x
+        int coord_y
+        text coords
+        int owner_entity_id
+        jsonb details
+        float importance_score
+    }
+
+    %% Buildings within sites (temples, tombs, libraries) (1,833 rows)
+    structures {
+        int id "PK"
+        int world_id "PK,FK"
+        int site_id "PK,FK"
+        text name
+        text type
+        int entity_id
+        jsonb details
+    }
+
+    %% Roads, bridges, tunnels connecting sites (311 rows)
+    world_constructions {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text type
+        text coords
+    }
+
+    %% Named rivers with path coordinates (7,465 rows)
+    rivers {
+        int world_id "PK,FK"
+        int id "PK"
+        text name
+        text name_english
+        text path
+        text end_type
+        jsonb details
+    }
+
+    %% ── Civilizations & Culture ───────────────────────────
+
+    %% Civilizations, religions, performance troupes (4,847 rows)
+    entities {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text type
+        text race
+        jsonb details
+    }
+
+    %% Noble/military/admin positions within entities (8,852 rows)
+    entity_positions {
+        int id "PK"
+        int world_id "FK"
+        int entity_id "FK"
+        int position_id
+        text name
+        text name_male
+        text name_female
+        text spouse
+        text spouse_male
+        text spouse_female
+    }
+
+    %% Race/count breakdown per civilization (810 rows)
+    entity_populations {
+        int id "PK"
+        int world_id "PK,FK"
+        text race
+        int count
+        int civ_id
+    }
+
+    %% Dance, musical, and poetic art forms (240 rows)
+    art_forms {
+        int world_id "PK,FK"
+        int id "PK"
+        text name
+        text form_type
+        text description
+        jsonb details
+    }
+
+    %% Books, poems, essays, letters (37,486 rows)
+    written_contents {
+        int id "PK"
+        int world_id "PK,FK"
+        text title
+        int author_hf_id
+        text form
+        text type
+        int page_start
+        int page_end
+        text[] styles
+        jsonb details
+    }
+
+    %% Named eras in world history (1 rows)
+    historical_eras {
+        int world_id "PK,FK"
+        text name "PK"
+        int start_year
+    }
+
+    %% False identities (vampires, spies, agents) (2,928 rows)
+    identities {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        int histfig_id
+        int birth_year
+        int birth_second
+        int entity_id
+        text race
+        text caste
+        text profession
+        jsonb details
+    }
+
+    %% ── Historical Figures ────────────────────────────────
+
+    %% All historical figures (48K+ per world) (48,273 rows)
+    historical_figures {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text race
+        text caste
+        int2 sex
+        int birth_year
+        int birth_seconds
+        int death_year
+        int death_seconds
+        text death_cause
+        int entity_id
+        bool is_deity
+        bool is_force
+        bool is_vampire
+        bool is_necromancer
+        bool is_werebeast
+        bool is_ghost
+        int kill_count
+        int event_count
+        jsonb details
+        float importance_score
+        text[] spheres
+        jsonb goals
+        jsonb skills
+        jsonb kills
+        jsonb whereabouts
+        jsonb entity_reputations
+        jsonb intrigue_actors
+        jsonb used_identities
+        jsonb journey_pets
+        int[] holds_artifact
+        text[] active_interactions
+    }
+
+    %% HF-to-HF relationships (family, deity, companions) (282,332 rows)
+    hf_links {
+        int id "PK"
+        int world_id "FK"
+        int hf_id "FK"
+        int target_hf_id "FK"
+        text link_type
+    }
+
+    %% HF membership in entities (with position/role) (193,711 rows)
+    hf_entity_links {
+        int id "PK"
+        int world_id "FK"
+        int hf_id "FK"
+        int entity_id "FK"
+        text link_type
+        text position_name
+    }
+
+    %% HF connections to sites (home, prison, lair) (2,074 rows)
+    hf_site_links {
+        int id "PK"
+        int world_id "FK"
+        int hf_id "FK"
+        int site_id "FK"
+        text link_type
+    }
+
+    %% HF position assignments (noble titles, dates) (21,778 rows)
+    hf_position_links {
+        int id "PK"
+        int world_id "FK"
+        int hf_id "FK"
+        int entity_id "FK"
+        int position_id
+        int start_year
+        int end_year
+    }
+
+    %% ── Events & Collections ──────────────────────────────
+
+    %% All historical events (436K+ per world) (436,455 rows)
+    history_events {
+        int id "PK"
+        int world_id "PK,FK"
+        int year
+        int seconds
+        text event_type
+        int hf_id_1
+        int hf_id_2
+        int site_id
+        int region_id
+        int entity_id_1
+        int entity_id_2
+        int artifact_id
+        int structure_id
+        jsonb details
+    }
+
+    %% Wars, battles, duels, raids, etc. (34,861 rows)
+    history_event_collections {
+        int id "PK"
+        int world_id "PK,FK"
+        text type
+        text name
+        int parent_id
+        int start_year
+        int start_seconds
+        int end_year
+        int end_seconds
+        int attacker_entity_id
+        int defender_entity_id
+        int site_id
+        int region_id
+        jsonb details
+    }
+
+    %% Junction: events within collections (92,868 rows)
+    collection_events {
+        int world_id "PK,FK"
+        int collection_id "PK,FK"
+        int event_id "PK,FK"
+    }
+
+    %% Junction: collection hierarchy (22,201 rows)
+    collection_subcollections {
+        int world_id "PK,FK"
+        int parent_id "PK,FK"
+        int child_id "PK,FK"
+    }
+
+    %% Additional event metadata from legends_plus (113,085 rows)
+    event_relationships {
+        int id "PK"
+        int world_id "FK"
+        int event_id
+        text relationship
+        int source_hf
+        int target_hf
+        int year
+    }
+
+    %% Cross-reference: which entities appear in which events (871,761 rows)
+    event_entity_xref {
+        int world_id "PK,FK"
+        int event_id "PK,FK"
+        text entity_type "PK"
+        int entity_id "PK"
+        text role
+    }
+
+    %% ── Artifacts ─────────────────────────────────────────
+
+    %% Named artifacts (weapons, books, crowns) (8,035 rows)
+    artifacts {
+        int id "PK"
+        int world_id "PK,FK"
+        text name
+        text item_type
+        text item_subtype
+        text material
+        int creator_hf_id
+        int holder_hf_id
+        int site_id
+        jsonb details
+        float importance_score
+    }
+
+    %% ── Live / Fortress Data ──────────────────────────────
+
+    %% Live fortress units (from DFHack sync) (0 rows)
+    units {
+        int id "PK"
+        int world_id "FK"
+        text name
+        text race
+        text caste
+        text profession
+        int pos_x
+        int pos_y
+        int pos_z
+        bool is_alive
+        int hist_fig_id
+        int civ_id
+        jsonb details
+        timestamptz last_synced_at
+        text english_name
+        int birth_year
+        int2 sex
+        text death_cause
+    }
+
+    %% Live unit events/changes (0 rows)
+    unit_events {
+        int id "PK"
+        int unit_id
+        int world_id "FK"
+        text event_type
+        jsonb old_value
+        jsonb new_value
+        int game_year
+        int game_tick
+        timestamptz detected_at
+    }
+
+    %% Denizen registry (arrival, status, narrative value) (0 rows)
+    fortress_denizens {
+        int id "PK"
+        int world_id "FK"
+        int unit_id
+        int hf_id
+        text name
+        text english_name
+        text race
+        text status
+        bool embark
+        int arrival_year
+        int arrival_tick
+        int departure_year
+        int departure_tick
+        text departure_cause
+        float narrative_value
+        int last_seen_tick
+        jsonb details
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    %% DFHack sync metadata (0 rows)
+    sync_snapshots {
+        int id "PK"
+        int world_id "FK"
+        int unit_count
+        int event_count
+        int game_year
+        int game_tick
+        timestamptz synced_at
+    }
+
+    %% In-game combat/event reports (0 rows)
+    game_reports {
+        int id "PK"
+        int world_id "FK"
+        int report_id
+        int report_type
+        text text
+        int game_year
+        int game_tick
+        int pos_x
+        int pos_y
+        int pos_z
+        bool is_announcement
+        timestamptz detected_at
+    }
+
+    %% Map tile data snapshots (0 rows)
+    world_map_snapshots {
+        int id "PK"
+        int world_id "FK"
+        int world_width
+        int world_height
+        text name
+        text name_english
+        jsonb geography
+        timestamptz captured_at
+    }
+
+    %% DFHack Lua probe results (0 rows)
+    lua_probes {
+        int id "PK"
+        int world_id "FK"
+        text probe_name
+        jsonb data
+        int game_year
+        int game_tick
+        timestamptz captured_at
+    }
+
+    %% Vector embeddings for semantic search (0 rows)
+    embeddings {
+        int id "PK"
+        text entity_type
+        int entity_id
+        int chunk_index
+        text chunk_text
+        text content_hash
+        vector embedding
+        timestamptz created_at
+    }
+
+    %% ── System ────────────────────────────────────────────
+
+    %% World generation parameter snapshots (Phase 5) (0 rows)
+    worldgen_snapshots {
+        int id "PK"
+        int world_id "FK"
+        text phase
+        float progress_pct
+        int year
+        int pop_count
+        int site_count
+        int hf_count
+        int entity_count
+        int event_count
+        jsonb data
+        timestamptz captured_at
+    }
+
+    %% Mod/raw configuration records (Phase 6) (0 rows)
+    world_modpacks {
+        int id "PK"
+        int world_id "FK"
+        text name
+        text version
+        text source
+        bool active
+        jsonb details
+        timestamptz recorded_at
+    }
+
+    %% AI storyteller interaction log (25 rows)
+    storyteller_log {
+        int id "PK"
+        timestamptz timestamp
+        text query
+        int world_id
+        text world_name
+        text[] keywords
+        int context_records
+        int context_chars
+        jsonb context_categories
+        text model
+        float4 temperature
+        int max_tokens
+        int tokens_streamed
+        int response_chars
+        int context_latency_ms
+        int first_token_ms
+        int llm_latency_ms
+        int total_latency_ms
+        text status
+        text error
+    }
+
+    %% ── Relationships ────────────────────────────────────
+
+    worlds }o--|| art_forms : "world_id→id"
+    worlds }o--|| artifacts : "world_id→id"
+    history_event_collections }o--|| collection_events : "world_id→world_id, collection_id→id"
+    history_events }o--|| collection_events : "world_id→world_id, event_id→id"
+    history_event_collections }o--|| collection_subcollections : "world_id→world_id, child_id→id"
+    history_event_collections }o--|| collection_subcollections : "world_id→world_id, parent_id→id"
+    worlds }o--|| entities : "world_id→id"
+    worlds }o--|| entity_populations : "world_id→id"
+    entities }o--o| entity_positions : "world_id→world_id, entity_id→id"
+    history_events }o--|| event_entity_xref : "world_id→world_id, event_id→id"
+    worlds }o--o| event_relationships : "world_id→id"
+    worlds }o--o| fortress_denizens : "world_id→id"
+    worlds }o--o| game_reports : "world_id→id"
+    entities }o--o| hf_entity_links : "world_id→world_id, entity_id→id"
+    historical_figures }o--o| hf_entity_links : "world_id→world_id, hf_id→id"
+    historical_figures }o--o| hf_links : "world_id→world_id, hf_id→id"
+    historical_figures }o--o| hf_links : "world_id→world_id, target_hf_id→id"
+    entities }o--o| hf_position_links : "world_id→world_id, entity_id→id"
+    historical_figures }o--o| hf_position_links : "world_id→world_id, hf_id→id"
+    historical_figures }o--o| hf_site_links : "world_id→world_id, hf_id→id"
+    sites }o--o| hf_site_links : "world_id→world_id, site_id→id"
+    worlds }o--|| historical_eras : "world_id→id"
+    worlds }o--|| historical_figures : "world_id→id"
+    worlds }o--|| history_event_collections : "world_id→id"
+    worlds }o--|| history_events : "world_id→id"
+    worlds }o--|| identities : "world_id→id"
+    worlds }o--|| landmasses : "world_id→id"
+    worlds }o--o| lua_probes : "world_id→id"
+    worlds }o--|| mountain_peaks : "world_id→id"
+    worlds }o--|| regions : "world_id→id"
+    worlds }o--|| rivers : "world_id→id"
+    worlds }o--|| sites : "world_id→id"
+    sites }o--|| structures : "world_id→world_id, site_id→id"
+    worlds }o--o| sync_snapshots : "world_id→id"
+    worlds }o--|| underground_regions : "world_id→id"
+    worlds }o--o| unit_events : "world_id→id"
+    worlds }o--o| units : "world_id→id"
+    worlds }o--|| world_constructions : "world_id→id"
+    worlds }o--o| world_map_snapshots : "world_id→id"
+    worlds }o--o| world_modpacks : "world_id→id"
+    worlds }o--o| worldgen_snapshots : "world_id→id"
+    worlds }o--|| written_contents : "world_id→id"

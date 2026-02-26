@@ -1,0 +1,169 @@
+{
+  "document_id": "product-requirements.md",
+  "document_type": "Product Requirements Document (PRD)",
+  "document_version": "1.0",
+  "document_date": "2026-02-25",
+  "coverage_analysis": {
+    "sections_covered": [
+      {
+        "section_id": "1",
+        "canonical_title": "Product Vision & Overview",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 1.1-1.3 fully addressed: mission statement (1.1), core purposes (1.2), unique positioning (1.3). Document contains detailed mission, two core purposes, and unique positioning relative to DF tools."
+      },
+      {
+        "section_id": "2",
+        "canonical_title": "Product Architecture & Component Map",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 2.1-2.3 fully covered: component hierarchy shown, data flow diagram present, feature inventory embedded across all component sections."
+      },
+      {
+        "section_id": "3",
+        "canonical_title": "Common Data Model & Database",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 3.1-3.5 fully addressed: PostgreSQL 16 config (REQ-CDM-001), composite PKs (002), JSONB (003), event types (004), complete table set (005-007), importance scores (008), knowledge horizon table (009), worldgen snapshots (010), world modpacks (011), pgvector (012)."
+      },
+      {
+        "section_id": "4",
+        "canonical_title": "Data ETL Systems",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 4.1-4.8 fully covered: streaming XML parser (REQ-ETL-001-003), post-parse pipeline (004), live bridge (005-011), worldgen monitoring (012), change detection (013), file transfer (014), dfhack-run SSH (015), RAG/vector indexing (016)."
+      },
+      {
+        "section_id": "5",
+        "canonical_title": "MC-1: World History & Demographics Visualizer",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 5.1-5.17 fully covered: world map (REQ-VIS-001-010), charts/demographics (011-014), network graphs (015-016), genealogy trees (017-018), entity relationship (019), world summary (020), eras/events browser (021-023), in-game curves (024), hover popovers (REQ-VIS-011)."
+      },
+      {
+        "section_id": "6",
+        "canonical_title": "MC-2: Database Explorer Tools",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 6.1-6.7 fully covered: schema browser (REQ-EXP-001-004), data browser (005-010), detail pages for HFs/entities/sites/artifacts/regions/structures (011-019), global search (020-021), HF filtering (022), query builder (023-024), export (025-027), perspective-aware rendering (028), navigation (029-030)."
+      },
+      {
+        "section_id": "7",
+        "canonical_title": "MC-3: AI Storyteller (Narrative Engine)",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 7.1-7.10 fully covered: conversational Q&A (REQ-STR-001), dual-tier context (002), SSE streaming (003), multi-world support (004-005), agentic SQL (007), biography generation (008), person view merge (009), relationship traversal (011), emotion/zone integration (012), war/battle narratives (013-014), rise-and-fall (015), event templates (016-017), death causes (017), age at death (019), temporal context (020), interaction text (021), event enrichment (023), calendar formatting (024), NVS scoring (025), rivalry detection (026), top-N selection (027), logging (028-029), template vs. LLM (030), knowledge horizon (032)."
+      },
+      {
+        "section_id": "8",
+        "canonical_title": "MC-4: AI Fortress Player (Advisor)",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 8.1-8.9 fully covered: tick-based polling (REQ-ADV-001), population update cycle (002), reactive control (003), action queue (004), advisor/autonomous toggle (005), fortress health summary (006), event-driven alerts (007), citizen tracking (008), noble assignment (009), job stall detection (010), military sizing (011), squad creation (012), stock thresholds (013), production ordering (014), farm management (015), metalworking (016), construction planning (017), trade management (018), threat assessment (019), natural language advice (020-021), proactive alerts (022), post-mortem narrative (023), embark evaluation (024), auto-restart (025)."
+      },
+      {
+        "section_id": "9",
+        "canonical_title": "MC-5: Mod Manager",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 9.1-9.6 fully covered: mod discovery filesystem/live (REQ-MOD-001-002), info.txt parser (003), modpack CRUD (004-005), load order management (006), conflict detection levels 1-3 (007-009), visual indicators (010), auto-order (011), raw tokenizer (012), three-way merge (013), vanilla baseline (014), raw compiler (015), snapshot at worldgen (016), mod history in DB (017), annotation (018), Steam integration (019), CLI interface (020)."
+      },
+      {
+        "section_id": "10",
+        "canonical_title": "MC-6: Labor Manager",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 10.1-10.8 fully covered: labor toggle grid (REQ-LAB-001), skill display (002), personality visualization (003), happiness/stress (004), squad management (005), noble/position management (006), profession templates (007), dwarf filtering (008), thought/emotion display (009), need satisfaction (010), attribute display (011), citizen roster (012), AI labor advisor (013), skill-based auto-assignment (014), migration tracking (015), job management (016), wound/health (017), inventory/equipment (018), relationship visualization (019), skill distribution (020), stress trends (021), batch operations (022), labor optimization (023), newcomer orientation (024), deathwatch/casualty (025)."
+      },
+      {
+        "section_id": "11",
+        "canonical_title": "Knowledge Horizon",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 11.1-11.3 fully covered: geographic scope (REQ-KH-001), civ scope (002), individual scope (003), organization membership (004), nobles visibility (005), previous residence (006), starting dwarf generation (007), family chain (008), event-based revelation (009), LLM inference restrictions (010), view-based masking (011), phased rollout (012)."
+      },
+      {
+        "section_id": "12",
+        "canonical_title": "Scoring & Ranking",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 12.1-12.4 fully covered: figure importance score formula (REQ-SCR-001), site score (002), conflict score (003), artifact score (004), NVS for denizens (005), rivalry detection (006), megabeast detection (007), supernatural detection (008)."
+      },
+      {
+        "section_id": "13",
+        "canonical_title": "Navigation & UX Patterns",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 13.1-13.5 fully covered: cross-linked entity refs (REQ-NAV-001), perspective-aware events (002), hover popovers (003), breadcrumb/prev-next (004), DF calendar system (005)."
+      },
+      {
+        "section_id": "14",
+        "canonical_title": "Non-Functional Requirements",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 14.1-14.3 fully covered: performance requirements (REQ-NFR-001-003), security (004-005), reliability (006), scalability (007), observability (008), accessibility (009), compatibility (010)."
+      },
+      {
+        "section_id": "15",
+        "canonical_title": "DFHack Reference Guide",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 15.1-15.6 fully covered: data access paths (15.1), DFHack eventful (15.2), repeat job pattern (15.3), state change hook (15.4), RemoteFortressReader (15.5), DFHack gotchas (15.6)."
+      },
+      {
+        "section_id": "16",
+        "canonical_title": "Technology Stack",
+        "coverage_level": "comprehensive",
+        "notes": "Full technology stack matrix present with versions, vendors, and integration notes."
+      },
+      {
+        "section_id": "17",
+        "canonical_title": "Current State (v0.8)",
+        "coverage_level": "comprehensive",
+        "notes": "Sections 17.1-17.2 fully covered: built/working systems listed with line counts, not-yet-started features listed."
+      }
+    ],
+    "sections_missing": [
+      "18: Phase-Specific Requirements Details",
+      "19: Detailed Task Breakdowns by Phase",
+      "20: Implementation Constraints & Design Decisions",
+      "21: User Stories & Acceptance Criteria",
+      "22: API Contract Specifications",
+      "23: Testing Strategy & Coverage Targets",
+      "24: Deployment & DevOps Strategy"
+    ],
+    "unique_content": [
+      {
+        "topic": "Requirements-specific format with REQ-IDs and priority tags",
+        "estimated_word_count": 8000,
+        "description": "Product-requirements.md uses standardized REQ-ID naming (REQ-VIS-001, REQ-CDM-002, etc.) and P1-P4 priority levels throughout, providing clear traceability and prioritization not typically found in generic taxonomy sections."
+      },
+      {
+        "topic": "Inline implementation notes and design decisions",
+        "estimated_word_count": 2000,
+        "description": "Embedded rationales and design decision callouts (e.g., 'Design Decision #25' for event types as TEXT) that provide context beyond what taxonomy would capture."
+      },
+      {
+        "topic": "Built vs. Not-Yet-Started status tracking",
+        "estimated_word_count": 1500,
+        "description": "Section 17 provides detailed status matrix showing which features are built, partially built, or not started—tracking artifact not in core taxonomy."
+      },
+      {
+        "topic": "Technology stack matrix with version pins",
+        "estimated_word_count": 800,
+        "description": "Detailed technology stack table with specific versions (Python 3.12.12, PostgreSQL 16, Qwen3-8B, etc.) and deployment notes not typically captured in taxonomy."
+      },
+      {
+        "topic": "DFHack reference guide with code examples",
+        "estimated_word_count": 5000,
+        "description": "Extensive DFHack Lua API reference with code snippets (15 subsections) providing developer guidance beyond requirements scope."
+      }
+    ]
+  },
+  "scores": {
+    "breadth_score": 0.95,
+    "breadth_rationale": "Document covers 17/24 primary taxonomy sections comprehensively. Missing 7 sections are roadmap/phase-specific details and testing/deployment strategy—typically found in separate roadmap and QA documents, not PRDs. Core product surface is ~100% covered.",
+    "depth_score": 0.88,
+    "depth_rationale": "Each covered section includes detailed requirements with specific parameters, algorithms, formulas, and implementation notes. Some areas (e.g., Mod Manager conflict detection 3 levels, Death Cause 50+ variants, Event Templates 132+ types) show exceptional depth. Minor gaps: sparse on acceptance criteria detail and edge case handling.",
+    "unique_content_score": 0.75,
+    "unique_content_rationale": "~17,300 words of unique content beyond taxonomy structure: REQ-ID labeling system, priority levels, built/not-started tracking, technology stack matrix, DFHack reference guide with code examples, design decision rationales. These are valuable for developers but fall outside taxonomy scope.",
+    "overall_score": 0.88,
+    "overall_calculation": "(0.95 * 0.40) + (0.88 * 0.40) + (0.75 * 0.20) = 0.38 + 0.352 + 0.15 = 0.882"
+  },
+  "recommendation": {
+    "suitable_as_master": true,
+    "reasoning": "product-requirements.md is an excellent source document for the master taxonomy. It provides comprehensive, well-structured coverage of 17/24 primary sections with deep implementation detail, REQ-ID traceability, and priority rankings. Missing sections (phase details, testing strategy, deployment) are appropriately outside PRD scope and would be better sourced from full-project-roadmap.md and phase-specific PRDs. The document's systematic approach to requirements (REQ-IDs, priorities, status tracking) makes it ideal as a taxonomy foundation. Recommend using as primary source for sections 1-17; augment with roadmap for sections 18-24."
+  },
+  "analysis_metadata": {
+    "analysis_date": "2026-02-25",
+    "analyzer_role": "document_coverage_analyst",
+    "scan_method": "structure_analysis_with_manual_spot_check",
+    "confidence": 0.92,
+    "notes": "Analysis performed via document structure parsing (TOC cross-reference, section heading pattern matching) supplemented by spot-checks of representative sections. Line-by-line validation skipped per fast-scan instructions. Taxonomy spans 25 primary sections; PRD covers 17 comprehensively plus 2 partially (sections 18-24 address future/advanced topics outside typical PRD scope)."
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "extractions_integrated": 89,
+  "new_sections_added": 1,
+  "conflicts_resolved": 0,
+  "conflicts_flagged": 1,
+  "uncategorized_placed": 0,
+  "master_document": "product-requirements.md",
+  "contributing_documents": [
+    "full-project-roadmap.md",
+    "research-synthesis-v2.md"
+  ],
+  "total_sources": 3,
+  "final_word_count": 14747,
+  "final_line_count": 2230,
+  "final_section_count": 18,
+  "method": "HDS (Hierarchical Delta Synthesis)",
+  "phases_completed": [
+    "Phase 0: Structural Discovery",
+    "Phase 1: Anchor Selection",
+    "Phase 2: Delta Extraction",
+    "Phase 3: Delta Consolidation",
+    "Phase 4: Final Assembly"
+  ],
+  "delta_summary": {
+    "input_extractions": 134,
+    "after_consolidation": 89,
+    "duplicates_merged": 45,
+    "types": {
+      "new": 77,
+      "elaboration": 12
+    }
+  }
+}

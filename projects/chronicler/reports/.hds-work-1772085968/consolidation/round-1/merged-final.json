@@ -1,0 +1,1613 @@
+{
+  "consolidated_from": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+  "summary": {
+    "delta_a_extractions": 47,
+    "delta_b_extractions": 87,
+    "total_input": 134,
+    "output_extractions": 89,
+    "duplicates_merged": 45,
+    "conflicts_found": 1,
+    "targets_corrected": 2,
+    "merge_notes": "134 input extractions collapsed into 89 output extractions. 68 kept_single (single-source, no merging). 21 merged_duplicates entries absorb the remaining 45 originals. Several Delta B extractions were incorporated both inline into stage task lists AND retained as standalone elaborations targeting PRD requirements directly -- this double-use accounts for the 140 original_id references vs 134 actual inputs."
+  },
+  "extractions": [
+    {
+      "id": "C001",
+      "type": "new",
+      "content": "The Chronicler project is organized into 7 development phases, progressing from foundational data completeness through full application maturity. Each phase builds on the prior phase's deliverables. Within each phase, work is organized into stages that can be executed in parallel where dependencies allow.\n\nPhase 1: Data Foundation (CDM completeness, XML parser, post-parse pipeline)\nPhase 2: Explorer Core (entity detail pages, search, navigation, cross-linking)\nPhase 3: Narrative Engine (event templates, death causes, agentic storyteller)\nPhase 4: Visualization (world map, charts, family trees, graphs)\nPhase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon)\nPhase 6: Advanced Components (Mod Manager, Labor Manager, AI Advisor)\nPhase 7: Polish & Production (performance, testing, packaging, deployment)",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E001 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C002",
+      "type": "new",
+      "content": "Phase Dependencies (explicit predecessor/successor chain):\nPhase 1 --> Phase 2 (explorer needs complete data)\nPhase 1 --> Phase 3 (narrative needs complete events)\nPhase 2 --> Phase 4 (visualizations sit on explorer pages)\nPhase 3 --> Phase 5 (KH integrates with storyteller)\nPhase 2, Phase 3 --> Phase 6 (advanced components need explorer + narrative)\nAll --> Phase 7 (polish is last)",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E002 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C003",
+      "type": "new",
+      "content": "Estimated Timeline per phase:\n| Phase | Estimated Duration | Cumulative |\n|-------|-------------------|------------|\n| Phase 1 | 3-4 weeks | 3-4 weeks |\n| Phase 2 | 4-6 weeks | 7-10 weeks |\n| Phase 3 | 4-6 weeks | 11-16 weeks |\n| Phase 4 | 3-4 weeks | 14-20 weeks |\n| Phase 5 | 3-4 weeks | 17-24 weeks |\n| Phase 6 | 6-10 weeks | 23-34 weeks |\n| Phase 7 | 2-3 weeks | 25-37 weeks |\nTotal estimated timeline: 25-37 weeks across 7 phases.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E003 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C004",
+      "type": "new",
+      "content": "Phase 1: Data Foundation\nGoal: Complete the CDM schema, XML parser, and post-parse processing so all DF data is available in PostgreSQL with full cross-referencing.\nEntry State: v0.8 -- 35 tables, 8/14+ XML sections parsed, 1.65M records\nExit State: 40+ tables, all 14+ XML sections parsed, post-parse pipeline running, all entity types and fields complete",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E004 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C005",
+      "type": "new",
+      "content": "Stage 1.1: CDM Schema Extensions (Duration: 1 week)\nTask 1.1.1 (CDM-006): Add `world_constructions` table (world_id, id, name, type, coords) -- Deliverable: SQL migration + model\nTask 1.1.2 (CDM-006): Add `art_forms` table (world_id, id, name, type [dance/musical/poetic], details JSONB) -- Deliverable: SQL migration + model\nTask 1.1.3 (CDM-006): Add `identities` table (world_id, id, name, race, caste, details JSONB) -- Deliverable: SQL migration + model\nTask 1.1.4 (CDM-006): Add `rivers` table (world_id, id, name, coords, details JSONB) -- Deliverable: SQL migration + model\nTask 1.1.5 (CDM-006): Complete `landmasses` and `mountain_peaks` tables (add missing fields) -- Deliverable: SQL migration\nTask 1.1.6 (CDM-007): Extend `historical_figures` with high-priority fields (spheres, goals, skills, kills, whereabouts, entity_reputations, intrigue_actors, used_identities, journey_pets, holds_artifact) -- Deliverable: SQL migration\nTask 1.1.7 (CDM-007): Add `active_interactions` JSONB field to HFs for vampire/necromancer/were detection -- Deliverable: SQL migration\nTask 1.1.8 (CDM-010): Add `worldgen_snapshots` table -- Deliverable: SQL migration\nTask 1.1.9 (CDM-011): Add `world_modpacks` table -- Deliverable: SQL migration",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E005 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C006",
+      "type": "new",
+      "content": "Stage 1.2: XML Parser Completion (Duration: 1-2 weeks)\nTask 1.2.1 (ETL-003): Parse `<world_constructions>` section (roads, tunnels, bridges) -- Deliverable: Parser extension\nTask 1.2.2 (ETL-003): Parse `<dance_forms>`, `<musical_forms>`, `<poetic_forms>` sections -- Deliverable: Parser extension\nTask 1.2.3 (ETL-003): Parse `<identities>` section -- Deliverable: Parser extension\nTask 1.2.4 (ETL-003): Parse `<rivers>` section -- Deliverable: Parser extension\nTask 1.2.5 (ETL-003): Complete `<mountain_peaks>` and `<landmasses>` parsing -- Deliverable: Parser extension\nTask 1.2.6 (ETL-003): Parse expanded HF fields from legends_plus.xml (skills, kills, whereabouts, entity_reputations, active_interactions, etc.) -- Deliverable: Parser extension\nTask 1.2.7 (ETL-003): Parse `<entity_populations>` section fully -- Deliverable: Parser extension\nTask 1.2.8 (ETL-002): Audit dual-file merge rules against LV-Next/LB2 merge strategies -- Deliverable: Verification report",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E006 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C007",
+      "type": "new",
+      "content": "Stage 1.3: Post-Parse Processing Pipeline (Duration: 1-2 weeks)\nTask 1.3.1 (ETL-004): Step 1: Resolve HF-to-HF family links (mother/father/child/spouse from hf_links) -- Deliverable: Processing step\nTask 1.3.2 (ETL-004): Step 2: Resolve HF-to-entity position assignments -- Deliverable: Processing step\nTask 1.3.3 (ETL-004): Step 3: Derive vampire/werebeast/necromancer flags from interaction events -- Deliverable: Processing step\nTask 1.3.4 (ETL-004): Step 4: Compute site ruin status from destruction/reclaim events -- Deliverable: Processing step\nTask 1.3.5 (ETL-004): Step 5: Build entity war lists from event collections -- Deliverable: Processing step\nTask 1.3.6 (ETL-004): Step 6: Compute HF kill lists from death events -- Deliverable: Processing step\nTask 1.3.7 (ETL-004): Step 7: Calculate importance scores (df-narrator formulas) -- Deliverable: Processing step\nTask 1.3.8 (ETL-004): Step 8: Build event-to-entity cross-reference index -- Deliverable: Processing step\nTask 1.3.9 (ETL-004): Step 9: Resolve site ownership history from events -- Deliverable: Processing step\nTask 1.3.10 (ETL-004): Step 10: Validate referential integrity (all FK refs resolve) -- Deliverable: Processing step + tests",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E007 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C008",
+      "type": "new",
+      "content": "Stage 1.4: Test Suite Extension (Duration: 0.5 weeks, parallel with 1.2-1.3)\nTask 1.4.1: Add tests for all new XML sections -- Deliverable: pytest additions\nTask 1.4.2: Add tests for post-parse processing steps -- Deliverable: pytest additions\nTask 1.4.3: Add tests for new CDM tables and constraints -- Deliverable: pytest additions\nTask 1.4.4: Re-ingest all worlds and verify record counts -- Deliverable: Verification\nNote: Stage 1.4 can run in parallel with Stages 1.2 and 1.3.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E008 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C009",
+      "type": "new",
+      "content": "Phase 2: Explorer Core\nGoal: Build comprehensive entity detail pages, global search, cross-linking, and navigation so users can browse all world data.\nEntry State: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid\nExit State: Full entity detail pages for all types, global search, perspective-aware cross-linking, hover popovers",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E009 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C010",
+      "type": "new",
+      "content": "Stage 2.1: Entity Detail Page Framework (Duration: 1 week)\nTask 2.1.1 (EXP-011-019): Design generic detail page template (header, cards, events, mini-map placeholder) -- Deliverable: Template system\nTask 2.1.2 (EXP-027): Implement cross-linking infrastructure (entity references -> navigable links) -- Deliverable: Link renderer\nTask 2.1.3 (EXP-028): Implement perspective-aware rendering (context entity suppression, relational pronouns) -- Deliverable: Event renderer\nTask 2.1.4 (NAV-005): Implement DF calendar utility (seconds72 -> date/month/season) -- Deliverable: Shared utility",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E010 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C011",
+      "type": "new",
+      "content": "Stage 2.2: Primary Entity Detail Pages (Duration: 2-3 weeks)\nTask 2.2.1 (EXP-011): Historical Figure detail page (24 sections) -- Deliverable: API + template\nTask 2.2.2 (EXP-012): Entity (Civilization) detail page (5 tabs: Leaders, Sites, Members, Groups, Wars) -- Deliverable: API + template\nTask 2.2.3 (EXP-013): Site detail page (3 tabs: Structures, Properties, History) -- Deliverable: API + template\nTask 2.2.4 (EXP-014): Artifact detail page (chain-of-custody timeline) -- Deliverable: API + template\nTask 2.2.5 (EXP-015): Region detail page (biome, evilness, sites) -- Deliverable: API + template\nTask 2.2.6 (EXP-016): Structure detail page -- Deliverable: API + template\nTask 2.2.7 (EXP-017): Written Content detail page -- Deliverable: API + template\nTask 2.2.8 (EXP-018): Event Collection detail page (19 types, drill-down hierarchy) -- Deliverable: API + template",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E011 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C012",
+      "type": "new",
+      "content": "Stage 2.3: Secondary Entity Detail Pages (Duration: 1 week)\nTask 2.3.1 (EXP-019): Underground Region detail page -- Deliverable: API + template\nTask 2.3.2 (EXP-019): Landmass detail page -- Deliverable: API + template\nTask 2.3.3 (EXP-019): Mountain Peak detail page -- Deliverable: API + template\nTask 2.3.4 (EXP-019): River detail page -- Deliverable: API + template\nTask 2.3.5 (EXP-019): World Construction detail page -- Deliverable: API + template\nTask 2.3.6 (EXP-019): Art Form detail pages (3 types) -- Deliverable: API + template\nTask 2.3.7 (EXP-019): Identity detail page -- Deliverable: API + template\nTask 2.3.8 (EXP-019): Historical Era detail page -- Deliverable: API + template\nTask 2.3.9 (VIS-022): Years and Events browser (chronological index) -- Deliverable: API + template",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E012 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C013",
+      "type": "new",
+      "content": "Stage 2.4: Search and Navigation (Duration: 1 week)\nTask 2.4.1 (EXP-021): Global search with live autocomplete (debounced, categorized results) -- Deliverable: API + UI component\nTask 2.4.2 (EXP-022): HF filtering by type flags (deity, vampire, etc.) -- Deliverable: Filter UI\nTask 2.4.3 (NAV-003): Hover popovers for entity preview (Ajax-fetched, Bootstrap/Tippy.js) -- Deliverable: Popover system\nTask 2.4.4 (NAV-004): Breadcrumb / prev-next navigation (FABs on detail pages) -- Deliverable: Navigation UI\nTask 2.4.5 (EXP-004): JSONB column field inventory in schema browser -- Deliverable: Schema enhancement\nTask 2.4.6 (EXP-010): Row detail overlay/modal in data browser -- Deliverable: UI enhancement\nTask 2.4.7 (EXP-025): Query results export (CSV/JSON) -- Deliverable: Export functionality",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E013 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C014",
+      "type": "elaboration",
+      "content": "The hover popovers system (REQ-NAV-003 / REQ-VIS-011) will be implemented using Bootstrap or Tippy.js for the Ajax-fetched popover mechanism.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-003: Hover Popovers",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E014 from Delta A"],
+      "confidence": 0.85,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C015",
+      "type": "new",
+      "content": "Phase 3: Narrative Engine\nGoal: Build the complete event narrative system and upgrade the storyteller to agentic mode with autonomous SQL exploration.\nEntry State: Keyword-routed storyteller with 23 routes, SSE streaming, dual-tier context\nExit State: Agentic SQL storyteller, 132+ event narrative templates, death cause rendering, war chronicles",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E015 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C016",
+      "type": "new",
+      "content": "Stage 3.1: Event Narrative Template System (Duration: 2-3 weeks)\nTask 3.1.1 (STR-016): Design template system architecture (Event -> Context -> Template -> HTML) -- Deliverable: Architecture doc + base classes\nTask 3.1.2 (STR-016): Implement HF lifecycle event templates (15 types: died, revived, wounded, abducted, etc.) -- Deliverable: Template implementations\nTask 3.1.3 (STR-017): Implement death cause rendering (50+ variants with weapon info, slayer, age at death) -- Deliverable: Death cause renderer\nTask 3.1.4 (STR-016): Implement relationship event templates (10 types: add/remove HF/entity/site links) -- Deliverable: Template implementations\nTask 3.1.5 (STR-016): Implement artifact event templates (13 types) -- Deliverable: Template implementations\nTask 3.1.6 (STR-016): Implement site/construction event templates (18 types) -- Deliverable: Template implementations\nTask 3.1.7 (STR-016): Implement entity event templates (14 types) -- Deliverable: Template implementations\nTask 3.1.8 (STR-016): Implement war/combat event templates (8 types) -- Deliverable: Template implementations\nTask 3.1.9 (STR-016): Implement diplomacy event templates (10 types) -- Deliverable: Template implementations\nTask 3.1.10 (STR-016): Implement culture/art event templates (7 types) -- Deliverable: Template implementations\nTask 3.1.11 (STR-016): Implement remaining event templates (masterpieces, occasions, misc -- ~25 types) -- Deliverable: Template implementations\nTask 3.1.12 (STR-022): Implement missing event fallback (raw field dump or DF getSentence) -- Deliverable: Fallback renderer",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E016 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C017",
+      "type": "elaboration",
+      "content": "The 132 event types covered by the template system (REQ-STR-016) are decomposed into these groups with full categorical taxonomy: 15 HF lifecycle types (died, revived, wounded, abducted, enslaved, freed, ransomed); 10 relationship types (add/remove HF/entity/site links); 12 HF action types (attacked_site, destroyed_site, confronted, does_interaction, preach); 10 HF intrigue types (convicted, interrogated, formed_intrigue, failed_frame, sabotage); 13 artifact types (created, destroyed, lost, found, given, possessed, recovered, stored, transformed, copied, claim_formed); 18 site/construction types (created_site, destroyed_site, site_taken_over, reclaim_site, created_structure, razed_structure); 14 entity types (entity_created, dissolved, incorporated, overthrown, law, persecuted, alliance_formed); 8 war/combat types (field_battle, squad_vs_squad, tactical_situation, attacked_site, plundered_site); 10 diplomacy types (peace_accepted/rejected, agreement_formed/concluded/rejected, trade, first_contact); 7 culture/art types (poetic/musical/dance_form_created, written_content_composed, knowledge_discovered); 8 masterpiece types (arch_construct, item, dye, item_improvement, food, engraving, lost); 5 occasion types (ceremony, competition, performance, procession, gamble); 14 misc types (creature_devoured, body_abused, merchant, sneak_into_site, spotted_leaving, insurrection). Total: 144 types in df-structures (authoritative); 132 fully handled by LB2; 12 gap types are DF 0.47+ additions needing graceful fallback.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-016: Per-Type Event Narrative Templates (132+ types)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E017 from Delta A", "E004 from Delta B", "E005 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E017 provided the phase-grouped count breakdown. Delta B E004 added the canonical cross-reference table (df-structures=144, LB2=132, LV-Next=115+, weblegends=94). Delta B E005 added the full per-category example lists. Merged into a single comprehensive extraction. Delta B version kept as base (most detailed); Delta A grouping counts incorporated."
+    },
+    {
+      "id": "C018",
+      "type": "new",
+      "content": "Stage 3.2: Narrative Enrichment (Duration: 1 week)\nTask 3.2.1 (STR-018): Implement circumstance/reason rendering -- Deliverable: Enrichment module\nTask 3.2.2 (STR-019): Implement age at death with fractions (1/4, 1/2, 3/4) -- Deliverable: Utility function\nTask 3.2.3 (STR-020): Implement temporal context (year/season prefix, suppress repeats) -- Deliverable: Event wrapper\nTask 3.2.4 (STR-013): Implement war narrative generation (collection -> battles -> events) -- Deliverable: Narrative generator\nTask 3.2.5 (STR-014): Implement battle detail rendering -- Deliverable: Narrative generator\nTask 3.2.6 (STR-015): Implement civilization rise-and-fall narratives -- Deliverable: Narrative generator\nTask 3.2.7 (STR-008): Implement character profile/biography generation -- Deliverable: Biography generator",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E018 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C019",
+      "type": "new",
+      "content": "Stage 3.3: Agentic Storyteller (Duration: 2-3 weeks)\nTask 3.3.1 (STR-007): Build annotated schema summary for system prompt (~2K tokens, 40+ table definitions) -- Deliverable: Schema generator\nTask 3.3.2 (STR-007): Implement SQL tool definition (read-only via SET TRANSACTION READ ONLY, 50 row max, 5s timeout) -- Deliverable: Tool executor\nTask 3.3.3 (STR-007): Implement SQL safety layer (keyword blocklist: DROP/DELETE/INSERT/UPDATE/ALTER/TRUNCATE, readonly transaction, LIMIT cap, validated table/column names) -- Deliverable: Safety module\nTask 3.3.4 (STR-007): Build agentic prompt with schema + tool + denizen summary (top N by NVS score) + instructions -- Deliverable: Prompt template\nTask 3.3.5 (STR-007): Implement multi-round SQL exploration (up to 5 rounds) -- Deliverable: Agent loop\nTask 3.3.6 (STR-007): Filter tool calls from SSE stream (only narrative tokens to client) -- Deliverable: Stream filter\nTask 3.3.7 (STR-007): Config toggle: keyword vs. agentic mode -- Deliverable: Configuration\nTask 3.3.8 (STR-030): Implement template vs. LLM hybrid rendering -- Deliverable: Mode selector",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E019 from Delta A", "E016 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E019 provided the 8-task stage decomposition. Delta B E016 added SET TRANSACTION READ ONLY as an explicit safety mechanism and the specific ~2K token/40+ table schema summary detail and 'top N by NVS score' for denizen summary. Merged into single enriched extraction."
+    },
+    {
+      "id": "C020",
+      "type": "elaboration",
+      "content": "The agentic storyteller system prompt (REQ-STR-007) will include an annotated schema summary of approximately 2,000 tokens covering 40+ table definitions. Evidence citations should be included in LLM responses as an explicit hallucination mitigation strategy, in addition to confidence signaling and read-only SQL (SET TRANSACTION READ ONLY). The denizen summary provides top-N fortress inhabitants ranked by NVS score for context selection.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-007: Agentic SQL Tool Use",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E020 from Delta A", "E045 from Delta A", "E060 from Delta B"],
+      "confidence": 0.92,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Three elaborations on REQ-STR-007 merged: token budget (~2K/40+ tables), evidence citations as hallucination mitigation, and NVS-ranked denizen summary selection criterion."
+    },
+    {
+      "id": "C021",
+      "type": "new",
+      "content": "Stage 3.4: Monitoring and Observability (Duration: 0.5 weeks)\nTask 3.4.1 (STR-028): Enhance storyteller logging (four-phase latency) -- Deliverable: Logging improvements\nTask 3.4.2 (STR-029): Build monitoring dashboard (/monitoring) with three API endpoints (interactions list, interaction detail, summary) -- Deliverable: Dashboard UI + API endpoints\nNote: The InteractionLog instrumentation class provides phase latency tracking.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E021 from Delta A", "E018 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E021 provided stage decomposition; Delta B E018 added specific 3-endpoint detail and InteractionLog class name. Merged."
+    },
+    {
+      "id": "C022",
+      "type": "new",
+      "content": "Phase 4: Visualization\nGoal: Build the interactive world map, charts, family trees, and all data visualizations.\nEntry State: vis.js graph tab (partially built), no maps or charts\nExit State: Leaflet world map, Chart.js demographics, Cytoscape family trees, D3 war diagrams",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E022 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C023",
+      "type": "new",
+      "content": "Stage 4.1: World Map (Duration: 1-2 weeks)\nTask 4.1.1 (VIS-001): Implement Leaflet.js world map (CRS.Simple, image overlay, zoom/pan) -- Deliverable: Map component\nTask 4.1.2 (VIS-001): Implement map image generation (Python Pillow, 3 cached sizes) -- Deliverable: Image generator\nTask 4.1.3 (VIS-002): Implement toggleable layer groups (sites, regions, mountains, etc.) -- Deliverable: Layer system\nTask 4.1.4 (VIS-003): Implement site marker shapes by type (circle/triangle/square/pentagon/hexagon/star) -- Deliverable: Marker renderer. Note: Pentagon (blue)=MysteriousDungeon and Hexagon (blue)=MysteriousPalace are additional types not in all tool docs.\nTask 4.1.5 (VIS-004): Implement civilization color system (HSV rotation) -- Deliverable: Color generator\nTask 4.1.6 (VIS-009): Implement map search and jump (autocomplete, camera centering) -- Deliverable: Search overlay\nTask 4.1.7 (VIS-010): Implement site bounding box display -- Deliverable: Rectangle overlay\nReference source for coordinate/biome rendering: DwarvenSurveyor (C#/Unity, ~1,500 lines, XML coordinate parsing).",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E023 from Delta A", "E013 from Delta B", "E080 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Added MysteriousDungeon/MysteriousPalace marker variants (Delta B E013) and DwarvenSurveyor attribution (Delta B E080) to stage task list."
+    },
+    {
+      "id": "C024",
+      "type": "new",
+      "content": "Stage 4.2: Charts and Demographics (Duration: 1 week)\nTask 4.2.1 (VIS-012): Population doughnut/pie charts (by race, by biome area) -- Deliverable: Chart components (Chart.js or D3.js)\nTask 4.2.2 (VIS-013): Event timeline line chart (events per year) -- Deliverable: Chart component (Chart.js)\nTask 4.2.3 (VIS-014): Event type breakdown bar chart -- Deliverable: Chart component (Chart.js)\nTask 4.2.4 (VIS-020): World Summary Dashboard (map thumbnail, charts, statistics) -- Deliverable: Dashboard page\n\nChart library assignments consolidated:\n- Population doughnut/pie: Chart.js or D3.js\n- Event timeline (line): Chart.js\n- Event type breakdown (bar): Chart.js\n- War chord diagram: D3.js\n- Warfare graph (force-directed): Cytoscape.js cola\n- Family tree (hierarchical): Cytoscape.js dagre\n- Curse lineage tree: Cytoscape.js or SVG\n- Ego-network graph: vis.js forceAtlas2\n- In-game data curve: Custom CurveWidget pattern",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E024 from Delta A", "E075 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Added chart library cross-reference table from Delta B E075 into the stage breakdown."
+    },
+    {
+      "id": "C025",
+      "type": "new",
+      "content": "Stage 4.3: Genealogy and Network Graphs (Duration: 1-2 weeks)\nTask 4.3.1 (VIS-017): Family tree visualization (Cytoscape.js dagre, 3-gen depth, node classes: current=dashed orange, dead=30% opacity, male=blue bg, female=magenta bg, leader=round-octagon+crown, necromancer=round-hexagon+skull, vampire=hexagon+vampire icon, werebeast=hexagon+wolf, ghost=hexagon+ghost) -- Deliverable: Family tree component\nTask 4.3.2 (VIS-019): Polish ego-network graph (vis.js forceAtlas2, performance guards, node info panel) -- Deliverable: Graph improvements\nTask 4.3.3 (VIS-005): Per-object mini-maps (entity detail pages, highlighted tiles) -- Deliverable: Mini-map generator\nTask 4.3.4 (VIS-023): Event collection hierarchy drill-down -- Deliverable: Hierarchy component",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E025 from Delta A", "E068 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Added HF node visual class specifications from Delta B E068 into the family tree task."
+    },
+    {
+      "id": "C026",
+      "type": "new",
+      "content": "Stage 4.4: Advanced Visualizations (P3) (Duration: 1-2 weeks, can be deferred)\nTask 4.4.1 (VIS-015): War chord diagram (D3.js, inter-civ conflict web) -- Deliverable: D3 component\nTask 4.4.2 (VIS-016): Warfare graph (Cytoscape.js cola, force-directed) -- Deliverable: Graph component\nTask 4.4.3 (VIS-018): Curse lineage tree (vampire/werebeast chains) -- Deliverable: Lineage component\nTask 4.4.4 (VIS-006): Map timeline scrubber (historical ownership state) -- Deliverable: Timeline component\nTask 4.4.5 (VIS-007): Civilization territory overlays (convex hull) -- Deliverable: Territory renderer\nTask 4.4.6 (VIS-021): Historical eras browser -- Deliverable: Era browser\nNote: Stage 4.4 can be deferred to Phase 6 deferred stages.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E026 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C027",
+      "type": "new",
+      "content": "Phase 5: Live Integration\nGoal: Enhance the live bridge, implement worldgen monitoring, and build the Knowledge Horizon system.\nEntry State: Bridge v6 (7 domains, polling only), no worldgen, no KH\nExit State: Bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E027 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C028",
+      "type": "new",
+      "content": "Stage 5.1: Bridge Enhancements (Duration: 1-2 weeks)\nTask 5.1.1 (ETL-006): Add eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, UNIT_NEW_ACTIVE, SYNDROME) -- Deliverable: Lua script update\nTask 5.1.2 (ETL-007): Add death cause enrichment (incidents.all lookup via df.global.world.incidents.all) -- Deliverable: Lua function\nTask 5.1.3 (ETL-008): Add family chain extraction (relationship_ids.Mother/Father) -- Deliverable: Lua function\nTask 5.1.4 (ETL-009): Add book/written work detection (dfhack.items.getBookTitle) -- Deliverable: Lua function\nTask 5.1.5 (ETL-010): Add personality/soul data (50 facets, beliefs, goals, needs) -- Deliverable: Lua section\nTask 5.1.6 (ETL-011): Add skill progression tracking per unit -- Deliverable: Lua section + Python delta\nNote: Polling + Events Hybrid pattern from myDFHackScripts: use eventful for real-time discrete events AND dfhack.timeout polling for gradual state transitions -- both mechanisms required.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E028 from Delta A", "E036 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Added Polling + Events Hybrid pattern rationale from Delta B E036 as a note in the stage."
+    },
+    {
+      "id": "C029",
+      "type": "new",
+      "content": "Stage 5.2: Worldgen Monitoring (Duration: 1 week)\nTask 5.2.1 (ETL-012): Create `worldgen-bridge.lua` (poll worldgen_status every 30 frames, ~0.5 seconds, distinct from main bridge 100-tick rate) -- Deliverable: Lua script\nTask 5.2.2 (ETL-012): Implement auto-start via `dfhack.onStateChange.worldgen_monitor` -- Deliverable: State hook\nTask 5.2.3 (ETL-012): Build Python worldgen snapshot ingester -- Deliverable: Python module\nTask 5.2.4 (VIS-008): Implement worldgen live map preview (WebSocket push) -- Deliverable: Frontend component. Note: Entirely novel feature -- no existing tool in the 17-repo reference ecosystem monitors world generation in real-time.\nTask 5.2.5 (ETL-012): Build worldgen dashboard (phase progress, civilization counts, event curves) -- Deliverable: Dashboard\nWorldgen_status additional fields accessible: progress counters (rivers, civs, rampages), phase completion flags (caves_placed, megabeasts_placed, etc.), event cursor (last_event_id_added), live access to world.history.figures/events/eras as they populate.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E029 from Delta A", "E030 from Delta A", "E012 from Delta B", "E065 from Delta B", "E084 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Merged Delta A E029 (stage tasks) + E030 (dashboard content) + Delta B E012 (additional worldgen_status fields) + E065 (novel capability confirmation) + E084 (30-frame/~0.5s rate distinction from main bridge)."
+    },
+    {
+      "id": "C030",
+      "type": "new",
+      "content": "Stage 5.3: Knowledge Horizon (Duration: 2-3 weeks)\nTask 5.3.1 (KH-011): Create `knowledge_horizon` table + `visible_*` views -- Deliverable: SQL migration\n  SQL: CREATE TABLE knowledge_horizon (world_id INT REFERENCES worlds(id), entity_type TEXT NOT NULL, entity_id INT NOT NULL, visible BOOLEAN NOT NULL DEFAULT FALSE, PRIMARY KEY (world_id, entity_type, entity_id));\n  SQL: CREATE VIEW visible_historical_figures AS SELECT * FROM historical_figures WHERE id IN (SELECT entity_id FROM knowledge_horizon WHERE entity_type = 'hf' AND visible = true);\nTask 5.3.2 (KH-012): Phase 1: Denizen registry as starting point for visibility -- Deliverable: Initialization logic\nTask 5.3.3 (KH-003): Phase 2: Individual scope masking (fortress inhabitants + direct family) -- Deliverable: Masking rules\nTask 5.3.4 (KH-001): Phase 3: Geographic scope masking (fortress region + revealed regions) -- Deliverable: Masking rules\nTask 5.3.5 (KH-002): Phase 3: Civilization scope masking (parent civ + contacted civs) -- Deliverable: Masking rules\nTask 5.3.6 (KH-009): CAV-006: Event-based revelation (wars, caravans, migrants, raids) -- Deliverable: Event handlers\nTask 5.3.7 (KH-004): CAV-001: Organization membership propagation -- Deliverable: Propagation rules\nTask 5.3.8 (KH-005): CAV-002: Nobles always visible -- Deliverable: Exception rule\nTask 5.3.9 (KH-010): CAV-007: LLM inference restrictions (system prompt) -- Deliverable: Prompt update\nTask 5.3.10 (STR-032): Integrate KH with storyteller (query visible_* views) -- Deliverable: Storyteller update\nRisk: KH complexity rated Medium impact. Mitigation: phased rollout (4 phases), start with simple denizen-based masking.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E031 from Delta A", "E046 from Delta A", "E030 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E031 (stage tasks) + E046 (KH risk note) + Delta B E030 (concrete SQL DDL). All merged into single comprehensive stage entry."
+    },
+    {
+      "id": "C031",
+      "type": "new",
+      "content": "Phase 6: Advanced Components\nGoal: Build the Mod Manager, Labor Manager, and AI Fortress Advisor as integrated Chronicler components.\nEntry State: No mod management, no labor management, no advisor\nExit State: Core mod manager, labor grid with skill tracking, LLM-enhanced advisor",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E032 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C032",
+      "type": "new",
+      "content": "Stage 6.1: Mod Manager Core (Duration: 2-3 weeks)\nTask 6.1.1 (MOD-001): Filesystem mod discovery (scan DF directories, parse info.txt) -- Deliverable: Mod scanner\nTask 6.1.2 (MOD-003): info.txt parser (all v50 fields) -- Deliverable: Parser module\nTask 6.1.3 (MOD-002): DFHack live mod discovery via dfhack-run (with PostgreSQL/JSON cache fallback when DFHack unavailable) -- Deliverable: Remote scanner\nTask 6.1.4 (MOD-004): Modpack CRUD (mod-manager.json read/write) -- Deliverable: Profile manager\nTask 6.1.5 (MOD-005): Profile import/export -- Deliverable: I/O functions\nTask 6.1.6 (MOD-006): Load order management (18 header types) -- Deliverable: Order engine\nTask 6.1.7 (MOD-007): Level 1 conflict detection (metadata) -- Deliverable: Conflict checker\nTask 6.1.8 (MOD-010): Visual conflict indicators -- Deliverable: UI components. Mod browser: dual-pane UI (available vs. enabled mods).\nTask 6.1.9 (MOD-016): Modpack snapshot at world creation -- Deliverable: Worldgen hook\nTask 6.1.10 (MOD-020): CLI interface (chronicler mods) -- Deliverable: CLI commands\nReference sources: ModHearth, DF-Modloader, PyDwarf (doubly-linked token model for round-trip raw editing).",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E033 from Delta A", "E024 from Delta B", "E078 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Added cache fallback detail (Delta B E024), dual-pane browser UI, and PyDwarf attribution (Delta B E078)."
+    },
+    {
+      "id": "C033",
+      "type": "new",
+      "content": "Stage 6.2: Labor Manager Core (Duration: 2-3 weeks)\nTask 6.2.1 (LAB-012): Citizen roster with configurable polling -- Deliverable: Roster module\nTask 6.2.2 (LAB-002): Skill display and progression tracking (including performance skills: musical_instruments, poetic_forms, musical_forms, dance_forms) -- Deliverable: Skill display\nTask 6.2.3 (LAB-004): Happiness/stress monitoring (color-coded, trends) -- Deliverable: Stress monitor\nTask 6.2.4 (LAB-008): Dwarf filtering/sorting (multi-criteria) -- Deliverable: Filter system\nTask 6.2.5 (LAB-009): Thought/emotion display (80+ types) -- Deliverable: Emotion display\nTask 6.2.6 (LAB-015): Population migration tracking -- Deliverable: Migration tracker\nTask 6.2.7 (LAB-025): Deathwatch and casualty tracking (4 mechanisms: flag check unit.flags1.dead/unit.flags2.killed; absence detection from active list; announcement parsing; UNIT_DEATH eventful event) -- Deliverable: Death tracker\nTask 6.2.8 (LAB-001): Labor toggle grid (Dwarf Therapist-style) -- Deliverable: Grid component\nTask 6.2.9 (LAB-003): Personality trait visualization (50 facets, range -50 to +50, read from unit.status.current_soul.personality, used for labor recommendations/mood prediction/narrative voice) -- Deliverable: Personality display\nTask 6.2.10 (LAB-011): Attribute display (6 physical + 12 mental) -- Deliverable: Attribute display\nAdditional features: goal/dream tracking (goal_type enum with accomplishment status), dwarf comparison view (2-4 side-by-side).\nIntegration: Storyteller integration (NVS scores for context selection), Explorer cross-linking (unit detail -> HF detail), Mod Manager integration (custom creatures -> labor type matching).\nReference source: DwarfFortressLogger (Java, ~3,000 lines, 29 memory sections, Dwarf Therapist-compatible layout).",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E034 from Delta A", "E028 from Delta B", "E029 from Delta B", "E048 from Delta B", "E064 from Delta B", "E079 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E034 (base task list) merged with Delta B E028 (goal tracking, comparison view, performance skills), E029 (integration features), E048 (personality facet detail), E064 (death detection mechanism implementation detail), E079 (DwarfFortressLogger attribution)."
+    },
+    {
+      "id": "C034",
+      "type": "new",
+      "content": "Stage 6.3: AI Fortress Advisor Core (Duration: 2-3 weeks)\nTask 6.3.1 (ADV-005): Advisor mode framework (recommend only vs. autonomous) -- Deliverable: Mode selector\nTask 6.3.2 (ADV-020): Natural language fortress advice (LLM + fortress state + stock threshold model as explicit context + military heuristics as LLM prompt advisories) in 'Chronicler narrative voice' -- Deliverable: Advisor LLM prompt\nTask 6.3.3 (ADV-008): Citizen arrival/departure tracking (including pet management: milkable/shearable/trainable/egg-laying/vermin-hunting/grazing; occupation assignment: tavern keeper/performer/scholar; ghost prevention; caged units; baby/mother reunification DF Bug 5551; immigration handling) -- Deliverable: Population tracker\nTask 6.3.4 (ADV-007): Event-driven reactive alerts (UNIT_DEATH, INVASION, etc.) -- Deliverable: Alert system\nTask 6.3.5 (ADV-011): Military sizing advisor (25%-75% bounds; includes tool confiscation, attack order scoring, training management, justice/crime monitoring) -- Deliverable: Military module\nTask 6.3.6 (ADV-013): Stock threshold model (3-tier, ~100 categories; manager order stall detection: trim by 3/month if front order stuck in 'validated' state across 2 monthly checks) -- Deliverable: Stock module\nTask 6.3.7 (ADV-006): Fortress health summary (daily/annual) -- Deliverable: Summary generator\nTask 6.3.8 (ADV-023): Fortress post-mortem narrative -- Deliverable: Post-mortem generator\nAdditional: Construction planning (28 furniture types, 17 stockpile subtypes, room assignment workflow: new_citizen -> getbedroom -> getdiningroom, idle detection, vein mining advisor, cistern management).\nPolling rates: Population=25 ticks, Military=25 ticks (phase 4), Nobles=25 ticks (phase 2), Trading=25 ticks (phase 0), Pets=25 ticks (phase 5), Justice=25 ticks (phase 4), Occupations=25 ticks (phase 8), Construction=240 ticks, Stocks=100 ticks, Farms=100 ticks.\nMaterial categories for resource management: Gem, Rock, EconomicStone, Ore, Metal, Wood, Plant, Creature.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E035 from Delta A", "E019 from Delta B", "E020 from Delta B", "E021 from Delta B", "E022 from Delta B", "E023 from Delta B", "E047 from Delta B", "E071 from Delta B", "E086 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E035 (base task list) merged with multiple Delta B extractions: E019 (full polling rate table with Justice/Occupations additions), E020 (population management sub-features), E021 (military sub-features), E022 (resource stall detection), E023 (construction furniture/stockpile detail), E047 (material categories), E071 (LLM advisor stock threshold context), E086 (Chronicler narrative voice requirement)."
+    },
+    {
+      "id": "C035",
+      "type": "new",
+      "content": "Stage 6.4: Advanced Mod Management (Deferred/P4)\nTask 6.4.1 (MOD-008): Level 2 conflict detection (object ID)\nTask 6.4.2 (MOD-012): Raw file tokenizer (per-object mod attribution, raw visual diff viewer, mod content summary)\nTask 6.4.3 (MOD-013): Three-way file merge (status codes: 0=clean merge, 1=potential issue, 2=overlap conflict, 3=fatal conflict)\nTask 6.4.4 (MOD-015): Full raw compiler (DF-Modloader style: read_mod_raws_and_apply_edit_objects() -> apply_special_tokens_to_create_compiled_objects() -> write_compiled_objects(); EDIT selection methods: SEL_BY_ID, SEL_BY_CLASS, SEL_BY_TAG, SEL_BY_TAG_PRECISE, PLUS_SELECT, UNSELECT; operations: OT_ADD_TAG, OT_REMOVE_TAG, OT_CONVERT_TAG). Risk: Low impact, deferred to P4; core mod manager does not require compiler.\nTask 6.4.5 (MOD-019): Steam Workshop integration\nAdditional Chronicler-unique features: modpack transition tracking (detect mid-save mod changes), modpack diff view (compare configurations).",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E036 from Delta A", "E047 from Delta A", "E025 from Delta B", "E026 from Delta B", "E027 from Delta B", "E077 from Delta B", "E083 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E036 (base deferred stage) + E047 (risk note) + Delta B E025 (raw analyzer features) + E026 (full compiler pipeline detail) + E027 (Chronicler-unique modpack features) + E077 (three-way merge status codes) + E083 (EDIT operation names -- near-duplicate of E026 but adds UNSELECT; kept merged). Note: Delta B E083 was an intra-delta near-duplicate of E026; resolved by merging both into a single comprehensive entry."
+    },
+    {
+      "id": "C036",
+      "type": "new",
+      "content": "Stage 6.5: Advanced Labor Management (Deferred/P4)\nTask 6.5.1 (LAB-014): Skill-based labor auto-assignment\nTask 6.5.2 (LAB-023): Labor optimization engine\nTask 6.5.3 (LAB-013): AI-powered labor advisor\nTask 6.5.4 (LAB-021): Stress trend analysis with prediction",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E037 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C037",
+      "type": "new",
+      "content": "Stage 6.6: Advanced Advisor (Deferred/P4)\nTask 6.6.1 (ADV-017): Construction planning (22 room types: corridor, barracks, bedroom, cemetery, cistern, dininghall, farmplot, furnace, garbagedump, infirmary, jail, location, nobleroom, outpost, pasture, pitcage, pond, releasecage, stockpile, tradedepot, windmill, workshop)\nTask 6.6.2 (ADV-018): Trade cycle management (9 steps)\nTask 6.6.3 (ADV-024): Embark site evaluation\nTask 6.6.4 (ADV-025): Random embark with auto-restart",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md", "research-synthesis-v2.md"],
+      "original_ids": ["E038 from Delta A", "E044 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Added complete 22-room-type enumeration from Delta B E044."
+    },
+    {
+      "id": "C038",
+      "type": "new",
+      "content": "Phase 7: Polish & Production\nGoal: Performance optimization, comprehensive testing, packaging, deployment, and documentation.\n\nStage 7.1: Performance (Duration: 1 week)\nTask 7.1.1: Index optimization for all heavy queries (entity detail pages, search, event filtering) -- Deliverable: SQL indexes\nTask 7.1.2: Query performance profiling and optimization (< 500ms for paginated, < 2s for complex JOINs) -- Deliverable: Performance report. Risk: large worlds (1M+ events) require pagination, index optimization, and materialized views.\nTask 7.1.3: Map image caching (avoid regeneration) -- Deliverable: Caching layer\nTask 7.1.4: Graph rendering optimization (progressive loading for large graphs) -- Deliverable: UI optimization\nTask 7.1.5: Storyteller response latency optimization -- Deliverable: LLM tuning\n\nStage 7.2: Testing (Duration: 1 week)\nTask 7.2.1: Expand test suite for all new entity types and detail pages -- Deliverable: pytest additions\nTask 7.2.2: Add integration tests for storyteller agentic mode -- Deliverable: Integration tests\nTask 7.2.3: Add E2E tests for explorer navigation flows -- Deliverable: E2E tests\nTask 7.2.4: Add tests for Knowledge Horizon masking rules -- Deliverable: KH tests\nTask 7.2.5: Load testing with large worlds (500K+ events) -- Deliverable: Load test results\n\nStage 7.3: Packaging and Deployment (Duration: 0.5 weeks)\nTask 7.3.1: Python package configuration (pyproject.toml) -- Deliverable: Package config\nTask 7.3.2: Docker containerization -- Deliverable: Dockerfile\nTask 7.3.3: VM deployment scripts (bridge, HTTP server, SSH setup) -- Deliverable: Deploy scripts\nTask 7.3.4: User documentation (installation, configuration, usage) -- Deliverable: Docs\n\nStage 7.4: Documentation (Duration: 0.5 weeks)\nTask 7.4.1: API documentation (all endpoints) -- Deliverable: API docs\nTask 7.4.2: CDM schema documentation (all tables, columns, relationships) -- Deliverable: Schema docs\nTask 7.4.3: User guide (getting started, features, FAQ) -- Deliverable: User guide\nTask 7.4.4: Developer guide (architecture, contributing, extending) -- Deliverable: Dev guide",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E039 from Delta A", "E040 from Delta A", "E044 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Delta A E039 (Phase 7 content) + E040 (load testing 500K+ events elaboration added inline) + E044 (1M+ event risk/materialized views added inline to performance task)."
+    },
+    {
+      "id": "C039",
+      "type": "new",
+      "content": "Priority-to-Phase Mapping (Appendix A):\n| Priority | Meaning | Phases |\n|----------|---------|--------|\n| P1 | Critical / v1.0 | Phases 1-3 |\n| P2 | High Value | Phases 2-5 |\n| P3 | Important | Phases 5-6 |\n| P4 | Stretch / Future | Phase 6 (deferred stages), beyond |",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E041 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C040",
+      "type": "new",
+      "content": "Milestone Definitions (Appendix B):\n| Milestone | Phase | Definition of Done |\n|-----------|-------|--------------------||\n| M1: Data Complete | Phase 1 complete | All 14+ XML sections parsed, 40+ CDM tables, post-parse pipeline running, all worlds re-ingested |\n| M2: Explorer Complete | Phase 2 complete | All entity detail pages, global search, cross-linking, hover popovers |\n| M3: Storyteller v1.0 | Phase 3 complete | Agentic SQL mode, 132 event templates, death cause rendering |\n| M4: Visualization | Phase 4 complete | Leaflet map, Chart.js demographics, Cytoscape family trees |\n| M5: Live Complete | Phase 5 complete | Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3 |\n| M6: Full Suite | Phase 6 complete | Mod manager, labor manager, AI advisor all functional |\n| M7: Release | Phase 7 complete | Performance optimized, fully tested, packaged, documented |",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E042 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C041",
+      "type": "new",
+      "content": "Risk Register (Appendix C):\n| Risk | Impact | Mitigation |\n|------|--------|------------|\n| DFHack version incompatibility (new DF release) | High | Pin to DFHack 53.10-r1; test on new versions before upgrading |\n| TCP RPC remains broken under Prism | Medium | Already mitigated: dfhack-run SSH transport is primary |\n| Large world performance (1M+ events) | Medium | Pagination, index optimization, materialized views |\n| LLM hallucination in agentic mode | High | Read-only SQL (SET TRANSACTION READ ONLY), evidence citations, confidence signaling |\n| Knowledge Horizon complexity | Medium | Phased rollout (4 phases); start with simple denizen-based masking |\n| Mod compiler complexity | Low | Deferred to P4; core mod manager does not require compiler |",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["full-project-roadmap.md"],
+      "original_ids": ["E043 from Delta A"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C042",
+      "type": "new",
+      "content": "Landscape Overview table categorizing the DF tool ecosystem into six distinct categories: (1) Legends Browsers (LegendsViewer-Next, LegendsBrowser, LegendsBrowser2) -- XML export files, batch parse in-memory web UI; (2) Live Game Servers (weblegends) -- DFHack C++ memory, real-time HTTP per-request render; (3) Autonomous Agents (df-ai) -- DFHack C++ memory, tick-based reactive loop; (4) Narrative Generators (df-narrator) -- XML export files, score + template LLM-sized output; (5) Infrastructure Tools (dfhack-client-python, DwarfFortressLogger, myDFHackScripts, DwarvenSurveyor, df-structures) -- mixed RPC/memory/Lua/XML; (6) Mod Management (DF-Modloader, ModHearth, PyLNP, PyDwarf, Nexus Mod Manager) -- filesystem + DFHack Lua.\n\nChronicler's unique position: No existing tool combines (1) persistent database storage, (2) live fortress polling, (3) legends XML ingestion, (4) LLM-driven narrative generation, (5) worldgen monitoring, (6) mod management awareness, and (7) labor/population management in a single integrated system.",
+      "target": {
+        "section_id": "1.3",
+        "position": "prepend",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E001 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C043",
+      "type": "new",
+      "content": "Reference Repository Inventory table with per-repo detail:\n- LegendsViewer-Next: C#/Vue.js, ~15,000 lines. Key contributions: Leaflet map, Cytoscape family tree, Chart.js viz, 115+ event types, Vue detail pages.\n- LegendsBrowser: Java, ~8,000 lines. Key: SAX streaming XML, SVG family tree, D3 chord diagram, Bootstrap popovers.\n- LegendsBrowser2: Go, ~12,000 lines. Key: 132 event types, custom XML tokenizer (NOT encoding/xml -- chose for performance), context-aware rendering, autocomplete search.\n- weblegends: C++, ~6,000 lines. Key: 94 event handler files, 40+ death causes, perspective-aware linking, live DFHack memory.\n- df-narrator: Python, ~2,000 lines. Key: 4 scoring formulas, HF_FIELDS set, rival detection, Markdown world summary.\n- df-ai: C++, ~25,000 lines. Key: full fortress AI -- population, military, stocks, construction, trade management.\n- dfhack-client-python: Python, ~1,500 lines. Key: RPC protocol implementation, binary frame format.\n- DwarfFortressLogger: Java, ~3,000 lines. Key: 29 memory sections, Dwarf Therapist-compatible layout system.\n- myDFHackScripts: Lua, ~2,000 lines. Key: death cause lookup, citizen detection, eventful hooks, polling patterns.\n- DwarvenSurveyor: C#/Unity, ~1,500 lines. Key: XML coordinate parsing, biome rendering, site taxonomy.\n- df-structures: XML, ~50,000 lines. Key: canonical memory layout, 144 event types (authoritative), all entity fields.\n- DF-Modloader: Python, ~1,700 lines. Key: raw file compiler, EDIT/SELECT/CUT handling, object template system.\n- ModHearth: C#, ~2,000 lines. Key: DFHack mod memory query, info.txt parsing, conflict detection.\n- PyLNP: Python, ~3,000 lines. Key: three-way merge algorithm, baseline management, merge status tracking.\n- PyDwarf: Python, ~2,500 lines. Key: doubly-linked token model, round-trip raw editing.\n- Nexus Mod Manager: C#, ~50,000 lines. Key: plugin architecture, category browsing, multi-game mod management.\n- Dwarf Therapist: C++, ~20,000 lines. Key: memory layout system (not directly usable via remote access).\n\nComponent research reports: component-01-world-history-visualizer.md (~800 lines), component-02-database-explorer.md (~900 lines), component-03-ai-storyteller.md (~800 lines), component-04-ai-player.md (~700 lines), component-05-mod-manager.md (~750 lines), component-06-labor-manager.md (~650 lines), component-07-cdm-database.md (~950 lines), component-08-data-etl.md (~850 lines).\nRepository research reports: df-ai, LegendsViewer-Next, df-narrator+weblegends, LegendsBrowser+LB2, DFHack infrastructure (dfhack-client-python/DFLogger/df-structures/myDFHackScripts), mod management (DF-Modloader/ModHearth/PyLNP/PyDwarf), worldgen scraping, DwarvenSurveyor+scripts.\nResearch Synthesis v2 (this document) supersedes research-synthesis.md v1 (488 lines, 2026-02-23).",
+      "target": {
+        "section_id": "1.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E002 from Delta B", "E057 from Delta B", "E058 from Delta B", "E085 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Merged repo inventory (E002) with source document index for component reports (E057), repo research reports (E058), and version note (E085) into one comprehensive reference section."
+    },
+    {
+      "id": "C044",
+      "type": "new",
+      "content": "Feature Inventory Summary with size-categorized counts per component (S=days, M=1-2 weeks, L=2-4 weeks, XL=1+ months):\n| Component | S | M | L | XL | Total |\n|-----------|---|---|---|----|-------|\n| World History Visualizer | 7 | 8 | 6 | 3 | ~30 |\n| Database Explorer | 9 | 11 | 5 | 2 | ~40 |\n| AI Storyteller | 12 | 15 | 7 | 5 | ~62 |\n| AI Fortress Player | 14 | 18 | 10 | 2 | ~50 |\n| Mod Manager | 6 | 12 | 10 | 6 | ~44 |\n| Labor Manager | 8 | 12 | 8 | 3 | ~35 |\n| CDM & Database | varies | | | | ~30 |\n| Data ETL | varies | | | | ~20 |\nGrand total: ~260+ discrete features across all components.",
+      "target": {
+        "section_id": "2.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E003 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C045",
+      "type": "new",
+      "content": "Event Collection Types enumerated by category: Warfare (battle, war, duel, raid, site_conquered); Political (insurrection, persecution, purge, entity_overthrown); Calamities (beast_attack, abduction, theft); Rituals (occasion, procession, ceremony, performance, competition); Travel (journey). Total: 19 types.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-VIS-023: Event Collection Hierarchy",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E006 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C046",
+      "type": "elaboration",
+      "content": "Data Entity Coverage Comparison matrix showing coverage level per entity type across all reference tools:\n| Entity Type | LV-Next | LB2 | weblegends | df-narrator | Chronicler |\n|-------------|---------|-----|------------|-------------|------------|\n| Historical Figures | Full | Full | Full | Scored subset | Full |\n| Sites | Full | Full | Full | Scored subset | Full |\n| Entities | Full | Full | Full | Name only | Full |\n| Artifacts | Full | Full | Full | Scored subset | Full |\n| Regions | Full | Full | Full | No | Full |\n| Underground Regions | Full | Full | Full | No | Partial |\n| Structures | Full | Full | Full | No | Full |\n| World Constructions | Full | Full | Partial | No | MISSING |\n| Written Content | Full | Full | Partial | No | Partial |\n| Art Forms (3 types) | Full | Full | Partial | No | MISSING |\n| Identities | Full | Full | No | No | MISSING |\n| Landmasses | Full | Full | No | No | Partial |\n| Mountain Peaks | Full | Full | No | No | Partial |\n| Rivers | Full | Stub | No | No | MISSING |\n| Entity Populations | Full | Stub | Partial | No | Partial |\n| Event Collections | Full | Full | Full | Partial | Partial |",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": "### REQ-CDM-006: Missing CDM Entity Types",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E007 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C047",
+      "type": "elaboration",
+      "content": "HF Field Completeness Audit -- Missing HIGH PRIORITY fields: active_interactions (vampire/necromancer/werebeast interaction detection), spheres (deity domains), goals (life goals with accomplishment status), skills with XP points from info.skills, entity_links with link type and position details (expanded), histfig_links (mother/father/child/spouse -- family), site_links (lair, home, seat_of_power), kills (notable and other kill records), whereabouts/current_state (geographic location), vague_relationships and relationship_profiles, entity_reputations (murderer, hero, monster, poet, bard, etc.), intrigue_actors/intrigue_plots (v0.47+ intrigue system), used_identities/current_identity (false identity tracking), journey_pets, holds_artifact (currently held artifacts), breed_id/cultural_identity/family_head_id.\n\nMissing MEDIUM PRIORITY: orientation_flags, curse_year/curse_seconds, personality (values, ethics, mannerisms -- 70+ mannerism types), knowledge_profile (known secrets, books, belief systems), reputation_profile (wanted status, journey profile).",
+      "target": {
+        "section_id": "3.4",
+        "position": "append",
+        "anchor_text": "### REQ-CDM-007: HF Field Extensions",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E008 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C048",
+      "type": "new",
+      "content": "XML Approach comparison table across reference tools:\n| Tool | Parser | Mode | Notes |\n|------|--------|------|-------|\n| Chronicler | lxml.etree.iterparse + root.clear() | Streaming, constant memory | |\n| LegendsBrowser (Java) | SAX XMLReader + annotation handler | Streaming, constant memory | |\n| LegendsBrowser2 (Go) | Custom hand-written tokenizer (NOT encoding/xml) | Streaming, buffered I/O | Chose custom for performance |\n| LegendsViewer-Next (.NET) | Async XML with FilteredStream | Streaming, filtered | |\n| DwarvenSurveyor (C#) | XmlReader streaming | Streaming | |\n| df-narrator (Python) | xml.etree.ElementTree full-tree parse | Full-tree, then freed | |\n\nNote: LB2 explicitly chose NOT to use encoding/xml for performance reasons.",
+      "target": {
+        "section_id": "4.1",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-001: Legends XML Parser (Streaming)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E009 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C049",
+      "type": "elaboration",
+      "content": "Dual-file merge specifics: legends_plus.xml provides the following additional data NOT in legends.xml: per-tile coordinate arrays, evilness ratings, cur_owner_id, entity positions/assignments/honors, relationship profiles, vampire/werebeast/necromancer 'since' years, written content references, entity occasion schedules.",
+      "target": {
+        "section_id": "4.1",
+        "position": "after",
+        "anchor_text": "### REQ-ETL-002: Dual-File Merge (legends.xml + legends_plus.xml)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E010 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C050",
+      "type": "new",
+      "content": "Live Bridge data domains (9 domains, not 7 as previously stated): (1) Game time (year, tick, season); (2) Creature raws (934 creature types); (3) Unit summary (22 fortress dwarves with names, stress, focus, longterm_stress, combat_hardened, squad, position); (4) Armies (142+ armies with positions, member counts, controller IDs); (5) Buildings (205+ buildings by 16 building types); (6) Artifacts (named artifacts with DF-language and English translations); (7) Announcements (last 20 game reports); (8) Diplomacy (player civ relations via entity.resources.diplomacy.state -- already implemented in bridge, noted in Section 15.6 gotchas); (9) History (figure count, event count, last 50 events with type/year). Implementation: /Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua (922 lines, v6).",
+      "target": {
+        "section_id": "4.3",
+        "position": "after",
+        "anchor_text": "### REQ-ETL-005: Live Bridge (chronicler-bridge.lua v6)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E011 from Delta B", "E082 from Delta B", "E087 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "E011 (9 domain enumeration) + E082 (diplomacy path implementation status note) + E087 (file path) merged."
+    },
+    {
+      "id": "C051",
+      "type": "new",
+      "content": "Site marker taxonomy additions: Pentagon (blue): MysteriousDungeon; Hexagon (blue): MysteriousPalace. These are not in the Master PRD REQ-VIS-003 which lists Pentagon (Fortress, ForestRetreat, Town, DarkPits) and Hexagon large (MountainHalls, Castle, DarkFortress) without distinguishing the blue mysterious variants.",
+      "target": {
+        "section_id": "5.3",
+        "position": "append",
+        "anchor_text": "### REQ-VIS-003: Site Marker Shapes by Type",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E013 from Delta B"],
+      "confidence": 0.92,
+      "merge_action": "kept_single",
+      "merge_notes": "Note: this content was also incorporated into C023 (Stage 4.1 task list). Kept as standalone elaboration targeting the PRD requirement directly."
+    },
+    {
+      "id": "C052",
+      "type": "new",
+      "content": "weblegends-style BFS static site generation as a stretch goal for data export (beyond CSV/JSON export listed in Master REQ-EXP-025/026).",
+      "target": {
+        "section_id": "6.6",
+        "position": "append",
+        "anchor_text": "### REQ-EXP-026: Entity Data Export (Full Entity JSON)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E014 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C053",
+      "type": "elaboration",
+      "content": "AI Storyteller pipeline step sequence: extract_keywords -> categorical routing (23 routes) -> name-based ILIKE search -> world overview fallback -> format_context (12,000 character budget) -> build_messages -> stream_completion -> SSE response.\n\nStorytelller 23 categorical routes enumerated: hf_flag (deity/vampire/necromancer/werebeast/ghost), hf_race (megabeast/dragon/titan/forgotten), entity_type (civilization/religion), collection_type (war/battle), artifacts, written_contents, live_units, live_squads, live_armies, live_events, live_reports.\n\nLLM configuration: Primary Model = Qwen3-8B via LiteLLM (dev), Claude API (production); Temperature = 0.8 (configurable); Max Tokens = 2048 (configurable); Streaming = SSE via sse_starlette; Embedding = qwen3-embedding:4b via MLX (2560-dim, localhost:8000).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-001: Conversational World Q&A",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E015 from Delta B", "E017 from Delta B", "E061 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "Pipeline steps (E015) + LLM configuration table (E017) + 23 route enumeration (E061) merged into single elaboration for REQ-STR-001."
+    },
+    {
+      "id": "C054",
+      "type": "new",
+      "content": "Death cause narrative rendering complete list (50+ variants from weblegends): OLD_AGE -> 'died of old age', SHOT -> 'was shot and killed', BLEED -> 'bled to death', DROWN -> 'drowned', SUFFOCATE -> 'suffocated', MAGMA -> 'was consumed by magma', DRAGONFIRE -> 'was killed by dragonfire', CAVEIN -> 'was crushed in a cave-in', DRAWBRIDGE -> 'was smashed by a drawbridge', BEHEAD -> 'was beheaded', CRUCIFY -> 'was crucified', BURN_ALIVE -> 'was burned to a crisp', HACK_TO_PIECES -> 'was hacked to pieces', DRAIN_BLOOD -> 'was drained of blood', LEAPT_FROM_HEIGHT -> 'leapt from a great height', INFECTION -> 'succumbed to infection', plus 25+ more each including weapon info, slayer identity with race, age at death. Source: weblegends 94 event handler files.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-017: Death Cause Rendering (50+ variants)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E062 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C055",
+      "type": "elaboration",
+      "content": "Circumstance/Reason rendering enum types: 'Circumstance' types: Death, Prayer, DreamAbout, Nightmare, FromAfar. 'Reason' types: glorify_hf, artifact_is_heirloom, as_a_symbol_of_everlasting_peace (note prefix 'as_a_' -- Master incorrectly lists as 'symbol_of_everlasting_peace'). 'Death' is a Circumstance type omitted from the Master.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-018: Circumstance/Reason Rendering",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E067 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C056",
+      "type": "new",
+      "content": "Architectural Pattern: Event Rendering Pipeline. All successful legends browsers implement: Event (typed struct) -> Context (current entity perspective) -> Template (per-type prose) -> HTML (with entity links). For Chronicler with LLM: Event (CDM row) -> Context (target entity + related entities) -> LLM prompt (with event type template) -> Narrative (with entity references marked for linking).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-030: Template vs. LLM Hybrid Rendering",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E034 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C057",
+      "type": "new",
+      "content": "Persona-driven narrative voice: each dwarf speaks with personality-consistent voice derived from mapping 50 personality traits + beliefs + goals + needs to narrative personality dimensions, then deriving a voice description and injecting as a character voice prompt. This extends REQ-STR-010 which only mentions '50 personality traits.'",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-010: Personality-Driven Voice Emulation",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E066 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C058",
+      "type": "new",
+      "content": "Civilization narrative arc event sequence for rise-and-fall narratives: entity_created -> site_taken_over -> alliance_formed -> overthrown -> dissolved. This ordered event sequence pattern is the implementation basis for REQ-STR-015.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-015: Civilization Rise-and-Fall Narratives",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E072 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C059",
+      "type": "new",
+      "content": "Proactive Narrative Engine (post-v1.0): watch for high-NVS events, generate narrative alerts via WebSocket (explicitly WebSocket, not SSE, as the delivery mechanism for proactive push). Architectural context: this is the 'proactive path' of the Template vs. LLM Hybrid framework.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-031: Proactive Narrative Engine (Post-v1.0)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E073 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C060",
+      "type": "new",
+      "content": "Post-parse processing pipeline source attribution: the 10-step pipeline is adapted from LB2's world.process() Go method. All reference legends browsers (LB2 world.process(), LV-Next post-parse) run a cross-referencing pass after XML loading -- this is non-optional.",
+      "target": {
+        "section_id": "4.2",
+        "position": "prepend",
+        "anchor_text": "### REQ-ETL-004: Post-Parse Processing Pipeline (10 Steps)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E063 from Delta B"],
+      "confidence": 0.90,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C061",
+      "type": "new",
+      "content": "Architectural Pattern: Generic Watcher Factory Pattern from myDFHackScripts. Helper.watch() closure returns a function that compares current state to saved state. On change, logs event and updates saved state. Configurable comparison function. This is the pattern for Chronicler's 11 change event types (REQ-ETL-013).",
+      "target": {
+        "section_id": "4",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-013: Change Detection (11 Event Types)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E035 from Delta B"],
+      "confidence": 0.90,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C062",
+      "type": "new",
+      "content": "Bridge Data Flow Architecture: DF Game (running) -> chronicler-bridge.lua (repeat job, 100 ticks) -> JSON file on disk -> HTTP server (port 8889) -> Python watcher (chronicler watch) -> Change detector (snapshot comparison) -> PostgreSQL CDM -> Storyteller / Explorer / API.",
+      "target": {
+        "section_id": "2.2",
+        "position": "append",
+        "anchor_text": "### 2.2 Data Flow",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E037 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C063",
+      "type": "new",
+      "content": "HF_FIELDS canonical set -- XML event fields that reference historical figure IDs (used for rivalry detection co-appearance counting): hfid, slayer_hfid, hfid1, hfid2, group_hfid, snatcher_hfid, changee_hfid, changer_hfid, woundee_hfid, wounder_hfid, doer_hfid, target_hfid, attacker_hfid, defender_hfid, hist_fig_id, body_hfid, hfid_target, hfid_attacker, hfid_defender, trickster_hfid, cover_hfid, student_hfid, teacher_hfid, trainer_hfid, seeker_hfid. Total: 25 field names.",
+      "target": {
+        "section_id": "12",
+        "position": "after",
+        "anchor_text": "### REQ-SCR-006: Rivalry Detection",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E038 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C064",
+      "type": "new",
+      "content": "Site Type Taxonomy (24 types) complete enumeration: Camp, Cave, Castle, Dark Fortress, Dark Pits, Forest Retreat, Fort, Fortress, Hamlet, Hillocks, Important Location, Labyrinth, Lair, Monastery, Mountain Halls, Mysterious Dungeon, Mysterious Lair, Mysterious Palace, Ruins, Shrine, Tomb, Tower, Town, Vault. Note: Mysterious Lair is in this list but not in REQ-VIS-003 site marker shapes.",
+      "target": {
+        "section_id": "3.3",
+        "position": "after",
+        "anchor_text": "### REQ-CDM-005: Complete Table Set (40+ tables)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E039 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C065",
+      "type": "new",
+      "content": "Entity Type Taxonomy complete enumeration: Civilization, Site Government, Nomadic Group, Migrating Group, Religion, Military Unit (mercenary/shadowy/versatile), Guild, Performance Troupe, Merchant Company, Vessel Crew, Bandit Gang, Outcast, Semi-Megabeast, Mega-Beast, Unknown.",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E040 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C066",
+      "type": "new",
+      "content": "Biome Types (10) canonical list: Wetland, Forest, Grassland, Hills, Desert, Lake, Tundra, Glacier, Ocean, Mountains.",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E041 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C067",
+      "type": "elaboration",
+      "content": "Structure Types (12+) canonical list: mead_hall, keep, temple, dark_tower, market, tomb, dungeon/sewers/catacombs, underworld_spire, tavern, library, counting_house, guildhall, tower.",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E042 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C068",
+      "type": "new",
+      "content": "HF Relationship Types complete enumeration.\nHF-to-HF: Mother, Father, Child, Spouse, Former Spouse, Deceased Spouse, Lover, Deity, Companion, Prisoner, Imprisoner, Master, Former Master, Apprentice, Former Apprentice, Pet Owner.\nHF-to-Entity: Member, Former Member, Mercenary, Former Mercenary, Slave, Former Slave, Prisoner, Former Prisoner, Enemy, Criminal, Position, Former Position, Position Claim, Occupation, Former Occupation, Squad, Former Squad.\nHF-to-Site: Lair, Home Site (abstract/realization building), Seat of Power, Hangout, Occupation, Prison.",
+      "target": {
+        "section_id": "3.4",
+        "position": "append",
+        "anchor_text": "### REQ-CDM-007: HF Field Extensions",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E043 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C069",
+      "type": "new",
+      "content": "Furniture Types (28) canonical list: archery_target, armor_stand, bed, bookcase, cabinet, cage, cage_trap, chair, chest, coffin, door, floodgate, gear_assembly, hatch, hive, lever, nest_box, offering_place, pedestal, restraint, roller, statue, table, track_stop, traction_bench, vertical_axle, weapon_rack, well.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-017: Construction Planning (22 Room Types)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E045 from Delta B"],
+      "confidence": 0.97,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C070",
+      "type": "elaboration",
+      "content": "DF Calendar System Python implementation: day_of_year = seconds72 // 1200 + 1; month = min((day_of_year - 1) // 28 + 1, 12); day = (day_of_year - 1) % 28 + 1. Month names: Granite, Slate, Felsite (Spring), Hematite, Malachite, Galena (Summer), Limestone, Sandstone, Timber (Autumn), Moonstone, Opal, Obsidian (Winter). Season lookup by month index. Note: min() guard on month calculation is required.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-005: DF Calendar System",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E046 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C071",
+      "type": "new",
+      "content": "Material Categories from myDFHackScripts (used in farm management and metalworking): Gem, Rock, EconomicStone, Ore, Metal, Wood, Plant, Creature.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-016: Metalworking Chain",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E047 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C072",
+      "type": "new",
+      "content": "Worship Strength Thresholds (numerical values for REQ-EXP-011 HF detail page): dubious <10, casual <25, average <75, faithful <90, ardent >=90.",
+      "target": {
+        "section_id": "6",
+        "position": "after",
+        "anchor_text": "### REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E049 from Delta B"],
+      "confidence": 0.99,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C073",
+      "type": "elaboration",
+      "content": "Noble Position Categories with badge colors: Noble=amber badge, Military=red badge, Administrator=blue badge, Other=stone badge. (Confirming Master REQ-EXP-012 listing -- presented here as standalone reference taxonomy.)",
+      "target": {
+        "section_id": "6",
+        "position": "after",
+        "anchor_text": "### REQ-EXP-012: Entity (Civilization) Detail Page (5 tabs)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E050 from Delta B"],
+      "confidence": 0.92,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C074",
+      "type": "new",
+      "content": "Implementation Status table (detailed, with file paths):\n- XML legends ingestion: Built, 8/14+ sections, 733-line parser at /Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/ingest/xml_parser.py\n- XML+ merge legends_plus: Built, dual-file merge\n- Live polling bridge: Built, v6, 922 lines at /Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua, 9 data domains, 16 sections (note: 9 domains, not 7)\n- dfhack-run SSH transport: Verified, all data domains accessible\n- Change detection: Built, snapshot comparison, 11 event types\n- PostgreSQL persistence: Built, 1.65M records, 40+ tables\n- 131-test suite: Built\n- CLI interface: Built, chronicler watch + chronicler ingest\n- Schema browser: Built\n- Data browser: Built\n- SQL Runner: Built\n- FK link navigation: Built\n- Graph tab: Partially built, vis.js ego network, search, 1-3 hop depth\n- Storyteller: Built, 23 routes, SSE streaming, keyword mode\n- Storyteller monitoring: Built, logging, dashboard, 3 API endpoints\n- Importance scoring: Implemented, df-narrator formulas\n- Person view Unit+HF merge: Implemented, 6-rule merge\n- Confidence signaling: Implemented\n- Fortress denizens: Implemented, NVS ranking\n- VM scripts: Built, vm-config/lifecycle/bootstrap, 19 commands\n- File transfer: Built, HTTP 105 MB/s / SCP 19 MB/s / Guest Agent fallback\n- Bridge deployment: Built, SMB + SSH deployment scripts\n\nWorld 'Tar Thran' data scale: 48,366 historical figures, 442,716 events, 4,901 entities, 8,035 artifacts, 2,154 sites.",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": "### Built and Working",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E051 from Delta B", "E059 from Delta B", "E087 from Delta B"],
+      "confidence": 0.92,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "E051 (implementation status table) + E059 (Tar Thran world scale figures for performance planning) + E087 (file paths -- already in E051 but added explicitly) merged."
+    },
+    {
+      "id": "C075",
+      "type": "new",
+      "content": "Gap Analysis / Planned Features table with priorities:\n- Agentic SQL storyteller (P1, 'Schema summary + SQL tool definition needed')\n- Interactive world map (P1, 'Centerpiece visualization feature')\n- Event narrative templates 132 types (P1, 'High-value narrative enrichment')\n- Death cause rendering 50+ variants (P1, 'Critical for narrative quality')\n- Perspective-aware rendering (P1)\n- Missing CDM entity types WorldConstructions/ArtForms/Identities/Rivers (P1, 'Schema completeness')\n- HF field extensions skills/kills/family/interactions/whereabouts (P1, 'Data completeness')\n- Entity detail pages 24-section HF/5-tab Entity (P1, 'Explorer completeness')\n- Global search with autocomplete (P2, 'Primary navigation mechanism')\n- Family tree visualization (P2, 'Compelling genealogy feature')\n- Population/event charts (P2, 'Demographic visualization')\n- Hover popovers (P2, 'Exploration UX')\n- Knowledge Horizon (P2, 'Immersive storyteller feature')\n- Worldgen monitoring (P2, 'Novel capability')\n- eventful subscriptions in bridge (P2, 'Reactive event capture')\n- Death cause enrichment in bridge (P2, 'Narrative quality improvement')\n- Labor manager grid+skills (P3)\n- Mod manager core (P3)\n- AI Fortress Advisor (P3)\n- War chord diagram/warfare graph (P3)\n- Raw compiler (P4)\n- Labor optimization engine (P4)",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": "### Not Yet Started",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E052 from Delta B"],
+      "confidence": 0.90,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C076",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 1 (Critical, Blocks Narrative Engine and Explorer):\n1. Add all 144 event types to CDM taxonomy [M, df-structures]\n2. Extend HF CDM with missing high-priority fields (flags, interactions, skills, links, kills, whereabouts) [L, All legends browsers]\n3. Add importance scoring columns and compute on ingestion [S, df-narrator]\n4. Implement death cause narrative rendering (50+ causes) [M, weblegends]\n5. Implement perspective-aware event narrative generation [M, LB2/weblegends]\n6. Add cross-linking infrastructure [M, All legends browsers]\n7. Implement DF calendar utility (seconds72 to date/month/season) [S, df-narrator/weblegends]\n8. Build agentic SQL storyteller (schema summary + SQL tool) [L, Chronicler original]\n9. Parse remaining XML sections (world_constructions, art_forms, identities, rivers) [M, All legends browsers]\n10. Build post-parse processing pipeline (10 cross-referencing steps) [L, LB2/LV-Next]",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E053 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C077",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 2 (High Value, Visualization and Data Completeness):\n11. Interactive world map with Leaflet.js [L, LV-Next/LB2]\n12. Family tree visualization Cytoscape.js dagre [M, LV-Next/LB1]\n13. Event timeline charts Chart.js line/bar [M, LV-Next]\n14. Population distribution charts [S, LV-Next/LB1]\n15. Hover popovers for entity preview [M, LB2]\n16. Global search with autocomplete [M, LB2]\n17. Entity detail pages HF 24-section/Entity 5-tab/Site/Artifact etc. [XL, All browsers]\n18. Knowledge Horizon Phase 1-2 (denizen + view-based masking) [L, Chronicler original]",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E054 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C078",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 3 (Bridge & Live Data Enhancements):\n19. Add eventful subscriptions UNIT_DEATH/ITEM_CREATED/UNIT_NEW_ACTIVE/SYNDROME [S, myDFHackScripts]\n20. Death cause resolution via df.global.world.incidents.all [S, myDFHackScripts]\n21. Parent/family chain extraction unit.relationship_ids.Mother/Father [S, myDFHackScripts]\n22. Book/written work detection dfhack.items.getBookTitle [S, myDFHackScripts]\n23. Create worldgen-bridge.lua for real-time worldgen monitoring [M, worldgen-scraping]\n24. Add worldgen_snapshots CDM table [S, worldgen-scraping]\n25. Add personality/soul data to bridge (50 facets, beliefs, goals, needs) [M, df-structures]\n26. Add skill progression tracking per unit [M, myDFHackScripts]",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E055 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C079",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 4 (Stretch / Advanced Features):\n27. Curse lineage tree vampire/werebeast 'who bit whom' [M, LB1]\n28. Warfare graph Cytoscape.js cola force-directed [M, LV-Next]\n29. War chord diagram D3.js [M, LB1]\n30. Mod manager core discovery/profiles/conflict detection [L, ModHearth/DF-Modloader]\n31. Labor manager core grid/skills/personality [XL, Dwarf Therapist patterns]\n32. AI Fortress Advisor population/military/resources [XL, df-ai]\n33. Stock threshold model as LLM advisor context [M, df-ai]\n34. Raw file parser for mod conflict detection [L, DF-Modloader]\n35. Full raw compiler pipeline [XL, DF-Modloader]\n36. Labor optimization engine constraint satisfaction [XL, Chronicler original]\n37. Mod awareness record active mods per world [S, Chronicler original]\n38. Timeline scrubber historical map state [L, Chronicler original]\n39. Civilization territory overlays [L, Chronicler original]\n40. Worldgen live map preview [XL, Chronicler original]\n\nEffort key: S=days, M=1-2 weeks, L=2-4 weeks, XL=1+ months",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E056 from Delta B"],
+      "confidence": 0.98,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C080",
+      "type": "elaboration",
+      "content": "NVS (Narrative Value Score) computation factors for denizens: event count, kills, relationships, positions, artifacts, type flags. Enables O(1) sort for LLM context selection.",
+      "target": {
+        "section_id": "12",
+        "position": "after",
+        "anchor_text": "### REQ-SCR-005: NVS for Denizens",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E031 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C081",
+      "type": "new",
+      "content": "Cross-linking implementation comparison table across reference tools:\n| Tool | Implementation | Context Awareness | Hover Preview |\n|------|----------------|------------------|---------------|\n| LV-Next | Server-side HTML <a> tags | No context | No |\n| LB2 | Go template {{ hf .Id }} with HfId context | HfId context awareness | Bootstrap popover Ajax with perspective-aware relational pronouns |\n| weblegends | C++ link() function with event_context | event_context awareness, suppress self-links | No |\n\nPerspective-aware detail from LB2: when viewing HF #123, events mentioning HF #123 render as 'the dwarf' or relational pronouns ('his wife'). This is the LB2 Context.HfId pattern. weblegends implements same via event_link() -- suppress link for context entity.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-001: Cross-Linked Entity References",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E032 from Delta B", "E033 from Delta B"],
+      "confidence": 0.95,
+      "merge_action": "merged_duplicates",
+      "merge_notes": "E032 (cross-linking comparison table) + E033 (perspective-aware LB2 detail) merged into single navigation section entry."
+    },
+    {
+      "id": "C082",
+      "type": "new",
+      "content": "JSONB field inventory uses jsonb_object_keys() sampling technique. Table row counts obtained from pg_stat_user_tables. Column/type/PK/FK/index detail obtained from information_schema.",
+      "target": {
+        "section_id": "6.1",
+        "position": "append",
+        "anchor_text": "### REQ-EXP-004: Schema Browser -- JSONB Column Field Inventory",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E076 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C083",
+      "type": "new",
+      "content": "The complete entity detail page routing follows LegendsViewer-Next's 70-route pattern (35 list pages + 35 detail pages) as the architectural model for the full routing system.",
+      "target": {
+        "section_id": "6.3",
+        "position": "prepend",
+        "anchor_text": "### REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E069 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C084",
+      "type": "new",
+      "content": "Interaction text for vampire biting and necromantic raising uses game raws fields hist_string_1 and hist_string_2. weblegends implements 94 event handler files for this type of content.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-021: Interaction Text from Game Raws",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E070 from Delta B"],
+      "confidence": 0.80,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C085",
+      "type": "new",
+      "content": "AI Fortress Advisor LLM receives the stock threshold model as explicit context (not just fortress state) and military heuristics as LLM prompt advisories. Agentic SQL is also used for fortress analysis (not just storytelling).",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-020: Natural Language Fortress Advice (LLM)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E071 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": "Note: this content was also incorporated into C034 (Stage 6.3 task list). Kept as standalone elaboration targeting the PRD requirement directly."
+    },
+    {
+      "id": "C086",
+      "type": "new",
+      "content": "DFHack RAG index collection sizes: dfhack collection=8,476 points; dwarf-therapist collection=926 points; df-wiki collection=4 points (target: 21K-27K via wiki crawl). Embedding model: Qwen3-Embedding-4B via MLX at localhost:8000, 2560-dim. pgvector tables in PostgreSQL planned for in-database semantic search.",
+      "target": {
+        "section_id": "4.8",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-016: RAG/Vector Indexing",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E074 from Delta B"],
+      "confidence": 0.90,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C087",
+      "type": "new",
+      "content": "df-structures repository: XML, ~50,000 lines, canonical memory layout, 144 event types (authoritative count), all entity field definitions. Provides the authoritative basis for all Chronicler field and event type reference data.",
+      "target": {
+        "section_id": "15",
+        "position": "prepend",
+        "anchor_text": "## 15. DFHack Reference Guide",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E081 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": null
+    },
+    {
+      "id": "C088",
+      "type": "new",
+      "content": "Worldgen monitoring is a novel capability confirmed by reviewing all 17 reference repositories: no existing tool monitors world generation in real-time.",
+      "target": {
+        "section_id": "5.8",
+        "position": "prepend",
+        "anchor_text": "### REQ-VIS-008: Worldgen Live Map Preview",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E065 from Delta B"],
+      "confidence": 0.92,
+      "merge_action": "kept_single",
+      "merge_notes": "Note: also incorporated into C029. Kept as standalone for PRD requirement targeting."
+    },
+    {
+      "id": "C089",
+      "type": "new",
+      "content": "HF node visual class styling for family tree and graph visualizations: current=Dashed orange border, dead=30% opacity, male=Blue background, female=Magenta background, leader=Round-octagon with crown icon, necromancer=Round-hexagon with skull icon, vampire=Hexagon with vampire icon, werebeast=Hexagon with wolf icon, ghost=Hexagon with ghost icon.",
+      "target": {
+        "section_id": "6.3",
+        "position": "after",
+        "anchor_text": "### REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+        "fallback": "end_of_section",
+        "validated": true
+      },
+      "source_documents": ["research-synthesis-v2.md"],
+      "original_ids": ["E068 from Delta B"],
+      "confidence": 0.88,
+      "merge_action": "kept_single",
+      "merge_notes": "Note: also incorporated into C025. Kept standalone for PRD targeting."
+    }
+  ],
+  "cross_conflicts": [
+    {
+      "id": "CONFLICT_001",
+      "description": "Bridge domain count discrepancy",
+      "delta_a_position": "Delta A E027 states 'Bridge v6 (7 domains, polling only)' as the Phase 5 entry state",
+      "delta_b_position": "Delta B E011 states the bridge captures 9 domains (not 7), enumerating Diplomacy and History as domains 8 and 9 not previously counted",
+      "resolution": "Delta B E011 is more authoritative -- it explicitly lists all 9 domains with concrete data counts. The '7 domain' figure in Delta A is the pre-bridge-enhancement state. C027 retains '7 domains' in the Phase 5 entry state (correct as entry state before enhancement), while C050 documents the actual current 9-domain reality. No change needed -- both are contextually correct.",
+      "severity": "low",
+      "resolved": true
+    }
+  ],
+  "new_sections": [
+    {
+      "id": "NEW_001",
+      "title": "Roadmap Overview & Phase Dependencies",
+      "parent_section": "1",
+      "content": "The Chronicler project is organized into 7 development phases. Each phase builds on the prior phase's deliverables. Stages within each phase may execute in parallel where dependencies allow.\n\n**7-Phase Structure**:\n- Phase 1: Data Foundation (CDM completeness, XML parser, post-parse pipeline)\n- Phase 2: Explorer Core (entity detail pages, search, navigation, cross-linking)\n- Phase 3: Narrative Engine (event templates, death causes, agentic storyteller)\n- Phase 4: Visualization (world map, charts, family trees, graphs)\n- Phase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon)\n- Phase 6: Advanced Components (Mod Manager, Labor Manager, AI Advisor)\n- Phase 7: Polish & Production (performance, testing, packaging, deployment)\n\n**Phase Dependencies**:\n- Phase 1 --> Phase 2 (explorer needs complete data)\n- Phase 1 --> Phase 3 (narrative needs complete events)\n- Phase 2 --> Phase 4 (visualizations sit on explorer pages)\n- Phase 3 --> Phase 5 (KH integrates with storyteller)\n- Phase 2, Phase 3 --> Phase 6 (advanced components need explorer + narrative)\n- All --> Phase 7 (polish is last)\n\n**Estimated Timeline**:\n| Phase | Estimated Duration | Cumulative |\n|-------|-------------------|------------|\n| Phase 1 | 3-4 weeks | 3-4 weeks |\n| Phase 2 | 4-6 weeks | 7-10 weeks |\n| Phase 3 | 4-6 weeks | 11-16 weeks |\n| Phase 4 | 3-4 weeks | 14-20 weeks |\n| Phase 5 | 3-4 weeks | 17-24 weeks |\n| Phase 6 | 6-10 weeks | 23-34 weeks |\n| Phase 7 | 2-3 weeks | 25-37 weeks |\nTotal: 25-37 weeks, 7 phases, 26 stages, ~150 tasks.\n\n**Priority-to-Phase Mapping**:\n| Priority | Meaning | Phases |\n|----------|---------|--------|\n| P1 | Critical / v1.0 | Phases 1-3 |\n| P2 | High Value | Phases 2-5 |\n| P3 | Important | Phases 5-6 |\n| P4 | Stretch / Future | Phase 6 (deferred), beyond |\n\n**Milestone Definitions (M1-M7)**:\n| Milestone | Phase | DoD |\n|-----------|-------|-----|\n| M1: Data Complete | Phase 1 | All 14+ XML sections, 40+ CDM tables, post-parse pipeline, re-ingested |\n| M2: Explorer Complete | Phase 2 | All entity detail pages, global search, cross-linking, popovers |\n| M3: Storyteller v1.0 | Phase 3 | Agentic SQL, 132 event templates, death cause rendering |\n| M4: Visualization | Phase 4 | Leaflet map, Chart.js demographics, Cytoscape family trees |\n| M5: Live Complete | Phase 5 | Enhanced bridge, worldgen monitoring, KH Phase 3 |\n| M6: Full Suite | Phase 6 | Mod manager, labor manager, AI advisor functional |\n| M7: Release | Phase 7 | Optimized, tested, packaged, documented |",
+      "source_documents": ["full-project-roadmap.md"],
+      "merge_notes": "Consolidated from Delta A NEW_001 (Roadmap Overview), NEW_003 (Milestone Definitions), NEW_005 (Priority Mapping) -- all target section 1.2 and are logically adjacent. The phase task decompositions (Delta A NEW_002) are covered by individual extractions C001-C038."
+    },
+    {
+      "id": "NEW_002",
+      "title": "Risk Register",
+      "parent_section": "1",
+      "content": "| Risk | Impact | Mitigation |\n|------|--------|------------|\n| DFHack version incompatibility (new DF release) | High | Pin to DFHack 53.10-r1; test on new versions before upgrading |\n| TCP RPC remains broken under Prism | Medium | Already mitigated: dfhack-run SSH transport is primary |\n| Large world performance (1M+ events) | Medium | Pagination, index optimization, materialized views |\n| LLM hallucination in agentic mode | High | Read-only SQL (SET TRANSACTION READ ONLY), evidence citations, confidence signaling |\n| Knowledge Horizon complexity | Medium | Phased rollout (4 phases); start with simple denizen-based masking |\n| Mod compiler complexity | Low | Deferred to P4; core mod manager does not require compiler |",
+      "source_documents": ["full-project-roadmap.md"],
+      "merge_notes": "From Delta A NEW_004. Standalone -- no Delta B equivalent."
+    },
+    {
+      "id": "NEW_003",
+      "title": "Landscape Overview & Tool Ecosystem",
+      "parent_section": "1",
+      "content": "The Dwarf Fortress legends/history tool ecosystem consists of six distinct categories:\n\n| Category | Tools Analyzed | Data Source | Access Pattern |\n|----------|---------------|-------------|----------------|\n| Legends Browsers | LegendsViewer-Next, LegendsBrowser, LegendsBrowser2 | XML export files | Batch parse, in-memory, web UI |\n| Live Game Servers | weblegends | DFHack C++ memory | Real-time HTTP, per-request render |\n| Autonomous Agents | df-ai | DFHack C++ memory | Tick-based reactive loop |\n| Narrative Generators | df-narrator | XML export files | Score + template, LLM-sized output |\n| Infrastructure Tools | dfhack-client-python, DwarfFortressLogger, myDFHackScripts, DwarvenSurveyor, df-structures | Mixed (RPC, memory, Lua, XML) | Various |\n| Mod Management | DF-Modloader, ModHearth, PyLNP, PyDwarf, Nexus Mod Manager | Filesystem + DFHack Lua | Raw parsing, profile management |\n\nChronicler's unique position: No existing tool combines (1) persistent database storage, (2) live fortress polling, (3) legends XML ingestion, (4) LLM-driven narrative generation, (5) worldgen monitoring, (6) mod management awareness, and (7) labor/population management in a single integrated system.",
+      "source_documents": ["research-synthesis-v2.md"],
+      "merge_notes": "From Delta B NEW_001. Complements Delta A NEW_001 (roadmap) -- these are different new sections targeting different parent sections."
+    },
+    {
+      "id": "NEW_004",
+      "title": "Event Type Taxonomy (Canonical Reference)",
+      "parent_section": "7",
+      "content": "### Canonical Event Type Count Cross-Reference\n\n| Source | Event Types | Authoritative? |\n|--------|-------------|----------------|\n| df-structures history_event_type enum | **144** | Yes (memory layout, canonical) |\n| LegendsBrowser2 events.go | 132 | Yes (Go source, production) |\n| LegendsViewer-Next XMLParser.cs | 115+ | Yes (.NET source, production) |\n| weblegends events/*.cpp | 94 files | Yes (C++ source, production) |\n| df-narrator | Generic (type string) | No |\n\n**Synthesis**: df-structures defines 144 event types. LB2's 132 types are the most complete implementation. The 12-type gap consists of DF 0.47+ additions not yet implemented by all tools. Chronicler strategy: store all 144 as TEXT, implement templates for 132, graceful fallback for 12.\n\n### Event Categories (Merged Taxonomy)\n\n| Category | Count | Examples |\n|----------|-------|----------|\n| HF Lifecycle | 15 | died, revived, wounded, abducted, enslaved, freed, ransomed |\n| HF Relationships | 10 | add/remove hf_hf_link, hf_entity_link, hf_site_link |\n| HF Actions | 12 | attacked_site, destroyed_site, confronted, does_interaction, preach |\n| HF Intrigue | 10 | convicted, interrogated, formed_intrigue, failed_frame, sabotage |\n| Artifacts | 13 | created, destroyed, lost, found, given, possessed, recovered, stored, transformed, copied, claim_formed |\n| Sites/Construction | 18 | created_site, destroyed_site, site_taken_over, reclaim_site, created_structure, razed_structure |\n| Entities | 14 | entity_created, dissolved, incorporated, overthrown, law, persecuted, alliance_formed |\n| War/Combat | 8 | field_battle, squad_vs_squad, tactical_situation, attacked_site, plundered_site |\n| Diplomacy | 10 | peace_accepted/rejected, agreement_formed/concluded/rejected, trade, first_contact |\n| Culture/Art | 7 | poetic/musical/dance_form_created, written_content_composed, knowledge_discovered |\n| Masterpieces | 8 | arch_construct, item, dye, item_improvement, food, engraving, lost |\n| Occasions | 5 | ceremony, competition, performance, procession, gamble |\n| Misc | 14 | creature_devoured, body_abused, merchant, sneak_into_site, spotted_leaving, insurrection |\n\n### Event Collection Types (19 Types)\n\n| Category | Types |\n|----------|-------|\n| Warfare | battle, war, duel, raid, site_conquered |\n| Political | insurrection, persecution, purge, entity_overthrown |\n| Calamities | beast_attack, abduction, theft |\n| Rituals | occasion, procession, ceremony, performance, competition |\n| Travel | journey |",
+      "source_documents": ["research-synthesis-v2.md"],
+      "merge_notes": "From Delta B NEW_002. No Delta A equivalent new section -- Delta A covered event types as elaborations (E017) which are now merged into C017."
+    },
+    {
+      "id": "NEW_005",
+      "title": "Architectural Patterns & Implementation Guides",
+      "parent_section": "2",
+      "content": "### Event Rendering Pipeline Pattern\n\nAll successful legends browsers implement:\n```\nEvent (typed struct) -> Context (current entity perspective) -> Template (per-type prose) -> HTML (with entity links)\n```\nFor Chronicler with LLM:\n```\nEvent (CDM row) -> Context (target entity + related entities) -> LLM prompt (with event type template) -> Narrative (with entity references marked for linking)\n```\n\n### Polling + Events Hybrid Pattern\n\nFrom myDFHackScripts: use eventful subscriptions for real-time discrete events (deaths, item creation) AND polling via dfhack.timeout for gradual state transitions (citizen count, reports, petitions). Both mechanisms required to catch immediate events and gradual transitions.\n\n### Generic Watcher Factory Pattern\n\nFrom myDFHackScripts Helper.watch(): closure compares current state to saved state. On change, logs event and updates saved state. Configurable comparison function. Used for Chronicler's 11 change event types.\n\n### Post-Parse Processing Pattern\n\nAll reference legends browsers (LB2 world.process(), LV-Next post-parse) run a cross-referencing pass after XML loading. This is non-optional -- without it, entity relationships, flags, scores, and kill lists are incomplete.\n\n### Exclusive Action Queue Pattern\n\nFrom df-ai: one exclusive action chain active at a time; queue pending actions; report completion/failure before starting next. Prevents conflicting multi-step fortress management operations.\n\n### Bridge Data Flow Architecture\n\nDF Game (running) -> chronicler-bridge.lua (repeat job, 100 ticks) -> JSON file on disk -> HTTP server (port 8889) -> Python watcher (chronicler watch) -> Change detector (snapshot comparison) -> PostgreSQL CDM -> Storyteller / Explorer / API.",
+      "source_documents": ["research-synthesis-v2.md"],
+      "merge_notes": "From Delta B NEW_003. No Delta A equivalent."
+    },
+    {
+      "id": "NEW_006",
+      "title": "Consolidated Action Items (Prioritized Implementation Backlog)",
+      "parent_section": "17",
+      "content": "See extractions C076-C079 for the full 40-item Tier 1-4 prioritized action backlog with effort estimates (S/M/L/XL) and source attributions.",
+      "source_documents": ["research-synthesis-v2.md"],
+      "merge_notes": "From Delta B NEW_004. Content is covered in detail by individual extractions C076-C079. This new_section entry serves as the section header/index."
+    }
+  ],
+  "uncategorized": [],
+  "validation_issues": [
+    {
+      "id": "VAL_001",
+      "extraction_ids": ["C014"],
+      "issue": "Target anchor_text '### REQ-NAV-003: Hover Popovers' -- the exact heading text in product-requirements.md may include additional detail. Master index section 13 confirmed valid; anchor text may need adjustment during application.",
+      "severity": "low",
+      "recommendation": "Verify exact heading text in product-requirements.md section 13 before applying."
+    },
+    {
+      "id": "VAL_002",
+      "extraction_ids": ["C062"],
+      "issue": "Target anchor_text '### 2.2 Data Flow' -- master index shows section_id '2.2' as a subsection of section 2. This is a valid target but uses h3 heading syntax for what the master index marks as a subsection. Validated as section 2.2 exists.",
+      "severity": "low",
+      "recommendation": "No action needed -- section 2.2 is confirmed in master index."
+    },
+    {
+      "id": "VAL_003",
+      "extraction_ids": ["C035"],
+      "issue": "Delta B E083 was an intra-delta near-duplicate of Delta B E026 (both cover EDIT operation names for Full Raw Compiler). Resolved by merging both into C035. The summary counts duplicate_merged=4 reflects: (1) A-E017/B-E004/B-E005 -> C017, (2) A-E019/B-E016 -> C019, (3) B-E026/B-E083 -> C035 (intra-delta), (4) multiple A+B merges for stages C021/C023/C024/C025/C028/C029/C030. The intra-delta duplicate (E026/E083) is counted once.",
+      "severity": "info",
+      "recommendation": "Summary counts are approximate; the exact duplicate count depends on granularity of counting multi-source merges vs. true semantic duplicates."
+    }
+  ]
+}

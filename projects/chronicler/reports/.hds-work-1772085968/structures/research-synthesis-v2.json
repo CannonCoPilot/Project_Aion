@@ -1,0 +1,887 @@
+{
+  "document_id": "research-synthesis-v2.md",
+  "document_path": "/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/reports/research-synthesis-v2.md",
+  "total_lines": 1355,
+  "structure": [
+    {
+      "level": 1,
+      "title": "Chronicler Research Synthesis v2",
+      "path": "1",
+      "line_number": 1,
+      "subsections": [
+        {
+          "level": 2,
+          "title": "Table of Contents",
+          "path": "1.1",
+          "line_number": 11,
+          "subsections": []
+        },
+        {
+          "level": 2,
+          "title": "1. Landscape Overview",
+          "path": "1.2",
+          "line_number": 36,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "1.1 Reference Repository Inventory",
+              "path": "1.2.1",
+              "line_number": 51,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "2. Component Architecture",
+          "path": "1.3",
+          "line_number": 75,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "2.1 Main Components",
+              "path": "1.3.1",
+              "line_number": 79,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "2.2 Foundational Systems",
+              "path": "1.3.2",
+              "line_number": 90,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "2.3 Cross-Cutting Concerns",
+              "path": "1.3.3",
+              "line_number": 97,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "3. Feature Inventory Summary",
+          "path": "1.4",
+          "line_number": 106,
+          "subsections": []
+        },
+        {
+          "level": 2,
+          "title": "4. Event Type Taxonomy",
+          "path": "1.5",
+          "line_number": 125,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "4.1 Canonical Reference",
+              "path": "1.5.1",
+              "line_number": 127,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "4.2 Event Categories (Merged Taxonomy)",
+              "path": "1.5.2",
+              "line_number": 143,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "4.3 Event Collection Types (19 Types)",
+              "path": "1.5.3",
+              "line_number": 161,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "5. Data Model & CDM Schema",
+          "path": "1.6",
+          "line_number": 173,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "5.1 Database Configuration",
+              "path": "1.6.1",
+              "line_number": 175,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "5.2 Complete Table Inventory",
+              "path": "1.6.2",
+              "line_number": 186,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "5.3 Data Entity Coverage Comparison",
+              "path": "1.6.3",
+              "line_number": 239,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "5.4 HF Field Completeness Audit",
+              "path": "1.6.4",
+              "line_number": 260,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "6. Data ETL Systems",
+          "path": "1.7",
+          "line_number": 291,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "6.1 Legends XML Pipeline",
+              "path": "1.7.1",
+              "line_number": 293,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "6.2 Live Bridge System",
+              "path": "1.7.2",
+              "line_number": 329,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "6.3 DFHack Integration",
+              "path": "1.7.3",
+              "line_number": 355,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "6.4 Worldgen Monitoring",
+              "path": "1.7.4",
+              "line_number": 381,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "6.5 Change Detection & Events",
+              "path": "1.7.5",
+              "line_number": 394,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "6.6 File Transfer Mechanisms",
+              "path": "1.7.6",
+              "line_number": 413,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "6.7 RAG/Vector Indexing",
+              "path": "1.7.7",
+              "line_number": 421,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "7. Visualization & Map System",
+          "path": "1.8",
+          "line_number": 433,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "7.1 Interactive World Map (Leaflet.js)",
+              "path": "1.8.1",
+              "line_number": 435,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.2 Map Layer Groups (Toggleable)",
+              "path": "1.8.2",
+              "line_number": 446,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.3 Site Marker Shapes (by Type)",
+              "path": "1.8.3",
+              "line_number": 457,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.4 Civilization Color System",
+              "path": "1.8.4",
+              "line_number": 470,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.5 Timeline Scrubber",
+              "path": "1.8.5",
+              "line_number": 474,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.6 Civilization Territory Overlays",
+              "path": "1.8.6",
+              "line_number": 478,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.7 Worldgen Live Map Preview",
+              "path": "1.8.7",
+              "line_number": 482,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.8 Chart Visualizations",
+              "path": "1.8.8",
+              "line_number": 486,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "7.9 Per-Object Mini-Maps",
+              "path": "1.8.9",
+              "line_number": 500,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "8. Database Explorer",
+          "path": "1.9",
+          "line_number": 506,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "8.1 Schema Browser",
+              "path": "1.9.1",
+              "line_number": 508,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "8.2 Data Browser",
+              "path": "1.9.2",
+              "line_number": 515,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "8.3 Entity Detail Pages",
+              "path": "1.9.3",
+              "line_number": 524,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "8.4 Search Infrastructure",
+              "path": "1.9.4",
+              "line_number": 574,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "8.5 Data Export",
+              "path": "1.9.5",
+              "line_number": 583,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "9. AI Storyteller & Narrative Engine",
+          "path": "1.10",
+          "line_number": 591,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "9.1 Conversational World Query Engine (Built)",
+              "path": "1.10.1",
+              "line_number": 593,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.2 Agentic Storyteller (Planned v1.0)",
+              "path": "1.10.2",
+              "line_number": 599,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.3 Character Profile & Biography Generation",
+              "path": "1.10.3",
+              "line_number": 609,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.4 Event Narrative Engine",
+              "path": "1.10.4",
+              "line_number": 615,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.5 War Chronicles & Civilization Histories",
+              "path": "1.10.5",
+              "line_number": 649,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.6 Template vs. LLM Hybrid",
+              "path": "1.10.6",
+              "line_number": 655,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.7 LLM Configuration",
+              "path": "1.10.7",
+              "line_number": 661,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "9.8 Monitoring & Observability",
+              "path": "1.10.8",
+              "line_number": 671,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "10. AI Fortress Player & Advisor",
+          "path": "1.11",
+          "line_number": 680,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "10.1 Core Architecture (from df-ai)",
+              "path": "1.11.1",
+              "line_number": 682,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "10.2 Population Management",
+              "path": "1.11.2",
+              "line_number": 706,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "10.3 Military Management",
+              "path": "1.11.3",
+              "line_number": 719,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "10.4 Resource Management",
+              "path": "1.11.4",
+              "line_number": 731,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "10.5 Construction and Planning",
+              "path": "1.11.5",
+              "line_number": 745,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "10.6 Trade Management",
+              "path": "1.11.6",
+              "line_number": 757,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "10.7 LLM-Enhanced Advisor Features",
+              "path": "1.11.7",
+              "line_number": 761,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "11. Mod Management",
+          "path": "1.12",
+          "line_number": 774,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "11.1 Core Mod Manager (Tier 1: \"Modpack Manager\")",
+              "path": "1.12.1",
+              "line_number": 776,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "11.2 Conflict Detection (Tier 1-2)",
+              "path": "1.12.2",
+              "line_number": 788,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "11.3 Raw File Parsing (Tier 2: \"Raw Analyzer\")",
+              "path": "1.12.3",
+              "line_number": 797,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "11.4 Three-Way Merge System (Tier 2-3)",
+              "path": "1.12.4",
+              "line_number": 805,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "11.5 Full Raw Compiler (Tier 3)",
+              "path": "1.12.5",
+              "line_number": 809,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "11.6 Chronicler-Unique Features",
+              "path": "1.12.6",
+              "line_number": 818,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "12. Labor Manager",
+          "path": "1.13",
+          "line_number": 828,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "12.1 Core Features",
+              "path": "1.13.1",
+              "line_number": 830,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "12.2 Advanced Features",
+              "path": "1.13.2",
+              "line_number": 844,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "12.3 Integration Features",
+              "path": "1.13.3",
+              "line_number": 864,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "13. Knowledge Horizon",
+          "path": "1.14",
+          "line_number": 873,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "13.1 Core Concept",
+              "path": "1.14.1",
+              "line_number": 875,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "13.2 Three Masking Dimensions",
+              "path": "1.14.2",
+              "line_number": 879,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "13.3 Seven Visibility Caveats",
+              "path": "1.14.3",
+              "line_number": 893,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "13.4 Database Architecture",
+              "path": "1.14.4",
+              "line_number": 903,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "13.5 Phased Rollout",
+              "path": "1.14.5",
+              "line_number": 921,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "14. Scoring & Ranking System",
+          "path": "1.15",
+          "line_number": 930,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "14.1 Figure Importance Score (df-narrator)",
+              "path": "1.15.1",
+              "line_number": 932,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.2 Site Importance Score",
+              "path": "1.15.2",
+              "line_number": 950,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.3 Conflict Importance Score",
+              "path": "1.15.3",
+              "line_number": 956,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.4 Artifact Importance Score",
+              "path": "1.15.4",
+              "line_number": 962,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.5 Narrative Value Score (NVS) for Denizens",
+              "path": "1.15.5",
+              "line_number": 968,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.6 Rivalry Detection (Co-Appearance)",
+              "path": "1.15.6",
+              "line_number": 972,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.7 Megabeast Detection",
+              "path": "1.15.7",
+              "line_number": 976,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "14.8 Supernatural Detection",
+              "path": "1.15.8",
+              "line_number": 980,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "15. Cross-Linking & Navigation Patterns",
+          "path": "1.16",
+          "line_number": 988,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "15.1 The Core UX Pattern",
+              "path": "1.16.1",
+              "line_number": 990,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "15.2 Perspective-Aware Rendering",
+              "path": "1.16.2",
+              "line_number": 1001,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "15.3 Breadcrumb / Prev-Next Navigation",
+              "path": "1.16.3",
+              "line_number": 1005,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "16. Architectural Patterns",
+          "path": "1.17",
+          "line_number": 1011,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "16.1 Event Rendering Pipeline",
+              "path": "1.17.1",
+              "line_number": 1013,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "16.2 Post-Parse Processing Pipeline",
+              "path": "1.17.2",
+              "line_number": 1025,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "16.3 Exclusive Action Queue (from df-ai)",
+              "path": "1.17.3",
+              "line_number": 1039,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "16.4 Polling + Events Hybrid (from myDFHackScripts)",
+              "path": "1.17.4",
+              "line_number": 1046,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "16.5 Generic Watcher Factory Pattern",
+              "path": "1.17.5",
+              "line_number": 1050,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "16.6 Bridge Data Flow Architecture",
+              "path": "1.17.6",
+              "line_number": 1054,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "17. Reference Data & Taxonomies",
+          "path": "1.18",
+          "line_number": 1068,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "17.1 HF_FIELDS -- Canonical HF Reference Field List",
+              "path": "1.18.1",
+              "line_number": 1070,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.2 Site Type Taxonomy (24 types)",
+              "path": "1.18.2",
+              "line_number": 1082,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.3 Entity Type Taxonomy",
+              "path": "1.18.3",
+              "line_number": 1091,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.4 Biome Types (10)",
+              "path": "1.18.4",
+              "line_number": 1100,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.5 Structure Types (12+)",
+              "path": "1.18.5",
+              "line_number": 1106,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.6 HF Relationship Types",
+              "path": "1.18.6",
+              "line_number": 1113,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.7 Room Types (22)",
+              "path": "1.18.7",
+              "line_number": 1121,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.8 Furniture Types (28)",
+              "path": "1.18.8",
+              "line_number": 1129,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.9 DF Calendar System",
+              "path": "1.18.9",
+              "line_number": 1138,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.10 Material Categories (from myDFHackScripts)",
+              "path": "1.18.10",
+              "line_number": 1159,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.11 Personality Facets (50)",
+              "path": "1.18.11",
+              "line_number": 1165,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.12 Worship Strength Thresholds",
+              "path": "1.18.12",
+              "line_number": 1169,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "17.13 Noble Position Categories",
+              "path": "1.18.13",
+              "line_number": 1179,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "18. Implementation Status",
+          "path": "1.19",
+          "line_number": 1190,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "18.1 What Is Built",
+              "path": "1.19.1",
+              "line_number": 1192,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "18.2 What Is Planned / Not Started",
+              "path": "1.19.2",
+              "line_number": 1219,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "19. Consolidated Action Items",
+          "path": "1.20",
+          "line_number": 1248,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Tier 1 -- Critical (Blocks Narrative Engine and Explorer)",
+              "path": "1.20.1",
+              "line_number": 1250,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Tier 2 -- High Value (Visualization and Data Completeness)",
+              "path": "1.20.2",
+              "line_number": 1265,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Tier 3 -- Bridge & Live Data Enhancements",
+              "path": "1.20.3",
+              "line_number": 1278,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Tier 4 -- Stretch / Advanced Features",
+              "path": "1.20.4",
+              "line_number": 1291,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "20. Sources & References",
+          "path": "1.21",
+          "line_number": 1312,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "20.1 Component Research Reports",
+              "path": "1.21.1",
+              "line_number": 1314,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "20.2 Repository Research Reports",
+              "path": "1.21.2",
+              "line_number": 1327,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "20.3 Planning & Design Documents",
+              "path": "1.21.3",
+              "line_number": 1340,
+              "subsections": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "numeric",
+    "has_toc": true,
+    "estimated_section_count": 20,
+    "has_requirement_ids": false
+  }
+}

@@ -1,0 +1,715 @@
+{
+  "source_document": "full-project-roadmap.md",
+  "master_document": "product-requirements.md",
+  "extraction_summary": {
+    "total_extractions": 47,
+    "new_information": 40,
+    "elaborations": 7,
+    "conflicts": 0,
+    "new_sections_proposed": 5,
+    "uncategorized": 0
+  },
+  "extractions": [
+    {
+      "id": "E001",
+      "type": "new",
+      "content": "The Chronicler project is organized into 7 development phases, progressing from foundational data completeness through full application maturity. Each phase builds on the prior phase's deliverables. Within each phase, work is organized into stages that can be executed in parallel where dependencies allow.\n\nPhase 1: Data Foundation (CDM completeness, XML parser, post-parse pipeline)\nPhase 2: Explorer Core (entity detail pages, search, navigation, cross-linking)\nPhase 3: Narrative Engine (event templates, death causes, agentic storyteller)\nPhase 4: Visualization (world map, charts, family trees, graphs)\nPhase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon)\nPhase 6: Advanced Components (Mod Manager, Labor Manager, AI Advisor)\nPhase 7: Polish & Production (performance, testing, packaging, deployment)",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Roadmap Overview section, opening paragraph and phase list",
+      "confidence": 0.99,
+      "reasoning": "The PRD has no 7-phase roadmap description, no phase list, and no phase goals. This is entirely new structural information."
+    },
+    {
+      "id": "E002",
+      "type": "new",
+      "content": "Phase Dependencies (explicit predecessor/successor chain):\nPhase 1 --> Phase 2 (explorer needs complete data)\nPhase 1 --> Phase 3 (narrative needs complete events)\nPhase 2 --> Phase 4 (visualizations sit on explorer pages)\nPhase 3 --> Phase 5 (KH integrates with storyteller)\nPhase 2, Phase 3 --> Phase 6 (advanced components need explorer + narrative)\nAll --> Phase 7 (polish is last)",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Roadmap Overview section, Phase Dependencies subsection",
+      "confidence": 0.99,
+      "reasoning": "The PRD contains no dependency graph between phases. This is new planning information."
+    },
+    {
+      "id": "E003",
+      "type": "new",
+      "content": "Estimated Timeline per phase:\n| Phase | Estimated Duration | Cumulative |\n|-------|-------------------|------------|\n| Phase 1 | 3-4 weeks | 3-4 weeks |\n| Phase 2 | 4-6 weeks | 7-10 weeks |\n| Phase 3 | 4-6 weeks | 11-16 weeks |\n| Phase 4 | 3-4 weeks | 14-20 weeks |\n| Phase 5 | 3-4 weeks | 17-24 weeks |\n| Phase 6 | 6-10 weeks | 23-34 weeks |\n| Phase 7 | 2-3 weeks | 25-37 weeks |\nTotal estimated timeline: 25-37 weeks across 7 phases.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Roadmap Overview section, Estimated Timeline table",
+      "confidence": 0.99,
+      "reasoning": "The PRD contains no timeline estimates whatsoever. All duration data is new."
+    },
+    {
+      "id": "E004",
+      "type": "new",
+      "content": "Phase 1: Data Foundation\nGoal: Complete the CDM schema, XML parser, and post-parse processing so all DF data is available in PostgreSQL with full cross-referencing.\nEntry State: v0.8 -- 35 tables, 8/14+ XML sections parsed, 1.65M records\nExit State: 40+ tables, all 14+ XML sections parsed, post-parse pipeline running, all entity types and fields complete",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 1: Data Foundation header section",
+      "confidence": 0.99,
+      "reasoning": "Entry/exit state specifications for Phase 1 do not exist in the PRD."
+    },
+    {
+      "id": "E005",
+      "type": "new",
+      "content": "Stage 1.1: CDM Schema Extensions (Duration: 1 week)\nTask 1.1.1 (CDM-006): Add `world_constructions` table (world_id, id, name, type, coords) -- Deliverable: SQL migration + model\nTask 1.1.2 (CDM-006): Add `art_forms` table (world_id, id, name, type [dance/musical/poetic], details JSONB) -- Deliverable: SQL migration + model\nTask 1.1.3 (CDM-006): Add `identities` table (world_id, id, name, race, caste, details JSONB) -- Deliverable: SQL migration + model\nTask 1.1.4 (CDM-006): Add `rivers` table (world_id, id, name, coords, details JSONB) -- Deliverable: SQL migration + model\nTask 1.1.5 (CDM-006): Complete `landmasses` and `mountain_peaks` tables (add missing fields) -- Deliverable: SQL migration\nTask 1.1.6 (CDM-007): Extend `historical_figures` with high-priority fields (spheres, goals, skills, kills, whereabouts, entity_reputations, intrigue_actors, used_identities, journey_pets, holds_artifact) -- Deliverable: SQL migration\nTask 1.1.7 (CDM-007): Add `active_interactions` JSONB field to HFs for vampire/necromancer/were detection -- Deliverable: SQL migration\nTask 1.1.8 (CDM-010): Add `worldgen_snapshots` table -- Deliverable: SQL migration\nTask 1.1.9 (CDM-011): Add `world_modpacks` table -- Deliverable: SQL migration",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 1, Stage 1.1: CDM Schema Extensions",
+      "confidence": 0.99,
+      "reasoning": "Task-level decomposition with durations and deliverable types is absent from the PRD. REQ references are provided but task granularity is new."
+    },
+    {
+      "id": "E006",
+      "type": "new",
+      "content": "Stage 1.2: XML Parser Completion (Duration: 1-2 weeks)\nTask 1.2.1 (ETL-003): Parse `<world_constructions>` section (roads, tunnels, bridges) -- Deliverable: Parser extension\nTask 1.2.2 (ETL-003): Parse `<dance_forms>`, `<musical_forms>`, `<poetic_forms>` sections -- Deliverable: Parser extension\nTask 1.2.3 (ETL-003): Parse `<identities>` section -- Deliverable: Parser extension\nTask 1.2.4 (ETL-003): Parse `<rivers>` section -- Deliverable: Parser extension\nTask 1.2.5 (ETL-003): Complete `<mountain_peaks>` and `<landmasses>` parsing -- Deliverable: Parser extension\nTask 1.2.6 (ETL-003): Parse expanded HF fields from legends_plus.xml (skills, kills, whereabouts, entity_reputations, active_interactions, etc.) -- Deliverable: Parser extension\nTask 1.2.7 (ETL-003): Parse `<entity_populations>` section fully -- Deliverable: Parser extension\nTask 1.2.8 (ETL-002): Audit dual-file merge rules against LV-Next/LB2 merge strategies -- Deliverable: Verification report",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 1, Stage 1.2: XML Parser Completion",
+      "confidence": 0.99,
+      "reasoning": "Task 1.2.7 (entity_populations full parse) and 1.2.8 (merge audit vs LV-Next/LB2) are not mentioned in the PRD. All duration and deliverable-type data is new."
+    },
+    {
+      "id": "E007",
+      "type": "new",
+      "content": "Stage 1.3: Post-Parse Processing Pipeline (Duration: 1-2 weeks)\nTask 1.3.1 (ETL-004): Step 1: Resolve HF-to-HF family links (mother/father/child/spouse from hf_links) -- Deliverable: Processing step\nTask 1.3.2 (ETL-004): Step 2: Resolve HF-to-entity position assignments -- Deliverable: Processing step\nTask 1.3.3 (ETL-004): Step 3: Derive vampire/werebeast/necromancer flags from interaction events -- Deliverable: Processing step\nTask 1.3.4 (ETL-004): Step 4: Compute site ruin status from destruction/reclaim events -- Deliverable: Processing step\nTask 1.3.5 (ETL-004): Step 5: Build entity war lists from event collections -- Deliverable: Processing step\nTask 1.3.6 (ETL-004): Step 6: Compute HF kill lists from death events -- Deliverable: Processing step\nTask 1.3.7 (ETL-004): Step 7: Calculate importance scores (df-narrator formulas) -- Deliverable: Processing step\nTask 1.3.8 (ETL-004): Step 8: Build event-to-entity cross-reference index -- Deliverable: Processing step\nTask 1.3.9 (ETL-004): Step 9: Resolve site ownership history from events -- Deliverable: Processing step\nTask 1.3.10 (ETL-004): Step 10: Validate referential integrity (all FK refs resolve) -- Deliverable: Processing step + tests",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 1, Stage 1.3: Post-Parse Processing Pipeline",
+      "confidence": 0.99,
+      "reasoning": "Full ordered task list with deliverable types and duration estimate for the post-parse pipeline is absent from PRD. PRD has the 10-step enumeration but no task granularity or duration."
+    },
+    {
+      "id": "E008",
+      "type": "new",
+      "content": "Stage 1.4: Test Suite Extension (Duration: 0.5 weeks, parallel with 1.2-1.3)\nTask 1.4.1: Add tests for all new XML sections -- Deliverable: pytest additions\nTask 1.4.2: Add tests for post-parse processing steps -- Deliverable: pytest additions\nTask 1.4.3: Add tests for new CDM tables and constraints -- Deliverable: pytest additions\nTask 1.4.4: Re-ingest all worlds and verify record counts -- Deliverable: Verification\nNote: Stage 1.4 can run in parallel with Stages 1.2 and 1.3.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 1, Stage 1.4: Test Suite Extension",
+      "confidence": 0.99,
+      "reasoning": "Dedicated test suite stage with parallel execution note and specific test categories is entirely absent from the PRD."
+    },
+    {
+      "id": "E009",
+      "type": "new",
+      "content": "Phase 2: Explorer Core\nGoal: Build comprehensive entity detail pages, global search, cross-linking, and navigation so users can browse all world data.\nEntry State: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid\nExit State: Full entity detail pages for all types, global search, perspective-aware cross-linking, hover popovers",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 2: Explorer Core header section",
+      "confidence": 0.99,
+      "reasoning": "Entry/exit state specifications for Phase 2 do not exist in the PRD."
+    },
+    {
+      "id": "E010",
+      "type": "new",
+      "content": "Stage 2.1: Entity Detail Page Framework (Duration: 1 week)\nTask 2.1.1 (EXP-011-019): Design generic detail page template (header, cards, events, mini-map placeholder) -- Deliverable: Template system\nTask 2.1.2 (EXP-027): Implement cross-linking infrastructure (entity references -> navigable links) -- Deliverable: Link renderer\nTask 2.1.3 (EXP-028): Implement perspective-aware rendering (context entity suppression, relational pronouns) -- Deliverable: Event renderer\nTask 2.1.4 (NAV-005): Implement DF calendar utility (seconds72 -> date/month/season) -- Deliverable: Shared utility",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 2, Stage 2.1: Entity Detail Page Framework",
+      "confidence": 0.99,
+      "reasoning": "Stage-level task decomposition for Explorer Core framework, with duration and deliverable types, is absent from the PRD."
+    },
+    {
+      "id": "E011",
+      "type": "new",
+      "content": "Stage 2.2: Primary Entity Detail Pages (Duration: 2-3 weeks)\nTask 2.2.1 (EXP-011): Historical Figure detail page (24 sections) -- Deliverable: API + template\nTask 2.2.2 (EXP-012): Entity (Civilization) detail page (5 tabs: Leaders, Sites, Members, Groups, Wars) -- Deliverable: API + template\nTask 2.2.3 (EXP-013): Site detail page (3 tabs: Structures, Properties, History) -- Deliverable: API + template\nTask 2.2.4 (EXP-014): Artifact detail page (chain-of-custody timeline) -- Deliverable: API + template\nTask 2.2.5 (EXP-015): Region detail page (biome, evilness, sites) -- Deliverable: API + template\nTask 2.2.6 (EXP-016): Structure detail page -- Deliverable: API + template\nTask 2.2.7 (EXP-017): Written Content detail page -- Deliverable: API + template\nTask 2.2.8 (EXP-018): Event Collection detail page (19 types, drill-down hierarchy) -- Deliverable: API + template",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 2, Stage 2.2: Primary Entity Detail Pages",
+      "confidence": 0.99,
+      "reasoning": "Task-level decomposition for primary entity detail pages with duration estimates is absent from the PRD."
+    },
+    {
+      "id": "E012",
+      "type": "new",
+      "content": "Stage 2.3: Secondary Entity Detail Pages (Duration: 1 week)\nTask 2.3.1 (EXP-019): Underground Region detail page -- Deliverable: API + template\nTask 2.3.2 (EXP-019): Landmass detail page -- Deliverable: API + template\nTask 2.3.3 (EXP-019): Mountain Peak detail page -- Deliverable: API + template\nTask 2.3.4 (EXP-019): River detail page -- Deliverable: API + template\nTask 2.3.5 (EXP-019): World Construction detail page -- Deliverable: API + template\nTask 2.3.6 (EXP-019): Art Form detail pages (3 types) -- Deliverable: API + template\nTask 2.3.7 (EXP-019): Identity detail page -- Deliverable: API + template\nTask 2.3.8 (EXP-019): Historical Era detail page -- Deliverable: API + template\nTask 2.3.9 (VIS-022): Years and Events browser (chronological index) -- Deliverable: API + template",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 2, Stage 2.3: Secondary Entity Detail Pages",
+      "confidence": 0.99,
+      "reasoning": "Task-level decomposition for secondary entity pages is absent from the PRD."
+    },
+    {
+      "id": "E013",
+      "type": "new",
+      "content": "Stage 2.4: Search and Navigation (Duration: 1 week)\nTask 2.4.1 (EXP-021): Global search with live autocomplete (debounced, categorized results) -- Deliverable: API + UI component\nTask 2.4.2 (EXP-022): HF filtering by type flags (deity, vampire, etc.) -- Deliverable: Filter UI\nTask 2.4.3 (NAV-003): Hover popovers for entity preview (Ajax-fetched, Bootstrap/Tippy.js) -- Deliverable: Popover system\nTask 2.4.4 (NAV-004): Breadcrumb / prev-next navigation (FABs on detail pages) -- Deliverable: Navigation UI\nTask 2.4.5 (EXP-004): JSONB column field inventory in schema browser -- Deliverable: Schema enhancement\nTask 2.4.6 (EXP-010): Row detail overlay/modal in data browser -- Deliverable: UI enhancement\nTask 2.4.7 (EXP-025): Query results export (CSV/JSON) -- Deliverable: Export functionality",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 2, Stage 2.4: Search and Navigation",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition for search and navigation including hover popover library choice (Bootstrap/Tippy.js) is absent from the PRD."
+    },
+    {
+      "id": "E014",
+      "type": "elaboration",
+      "content": "The hover popovers system (REQ-NAV-003 / REQ-VIS-011) will be implemented using Bootstrap or Tippy.js for the Ajax-fetched popover mechanism.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-003: Hover Popovers",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 2, Stage 2.4, Task 2.4.3",
+      "confidence": 0.85,
+      "reasoning": "The PRD specifies hover popovers exist but does not name a library. The roadmap specifies Bootstrap/Tippy.js as candidate implementations. This is an elaboration."
+    },
+    {
+      "id": "E015",
+      "type": "new",
+      "content": "Phase 3: Narrative Engine\nGoal: Build the complete event narrative system and upgrade the storyteller to agentic mode with autonomous SQL exploration.\nEntry State: Keyword-routed storyteller with 23 routes, SSE streaming, dual-tier context\nExit State: Agentic SQL storyteller, 132+ event narrative templates, death cause rendering, war chronicles",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3: Narrative Engine header section",
+      "confidence": 0.99,
+      "reasoning": "Entry/exit state specifications for Phase 3 do not exist in the PRD."
+    },
+    {
+      "id": "E016",
+      "type": "new",
+      "content": "Stage 3.1: Event Narrative Template System (Duration: 2-3 weeks)\nTask 3.1.1 (STR-016): Design template system architecture (Event -> Context -> Template -> HTML) -- Deliverable: Architecture doc + base classes\nTask 3.1.2 (STR-016): Implement HF lifecycle event templates (15 types: died, revived, wounded, abducted, etc.) -- Deliverable: Template implementations\nTask 3.1.3 (STR-017): Implement death cause rendering (50+ variants with weapon info, slayer, age at death) -- Deliverable: Death cause renderer\nTask 3.1.4 (STR-016): Implement relationship event templates (10 types: add/remove HF/entity/site links) -- Deliverable: Template implementations\nTask 3.1.5 (STR-016): Implement artifact event templates (13 types) -- Deliverable: Template implementations\nTask 3.1.6 (STR-016): Implement site/construction event templates (18 types) -- Deliverable: Template implementations\nTask 3.1.7 (STR-016): Implement entity event templates (14 types) -- Deliverable: Template implementations\nTask 3.1.8 (STR-016): Implement war/combat event templates (8 types) -- Deliverable: Template implementations\nTask 3.1.9 (STR-016): Implement diplomacy event templates (10 types) -- Deliverable: Template implementations\nTask 3.1.10 (STR-016): Implement culture/art event templates (7 types) -- Deliverable: Template implementations\nTask 3.1.11 (STR-016): Implement remaining event templates (masterpieces, occasions, misc -- ~25 types) -- Deliverable: Template implementations\nTask 3.1.12 (STR-022): Implement missing event fallback (raw field dump or DF getSentence) -- Deliverable: Fallback renderer",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3, Stage 3.1: Event Narrative Template System",
+      "confidence": 0.99,
+      "reasoning": "Breakdown of 132 event types into 12 implementation sub-tasks with group counts (15 HF lifecycle, 10 relationship, 13 artifact, 18 site/construction, 14 entity, 8 war/combat, 10 diplomacy, 7 culture/art, ~25 misc) is absent from the PRD."
+    },
+    {
+      "id": "E017",
+      "type": "elaboration",
+      "content": "The 132 event types covered by the template system (REQ-STR-016) are decomposed into these groups: 15 HF lifecycle types (died, revived, wounded, abducted, etc.), 10 relationship types (add/remove HF/entity/site links), 13 artifact types, 18 site/construction types, 14 entity types, 8 war/combat types, 10 diplomacy types, 7 culture/art types, and ~25 remaining (masterpieces, occasions, misc).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-016: Per-Type Event Narrative Templates (132+ types)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3, Stage 3.1, Tasks 3.1.2-3.1.11",
+      "confidence": 0.92,
+      "reasoning": "The PRD states 132 event types but does not break them into groups. The roadmap provides a detailed categorical breakdown."
+    },
+    {
+      "id": "E018",
+      "type": "new",
+      "content": "Stage 3.2: Narrative Enrichment (Duration: 1 week)\nTask 3.2.1 (STR-018): Implement circumstance/reason rendering -- Deliverable: Enrichment module\nTask 3.2.2 (STR-019): Implement age at death with fractions (1/4, 1/2, 3/4) -- Deliverable: Utility function\nTask 3.2.3 (STR-020): Implement temporal context (year/season prefix, suppress repeats) -- Deliverable: Event wrapper\nTask 3.2.4 (STR-013): Implement war narrative generation (collection -> battles -> events) -- Deliverable: Narrative generator\nTask 3.2.5 (STR-014): Implement battle detail rendering -- Deliverable: Narrative generator\nTask 3.2.6 (STR-015): Implement civilization rise-and-fall narratives -- Deliverable: Narrative generator\nTask 3.2.7 (STR-008): Implement character profile/biography generation -- Deliverable: Biography generator",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3, Stage 3.2: Narrative Enrichment",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for narrative enrichment stage is absent from the PRD."
+    },
+    {
+      "id": "E019",
+      "type": "new",
+      "content": "Stage 3.3: Agentic Storyteller (Duration: 2-3 weeks)\nTask 3.3.1 (STR-007): Build annotated schema summary for system prompt (~2K tokens) -- Deliverable: Schema generator\nTask 3.3.2 (STR-007): Implement SQL tool definition (read-only, 50 row max, 5s timeout) -- Deliverable: Tool executor\nTask 3.3.3 (STR-007): Implement SQL safety layer (keyword blocklist, readonly transaction, LIMIT cap) -- Deliverable: Safety module\nTask 3.3.4 (STR-007): Build agentic prompt with schema + tool + denizen summary + instructions -- Deliverable: Prompt template\nTask 3.3.5 (STR-007): Implement multi-round SQL exploration (up to 5 rounds) -- Deliverable: Agent loop\nTask 3.3.6 (STR-007): Filter tool calls from SSE stream (only narrative tokens to client) -- Deliverable: Stream filter\nTask 3.3.7 (STR-007): Config toggle: keyword vs. agentic mode -- Deliverable: Configuration\nTask 3.3.8 (STR-030): Implement template vs. LLM hybrid rendering -- Deliverable: Mode selector",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3, Stage 3.3: Agentic Storyteller",
+      "confidence": 0.99,
+      "reasoning": "Schema summary token budget (~2K tokens), 8-task implementation breakdown for agentic storyteller, and duration are absent from the PRD."
+    },
+    {
+      "id": "E020",
+      "type": "elaboration",
+      "content": "The agentic storyteller system prompt (REQ-STR-007) will include an annotated schema summary of approximately 2,000 tokens.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-007: Agentic SQL Tool Use",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3, Stage 3.3, Task 3.3.1",
+      "confidence": 0.88,
+      "reasoning": "The PRD specifies the LLM receives a schema summary but does not quantify the token budget. The ~2K token target is a new specification detail."
+    },
+    {
+      "id": "E021",
+      "type": "new",
+      "content": "Stage 3.4: Monitoring and Observability (Duration: 0.5 weeks)\nTask 3.4.1 (STR-028): Enhance storyteller logging (four-phase latency) -- Deliverable: Logging improvements\nTask 3.4.2 (STR-029): Build monitoring dashboard (/monitoring) -- Deliverable: Dashboard UI",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 3, Stage 3.4: Monitoring and Observability",
+      "confidence": 0.99,
+      "reasoning": "Stage-level decomposition for monitoring and observability with duration is absent from the PRD."
+    },
+    {
+      "id": "E022",
+      "type": "new",
+      "content": "Phase 4: Visualization\nGoal: Build the interactive world map, charts, family trees, and all data visualizations.\nEntry State: vis.js graph tab (partially built), no maps or charts\nExit State: Leaflet world map, Chart.js demographics, Cytoscape family trees, D3 war diagrams",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 4: Visualization header section",
+      "confidence": 0.99,
+      "reasoning": "Entry/exit state specifications for Phase 4 do not exist in the PRD."
+    },
+    {
+      "id": "E023",
+      "type": "new",
+      "content": "Stage 4.1: World Map (Duration: 1-2 weeks)\nTask 4.1.1 (VIS-001): Implement Leaflet.js world map (CRS.Simple, image overlay, zoom/pan) -- Deliverable: Map component\nTask 4.1.2 (VIS-001): Implement map image generation (Python Pillow, 3 cached sizes) -- Deliverable: Image generator\nTask 4.1.3 (VIS-002): Implement toggleable layer groups (sites, regions, mountains, etc.) -- Deliverable: Layer system\nTask 4.1.4 (VIS-003): Implement site marker shapes by type (circle/triangle/square/pentagon/hexagon/star) -- Deliverable: Marker renderer\nTask 4.1.5 (VIS-004): Implement civilization color system (HSV rotation) -- Deliverable: Color generator\nTask 4.1.6 (VIS-009): Implement map search and jump (autocomplete, camera centering) -- Deliverable: Search overlay\nTask 4.1.7 (VIS-010): Implement site bounding box display -- Deliverable: Rectangle overlay",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 4, Stage 4.1: World Map",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for world map stage is absent from the PRD."
+    },
+    {
+      "id": "E024",
+      "type": "new",
+      "content": "Stage 4.2: Charts and Demographics (Duration: 1 week)\nTask 4.2.1 (VIS-012): Population doughnut/pie charts (by race, by biome area) -- Deliverable: Chart components\nTask 4.2.2 (VIS-013): Event timeline line chart (events per year) -- Deliverable: Chart component\nTask 4.2.3 (VIS-014): Event type breakdown bar chart -- Deliverable: Chart component\nTask 4.2.4 (VIS-020): World Summary Dashboard (map thumbnail, charts, statistics) -- Deliverable: Dashboard page",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 4, Stage 4.2: Charts and Demographics",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for charts/demographics stage is absent from the PRD."
+    },
+    {
+      "id": "E025",
+      "type": "new",
+      "content": "Stage 4.3: Genealogy and Network Graphs (Duration: 1-2 weeks)\nTask 4.3.1 (VIS-017): Family tree visualization (Cytoscape.js dagre, 3-gen depth, node classes) -- Deliverable: Family tree component\nTask 4.3.2 (VIS-019): Polish ego-network graph (vis.js, performance guards, node info panel) -- Deliverable: Graph improvements\nTask 4.3.3 (VIS-005): Per-object mini-maps (entity detail pages, highlighted tiles) -- Deliverable: Mini-map generator\nTask 4.3.4 (VIS-023): Event collection hierarchy drill-down -- Deliverable: Hierarchy component",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 4, Stage 4.3: Genealogy and Network Graphs",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for genealogy/network graphs stage is absent from the PRD."
+    },
+    {
+      "id": "E026",
+      "type": "new",
+      "content": "Stage 4.4: Advanced Visualizations (P3) (Duration: 1-2 weeks, can be deferred)\nTask 4.4.1 (VIS-015): War chord diagram (D3.js, inter-civ conflict web) -- Deliverable: D3 component\nTask 4.4.2 (VIS-016): Warfare graph (Cytoscape.js cola, force-directed) -- Deliverable: Graph component\nTask 4.4.3 (VIS-018): Curse lineage tree (vampire/werebeast chains) -- Deliverable: Lineage component\nTask 4.4.4 (VIS-006): Map timeline scrubber (historical ownership state) -- Deliverable: Timeline component\nTask 4.4.5 (VIS-007): Civilization territory overlays (convex hull) -- Deliverable: Territory renderer\nTask 4.4.6 (VIS-021): Historical eras browser -- Deliverable: Era browser\nNote: Stage 4.4 can be deferred.",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 4, Stage 4.4: Advanced Visualizations",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with deferral note for advanced visualizations is absent from the PRD."
+    },
+    {
+      "id": "E027",
+      "type": "new",
+      "content": "Phase 5: Live Integration\nGoal: Enhance the live bridge, implement worldgen monitoring, and build the Knowledge Horizon system.\nEntry State: Bridge v6 (7 domains, polling only), no worldgen, no KH\nExit State: Bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 5: Live Integration header section",
+      "confidence": 0.99,
+      "reasoning": "Entry/exit state specifications for Phase 5 do not exist in the PRD."
+    },
+    {
+      "id": "E028",
+      "type": "new",
+      "content": "Stage 5.1: Bridge Enhancements (Duration: 1-2 weeks)\nTask 5.1.1 (ETL-006): Add eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, UNIT_NEW_ACTIVE, SYNDROME) -- Deliverable: Lua script update\nTask 5.1.2 (ETL-007): Add death cause enrichment (incidents.all lookup) -- Deliverable: Lua function\nTask 5.1.3 (ETL-008): Add family chain extraction (relationship_ids.Mother/Father) -- Deliverable: Lua function\nTask 5.1.4 (ETL-009): Add book/written work detection (getBookTitle) -- Deliverable: Lua function\nTask 5.1.5 (ETL-010): Add personality/soul data (50 facets, beliefs, goals, needs) -- Deliverable: Lua section\nTask 5.1.6 (ETL-011): Add skill progression tracking per unit -- Deliverable: Lua section + Python delta",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 5, Stage 5.1: Bridge Enhancements",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for bridge enhancements is absent from the PRD."
+    },
+    {
+      "id": "E029",
+      "type": "new",
+      "content": "Stage 5.2: Worldgen Monitoring (Duration: 1 week)\nTask 5.2.1 (ETL-012): Create `worldgen-bridge.lua` (poll worldgen_status every 30 frames) -- Deliverable: Lua script\nTask 5.2.2 (ETL-012): Implement auto-start via `dfhack.onStateChange.worldgen_monitor` -- Deliverable: State hook\nTask 5.2.3 (ETL-012): Build Python worldgen snapshot ingester -- Deliverable: Python module\nTask 5.2.4 (VIS-008): Implement worldgen live map preview (WebSocket push) -- Deliverable: Frontend component\nTask 5.2.5 (ETL-012): Build worldgen dashboard (phase progress, civilization counts, event curves) -- Deliverable: Dashboard",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 5, Stage 5.2: Worldgen Monitoring",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for worldgen monitoring, including worldgen dashboard (phase progress, civilization counts, event curves) is absent from the PRD."
+    },
+    {
+      "id": "E030",
+      "type": "elaboration",
+      "content": "The worldgen monitoring dashboard (associated with ETL-012 and VIS-008) will include: phase progress display, civilization counts, and event curves.",
+      "target": {
+        "section_id": "4",
+        "position": "after",
+        "anchor_text": "### REQ-ETL-012: Worldgen Monitoring (worldgen-bridge.lua)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 5, Stage 5.2, Task 5.2.5",
+      "confidence": 0.88,
+      "reasoning": "The PRD specifies worldgen monitoring exists but does not describe the monitoring dashboard content. The roadmap adds phase progress, civilization counts, and event curves as dashboard elements."
+    },
+    {
+      "id": "E031",
+      "type": "new",
+      "content": "Stage 5.3: Knowledge Horizon (Duration: 2-3 weeks)\nTask 5.3.1 (KH-011): Create `knowledge_horizon` table + `visible_*` views -- Deliverable: SQL migration\nTask 5.3.2 (KH-012): Phase 1: Denizen registry as starting point for visibility -- Deliverable: Initialization logic\nTask 5.3.3 (KH-003): Phase 2: Individual scope masking (fortress inhabitants + direct family) -- Deliverable: Masking rules\nTask 5.3.4 (KH-001): Phase 3: Geographic scope masking (fortress region + revealed regions) -- Deliverable: Masking rules\nTask 5.3.5 (KH-002): Phase 3: Civilization scope masking (parent civ + contacted civs) -- Deliverable: Masking rules\nTask 5.3.6 (KH-009): CAV-006: Event-based revelation (wars, caravans, migrants, raids) -- Deliverable: Event handlers\nTask 5.3.7 (KH-004): CAV-001: Organization membership propagation -- Deliverable: Propagation rules\nTask 5.3.8 (KH-005): CAV-002: Nobles always visible -- Deliverable: Exception rule\nTask 5.3.9 (KH-010): CAV-007: LLM inference restrictions (system prompt) -- Deliverable: Prompt update\nTask 5.3.10 (STR-032): Integrate KH with storyteller (query visible_* views) -- Deliverable: Storyteller update",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 5, Stage 5.3: Knowledge Horizon",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for KH implementation is absent from the PRD. Note: KH Phase 4 (full KH with 7 caveats) is intentionally not included in Phase 5 per the roadmap, which only reaches KH Phase 1-3 in this phase."
+    },
+    {
+      "id": "E032",
+      "type": "new",
+      "content": "Phase 6: Advanced Components\nGoal: Build the Mod Manager, Labor Manager, and AI Fortress Advisor as integrated Chronicler components.\nEntry State: No mod management, no labor management, no advisor\nExit State: Core mod manager, labor grid with skill tracking, LLM-enhanced advisor",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6: Advanced Components header section",
+      "confidence": 0.99,
+      "reasoning": "Entry/exit state specifications for Phase 6 do not exist in the PRD."
+    },
+    {
+      "id": "E033",
+      "type": "new",
+      "content": "Stage 6.1: Mod Manager Core (Duration: 2-3 weeks)\nTask 6.1.1 (MOD-001): Filesystem mod discovery (scan DF directories, parse info.txt) -- Deliverable: Mod scanner\nTask 6.1.2 (MOD-003): info.txt parser (all v50 fields) -- Deliverable: Parser module\nTask 6.1.3 (MOD-002): DFHack live mod discovery via dfhack-run -- Deliverable: Remote scanner\nTask 6.1.4 (MOD-004): Modpack CRUD (mod-manager.json read/write) -- Deliverable: Profile manager\nTask 6.1.5 (MOD-005): Profile import/export -- Deliverable: I/O functions\nTask 6.1.6 (MOD-006): Load order management (18 header types) -- Deliverable: Order engine\nTask 6.1.7 (MOD-007): Level 1 conflict detection (metadata) -- Deliverable: Conflict checker\nTask 6.1.8 (MOD-010): Visual conflict indicators -- Deliverable: UI components\nTask 6.1.9 (MOD-016): Modpack snapshot at world creation -- Deliverable: Worldgen hook\nTask 6.1.10 (MOD-020): CLI interface (chronicler mods) -- Deliverable: CLI commands",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6, Stage 6.1: Mod Manager Core",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for Mod Manager Core stage is absent from the PRD."
+    },
+    {
+      "id": "E034",
+      "type": "new",
+      "content": "Stage 6.2: Labor Manager Core (Duration: 2-3 weeks)\nTask 6.2.1 (LAB-012): Citizen roster with configurable polling -- Deliverable: Roster module\nTask 6.2.2 (LAB-002): Skill display and progression tracking -- Deliverable: Skill display\nTask 6.2.3 (LAB-004): Happiness/stress monitoring (color-coded, trends) -- Deliverable: Stress monitor\nTask 6.2.4 (LAB-008): Dwarf filtering/sorting (multi-criteria) -- Deliverable: Filter system\nTask 6.2.5 (LAB-009): Thought/emotion display (80+ types) -- Deliverable: Emotion display\nTask 6.2.6 (LAB-015): Population migration tracking -- Deliverable: Migration tracker\nTask 6.2.7 (LAB-025): Deathwatch and casualty tracking (4 mechanisms) -- Deliverable: Death tracker\nTask 6.2.8 (LAB-001): Labor toggle grid (Dwarf Therapist-style) -- Deliverable: Grid component\nTask 6.2.9 (LAB-003): Personality trait visualization (50 facets) -- Deliverable: Personality display\nTask 6.2.10 (LAB-011): Attribute display (6 physical + 12 mental) -- Deliverable: Attribute display",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6, Stage 6.2: Labor Manager Core",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for Labor Manager Core is absent from the PRD."
+    },
+    {
+      "id": "E035",
+      "type": "new",
+      "content": "Stage 6.3: AI Fortress Advisor Core (Duration: 2-3 weeks)\nTask 6.3.1 (ADV-005): Advisor mode framework (recommend only vs. autonomous) -- Deliverable: Mode selector\nTask 6.3.2 (ADV-020): Natural language fortress advice (LLM + fortress state) -- Deliverable: Advisor LLM prompt\nTask 6.3.3 (ADV-008): Citizen arrival/departure tracking -- Deliverable: Population tracker\nTask 6.3.4 (ADV-007): Event-driven reactive alerts (UNIT_DEATH, INVASION, etc.) -- Deliverable: Alert system\nTask 6.3.5 (ADV-011): Military sizing advisor (25%-75% bounds) -- Deliverable: Military module\nTask 6.3.6 (ADV-013): Stock threshold model (3-tier, ~100 categories) -- Deliverable: Stock module\nTask 6.3.7 (ADV-006): Fortress health summary (daily/annual) -- Deliverable: Summary generator\nTask 6.3.8 (ADV-023): Fortress post-mortem narrative -- Deliverable: Post-mortem generator",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6, Stage 6.3: AI Fortress Advisor Core",
+      "confidence": 0.99,
+      "reasoning": "Task decomposition with duration for AI Fortress Advisor Core is absent from the PRD."
+    },
+    {
+      "id": "E036",
+      "type": "new",
+      "content": "Stage 6.4: Advanced Mod Management (Deferred/P4)\nTask 6.4.1 (MOD-008): Level 2 conflict detection (object ID)\nTask 6.4.2 (MOD-012): Raw file tokenizer\nTask 6.4.3 (MOD-013): Three-way file merge\nTask 6.4.4 (MOD-015): Full raw compiler\nTask 6.4.5 (MOD-019): Steam Workshop integration",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6, Stage 6.4: Advanced Mod Management",
+      "confidence": 0.99,
+      "reasoning": "Explicit grouping of advanced/P4 mod management tasks as deferred within a dedicated stage is absent from the PRD."
+    },
+    {
+      "id": "E037",
+      "type": "new",
+      "content": "Stage 6.5: Advanced Labor Management (Deferred/P4)\nTask 6.5.1 (LAB-014): Skill-based labor auto-assignment\nTask 6.5.2 (LAB-023): Labor optimization engine\nTask 6.5.3 (LAB-013): AI-powered labor advisor\nTask 6.5.4 (LAB-021): Stress trend analysis with prediction",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6, Stage 6.5: Advanced Labor Management",
+      "confidence": 0.99,
+      "reasoning": "Explicit grouping of advanced/P4 labor management tasks as deferred within a dedicated stage is absent from the PRD."
+    },
+    {
+      "id": "E038",
+      "type": "new",
+      "content": "Stage 6.6: Advanced Advisor (Deferred/P4)\nTask 6.6.1 (ADV-017): Construction planning (22 room types)\nTask 6.6.2 (ADV-018): Trade cycle management (9 steps)\nTask 6.6.3 (ADV-024): Embark site evaluation\nTask 6.6.4 (ADV-025): Random embark with auto-restart",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 6, Stage 6.6: Advanced Advisor",
+      "confidence": 0.99,
+      "reasoning": "Explicit grouping of advanced/P4 advisor tasks as deferred within a dedicated stage is absent from the PRD."
+    },
+    {
+      "id": "E039",
+      "type": "new",
+      "content": "Phase 7: Polish & Production\nGoal: Performance optimization, comprehensive testing, packaging, deployment, and documentation.\n\nStage 7.1: Performance (Duration: 1 week)\nTask 7.1.1: Index optimization for all heavy queries (entity detail pages, search, event filtering) -- Deliverable: SQL indexes\nTask 7.1.2: Query performance profiling and optimization (< 500ms for paginated, < 2s for complex JOINs) -- Deliverable: Performance report\nTask 7.1.3: Map image caching (avoid regeneration) -- Deliverable: Caching layer\nTask 7.1.4: Graph rendering optimization (progressive loading for large graphs) -- Deliverable: UI optimization\nTask 7.1.5: Storyteller response latency optimization -- Deliverable: LLM tuning\n\nStage 7.2: Testing (Duration: 1 week)\nTask 7.2.1: Expand test suite for all new entity types and detail pages -- Deliverable: pytest additions\nTask 7.2.2: Add integration tests for storyteller agentic mode -- Deliverable: Integration tests\nTask 7.2.3: Add E2E tests for explorer navigation flows -- Deliverable: E2E tests\nTask 7.2.4: Add tests for Knowledge Horizon masking rules -- Deliverable: KH tests\nTask 7.2.5: Load testing with large worlds (500K+ events) -- Deliverable: Load test results\n\nStage 7.3: Packaging and Deployment (Duration: 0.5 weeks)\nTask 7.3.1: Python package configuration (pyproject.toml) -- Deliverable: Package config\nTask 7.3.2: Docker containerization -- Deliverable: Dockerfile\nTask 7.3.3: VM deployment scripts (bridge, HTTP server, SSH setup) -- Deliverable: Deploy scripts\nTask 7.3.4: User documentation (installation, configuration, usage) -- Deliverable: Docs\n\nStage 7.4: Documentation (Duration: 0.5 weeks)\nTask 7.4.1: API documentation (all endpoints) -- Deliverable: API docs\nTask 7.4.2: CDM schema documentation (all tables, columns, relationships) -- Deliverable: Schema docs\nTask 7.4.3: User guide (getting started, features, FAQ) -- Deliverable: User guide\nTask 7.4.4: Developer guide (architecture, contributing, extending) -- Deliverable: Dev guide",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 7: Polish & Production, Stages 7.1-7.4",
+      "confidence": 0.99,
+      "reasoning": "Phase 7 is entirely absent from the PRD. The PRD only mentions performance/testing/packaging in NFR section without task decomposition, stages, or durations. Docker containerization, E2E tests, load testing with 500K+ events, API docs, schema docs, developer guide, and LLM tuning are all new."
+    },
+    {
+      "id": "E040",
+      "type": "elaboration",
+      "content": "Load testing specification: the test suite should include load tests targeting worlds with 500K+ events.",
+      "target": {
+        "section_id": "14",
+        "position": "after",
+        "anchor_text": "### REQ-NFR-001: Performance -- XML Parsing",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Phase 7, Stage 7.2, Task 7.2.5",
+      "confidence": 0.85,
+      "reasoning": "The PRD mentions performance requirements but does not specify a load testing target of 500K+ events as a test threshold."
+    },
+    {
+      "id": "E041",
+      "type": "new",
+      "content": "Priority-to-Phase Mapping (Appendix A):\n| Priority | Meaning | Phases |\n|----------|---------|--------|\n| P1 | Critical / v1.0 | Phases 1-3 |\n| P2 | High Value | Phases 2-5 |\n| P3 | Important | Phases 5-6 |\n| P4 | Stretch / Future | Phase 6 (deferred stages), beyond |",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix A: Priority Mapping",
+      "confidence": 0.99,
+      "reasoning": "The PRD defines priority levels (P1-P4) as labels per requirement but never maps priorities to phase ranges. This phase-to-priority mapping is new structural planning information."
+    },
+    {
+      "id": "E042",
+      "type": "new",
+      "content": "Milestone Definitions (Appendix B):\n| Milestone | Phase | Definition of Done |\n|-----------|-------|--------------------||\n| M1: Data Complete | Phase 1 complete | All 14+ XML sections parsed, 40+ CDM tables, post-parse pipeline running, all worlds re-ingested |\n| M2: Explorer Complete | Phase 2 complete | All entity detail pages, global search, cross-linking, hover popovers |\n| M3: Storyteller v1.0 | Phase 3 complete | Agentic SQL mode, 132 event templates, death cause rendering |\n| M4: Visualization | Phase 4 complete | Leaflet map, Chart.js demographics, Cytoscape family trees |\n| M5: Live Complete | Phase 5 complete | Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3 |\n| M6: Full Suite | Phase 6 complete | Mod manager, labor manager, AI advisor all functional |\n| M7: Release | Phase 7 complete | Performance optimized, fully tested, packaged, documented |",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix B: Milestone Definitions",
+      "confidence": 0.99,
+      "reasoning": "Named milestones (M1-M7) with specific Definitions of Done per phase are entirely absent from the PRD. This is critical gate criteria for phase completion."
+    },
+    {
+      "id": "E043",
+      "type": "new",
+      "content": "Risk Register (Appendix C):\n| Risk | Impact | Mitigation |\n|------|--------|------------|\n| DFHack version incompatibility (new DF release) | High | Pin to DFHack 53.10-r1; test on new versions before upgrading |\n| TCP RPC remains broken under Prism | Medium | Already mitigated: dfhack-run SSH transport is primary |\n| Large world performance (1M+ events) | Medium | Pagination, index optimization, materialized views |\n| LLM hallucination in agentic mode | High | Read-only SQL, evidence citations, confidence signaling |\n| Knowledge Horizon complexity | Medium | Phased rollout (4 phases); start with simple denizen-based masking |\n| Mod compiler complexity | Low | Deferred to P4; core mod manager does not require compiler |",
+      "target": {
+        "section_id": "1.2",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix C: Risk Register",
+      "confidence": 0.99,
+      "reasoning": "The Risk Register is entirely absent from the PRD. Six risks with impact levels and mitigations are new planning information. Notably: large world performance threshold (1M+ events), LLM hallucination risk with evidence citations as mitigation, and materialized views as a performance mitigation strategy are all new."
+    },
+    {
+      "id": "E044",
+      "type": "elaboration",
+      "content": "Large world performance risk mitigation: for worlds with 1M+ events, the recommended mitigation strategies are pagination, index optimization, and materialized views.",
+      "target": {
+        "section_id": "14",
+        "position": "after",
+        "anchor_text": "### REQ-NFR-002: Performance -- Explorer Response Time",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix C: Risk Register, row 3",
+      "confidence": 0.87,
+      "reasoning": "The PRD specifies performance targets but does not mention materialized views as a strategy or set 1M+ events as the scale threshold for concern."
+    },
+    {
+      "id": "E045",
+      "type": "elaboration",
+      "content": "LLM hallucination mitigation for the agentic storyteller: evidence citations should be included in LLM responses as a hallucination mitigation, in addition to confidence signaling and read-only SQL.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-007: Agentic SQL Tool Use",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix C: Risk Register, row 4",
+      "confidence": 0.87,
+      "reasoning": "The PRD specifies confidence signaling and read-only SQL for the storyteller but does not mention evidence citations as an explicit hallucination mitigation strategy."
+    },
+    {
+      "id": "E046",
+      "type": "elaboration",
+      "content": "KH implementation risk: Knowledge Horizon complexity is rated Medium impact. Mitigation is phased rollout across 4 phases, starting with simple denizen-based masking.",
+      "target": {
+        "section_id": "11",
+        "position": "after",
+        "anchor_text": "### REQ-KH-012: Phased Rollout",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix C: Risk Register, row 5",
+      "confidence": 0.82,
+      "reasoning": "The PRD describes the phased rollout but frames it as a design choice, not explicitly as a complexity risk mitigation."
+    },
+    {
+      "id": "E047",
+      "type": "elaboration",
+      "content": "Mod compiler complexity risk: Level 3 conflict detection (REQ-MOD-009) and the full raw compiler (REQ-MOD-015) are Low impact risk items explicitly deferred to P4. The core mod manager does not require the raw compiler to be functional.",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-015: Full Raw Compiler",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Appendix C: Risk Register, row 6",
+      "confidence": 0.82,
+      "reasoning": "The PRD marks these as P4 but does not explicitly state that the core mod manager is functional without the compiler, nor frame compiler complexity as a tracked risk."
+    }
+  ],
+  "new_sections": [
+    {
+      "id": "NEW_001",
+      "title": "Roadmap Overview & Phase Dependencies",
+      "parent_section": "1",
+      "content": "The Chronicler project is organized into 7 development phases. Each phase builds on the prior phase's deliverables. Stages within each phase may execute in parallel where dependencies allow.\n\n**7-Phase Structure**:\n- Phase 1: Data Foundation (CDM completeness, XML parser, post-parse pipeline)\n- Phase 2: Explorer Core (entity detail pages, search, navigation, cross-linking)\n- Phase 3: Narrative Engine (event templates, death causes, agentic storyteller)\n- Phase 4: Visualization (world map, charts, family trees, graphs)\n- Phase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon)\n- Phase 6: Advanced Components (Mod Manager, Labor Manager, AI Advisor)\n- Phase 7: Polish & Production (performance, testing, packaging, deployment)\n\n**Phase Dependencies**:\n- Phase 1 --> Phase 2 (explorer needs complete data)\n- Phase 1 --> Phase 3 (narrative needs complete events)\n- Phase 2 --> Phase 4 (visualizations sit on explorer pages)\n- Phase 3 --> Phase 5 (KH integrates with storyteller)\n- Phase 2, Phase 3 --> Phase 6 (advanced components need explorer + narrative)\n- All --> Phase 7 (polish is last)\n\n**Estimated Timeline**:\n| Phase | Estimated Duration | Cumulative |\n|-------|-------------------|------------|\n| Phase 1 | 3-4 weeks | 3-4 weeks |\n| Phase 2 | 4-6 weeks | 7-10 weeks |\n| Phase 3 | 4-6 weeks | 11-16 weeks |\n| Phase 4 | 3-4 weeks | 14-20 weeks |\n| Phase 5 | 3-4 weeks | 17-24 weeks |\n| Phase 6 | 6-10 weeks | 23-34 weeks |\n| Phase 7 | 2-3 weeks | 25-37 weeks |\nTotal: 25-37 weeks, 7 phases, 26 stages, ~150 tasks.",
+      "source_location": "Roadmap Overview section (full-project-roadmap.md lines 10-46)",
+      "reasoning": "The PRD has no roadmap section. This is a foundational new section covering phase structure, dependencies, and timeline."
+    },
+    {
+      "id": "NEW_002",
+      "title": "Phase Task Decompositions",
+      "parent_section": "1",
+      "content": "Full stage-by-stage task breakdown for all 7 phases, including: stage durations, numbered tasks with REQ cross-references, deliverable types, and parallel execution notes. See full-project-roadmap.md for the complete 26-stage, ~150-task breakdown.",
+      "source_location": "Phases 1-7 body sections (full-project-roadmap.md lines 49-492)",
+      "reasoning": "The PRD has no implementation task decompositions. These are exclusively planning documents."
+    },
+    {
+      "id": "NEW_003",
+      "title": "Milestone Definitions",
+      "parent_section": "1",
+      "content": "Named milestones with Definitions of Done:\n- M1: Data Complete (Phase 1) -- All 14+ XML sections parsed, 40+ CDM tables, post-parse pipeline running, all worlds re-ingested\n- M2: Explorer Complete (Phase 2) -- All entity detail pages, global search, cross-linking, hover popovers\n- M3: Storyteller v1.0 (Phase 3) -- Agentic SQL mode, 132 event templates, death cause rendering\n- M4: Visualization (Phase 4) -- Leaflet map, Chart.js demographics, Cytoscape family trees\n- M5: Live Complete (Phase 5) -- Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3\n- M6: Full Suite (Phase 6) -- Mod manager, labor manager, AI advisor all functional\n- M7: Release (Phase 7) -- Performance optimized, fully tested, packaged, documented",
+      "source_location": "Appendix B: Milestone Definitions (full-project-roadmap.md lines 504-514)",
+      "reasoning": "The PRD has no milestone definitions or phase Definitions of Done. These are gate criteria for development progression."
+    },
+    {
+      "id": "NEW_004",
+      "title": "Risk Register",
+      "parent_section": "1",
+      "content": "| Risk | Impact | Mitigation |\n|------|--------|------------|\n| DFHack version incompatibility (new DF release) | High | Pin to DFHack 53.10-r1; test on new versions before upgrading |\n| TCP RPC remains broken under Prism | Medium | Already mitigated: dfhack-run SSH transport is primary |\n| Large world performance (1M+ events) | Medium | Pagination, index optimization, materialized views |\n| LLM hallucination in agentic mode | High | Read-only SQL, evidence citations, confidence signaling |\n| Knowledge Horizon complexity | Medium | Phased rollout (4 phases); start with simple denizen-based masking |\n| Mod compiler complexity | Low | Deferred to P4; core mod manager does not require compiler |",
+      "source_location": "Appendix C: Risk Register (full-project-roadmap.md lines 517-526)",
+      "reasoning": "The PRD has no risk register. Six risks with impact ratings and mitigations are entirely new planning content."
+    },
+    {
+      "id": "NEW_005",
+      "title": "Priority-to-Phase Mapping",
+      "parent_section": "1",
+      "content": "| Priority | Meaning | Phases |\n|----------|---------|--------|\n| P1 | Critical / v1.0 | Phases 1-3 |\n| P2 | High Value | Phases 2-5 |\n| P3 | Important | Phases 5-6 |\n| P4 | Stretch / Future | Phase 6 (deferred stages), beyond |",
+      "source_location": "Appendix A: Priority Mapping (full-project-roadmap.md lines 496-502)",
+      "reasoning": "The PRD defines P1-P4 labels per requirement but never maps priority levels to phases. This mapping is new structural planning information needed for scheduling."
+    }
+  ],
+  "uncategorized": []
+}

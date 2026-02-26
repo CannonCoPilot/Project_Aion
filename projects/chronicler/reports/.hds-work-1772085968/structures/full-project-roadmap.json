@@ -1,0 +1,323 @@
+{
+  "document_id": "full-project-roadmap.md",
+  "document_path": "/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/reports/full-project-roadmap.md",
+  "total_lines": 532,
+  "structure": [
+    {
+      "level": 1,
+      "title": "Chronicler -- Full Project Roadmap",
+      "path": "1",
+      "line_number": 1,
+      "subsections": [
+        {
+          "level": 2,
+          "title": "Roadmap Overview",
+          "path": "1.1",
+          "line_number": 10,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Phase Dependencies",
+              "path": "1.1.1",
+              "line_number": 24,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Estimated Timeline",
+              "path": "1.1.2",
+              "line_number": 35,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 1: Data Foundation",
+          "path": "1.2",
+          "line_number": 49,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 1.1: CDM Schema Extensions",
+              "path": "1.2.1",
+              "line_number": 56,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 1.2: XML Parser Completion",
+              "path": "1.2.2",
+              "line_number": 72,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 1.3: Post-Parse Processing Pipeline",
+              "path": "1.2.3",
+              "line_number": 87,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 1.4: Test Suite Extension",
+              "path": "1.2.4",
+              "line_number": 104,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 2: Explorer Core",
+          "path": "1.3",
+          "line_number": 117,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 2.1: Entity Detail Page Framework",
+              "path": "1.3.1",
+              "line_number": 124,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 2.2: Primary Entity Detail Pages",
+              "path": "1.3.2",
+              "line_number": 135,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 2.3: Secondary Entity Detail Pages",
+              "path": "1.3.3",
+              "line_number": 150,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 2.4: Search and Navigation",
+              "path": "1.3.4",
+              "line_number": 166,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 3: Narrative Engine",
+          "path": "1.4",
+          "line_number": 182,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 3.1: Event Narrative Template System",
+              "path": "1.4.1",
+              "line_number": 189,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 3.2: Narrative Enrichment",
+              "path": "1.4.2",
+              "line_number": 208,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 3.3: Agentic Storyteller",
+              "path": "1.4.3",
+              "line_number": 222,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 3.4: Monitoring and Observability",
+              "path": "1.4.4",
+              "line_number": 237,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 4: Visualization",
+          "path": "1.5",
+          "line_number": 248,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 4.1: World Map",
+              "path": "1.5.1",
+              "line_number": 255,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 4.2: Charts and Demographics",
+              "path": "1.5.2",
+              "line_number": 269,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 4.3: Genealogy and Network Graphs",
+              "path": "1.5.3",
+              "line_number": 280,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 4.4: Advanced Visualizations (P3)",
+              "path": "1.5.4",
+              "line_number": 291,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 5: Live Integration",
+          "path": "1.6",
+          "line_number": 306,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 5.1: Bridge Enhancements",
+              "path": "1.6.1",
+              "line_number": 313,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 5.2: Worldgen Monitoring",
+              "path": "1.6.2",
+              "line_number": 326,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 5.3: Knowledge Horizon",
+              "path": "1.6.3",
+              "line_number": 338,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 6: Advanced Components",
+          "path": "1.7",
+          "line_number": 357,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 6.1: Mod Manager Core",
+              "path": "1.7.1",
+              "line_number": 364,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 6.2: Labor Manager Core",
+              "path": "1.7.2",
+              "line_number": 381,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 6.3: AI Fortress Advisor Core",
+              "path": "1.7.3",
+              "line_number": 398,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 6.4: Advanced Mod Management (Deferred/P4)",
+              "path": "1.7.4",
+              "line_number": 413,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 6.5: Advanced Labor Management (Deferred/P4)",
+              "path": "1.7.5",
+              "line_number": 423,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 6.6: Advanced Advisor (Deferred/P4)",
+              "path": "1.7.6",
+              "line_number": 432,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Phase 7: Polish & Production",
+          "path": "1.8",
+          "line_number": 443,
+          "subsections": [
+            {
+              "level": 3,
+              "title": "Stage 7.1: Performance",
+              "path": "1.8.1",
+              "line_number": 447,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 7.2: Testing",
+              "path": "1.8.2",
+              "line_number": 459,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 7.3: Packaging and Deployment",
+              "path": "1.8.3",
+              "line_number": 471,
+              "subsections": []
+            },
+            {
+              "level": 3,
+              "title": "Stage 7.4: Documentation",
+              "path": "1.8.4",
+              "line_number": 482,
+              "subsections": []
+            }
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Appendix A: Priority Mapping",
+          "path": "1.9",
+          "line_number": 495,
+          "subsections": []
+        },
+        {
+          "level": 2,
+          "title": "Appendix B: Milestone Definitions",
+          "path": "1.10",
+          "line_number": 504,
+          "subsections": []
+        },
+        {
+          "level": 2,
+          "title": "Appendix C: Risk Register",
+          "path": "1.11",
+          "line_number": 516,
+          "subsections": []
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "numeric",
+    "has_toc": false,
+    "estimated_section_count": 26,
+    "has_requirement_ids": true
+  }
+}

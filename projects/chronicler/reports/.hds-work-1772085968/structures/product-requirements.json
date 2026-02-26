@@ -1,0 +1,1786 @@
+{
+  "document_id": "product-requirements.md",
+  "document_path": "/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/reports/product-requirements.md",
+  "total_lines": 1534,
+  "structure": [
+    {
+      "level": 1,
+      "title": "Chronicler -- Product Requirement Document (PRD)",
+      "path": "1",
+      "line_number": 1,
+      "subsections": []
+    },
+    {
+      "level": 2,
+      "title": "Table of Contents",
+      "path": "1.1",
+      "line_number": 10,
+      "subsections": []
+    },
+    {
+      "level": 2,
+      "title": "1. Product Vision",
+      "path": "1.2",
+      "line_number": 32,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "1.1 Mission Statement",
+          "path": "1.2.1",
+          "line_number": 34,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "1.2 Two Core Purposes",
+          "path": "1.2.2",
+          "line_number": 38,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "1.3 Unique Position",
+          "path": "1.2.3",
+          "line_number": 44,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "2. Product Architecture",
+      "path": "1.3",
+      "line_number": 58,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "2.1 Component Hierarchy",
+          "path": "1.3.1",
+          "line_number": 60,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "2.2 Data Flow",
+          "path": "1.3.2",
+          "line_number": 84,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "3. MC-1: World History & Demographics Visualizer",
+      "path": "1.4",
+      "line_number": 102,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-VIS-001: Interactive World Map (Leaflet.js)",
+          "path": "1.4.1",
+          "line_number": 104,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-002: Map Layer Groups (Toggleable)",
+          "path": "1.4.2",
+          "line_number": 114,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-003: Site Marker Shapes by Type",
+          "path": "1.4.3",
+          "line_number": 125,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-004: Civilization Color System",
+          "path": "1.4.4",
+          "line_number": 135,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-005: Per-Object Mini-Maps",
+          "path": "1.4.5",
+          "line_number": 141,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-006: Map Timeline Scrubber",
+          "path": "1.4.6",
+          "line_number": 147,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-007: Civilization Territory Overlays",
+          "path": "1.4.7",
+          "line_number": 154,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-008: Worldgen Live Map Preview",
+          "path": "1.4.8",
+          "line_number": 160,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-009: Map Search and Jump",
+          "path": "1.4.9",
+          "line_number": 166,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-010: Site Bounding Box Display",
+          "path": "1.4.10",
+          "line_number": 172,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-011: Hover Popovers (Map and All Entity Links)",
+          "path": "1.4.11",
+          "line_number": 177,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-012: Population Charts (Doughnut/Pie)",
+          "path": "1.4.12",
+          "line_number": 186,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-013: Event Timeline (Line Chart)",
+          "path": "1.4.13",
+          "line_number": 192,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-014: Event Type Breakdown (Bar Chart)",
+          "path": "1.4.14",
+          "line_number": 199,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-015: War Chord Diagram (D3.js)",
+          "path": "1.4.15",
+          "line_number": 204,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-016: Warfare Graph (Force-Directed)",
+          "path": "1.4.16",
+          "line_number": 209,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-017: Family Tree Visualization",
+          "path": "1.4.17",
+          "line_number": 215,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-018: Curse Lineage Tree",
+          "path": "1.4.18",
+          "line_number": 222,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-019: Entity Relationship Graph (vis.js)",
+          "path": "1.4.19",
+          "line_number": 228,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-020: World Summary Dashboard",
+          "path": "1.4.20",
+          "line_number": 235,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-021: Historical Eras Browser",
+          "path": "1.4.21",
+          "line_number": 241,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-022: Years and Events Browser",
+          "path": "1.4.22",
+          "line_number": 246,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-023: Event Collection Hierarchy",
+          "path": "1.4.23",
+          "line_number": 253,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-VIS-024: In-Game Data Curve Widget",
+          "path": "1.4.24",
+          "line_number": 259,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "4. MC-2: Database Explorer Tools",
+      "path": "1.5",
+      "line_number": 266,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-EXP-001: Schema Browser -- Table List with Row Counts",
+          "path": "1.5.1",
+          "line_number": 268,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-002: Schema Browser -- Column/Type/PK/FK/Index Detail",
+          "path": "1.5.2",
+          "line_number": 273,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-003: Schema Browser -- Visual FK Relationship Lines",
+          "path": "1.5.3",
+          "line_number": 278,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-004: Schema Browser -- JSONB Column Field Inventory",
+          "path": "1.5.4",
+          "line_number": 283,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-005: Data Browser -- Paginated Data Grid",
+          "path": "1.5.5",
+          "line_number": 288,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-006: Data Browser -- Column-Level Filtering",
+          "path": "1.5.6",
+          "line_number": 293,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-007: Data Browser -- Column Sorting",
+          "path": "1.5.7",
+          "line_number": 298,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-008: Data Browser -- FK Link Navigation",
+          "path": "1.5.8",
+          "line_number": 303,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-009: Data Browser -- JSONB Collapsible Expansion",
+          "path": "1.5.9",
+          "line_number": 307,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-010: Data Browser -- Row Detail Overlay",
+          "path": "1.5.10",
+          "line_number": 311,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+          "path": "1.5.11",
+          "line_number": 316,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-012: Entity (Civilization) Detail Page (5 tabs)",
+          "path": "1.5.12",
+          "line_number": 343,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-013: Site Detail Page (3 tabs)",
+          "path": "1.5.13",
+          "line_number": 349,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-014: Artifact Detail Page",
+          "path": "1.5.14",
+          "line_number": 355,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-015: Region Detail Page",
+          "path": "1.5.15",
+          "line_number": 361,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-016: Structure Detail Page",
+          "path": "1.5.16",
+          "line_number": 366,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-017: Written Content Detail Page",
+          "path": "1.5.17",
+          "line_number": 370,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-018: Event Collection Detail Page",
+          "path": "1.5.18",
+          "line_number": 374,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-019: Additional Entity Type Pages",
+          "path": "1.5.19",
+          "line_number": 380,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-020: Accent-Insensitive Full-Text Search",
+          "path": "1.5.20",
+          "line_number": 385,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-021: Global Search with Live Autocomplete",
+          "path": "1.5.21",
+          "line_number": 390,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-022: HF Filtering by Type Flags",
+          "path": "1.5.22",
+          "line_number": 396,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-023: Advanced Query Builder (Visual)",
+          "path": "1.5.23",
+          "line_number": 401,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-024: Raw SQL Explorer (SQL Runner)",
+          "path": "1.5.24",
+          "line_number": 406,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-025: Query Results Export (CSV/JSON)",
+          "path": "1.5.25",
+          "line_number": 411,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-026: Entity Data Export (Full Entity JSON)",
+          "path": "1.5.26",
+          "line_number": 415,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-027: Cross-Linked Entity References",
+          "path": "1.5.27",
+          "line_number": 419,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-028: Perspective-Aware Event Rendering",
+          "path": "1.5.28",
+          "line_number": 424,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-029: Breadcrumb / Prev-Next Navigation",
+          "path": "1.5.29",
+          "line_number": 429,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-EXP-030: Ego-Network Graph (vis.js)",
+          "path": "1.5.30",
+          "line_number": 434,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "5. MC-3: AI Storyteller (Narrative Engine)",
+      "path": "1.6",
+      "line_number": 442,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-STR-001: Conversational World Q&A",
+          "path": "1.6.1",
+          "line_number": 444,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-002: Dual-Tier Context (HISTORICAL + LIVE)",
+          "path": "1.6.2",
+          "line_number": 451,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-003: SSE Streaming Responses",
+          "path": "1.6.3",
+          "line_number": 456,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-004: Multi-World Support",
+          "path": "1.6.4",
+          "line_number": 461,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-005: Confidence Signaling",
+          "path": "1.6.5",
+          "line_number": 466,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-006: \"No Record\" Honesty",
+          "path": "1.6.6",
+          "line_number": 470,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-007: Agentic SQL Tool Use",
+          "path": "1.6.7",
+          "line_number": 474,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-008: Character Profile & Biography Generation",
+          "path": "1.6.8",
+          "line_number": 481,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-009: Unified Person View (Unit + HF Merge)",
+          "path": "1.6.9",
+          "line_number": 486,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-010: Personality-Driven Voice Emulation",
+          "path": "1.6.10",
+          "line_number": 491,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-011: Relationship Traversal on HF Match",
+          "path": "1.6.11",
+          "line_number": 496,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-012: Emotion/Zone Integration",
+          "path": "1.6.12",
+          "line_number": 502,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-013: War Narrative Generation",
+          "path": "1.6.13",
+          "line_number": 508,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-014: Battle Detail Rendering",
+          "path": "1.6.14",
+          "line_number": 514,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-015: Civilization Rise-and-Fall Narratives",
+          "path": "1.6.15",
+          "line_number": 519,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-016: Per-Type Event Narrative Templates (132+ types)",
+          "path": "1.6.16",
+          "line_number": 524,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-017: Death Cause Rendering (50+ variants)",
+          "path": "1.6.17",
+          "line_number": 530,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-018: Circumstance/Reason Rendering",
+          "path": "1.6.18",
+          "line_number": 535,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-019: Age at Death with Fractions",
+          "path": "1.6.19",
+          "line_number": 540,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-020: Temporal Context in Events",
+          "path": "1.6.20",
+          "line_number": 544,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-021: Interaction Text from Game Raws",
+          "path": "1.6.21",
+          "line_number": 548,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-022: Missing Event Fallback",
+          "path": "1.6.22",
+          "line_number": 552,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-023: Event Payload Enrichment",
+          "path": "1.6.23",
+          "line_number": 556,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-024: DF Calendar Formatting",
+          "path": "1.6.24",
+          "line_number": 561,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-025: Narrative Value Score (NVS) for Denizens",
+          "path": "1.6.25",
+          "line_number": 567,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-026: Rivalry Detection (Co-Appearance)",
+          "path": "1.6.26",
+          "line_number": 572,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-027: Top-N Entity Selection for LLM Context",
+          "path": "1.6.27",
+          "line_number": 577,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-028: Per-Interaction LLM Logging",
+          "path": "1.6.28",
+          "line_number": 582,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-029: Monitoring Dashboard",
+          "path": "1.6.29",
+          "line_number": 587,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-030: Template vs. LLM Hybrid Rendering",
+          "path": "1.6.30",
+          "line_number": 591,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-031: Proactive Narrative Engine (Post-v1.0)",
+          "path": "1.6.31",
+          "line_number": 596,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-STR-032: Knowledge Horizon Integration",
+          "path": "1.6.32",
+          "line_number": 601,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "6. MC-4: AI Fortress Player (Advisor)",
+      "path": "1.7",
+      "line_number": 609,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-ADV-001: Tick-Based Multi-Rate Polling",
+          "path": "1.7.1",
+          "line_number": 611,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-002: Ten-Phase Population Update Cycle",
+          "path": "1.7.2",
+          "line_number": 615,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-003: Reactive Control Architecture",
+          "path": "1.7.3",
+          "line_number": 619,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-004: Exclusive Action Queue",
+          "path": "1.7.4",
+          "line_number": 624,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-005: Advisor vs. Autonomous Mode Toggle",
+          "path": "1.7.5",
+          "line_number": 629,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-006: Fortress Health Summary",
+          "path": "1.7.6",
+          "line_number": 634,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-007: Event-Driven Reactive Alerts",
+          "path": "1.7.7",
+          "line_number": 638,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-008: Citizen Arrival/Departure Tracking",
+          "path": "1.7.8",
+          "line_number": 642,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-009: Noble Assignment Advisor",
+          "path": "1.7.9",
+          "line_number": 647,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-010: Job Stall Detection",
+          "path": "1.7.10",
+          "line_number": 652,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-011: Military Sizing Advisor",
+          "path": "1.7.11",
+          "line_number": 656,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-012: Squad Creation and Sizing",
+          "path": "1.7.12",
+          "line_number": 661,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-013: Three-Tier Stock Threshold Model",
+          "path": "1.7.13",
+          "line_number": 666,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-014: Automatic Production Ordering",
+          "path": "1.7.14",
+          "line_number": 670,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-015: Farm Management",
+          "path": "1.7.15",
+          "line_number": 675,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-016: Metalworking Chain",
+          "path": "1.7.16",
+          "line_number": 680,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-017: Construction Planning (22 Room Types)",
+          "path": "1.7.17",
+          "line_number": 684,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-018: Trade Cycle Management (9 steps)",
+          "path": "1.7.18",
+          "line_number": 690,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-019: Threat Assessment and Response",
+          "path": "1.7.19",
+          "line_number": 694,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-020: Natural Language Fortress Advice (LLM)",
+          "path": "1.7.20",
+          "line_number": 699,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-021: Multi-Step Action Plans",
+          "path": "1.7.21",
+          "line_number": 704,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-022: Context-Aware Proactive Alerts",
+          "path": "1.7.22",
+          "line_number": 708,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-023: Fortress Post-Mortem Narrative",
+          "path": "1.7.23",
+          "line_number": 712,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-024: Embark Site Evaluation",
+          "path": "1.7.24",
+          "line_number": 716,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ADV-025: Random Embark with Auto-Restart",
+          "path": "1.7.25",
+          "line_number": 720,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "7. MC-5: Mod Manager",
+      "path": "1.8",
+      "line_number": 726,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-MOD-001: Mod Discovery via Filesystem Scan",
+          "path": "1.8.1",
+          "line_number": 728,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-002: DFHack Live Mod Discovery",
+          "path": "1.8.2",
+          "line_number": 733,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-003: info.txt Parser (All v50 Fields)",
+          "path": "1.8.3",
+          "line_number": 737,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-004: Modpack CRUD",
+          "path": "1.8.4",
+          "line_number": 743,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-005: Profile Import/Export",
+          "path": "1.8.5",
+          "line_number": 748,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-006: Load Order Management",
+          "path": "1.8.6",
+          "line_number": 752,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-007: Level 1 Conflict Detection (Metadata)",
+          "path": "1.8.7",
+          "line_number": 757,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-008: Level 2 Conflict Detection (Object ID)",
+          "path": "1.8.8",
+          "line_number": 762,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-009: Level 3 Conflict Detection (Semantic)",
+          "path": "1.8.9",
+          "line_number": 767,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-010: Visual Conflict Indicators",
+          "path": "1.8.10",
+          "line_number": 772,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-011: LOOT-Style Auto-Order",
+          "path": "1.8.11",
+          "line_number": 776,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-012: Raw File Tokenizer",
+          "path": "1.8.12",
+          "line_number": 781,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-013: Three-Way File Merge",
+          "path": "1.8.13",
+          "line_number": 786,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-014: Vanilla Baseline Management",
+          "path": "1.8.14",
+          "line_number": 792,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-015: Full Raw Compiler",
+          "path": "1.8.15",
+          "line_number": 797,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-016: Modpack Snapshot at World Creation",
+          "path": "1.8.16",
+          "line_number": 802,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-017: Mod History in Database",
+          "path": "1.8.17",
+          "line_number": 807,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-018: Mod Annotation in Legends Display",
+          "path": "1.8.18",
+          "line_number": 812,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-019: Steam Workshop Integration",
+          "path": "1.8.19",
+          "line_number": 816,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-MOD-020: CLI Interface",
+          "path": "1.8.20",
+          "line_number": 822,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "8. MC-6: Labor Manager",
+      "path": "1.9",
+      "line_number": 828,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-LAB-001: Labor Toggle Grid (Dwarf Therapist-style)",
+          "path": "1.9.1",
+          "line_number": 830,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-002: Skill Display and Progression",
+          "path": "1.9.2",
+          "line_number": 835,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-003: Personality Trait Visualization (50 Facets)",
+          "path": "1.9.3",
+          "line_number": 840,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-004: Happiness/Stress Monitoring",
+          "path": "1.9.4",
+          "line_number": 846,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-005: Squad Assignment Management",
+          "path": "1.9.5",
+          "line_number": 851,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-006: Noble/Position Management",
+          "path": "1.9.6",
+          "line_number": 856,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-007: Profession Management",
+          "path": "1.9.7",
+          "line_number": 861,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-008: Dwarf Filtering/Sorting",
+          "path": "1.9.8",
+          "line_number": 866,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-009: Thought/Emotion Display",
+          "path": "1.9.9",
+          "line_number": 871,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-010: Need Satisfaction Tracking",
+          "path": "1.9.10",
+          "line_number": 876,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-011: Attribute Display",
+          "path": "1.9.11",
+          "line_number": 881,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-012: Citizen Roster with Configurable Polling",
+          "path": "1.9.12",
+          "line_number": 886,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-013: AI-Powered Labor Assignment Advisor",
+          "path": "1.9.13",
+          "line_number": 891,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-014: Skill-Based Labor Auto-Assignment",
+          "path": "1.9.14",
+          "line_number": 895,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-015: Population Migration Tracking",
+          "path": "1.9.15",
+          "line_number": 900,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-016: Job Management and Stall Detection",
+          "path": "1.9.16",
+          "line_number": 905,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-017: Wound/Health Tracking",
+          "path": "1.9.17",
+          "line_number": 910,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-018: Inventory/Equipment Display",
+          "path": "1.9.18",
+          "line_number": 915,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-019: Relationship Visualization",
+          "path": "1.9.19",
+          "line_number": 920,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-020: Skill Distribution Analytics",
+          "path": "1.9.20",
+          "line_number": 925,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-021: Stress Trend Analysis",
+          "path": "1.9.21",
+          "line_number": 930,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-022: Batch Labor Operations",
+          "path": "1.9.22",
+          "line_number": 935,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-023: Labor Optimization Engine",
+          "path": "1.9.23",
+          "line_number": 939,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-024: Newcomer Orientation View",
+          "path": "1.9.24",
+          "line_number": 943,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-LAB-025: Deathwatch and Casualty Tracking",
+          "path": "1.9.25",
+          "line_number": 948,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "9. FS-1: Common Data Model & Database",
+      "path": "1.10",
+      "line_number": 955,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-CDM-001: PostgreSQL 16 with Extensions",
+          "path": "1.10.1",
+          "line_number": 957,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-002: Composite Primary Keys",
+          "path": "1.10.2",
+          "line_number": 962,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-003: JSONB Details Columns",
+          "path": "1.10.3",
+          "line_number": 967,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-004: Event Types as TEXT",
+          "path": "1.10.4",
+          "line_number": 972,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-005: Complete Table Set (40+ tables)",
+          "path": "1.10.5",
+          "line_number": 977,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-006: Missing CDM Entity Types",
+          "path": "1.10.6",
+          "line_number": 981,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-007: HF Field Extensions",
+          "path": "1.10.7",
+          "line_number": 985,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-008: Importance Score Columns",
+          "path": "1.10.8",
+          "line_number": 989,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-009: Knowledge Horizon Table",
+          "path": "1.10.9",
+          "line_number": 994,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-010: Worldgen Snapshots Table",
+          "path": "1.10.10",
+          "line_number": 999,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-011: World Modpacks Table",
+          "path": "1.10.11",
+          "line_number": 1003,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-CDM-012: pgvector Embedding Tables",
+          "path": "1.10.12",
+          "line_number": 1007,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "10. FS-2: Data ETL Systems",
+      "path": "1.11",
+      "line_number": 1014,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-ETL-001: Legends XML Parser (Streaming)",
+          "path": "1.11.1",
+          "line_number": 1016,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-002: Dual-File Merge (legends.xml + legends_plus.xml)",
+          "path": "1.11.2",
+          "line_number": 1021,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-003: Parse All 14+ XML Sections",
+          "path": "1.11.3",
+          "line_number": 1026,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-004: Post-Parse Processing Pipeline (10 Steps)",
+          "path": "1.11.4",
+          "line_number": 1031,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-005: Live Bridge (chronicler-bridge.lua v6)",
+          "path": "1.11.5",
+          "line_number": 1044,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-006: Bridge Enhancement -- eventful Subscriptions",
+          "path": "1.11.6",
+          "line_number": 1050,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-007: Bridge Enhancement -- Death Cause Enrichment",
+          "path": "1.11.7",
+          "line_number": 1055,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-008: Bridge Enhancement -- Family Chain",
+          "path": "1.11.8",
+          "line_number": 1060,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-009: Bridge Enhancement -- Book Detection",
+          "path": "1.11.9",
+          "line_number": 1064,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-010: Bridge Enhancement -- Personality/Soul Data",
+          "path": "1.11.10",
+          "line_number": 1068,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-011: Bridge Enhancement -- Skill Progression",
+          "path": "1.11.11",
+          "line_number": 1072,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-012: Worldgen Monitoring (worldgen-bridge.lua)",
+          "path": "1.11.12",
+          "line_number": 1076,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-013: Change Detection (11 Event Types)",
+          "path": "1.11.13",
+          "line_number": 1082,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-014: File Transfer",
+          "path": "1.11.14",
+          "line_number": 1086,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-015: dfhack-run SSH Transport",
+          "path": "1.11.15",
+          "line_number": 1092,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-ETL-016: RAG/Vector Indexing",
+          "path": "1.11.16",
+          "line_number": 1097,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "11. Cross-Cutting: Knowledge Horizon",
+      "path": "1.12",
+      "line_number": 1105,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-KH-001: Geographic Scope Masking",
+          "path": "1.12.1",
+          "line_number": 1107,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-002: Civilization Scope Masking",
+          "path": "1.12.2",
+          "line_number": 1112,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-003: Individual Scope Masking",
+          "path": "1.12.3",
+          "line_number": 1117,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-004: CAV-001 Organization Membership Propagation",
+          "path": "1.12.4",
+          "line_number": 1122,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-005: CAV-002 Nobles Always Visible",
+          "path": "1.12.5",
+          "line_number": 1126,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-006: CAV-003 Previous Residence Knowledge",
+          "path": "1.12.6",
+          "line_number": 1130,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-007: CAV-004 Starting Dwarf Background Generation",
+          "path": "1.12.7",
+          "line_number": 1134,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-008: CAV-005 Family Chain Propagation",
+          "path": "1.12.8",
+          "line_number": 1138,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-009: CAV-006 Event-Based Revelation",
+          "path": "1.12.9",
+          "line_number": 1142,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-010: CAV-007 LLM Inference Restrictions",
+          "path": "1.12.10",
+          "line_number": 1146,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-011: View-Based Masking Architecture",
+          "path": "1.12.11",
+          "line_number": 1150,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-KH-012: Phased Rollout",
+          "path": "1.12.12",
+          "line_number": 1154,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "12. Cross-Cutting: Scoring & Ranking",
+      "path": "1.13",
+      "line_number": 1163,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-SCR-001: Figure Importance Score",
+          "path": "1.13.1",
+          "line_number": 1165,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-002: Site Importance Score",
+          "path": "1.13.2",
+          "line_number": 1169,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-003: Conflict Importance Score",
+          "path": "1.13.3",
+          "line_number": 1173,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-004: Artifact Importance Score",
+          "path": "1.13.4",
+          "line_number": 1177,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-005: NVS for Denizens",
+          "path": "1.13.5",
+          "line_number": 1181,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-006: Rivalry Detection",
+          "path": "1.13.6",
+          "line_number": 1185,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-007: Megabeast Detection",
+          "path": "1.13.7",
+          "line_number": 1189,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-SCR-008: Supernatural Detection",
+          "path": "1.13.8",
+          "line_number": 1193,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "13. Cross-Cutting: Navigation & UX Patterns",
+      "path": "1.14",
+      "line_number": 1201,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-NAV-001: Cross-Linked Entity References",
+          "path": "1.14.1",
+          "line_number": 1203,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NAV-002: Perspective-Aware Event Rendering",
+          "path": "1.14.2",
+          "line_number": 1208,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NAV-003: Hover Popovers",
+          "path": "1.14.3",
+          "line_number": 1212,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NAV-004: Breadcrumb / Prev-Next Navigation",
+          "path": "1.14.4",
+          "line_number": 1216,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NAV-005: DF Calendar System",
+          "path": "1.14.5",
+          "line_number": 1221,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "14. Non-Functional Requirements",
+      "path": "1.15",
+      "line_number": 1227,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "REQ-NFR-001: Performance -- XML Parsing",
+          "path": "1.15.1",
+          "line_number": 1229,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-002: Performance -- Explorer Response Time",
+          "path": "1.15.2",
+          "line_number": 1233,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-003: Performance -- Graph Rendering",
+          "path": "1.15.3",
+          "line_number": 1237,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-004: Security -- SQL Injection Prevention",
+          "path": "1.15.4",
+          "line_number": 1241,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-005: Security -- Credentials",
+          "path": "1.15.5",
+          "line_number": 1247,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-006: Reliability -- Watcher",
+          "path": "1.15.6",
+          "line_number": 1251,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-007: Scalability -- Multi-World Support",
+          "path": "1.15.7",
+          "line_number": 1256,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-008: Observability -- Storyteller",
+          "path": "1.15.8",
+          "line_number": 1261,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-009: Accessibility -- Search",
+          "path": "1.15.9",
+          "line_number": 1266,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "REQ-NFR-010: Compatibility -- DF Version",
+          "path": "1.15.10",
+          "line_number": 1270,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "15. DFHack Reference Guide",
+      "path": "1.16",
+      "line_number": 1276,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "15.1 Data Access Paths (Lua via dfhack-run)",
+          "path": "1.16.1",
+          "line_number": 1278,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "15.2 DFHack eventful Module",
+          "path": "1.16.2",
+          "line_number": 1408,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "15.3 DFHack Repeat Job Pattern",
+          "path": "1.16.3",
+          "line_number": 1427,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "15.4 DFHack State Change Hook",
+          "path": "1.16.4",
+          "line_number": 1441,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "15.5 RemoteFortressReader (41 Functions)",
+          "path": "1.16.5",
+          "line_number": 1453,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "15.6 Key DFHack Gotchas",
+          "path": "1.16.6",
+          "line_number": 1461,
+          "subsections": []
+        }
+      ]
+    },
+    {
+      "level": 2,
+      "title": "16. Technology Stack",
+      "path": "1.17",
+      "line_number": 1472,
+      "subsections": []
+    },
+    {
+      "level": 2,
+      "title": "17. Current State (v0.8)",
+      "path": "1.18",
+      "line_number": 1497,
+      "subsections": [
+        {
+          "level": 3,
+          "title": "Built and Working",
+          "path": "1.18.1",
+          "line_number": 1499,
+          "subsections": []
+        },
+        {
+          "level": 3,
+          "title": "Not Yet Started",
+          "path": "1.18.2",
+          "line_number": 1515,
+          "subsections": []
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "numeric",
+    "has_toc": true,
+    "estimated_section_count": 202,
+    "has_requirement_ids": true
+  }
+}

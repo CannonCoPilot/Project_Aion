@@ -1,0 +1,1267 @@
+{
+  "source_document": "research-synthesis-v2.md",
+  "master_document": "product-requirements.md",
+  "extraction_summary": {
+    "total_extractions": 87,
+    "new_information": 61,
+    "elaborations": 22,
+    "conflicts": 0,
+    "new_sections_proposed": 4,
+    "uncategorized": 0
+  },
+  "extractions": [
+    {
+      "id": "E001",
+      "type": "new",
+      "content": "Landscape Overview table categorizing the DF tool ecosystem into six distinct categories: (1) Legends Browsers (LegendsViewer-Next, LegendsBrowser, LegendsBrowser2) -- XML export files, batch parse in-memory web UI; (2) Live Game Servers (weblegends) -- DFHack C++ memory, real-time HTTP per-request render; (3) Autonomous Agents (df-ai) -- DFHack C++ memory, tick-based reactive loop; (4) Narrative Generators (df-narrator) -- XML export files, score + template LLM-sized output; (5) Infrastructure Tools (dfhack-client-python, DwarfFortressLogger, myDFHackScripts, DwarvenSurveyor, df-structures) -- mixed RPC/memory/Lua/XML; (6) Mod Management (DF-Modloader, ModHearth, PyLNP, PyDwarf, Nexus Mod Manager) -- filesystem + DFHack Lua.",
+      "target": {
+        "section_id": "1.3",
+        "position": "prepend",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 1. Landscape Overview, opening table",
+      "confidence": 0.98,
+      "reasoning": "PRD Section 1.3 states Chronicler's unique position but does not include the structured landscape categorization table. This taxonomy of competing tools by category and access pattern is entirely absent from the Master."
+    },
+    {
+      "id": "E002",
+      "type": "new",
+      "content": "Reference Repository Inventory table with per-repo detail: LegendsViewer-Next (C#/Vue.js, ~15,000 lines, key contribution: Leaflet map, Cytoscape family tree, Chart.js viz, 115+ event types, Vue detail pages); LegendsBrowser (Java, ~8,000 lines, SAX streaming XML, SVG family tree, D3 chord diagram, Bootstrap popovers); LegendsBrowser2 (Go, ~12,000 lines, 132 event types, custom XML tokenizer, context-aware rendering, autocomplete search); weblegends (C++, ~6,000 lines, 94 event handlers, 40+ death causes, perspective-aware linking, live DFHack memory); df-narrator (Python, ~2,000 lines, 4 scoring formulas, HF_FIELDS set, rival detection, Markdown world summary); df-ai (C++, ~25,000 lines, full fortress AI: population, military, stocks, construction, trade management); dfhack-client-python (Python, ~1,500 lines, RPC protocol implementation, binary frame format); DwarfFortressLogger (Java, ~3,000 lines, 29 memory sections, Dwarf Therapist-compatible layout system); myDFHackScripts (Lua, ~2,000 lines, death cause lookup, citizen detection, eventful hooks, polling patterns); DwarvenSurveyor (C#/Unity, ~1,500 lines, XML coordinate parsing, biome rendering, site taxonomy); df-structures (XML, ~50,000 lines, canonical memory layout, 144 event types, all entity fields); DF-Modloader (Python, ~1,700 lines, raw file compiler, EDIT/SELECT/CUT handling, object template system); ModHearth (C#, ~2,000 lines, DFHack mod memory query, info.txt parsing, conflict detection); PyLNP (Python, ~3,000 lines, three-way merge algorithm, baseline management, merge status tracking); PyDwarf (Python, ~2,500 lines, doubly-linked token model, round-trip raw editing); Nexus Mod Manager (C#, ~50,000 lines, plugin architecture, category browsing, multi-game mod management); Dwarf Therapist (C++, ~20,000 lines, memory layout system -- not directly usable via remote access).",
+      "target": {
+        "section_id": "1.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 1.1 Reference Repository Inventory table",
+      "confidence": 0.99,
+      "reasoning": "The Master PRD references '17+ Repository Research Reports' in its header but contains no actual repository inventory table with line counts, languages, or key contributions. This is entirely absent from the Master."
+    },
+    {
+      "id": "E003",
+      "type": "new",
+      "content": "Feature Inventory Summary with size-categorized counts per component (S=days, M=1-2 weeks, L=2-4 weeks, XL=1+ months): World History Visualizer: S=7, M=8, L=6, XL=3, Total ~30; Database Explorer: S=9, M=11, L=5, XL=2, Total ~40; AI Storyteller: S=12, M=15, L=7, XL=5, Total ~62; AI Fortress Player: S=14, M=18, L=10, XL=2, Total ~50; Mod Manager: S=6, M=12, L=10, XL=6, Total ~44; Labor Manager: S=8, M=12, L=8, XL=3, Total ~35; CDM & Database: varies/~30; Data ETL: varies/~20. Grand total: ~260+ discrete features.",
+      "target": {
+        "section_id": "2.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 3. Feature Inventory Summary",
+      "confidence": 0.97,
+      "reasoning": "The Master PRD says '~200+ across 8 subsystems' in its footer but does not provide the per-component S/M/L/XL breakdown table. This granular complexity sizing is entirely absent."
+    },
+    {
+      "id": "E004",
+      "type": "new",
+      "content": "Canonical event type count cross-reference table: df-structures history_event_type enum = 144 (authoritative, canonical memory layout); LegendsBrowser2 events.go = 132 (production Go source); LegendsViewer-Next XMLParser.cs = 115+ (production .NET source); weblegends events/*.cpp = 94 files (production C++ source); df-narrator = generic/no per-type handling. Synthesis: df-structures defines 144 event types. LB2's 132 types represent the most complete handling implementation. The gap of 12 consists of newer event types added in DF 0.47+ that some tools have not yet implemented handlers for. Chronicler strategy: store all 144 as TEXT, implement templates for 132 LB2-handled types, graceful fallback for remaining 12.",
+      "target": {
+        "section_id": "7",
+        "position": "prepend",
+        "anchor_text": "### REQ-STR-016: Per-Type Event Narrative Templates",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 4.1 Canonical Reference table",
+      "confidence": 0.99,
+      "reasoning": "The Master PRD says '132 LB2-handled event types' and '144 event types' but does not contain the cross-reference table showing the source authority of each count, nor the gap analysis (144 - 132 = 12 unimplemented newer types). This is new supporting context."
+    },
+    {
+      "id": "E005",
+      "type": "new",
+      "content": "Complete event type category taxonomy with counts and examples: HF Lifecycle (15 types: died, revived, wounded, abducted, enslaved, freed, ransomed); HF Relationships (10 types: add/remove hf_hf_link, add/remove hf_entity_link, add/remove hf_site_link); HF Actions (12 types: attacked_site, destroyed_site, confronted, does_interaction, preach); HF Intrigue (10 types: convicted, interrogated, formed_intrigue, failed_frame, sabotage); Artifacts (13 types: created, destroyed, lost, found, given, possessed, recovered, stored, transformed, copied, claim_formed); Sites/Construction (18 types: created_site, destroyed_site, site_taken_over, reclaim_site, created_structure, razed_structure); Entities (14 types: entity_created, dissolved, incorporated, overthrown, law, persecuted, alliance_formed); War/Combat (8 types: field_battle, squad_vs_squad, tactical_situation, attacked_site, plundered_site); Diplomacy (10 types: peace_accepted/rejected, agreement_formed/concluded/rejected, trade, first_contact); Culture/Art (7 types: poetic/musical/dance_form_created, written_content_composed, knowledge_discovered); Masterpieces (8 types: arch_construct, item, dye, item_improvement, food, engraving, lost); Occasions (5 types: ceremony, competition, performance, procession, gamble); Misc (14 types: creature_devoured, body_abused, merchant, sneak_into_site, spotted_leaving, insurrection).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-016: Per-Type Event Narrative Templates (132+ types)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 4.2 Event Categories (Merged Taxonomy)",
+      "confidence": 0.99,
+      "reasoning": "The Master PRD references 132 event types and 19 event collection types but does not provide the merged category taxonomy with specific example event names per category. This is entirely new detail."
+    },
+    {
+      "id": "E006",
+      "type": "new",
+      "content": "Event Collection Types enumerated by category: Warfare (battle, war, duel, raid, site_conquered); Political (insurrection, persecution, purge, entity_overthrown); Calamities (beast_attack, abduction, theft); Rituals (occasion, procession, ceremony, performance, competition); Travel (journey). Total: 19 types.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-VIS-023: Event Collection Hierarchy",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 4.3 Event Collection Types (19 Types)",
+      "confidence": 0.95,
+      "reasoning": "The Master PRD mentions '19 EventCollection types' and lists some examples in REQ-VIS-023 and REQ-EXP-018 but does not provide the authoritative categorized list. The SubDocument's categorization (Warfare, Political, Calamities, Rituals, Travel) with full enumeration is new."
+    },
+    {
+      "id": "E007",
+      "type": "elaboration",
+      "content": "Data Entity Coverage Comparison matrix showing coverage level per entity type across all reference tools: Historical Figures (LV-Next: Full, LB2: Full, weblegends: Full, df-narrator: Scored subset, Chronicler: Full); Sites (Full/Full/Full/Scored subset/Full); Entities (Full/Full/Full/Name only/Full); Artifacts (Full/Full/Full/Scored subset/Full); Regions (Full/Full/Full/No/Full); Underground Regions (Full/Full/Full/No/Partial); Structures (Full/Full/Full/No/Full); World Constructions (Full/Full/Partial/No/MISSING); Written Content (Full/Full/Partial/No/Partial); Art Forms 3 types (Full/Full/Partial/No/MISSING); Identities (Full/Full/No/No/MISSING); Landmasses (Full/Full/No/No/Partial); Mountain Peaks (Full/Full/No/No/Partial); Rivers (Full/Stub/No/No/MISSING); Entity Populations (Full/Stub/Partial/No/Partial); Event Collections (Full/Full/Full/Partial/Partial).",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": "### REQ-CDM-006: Missing CDM Entity Types",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 5.3 Data Entity Coverage Comparison",
+      "confidence": 0.99,
+      "reasoning": "The Master PRD lists missing CDM entity types but does not provide the comparative coverage matrix. This cross-tool coverage comparison is essential context for understanding the gap and is absent from the Master."
+    },
+    {
+      "id": "E008",
+      "type": "elaboration",
+      "content": "HF Field Completeness Audit -- Missing HIGH PRIORITY fields: active_interactions (vampire/necromancer/werebeast interaction detection), spheres (deity domains), goals (life goals with accomplishment status), skills with XP points from info.skills, entity_links with link type and position details (expanded), histfig_links (mother/father/child/spouse -- family), site_links (lair, home, seat_of_power), kills (notable and other kill records), whereabouts/current_state (geographic location), vague_relationships and relationship_profiles, entity_reputations (murderer, hero, monster, poet, bard, etc.), intrigue_actors/intrigue_plots (v0.47+ intrigue system), used_identities/current_identity (false identity tracking), journey_pets, holds_artifact (currently held artifacts), breed_id/cultural_identity/family_head_id. Missing MEDIUM PRIORITY: orientation_flags, curse_year/curse_seconds, personality (values, ethics, mannerisms -- 70+ mannerism types), knowledge_profile (known secrets, books, belief systems), reputation_profile (wanted status, journey profile).",
+      "target": {
+        "section_id": "3.4",
+        "position": "append",
+        "anchor_text": "### REQ-CDM-007: HF Field Extensions",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 5.4 HF Field Completeness Audit",
+      "confidence": 0.99,
+      "reasoning": "The Master REQ-CDM-007 lists HF field extensions as a bulleted list without the high/medium priority split, and omits several fields: breed_id, cultural_identity, family_head_id, orientation_flags, curse_year/curse_seconds, knowledge_profile, reputation_profile. The audit structure and these additional fields are new."
+    },
+    {
+      "id": "E009",
+      "type": "new",
+      "content": "XML Approach comparison table across reference tools: Chronicler uses lxml.etree.iterparse + root.clear() (streaming, constant memory); LegendsBrowser (Java) uses SAX XMLReader + annotation handler (streaming, constant memory); LegendsBrowser2 (Go) uses custom hand-written tokenizer NOT encoding/xml (streaming, buffered I/O); LegendsViewer-Next (.NET) uses Async XML with FilteredStream (streaming, filtered); DwarvenSurveyor (C#) uses XmlReader streaming; df-narrator (Python) uses xml.etree.ElementTree full-tree parse (full-tree, then freed). Note: LB2 chose NOT to use encoding/xml for performance reasons.",
+      "target": {
+        "section_id": "4.1",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-001: Legends XML Parser (Streaming)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.1 Legends XML Pipeline, XML Approach table",
+      "confidence": 0.97,
+      "reasoning": "The Master states Chronicler uses lxml iterparse but does not include the cross-tool XML approach comparison table. The rationale for LB2's custom tokenizer choice is entirely absent."
+    },
+    {
+      "id": "E010",
+      "type": "elaboration",
+      "content": "Dual-file merge specifics: legends_plus.xml provides the following additional data NOT in legends.xml: per-tile coordinate arrays, evilness ratings, cur_owner_id, entity positions/assignments/honors, relationship profiles, vampire/werebeast/necromancer 'since' years, written content references, entity occasion schedules.",
+      "target": {
+        "section_id": "4.1",
+        "position": "after",
+        "anchor_text": "### REQ-ETL-002: Dual-File Merge (legends.xml + legends_plus.xml)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.1 Dual-File Merge paragraph",
+      "confidence": 0.98,
+      "reasoning": "The Master REQ-ETL-002 says 'Parse legends.xml first, legends_plus.xml second, match by id fields' but does not enumerate what specific data legends_plus.xml adds. This is new detail."
+    },
+    {
+      "id": "E011",
+      "type": "new",
+      "content": "Live Bridge data domains currently captured (9 domains, not 7): (1) Game time (year, tick, season); (2) Creature raws (934 creature types); (3) Unit summary (22 fortress dwarves with names, stress, focus, longterm_stress, combat_hardened, squad, position); (4) Armies (142+ armies with positions, member counts, controller IDs); (5) Buildings (205+ buildings by 16 building types); (6) Artifacts (named artifacts with DF-language and English translations); (7) Announcements (last 20 game reports); (8) Diplomacy (player civ relations via entity.resources.diplomacy.state); (9) History (figure count, event count, last 50 events with type/year).",
+      "target": {
+        "section_id": "4.3",
+        "position": "after",
+        "anchor_text": "### REQ-ETL-005: Live Bridge (chronicler-bridge.lua v6)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.2 Live Bridge System, Data Domains",
+      "confidence": 0.97,
+      "reasoning": "The Master REQ-ETL-005 says '7 data domains, 16 sections' but the SubDocument lists 9 domains with specifics (diplomacy and history were not enumerated). The concrete data (934 creature types, 22 dwarves, 142+ armies, 205+ buildings, last 50 events) is absent from the Master."
+    },
+    {
+      "id": "E012",
+      "type": "elaboration",
+      "content": "Worldgen monitoring provides access to the following worldgen_status fields beyond what the Master lists: progress counters (rivers, civs, rampages), phase completion flags (caves_placed, megabeasts_placed, etc.), event cursor (last_event_id_added), live access to world.history.figures/events/eras as they populate during generation.",
+      "target": {
+        "section_id": "4.4",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-012: Worldgen Monitoring (worldgen-bridge.lua)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.4 Worldgen Monitoring",
+      "confidence": 0.95,
+      "reasoning": "The Master lists the 12-state enum but does not mention the progress counters, phase completion flags, event cursor, or live history access. These are additional fields not in the Master."
+    },
+    {
+      "id": "E013",
+      "type": "new",
+      "content": "Site marker taxonomy includes two additional types not in the Master PRD: Pentagon (blue): MysteriousDungeon; Hexagon (blue): MysteriousPalace. The Master only lists Pentagon (Fortress, ForestRetreat, Town, DarkPits) and Hexagon large (MountainHalls, Castle, DarkFortress) without distinguishing the blue-colored mysterious variants.",
+      "target": {
+        "section_id": "5.3",
+        "position": "append",
+        "anchor_text": "### REQ-VIS-003: Site Marker Shapes by Type",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 7.3 Site Marker Shapes (by Type)",
+      "confidence": 0.92,
+      "reasoning": "The Master REQ-VIS-003 does not include MysteriousDungeon or MysteriousPalace in its site type list. The SubDocument adds these two additional shape/color combinations."
+    },
+    {
+      "id": "E014",
+      "type": "new",
+      "content": "weblegends-style BFS static site generation as a stretch goal for data export (beyond CSV/JSON export listed in Master REQ-EXP-025/026).",
+      "target": {
+        "section_id": "6",
+        "position": "append",
+        "anchor_text": "### REQ-EXP-026: Entity Data Export (Full Entity JSON)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 8.5 Data Export",
+      "confidence": 0.88,
+      "reasoning": "The Master covers CSV/JSON export but the SubDocument specifically mentions 'weblegends-style BFS static site generation (stretch)' as an additional export mode not present in the Master."
+    },
+    {
+      "id": "E015",
+      "type": "elaboration",
+      "content": "AI Storyteller pipeline detail: extract_keywords -> categorical routing -> name-based ILIKE search -> world overview fallback -> format_context (12,000 char budget) -> build_messages -> stream_completion -> SSE response. The 12,000 character context budget limit is not specified in the Master.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-001: Conversational World Q&A",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.1 Conversational World Query Engine, Pipeline description",
+      "confidence": 0.93,
+      "reasoning": "The Master REQ-STR-001 lists '23 categorical routes' and 'keyword routing' but does not specify the pipeline step sequence or the 12,000 char context budget limit."
+    },
+    {
+      "id": "E016",
+      "type": "elaboration",
+      "content": "Agentic Storyteller safety layer detail: 'SET TRANSACTION READ ONLY', keyword blocklist (DROP, DELETE, INSERT, UPDATE, ALTER, TRUNCATE), enforced LIMIT cap, per-query timeout, validated table/column names. Also: the LLM receives a database schema summary (~2K tokens, 40+ table definitions) specifically.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-007: Agentic SQL Tool Use",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.2 Agentic Storyteller",
+      "confidence": 0.91,
+      "reasoning": "Master REQ-STR-007 lists the safety measures but omits SET TRANSACTION READ ONLY and the specific ~2K token schema summary size. Minor elaboration."
+    },
+    {
+      "id": "E017",
+      "type": "elaboration",
+      "content": "LLM configuration table: Primary Model = Qwen3-8B via LiteLLM (dev), Claude API (production); Temperature = 0.8 (configurable); Max Tokens = 2048 (configurable); Streaming = SSE via sse_starlette; Embedding = qwen3-embedding:4b via MLX (2560-dim, localhost:8000).",
+      "target": {
+        "section_id": "7",
+        "position": "append",
+        "anchor_text": "### REQ-STR-028: Per-Interaction LLM Logging",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.7 LLM Configuration",
+      "confidence": 0.90,
+      "reasoning": "The Master technology stack table mentions LLM models but does not list Temperature=0.8 or Max Tokens=2048 as specific storyteller configuration values. These are elaborations not in the Master."
+    },
+    {
+      "id": "E018",
+      "type": "new",
+      "content": "Storyteller monitoring has three specific API endpoints (not just a dashboard): interactions list endpoint, interaction detail endpoint, and summary endpoint. The InteractionLog instrumentation class provides phase latency tracking.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-029: Monitoring Dashboard",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.8 Monitoring & Observability",
+      "confidence": 0.88,
+      "reasoning": "The Master REQ-STR-029 mentions 'API endpoints for programmatic access' but REQ-STR-028 only says 'Four-phase latency tracking'. The SubDocument names the InteractionLog class and specifies 3 API endpoints. Minor new detail."
+    },
+    {
+      "id": "E019",
+      "type": "new",
+      "content": "AI Fortress Advisor detailed polling rates table beyond the Master's summary: Population=25 ticks, Military=25 ticks (phase 4), Nobles=25 ticks (phase 2), Trading=25 ticks (phase 0), Pets=25 ticks (phase 5), Justice=25 ticks (phase 4), Occupations=25 ticks (phase 8), Construction=240 ticks, Stocks=100 ticks, Farms=100 ticks. Note: Justice and Occupations subsystems at 25 ticks each are not listed in Master REQ-ADV-001.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-001: Tick-Based Multi-Rate Polling",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.1 Core Architecture, Tick-based multi-rate polling table",
+      "confidence": 0.93,
+      "reasoning": "Master REQ-ADV-001 lists Population=25, Construction=240, Stocks=100 but omits Military (25), Nobles (25), Trading (25), Pets (25), Justice (25), Occupations (25), Farms (100). The phase numbers are also absent from the Master."
+    },
+    {
+      "id": "E020",
+      "type": "new",
+      "content": "Population Management additional features not in Master: Pet management details (milkable, shearable, trainable, egg-laying, vermin-hunting, grazing categories), occupation assignment (tavern keeper, performer, scholar), dead unit handling (ghost prevention, memorial slabs), caged unit management, baby/mother reunification (DF Bug 5551), immigration handling.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-008: Citizen Arrival/Departure Tracking",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.2 Population Management",
+      "confidence": 0.92,
+      "reasoning": "The Master REQ-ADV-008 covers arrival/departure tracking but does not mention pet management categories, occupation assignment types, ghost prevention, caged unit management, baby/mother reunification (DF Bug 5551), or immigration handling. These are new sub-features."
+    },
+    {
+      "id": "E021",
+      "type": "new",
+      "content": "Military management additional details: tool confiscation for military service, attack order management (score squads, best-scoring squad sent), training management, justice and crime monitoring. These are sub-features of the Military Management system not listed in any Master REQ-ADV requirement.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-011: Military Sizing Advisor",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.3 Military Management",
+      "confidence": 0.88,
+      "reasoning": "The Master covers military sizing and squad creation but omits tool confiscation, attack order scoring logic, training management, and justice/crime monitoring as distinct sub-features."
+    },
+    {
+      "id": "E022",
+      "type": "new",
+      "content": "Resource management detail: Manager order stall detection -- if front order stuck in 'validated' state across two monthly checks, trim quantities by 3/month. Also: kitchen management, tree cutting, and stockpile configuration are additional resource subsystems not in Master REQ-ADV-013/014.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-014: Automatic Production Ordering",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.4 Resource Management",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-ADV-013/014 cover stock thresholds and production ordering but do not mention the manager order stall detection with the '3/month trim' mechanic, kitchen management, tree cutting, or stockpile configuration."
+    },
+    {
+      "id": "E023",
+      "type": "new",
+      "content": "Construction Planning additional details: 28 furniture types tracked (archery_target, armor_stand, bed, bookcase, cabinet, cage, cage_trap, chair, chest, coffin, door, floodgate, gear_assembly, hatch, hive, lever, nest_box, offering_place, pedestal, restraint, roller, statue, table, track_stop, traction_bench, vertical_axle, weapon_rack, well), 17 stockpile subtypes, room assignment workflow (new_citizen -> getbedroom -> getdiningroom), idle detection and room activation, vein mining advisor, cistern and water supply management.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-017: Construction Planning (22 Room Types)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.5 Construction and Planning",
+      "confidence": 0.95,
+      "reasoning": "Master REQ-ADV-017 mentions 22 room types, 4-state machine, JSON priority system, and blueprint support but does not list the 28 furniture types, 17 stockpile subtypes, the room assignment workflow steps, idle detection, vein mining advisor, or cistern management."
+    },
+    {
+      "id": "E024",
+      "type": "new",
+      "content": "Mod Manager cached mod list fallback: PostgreSQL or JSON cache as fallback when DFHack live discovery is unavailable. Also: mod browser with search/filter dual-pane UI (available vs. enabled mods).",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-002: DFHack Live Mod Discovery",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 11.1 Core Mod Manager",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-MOD-002 describes DFHack live mod discovery but does not mention a cached fallback (PostgreSQL or JSON). The dual-pane browser UI (available vs. enabled) is also not mentioned in the Master requirements."
+    },
+    {
+      "id": "E025",
+      "type": "new",
+      "content": "Raw File Parsing (Tier 2) additional features: per-object mod attribution, raw visual diff viewer, mod content summary. These are distinct features under the Raw Analyzer tier not listed in Master REQ-MOD-012.",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-012: Raw File Tokenizer",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 11.3 Raw File Parsing (Tier 2)",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-MOD-012 covers the tokenizer and 18 super-types but omits per-object mod attribution, raw visual diff viewer, and mod content summary as features."
+    },
+    {
+      "id": "E026",
+      "type": "elaboration",
+      "content": "Full Raw Compiler pipeline (DF-Modloader style) three-step process: (1) read_mod_raws_and_apply_edit_objects(mod) per mod in load order; (2) apply_special_tokens_to_create_compiled_objects() for OBJECT_TEMPLATE processing; (3) write_compiled_objects(output_path) -- one *_compiled.txt per super-type. EDIT object processing detail: SEL_BY_ID, SEL_BY_CLASS, SEL_BY_TAG, SEL_BY_TAG_PRECISE, PLUS_SELECT, UNSELECT selection methods. Within EDIT: OT_ADD_TAG, OT_REMOVE_TAG, OT_CONVERT_TAG operations.",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-015: Full Raw Compiler",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 11.5 Full Raw Compiler",
+      "confidence": 0.95,
+      "reasoning": "Master REQ-MOD-015 mentions 'DF-Modloader-style compilation pipeline, EDIT/SELECT/CUT/OBJECT_TEMPLATE processing' but does not enumerate the three function names, the specific selection method enumerations, or the OT_ADD/REMOVE/CONVERT_TAG operations."
+    },
+    {
+      "id": "E027",
+      "type": "new",
+      "content": "Mod Manager Chronicler-unique features: modpack transition tracking (detect mid-save mod changes) and modpack diff view (compare configurations). These are in addition to the snapshot and history features in Master REQ-MOD-016/017.",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-017: Mod History in Database",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 11.6 Chronicler-Unique Features",
+      "confidence": 0.88,
+      "reasoning": "The Master lists REQ-MOD-016 (snapshot) and REQ-MOD-017 (history) but does not include modpack transition tracking or modpack diff view as distinct features."
+    },
+    {
+      "id": "E028",
+      "type": "new",
+      "content": "Labor Manager additional advanced features not in Master: goal/dream tracking (goal_type enum with accomplishment status), dwarf comparison view (2-4 side-by-side), performance skill tracking (musical_instruments, poetic_forms, musical_forms, dance_forms).",
+      "target": {
+        "section_id": "10",
+        "position": "append",
+        "anchor_text": "### REQ-LAB-025: Deathwatch and Casualty Tracking",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 12.2 Advanced Features",
+      "confidence": 0.90,
+      "reasoning": "The Master REQ-LAB requirements do not include goal/dream tracking, dwarf comparison view, or performance skill tracking as distinct features. These are new."
+    },
+    {
+      "id": "E029",
+      "type": "new",
+      "content": "Labor Manager integration features: Storyteller integration (NVS scores for context selection), Explorer cross-linking (unit detail -> HF detail), Mod Manager integration (custom creatures -> labor type matching), Live watcher data pipeline (bridge -> change detection -> database).",
+      "target": {
+        "section_id": "10",
+        "position": "append",
+        "anchor_text": "### REQ-LAB-025: Deathwatch and Casualty Tracking",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 12.3 Integration Features",
+      "confidence": 0.88,
+      "reasoning": "The Master does not address cross-component integration between Labor Manager and Storyteller (NVS), Explorer (unit<->HF links), or Mod Manager (creature labor types). These integration points are absent."
+    },
+    {
+      "id": "E030",
+      "type": "elaboration",
+      "content": "Knowledge Horizon database architecture SQL: CREATE TABLE knowledge_horizon (world_id INT REFERENCES worlds(id), entity_type TEXT NOT NULL, entity_id INT NOT NULL, visible BOOLEAN NOT NULL DEFAULT FALSE, PRIMARY KEY (world_id, entity_type, entity_id)); CREATE VIEW visible_historical_figures AS SELECT * FROM historical_figures WHERE id IN (SELECT entity_id FROM knowledge_horizon WHERE entity_type = 'hf' AND visible = true);",
+      "target": {
+        "section_id": "11",
+        "position": "after",
+        "anchor_text": "### REQ-KH-011: View-Based Masking Architecture",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 13.4 Database Architecture",
+      "confidence": 0.96,
+      "reasoning": "The Master REQ-KH-011 describes view-based masking architecture conceptually but does not provide the actual SQL DDL. The SubDocument has the concrete SQL CREATE TABLE and CREATE VIEW statements."
+    },
+    {
+      "id": "E031",
+      "type": "elaboration",
+      "content": "NVS (Narrative Value Score) computation factors for denizens: event count, kills, relationships, positions, artifacts, type flags. Specifically enables O(1) sort for LLM context selection.",
+      "target": {
+        "section_id": "12",
+        "position": "after",
+        "anchor_text": "### REQ-SCR-005: NVS for Denizens",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 14.5 Narrative Value Score (NVS) for Denizens",
+      "confidence": 0.88,
+      "reasoning": "The Master REQ-SCR-005 says 'Fortress-level ranking updated per watcher cycle' but does not enumerate the specific factors (event count, kills, relationships, positions, artifacts, type flags) or the O(1) sort rationale."
+    },
+    {
+      "id": "E032",
+      "type": "new",
+      "content": "Cross-linking implementation comparison table across reference tools: LV-Next uses server-side HTML <a> tags with no context awareness and no hover preview; LB2 uses Go template {{ hf .Id }} with HfId context awareness and Bootstrap popover Ajax hover preview with perspective-aware relational pronouns; weblegends uses C++ link() function with event_context awareness and perspective-aware suppress-self-links, no hover preview.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-001: Cross-Linked Entity References",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 15.1 The Core UX Pattern table",
+      "confidence": 0.95,
+      "reasoning": "The Master REQ-NAV-001/002 describe cross-linking and perspective-aware rendering but do not provide the reference implementation comparison showing how each tool implements it and what variations exist."
+    },
+    {
+      "id": "E033",
+      "type": "elaboration",
+      "content": "Perspective-aware rendering detail from LB2: when viewing HF #123's page, events mentioning HF #123 render as 'the dwarf' or relational pronouns ('his wife'), while other entities remain fully linked. weblegends implements same via event_link() -- suppress link for context entity. This is the LB2 Context.HfId pattern.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-002: Perspective-Aware Event Rendering",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 15.2 Perspective-Aware Rendering",
+      "confidence": 0.92,
+      "reasoning": "The Master REQ-EXP-028 / REQ-NAV-002 describe perspective-aware rendering but do not explain the specific LB2 Context.HfId pattern or the example of how relational pronouns are generated."
+    },
+    {
+      "id": "E034",
+      "type": "new",
+      "content": "Architectural Pattern: Event Rendering Pipeline from reference tools. All successful tools use: Event (typed struct) -> Context (current entity perspective) -> Template (per-type prose) -> HTML (with entity links). For Chronicler with LLM: Event (CDM row) -> Context (target entity + related entities) -> LLM prompt (with event type template) -> Narrative (with entity references marked for linking).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-030: Template vs. LLM Hybrid Rendering",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 16.1 Event Rendering Pipeline",
+      "confidence": 0.95,
+      "reasoning": "The Master REQ-STR-016/030 reference the template+LLM approach but do not document the generalized Event->Context->Template->HTML pipeline as an architectural pattern derived from reference tools."
+    },
+    {
+      "id": "E035",
+      "type": "new",
+      "content": "Architectural Pattern: Generic Watcher Factory Pattern from myDFHackScripts. Helper.watch() closure returns a function that compares current state to saved state. On change, logs event and updates saved state. Configurable comparison function. This is the pattern used for change detection.",
+      "target": {
+        "section_id": "4",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-013: Change Detection (11 Event Types)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 16.5 Generic Watcher Factory Pattern",
+      "confidence": 0.90,
+      "reasoning": "The Master REQ-ETL-013 lists the 11 change event types but does not describe the watcher factory closure pattern from myDFHackScripts that implements them."
+    },
+    {
+      "id": "E036",
+      "type": "new",
+      "content": "Architectural Pattern: Polling + Events Hybrid (from myDFHackScripts). Use eventful subscriptions for real-time events (deaths, item creation) AND polling via dfhack.timeout for state changes (citizen count, reports, petitions). This hybrid approach catches both immediate events and gradual state transitions.",
+      "target": {
+        "section_id": "4",
+        "position": "after",
+        "anchor_text": "### REQ-ETL-006: Bridge Enhancement -- eventful Subscriptions",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 16.4 Polling + Events Hybrid",
+      "confidence": 0.90,
+      "reasoning": "The Master discusses eventful subscriptions and polling separately but does not articulate the design rationale for combining both approaches (real-time for discrete events vs. polling for gradual transitions)."
+    },
+    {
+      "id": "E037",
+      "type": "new",
+      "content": "Bridge Data Flow Architecture diagram: DF Game (running) -> chronicler-bridge.lua (repeat job, 100 ticks) -> JSON file on disk -> HTTP server (port 8889) -> Python watcher (chronicler watch) -> Change detector (snapshot comparison) -> PostgreSQL CDM -> Storyteller / Explorer / API.",
+      "target": {
+        "section_id": "2.2",
+        "position": "append",
+        "anchor_text": "### 2.2 Data Flow",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 16.6 Bridge Data Flow Architecture",
+      "confidence": 0.88,
+      "reasoning": "The Master Section 2.2 Data Flow shows a simplified flow but does not include the JSON-file-on-disk intermediate step or explicitly name all stages (chronicler watch, Change detector). The SubDocument's diagram is more complete."
+    },
+    {
+      "id": "E038",
+      "type": "new",
+      "content": "HF_FIELDS canonical set -- XML event fields that reference historical figure IDs: hfid, slayer_hfid, hfid1, hfid2, group_hfid, snatcher_hfid, changee_hfid, changer_hfid, woundee_hfid, wounder_hfid, doer_hfid, target_hfid, attacker_hfid, defender_hfid, hist_fig_id, body_hfid, hfid_target, hfid_attacker, hfid_defender, trickster_hfid, cover_hfid, student_hfid, teacher_hfid, trainer_hfid, seeker_hfid. These are the exact field names used for rivalry detection co-appearance counting.",
+      "target": {
+        "section_id": "12",
+        "position": "after",
+        "anchor_text": "### REQ-SCR-006: Rivalry Detection",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.1 HF_FIELDS -- Canonical HF Reference Field List",
+      "confidence": 0.99,
+      "reasoning": "The Master REQ-SCR-006 says 'using HF_FIELDS set' but never defines what fields are in that set. The SubDocument provides the complete enumeration of 25 field names. This is essential reference data absent from the Master."
+    },
+    {
+      "id": "E039",
+      "type": "new",
+      "content": "Site Type Taxonomy (24 types) complete enumeration: Camp, Cave, Castle, Dark Fortress, Dark Pits, Forest Retreat, Fort, Fortress, Hamlet, Hillocks, Important Location, Labyrinth, Lair, Monastery, Mountain Halls, Mysterious Dungeon, Mysterious Lair, Mysterious Palace, Ruins, Shrine, Tomb, Tower, Town, Vault. Note: Mysterious Lair is listed here but not in REQ-VIS-003 which lists site marker shapes.",
+      "target": {
+        "section_id": "3.3",
+        "position": "after",
+        "anchor_text": "### REQ-CDM-005: Complete Table Set (40+ tables)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.2 Site Type Taxonomy (24 types)",
+      "confidence": 0.95,
+      "reasoning": "The Master REQ-VIS-003 lists site types grouped by marker shape but does not provide a standalone authoritative enumeration of all 24 site type names. The SubDocument provides this as a reference taxonomy."
+    },
+    {
+      "id": "E040",
+      "type": "new",
+      "content": "Entity Type Taxonomy complete enumeration: Civilization, Site Government, Nomadic Group, Migrating Group, Religion, Military Unit (mercenary/shadowy/versatile), Guild, Performance Troupe, Merchant Company, Vessel Crew, Bandit Gang, Outcast, Semi-Megabeast, Mega-Beast, Unknown.",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.3 Entity Type Taxonomy",
+      "confidence": 0.97,
+      "reasoning": "The Master does not contain a complete enumeration of entity types. REQ-EXP-012 only mentions 'Entity (Civilization) Detail Page' and lists tabs but not the full entity type taxonomy."
+    },
+    {
+      "id": "E041",
+      "type": "new",
+      "content": "Biome Types (10) canonical list: Wetland, Forest, Grassland, Hills, Desert, Lake, Tundra, Glacier, Ocean, Mountains.",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.4 Biome Types (10)",
+      "confidence": 0.97,
+      "reasoning": "The Master REQ-EXP-015 mentions '10 biome types' but does not list them. This complete enumeration is absent from the Master."
+    },
+    {
+      "id": "E042",
+      "type": "elaboration",
+      "content": "Structure Types (12+) canonical list: mead_hall, keep, temple, dark_tower, market, tomb, dungeon/sewers/catacombs, underworld_spire, tavern, library, counting_house, guildhall, tower.",
+      "target": {
+        "section_id": "3.3",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.5 Structure Types (12+)",
+      "confidence": 0.97,
+      "reasoning": "The Master REQ-EXP-016 mentions '12+ types' but does not enumerate them. The SubDocument provides the complete list."
+    },
+    {
+      "id": "E043",
+      "type": "new",
+      "content": "HF Relationship Types complete enumeration. HF-to-HF: Mother, Father, Child, Spouse, Former Spouse, Deceased Spouse, Lover, Deity, Companion, Prisoner, Imprisoner, Master, Former Master, Apprentice, Former Apprentice, Pet Owner. HF-to-Entity: Member, Former Member, Mercenary, Former Mercenary, Slave, Former Slave, Prisoner, Former Prisoner, Enemy, Criminal, Position, Former Position, Position Claim, Occupation, Former Occupation, Squad, Former Squad. HF-to-Site: Lair, Home Site (abstract/realization building), Seat of Power, Hangout, Occupation, Prison.",
+      "target": {
+        "section_id": "3.4",
+        "position": "append",
+        "anchor_text": "### REQ-CDM-007: HF Field Extensions",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.6 HF Relationship Types",
+      "confidence": 0.99,
+      "reasoning": "The Master does not contain an enumeration of HF relationship link types. This is referenced in multiple requirements (hf_links types, hf_entity_links types, hf_site_links types) but never defined. This is entirely new reference data."
+    },
+    {
+      "id": "E044",
+      "type": "new",
+      "content": "Room Types (22) canonical list: corridor, barracks, bedroom, cemetery, cistern, dininghall, farmplot, furnace, garbagedump, infirmary, jail, location, nobleroom, outpost, pasture, pitcage, pond, releasecage, stockpile, tradedepot, windmill, workshop.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-017: Construction Planning (22 Room Types)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.7 Room Types (22)",
+      "confidence": 0.97,
+      "reasoning": "Master REQ-ADV-017 mentions '22 Room Types' but does not list them. The SubDocument provides the complete canonical list."
+    },
+    {
+      "id": "E045",
+      "type": "new",
+      "content": "Furniture Types (28) canonical list: archery_target, armor_stand, bed, bookcase, cabinet, cage, cage_trap, chair, chest, coffin, door, floodgate, gear_assembly, hatch, hive, lever, nest_box, offering_place, pedestal, restraint, roller, statue, table, track_stop, traction_bench, vertical_axle, weapon_rack, well.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-017: Construction Planning (22 Room Types)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.8 Furniture Types (28)",
+      "confidence": 0.97,
+      "reasoning": "The Master does not list furniture types at all. The SubDocument provides the complete 28-item list as a reference taxonomy needed for construction planning implementation."
+    },
+    {
+      "id": "E046",
+      "type": "elaboration",
+      "content": "DF Calendar System Python implementation: day_of_year = seconds72 // 1200 + 1; month = min((day_of_year - 1) // 28 + 1, 12); day = (day_of_year - 1) % 28 + 1. Month names: Granite, Slate, Felsite (Spring), Hematite, Malachite, Galena (Summer), Limestone, Sandstone, Timber (Autumn), Moonstone, Opal, Obsidian (Winter). Season lookup by month index.",
+      "target": {
+        "section_id": "13",
+        "position": "after",
+        "anchor_text": "### REQ-NAV-005: DF Calendar System",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.9 DF Calendar System",
+      "confidence": 0.95,
+      "reasoning": "Master REQ-STR-024 describes the calendar formula conceptually but the SubDocument provides the complete Python implementation code with all month names enumerated and indexed. The min() guard on month calculation is new."
+    },
+    {
+      "id": "E047",
+      "type": "new",
+      "content": "Material Categories from myDFHackScripts: Gem, Rock, EconomicStone, Ore, Metal, Wood, Plant, Creature.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-016: Metalworking Chain",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.10 Material Categories",
+      "confidence": 0.88,
+      "reasoning": "The Master does not enumerate material categories anywhere. These are referenced in the farm management and metalworking requirements but never defined."
+    },
+    {
+      "id": "E048",
+      "type": "new",
+      "content": "Personality Facets detail: Each facet ranges from -50 to +50. Read from unit.status.current_soul.personality. Used for three purposes: labor recommendations, mood prediction, and narrative voice emulation.",
+      "target": {
+        "section_id": "10",
+        "position": "after",
+        "anchor_text": "### REQ-LAB-003: Personality Trait Visualization (50 Facets)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.11 Personality Facets (50)",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-LAB-003 mentions 50 personality facets and radar/bar chart but does not specify the -50 to +50 range or the three usage contexts."
+    },
+    {
+      "id": "E049",
+      "type": "new",
+      "content": "Worship Strength Thresholds (numerical): dubious <10, casual <25, average <75, faithful <90, ardent >=90.",
+      "target": {
+        "section_id": "6",
+        "position": "after",
+        "anchor_text": "### REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.12 Worship Strength Thresholds",
+      "confidence": 0.99,
+      "reasoning": "Master REQ-EXP-011 lists 'worship strength: dubious/casual/average/faithful/ardent' as label names but does not provide the numerical thresholds. These are entirely absent from the Master."
+    },
+    {
+      "id": "E050",
+      "type": "elaboration",
+      "content": "Noble Position Categories with badge colors: Noble=amber badge, Military=red badge, Administrator=blue badge, Other=stone badge.",
+      "target": {
+        "section_id": "6",
+        "position": "after",
+        "anchor_text": "### REQ-EXP-012: Entity (Civilization) Detail Page (5 tabs)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 17.13 Noble Position Categories",
+      "confidence": 0.92,
+      "reasoning": "Master REQ-EXP-012 mentions 'Position badges: Noble=amber, Military=red, Administrator=blue, Other=stone' -- this appears to be present. However, the SubDocument presents this as a standalone reference taxonomy. Confidence reduced slightly as the badge colors appear in the Master but as a section of a requirement rather than a standalone reference."
+    },
+    {
+      "id": "E051",
+      "type": "new",
+      "content": "Implementation Status table (18.1 What Is Built) with capability+status+details: XML legends ingestion (Built, 8/14+ sections, 733-line parser), XML+ merge legends_plus (Built, dual-file merge), Live polling bridge (Built, v6, 922 lines, 7 data domains, 16 sections), dfhack-run SSH transport (Verified, all data domains accessible), Change detection (Built, snapshot comparison, 11 event types), PostgreSQL persistence (Built, 1.65M records, 40+ tables), 131-test suite (Built), CLI interface (Built, chronicler watch + chronicler ingest), Schema browser (Built), Data browser (Built), SQL Runner (Built), FK link navigation (Built), Graph tab (Partially built, vis.js ego network, search, 1-3 hop depth), Storyteller (Built, 23 routes, SSE streaming, keyword mode), Storyteller monitoring (Built, logging, dashboard, 3 API endpoints), Importance scoring (Implemented, df-narrator formulas), Person view Unit+HF merge (Implemented, 6-rule merge), Confidence signaling (Implemented), Fortress denizens (Implemented, NVS ranking), VM scripts (Built, vm-config/lifecycle/bootstrap, 19 commands), File transfer (Built, HTTP 105 MB/s / SCP 19 MB/s / Guest Agent fallback), Bridge deployment (Built, SMB + SSH deployment scripts).",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": "### Built and Working",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 18.1 What Is Built table",
+      "confidence": 0.92,
+      "reasoning": "The Master Section 17 (Current State v0.8) has a simpler bullet list. The SubDocument has a structured table with 22 entries including details not in the Master (CLI commands, bridge deployment via SMB+SSH, exact component names and statuses). 'Bridge deployment (Built, SMB + SSH deployment scripts)' is not in the Master."
+    },
+    {
+      "id": "E052",
+      "type": "new",
+      "content": "Gap Analysis / Planned Features table (18.2 What Is Planned) with priority and specific gap descriptions: Agentic SQL storyteller (P1, 'Schema summary + SQL tool definition needed'), Interactive world map (P1, 'Centerpiece visualization feature'), Event narrative templates 132 types (P1, 'High-value narrative enrichment'), Death cause rendering 50+ variants (P1, 'Critical for narrative quality'), Perspective-aware rendering (P1), Missing CDM entity types WorldConstructions/ArtForms/Identities/Rivers (P1, 'Schema completeness'), HF field extensions skills/kills/family/interactions/whereabouts (P1, 'Data completeness'), Entity detail pages 24-section HF/5-tab Entity (P1, 'Explorer completeness'), Global search with autocomplete (P2, 'Primary navigation mechanism'), Family tree visualization (P2, 'Compelling genealogy feature'), Population/event charts (P2, 'Demographic visualization'), Hover popovers (P2, 'Exploration UX'), Knowledge Horizon (P2, 'Immersive storyteller feature'), Worldgen monitoring (P2, 'Novel capability'), eventful subscriptions in bridge (P2, 'Reactive event capture'), Death cause enrichment in bridge (P2, 'Narrative quality improvement'), Labor manager grid+skills (P3), Mod manager core (P3), AI Fortress Advisor (P3), War chord diagram/warfare graph (P3), Raw compiler (P4), Labor optimization engine (P4).",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": "### Not Yet Started",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 18.2 What Is Planned / Not Started table",
+      "confidence": 0.90,
+      "reasoning": "The Master Section 17.2 is a simple bullet list. The SubDocument has a detailed table with per-item gap descriptions that provide rationale context not in the Master."
+    },
+    {
+      "id": "E053",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 1 (Critical, Blocks Narrative Engine and Explorer): (1) Add all 144 event types to CDM taxonomy [M, df-structures]; (2) Extend HF CDM with missing high-priority fields (flags, interactions, skills, links, kills, whereabouts) [L, All legends browsers]; (3) Add importance scoring columns and compute on ingestion [S, df-narrator]; (4) Implement death cause narrative rendering (50+ causes) [M, weblegends]; (5) Implement perspective-aware event narrative generation [M, LB2/weblegends]; (6) Add cross-linking infrastructure [M, All legends browsers]; (7) Implement DF calendar utility (seconds72 to date/month/season) [S, df-narrator/weblegends]; (8) Build agentic SQL storyteller (schema summary + SQL tool) [L, Chronicler original]; (9) Parse remaining XML sections (world_constructions, art_forms, identities, rivers) [M, All legends browsers]; (10) Build post-parse processing pipeline (10 cross-referencing steps) [L, LB2/LV-Next].",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 19. Consolidated Action Items, Tier 1",
+      "confidence": 0.98,
+      "reasoning": "The Master has no Consolidated Action Items section. This is entirely new content with effort estimates and source attributions."
+    },
+    {
+      "id": "E054",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 2 (High Value, Visualization and Data Completeness): (11) Interactive world map with Leaflet.js [L, LV-Next/LB2]; (12) Family tree visualization Cytoscape.js dagre [M, LV-Next/LB1]; (13) Event timeline charts Chart.js line/bar [M, LV-Next]; (14) Population distribution charts [S, LV-Next/LB1]; (15) Hover popovers for entity preview [M, LB2]; (16) Global search with autocomplete [M, LB2]; (17) Entity detail pages HF 24-section/Entity 5-tab/Site/Artifact etc. [XL, All browsers]; (18) Knowledge Horizon Phase 1-2 (denizen + view-based masking) [L, Chronicler original].",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 19. Consolidated Action Items, Tier 2",
+      "confidence": 0.98,
+      "reasoning": "The Master has no Consolidated Action Items section. This is entirely new content."
+    },
+    {
+      "id": "E055",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 3 (Bridge & Live Data Enhancements): (19) Add eventful subscriptions UNIT_DEATH/ITEM_CREATED/UNIT_NEW_ACTIVE/SYNDROME [S, myDFHackScripts]; (20) Death cause resolution via df.global.world.incidents.all [S, myDFHackScripts]; (21) Parent/family chain extraction unit.relationship_ids.Mother/Father [S, myDFHackScripts]; (22) Book/written work detection dfhack.items.getBookTitle [S, myDFHackScripts]; (23) Create worldgen-bridge.lua for real-time worldgen monitoring [M, worldgen-scraping]; (24) Add worldgen_snapshots CDM table [S, worldgen-scraping]; (25) Add personality/soul data to bridge (50 facets, beliefs, goals, needs) [M, df-structures]; (26) Add skill progression tracking per unit [M, myDFHackScripts].",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 19. Consolidated Action Items, Tier 3",
+      "confidence": 0.98,
+      "reasoning": "The Master has no Consolidated Action Items section. This is entirely new content."
+    },
+    {
+      "id": "E056",
+      "type": "new",
+      "content": "Consolidated Action Items -- Tier 4 (Stretch / Advanced Features): (27) Curse lineage tree vampire/werebeast 'who bit whom' [M, LB1]; (28) Warfare graph Cytoscape.js cola force-directed [M, LV-Next]; (29) War chord diagram D3.js [M, LB1]; (30) Mod manager core discovery/profiles/conflict detection [L, ModHearth/DF-Modloader]; (31) Labor manager core grid/skills/personality [XL, Dwarf Therapist patterns]; (32) AI Fortress Advisor population/military/resources [XL, df-ai]; (33) Stock threshold model as LLM advisor context [M, df-ai]; (34) Raw file parser for mod conflict detection [L, DF-Modloader]; (35) Full raw compiler pipeline [XL, DF-Modloader]; (36) Labor optimization engine constraint satisfaction [XL, Chronicler original]; (37) Mod awareness record active mods per world [S, Chronicler original]; (38) Timeline scrubber historical map state [L, Chronicler original]; (39) Civilization territory overlays [L, Chronicler original]; (40) Worldgen live map preview [XL, Chronicler original].",
+      "target": {
+        "section_id": "17",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 19. Consolidated Action Items, Tier 4",
+      "confidence": 0.98,
+      "reasoning": "The Master has no Consolidated Action Items section. This is entirely new content."
+    },
+    {
+      "id": "E057",
+      "type": "new",
+      "content": "Source document index -- Component Research Reports: (1) World History Visualizer: tmp/component-01-world-history-visualizer.md (~800 lines, maps/timelines/demographics/family trees/war viz); (2) Database Explorer: tmp/component-02-database-explorer.md (~900 lines); (3) AI Storyteller: tmp/component-03-ai-storyteller.md (~800 lines); (4) AI Player: tmp/component-04-ai-player.md (~700 lines); (5) Mod Manager: tmp/component-05-mod-manager.md (~750 lines); (6) Labor Manager: tmp/component-06-labor-manager.md (~650 lines); (7) CDM & Database: tmp/component-07-cdm-database.md (~950 lines); (8) Data ETL: tmp/component-08-data-etl.md (~850 lines).",
+      "target": {
+        "section_id": "1",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 20.1 Component Research Reports table",
+      "confidence": 0.85,
+      "reasoning": "The Master PRD header references component research reports by name but does not provide the file locations or line counts. This is supplementary reference data absent from the Master."
+    },
+    {
+      "id": "E058",
+      "type": "new",
+      "content": "Source document index -- Repository Research Reports: df-ai (research/df-ai-research.md); LegendsViewer-Next (research/legendsviewer-next-research.md); df-narrator + weblegends (research/narrator-weblegends-research.md); LegendsBrowser + LB2 (research/legends-browsers-research.md); DFHack infrastructure (research/dfhack-infrastructure-research.md -- covers dfhack-client-python, DFLogger, df-structures, myDFHackScripts); Mod management (research/mod-management-research.md -- covers DF-Modloader, ModHearth, PyLNP, PyDwarf); Worldgen scraping (research/worldgen-scraping-research.md); DwarvenSurveyor + scripts (research/dwarven-surveyor-scripts-research.md).",
+      "target": {
+        "section_id": "1",
+        "position": "append",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 20.2 Repository Research Reports table",
+      "confidence": 0.85,
+      "reasoning": "The Master PRD references '17+ Repository Research Reports' in its header but does not list the file paths. This is supplementary reference data absent from the Master."
+    },
+    {
+      "id": "E059",
+      "type": "new",
+      "content": "Specific live world data counts for world 'Tar Thran' (or comparable test world): 48,366 historical figures, 442,716 events, 4,901 entities, 8,035 artifacts, 2,154 sites. These are accessible at the listed df.global paths.",
+      "target": {
+        "section_id": "15",
+        "position": "after",
+        "anchor_text": "### 15.1 Data Access Paths (Lua via dfhack-run)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.3 DFHack Integration, Key data access paths",
+      "confidence": 0.88,
+      "reasoning": "The Master DFHack Reference Guide does not include example data scale figures. These counts (48,366 HFs, 442,716 events, etc.) are useful as scale reference points for performance planning and are absent from the Master."
+    },
+    {
+      "id": "E060",
+      "type": "elaboration",
+      "content": "The Agentic Storyteller (REQ-STR-007) is labeled as 'Planned v1.0' in the Master but the SubDocument explicitly labels it as 'Planned v1.0' status. The 12,000 character context format budget and the denizen registry summary as a specific LLM context input (top N by NVS score) are additional implementation specifics absent from the Master.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-007: Agentic SQL Tool Use",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.2 Agentic Storyteller",
+      "confidence": 0.87,
+      "reasoning": "The Master says 'LLM receives schema summary + SQL tool definition + denizen summary' but does not specify the ~2K token schema summary size or the 'top N by NVS score' selection criterion for denizen summary. Minor elaboration."
+    },
+    {
+      "id": "E061",
+      "type": "new",
+      "content": "Storyteller 23 categorical routes full enumeration: hf_flag (deity/vampire/necromancer/werebeast/ghost), hf_race (megabeast/dragon/titan/forgotten), entity_type (civilization/religion), collection_type (war/battle), artifacts, written_contents, live_units, live_squads, live_armies, live_events, live_reports.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-001: Conversational World Q&A",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.1 Conversational World Query Engine",
+      "confidence": 0.96,
+      "reasoning": "The Master REQ-STR-001 says '23 categorical routes for keyword routing' but does not enumerate them. The SubDocument provides the specific route categories."
+    },
+    {
+      "id": "E062",
+      "type": "new",
+      "content": "Death cause narrative rendering complete list (50+ variants from weblegends): OLD_AGE -> 'died of old age', SHOT -> 'was shot and killed', BLEED -> 'bled to death', DROWN -> 'drowned', SUFFOCATE -> 'suffocated', MAGMA -> 'was consumed by magma', DRAGONFIRE -> 'was killed by dragonfire', CAVEIN -> 'was crushed in a cave-in', DRAWBRIDGE -> 'was smashed by a drawbridge', BEHEAD -> 'was beheaded', CRUCIFY -> 'was crucified', BURN_ALIVE -> 'was burned to a crisp', HACK_TO_PIECES -> 'was hacked to pieces', DRAIN_BLOOD -> 'was drained of blood', LEAPT_FROM_HEIGHT -> 'leapt from a great height', INFECTION -> 'succumbed to infection', plus 25+ more each including weapon info, slayer identity with race, age at death.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-017: Death Cause Rendering (50+ variants)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.4 Event Narrative Engine, Death cause rendering",
+      "confidence": 0.97,
+      "reasoning": "The Master REQ-STR-017 lists the death cause enum values but does not provide the English narrative mapping strings. The SubDocument provides the complete enum->prose mapping which is directly implementable."
+    },
+    {
+      "id": "E063",
+      "type": "new",
+      "content": "Post-parse processing pipeline source attribution: adapted from LB2 world.process() method. This is the specific Go function that Chronicler's 10-step post-parse pipeline is modeled after.",
+      "target": {
+        "section_id": "4.2",
+        "position": "prepend",
+        "anchor_text": "### REQ-ETL-004: Post-Parse Processing Pipeline (10 Steps)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.1 Post-Parse Processing Pipeline, header",
+      "confidence": 0.90,
+      "reasoning": "The Master REQ-ETL-004 does not indicate that this pipeline is based on LB2's world.process() method. This attribution is absent from the Master."
+    },
+    {
+      "id": "E064",
+      "type": "new",
+      "content": "Four death detection mechanisms with specific implementation details: (1) Flag check -- unit.flags1.dead or unit.flags2.killed; (2) Absence detection -- unit disappears from active list; (3) Announcement parsing -- death text in game reports; (4) History event matching -- UNIT_DEATH event from eventful.",
+      "target": {
+        "section_id": "10",
+        "position": "after",
+        "anchor_text": "### REQ-LAB-025: Deathwatch and Casualty Tracking",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.5 Change Detection, 4 death detection mechanisms",
+      "confidence": 0.95,
+      "reasoning": "Master REQ-LAB-025 says '4 detection mechanisms: flag, absence, announcement, history event' without implementation detail. The SubDocument provides the specific Lua field names for each mechanism."
+    },
+    {
+      "id": "E065",
+      "type": "new",
+      "content": "Worldgen monitoring is a novel capability: no existing tool in the reference ecosystem monitors world generation in real-time. This is explicitly confirmed by cross-referencing all 17 analyzed repositories.",
+      "target": {
+        "section_id": "5.8",
+        "position": "prepend",
+        "anchor_text": "### REQ-VIS-008: Worldgen Live Map Preview",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.4 Worldgen Monitoring, opening statement",
+      "confidence": 0.92,
+      "reasoning": "The Master REQ-VIS-008 says 'Entirely novel feature' but does not explicitly state that this was confirmed by reviewing all 17 reference repositories. The SubDocument's statement carries the weight of the full research effort."
+    },
+    {
+      "id": "E066",
+      "type": "new",
+      "content": "Persona-driven narrative voice: 'Each dwarf speaks with personality-consistent voice' derived from mapping 50 personality traits + beliefs + goals + needs to narrative personality dimensions, then deriving a voice description and injecting as a character voice prompt. This is distinct from REQ-STR-010 which only mentions 'mapping 50 personality traits to narrative dimensions'.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-010: Personality-Driven Voice Emulation",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.3 Character Profile & Biography Generation",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-STR-010 says 'Map 50 personality traits to narrative dimensions, each dwarf speaks with personality-consistent voice' but the SubDocument adds beliefs, goals, and needs as additional inputs, and describes the concrete injection mechanism (derive voice description -> inject as character voice prompt)."
+    },
+    {
+      "id": "E067",
+      "type": "elaboration",
+      "content": "Circumstance/Reason rendering: 'Circumstance' enum types: Death, Prayer, DreamAbout, Nightmare, FromAfar. 'Reason' enum types: glorify_hf, artifact_is_heirloom, as_a_symbol_of_everlasting_peace (note the prefix 'as_a_' in the last one, not in Master).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-018: Circumstance/Reason Rendering",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.4 Circumstance/reason rendering",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-STR-018 says 'symbol_of_everlasting_peace' but SubDocument says 'as_a_symbol_of_everlasting_peace'. Minor discrepancy in enum name. Also, Master omits 'Death' as a Circumstance type."
+    },
+    {
+      "id": "E068",
+      "type": "new",
+      "content": "Persona-unified HF visual class node styling (for family tree and other graph visualizations): current=Dashed orange border, dead=30% opacity, male=Blue background, female=Magenta background, leader=Round-octagon with crown icon, necromancer=Round-hexagon with skull icon, vampire=Hexagon with vampire icon, werebeast=Hexagon with wolf icon, ghost=Hexagon with ghost icon. Master REQ-VIS-017 only says 'node classes' without the specific icon descriptions for necromancer/vampire/werebeast/ghost hexagon shape.",
+      "target": {
+        "section_id": "6.3",
+        "position": "after",
+        "anchor_text": "### REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 8.3 HF Type Flag Visual Classes",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-VIS-017 lists node classes by name but does not specify that necromancer uses round-hexagon (not round-octagon like leader), or the specific icon used for each supernatural type. These are elaborations."
+    },
+    {
+      "id": "E069",
+      "type": "new",
+      "content": "The SubDocument identifies that the complete entity type page count follows LegendsViewer-Next's 70-route pattern (35 list pages + 35 detail pages). This routing architecture is absent from the Master.",
+      "target": {
+        "section_id": "6.3",
+        "position": "prepend",
+        "anchor_text": "### REQ-EXP-011: Historical Figure Detail Page (24 sections)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 8.3 Entity Detail Pages, opening note",
+      "confidence": 0.88,
+      "reasoning": "The Master lists entity detail page requirements individually but does not reference the LV-Next 70-route pattern (35 list + 35 detail) as the architectural model for the full routing system."
+    },
+    {
+      "id": "E070",
+      "type": "new",
+      "content": "Interaction text for vampire biting and necromantic raising uses game raws fields hist_string_1 and hist_string_2 (from REQ-STR-021). The SubDocument also documents that weblegends specifically implements 94 event handler files for this type of content.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-021: Interaction Text from Game Raws",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.4 Event Narrative Engine",
+      "confidence": 0.80,
+      "reasoning": "This is largely covered by Master REQ-STR-021 but adds the weblegends 94 handler file count as context. Low-confidence inclusion."
+    },
+    {
+      "id": "E071",
+      "type": "new",
+      "content": "AI Fortress Advisor: LLM receives stock threshold model as explicit context (not just fortress state), and military heuristics as LLM prompt advisories. Agentic SQL also used for fortress analysis (not just storytelling).",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-020: Natural Language Fortress Advice (LLM)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.7 LLM-Enhanced Advisor Features",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-ADV-020 says 'LLM receives fortress state + heuristic knowledge' but does not specify that the stock threshold model and military heuristics are delivered as LLM prompt advisories specifically, or that agentic SQL is used for fortress analysis."
+    },
+    {
+      "id": "E072",
+      "type": "new",
+      "content": "Civilization civilization narrative arc structure from entity events: entity_created -> site_taken_over -> alliance_formed -> overthrown -> dissolved. This is the ordered event sequence pattern for civilization rise-and-fall narratives.",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-015: Civilization Rise-and-Fall Narratives",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.5 War Chronicles & Civilization Histories",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-STR-015 says 'chronological entity events, leader succession' but does not provide the specific event type sequence for rise-and-fall narratives."
+    },
+    {
+      "id": "E073",
+      "type": "new",
+      "content": "Proactive Narrative Engine (post-v1.0): watch for high-NVS events, generate narrative alerts via WebSocket. The delivery mechanism is explicitly WebSocket (not SSE).",
+      "target": {
+        "section_id": "7",
+        "position": "after",
+        "anchor_text": "### REQ-STR-031: Proactive Narrative Engine (Post-v1.0)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 9.6 Template vs. LLM Hybrid, Proactive path",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-STR-031 says 'generate narrative alerts via WebSocket' -- this matches. But the SubDocument classifies this under the 'Proactive path' of the Template vs LLM Hybrid framework, providing architectural context absent from the Master."
+    },
+    {
+      "id": "E074",
+      "type": "new",
+      "content": "DFHack data domain: Qdrant RAG index collection sizes at time of SubDocument writing: dfhack collection=8,476 points; dwarf-therapist collection=926 points; df-wiki collection=4 points (target: 21K-27K via wiki crawl). Embedding model: Qwen3-Embedding-4B via MLX at localhost:8000, 2560-dim. pgvector tables in PostgreSQL planned for in-database semantic search.",
+      "target": {
+        "section_id": "4.8",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-016: RAG/Vector Indexing",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.7 RAG/Vector Indexing",
+      "confidence": 0.90,
+      "reasoning": "Master REQ-ETL-016 lists Qdrant collections and point counts but SubDocument adds the df-wiki target (21K-27K points via wiki crawl) and the specific localhost:8000 endpoint. Minor elaboration on the wiki crawl size target."
+    },
+    {
+      "id": "E075",
+      "type": "new",
+      "content": "Chart library assignments per chart type: Population doughnut/pie=Chart.js/D3.js; Event timeline (line)=Chart.js; Event type breakdown (bar)=Chart.js; War chord diagram=D3.js; Warfare graph (force-directed)=Cytoscape.js cola; Family tree (hierarchical)=Cytoscape.js dagre; Curse lineage tree=Cytoscape.js/SVG; Ego-network graph=vis.js forceAtlas2; In-game data curve=Custom widget (CurveWidget pattern).",
+      "target": {
+        "section_id": "5.11",
+        "position": "append",
+        "anchor_text": "### REQ-VIS-012: Population Charts (Doughnut/Pie)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 7.8 Chart Visualizations table",
+      "confidence": 0.95,
+      "reasoning": "The Master lists chart types in individual requirements (REQ-VIS-012 through REQ-VIS-019) but does not provide a consolidated cross-reference table mapping each chart type to its specific library. The table format is new."
+    },
+    {
+      "id": "E076",
+      "type": "new",
+      "content": "JSONB field inventory uses jsonb_object_keys() sampling technique. Table row counts are obtained from pg_stat_user_tables. Column/type/PK/FK/index detail is obtained from information_schema.",
+      "target": {
+        "section_id": "6.1",
+        "position": "append",
+        "anchor_text": "### REQ-EXP-004: Schema Browser -- JSONB Column Field Inventory",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 8.1 Schema Browser",
+      "confidence": 0.88,
+      "reasoning": "Master REQ-EXP-001 through 004 describe what the schema browser shows but do not specify the PostgreSQL system catalog queries used. The SubDocument names the specific pg_stat_user_tables, information_schema, and jsonb_object_keys() APIs."
+    },
+    {
+      "id": "E077",
+      "type": "new",
+      "content": "Three-way merge status code meanings: 0=clean merge, 1=potential issue, 2=overlap conflict, 3=fatal conflict.",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-013: Three-Way File Merge",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 11.4 Three-Way Merge System",
+      "confidence": 0.95,
+      "reasoning": "Master REQ-MOD-013 mentions 'Status codes: 0 (clean) to 3 (fatal)' but does not specify codes 1 (potential) and 2 (overlap) explicitly. The SubDocument provides all four code meanings."
+    },
+    {
+      "id": "E078",
+      "type": "new",
+      "content": "PyDwarf (doubly-linked token model, round-trip raw editing) is listed as a reference repository for Mod Management alongside DF-Modloader, ModHearth, PyLNP, and Nexus Mod Manager. The Master does not mention PyDwarf in any requirement.",
+      "target": {
+        "section_id": "9",
+        "position": "prepend",
+        "anchor_text": "### REQ-MOD-001: Mod Discovery via Filesystem Scan",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 1.1 Reference Repository Inventory, PyDwarf row",
+      "confidence": 0.85,
+      "reasoning": "PyDwarf (doubly-linked token model) is a reference for round-trip raw editing and is cited as a source for Mod Manager features but is not mentioned in any Master REQ-MOD requirement. This represents a potential source of additional mod management patterns."
+    },
+    {
+      "id": "E079",
+      "type": "new",
+      "content": "DwarfFortressLogger reference: Java, ~3,000 lines, 29 memory sections, Dwarf Therapist-compatible layout system. This is cited as a source for Labor Manager patterns (memory layout, not DFHack remote access).",
+      "target": {
+        "section_id": "10",
+        "position": "prepend",
+        "anchor_text": "### REQ-LAB-001: Labor Toggle Grid (Dwarf Therapist-style)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 1.1 Reference Repository Inventory, DwarfFortressLogger row",
+      "confidence": 0.82,
+      "reasoning": "The Master notes Dwarf Therapist as a reference for Labor Manager but does not mention DwarfFortressLogger which provides Java-based Dwarf Therapist-compatible memory layout reading patterns."
+    },
+    {
+      "id": "E080",
+      "type": "new",
+      "content": "DwarvenSurveyor reference: C#/Unity, ~1,500 lines, XML coordinate parsing, biome rendering, site taxonomy. This is specifically a source for coordinate parsing and biome color rendering used in the world map implementation.",
+      "target": {
+        "section_id": "5",
+        "position": "prepend",
+        "anchor_text": "### REQ-VIS-001: Interactive World Map (Leaflet.js)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 1.1 Reference Repository Inventory, DwarvenSurveyor row",
+      "confidence": 0.82,
+      "reasoning": "The Master does not mention DwarvenSurveyor as a source for the map/coordinate system. The SubDocument attributes biome rendering and site taxonomy to this reference."
+    },
+    {
+      "id": "E081",
+      "type": "new",
+      "content": "df-structures repository: XML, ~50,000 lines, canonical memory layout, 144 event types, all entity fields. Provides the authoritative 144 event type count and canonical field definitions for all DF memory structures.",
+      "target": {
+        "section_id": "15",
+        "position": "prepend",
+        "anchor_text": "## 15. DFHack Reference Guide",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 1.1 Reference Repository Inventory, df-structures row",
+      "confidence": 0.88,
+      "reasoning": "The Master DFHack Reference Guide is derived from dfhack-run Lua paths but does not acknowledge df-structures XML as the canonical source for the 144 event type count and all entity field definitions."
+    },
+    {
+      "id": "E082",
+      "type": "new",
+      "content": "Diplomatic path: entity.resources.diplomacy.state is specifically accessed from the live bridge. The SubDocument confirms this is accessible from the bridge (Section 6.2 domain 8). The Master Section 15.6 mentions this path as a DFHack gotcha but does not note it is already implemented in the bridge.",
+      "target": {
+        "section_id": "15",
+        "position": "after",
+        "anchor_text": "### 15.6 Key DFHack Gotchas",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.2 Live Bridge, Domain 8 Diplomacy",
+      "confidence": 0.82,
+      "reasoning": "The Master mentions diplomacy path in gotchas and the SubDocument confirms it is already captured in bridge domain 8. This is an implementation status note absent from the Master."
+    },
+    {
+      "id": "E083",
+      "type": "new",
+      "content": "EDIT object processing detail for Full Raw Compiler: selection methods SEL_BY_ID, SEL_BY_CLASS, SEL_BY_TAG, SEL_BY_TAG_PRECISE, PLUS_SELECT, UNSELECT; within EDIT blocks: OT_ADD_TAG, OT_REMOVE_TAG, OT_CONVERT_TAG operations. These are the specific operation names from DF-Modloader source.",
+      "target": {
+        "section_id": "9",
+        "position": "after",
+        "anchor_text": "### REQ-MOD-015: Full Raw Compiler",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 11.5 Full Raw Compiler, EDIT object processing",
+      "confidence": 0.95,
+      "reasoning": "Master REQ-MOD-015 mentions 'EDIT/SELECT/CUT/OBJECT_TEMPLATE processing' but does not enumerate the specific selection method enumerations or OT_* tag operations. These are implementation reference details absent from the Master."
+    },
+    {
+      "id": "E084",
+      "type": "elaboration",
+      "content": "Worldgen monitoring polling rate: every 30 frames (~0.5 seconds), NOT the same 100-tick rate as the main bridge. This polling rate is not mentioned in Master REQ-ETL-012.",
+      "target": {
+        "section_id": "4.4",
+        "position": "append",
+        "anchor_text": "### REQ-ETL-012: Worldgen Monitoring (worldgen-bridge.lua)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.4 Worldgen Monitoring, Implementation paragraph",
+      "confidence": 0.93,
+      "reasoning": "Master REQ-ETL-012 says 'Poll worldgen_status every 30 frames' -- actually the Master does say 30 frames. However, it omits the conversion '(~0.5 seconds)' and the distinction from the 100-tick main bridge rate. Minor elaboration."
+    },
+    {
+      "id": "E085",
+      "type": "new",
+      "content": "The SubDocument version supersedes research-synthesis.md v1 (488 lines, 2026-02-23). Research Synthesis v2 is 2.0, comprehensive, replacing the earlier v1 document.",
+      "target": {
+        "section_id": "1",
+        "position": "prepend",
+        "anchor_text": null,
+        "fallback": "end_of_section"
+      },
+      "source_location": "SubDocument header, Purpose statement",
+      "confidence": 0.82,
+      "reasoning": "The Master does not note that the referenced 'Research Synthesis v2' supersedes an earlier v1 (488 lines). This version history note is absent from the Master but relevant for understanding the document provenance."
+    },
+    {
+      "id": "E086",
+      "type": "new",
+      "content": "Advisor Decision explanation: LLM explains decisions in 'Chronicler narrative voice' specifically. This is a distinct stylistic requirement beyond 'data-backed reasoning with explicit explanation' in Master REQ-ADV-020.",
+      "target": {
+        "section_id": "8",
+        "position": "after",
+        "anchor_text": "### REQ-ADV-020: Natural Language Fortress Advice (LLM)",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 10.7 LLM-Enhanced Advisor Features",
+      "confidence": 0.82,
+      "reasoning": "The SubDocument says 'Decision explanation in Chronicler narrative voice' as a distinct feature. The Master REQ-ADV-020 says 'data-backed reasoning with explicit explanation' but does not specify the Chronicler narrative voice requirement."
+    },
+    {
+      "id": "E087",
+      "type": "new",
+      "content": "Specific file paths for existing implementations: XML parser at /Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/ingest/xml_parser.py (733 lines); Live bridge at /Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua (922 lines, v6).",
+      "target": {
+        "section_id": "17",
+        "position": "prepend",
+        "anchor_text": "### Built and Working",
+        "fallback": "end_of_section"
+      },
+      "source_location": "Section 6.1 Legends XML Pipeline, Implementation path; Section 6.2 Live Bridge System, Implementation path",
+      "confidence": 0.95,
+      "reasoning": "The Master Section 17 mentions the parser (733 lines) and bridge (922 lines, v6) but does not provide the absolute file paths. These are implementation reference paths absent from the Master."
+    }
+  ],
+  "new_sections": [
+    {
+      "id": "NEW_001",
+      "title": "Landscape Overview & Tool Ecosystem",
+      "parent_section": "1",
+      "content": "The Dwarf Fortress legends/history tool ecosystem consists of six distinct categories:\n\n| Category | Tools Analyzed | Data Source | Access Pattern |\n|----------|---------------|-------------|----------------|\n| **Legends Browsers** | LegendsViewer-Next, LegendsBrowser, LegendsBrowser2 | XML export files | Batch parse, in-memory, web UI |\n| **Live Game Servers** | weblegends | DFHack C++ memory | Real-time HTTP, per-request render |\n| **Autonomous Agents** | df-ai | DFHack C++ memory | Tick-based reactive loop |\n| **Narrative Generators** | df-narrator | XML export files | Score + template, LLM-sized output |\n| **Infrastructure Tools** | dfhack-client-python, DwarfFortressLogger, myDFHackScripts, DwarvenSurveyor, df-structures | Mixed (RPC, memory, Lua, XML) | Various |\n| **Mod Management** | DF-Modloader, ModHearth, PyLNP, PyDwarf, Nexus Mod Manager | Filesystem + DFHack Lua | Raw parsing, profile management |\n\nChronicler's unique position: No existing tool combines (1) persistent database storage, (2) live fortress polling, (3) legends XML ingestion, (4) LLM-driven narrative generation, (5) worldgen monitoring, (6) mod management awareness, and (7) labor/population management in a single integrated system.",
+      "source_location": "Section 1. Landscape Overview",
+      "reasoning": "The Master PRD lacks a structured landscape analysis. This section provides context for why design decisions were made the way they were, and gives developers context for understanding which reference tools informed each component."
+    },
+    {
+      "id": "NEW_002",
+      "title": "Event Type Taxonomy (Canonical Reference)",
+      "parent_section": "7",
+      "content": "### Canonical Event Type Count Cross-Reference\n\n| Source | Event Types | Authoritative? |\n|--------|-------------|----------------|\n| df-structures `history_event_type` enum | **144** | Yes (memory layout, canonical) |\n| LegendsBrowser2 `events.go` | 132 | Yes (Go source, production) |\n| LegendsViewer-Next `XMLParser.cs` | 115+ | Yes (.NET source, production) |\n| weblegends `events/*.cpp` | 94 files | Yes (C++ source, production) |\n| df-narrator | Generic (type string) | No |\n\n**Synthesis**: df-structures defines 144 event types. LB2's 132 types are the most complete implementation. The 12-type gap consists of DF 0.47+ additions not yet implemented by all tools.\n\n**Chronicler strategy**: Store all 144 types as TEXT. Implement narrative templates for 132 LB2-handled types. Graceful fallback (raw field dump + LLM) for remaining 12.\n\n### Event Categories (Merged Taxonomy)\n\n| Category | Count | Examples |\n|----------|-------|----------|\n| HF Lifecycle | 15 | died, revived, wounded, abducted, enslaved, freed, ransomed |\n| HF Relationships | 10 | add/remove hf_hf_link, add/remove hf_entity_link, add/remove hf_site_link |\n| HF Actions | 12 | attacked_site, destroyed_site, confronted, does_interaction, preach |\n| HF Intrigue | 10 | convicted, interrogated, formed_intrigue, failed_frame, sabotage |\n| Artifacts | 13 | created, destroyed, lost, found, given, possessed, recovered, stored, transformed, copied, claim_formed |\n| Sites/Construction | 18 | created_site, destroyed_site, site_taken_over, reclaim_site, created_structure, razed_structure |\n| Entities | 14 | entity_created, dissolved, incorporated, overthrown, law, persecuted, alliance_formed |\n| War/Combat | 8 | field_battle, squad_vs_squad, tactical_situation, attacked_site, plundered_site |\n| Diplomacy | 10 | peace_accepted/rejected, agreement_formed/concluded/rejected, trade, first_contact |\n| Culture/Art | 7 | poetic/musical/dance_form_created, written_content_composed, knowledge_discovered |\n| Masterpieces | 8 | arch_construct, item, dye, item_improvement, food, engraving, lost |\n| Occasions | 5 | ceremony, competition, performance, procession, gamble |\n| Misc | 14 | creature_devoured, body_abused, merchant, sneak_into_site, spotted_leaving, insurrection |\n\n### Event Collection Types (19 Types)\n\n| Category | Types |\n|----------|-------|\n| Warfare | battle, war, duel, raid, site_conquered |\n| Political | insurrection, persecution, purge, entity_overthrown |\n| Calamities | beast_attack, abduction, theft |\n| Rituals | occasion, procession, ceremony, performance, competition |\n| Travel | journey |",
+      "source_location": "Section 4. Event Type Taxonomy",
+      "reasoning": "The Master PRD lacks a standalone Event Type Taxonomy section. This information is critically needed for implementing REQ-STR-016 (132+ template bank), REQ-CDM-004 (144 types as TEXT), and REQ-VIS-023 (19 collection types). The consolidated taxonomy with source attribution provides implementers with authoritative reference data."
+    },
+    {
+      "id": "NEW_003",
+      "title": "Architectural Patterns & Implementation Guides",
+      "parent_section": "2",
+      "content": "### Event Rendering Pipeline Pattern\n\nAll successful legends browsers implement this pattern:\n```\nEvent (typed struct) -> Context (current entity perspective) -> Template (per-type prose) -> HTML (with entity links)\n```\n\nFor Chronicler with LLM:\n```\nEvent (CDM row) -> Context (target entity + related entities) -> LLM prompt (with event type template) -> Narrative (with entity references marked for linking)\n```\n\n### Polling + Events Hybrid Pattern\n\nFrom myDFHackScripts: use `eventful` subscriptions for real-time discrete events (deaths, item creation) AND polling via `dfhack.timeout` for gradual state transitions (citizen count, reports, petitions). The hybrid approach ensures neither immediate events nor gradual transitions are missed.\n\n### Generic Watcher Factory Pattern\n\nFrom myDFHackScripts `Helper.watch()`: returns a closure that compares current state to saved state. On change, logs event and updates saved state. Configurable comparison function. This is the pattern used for Chronicler's 11 change event types.\n\n### Post-Parse Processing Pattern\n\nAll reference legends browsers (LB2 `world.process()`, LV-Next post-parse) run a cross-referencing pass after XML loading. This is non-optional -- without it, entity relationships, flags, scores, and kill lists are incomplete.\n\n### Exclusive Action Queue Pattern\n\nFrom df-ai: one exclusive action chain active at a time; queue pending actions; report completion/failure before starting next. Prevents conflicting multi-step fortress management operations.",
+      "source_location": "Section 16. Architectural Patterns",
+      "reasoning": "The Master PRD has no Architectural Patterns section. These implementation patterns are derived from cross-analysis of 17 reference repositories and provide critical design guidance for implementing the ETL pipeline, event rendering system, and AI advisor not available anywhere in the Master."
+    },
+    {
+      "id": "NEW_004",
+      "title": "Consolidated Action Items (Prioritized Implementation Backlog)",
+      "parent_section": "17",
+      "content": "### Tier 1 -- Critical (Blocks Narrative Engine and Explorer)\n\n| # | Action | Effort | Source |\n|---|--------|--------|--------|\n| 1 | Add all 144 event types to CDM taxonomy | M | df-structures |\n| 2 | Extend HF CDM with missing high-priority fields (flags, interactions, skills, links, kills, whereabouts) | L | All legends browsers |\n| 3 | Add importance scoring columns and compute on ingestion | S | df-narrator |\n| 4 | Implement death cause narrative rendering (50+ causes) | M | weblegends |\n| 5 | Implement perspective-aware event narrative generation | M | LB2, weblegends |\n| 6 | Add cross-linking infrastructure (entity references become navigable links) | M | All legends browsers |\n| 7 | Implement DF calendar utility (seconds72 to date/month/season) | S | df-narrator, weblegends |\n| 8 | Build agentic SQL storyteller (schema summary + SQL tool) | L | Chronicler original |\n| 9 | Parse remaining XML sections (world_constructions, art_forms, identities, rivers) | M | All legends browsers |\n| 10 | Build post-parse processing pipeline (10 cross-referencing steps) | L | LB2, LV-Next |\n\n### Tier 2 -- High Value (Visualization and Data Completeness)\n\n| # | Action | Effort | Source |\n|---|--------|--------|--------|\n| 11 | Interactive world map with Leaflet.js | L | LV-Next, LB2 |\n| 12 | Family tree visualization (Cytoscape.js dagre) | M | LV-Next, LB1 |\n| 13 | Event timeline charts (Chart.js line/bar) | M | LV-Next |\n| 14 | Population distribution charts | S | LV-Next, LB1 |\n| 15 | Hover popovers for entity preview | M | LB2 |\n| 16 | Global search with autocomplete | M | LB2 |\n| 17 | Entity detail pages (HF 24-section, Entity 5-tab, Site, Artifact, etc.) | XL | All browsers |\n| 18 | Knowledge Horizon Phase 1-2 (denizen + view-based masking) | L | Chronicler original |\n\n### Tier 3 -- Bridge & Live Data Enhancements\n\n| # | Action | Effort | Source |\n|---|--------|--------|--------|\n| 19 | Add eventful subscriptions (UNIT_DEATH, ITEM_CREATED, UNIT_NEW_ACTIVE, SYNDROME) | S | myDFHackScripts |\n| 20 | Death cause resolution via df.global.world.incidents.all | S | myDFHackScripts |\n| 21 | Parent/family chain extraction (unit.relationship_ids.Mother/Father) | S | myDFHackScripts |\n| 22 | Book/written work detection (dfhack.items.getBookTitle) | S | myDFHackScripts |\n| 23 | Create worldgen-bridge.lua for real-time worldgen monitoring | M | worldgen-scraping |\n| 24 | Add worldgen_snapshots CDM table | S | worldgen-scraping |\n| 25 | Add personality/soul data to bridge (50 facets, beliefs, goals, needs) | M | df-structures |\n| 26 | Add skill progression tracking per unit | M | myDFHackScripts |\n\n### Tier 4 -- Stretch / Advanced Features\n\n| # | Action | Effort | Source |\n|---|--------|--------|--------|\n| 27 | Curse lineage tree (vampire/werebeast \"who bit whom\") | M | LB1 |\n| 28 | Warfare graph (Cytoscape.js cola force-directed) | M | LV-Next |\n| 29 | War chord diagram (D3.js) | M | LB1 |\n| 30 | Mod manager core (discovery, profiles, conflict detection) | L | ModHearth, DF-Modloader |\n| 31 | Labor manager core (grid, skills, personality) | XL | Dwarf Therapist patterns |\n| 32 | AI Fortress Advisor (population, military, resources) | XL | df-ai |\n| 33 | Stock threshold model as LLM advisor context | M | df-ai |\n| 34 | Raw file parser for mod conflict detection | L | DF-Modloader |\n| 35 | Full raw compiler pipeline | XL | DF-Modloader |\n| 36 | Labor optimization engine (constraint satisfaction) | XL | Chronicler original |\n| 37 | Mod awareness (record active mods per world) | S | Chronicler original |\n| 38 | Timeline scrubber (historical map state) | L | Chronicler original |\n| 39 | Civilization territory overlays | L | Chronicler original |\n| 40 | Worldgen live map preview | XL | Chronicler original |\n\nEffort key: S = days, M = 1-2 weeks, L = 2-4 weeks, XL = 1+ months",
+      "source_location": "Section 19. Consolidated Action Items",
+      "reasoning": "The Master PRD has no Consolidated Action Items section. This 40-item prioritized backlog with effort estimates and source attribution is entirely absent from the Master and is directly actionable for sprint planning."
+    }
+  ],
+  "uncategorized": []
+}
