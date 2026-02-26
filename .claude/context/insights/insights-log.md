@@ -1279,3 +1279,24 @@ The "live data" tables (units, unit_events, game_reports, etc.) are empty since 
 **CASCADE optimization** — The initial `delete_world()` used explicit FK-ordered DELETE statements for each of 33 tables. This caused a 15+ minute lock contention when interacting with CASCADE constraints. The optimized version counts rows first (via SELECT, read-only), then does a single `DELETE FROM worlds` that CASCADE handles in seconds. The `_DELETE_ORDER` constant is retained for the count queries and as documentation of the FK dependency graph.
 
 **asyncpg mock pattern** — Mocking asyncpg's `pool.acquire()` and `conn.transaction()` requires `MagicMock` (not `AsyncMock`) wrapping a custom `_AsyncContextManager` class, because these methods return async context managers synchronously — `AsyncMock` wraps them in an extra coroutine that breaks `async with`.
+
+### 2026-02-26 [d9cc9dc1c8e2]
+
+**Key architectural choices in this plan**:
+- **Template inheritance over monolith**: The existing `explorer.html` is ~35K tokens of inline JS/HTML — a pattern that doesn't scale. New detail pages use Jinja2 inheritance (`base.html` → `detail_base.html` → `hf.html`) with server-side rendering, keeping JS minimal.
+- **Cross-linking as Jinja2 globals**: Rather than having each route generate HTML links, the `link()` function is registered globally so any template can call `{{ link('hf', id, name, world_id) }}`. This ensures consistent link formatting across all 15+ page types.
+- **Batch name cache**: A typical HF detail page references ~50 entities. Instead of 50 individual DB queries, `EntityNameCache` groups by type and does 3-5 `ANY($1::int[])` queries — a 10x reduction in round trips.
+
+### 2026-02-26 [2e2fb2ca8673]
+
+**Why this walkthrough matters architecturally**:
+- **Phase gates are not bureaucracy** — they prevent the classic "move fast and break later" failure mode. Phase 2 (Explorer) builds HTML detail pages for every entity type. If Phase 1's schema is missing a column or a parser section drops data silently, you'd discover it mid-Phase 2 as a broken page — much harder to debug.
+- **The 64 automated checks are a regression safety net** — they can be re-run after any future schema change to ensure Phase 1's guarantees still hold. This is why they live in the deliverable (`validate_phase1.py`) rather than in a one-off script.
+- **The "3 worlds" criterion** is the most important manual check. Parsing one XML file proves the parser works on that file. Parsing a different world proves the parser is *general-purpose* — it handles different entity counts, missing sections, and edge cases in DF's world generation.
+
+### 2026-02-26 [5728171765b9]
+
+**Why `pg_catalog` over `information_schema` for FK queries**:
+- `information_schema.constraint_column_usage` stores FK column pairs *without* ordinal position, so joining to `key_column_usage` on a composite FK like `(world_id, site_id) REFERENCES sites(world_id, id)` produces a Cartesian product: 4 rows instead of 2. This was causing the duplicate relationship lines.
+- `pg_constraint.conkey` and `confkey` are parallel arrays — `conkey[1]` maps to `confkey[1]` — so `CROSS JOIN LATERAL unnest(...) WITH ORDINALITY` gives exact column-to-column mapping with no duplicates.
+- The Mermaid format distinguishes cardinality: `}o--||` means "many from-side, exactly-one to-side" (used when all FK columns are part of the PK, indicating a junction/associative table). `}o--o|` means "many-to-zero-or-one" (regular FK columns).
