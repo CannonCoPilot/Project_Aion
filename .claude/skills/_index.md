@@ -38,6 +38,7 @@ Unlike commands (single actions), skills provide end-to-end guidance for complex
 | [knowledge-ops](knowledge-ops/SKILL.md) | 4-tier memory hierarchy — dynamic KG, static KG, semantic RAG, documentary grounding | N/A |
 | [deck-ops](deck-ops/SKILL.md) | Create slide deck presentations — zone-based layout model | N/A |
 | [chronicler-ops](chronicler-ops/SKILL.md) | Chronicler + DF operations — VM, DFHack RPC, legends, watcher, bridge | /vm, /df |
+| [hds](hds/SKILL.md) | Hierarchical Delta Synthesis — token-efficient document merging | /hds |
 
 ### x-ops Router Skills
 
