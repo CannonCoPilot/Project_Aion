@@ -963,40 +963,40 @@ GET /api/explorer/export/query?format=json&sql=...&world_id={wid}
 Phase 2 is complete when ALL of the following are true:
 
 ### Entity Detail Pages
-- [ ] Historical Figure detail page (24 sections)
-- [ ] Entity/Civilization detail page (5 tabs)
-- [ ] Site detail page (3 tabs)
-- [ ] Artifact detail page (chain-of-custody)
-- [ ] Region detail page
-- [ ] Structure detail page
-- [ ] Written Content detail page
-- [ ] Event Collection detail page (hierarchy)
-- [ ] Underground Region detail page
-- [ ] Landmass detail page
-- [ ] Mountain Peak detail page
-- [ ] River detail page
-- [ ] World Construction detail page
-- [ ] Art Form detail pages (3 types)
-- [ ] Identity detail page
-- [ ] Historical Era detail page
-- [ ] Years and Events browser
+- [x] Historical Figure detail page (24 sections)
+- [x] Entity/Civilization detail page (5 tabs)
+- [x] Site detail page (3 tabs)
+- [x] Artifact detail page (chain-of-custody)
+- [x] Region detail page
+- [x] Structure detail page
+- [x] Written Content detail page
+- [x] Event Collection detail page (hierarchy)
+- [x] Underground Region detail page
+- [x] Landmass detail page
+- [x] Mountain Peak detail page
+- [x] River detail page
+- [x] World Construction detail page
+- [x] Art Form detail pages (3 types)
+- [x] Identity detail page
+- [x] Historical Era detail page
+- [x] Years and Events browser
 
 ### Search and Navigation
-- [ ] Global search with live autocomplete (accent-insensitive)
-- [ ] HF filtering by type flags
-- [ ] Hover popovers on all entity links
-- [ ] Breadcrumb / Prev-Next navigation
-- [ ] URL hash tab persistence
-- [ ] JSONB field inventory in schema browser
-- [ ] Row detail overlay in data browser
-- [ ] Query results export (CSV/JSON)
+- [x] Global search with live autocomplete (accent-insensitive)
+- [x] HF filtering by type flags
+- [x] Hover popovers on all entity links
+- [x] Breadcrumb / Prev-Next navigation
+- [x] URL hash tab persistence
+- [x] JSONB field inventory in schema browser
+- [x] Row detail overlay in data browser
+- [x] Query results export (CSV/JSON)
 
 ### Cross-Cutting
-- [ ] Cross-linked entity references everywhere
-- [ ] Perspective-aware event rendering
-- [ ] DF calendar formatting
-- [ ] Entity name cache for performance
-- [ ] All pages load within performance targets
+- [x] Cross-linked entity references everywhere
+- [x] Perspective-aware event rendering
+- [x] DF calendar formatting
+- [x] Entity name cache for performance
+- [x] All pages load within performance targets
 
 ---
 

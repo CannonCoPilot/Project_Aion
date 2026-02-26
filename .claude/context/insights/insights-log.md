@@ -1335,3 +1335,54 @@ The "live data" tables (units, unit_events, game_reports, etc.) are empty since 
 
 - **`user.email` vs `GIT_COMMITTER_EMAIL`**: Git uses `user.email` for *both* author and committer by default. `GIT_COMMITTER_EMAIL` only overrides the committer field when explicitly set as an env var. By fixing the global config, we no longer need env var workarounds on every push.
 - **Test-and-rollback pattern**: `git commit --allow-empty` + `git reset HEAD~1 --soft` is a safe way to verify git config changes without touching the working tree or leaving artifacts behind.
+
+### 2026-02-26 [547ccfe326f6]
+
+- **Phase gates as project governance**: The DoD checklist pattern (64 automated checks + 3 manual) creates a hard boundary between phases. This prevents "90% done" drift where work bleeds across phases with unfinished remnants. Each phase must be fully closed before the next opens.
+- **current-plans.md as the CLAUDE.md @-import**: Since CLAUDE.md imports this file via `#@.claude/context/current-plans.md`, every future session will automatically pick up Phase 2 focus, the development rules, and the big-picture vision without needing to re-read the full PRD hierarchy.
+
+### 2026-02-26 [881e0a604ab7]
+
+Three bugs were fixed during verification:
+1. **Column naming mismatch** (`seconds72` → `seconds`, `type` → `event_type`): The XML parser uses DF's internal names (`seconds72`, `type`) but the CDM schema uses normalized names (`seconds`, `event_type`). Always introspect schema before writing queries.
+2. **JSONB codec missing**: asyncpg returns `jsonb` columns as raw JSON strings by default. Registering `set_type_codec('jsonb', ...)` in the connection init converts them to Python dicts globally.
+3. **Custom Jinja2 test**: `selectattr('field', 'containing', 'substring')` requires a custom test registration since Jinja2 doesn't include `containing` built-in.
+
+### 2026-02-26 [4cd65c84d154]
+
+Schema findings for secondary entities:
+- **`underground_regions`**: No `name` — only `type` and `depth`. Links will use type+depth as display.
+- **`landmasses`**: Uses `coord_1`/`coord_2` (bounding box corners), not `coords`.
+- **`mountain_peaks`**: Has `height` and `is_volcano` — good for distinct styling.
+- **`rivers`**: Has `name_english` for translations and `end_type` for terminus classification.
+- **`art_forms`**: Has `form_type` (dance/musical/poetic) and `description`.
+- **`identities`**: `histfig_id` (not `hf_id`) for the real person, `birth_second` (not `birth_seconds`).
+- **`historical_eras`**: NO `id` column — just `(world_id, name, start_year)`. Will need name-based routing.
+
+### 2026-02-26 [79b4ad24e166]
+
+**Jinja2 `format` filter vs Python `str.format()`**: The `|format(...)` filter in Jinja2 uses old-style `%` formatting (`"string" % args`), which doesn't support the `{:,}` comma syntax. Python's `str.format()` does support it. Fix: change `{{ "{:,}"|format(x) }}` to `{{ "{:,}".format(x) }}` (calling the Python method directly instead of the Jinja2 filter).
+
+### 2026-02-26 [4d7ba57d3144]
+
+The linking module is well-designed — entity links include `data-entity-type` and `data-entity-id` attributes (line 88-90), which is exactly what Tippy.js needs to identify which popover API to call. The `EntityNameCache` also handles batch name resolution with TTL, which satisfies the "entity name cache for performance" DoD item.
+
+### 2026-02-26 [d7950eab3111]
+
+The perspective-aware rendering system now works through a **three-layer architecture**:
+
+1. **Column Mapping** (`COLUMN_MAP_BY_EVENT`): Each event type has a mapping from generic DB columns (`hf_id_1`, `entity_id_1`) back to DF XML field names (`snatcher_hfid`, `civ_id`). This reverses the normalization done during ingestion.
+
+2. **Template Rendering**: Templates use natural language patterns ("*they* abducted *bomrek claspsell* from *daggerbird*") with field placeholders. The renderer checks each field against the perspective entity — matches become `<em>pronoun</em>`, others become clickable links.
+
+3. **Type-aware Pronouns**: HFs get "they/them", sites get "here", civilizations get "the civilization" — contextually appropriate for each entity type.
+
+### 2026-02-26 [e953c7d597d7]
+
+**All 30 Phase 2 DoD items are verified as PASS.** Here's the complete picture:
+
+1. **EntityLinkRenderer** (`/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/explorer/linking.py:11`) — 15 entity type routes, generates HTML `<a>` tags with `data-entity-type` and `data-entity-id` attributes for Tippy.js popover hooks.
+
+2. **EntityNameCache** (`/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/explorer/linking.py:106`) — Per-world, 5-minute TTL, batch-loads names grouped by entity type. Only queries DB for refs not in cache — this is the performance optimization the DoD requires.
+
+3. **Global search** lives in `_nav.html` (the shared navigation partial), so it appears on ALL pages — not just the explorer main page. It uses a 200ms debounce, keyboard navigation (arrow keys + enter), and accent-insensitive ILIKE via `unaccent()`.
