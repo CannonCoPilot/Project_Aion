@@ -1386,3 +1386,31 @@ The perspective-aware rendering system now works through a **three-layer archite
 2. **EntityNameCache** (`/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/explorer/linking.py:106`) — Per-world, 5-minute TTL, batch-loads names grouped by entity type. Only queries DB for refs not in cache — this is the performance optimization the DoD requires.
 
 3. **Global search** lives in `_nav.html` (the shared navigation partial), so it appears on ALL pages — not just the explorer main page. It uses a 200ms debounce, keyboard navigation (arrow keys + enter), and accent-insensitive ILIKE via `unaccent()`.
+
+### 2026-02-26 [7b211ac41573]
+
+**Phase 2 Architecture Highlights:**
+
+1. **Cross-linking infrastructure** is the engineering centerpiece. `EntityLinkRenderer` maps 15 entity types to URL patterns and generates `<a>` tags with `data-*` attributes that Tippy.js hooks for popovers. `EntityNameCache` batch-loads names by type with 5-minute TTL — so a page with 50 entity references makes ~4-5 DB queries (one per type) instead of 50.
+
+2. **Perspective-aware rendering** (`PerspectiveRenderer`, 423 lines) is the most nuanced module. When viewing HF #7's page, events involving that HF replace their name with pronouns ("he founded the site" instead of "Urist McBordeaux founded the site"). This is the kind of contextual transformation that makes the Explorer feel like a *narrative* tool, not a data dump.
+
+3. **Template inheritance** — all 17 detail pages extend `detail_base.html` which provides the shared Tippy.js init, tab persistence JS, prev/next nav, and breadcrumbs. Adding a new entity type in future phases requires just a new route + template.
+
+### 2026-02-26 [f92e99bc5b53]
+
+**What went into this commit:**
+
+1. **DoD checkbox flip** — The Phase 2 PRD's 30 `- [ ]` items became `- [x]`, creating the audit trail that Phase 2 passed all requirements. This is the "signed off" artifact.
+
+2. **CLAUDE.md context reduction** — Moved `valedictions.yaml`, `strengths.md`, and `weaknesses.md` from `@`-imports (always loaded into every context window, consuming ~tokens each session) to a "Misc Resources" section (loaded on demand). This is a small but compounding optimization for JICM.
+
+3. **Two new reports** — The completion report (~130 lines) provides the "what was built" summary with code statistics, and the validation walkthrough (~180 lines) is the step-by-step manual QA guide with 18 verification items.
+
+### 2026-02-27 [577433055a03]
+
+The `historical_eras` table has no `id` column — only `world_id`, `name`, `start_year`. This is because DF's XML doesn't assign IDs to eras; they're identified by name. The era detail route likely queries by an `id` that doesn't exist in the schema. This is a schema/route mismatch that needs fixing.
+
+### 2026-02-27 [2983e9ba596e]
+
+The variable shadowing pattern (`events` as both a query parameter and a DB result) is a common trap in FastAPI routes. The fix of renaming the DB result to `events_rows` while keeping the query param as `events` follows the convention of distinguishing between "user input" and "fetched data" namespaces. In other entity routes, there's no query param, so `events` unambiguously refers to the DB result.
