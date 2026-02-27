@@ -5,17 +5,17 @@
 **Phase Duration**: 3-4 weeks
 **Milestone**: M5 -- Live Complete
 **Entry State**: Bridge v6 (7 domains, polling only), no worldgen monitoring, no Knowledge Horizon
-**Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring with live map, Knowledge Horizon Phase 1-3
+**Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring with live map, Knowledge Horizon Phase 1-3, embedding pipelines for live data
 
 **Parent Document**: Full Project Roadmap (full-project-roadmap.md)
 **Dependencies**: Phase 1 (complete CDM), Phase 3 (storyteller for KH integration)
-**Requirements Covered**: REQ-ETL-005 through ETL-012, REQ-KH-001 through KH-012, REQ-STR-032
+**Requirements Covered**: REQ-ETL-005 through ETL-012, REQ-KH-001 through KH-012, REQ-STR-032, REQ-EMB-001 through EMB-006
 
 ---
 
 ## 1. Phase Overview
 
-Phase 5 extends Chronicler's real-time data capabilities in three directions: (1) enhancing the live bridge with reactive event subscriptions and richer data extraction, (2) building the worldgen monitoring system for watching world generation in real time, and (3) implementing the Knowledge Horizon masking system that limits the storyteller's and explorer's knowledge to what the fortress plausibly knows.
+Phase 5 extends Chronicler's real-time data capabilities in four directions: (1) enhancing the live bridge with reactive event subscriptions and richer data extraction, (2) building the worldgen monitoring system for watching world generation in real time, (3) implementing the Knowledge Horizon masking system that limits the storyteller's and explorer's knowledge to what the fortress plausibly knows, and (4) activating the embedding pipelines for both batch legends data and live in-game data, enabling semantic search and richer narrative context retrieval.
 
 ### 1.1 Current Live Bridge State (v6)
 
@@ -34,6 +34,7 @@ Phase 5 extends Chronicler's real-time data capabilities in three directions: (1
 - **Data enrichment**: Death cause lookup, family chain, book detection, personality data, skill tracking
 - **Worldgen monitoring**: Novel capability to watch world generation progress in real time
 - **Knowledge Horizon**: Dynamic visibility masking that filters data based on what the fortress knows
+- **Embedding pipelines**: Batch and incremental embedding generation, hybrid semantic search, narrative context retrieval for the storyteller
 
 ---
 
@@ -810,7 +811,256 @@ async def build_storyteller_context(world_id: int, query: str, kh_enabled: bool 
 
 ---
 
-## 5. Definition of Done (M5 Milestone)
+## 5. Stage 5.4: Modified Embedding Pipelines for Live In-Game Data
+
+**Duration**: 1 week
+**Dependencies**: Phase 1 (embeddings table schema, pgvector), Stage 5.1 (live bridge data)
+**Deliverables**: Text extraction pipeline, batch + incremental embedding generation, semantic search integration
+
+### 5.1 Current Embedding Infrastructure
+
+Phase 1 created the plumbing but not the pump:
+
+- **pgvector extension**: Installed in PostgreSQL
+- **`embeddings` table**: Schema created (0 rows) — `entity_type`, `entity_id`, `chunk_index`, `chunk_text`, `content_hash`, `embedding vector(2560)`, `created_at`
+- **pgvector codec**: Registered on every DB connection via `register_vector(conn)`
+- **MLX embedding server**: Qwen3-Embedding-4B at `localhost:8000`, 2560-dim output
+
+What's missing: text extraction, chunking strategy, embedding generation code, downstream consumers.
+
+### 5.2 Text Extraction Pipeline
+
+**Requirement**: REQ-EMB-001
+**Priority**: P2
+
+**Description**: Build entity-type-specific text extractors that concatenate relevant fields into embeddable text representations.
+
+```python
+TEXT_EXTRACTORS = {
+    'hf': lambda hf: f"{hf['name']}. {hf['race']} {hf['caste']}. "
+          f"Born year {hf.get('birth_year', '?')}. "
+          f"{hf.get('associated_type', '')}. "
+          f"{'; '.join(hf.get('spheres', []))}",
+
+    'site': lambda s: f"{s['name']} ({s['type']}). "
+            f"Coordinates: {s.get('coords', '?')}. "
+            f"Owner: {s.get('owner_entity_name', 'none')}",
+
+    'entity': lambda e: f"{e['name']} ({e['type']}). "
+              f"Race: {e.get('race', '?')}. "
+              f"Worship: {', '.join(e.get('worship_ids', []))}",
+
+    'artifact': lambda a: f"{a['name']}. {a.get('item_description', '')}. "
+                f"Material: {a.get('mat', '?')}",
+
+    'event': lambda ev: f"Year {ev.get('year', '?')}: {ev['type']}. "
+             f"{ev.get('details_text', '')}",
+
+    'written_content': lambda wc: f"{wc['title']}. "
+                       f"Form: {wc.get('form', '?')}. "
+                       f"Author: {wc.get('author_name', '?')}",
+}
+```
+
+**Live data text extraction**: For bridge data (units, announcements, artifacts), the text extractor runs on each watcher cycle's changed entities. The `content_hash` field in the embeddings table enables incremental re-embedding — only entities whose extracted text has changed need new vectors.
+
+### 5.3 Chunking Strategy
+
+**Requirement**: REQ-EMB-002
+**Priority**: P2
+
+**Description**: Define how entity text is split for embedding when it exceeds the model's optimal input length.
+
+```python
+class EntityChunker:
+    """Split entity text into embedding-sized chunks."""
+
+    MAX_TOKENS = 512  # Qwen3-Embedding-4B optimal input
+    OVERLAP_TOKENS = 64  # Overlap between chunks for context continuity
+
+    def chunk(self, text: str, entity_type: str, entity_id: int) -> list[dict]:
+        """Return list of {chunk_index, chunk_text, content_hash}."""
+        tokens = self.tokenize(text)
+        if len(tokens) <= self.MAX_TOKENS:
+            return [{
+                'chunk_index': 0,
+                'chunk_text': text,
+                'content_hash': hashlib.sha256(text.encode()).hexdigest(),
+            }]
+
+        chunks = []
+        start = 0
+        idx = 0
+        while start < len(tokens):
+            end = min(start + self.MAX_TOKENS, len(tokens))
+            chunk_text = self.detokenize(tokens[start:end])
+            chunks.append({
+                'chunk_index': idx,
+                'chunk_text': chunk_text,
+                'content_hash': hashlib.sha256(chunk_text.encode()).hexdigest(),
+            })
+            start += self.MAX_TOKENS - self.OVERLAP_TOKENS
+            idx += 1
+        return chunks
+```
+
+**Chunking by entity type**:
+- **Historical figures**: Rarely exceed 512 tokens — single chunk typical
+- **Events**: Always single chunk (extracted text is short)
+- **Sites with long histories**: May produce 2-3 chunks
+- **Written content**: Title + form metadata only (not full text) — single chunk
+
+### 5.4 Batch Embedding CLI Command
+
+**Requirement**: REQ-EMB-003
+**Priority**: P2
+
+**Description**: Add `chronicler embed` CLI command that generates embeddings for all entities after legends ingestion.
+
+```python
+@app.command()
+def embed(
+    world_name: str = typer.Option(..., help="World to embed"),
+    entity_types: str = typer.Option("all", help="Comma-separated types or 'all'"),
+    force: bool = typer.Option(False, help="Re-embed even if content_hash unchanged"),
+    batch_size: int = typer.Option(64, help="Embedding batch size"),
+):
+    """Generate embeddings for all entities in the database."""
+    world_id = resolve_world(world_name)
+    types = ENTITY_TYPES if entity_types == "all" else entity_types.split(",")
+
+    for etype in types:
+        entities = fetch_entities(world_id, etype)
+        for batch in chunked(entities, batch_size):
+            texts = [TEXT_EXTRACTORS[etype](e) for e in batch]
+            chunks_list = [chunker.chunk(t, etype, e['id']) for t, e in zip(texts, batch)]
+
+            # Skip unchanged (unless --force)
+            if not force:
+                chunks_list = filter_changed(world_id, etype, chunks_list)
+
+            if chunks_list:
+                embeddings = embed_batch([c['chunk_text'] for cl in chunks_list for c in cl])
+                store_embeddings(world_id, etype, chunks_list, embeddings)
+
+        typer.echo(f"  {etype}: {len(entities)} entities embedded")
+```
+
+**Performance target**: Embed full Tar Thran world (~109K entities) in < 10 minutes using MLX batch inference.
+
+### 5.5 Incremental Live Embedding
+
+**Requirement**: REQ-EMB-004
+**Priority**: P2
+
+**Description**: During watcher cycles, detect changed entities and re-embed only those.
+
+```python
+class LiveEmbedder:
+    """Incremental embedding for live bridge data."""
+
+    def __init__(self, world_id: int, embedding_client: EmbeddingClient):
+        self.world_id = world_id
+        self.client = embedding_client
+        self.chunker = EntityChunker()
+
+    async def process_changes(self, changes: list[dict]):
+        """Process a batch of entity changes from the watcher."""
+        to_embed = []
+
+        for change in changes:
+            etype = change['entity_type']
+            eid = change['entity_id']
+            text = TEXT_EXTRACTORS[etype](change['data'])
+            chunks = self.chunker.chunk(text, etype, eid)
+
+            # Check content_hash — skip if unchanged
+            for chunk in chunks:
+                existing_hash = await self._get_existing_hash(etype, eid, chunk['chunk_index'])
+                if existing_hash != chunk['content_hash']:
+                    to_embed.append((etype, eid, chunk))
+
+        if to_embed:
+            texts = [c['chunk_text'] for _, _, c in to_embed]
+            vectors = await self.client.embed_batch(texts)
+            await self._upsert_embeddings(to_embed, vectors)
+
+    async def process_reactive_event(self, event: dict):
+        """Immediately embed high-priority reactive events (deaths, invasions)."""
+        text = TEXT_EXTRACTORS['event'](event)
+        vector = await self.client.embed(text)
+        await self._store_event_embedding(event, text, vector)
+```
+
+**Integration point**: The `LiveEmbedder` is instantiated by the watcher daemon and called at the end of each watcher cycle for changed entities, and immediately for reactive events from eventful subscriptions.
+
+### 5.6 Semantic Search Integration
+
+**Requirement**: REQ-EMB-005
+**Priority**: P2
+
+**Description**: Augment the global search with pgvector similarity search alongside the existing ILIKE text search.
+
+```python
+async def hybrid_search(query: str, world_id: int, limit: int = 20) -> list[dict]:
+    """Combine text search (ILIKE) with semantic search (pgvector)."""
+    # Text search (existing)
+    text_results = await text_search(query, world_id, limit=limit)
+
+    # Semantic search (new)
+    query_vector = await embedding_client.embed(query)
+    semantic_results = await db.fetch_all(
+        "SELECT entity_type, entity_id, chunk_text, "
+        "1 - (embedding <=> :vec) AS similarity "
+        "FROM embeddings "
+        "WHERE world_id = :wid "
+        "ORDER BY embedding <=> :vec "
+        "LIMIT :lim",
+        {'vec': query_vector, 'wid': world_id, 'lim': limit}
+    )
+
+    # Merge and rank (RRF — Reciprocal Rank Fusion)
+    return reciprocal_rank_fusion(text_results, semantic_results, k=60)
+```
+
+**User experience**: The global search bar uses hybrid search transparently. Users see better results for conceptual queries like "who was the most powerful necromancer" or "battles near the mountain" that ILIKE alone would miss.
+
+### 5.7 Narrative Context Retrieval
+
+**Requirement**: REQ-EMB-006
+**Priority**: P2
+
+**Description**: Feed relevant embeddings to the storyteller for richer narrative context.
+
+```python
+async def get_narrative_context(query: str, world_id: int, max_chunks: int = 10) -> str:
+    """Retrieve relevant entity context for storyteller prompts."""
+    query_vector = await embedding_client.embed(query)
+    relevant = await db.fetch_all(
+        "SELECT entity_type, entity_id, chunk_text, "
+        "1 - (embedding <=> :vec) AS similarity "
+        "FROM embeddings "
+        "WHERE world_id = :wid "
+        "AND 1 - (embedding <=> :vec) > 0.3 "
+        "ORDER BY embedding <=> :vec "
+        "LIMIT :lim",
+        {'vec': query_vector, 'wid': world_id, 'lim': max_chunks}
+    )
+
+    context_parts = []
+    for row in relevant:
+        context_parts.append(
+            f"[{row['entity_type']} #{row['entity_id']}] "
+            f"{row['chunk_text']}"
+        )
+    return "\n\n".join(context_parts)
+```
+
+**Storyteller integration**: Before generating a narrative response, the storyteller calls `get_narrative_context()` with the user's query to retrieve semantically relevant entity descriptions. This context is injected into the LLM prompt alongside the SQL-retrieved structured data, giving the storyteller both precise facts (SQL) and broader context (embeddings).
+
+---
+
+## 6. Definition of Done (M5 Milestone)
 
 ### Bridge Enhancements
 - [ ] Eventful subscriptions (5 event types)
@@ -839,7 +1089,16 @@ async def build_storyteller_context(world_id: int, query: str, kh_enabled: bool 
 - [ ] Storyteller integration (query visible_* views)
 - [ ] Explorer toggle (KH on/off)
 
+### Embedding Pipelines
+- [ ] Entity text extractors for all entity types (HF, site, entity, artifact, event, written content)
+- [ ] Chunking strategy with content_hash deduplication
+- [ ] `chronicler embed` CLI command (batch embedding after legends ingestion)
+- [ ] Incremental live embedding via watcher (content_hash delta detection)
+- [ ] Reactive event embedding (immediate embed for deaths, invasions)
+- [ ] Hybrid search (ILIKE + pgvector semantic search with RRF ranking)
+- [ ] Narrative context retrieval for storyteller prompts
+
 ---
 
-*Phase 5: Live Integration PRD/Roadmap v1.0 -- 2026-02-25*
-*3 Stages, 25+ Tasks, 3-4 Weeks Estimated*
+*Phase 5: Live Integration PRD/Roadmap v1.1 -- 2026-02-27*
+*4 Stages, 35+ Tasks, 3-4 Weeks Estimated*
