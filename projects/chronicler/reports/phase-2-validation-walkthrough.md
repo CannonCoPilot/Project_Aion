@@ -1,208 +1,276 @@
-# Phase 2: Explorer Core -- Validation Walkthrough
+# Phase 2: Explorer Core — Validation Walkthrough
 
-**Date**: 2026-02-26
-**Purpose**: Step-by-step manual verification of all Phase 2 features
-**Prerequisites**: Chronicler installed, world "Tar Thran" ingested into PostgreSQL
+**Purpose**: Step-by-step guide for manually verifying all Phase 2 features.
+**Prerequisites**: PostgreSQL running with Chronicler data (world "Tar Thran" ingested).
 
 ---
 
-## Quick Start
+## Setup
 
 ```bash
 cd /Users/nathanielcannon/Claude/Projects/DwarfCron
-.venv/bin/chronicler serve --port 8080
+.venv/bin/chronicler serve --port 8000
 ```
 
-Open **http://localhost:8080** in your browser.
+Open your browser to **http://localhost:8000/explorer**
 
 ---
 
-## 1. Explorer Main Page
+## 1. Global Search (all pages)
 
-1. Click **Explorer** in the navigation bar
-2. Verify the 6 tabs are present: **People**, **Civilizations**, **Geography**, **Schema**, **Data**, **Graph**
-3. Click through each tab — data grids should load with sortable columns and pagination
+The search bar is in the top navigation bar, visible on every page.
+
+1. Click the search input in the top-right corner
+2. Type `dwarf` — results should appear after 200ms with color-coded type badges
+3. Type `asob` — should find "Asob Worshipfuliron the Jade Trumpet of Channeling" (Historical Figure)
+4. Use **Arrow Down/Up** to navigate results, **Enter** to select, **Escape** to dismiss
+5. Click a result to navigate to that entity's detail page
+
+**Verify**: Results show type badges (HF in gold, Entity in blue, Site in green), names match search term, keyboard navigation works.
 
 ---
 
-## 2. Historical Figure Detail Page (Most Complex)
+## 2. Historical Figure Detail Page
 
-1. In the **People** tab, click any historical figure name (or go directly to `/explorer/hf/1`)
-2. Verify the following sections appear:
-   - Header with name, race, birth/death years
-   - Tabs for different sections (relationships, positions, skills, etc.)
-   - Cross-linked entity names (clickable links to other entities)
-   - Prev/Next navigation buttons in the header
-   - Breadcrumb showing Explorer > Historical Figure > [Name]
-3. **Perspective rendering**: Event descriptions should use perspective-aware pronouns when referring to the viewed figure (e.g., "he" or "she" instead of repeating the name)
-4. **DF Calendar**: Dates should display in DF format (e.g., "1st Granite, Year 5")
+Navigate to: **http://localhost:8000/explorer/hf/1**
 
-**Tip**: Try HF IDs with more data — `/explorer/hf/3` or other IDs with many events.
+### Check these features:
+- **Header**: Name "Asob Worshipfuliron the Jade Trumpet of Channeling" in gold, race/caste info
+- **Type badges**: Look for badges like "deity", "vampire", etc. (this HF may not have special types, but check HF #1779 for a vampire+werebeast+necromancer)
+- **Tabs**: 4 tabs should be visible: **Overview**, **Relationships**, **Career**, **Events** (click through each)
+- **Events**: Events section with perspective-aware rendering — the current HF's name should appear in **gold bold** (`<em>` tags), while other entities are blue clickable links
+- **Cross-links**: Click any blue entity name — it should navigate to that entity's detail page
+- **Popovers**: Hover over any blue entity link — a tooltip should appear after 300ms showing a mini-summary (name, type, key stats)
+- **Breadcrumb**: Top bar shows "Explorer > People > [name]"
+- **Prev/Next**: Navigation buttons for Previous/Next HF by ID
+- **Load All events**: Events tab shows "Showing first 50 of N events" with a "Load all" link. Clicking "Load all" (or appending `?events=all` to the URL) loads the full event list
+
+### Caste-Aware Pronouns
+
+Navigate to: **http://localhost:8000/explorer/hf/0** (HF #0, "Slalsto Tundrateal", FEMALE)
+- Events should use **she/her** pronouns for this HF (rendered in gold `<em>` tags)
+
+Navigate to: **http://localhost:8000/explorer/hf/1** (HF #1, check caste)
+- Male HFs should use **he/him/his**; unknown/default caste uses **they/them/their**
+
+### Vampire/Special HF
+
+Navigate to: **http://localhost:8000/explorer/hf/1779**
+- Should show type badges for vampire, werebeast, necromancer
 
 ---
 
 ## 3. Entity/Civilization Detail Page
 
-1. Navigate to **Civilizations** tab, click any civilization name (or `/explorer/entity/1`)
-2. Verify 5 tabs: **Leaders**, **Sites**, **Members**, **Groups**, **Wars**
-3. Leader names and site names should be clickable links
-4. War entries should link to event collections
+Navigate to: **http://localhost:8000/explorer/entity/24** (The Dwarven Diamond)
+
+### Check these features:
+- **Tabs**: Leaders, Sites, Members, Groups, Wars (5 tabs)
+- **Leaders tab**: List of historical figures who led this civilization
+- **Sites tab**: Sites owned or controlled by this civilization
+- **Members tab**: Historical figures associated with this civilization
+- **Cross-links**: All entity names are clickable links with popovers
 
 ---
 
 ## 4. Site Detail Page
 
-1. Navigate to **Geography** tab or click a site link, or go to `/explorer/site/1`
-2. Verify 3 tabs: **Structures**, **Properties**, **History**
-3. Structure names should be clickable links to structure detail pages
-4. Site type and coordinates should be displayed
+Navigate to: **http://localhost:8000/explorer/site/1**
+
+### Check these features:
+- **Tabs**: Structures, Properties, History (3 tabs)
+- **Structures tab**: List of structures at this site, each linked to its detail page
+- **Owner**: Current owner civilization linked
+- **Cross-links**: All referenced entities are clickable
 
 ---
 
 ## 5. Artifact Detail Page
 
-1. Go to `/explorer/artifact/1` (or find an artifact through cross-links)
-2. Verify chain-of-custody timeline showing who held the artifact and when
-3. Creator and material should be displayed if available
+Navigate to: **http://localhost:8000/explorer/artifact/1**
+
+### Check these features:
+- **Item details**: Type, material, creation info
+- **Events**: Related events showing artifact creation, transfers
+- **Cross-links**: Creator and holder links
 
 ---
 
 ## 6. Region Detail Page
 
-1. Go to `/explorer/region/1`
-2. Verify biome and evilness badges are displayed
-3. Associated events should be listed with cross-links
+Navigate to: **http://localhost:8000/explorer/region/1**
+
+### Check these features:
+- **Biome badge**: Shows the region's biome type
+- **Evilness badge**: Benign (cyan), Neutral (gray), or Evil (purple)
+- **Events**: Events that occurred in this region
 
 ---
 
 ## 7. Structure Detail Page
 
-1. Click a structure link from a site page, or go to `/explorer/structure/1`
-2. Verify type badges (12+ types: temple, tavern, library, etc.)
-3. For temples, verify deity link is displayed
+Navigate to: **http://localhost:8000/explorer/site/38/structure/0** (site 1 has no structures; site 38 has a market)
+
+If you want to test a temple, try: **http://localhost:8000/explorer/site/301/structure/6** ("The Cradled Temple")
+
+### Check these features:
+- **Type badge**: Structure type (e.g., "market", "temple", "tomb", "mead_hall")
+- **Deity link**: For temples with deity data, shows linked deity as clickable HF link
+- **Parent site**: Link back to the parent site
 
 ---
 
 ## 8. Written Content Detail Page
 
-1. Go to `/explorer/written_content/1`
-2. Verify author link, referenced entities, and form type are displayed
+Navigate to: **http://localhost:8000/explorer/written_content/1**
+
+### Check these features:
+- **Author**: Linked historical figure who wrote/created this
+- **Referenced entities**: Other entities mentioned in the content
+- **Form type**: Musical composition, poem, choreography, etc.
 
 ---
 
 ## 9. Event Collection Detail Page
 
-1. Go to `/explorer/collection/1` (or find one through a war link)
-2. Verify hierarchy display: War > Battles > Events
-3. Sub-collections should be expandable/linkable
+Navigate to: **http://localhost:8000/explorer/collection/1**
+
+### Check these features:
+- **Hierarchy**: If this is a war, should show sub-collections (battles)
+- **Events**: Events within this collection
+- **Related entities**: Combatants, locations linked
 
 ---
 
-## 10. Secondary Entity Pages (Quick Check)
+## 10. Secondary Entity Pages
 
-Visit each URL and verify it loads with relevant data:
+Test each of these — they should all render with basic info and cross-links:
 
-| Entity | URL | Key Check |
-|--------|-----|-----------|
-| Underground Region | `/explorer/underground_region/1` | Depth and layer info |
-| Landmass | `/explorer/landmass/1` | Name and associated features |
-| Mountain Peak | `/explorer/mountain_peak/1` | Height and coordinates |
-| River | `/explorer/river/1` | Path and connected sites |
-| World Construction | `/explorer/construction/1` | Type and endpoints |
-| Art Form | `/explorer/art_form/1` | Form type and description |
-| Identity | `/explorer/identity/1` | Associated historical figure |
-| Historical Era | `/explorer/era/1` | Date range and events |
+| Entity Type | URL | What to Check |
+|------------|-----|---------------|
+| Underground Region | http://localhost:8000/explorer/underground_region/1 | Type, depth info |
+| Landmass | http://localhost:8000/explorer/landmass/1 | Name, regions |
+| Mountain Peak | http://localhost:8000/explorer/mountain_peak/1 | Name, height |
+| River | http://localhost:8000/explorer/river/1 | Name, path |
+| World Construction | http://localhost:8000/explorer/construction/1 | Type, name |
+| Art Form | http://localhost:8000/explorer/art_form/1 | Type (musical/poetic/dance) |
+| Identity | http://localhost:8000/explorer/identity/1 | Linked HF |
+| Historical Era | http://localhost:8000/explorer/era/Age%20of%20Myth | Time range, events |
 
 ---
 
 ## 11. Years and Events Browser
 
-1. Go to `/explorer/years`
-2. Verify chronological listing of years
-3. Click a year to see events for that year
-4. Verify prev/next year navigation
+Navigate to: **http://localhost:8000/explorer/years**
+
+### Check these features:
+- **Year list**: Shows all years with event counts
+- **Click a year**: Drill into events for that year
+- **Event count**: Total should be ~436,455 events
+- **Navigation**: Pagination for large event lists
 
 ---
 
-## 12. Global Search
+## 12. HF Type Filtering
 
-1. Click the **search bar** in the navigation bar (present on every page)
-2. Type "dwarf" — autocomplete suggestions should appear within ~200ms
-3. Type an accented character like "o" — results should be accent-insensitive
-4. Use arrow keys to navigate suggestions, press Enter to go to a result
-5. Verify search works from any page (the nav bar is global)
+Navigate to: **http://localhost:8000/explorer** (main explorer, People tab)
+
+### Check these features:
+- **Type checkboxes**: Deity, Vampire, Necromancer, Werebeast, Ghost
+- Check "Vampire" — list should filter to show only vampires
+- Check multiple types — should show union of selected types
+- **Text filter**: Additional name filter below the checkboxes
 
 ---
 
-## 13. Hover Popovers
+## 13. Data Browser Features
 
-1. On any detail page, hover over a cross-linked entity name
-2. After a brief delay, a popover should appear showing a summary of the linked entity
-3. Verify popovers work for different entity types (HF links, site links, entity links)
+Navigate to: **http://localhost:8000/explorer** and click the **Data** tab
+
+### JSONB Field Inventory
+1. Select a table with JSONB columns (e.g., `historical_figures`)
+2. Look for the JSONB column `details`
+3. The schema browser should show available JSONB keys
+
+### Row Detail Overlay
+1. Click on a data row in the table
+2. A modal overlay should appear showing all fields for that row
+3. JSONB fields should be displayed in expanded format
+4. Close the overlay by clicking outside or pressing Escape
+
+### Query Results Export
+1. Go to the **SQL** tab
+2. Run a query: `SELECT name, race, birth_year FROM historical_figures LIMIT 10`
+3. Look for export buttons (CSV/JSON)
+4. Click CSV — should download a CSV file
+5. Click JSON — should download a JSON file
 
 ---
 
 ## 14. URL Hash Tab Persistence
 
-1. On a detail page with multiple tabs, click a non-default tab
-2. The URL should update with a hash (e.g., `#wars`)
-3. Copy the URL and paste it in a new tab — the same tab should be selected
+1. Navigate to an entity with tabs (e.g., http://localhost:8000/explorer/entity/24)
+2. Click the "Wars" tab — URL should update to include `#tab=wars`
+3. Copy the URL and open in a new tab — the Wars tab should be pre-selected
+4. Navigate away and use browser back — tab state should be preserved
 
 ---
 
-## 15. JSONB Field Inventory
+## 15. Cross-Cutting Verification
 
-1. Go to the **Schema** tab in the Explorer
-2. Select a table with JSONB columns (e.g., `historical_figures` → `details`)
-3. Verify the distinct JSONB keys are listed for that column
+### Cross-Links
+- On any detail page, every entity name should be a clickable blue link
+- Clicking a link navigates to that entity's detail page
+- Links span all entity types: HF (gold), Entity (blue), Site (green), Artifact (purple), Region (orange)
 
----
+### Perspective Rendering
+- On HF detail pages, the current HF's name is replaced with **caste-aware pronouns** in gold bold:
+  - MALE HFs: he/him/his
+  - FEMALE HFs: she/her/her
+  - Unknown/DEFAULT caste: they/them/their
+- On Site detail pages, the current site is replaced with "here"
+- Other entities remain as clickable links
 
-## 16. Row Detail Overlay
+### DF Calendar
+- Events display dates as "Year N" or "the Nth of Month, Year N"
+- Month names are DF-canonical: Granite, Slate, Felsite, Hematite, Malachite, Galena, Limestone, Sandstone, Timber, Moonstone, Opal, Obsidian
 
-1. In the **Data** tab, click on a table row
-2. A detail overlay should appear showing all fields for that row
-3. JSONB fields should be expandable
-
----
-
-## 17. Data Export
-
-1. In the **Data** tab, use the export feature
-2. Export as **JSON** — verify valid JSON is downloaded
-3. Export as **CSV** — verify valid CSV is downloaded
-
----
-
-## 18. Cross-Linking Verification
-
-1. On any detail page, click a cross-linked entity name
-2. Verify it navigates to the correct detail page for that entity
-3. Repeat for several different entity types to confirm links work across all types
+### Hover Popovers
+- Hover over any entity link for 300ms — a tooltip appears
+- HF popovers show: name, race, caste, born/died years, kill count, type badges
+- Site popovers show: name, type, owner, coordinates
+- Entity popovers show: name, type, race
+- Artifact popovers show: name, item type, material, holder
 
 ---
 
-## Checklist Summary
+## Validation Checklist
 
-| # | Feature | Status |
-|---|---------|--------|
-| 1 | Explorer main page (6 tabs) | |
-| 2 | HF detail (24 sections, perspective, calendar) | |
-| 3 | Entity/Civ detail (5 tabs) | |
-| 4 | Site detail (3 tabs) | |
-| 5 | Artifact detail (chain-of-custody) | |
-| 6 | Region detail (biome/evilness badges) | |
-| 7 | Structure detail (type badges, deity links) | |
-| 8 | Written Content detail | |
-| 9 | Event Collection detail (hierarchy) | |
-| 10 | Secondary entity pages (8 types) | |
-| 11 | Years browser | |
-| 12 | Global search (autocomplete, accent-insensitive) | |
-| 13 | Hover popovers (Tippy.js) | |
-| 14 | URL hash tab persistence | |
-| 15 | JSONB field inventory | |
-| 16 | Row detail overlay | |
-| 17 | Data export (CSV/JSON) | |
-| 18 | Cross-linking (all entity types) | |
+Check off each item as you verify it:
 
-Mark each item after verifying. All 18 items must pass for Phase 2 sign-off.
+- [ ] Global search works from all pages with 200ms debounce
+- [ ] HF detail page renders with tabs, events, badges
+- [ ] Entity/Civilization detail page shows 5 tabs
+- [ ] Site detail page shows 3 tabs with structures
+- [ ] Artifact detail page renders with holder info
+- [ ] Region detail page shows biome + evilness badges
+- [ ] Structure detail page shows type badge
+- [ ] Written Content detail page shows author link
+- [ ] Event Collection detail page shows hierarchy
+- [ ] All 8 secondary entity pages render (underground region through era)
+- [ ] Years browser shows chronological event index
+- [ ] HF type filtering works (vampire, deity, etc.)
+- [ ] Hover popovers appear on entity links
+- [ ] Breadcrumb navigation present on all detail pages
+- [ ] Prev/Next navigation present on all detail pages
+- [ ] URL hash tab persistence works
+- [ ] Row detail overlay works in data browser
+- [ ] Query export (CSV/JSON) works
+- [ ] Cross-links are clickable and navigate correctly
+- [ ] Perspective rendering shows gold text for current entity
+- [ ] DF calendar dates display correctly
+
+---
+
+*Phase 2: Explorer Core — Validation Walkthrough*
+*21 verification items covering all 30 DoD requirements*
