@@ -16,7 +16,7 @@ Phase 1: Data Foundation (CDM completeness, XML parser, post-parse pipeline)
 Phase 2: Explorer Core (entity detail pages, search, navigation, cross-linking)
 Phase 3: Narrative Engine (event templates, death causes, agentic storyteller)
 Phase 4: Visualization (world map, charts, family trees, graphs)
-Phase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon)
+Phase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon, embedding pipelines)
 Phase 6: Advanced Components (Mod Manager, Labor Manager, AI Advisor)
 Phase 7: Polish & Production (performance, testing, packaging, deployment)
 ```
@@ -305,10 +305,10 @@ All --> Phase 7 (polish is last)
 
 ## Phase 5: Live Integration
 
-**Goal**: Enhance the live bridge, implement worldgen monitoring, and build the Knowledge Horizon system.
+**Goal**: Enhance the live bridge, implement worldgen monitoring, build the Knowledge Horizon system, and activate embedding pipelines for both batch and live data.
 
-**Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH
-**Exit State**: Bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3
+**Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH, embedding table empty
+**Exit State**: Bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines for batch + live data
 
 ### Stage 5.1: Bridge Enhancements
 
@@ -351,6 +351,20 @@ All --> Phase 7 (polish is last)
 | 5.3.8 | KH-005 | CAV-002: Nobles always visible | Exception rule |
 | 5.3.9 | KH-010 | CAV-007: LLM inference restrictions (system prompt) | Prompt update |
 | 5.3.10 | STR-032 | Integrate KH with storyteller (query visible_* views) | Storyteller update |
+
+### Stage 5.4: Modified Embedding Pipelines for Live In-Game Data
+
+**Duration**: 1 week
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 5.4.1 | EMB-001 | Build entity text extractors for all entity types | Python module |
+| 5.4.2 | EMB-002 | Implement chunking strategy with content_hash deduplication | Chunker class |
+| 5.4.3 | EMB-003 | Add `chronicler embed` CLI command (batch embedding) | CLI command |
+| 5.4.4 | EMB-004 | Build incremental live embedding via watcher (delta detection) | LiveEmbedder class |
+| 5.4.5 | EMB-004 | Add reactive event embedding (immediate embed for deaths, invasions) | Event handler |
+| 5.4.6 | EMB-005 | Implement hybrid search (ILIKE + pgvector with RRF ranking) | Search upgrade |
+| 5.4.7 | EMB-006 | Build narrative context retrieval for storyteller prompts | Context retriever |
 
 ---
 
@@ -509,7 +523,7 @@ All --> Phase 7 (polish is last)
 | **M2: Explorer Complete** | Phase 2 complete | All entity detail pages, global search, cross-linking, hover popovers |
 | **M3: Storyteller v1.0** | Phase 3 complete | Agentic SQL mode, 132 event templates, death cause rendering |
 | **M4: Visualization** | Phase 4 complete | Leaflet map, Chart.js demographics, Cytoscape family trees |
-| **M5: Live Complete** | Phase 5 complete | Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3 |
+| **M5: Live Complete** | Phase 5 complete | Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3, embedding pipelines (batch + live) |
 | **M6: Full Suite** | Phase 6 complete | Mod manager, labor manager, AI advisor all functional |
 | **M7: Release** | Phase 7 complete | Performance optimized, fully tested, packaged, documented |
 

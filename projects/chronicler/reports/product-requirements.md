@@ -1102,6 +1102,48 @@ Worldgen Monitor --> Snapshots --> PostgreSQL
 
 ---
 
+## 10b. Embedding Pipelines
+
+### REQ-EMB-001: Entity Text Extraction Pipeline
+- Build entity-type-specific text extractors (HF, site, entity, artifact, event, written content)
+- Concatenate relevant fields into embeddable text representations
+- Used by both batch (`chronicler embed`) and live (watcher) embedding paths
+- **Priority**: P2
+
+### REQ-EMB-002: Chunking Strategy
+- Split entity text into embedding-sized chunks (512 tokens max, 64-token overlap)
+- Content hash (SHA-256) per chunk for incremental re-embedding
+- Most entities single-chunk; long site histories may produce 2-3 chunks
+- **Priority**: P2
+
+### REQ-EMB-003: Batch Embedding CLI Command
+- `chronicler embed` generates embeddings for all entities after legends ingestion
+- Support `--entity-types`, `--force` (re-embed even if unchanged), `--batch-size`
+- Target: full world (~109K entities) in < 10 minutes using MLX batch inference
+- Populates the `embeddings` table (REQ-CDM-012)
+- **Priority**: P2
+
+### REQ-EMB-004: Incremental Live Embedding
+- Watcher daemon detects changed entities via content_hash comparison
+- Re-embeds only entities whose extracted text has changed
+- Reactive event embedding: immediately embed high-priority events (deaths, invasions)
+- Integrated with bridge eventful subscriptions (REQ-ETL-006)
+- **Priority**: P2
+
+### REQ-EMB-005: Hybrid Semantic Search
+- Augment global search with pgvector cosine similarity alongside ILIKE text search
+- Reciprocal Rank Fusion (RRF) to merge text and semantic result sets
+- Enables conceptual queries ("most powerful necromancer", "battles near the mountain")
+- **Priority**: P2
+
+### REQ-EMB-006: Narrative Context Retrieval
+- Feed semantically relevant entity descriptions to storyteller prompts
+- Query embeddings table with user query vector, filter by similarity threshold (> 0.3)
+- Inject alongside SQL-retrieved structured data for richer narrative generation
+- **Priority**: P2
+
+---
+
 ## 11. Cross-Cutting: Knowledge Horizon
 
 ### REQ-KH-001: Geographic Scope Masking
@@ -1529,5 +1571,5 @@ All other calls (GetUnitList, GetMapInfo, etc.) require CoreSuspender which is b
 ---
 
 *Chronicler Product Requirement Document v1.0 -- 2026-02-25*
-*Total requirements: ~200+ across 8 subsystems*
+*Total requirements: ~200+ across 9 subsystems*
 *Priority levels: P1 (critical/v1.0), P2 (high-value), P3 (important), P4 (stretch/future)*
