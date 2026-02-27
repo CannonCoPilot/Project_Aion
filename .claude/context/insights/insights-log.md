@@ -1430,3 +1430,13 @@ There's an interesting documentation topology at play here. The same reports exi
 - **`DwarfCron/docs/`** — Product-facing docs (shipped with the application)
 
 The Jarvis copies were updated when Phase 2 was marked complete, but the DwarfCron copies weren't updated after the post-validation bug fixes. This is a common drift pattern — the fix touched the *code* but not the *docs that describe the code*. The gender-aware pronoun fix is the most significant gap because it changes user-visible behavior.
+
+### 2026-02-27 [0f0b799984ef]
+
+The 80,432 vs 436,455 event discrepancy likely arose because the docs were written against an earlier dataset (possibly a pre-embark world or a different world_id). This is a common documentation drift pattern — stats get embedded in docs during initial development and don't get updated when data changes. Always verify numeric claims against the live database before publishing.
+
+### 2026-02-27 [6c99eed6714d]
+
+The key architectural insight here is that **legends_plus.xml is self-contained** — it already carries the creature dictionary inside itself via the `<creature_raw>` section. This means we don't need the game running or access to the raw `.txt` files to build proper display names. The data is sitting right there in the XML we already parse, in a section we skip. LegendsViewer-Next figured this out; df-narrator didn't bother. Chronicler should follow LegendsViewer-Next's lead.
+
+The per-world nature of the dictionary is important: "Night Creature 14" in world A might be a werebadger, while in world B it could be a night troll. The creature_raw section carries these world-specific generated names, making it essential for proper display of transformed HFs (vampires, werebeasts, necromancer experiments).
