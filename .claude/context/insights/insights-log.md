@@ -1414,3 +1414,19 @@ The `historical_eras` table has no `id` column — only `world_id`, `name`, `sta
 ### 2026-02-27 [2983e9ba596e]
 
 The variable shadowing pattern (`events` as both a query parameter and a DB result) is a common trap in FastAPI routes. The fix of renaming the DB result to `events_rows` while keeping the query param as `events` follows the convention of distinguishing between "user input" and "fetched data" namespaces. In other entity routes, there's no query param, so `events` unambiguously refers to the DB result.
+
+### 2026-02-27 [17a528440d58]
+
+The DwarfCron `data/` directories contain database dumps and legends exports that are intentionally not tracked in git — the `.gitignore` only blocks `*.xml` from legends but the rest (backup dumps, non-XML legends files) should likely also be gitignored. The screenshots in Jarvis are validation evidence from Phase 2 testing and could be useful for the completion report but don't need to be version-controlled.
+
+### 2026-02-27 [3d9bc96ddf27]
+
+The two-document pattern per phase (completion report + validation walkthrough) is intentional — the report answers "what was built and is it complete?" while the walkthrough answers "how do I verify it myself?" This separates the summary judgment from the reproducible testing procedure, making it easier for the User to validate without wading through implementation details.
+
+### 2026-02-27 [e6b31740670c]
+
+There's an interesting documentation topology at play here. The same reports exist in two locations with slightly different content:
+- **`Jarvis/projects/chronicler/reports/`** — Dev artifacts (more detailed, written during development)
+- **`DwarfCron/docs/`** — Product-facing docs (shipped with the application)
+
+The Jarvis copies were updated when Phase 2 was marked complete, but the DwarfCron copies weren't updated after the post-validation bug fixes. This is a common drift pattern — the fix touched the *code* but not the *docs that describe the code*. The gender-aware pronoun fix is the most significant gap because it changes user-visible behavior.
