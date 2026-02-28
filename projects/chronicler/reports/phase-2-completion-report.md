@@ -3,7 +3,7 @@
 **Date**: 2026-02-26
 **Phase**: 2 of 7 (Explorer Core)
 **Milestone**: M2 — Explorer Complete
-**Status**: COMPLETE — 30/30 DoD items pass
+**Status**: DEFERRED — 30/30 DoD items implemented, pending User itemized review of additional bugfixes and feature notes
 
 ---
 
@@ -80,11 +80,12 @@ Phase 2 transforms Chronicler from a data ingestion tool into a full-featured wo
 
 ## Test Results
 
-### Automated Tests
-- **195 passed** — Core functionality (parser, schema, ingestion, CLI, API routes)
-- **12 failed** — All in live-data integration tests (DFHack units, bridge sections) — Phase 5 scope
-- **5 errors** — Separate validation harness requiring specific setup
-- **2 xfailed** — Expected failures (known gaps)
+### Automated Tests (218 collected)
+- **192 passed** — Core functionality (parser, schema, ingestion, CLI, API routes)
+- **11 failed** — All in live-data integration tests (DFHack units, bridge sections) — Phase 5 scope
+- **5 errors** — Separate validation harness requiring DB setup
+- **9 skipped** — Conditional tests (not applicable to current dataset)
+- **1 xfailed** — Expected failure (known gap)
 
 ### Manual Endpoint Testing (30/30 DoD items)
 

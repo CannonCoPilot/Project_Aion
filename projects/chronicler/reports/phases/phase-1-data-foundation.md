@@ -781,62 +781,45 @@ for war in wars:
 **Requirement**: REQ-ETL-004, REQ-SCR-001 through REQ-SCR-004
 **Priority**: P1
 
-**Description**: Compute importance scores for HFs, sites, artifacts, and conflicts using the df-narrator formulas.
+**Description**: Compute importance scores for HFs, sites, artifacts, and **all entity types** (civilizations, religions, guilds, etc.).
 
-**Formulas** (from PRD):
+HFs, sites, and artifacts use fixed formulas adapted from df-narrator. Entities use an **IDF-weighted event rarity scoring system** — each entity is scored by the sum of its events weighted by how rare each event type is *within its own entity type*. This means a religion that claimed an artifact (1.1% of religions) scores higher per-event than one that merely recruited members (100% of religions).
 
-**Figure Importance Score**:
-```sql
-UPDATE historical_figures SET importance_score =
-    LEAST(event_count * 2, 500) +
-    kill_count * 15 +
-    CASE WHEN is_vampire THEN 80 ELSE 0 END +
-    CASE WHEN is_necromancer THEN 100 ELSE 0 END +
-    CASE WHEN is_deity THEN 120 ELSE 0 END +
-    CASE WHEN is_force THEN 90 ELSE 0 END +
-    CASE WHEN is_werebeast THEN 70 ELSE 0 END +
-    LEAST(hf_link_count * 3, 100) +
-    leadership_position_count * 20 +
-    artifacts_held_count * 30 +
-    LEAST(site_link_count * 5, 50) +
-    LEAST(entity_link_count * 3, 60) +
-    CASE WHEN death_year IS NOT NULL THEN 5 ELSE 0 END
-WHERE world_id = :world_id;
+**HF, Site, Artifact Formulas** (fixed, adapted from df-narrator):
+- HF: `LEAST(events*2, 500) + kills*15 + supernatural_flags + links + positions + artifacts`
+- Site: `events + deaths*2 + event_collections*5 + structures*3`
+- Artifact: `events*10 + named(50) + has_holder(20)`
+
+**Entity Scoring Formula** (IDF-weighted, empirical):
+```
+score(entity) = Σ count(event_type_i) × max(IDF(event_type_i), floor_weight_i)
+              + Σ count(link_type_j)  × max(IDF(link_type_j),  floor_weight_j)
+              + Σ count(collection_k) × fixed_weight_k
+
+where IDF(event_type_i) = log2(N_type / n_entities_with_event_i)
 ```
 
-**Site Importance Score**:
-```sql
-UPDATE sites SET importance_score =
-    event_count + death_count * 2 + event_collection_count * 5 + structure_count * 3
-WHERE world_id = :world_id;
-```
+Three signal sources:
+1. **Event participation** (`event_entity_xref`) — weighted by event type rarity within entity type
+2. **HF membership links** (`hf_entity_links`) — weighted by link type rarity (criminals, prisoners rare = high weight)
+3. **Event collection roles** (`history_event_collections`) — fixed weights for wars (15), conquests (10), beast attacks (5)
 
-**Artifact Importance Score**:
-```sql
-UPDATE artifacts SET importance_score =
-    event_count * 10 + unique_holder_count * 20 +
-    CASE WHEN is_lost THEN 30 ELSE 0 END +
-    CASE WHEN name IS NOT NULL AND name != '' THEN 50 ELSE 0 END
-WHERE world_id = :world_id;
-```
+Floor weights prevent narratively important but common events from scoring zero:
+- Military conflict (attacked site, field battle, destroyed site): 5.0
+- Political change (entity overthrown, site taken over): 4.0
+- Criminal/unusual (entity primary criminals, sneak into site): 4.0
+- Structural creation (created site, created structure): 2.0
 
-**Conflict Importance Score** (stored in event_collections details):
-```sql
-UPDATE history_event_collections SET details = jsonb_set(details, '{importance_score}',
-    to_jsonb(death_count * 3 + battle_count * 10 + sites_involved * 5 + duration_years))
-WHERE type = 'war' AND world_id = :world_id;
-```
+Scores are normalized per entity type to 0-1000 range for UI comparability.
 
-**Implementation notes**:
-- This step depends on Steps 3 (supernatural flags), 5 (war lists), and 6 (kill lists)
-- Event counts and link counts need to be computed as subqueries or pre-materialized
-- Consider creating a helper function `compute_hf_event_count(world_id, hf_id)` for efficiency
-- For large worlds (500K+ events), batch processing with `UPDATE ... FROM` is faster than row-by-row
+**Implementation**: `chronicler/scoring.py` — `_compute_entity_scores()` with batch queries (6 queries per entity type, not per entity).
 
 **Acceptance criteria**:
-- All HFs, sites, and artifacts have non-null importance scores
-- Top-scoring entities are plausible (deities/forces at top, unremarkable peasants near bottom)
+- All HFs, sites, artifacts, and entities have non-null importance scores
+- Top-scoring entities are plausible (deities/forces at top for HFs; war-fighting civs at top for entities)
 - Score distributions follow expected patterns (long tail with few high-importance entities)
+- Entity scores normalize correctly within each type (top = 1000, bottom near 0)
+- IDF weights computed dynamically — no hand-tuning required per world
 
 #### Task 1.3.8: Step 8 -- Build Event-to-Entity Cross-Reference Index
 
