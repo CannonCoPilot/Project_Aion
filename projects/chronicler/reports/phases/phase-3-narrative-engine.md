@@ -819,6 +819,30 @@ You have access to a PostgreSQL database containing the complete history of this
 - When describing wars, mention key battles and outcomes
 - Use DF calendar conventions (seasons, months)
 - If confidence is low (<3 records found), note this to the user
+- **SECRET IDENTITY PROTECTION**: The `identities` table contains secret identities
+  (e.g., a vampire masquerading as a human). The narrative engine MUST NOT reveal
+  secret identities unless the identity has been explicitly revealed through in-game
+  events. This requires a workaround — possibly filtering identity joins based on a
+  "revealed" flag or event-based discovery. Design this carefully to avoid spoilers
+  while still allowing the chronicler to hint at mysteries
+- **REGIONAL KNOWLEDGE HORIZON — Geographic Common Knowledge**: Geographic features
+  (peaks, rivers, biome type, placenames, world constructions) within a unit's region
+  should be treated as common knowledge for that unit, NOT gated by prominence scores.
+  The Knowledge Horizon system must implement proximity-based knowability:
+    - `IF unit IN region THEN region_info_detailed` — unit knows all placenames,
+      feature names, biome details, and high-prominence event collections and HFs
+      within the region
+    - `IF unit NEAR region THEN region_info_basics` — unit knows region name, general
+      biome type, major features only
+    - `IF unit NEAR feature THEN feature_info_detailed` — unit knows specific details
+      of nearby geographic features regardless of region membership
+  Prominence and salience scores on geographic features still matter for narrative
+  *weighting* (how much emphasis the LLM gives a feature in generated text), but
+  *knowability* is determined by spatial proximity, not score thresholds. This
+  distinction is critical: a unit living next to a small, low-prominence creek still
+  knows it exists. Design the Knowledge Horizon to include a "regional encyclopedic
+  knowability" layer that the LLM can use to decide what details to include or exclude
+  based on the perspective unit's location
 """
 ```
 

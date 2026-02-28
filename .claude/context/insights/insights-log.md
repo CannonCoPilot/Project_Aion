@@ -1456,3 +1456,113 @@ The per-world nature of the dictionary is important: "Night Creature 14" in worl
 **legends_plus.xml already contains a `<creature_raw>` section** — the creature dictionary is embedded in the XML we're already parsing. We don't need the game running or access to raw `.txt` files. This was discovered in a prior session (insight `6c99eed6714d`). LegendsViewer-Next parses this section; Chronicler currently skips it.
 
 This means the answer to "do we need to generate a new dictionary per world" is **yes, but the source is already in hand** — it's a section of the legends_plus.xml we're importing but not reading.
+
+### 2026-02-28 [7ffc1cde3abe]
+
+**Reopening a "complete" phase is a deliberate design decision.** Phase 1 was COMPLETE (64/64 checks passed), but the creature dictionary is fundamentally a data foundation concern — it's XML parsing into a DB table, squarely in Phase 1's charter. By slotting it as Stage 1.5 rather than deferring to Phase 3+, every downstream phase (Explorer, Narrative, Visualization) inherits proper creature names and classification flags "for free" without each having to solve the display name problem independently.
+
+The cascade effect is significant: **12-15 Phase 2 UI features** (HF profile, entity headers, popovers, filtering, search) all benefit from a single data-layer change. This is the architectural principle of "push complexity down the stack" — one table join replaces dozens of template-level string manipulations.
+
+### 2026-02-28 [cabc2b60665b]
+
+**Phase 2 verification is complete.** Here's what was validated:
+
+1. **Code structure**: 22 templates, 23 routes in `detail_pages.py`, 3 explorer modules (`linking.py`, `perspective.py`, `calendar.py`) — all present and importing cleanly.
+
+2. **Live server test**: All 22 endpoints hit with `curl` — every single one returned HTTP 200 with substantial content (17KB–122KB for pages, rich JSON for APIs). The global search returns 22 results for "asob" spanning HFs and Identities. Popovers return badges, race, birth/death years, kill counts. CSV export streams 81KB for the regions table.
+
+3. **The world_id gotcha**: The test world "Tar Thran" has `id=2`, not `id=1`. When `world_id` is omitted from API calls, the default world detection (`_get_default_world_id`) correctly resolves to 2. The validation walkthrough doesn't hardcode world_id=1 in URLs, so this works seamlessly.
+
+### 2026-02-28 [6942526504e9]
+
+**Deferring DoD is the right call architecturally.** The Development Rules mandate that "Only the User may defer or remove requirements" and the User must confirm before declaring a Phase complete. By marking the DoD as deferred rather than reverting all 30 checkboxes, we preserve the implementation record while making clear that sign-off is blocked on User review. This avoids the common trap of treating "code works" as "feature is done" — the User's hands-on review is the final quality gate.
+
+### 2026-02-28 [200188dd512c]
+
+**Data inventory for entity scoring design:**
+
+The investigation reveals a rich signal landscape across 5 data sources:
+
+1. **`event_entity_xref`** (87,467 entity records) — Direct event participation, with 2 roles: `subject` (82K) and `object` (5.4K). Civilizations lead (30K), followed by site governments (25K) and religions (21K).
+
+2. **`hf_entity_links`** (193,711 records) — Membership/relationship records. 8 link types: member, former member, enemy, prisoner, criminal, slave. Site governments dominate (110K) because every local council tracks its citizens.
+
+3. **`hf_position_links`** (21,778 records) — Named leadership positions held by HFs within entities. Site governments again lead (9.2K) with religion (6.2K) second.
+
+4. **`history_event_collections`** (11,467 entity refs) — Wars, sieges, beast attacks. `attacker_entity_id` (3.4K) and `defender_entity_id` (8K). Site governments dominate defender roles (4.4K beast attacks alone), while civilizations lead attacker roles.
+
+5. **`entity_positions`** (8,852 records) — Defined positions (ruler, priest, etc.) that an entity *can* have. This is a structural signal, not a behavioral one.
+
+The key design challenge: **site governments have the highest raw counts** (110K HF links) simply because every village council tracks members. But a village council with 50 members that never did anything interesting is *less* narratively important than a 3-goblin nomadic group that disbanded after one year. This directly validates the User's design principle.
+
+### 2026-02-28 [0d20d42bd022]
+
+**IDF-weighted entity scoring** — The scoring system uses an information-theoretic approach borrowed from text retrieval (TF-IDF) but applied to game entities. Instead of weighting words in documents, it weights *event types within entity types*. A religion that participated in a war (rare for religions) scores much higher per-event than one that merely recruited members (universal). This means a 3-goblin outcast group involved in a single theft can legitimately outscore a 250-year civilization that only performed routine governance — exactly the "narrative interest ≠ scale" principle the design demanded.
+
+### 2026-02-28 [0ed833bca086]
+
+**The IDF-weighted entity scoring system is complete.** Here's what makes this design interesting:
+
+1. **No hand-tuning needed**: The IDF formula `log2(N/n)` automatically discovers what's rare per entity type. When applied to a new world with completely different event distributions, the weights recalculate themselves. This is the same mathematical foundation as TF-IDF in information retrieval, adapted from "which documents are relevant" to "which entities are narratively interesting."
+
+2. **Three independent signal sources combine additively**: Event participation (the entity's direct history), HF membership links (who joined/left/was imprisoned), and event collection roles (wars, sieges) each contribute independently. An entity can score high from any combination — a religion with no wars but many artifact claims, or a nomadic group with no members but involved in beast attacks.
+
+3. **The floor weights are a neat trick**: Pure IDF would score `created structure` at 0.0 for guilds (100% of guilds have one), but structure creation is inherently meaningful. The floor ensures these events always contribute at least 2.0 per occurrence. But the floor never *reduces* a naturally high IDF — it's `max(IDF, floor)`, not a replacement.
+
+### 2026-02-28 [da54e324b657]
+
+**The hardcoded `WORLD_ID = 8` was a silent failure** — all API calls for Civs, Geo, and Events were passing a nonexistent world ID. The server returned empty arrays (not errors), so the UI showed "Loading..." forever or empty lists with no error message. This is a classic case where the API's "empty results are valid" contract makes debugging harder — the fix is to always resolve the world ID from the database, matching what `detail_pages.py` already does with `_get_default_world_id()`.
+
+### 2026-02-28 [841dba9657c7]
+
+**The data reveals a natural partitioning.** Some types are inherently "prominent" (civilizations, major sites, wars) while others are inherently "salient" (identities, procedural creatures, anomalous one-off events). But the most narratively interesting entities are the ones that score high on BOTH axes — a civilization that's both the largest empire AND has a bizarre founding myth. The DM wants to know both which empire everyone talks about (prominence) and what the weird story is behind it (salience).
+
+The event participation distributions are telling: only 3,125 HFs (6.5%) have 21+ events, and only 79 entities (1.6%) have 100+ events. These are the "prominent" core that everyone in the world would know about. The long tail of 23,759 HFs with 1-5 events contains the "salient" gems — the shoe salesman who bumped into great-grandma.
+
+### 2026-02-28 [9c5ade563970]
+
+The JICM checkpoint said "fortification=0" was TODO, but the code at `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/scoring.py:586-589` already implements the fortification boost (`0.5 × max_wc_prominence/salience`). This is a known JICM gotcha — checkpoints capture state at compression time, which may lag behind the actual code state when writes happen rapidly.
+
+### 2026-02-28 [c0d081257717]
+
+**The length² scaling dramatically amplifies the gap between long and short features.** "Trappedworked" at 142 segments went from P=11.9 (√142) to P=20,164 (142²) — a ~1,700× increase. This means rivers and roads now dominate prominence far more than before, creating a clear hierarchy where the longest features are disproportionately prominent — exactly what the user intended for narrative salience.
+
+**No roads/tunnels traverse evil or good biomes in this world.** The 597 evil/good tiles are concentrated in remote regions that roads don't reach. The salience check still works correctly — it iterates ALL tile coords along each road/tunnel path, comparing against the spatial lookup. It would activate in a world where roads connect through evil territory.
+
+### 2026-02-28 [e3afc9d9dea2]
+
+**The deeper principle is "computed state should be self-describing."** Raw scores encode the formula's output but require knowledge of the formula to interpret. Normalized scores encode *relative standing*, which is what every downstream consumer actually needs. The formula details become an implementation concern, not a data concern. This is the same reason percentile ranks are more useful than raw test scores in education — the consumer cares about "where does this entity sit?" not "what was the arithmetic."
+
+### 2026-02-28 [ef23ca9ef508]
+
+**The river prominence distribution reveals the length² effect clearly.** Median river prominence is 0.0002 (most rivers are short), but the top river ("Trappedworked" at 142 segments) is at 1.0. The second-longest ("Scrubleaked" at 104 segments) is already down to 0.54. This is exactly the power-law shape you'd expect from squaring — the longest rivers dominate disproportionately, which maps well to narrative reality: everyone knows the Nile, fewer know the Orinoco.
+
+**The normalization is idempotent.** Running `compute_importance_scores` twice produces the same 0–1 values because the raw scores are recomputed from scratch each time, then normalized. There's no accumulation or drift risk across re-ingestions.
+
+### 2026-02-28 [52d12bf3f362]
+
+**The identity spoiler problem is fundamentally a Knowledge Horizon issue.** DF's `identities` table stores things like "HF #4521 is secretly a vampire posing as a human baker." A naive narrative engine that joins identities would say "Baker Urist, secretly a vampire, baked bread" — destroying the mystery. The solution will likely involve an event-gated reveal: only surface the identity if a `hf_revealed_identity`-type event exists in the history. This is one of the more nuanced aspects of the Knowledge Horizon concept from the PRD.
+
+### 2026-02-28 [981abf62acb5]
+
+**This clarifies two orthogonal axes in the Knowledge Horizon system:**
+1. **Knowability** (binary per unit) — "Does this unit know this feature exists?" → determined by spatial proximity to regions/features. A dwarf in "The Dune of Warnings" knows every creek, peak, and road in that region.
+2. **Weight** (continuous 0–1) — "How much narrative emphasis should this feature get?" → determined by prominence/salience scores. The longest river gets more narrative screen-time than a short creek, but both are *known* to a local unit.
+
+These two dimensions compose: `narrative_inclusion = knowability(unit, feature) × weight(feature)`. A feature the unit doesn't know about gets 0 regardless of weight. A feature the unit knows about gets emphasis proportional to its score.
+
+### 2026-02-28 [fb43c7b69b24]
+
+**The prominence vs. salience split maps perfectly to art history.** "The Fabulous Lute" has 453 practitioners (high prominence — everyone knows this dance) but all works are 1-page choreographies with modest quality (avg roll 59). Meanwhile, a form that produced a 347-page comparative biography with entity references and "Witty" style would score high salience despite fewer practitioners. This mirrors real art: folk songs are prominent; obscure avant-garde is salient.
+
+### 2026-02-28 [fd7fe08d7eb8]
+
+**The "number of HFs who know the artwork" metric you asked about doesn't exist directly in the data.** What we have is "number of HFs who have composed in this tradition" — which is a proxy for cultural spread but not the same as widespread familiarity. A dance tradition known to an entire civilization could have few composers but thousands of practitioners/audience members.
+
+**Prominence proxy options** (from available data):
+1. **Unique authors** — HFs who composed in this tradition (what I showed earlier)
+2. **Site spread** — number of distinct sites where compositions in this form were created
+3. **Entity spread** — number of distinct civilizations whose members compose in this form
+4. **Total works** — raw volume of compositions (but inflated by prolific authors)
+
+**Salience signals remain viable** — page length, style tags, reference density, and form diversity are all objective features of the actual compositions, not of who knows them.

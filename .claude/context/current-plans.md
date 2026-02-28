@@ -30,7 +30,7 @@ Single source of truth for all Chronicler development. Consult in this order:
 | Phase | Name | Status | Milestone |
 |-------|------|--------|-----------|
 | 1 | Data Foundation | REOPENED -- Stage 1.5 (Creature Dictionary) added | M1 -- Data Complete |
-| **2** | **Explorer Core** | **COMPLETE (30/30 checks)** | **M2 -- Explorer Complete** |
+| **2** | **Explorer Core** | **IN PROGRESS -- User itemized review pending** | **M2 -- Explorer Complete** |
 | 3 | Narrative Engine | Pending | M3 -- Narrative Complete |
 | 4 | Visualization | Pending | M4 -- Visualization Complete |
 | 5 | Live Integration | Pending | M5 -- Live Complete |
@@ -88,7 +88,9 @@ Single source of truth for all Chronicler development. Consult in this order:
 - Row detail overlay in data browser
 - Query results export (CSV/JSON)
 
-### Phase 2 Definition of Done (30 items)
+### Phase 2 Definition of Done (30 items) — DEFERRED
+
+DoD validation is **deferred** pending User itemized review of additional bugfixes and feature notes. All 30 items were initially implemented and server-verified (all endpoints HTTP 200), but User has additional findings that must be addressed before sign-off.
 
 See `phase-2-explorer-core.md` Section 6 for the complete checklist:
 - 17 entity detail pages (all types including years browser)
