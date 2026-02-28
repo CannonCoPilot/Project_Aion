@@ -1250,6 +1250,19 @@ Worldgen Monitor --> Snapshots --> PostgreSQL
 - Werebeast: "WEREBEAST"
 - **Priority**: P1 (implemented)
 
+### REQ-SCR-009: Entity Importance Score (IDF-Weighted Event Rarity)
+- All 10 entity types scored: civilization, sitegovernment, religion, guild, performancetroupe, nomadicgroup, outcast, merchantcompany, militaryunit, migratinggroup
+- Formula: `Σ count(event_type) × max(IDF, floor) + Σ count(link_type) × max(IDF, floor) + Σ collection_role × fixed_weight`
+- IDF = `log2(N_type / n_entities_with_event)` — computed dynamically per world, no hand-tuning
+- Signal sources: event_entity_xref (87K entity records), hf_entity_links (193K records), history_event_collections (11K entity refs)
+- Floor weights: military conflict (5.0), political change (4.0), criminal/unusual (4.0), structural creation (2.0), cultural (3.0)
+- HF link floors: slave (4.0), criminal (3.0), prisoner (3.0), enemy (1.0)
+- Collection fixed weights: war attacker (15), war defender (12), conquest (10/8), beast attack (5)
+- Scores normalized per entity type to 0-1000 range for cross-type UI comparability
+- Schema: `entities.importance_score FLOAT DEFAULT 0.0` + `idx_entities_importance` DESC index
+- Design principle: rare events within an entity type indicate narrative interest — a nomadic group that attacked a site (2.6% of nomadic groups) is more interesting per-event than one that merely recruited members (90.7%)
+- **Priority**: P1 (implemented)
+
 ---
 
 ## 13. Cross-Cutting: Navigation & UX Patterns
