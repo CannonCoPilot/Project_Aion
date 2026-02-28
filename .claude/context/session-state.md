@@ -8,13 +8,13 @@
 
 ## Current Work Status
 
-**Status**: Active -- Session 35
+**Status**: Active -- Session 36
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: b226514 (Phase 1 completion report)
-**Last Pushed**: b226514 (to origin/Project_Aion)
-**DwarfCron Last Commit**: a90a79d (Phase 1 Stage 1.4 — validation + tests)
-**DwarfCron Last Pushed**: a90a79d (to origin/main)
+**Last Commit**: aad19dd (IDF entity scoring docs)
+**Last Pushed**: aad19dd (to origin/Project_Aion)
+**DwarfCron Last Commit**: d656942 (IDF-weighted entity importance scoring)
+**DwarfCron Last Pushed**: d656942 (to origin/main)
 
 ---
 
@@ -111,13 +111,13 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Chronicler Phase 2 -- Explorer Pages
+### PRIMARY: Chronicler Phase 2 -- Explorer Core (User Itemized Review)
 
-Phase 1 (Data Foundation) is COMPLETE (64/64 checks passed). Next: Phase 2 (Explorer Pages).
+Phase 2 implementation is functionally complete (all 30 DoD items implemented, all endpoints HTTP 200), but **DoD sign-off is DEFERRED** pending User's itemized review of additional bugfixes and feature notes.
+
+**Current state**: Awaiting User's list of findings. Each item will be addressed before re-validating the 30-item DoD checklist.
 
 See `projects/chronicler/reports/phases/phase-2-explorer-core.md` for full details.
-
-**Phase 2 will build**: Web UI for browsing all entity types (HFs, sites, entities, artifacts, events) with search, filtering, detail pages, and cross-references.
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
@@ -135,4 +135,4 @@ See `projects/chronicler/reports/phases/phase-2-explorer-core.md` for full detai
 
 ---
 
-*Session state updated 2026-02-25 -- Session 35 (Phase 1 Data Foundation COMPLETE, ready for Phase 2 Explorer Pages)*
+*Session state updated 2026-02-27 -- Phase 2 DoD deferred pending User itemized review of bugfixes/features*
