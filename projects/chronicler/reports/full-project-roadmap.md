@@ -51,7 +51,7 @@ All --> Phase 7 (polish is last)
 **Goal**: Complete the CDM schema, XML parser, and post-parse processing so all DF data is available in PostgreSQL with full cross-referencing.
 
 **Entry State**: v0.8 -- 35 tables, 8/14+ XML sections parsed, 1.65M records
-**Exit State**: 40+ tables, all 14+ XML sections parsed, post-parse pipeline running, all entity types and fields complete
+**Exit State**: 40+ tables, all 15+ XML sections parsed (including creature_raw), post-parse pipeline running, creature dictionary populated, all entity types and fields complete
 
 ### Stage 1.1: CDM Schema Extensions
 
@@ -111,6 +111,18 @@ All --> Phase 7 (polish is last)
 | 1.4.2 | Add tests for post-parse processing steps | pytest additions |
 | 1.4.3 | Add tests for new CDM tables and constraints | pytest additions |
 | 1.4.4 | Re-ingest all worlds and verify record counts | Verification |
+
+### Stage 1.5: Creature Dictionary
+
+**Duration**: 0.5-1 week
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 1.5.1 | CDM-013 | Create `creature_dictionary` table (world_id, creature_id, name_singular, name_plural, flags JSONB) | SQL migration |
+| 1.5.2 | ETL-003 | Parse `<creature_raw>` section from legends_plus.xml (creature_id, names, classification flags) | Parser extension |
+| 1.5.3 | CDM-013 | Add `get_creature_name()` utility for race display (with fallback for unknown IDs) | Python utility |
+| 1.5.4 | CDM-013 | Update `chronicler ingest` to parse creature_raw before post-parse pipeline | CLI update |
+| 1.5.5 | CDM-013 | Add tests: dictionary population, race resolution, flag extraction, fallback behavior | pytest additions |
 
 ---
 

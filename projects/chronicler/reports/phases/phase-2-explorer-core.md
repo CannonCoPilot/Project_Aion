@@ -4,11 +4,11 @@
 **Date**: 2026-02-25
 **Phase Duration**: 4-6 weeks
 **Milestone**: M2 -- Explorer Complete
-**Entry State**: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid, FK navigation, JSONB expansion
-**Exit State**: Full entity detail pages for all 15+ entity types, global search with autocomplete, perspective-aware cross-linking, hover popovers, prev-next navigation
+**Entry State**: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid, FK navigation, JSONB expansion, creature dictionary populated with display names and classification flags
+**Exit State**: Full entity detail pages for all 15+ entity types, global search with autocomplete, perspective-aware cross-linking, hover popovers, prev-next navigation, all race displays resolved via creature dictionary
 
 **Parent Document**: Full Project Roadmap (full-project-roadmap.md)
-**Dependencies**: Phase 1 (M1 -- Data Complete)
+**Dependencies**: Phase 1 (M1 -- Data Complete, including Stage 1.5 Creature Dictionary)
 **Requirements Covered**: REQ-EXP-001 through EXP-030, REQ-NAV-001 through NAV-005, REQ-VIS-022, REQ-VIS-023
 
 ---
@@ -380,16 +380,22 @@ The most complex detail page with 24 sections. This is the highest-traffic page 
 **Profile Overview card detail**:
 ```
 Name: Urist Axedwarf "The Fiery Shield"
-Race: Dwarf (Male)
+Race: dwarf (Male)                        ← from creature_dictionary.name_singular
 Born: Year 1 (age 250)
 Died: Year 251 (killed by Zefon, a goblin, SHOT, age 250)
 Spheres: WAR, FORTRESSES (deity only)
-Civilization: The Iron Hammers (Dwarf)
-Type: [Vampire] [Necromancer] [Leader] [Ghost]
+Civilization: The Iron Hammers (dwarf)    ← entity race also via creature_dictionary
+Type: [Vampire] [Necromancer] [Leader] [Ghost] [Megabeast] [Night Creature]
 Importance Score: 847
 ```
 
-**Visual type flag badges** (CSS classes from research synthesis):
+**Race display**: All race values throughout the Explorer are resolved via the `creature_dictionary` table (REQ-CDM-013, Phase 1 Stage 1.5). The `get_creature_name(world_id, creature_id)` utility returns `name_singular` for display, e.g.:
+- `DWARF` → "dwarf", `COLOSSUS_BRONZE` → "bronze colossus", `HFEXP33187 E_HUM1` → "night's wolf", `TITAN_5` → "desert titan"
+- Fallback for unknown IDs: `creature_id.replace('_', ' ').title()`
+
+**Visual type flag badges** — derived from both HF `active_interactions` AND `creature_dictionary.flags`:
+
+Badges from HF data (active_interactions, hf_links):
 ```css
 .hf-badge-vampire { background: #8b0000; color: white; }
 .hf-badge-necromancer { background: #4b0082; color: white; }
@@ -398,7 +404,16 @@ Importance Score: 847
 .hf-badge-force { background: #87ceeb; color: black; }
 .hf-badge-ghost { background: #c0c0c0; color: black; }
 .hf-badge-leader { background: #228b22; color: white; }
+```
+
+Badges from creature_dictionary.flags (join on HF race → creature_dictionary.creature_id):
+```css
 .hf-badge-megabeast { background: #ff4500; color: white; }
+.hf-badge-titan { background: #ff6347; color: white; }
+.hf-badge-demon { background: #660000; color: white; }
+.hf-badge-night-creature { background: #2f0037; color: white; }
+.hf-badge-forgotten-beast { background: #8b6914; color: white; }
+.hf-badge-generated { background: #555555; color: white; }  /* procedural creature */
 ```
 
 **Event history pagination**:
@@ -434,7 +449,7 @@ Importance Score: 847
 
 **Header**:
 - Entity name + English translation
-- Race badge (colored per civilization color system)
+- Race badge (display name from `creature_dictionary.name_singular`, colored per civilization color system)
 - Type badge (civilization, religion, performance_troupe, etc.)
 - Member count
 - Mini-map placeholder (sites highlighted)
@@ -679,7 +694,7 @@ Each secondary entity type follows the same generic detail template pattern but 
 #### Task 2.3.7: Identity Detail Page
 
 **Route**: `GET /explorer/identity/{id}?world_id={wid}`
-- Assumed name + race + profession
+- Assumed name + race (via creature_dictionary) + profession
 - Associated HF (the real person, linked)
 - Entity association (linked)
 - Active since year
@@ -804,10 +819,14 @@ document.getElementById('global-search').addEventListener('input', (e) => {
 
 **Route**: `GET /explorer/hf?world_id={wid}&filter=vampire&sort=kills`
 
-**Filter options**: deity, force, vampire, werebeast, necromancer, alive, ghost, adventurer, race (dropdown)
+**Filter options**: deity, force, vampire, werebeast, necromancer, alive, ghost, adventurer, megabeast, titan, demon, night_creature, forgotten_beast, race (dropdown)
 **Sort options**: name, race, birth year, death year, kills (importance_score), alphabetical
 
-**Implementation**: Add filter checkboxes above the People tab data grid. Each filter translates to a SQL WHERE clause condition.
+**Race dropdown**: Populated dynamically from `creature_dictionary` for the current world. Shows `name_singular` values grouped by classification (civilized races first via `occurs_as_entity_race` flag, then supernatural, then mundane). Filters `historical_figures.race` by matching `creature_dictionary.creature_id`.
+
+**Creature type filters** (megabeast, titan, demon, night_creature, forgotten_beast): Resolved by joining `historical_figures.race` → `creature_dictionary.creature_id` and checking `flags` JSONB for the corresponding boolean. This eliminates hardcoded creature lists.
+
+**Implementation**: Add filter checkboxes above the People tab data grid. Each filter translates to a SQL WHERE clause condition (JOIN to creature_dictionary for creature-type filters).
 
 **Acceptance criteria**:
 - All filter options functional
@@ -822,12 +841,12 @@ document.getElementById('global-search').addEventListener('input', (e) => {
 
 **API**: `GET /api/popover/{entity_type}/{entity_id}?world_id={wid}`
 
-**Popover content by type**:
+**Popover content by type** (race fields display `creature_dictionary.name_singular`, not raw creature_id tokens):
 | Entity Type | Popover Fields |
 |-------------|---------------|
-| HF | name, race, sex, birth/death year, type flags (badges), profession |
+| HF | name, race (via creature_dictionary), sex, birth/death year, type flags (badges from both HF data and creature_dictionary.flags), profession |
 | Site | name, type, current owner entity |
-| Entity | name, type, race |
+| Entity | name, type, race (via creature_dictionary) |
 | Artifact | name, material, current holder |
 | Region | name, biome type, evilness |
 | Structure | name, type, parent site |

@@ -5,10 +5,10 @@
 **Phase Duration**: 3-4 weeks
 **Milestone**: M1 -- Data Complete
 **Entry State**: v0.8 -- 35 tables, 8/14+ XML sections parsed, 1.65M records across 3 worlds
-**Exit State**: 40+ tables, all 14+ XML sections parsed, post-parse pipeline running, all entity types and fields complete, all worlds re-ingested and validated
+**Exit State**: 40+ tables, all 15+ XML sections parsed (including creature_raw), post-parse pipeline running, creature dictionary populated, all entity types and fields complete, all worlds re-ingested and validated
 
 **Parent Document**: Full Project Roadmap (full-project-roadmap.md)
-**Requirements Covered**: REQ-CDM-001 through CDM-012, REQ-ETL-001 through ETL-004, REQ-SCR-001 through SCR-008
+**Requirements Covered**: REQ-CDM-001 through CDM-013, REQ-ETL-001 through ETL-004, REQ-SCR-001 through SCR-008
 
 ---
 
@@ -1000,7 +1000,76 @@ AND (details->>'hfid')::INTEGER NOT IN (SELECT id FROM historical_figures WHERE 
 
 ---
 
-## 6. Definition of Done (M1 Milestone)
+## 6. Stage 1.5: Creature Dictionary
+
+**Duration**: 0.5-1 week
+**Dependencies**: Stage 1.1 (schema), Stage 1.2 (parser infrastructure)
+**Requirement**: REQ-CDM-013, REQ-ETL-003
+
+### Rationale
+
+The `legends_plus.xml` file contains a `<creature_raw>` section with the complete per-world creature dictionary — every creature that exists in the world, including procedurally generated night creatures, titans, and demons. This section is currently skipped during parsing.
+
+Without it, race values stored in `historical_figures.race` are opaque tokens like `HFEXP33187 E_HUM1`, `COLOSSUS_BRONZE`, or `TITAN_5`. The creature dictionary maps these to human-readable names ("night's wolf", "bronze colossus", "desert titan") and provides classification flags (megabeast, titan, night_creature, etc.) that Phase 2's Explorer UI needs for badges, filtering, and display.
+
+This is per-world data: night creature experiments are unique to each world (created by specific necromancers), titans have procedural biome names, and demons have unique descriptive names. The dictionary must be rebuilt for every world ingested.
+
+### Data Available in `<creature_raw>`
+
+Each `<creature>` element provides:
+
+| Field | XML Tag | Example (DWARF) | Example (Night Creature) | Example (Titan) |
+|-------|---------|-----------------|--------------------------|-----------------|
+| Token ID | `<creature_id>` | `DWARF` | `HFEXP2679 E_FS1` | `TITAN_5` |
+| Display name | `<name_singular>` | `dwarf` | `mistake of Setoc` | `desert titan` |
+| Plural name | `<name_plural>` | `dwarves` | `mistakes of Setoc` | `desert titans` |
+| Classification | Boolean tags | `<mundane/>` | `<generated/>`, `<has_any_night_creature/>`, `<fanciful/>` | `<has_any_titan/>`, `<generated/>` |
+
+**Not available in XML export** (only in live game raws): `name_adjective` (e.g., "dwarven"), `description` (flavor text), caste-specific names, body plans.
+
+### Classification Flags
+
+Boolean presence-tags (self-closing XML elements) provide creature classification without hardcoding:
+
+| Flag Tag | Meaning | UI Use |
+|----------|---------|--------|
+| `<has_any_megabeast/>` | Roc, Dragon | Megabeast badge |
+| `<has_any_titan/>` | Procedural titans | Titan badge |
+| `<has_any_unique_demon/>` | World-specific demons | Demon badge |
+| `<has_any_night_creature/>` | Necromancer experiments | Night creature badge |
+| `<has_any_feature_beast/>` | Forgotten beasts | FB badge |
+| `<generated/>` | Procedurally created | Generated indicator |
+| `<occurs_as_entity_race/>` | Can form civilizations | Civilized race marker |
+| `<savage/>` | Savage biome creature | Biome classification |
+| `<evil/>` | Evil biome creature | Alignment badge |
+| `<good/>` | Good biome creature | Alignment badge |
+| `<mundane/>` | Normal animal | Filter: mundane vs interesting |
+| `<fanciful/>` | Supernatural/magical | Supernatural marker |
+
+### Tasks
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 1.5.1 | CDM-013 | Create `creature_dictionary` table: `(world_id INT, creature_id TEXT, name_singular TEXT, name_plural TEXT, flags JSONB, PRIMARY KEY (world_id, creature_id))` | SQL migration |
+| 1.5.2 | ETL-003 | Parse `<creature_raw>` section from `legends_plus.xml` — extract `creature_id`, `name_singular`, `name_plural`, and all boolean classification tags into `flags` JSONB | Parser extension |
+| 1.5.3 | CDM-013 | Add `get_creature_name(world_id, creature_id)` helper that returns `name_singular` from dictionary, falling back to `creature_id.replace('_', ' ').title()` if not found | Python utility |
+| 1.5.4 | CDM-013 | Update `chronicler ingest` to parse creature_raw before post-parse pipeline (creature dictionary must be available for any downstream enrichment) | CLI update |
+| 1.5.5 | CDM-013 | Add tests: creature dictionary populated on ingest, all HF race values resolve via dictionary, classification flags correctly extracted, fallback works for unknown creature_ids | pytest additions |
+
+### Acceptance Criteria
+
+- `creature_dictionary` table populated for test world "Tar Thran" with 1,879+ entries
+- All 1,086 unique `historical_figures.race` values resolve to display names via dictionary lookup
+- Night creature experiments (37 unique names like "night's wolf", "mistake of Setoc") correctly decoded
+- Procedural titans (33 entries like "desert titan", "forest titan") correctly named
+- Unique demons (11 entries like "chestnut demon", "buffalo devil") correctly named
+- Classification flags (megabeast, titan, demon, night_creature, generated, entity_race, evil, good, savage, mundane, fanciful) correctly extracted as JSONB booleans
+- `get_creature_name()` falls back gracefully for creature_ids not in dictionary
+- Ingestion order: creature_raw parsed AFTER schema setup, BEFORE post-parse pipeline
+
+---
+
+## 7. Definition of Done (M1 Milestone)
 
 Phase 1 is complete when ALL of the following are true:
 
@@ -1012,12 +1081,14 @@ Phase 1 is complete when ALL of the following are true:
 - [ ] HF table extended with all high-priority fields
 - [ ] `active_interactions` column with GIN index
 - [ ] `event_entity_xref` table populated
+- [ ] `creature_dictionary` table created and populated per world (REQ-CDM-013)
 
 ### XML Parser
-- [ ] All 14+ XML sections parseable
+- [ ] All 15+ XML sections parseable (including `<creature_raw>`)
 - [ ] Dual-file merge rules audited and verified
 - [ ] Expanded HF field parsing (skills, kills, whereabouts, reputations, interactions, etc.)
 - [ ] Entity population parsing complete
+- [ ] Creature dictionary parsed from `<creature_raw>` section of legends_plus.xml
 
 ### Post-Parse Pipeline
 - [ ] All 10 processing steps implemented and working
@@ -1031,16 +1102,23 @@ Phase 1 is complete when ALL of the following are true:
 - [ ] Site ownership history resolved
 - [ ] Referential integrity validated
 
+### Creature Dictionary
+- [ ] All HF race tokens resolve to display names via creature_dictionary
+- [ ] Night creature experiments decoded to readable names
+- [ ] Classification flags extracted (megabeast, titan, demon, night_creature, etc.)
+- [ ] Fallback for unknown creature_ids works gracefully
+- [ ] `get_creature_name()` utility available for all downstream code
+
 ### Verification
 - [ ] All 3 existing worlds re-ingested with new parser
 - [ ] Record counts documented and plausible
-- [ ] Test suite extended (target: 160+ tests)
+- [ ] Test suite extended (target: 170+ tests)
 - [ ] All tests passing
 - [ ] No regressions in existing functionality
 
 ---
 
-## 7. Risk Mitigation
+## 8. Risk Mitigation
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|------------|
@@ -1053,13 +1131,13 @@ Phase 1 is complete when ALL of the following are true:
 
 ---
 
-## 8. Dependencies on Other Phases
+## 9. Dependencies on Other Phases
 
 Phase 1 outputs feed directly into:
 
 | Consumer Phase | What It Needs From Phase 1 |
 |---------------|---------------------------|
-| **Phase 2 (Explorer)** | All entity types and fields for detail pages |
+| **Phase 2 (Explorer)** | All entity types, fields, and creature dictionary for detail pages, badges, and filtering |
 | **Phase 3 (Narrative)** | All 144 event types with resolved entity references |
 | **Phase 4 (Visualization)** | Geographic data (regions, rivers, constructions) for map layers |
 | **Phase 5 (Live Integration)** | Complete HF field set for Knowledge Horizon rules |
@@ -1068,5 +1146,5 @@ Phase 1 outputs feed directly into:
 
 ---
 
-*Phase 1: Data Foundation PRD/Roadmap v1.0 -- 2026-02-25*
-*4 Stages, 33 Tasks, 3-4 Weeks Estimated*
+*Phase 1: Data Foundation PRD/Roadmap v1.1 -- 2026-02-27*
+*5 Stages, 38 Tasks, 3-4 Weeks Estimated*
