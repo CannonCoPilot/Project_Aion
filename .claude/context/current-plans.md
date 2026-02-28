@@ -29,7 +29,7 @@ Single source of truth for all Chronicler development. Consult in this order:
 
 | Phase | Name | Status | Milestone |
 |-------|------|--------|-----------|
-| 1 | Data Foundation | COMPLETE (64/64 checks) | M1 -- Data Complete |
+| 1 | Data Foundation | REOPENED -- Stage 1.5 (Creature Dictionary) added | M1 -- Data Complete |
 | **2** | **Explorer Core** | **COMPLETE (30/30 checks)** | **M2 -- Explorer Complete** |
 | 3 | Narrative Engine | Pending | M3 -- Narrative Complete |
 | 4 | Visualization | Pending | M4 -- Visualization Complete |
@@ -37,13 +37,14 @@ Single source of truth for all Chronicler development. Consult in this order:
 | 6 | Advanced Components | Pending | M6 -- Full Suite |
 | 7 | Polish & Production | Pending | M7 -- Release |
 
-### Phase 1 Summary (Completed)
+### Phase 1 Summary
 
 - 39 CDM tables, 19 XML sections parsed, 10-step post-parse pipeline
 - 1.94M records for test world "Tar Thran" (250 years, post-embark)
 - 190 unit tests, 0% referential integrity issues
 - Standalone CLI: `chronicler` with 11 commands
 - Reports: `phase-1-completion-report.md`, `phase-1-validation-walkthrough.md`
+- **Stage 1.5 (Creature Dictionary) added 2026-02-27**: Parse `<creature_raw>` from legends_plus.xml into `creature_dictionary` table. Provides display names for all 1,879 creatures (including procedural night creatures, titans, demons) and classification flags for UI badges. See REQ-CDM-013.
 
 ---
 

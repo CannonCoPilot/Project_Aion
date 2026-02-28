@@ -1009,6 +1009,17 @@ Worldgen Monitor --> Snapshots --> PostgreSQL
 - 2560-dim embeddings
 - **Priority**: P3
 
+### REQ-CDM-013: Creature Dictionary Table
+- Parse `<creature_raw>` section from `legends_plus.xml` (1,879 creatures in test world)
+- Store per-world creature dictionary: `creature_id` → `name_singular`, `name_plural`, plus classification flags
+- Schema: `creature_dictionary(world_id INT, creature_id TEXT, name_singular TEXT, name_plural TEXT, flags JSONB, PRIMARY KEY (world_id, creature_id))`
+- Flags JSONB captures boolean classification tags: `megabeast`, `titan`, `unique_demon`, `night_creature`, `generated`, `entity_race`, `savage`, `evil`, `good`, `mundane`, `fanciful`
+- Resolves opaque tokens (e.g., `HFEXP33187 E_HUM1` → "night's wolf", `COLOSSUS_BRONZE` → "bronze colossus", `TITAN_5` → "desert titan")
+- Must be populated during legends ingestion, before post-parse pipeline
+- All race display throughout the application joins through this table — no hardcoded creature name mappings
+- Per-world because night creature experiments, titans, and demons are procedurally generated unique to each world
+- **Priority**: P1
+
 ---
 
 ## 10. FS-2: Data ETL Systems
@@ -1023,9 +1034,10 @@ Worldgen Monitor --> Snapshots --> PostgreSQL
 - Match by id fields
 - **Priority**: P1 (built)
 
-### REQ-ETL-003: Parse All 14+ XML Sections
-- Currently 8/14+: sites, artifacts, regions, underground_regions, HFs, entities, events, event_collections, written_contents, eras
-- Missing: world_constructions, art_forms (3), identities, rivers, mountain_peaks (full), landmasses (full)
+### REQ-ETL-003: Parse All 15+ XML Sections
+- Currently 8/15+: sites, artifacts, regions, underground_regions, HFs, entities, events, event_collections, written_contents, eras
+- Missing: world_constructions, art_forms (3), identities, rivers, mountain_peaks (full), landmasses (full), creature_raw
+- The `<creature_raw>` section in legends_plus.xml contains the per-world creature dictionary (1,879 entries in test world) — see REQ-CDM-013
 - **Priority**: P1
 
 ### REQ-ETL-004: Post-Parse Processing Pipeline (10 Steps)

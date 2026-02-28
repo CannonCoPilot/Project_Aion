@@ -1440,3 +1440,19 @@ The 80,432 vs 436,455 event discrepancy likely arose because the docs were writt
 The key architectural insight here is that **legends_plus.xml is self-contained** — it already carries the creature dictionary inside itself via the `<creature_raw>` section. This means we don't need the game running or access to the raw `.txt` files to build proper display names. The data is sitting right there in the XML we already parse, in a section we skip. LegendsViewer-Next figured this out; df-narrator didn't bother. Chronicler should follow LegendsViewer-Next's lead.
 
 The per-world nature of the dictionary is important: "Night Creature 14" in world A might be a werebadger, while in world B it could be a night troll. The creature_raw section carries these world-specific generated names, making it essential for proper display of transformed HFs (vampires, werebeasts, necromancer experiments).
+
+### 2026-02-27 [e9f3ae5e3577]
+
+**The Race Encoding Problem in Dwarf Fortress is three-fold:**
+
+1. **Three different naming conventions in the same data**: `legends.xml` uses UPPERCASE creature_id tokens (`COLOSSUS_BRONZE`), `legends_plus.xml` uses lowercase display names (`bronze colossus`), and the bridge Lua uses raw creature_ids from `df.global.world.raws.creatures.all`. These don't always agree — note `ARMADILLO MAN` (space) vs `ANT_MAN` (underscore) even within the same file.
+
+2. **Night creature experiments generate synthetic race names**: `HFEXP33187 E_HUM1` means "Historical Figure Experiment #33187, humanoid variant 1" — these are creatures created by necromancer experiments. There are 294 such HFs in your test world. Without the game raws, there's no way to decode what these actually *are* (e.g., "werewolf", "werebeast", or custom night creature).
+
+3. **The creature_id → display name mapping requires the raws**: `COLOSSUS_BRONZE` → "bronze colossus", `BEAR_GRIZZLY_MAN` → "grizzly bear man". Simple string manipulation (replace underscores, titlecase) works for some but fails for reversed words and compound names.
+
+### 2026-02-27 [71cf201889c9]
+
+**legends_plus.xml already contains a `<creature_raw>` section** — the creature dictionary is embedded in the XML we're already parsing. We don't need the game running or access to raw `.txt` files. This was discovered in a prior session (insight `6c99eed6714d`). LegendsViewer-Next parses this section; Chronicler currently skips it.
+
+This means the answer to "do we need to generate a new dictionary per world" is **yes, but the source is already in hand** — it's a section of the legends_plus.xml we're importing but not reading.
