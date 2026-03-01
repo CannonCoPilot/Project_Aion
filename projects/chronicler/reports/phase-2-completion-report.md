@@ -3,7 +3,11 @@
 **Date**: 2026-02-26
 **Phase**: 2 of 7 (Explorer Core)
 **Milestone**: M2 — Explorer Complete
-**Status**: DEFERRED — 30/30 DoD items implemented, pending User itemized review of additional bugfixes and feature notes
+**Status**: DEFERRED — 30/30 DoD items implemented, pending User itemized review
+
+### Post-Implementation Fixes
+- **Race categorization priority fix** (2026-02-28): Forgotten beasts, titans, and demons were miscategorized as "Demigod" because DF marks them as `is_deity=TRUE`. Fixed by prioritizing creature-type flags (`has_any_feature_beast`, `has_any_titan`, `has_any_unique_demon`, `has_any_night_creature`) over `is_deity` in both the race-summary endpoint and the browse filter SQL. Now correctly shows: Forgotten Beast (867), Titan (33), Demon (9), Night Creature (394), Demigod (315), Gods (46).
+- **Race pill UI + "Other" category** (2026-02-28): Replaced hardcoded checkbox filters with dynamic race pills rendered from `race-summary` API. 13 categories with counts auto-populate from creature_dictionary flags. Added biological variants tile that updates on race selection. The `_other` catch-all pill uses exclusion-based filtering (not entity races, not deities, not beasts/titans/demons/night creatures, not animated dead, not animal people) and has dimmer styling (55% opacity, dashed border) to visually distinguish it as a catch-all.
 
 ---
 
@@ -43,7 +47,7 @@ Phase 2 transforms Chronicler from a data ingestion tool into a full-featured wo
 |---------|---------------|
 | **Global search** | Live autocomplete in nav bar, all pages, 200ms debounce, keyboard nav (arrow/enter/escape) |
 | **Accent-insensitive** | PostgreSQL `unaccent()` on both search term and column values |
-| **HF type filtering** | Checkbox filters: Deity, Vampire, Necromancer, Werebeast, Ghost |
+| **HF type filtering** | Dynamic race pills (13 categories from creature_dictionary) + type flag filters (Deity, Vampire, Necromancer, Werebeast, Ghost) |
 | **Hover popovers** | Tippy.js on all entity links, AJAX-loaded from `/api/popover/{type}/{id}`, LRU cache |
 | **Breadcrumb nav** | Explorer > Category > Entity name, on all detail pages |
 | **Prev/Next nav** | Sequential entity navigation buttons on all detail pages |
@@ -75,6 +79,8 @@ Phase 2 transforms Chronicler from a data ingestion tool into a full-featured wo
 | `/api/explorer/schema/jsonb_keys/{table}/{col}` | GET | JSONB key inventory |
 | `/api/explorer/export/data/{table}` | GET | Table data export (CSV/JSON) |
 | `/api/explorer/export/query` | POST | Custom SQL export (CSV/JSON) |
+| `/api/people/race-summary` | GET | Race categories with counts (13 categories) |
+| `/api/people/variants-summary` | GET | Biological variant breakdown for selected race |
 
 ---
 
