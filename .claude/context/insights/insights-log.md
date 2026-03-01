@@ -1566,3 +1566,55 @@ These two dimensions compose: `narrative_inclusion = knowability(unit, feature) 
 4. **Total works** — raw volume of compositions (but inflated by prolific authors)
 
 **Salience signals remain viable** — page length, style tags, reference density, and form diversity are all objective features of the actual compositions, not of who knows them.
+
+### 2026-03-01 [e6207a2ca316]
+
+**The DF copy model works like real medieval manuscript transmission:**
+- A written work is composed (37,486 unique compositions)
+- Some get inscribed onto physical artifacts (7,418 scrolls/books/codices)
+- Those artifacts get copied between libraries at different sites (349 copy events)
+- The `<writing>` tag on artifacts is the link: artifact.writing → written_content.id
+- Copy count = how many `artifact copied` events reference artifacts linked to that written work
+
+**For scoring purposes**, this gives us a real "cultural spread" signal — a work that's been copied across 3 cities is more prominent than one that sits in a single library. But first we need to fix the parser to capture the `<writing>` tag.
+
+### 2026-03-01 [06c5b6fe1943]
+
+**The Copy Number ladder is an elegant discrete scoring system:**
+- It maps the real-world manuscript transmission chain (composed → inscribed → copied → widely distributed) to a 1–5 integer scale
+- The 5-point cap prevents runaway values while preserving the meaningful distinction between "exists as an idea" and "spread across multiple libraries"
+- The /10 divisor on auteur bonus is a deliberate scaling choice — without it, the creator of "The Fabulous Lute" (1,223 works) would gain +1,223 importance, dwarfing most military leaders. At /10, the +122.3 is significant but balanced against war heroes (~500 importance) and legendary kings
+
+**The design also surfaces 4 open questions** (Section 6) that should be resolved before implementation. The most impactful is whether missing `author_roll` (39% of works) should get salience=0 or a default. If zero, that's 14,571 works with no salience signal at all.
+
+### 2026-03-01 [bef880719013]
+
+**The bug is a classic client-side-filter-of-a-limited-dataset problem.** The browse endpoint returns the top 100 by importance. Client-side checkbox filtering can only show what's already loaded. Necromancers (max importance 455) fall outside the top 100 cutoff (560+). The fix must make the type flags a server-side filter so the API returns the top necromancers/werebeasts/etc. directly.
+
+### 2026-03-01 [2b0b4630ed2d]
+
+The race pill design uses a "thin API, smart client" pattern: the server returns raw category data with counts, and the client renders it into interactive pills. This means if a modded Dwarf Fortress world introduces new playable races, they automatically appear as pills (via `occurs_as_entity_race` flag in creature_dictionary) without any code changes. The `_other` category acts as a catch-all for creatures that don't fit any classification — wild animals, megabeasts, etc.
+
+### 2026-03-01 [1c6cbcee5e42]
+
+The `_other` category clause is an **exclusion-based filter** — it defines itself by what it's NOT (not entity races, not deities, not beasts, not titans, not demons, not night creatures, not animated dead, not animal people). This is the correct approach for a catch-all because it automatically adapts: if new category handlers are added (e.g., `_megabeast`), those creatures would first need to be excluded from `_other` too. The dashed border + reduced opacity is a UI pattern called "de-emphasis" — it signals to users that this pill is qualitatively different from the named categories.
+
+### 2026-03-01 [8fdce9dfd47d]
+
+The scrolling fix relies on a CSS principle called the **height constraint chain**. For `overflow-y: auto` to create a scrollbar, the element must have a **constrained height** — it must be smaller than its content. With `min-h-screen`, the body could grow to fit ALL content, meaning no child ever overflows. With `h-screen`, the body is exactly viewport height, forcing `flex-1` children to share the remaining space. When their content exceeds that space, `overflow-y-auto` kicks in with an independent scrollbar. The chain must be unbroken from the viewport root all the way down — any ancestor that grows unconstrained breaks the chain.
+
+### 2026-03-01 [350078080ff0]
+
+Python's built-in `str.title()` capitalizes the first character after ANY non-alpha character, including apostrophes — so `"night's demon".title()` produces `"Night'S Demon"`. The `_race_display_name()` helper in `people.py` avoids this by splitting on spaces and only capitalizing `w[0]`, leaving internal apostrophes untouched: `"night's"` → `"Night's"`.
+
+### 2026-03-01 [3d5d93692bd0]
+
+The race categorization uses a **closed-set** approach — only known civilization races get pills, and `_animal_men` is a catch-all for `*_MAN` / `RODENT MAN` patterns. This works because the DF `entities` table only contains races that can form civilizations, which in vanilla DF is exactly these 6 categories. If a mod adds a new civ race (e.g., `FAIRY`), it would appear in the list items but wouldn't get its own pill until manually added — a safe default since unknown modded races are rare and the "All" pill still shows them.
+
+### 2026-03-01 [d8d470f7b334]
+
+The key design shift: **the data drives the UI, not the code**. The old approach had a hardcoded `_CIV_RACES` set in JavaScript — any new race required a code change. The new approach queries `SELECT DISTINCT race FROM entities` joined with `creature_dictionary` for display names, so the UI is a pure projection of the data. This is the same pattern used successfully in the People tab's `race-summary` endpoint. The only "hardcoded" behavior is collapsing `*_MAN` patterns into "Animal Men" — which is a stable structural convention in Dwarf Fortress, not a race-specific hack.
+
+### 2026-03-01 [3c2d80ca4b80]
+
+This is a classic XML parsing pitfall: when a parent element has **repeated child elements** with the same tag name (like multiple `<child>` nodes), a naive "last value wins" parser overwrites. The DF `<entity>` can have hundreds of `<child>` elements (civ 985 has 248!). Our parser stored only the last one. The `<entity_link>` elements are a separate, structured representation of the same relationship. The fix is to store `child` as a JSON array in `details`, not a scalar.
