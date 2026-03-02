@@ -1618,3 +1618,33 @@ The key design shift: **the data drives the UI, not the code**. The old approach
 ### 2026-03-01 [3c2d80ca4b80]
 
 This is a classic XML parsing pitfall: when a parent element has **repeated child elements** with the same tag name (like multiple `<child>` nodes), a naive "last value wins" parser overwrites. The DF `<entity>` can have hundreds of `<child>` elements (civ 985 has 248!). Our parser stored only the last one. The `<entity_link>` elements are a separate, structured representation of the same relationship. The fix is to store `child` as a JSON array in `details`, not a scalar.
+
+### 2026-03-01 [1ab9ee146840]
+
+**Why asyncpg's JSONB codec creates this trap**: asyncpg's `set_type_codec` with `encoder=json.dumps` is designed so you can pass native Python dicts/lists as JSONB parameters — a convenience feature. But it creates a subtle contract: *all* JSONB values must be Python objects, never pre-serialized strings. The codec layer is invisible to application code, so it's easy to call `json.dumps()` out of habit. The result is a string-typed JSONB value (`"{\\"key\\":\\"val\\"}"`) that looks correct when queried as text but breaks `->` and `->>` accessors completely. The fix we applied — removing all manual `json.dumps()` — is the correct pattern: let the codec own serialization.
+
+### 2026-03-02 [b6188421e3e6]
+
+The current architecture has a key tension: `searchPeople()` and `browsePeople()` are completely separate flows. Search hits `/api/people/search` (no race filter support), while Browse hits `/api/people/browse` (race filter only). When the User says "race pills reset search results," that's because `selectRace()` calls `browsePeople()`, which ignores any active search query. The fix requires unifying these into a single flow: one API call that accepts both a search query AND race/alive filters, with the JS maintaining all filter state across interactions.
+
+### 2026-03-02 [a236e15b33b5]
+
+The current architecture has a clean separation: server-rendered full pages (`hf_detail.html` via Jinja2) and client-rendered inline views (`renderHfDetail()` via JS). The User's feedback reveals these two views have diverged — the inline view is missing the 4-tab structure, Factions table, relationship graph, kills detail, and the rich event rendering. The fix strategy is to create an **embed endpoint** that returns a self-contained HTML fragment of the full view, which the explorer.html can inject via AJAX. This eliminates the JS rendering duplication and ensures both views always match.
+
+### 2026-03-02 [f65f67e57cd4]
+
+**Why killed HFs often lack entity_id**: In Dwarf Fortress, when a figure is killed in battle, Legends XML records the kill in the killer's `kills` JSONB with a `victim_id`. However, many victims are "wild" figures (animals, monsters) or belong to populations that aren't tracked as formal civilization members. The `entity_id` on `historical_figures` represents formal citizenship — combatants killed in raids often don't have this. The race column is far more useful here since every HF has a race.
+
+**Civilization vs Sitegovernment site ownership**: In DF's entity hierarchy, `civilization` entities are abstract (like "The Brave Kingdom"), while `sitegovernment` entities actually own specific sites. That's why the LATERAL JOIN returns sites for sitegovernments but not for civilizations — the architecture correctly reflects DF's data model.
+
+### 2026-03-02 [ab82c45d47b6]
+
+**The column name mismatch**: This was a pre-existing bug where a prior session's changes to `people.py` referenced `prominence_score` and `salience_score` — columns that exist on `sites`, `regions`, and `rivers` tables, but NOT on `historical_figures`. The HF table only has `importance_score`. This is a classic "introspect before executing" gotcha from MEMORY.md — different entity tables in the CDM schema have different scoring columns. The fix was simply to use the correct column name (`importance_score`) in both the browse and search queries.
+
+### 2026-03-02 [2ae52f0e6f78]
+
+**Dynamic template inheritance for partial rendering**: The key technique here is `{% extends base_template|default("detail_base.html") %}` in `hf_detail.html`. Jinja2 evaluates `extends` at render time, allowing the same child template to render with different parent layouts. When `partial=1`, the endpoint passes `base_template="detail_partial_base.html"` — a minimal parent that only defines the `entity_type_badge`, `vital_stats`, `tabs`, and `body` blocks, omitting `<html>`, `<head>`, nav, breadcrumbs, and Tippy.js. Blocks the child defines but the parent doesn't (like `title`, `breadcrumb`, `prevnext`) are silently discarded by Jinja2. This eliminates code duplication — the same ~660 lines of Jinja2 template logic renders both views.
+
+**Script injection via `replaceChild`**: When you set `innerHTML`, the browser parses `<script>` tags but doesn't execute them. The workaround is to clone each `<script>` as a new `document.createElement('script')` and replace the old one — the browser executes freshly-created script elements.
+
+**Entity link interception pattern**: The partial HTML contains `<a href="/explorer/hf/123">` links generated by the `EntityLinkRenderer`. Rather than modifying the server-side linker, the client-side interceptor catches all `<a[href^="/explorer/"]>` clicks, parses the entity type and ID from the URL, and calls `navigateTo()` to stay within the SPA explorer panel. The "Open Full Page" button has `target="_blank"` so it bypasses the interceptor.
