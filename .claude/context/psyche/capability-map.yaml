@@ -1,12 +1,8 @@
 version: 3
 updated: 2026-02-10
 
-# Model Tier Reference:
-#   opus   — Complex analysis, architecture, multi-step planning
-#   sonnet — Implementation, review, testing, standard agent work
-#   haiku  — Data transformation, lookups, status, formatting
+# Model tier ref: opus=complex/arch, sonnet=implementation/review/testing, haiku=data/status/formatting.
 
-# ─── SKILLS (multi-step workflows) ───
 skills:
   - id: skill.filesystem-ops
     model: haiku
@@ -35,229 +31,103 @@ skills:
     tools: ["Bash(curl wttr.in)"]
     file: .claude/skills/weather/SKILL.md
 
-  # ─── x-ops ROUTERS (consolidated skill groups) ───
-
+  # x-ops routers (consolidations)
   - id: skill.doc-ops
     model: sonnet
-    when: "Document operations — Word (.docx), Excel (.xlsx), PDF, PowerPoint (.pptx)"
+    when: "Document ops — Word/Excel/PDF/PowerPoint"
     absorbs: [docx, xlsx, pdf, pptx]
     file: .claude/skills/doc-ops/SKILL.md
 
   - id: skill.self-ops
     model: sonnet
-    when: "Self-improvement, status monitoring, validation (AC-05/06/07/08)"
+    when: "Self-improvement/status/validation (AC-05/06/07/08)"
     absorbs: [self-improvement, jarvis-status, validation]
     file: .claude/skills/self-ops/SKILL.md
 
   - id: skill.mcp-ops
     model: sonnet
-    when: "MCP/skill lifecycle — build, validate, decompose plugins, create skills"
+    when: "MCP/skill lifecycle — build/validate/decompose/create"
     absorbs: [mcp-builder, mcp-validation, plugin-decompose, skill-creator]
     file: .claude/skills/mcp-ops/SKILL.md
 
   - id: skill.autonom-ops
     model: haiku
-    when: "Session orchestration — commands, lifecycle, JICM context, Ralph loop"
+    when: "Session orchestration — commands/lifecycle/JICM/Ralph loop"
     absorbs: [autonomous-commands, session-management, context-management, ralph-loop]
     file: .claude/skills/autonom-ops/SKILL.md
 
   - id: skill.dev-ops
     model: sonnet
     version: 1.0.0
-    when: "Development testing — test W0:Jarvis from Jarvis-dev, JICM cycles, IPC, hooks"
+    when: "Dev testing — test W0 from Jarvis-dev, JICM cycles, IPC, hooks"
     tools: [Bash, Read, Glob, Grep]
     file: .claude/skills/dev-ops/SKILL.md
 
   - id: skill.research-ops
     model: opus
     version: 2.2.0
-    when: "Multi-source research — 15 backends: web, academic, financial, AI-augmented, scraping"
+    when: "Multi-source research — 15 backends"
     tools: [WebSearch, WebFetch, "Bash(scripts/)"]
-    replaces: brave-search, arxiv, wikipedia, context7, perplexity, gptresearcher, tavily, serper, serpapi, firecrawl MCPs
+    replaces: [brave-search, arxiv, wikipedia, context7, perplexity, gptresearcher, tavily, serper, serpapi, firecrawl MCPs]
     scripts: [search-brave.sh, search-arxiv.sh, fetch-wikipedia.sh, search-perplexity.sh, fetch-context7.sh, deep-research-gpt.sh, research-plan.sh, research-synthesize.sh]
     file: .claude/skills/research-ops/SKILL.md
 
   - id: skill.knowledge-ops
     model: opus
-    when: "4-tier memory hierarchy — dynamic KG, static KG, semantic RAG, documentary grounding"
+    when: "4-tier memory hierarchy — dynamic/static KG, semantic RAG, documentary grounding"
     tools: [Read, Write, Grep, "Bash(jq)", ToolSearch]
     replaces: memory MCP (shadow), lotus-wisdom MCP
     file: .claude/skills/knowledge-ops/SKILL.md
 
   - id: skill.deck-ops
     model: sonnet
-    when: "Create slide deck presentations — zone-based layout, iterative refinement"
+    when: "Create slide deck presentations"
     tools: [Bash, Write, Read, Edit, WebSearch, WebFetch, Task]
     overlaps_with: [pptx, pdf, doc-ops]
     file: .claude/skills/deck-ops/SKILL.md
 
-# ─── FUTURE x-ops CONSOLIDATIONS ───
-# db-ops:      chroma + supabase + mongodb + sqlite + neo4j + mindsdb (new)
-# web-ops:     playwright + browserstack + scraping (new)
-# code-ops:    serena + semgrep + repomix (new)
-# flow-ops:    n8n + orchestration (new)
-# data-sci-ops: vizro + analysis + visualization (new)
-# See: .claude/context/reference/mcp-decomposition-registry.md
-
-# ─── AGENTS (autonomous execution) ───
 agents:
-  - id: agent.deep-research
-    model: opus
-    when: "Thorough technical research with citations and multi-source validation"
-    file: .claude/agents/deep-research.md
+  - {id: agent.deep-research, model: opus, when: "Thorough technical research w/ citations", file: .claude/agents/deep-research.md}
+  - {id: agent.code-review, model: sonnet, when: "Technical quality review of code changes", file: .claude/agents/code-review.md}
+  - {id: agent.project-manager, model: sonnet, when: "Progress/alignment review for milestone/PR validation", file: .claude/agents/project-manager.md}
+  - {id: agent.code-analyzer, model: sonnet, when: "Understand codebase structure/stack/patterns", file: .claude/agents/code-analyzer.md}
+  - {id: agent.code-implementer, model: sonnet, when: "Write/modify/refactor code with full git workflow", file: .claude/agents/code-implementer.md}
+  - {id: agent.code-tester, model: sonnet, when: "Run tests, Playwright flows, screenshots", file: .claude/agents/code-tester.md}
+  - {id: agent.docker-deployer, model: sonnet, when: "Deploy/configure Docker services w/ health verification", file: .claude/agents/docker-deployer.md}
+  - {id: agent.service-troubleshooter, model: sonnet, when: "Diagnose infra/service issues w/ RCA", file: .claude/agents/service-troubleshooter.md}
+  - {id: agent.compression-agent, model: haiku, when: "JICM v5 compression", file: .claude/agents/compression-agent.md}
+  - {id: agent.context-compressor, model: haiku, when: "Compress conversation context", file: .claude/agents/context-compressor.md}
+  - {id: agent.memory-bank-synchronizer, model: sonnet, when: "Sync docs with code changes", file: .claude/agents/memory-bank-synchronizer.md}
+  - {id: agent.jicm-agent, model: haiku, when: "Autonomous JICM monitoring", file: .claude/agents/jicm-agent.md}
 
-  - id: agent.code-review
-    model: sonnet
-    when: "Technical quality review of code changes"
-    file: .claude/agents/code-review.md
-
-  - id: agent.project-manager
-    model: sonnet
-    when: "Progress and alignment review for milestone/PR validation"
-    file: .claude/agents/project-manager.md
-
-  - id: agent.code-analyzer
-    model: sonnet
-    when: "Understand codebase structure, identify tech stack, find patterns"
-    file: .claude/agents/code-analyzer.md
-
-  - id: agent.code-implementer
-    model: sonnet
-    when: "Write, modify, refactor code with full git workflow"
-    file: .claude/agents/code-implementer.md
-
-  - id: agent.code-tester
-    model: sonnet
-    when: "Run automated tests, Playwright flows, screenshot capture"
-    file: .claude/agents/code-tester.md
-
-  - id: agent.docker-deployer
-    model: sonnet
-    when: "Deploy/configure Docker services with health verification"
-    file: .claude/agents/docker-deployer.md
-
-  - id: agent.service-troubleshooter
-    model: sonnet
-    when: "Diagnose infrastructure/service issues with root cause analysis"
-    file: .claude/agents/service-troubleshooter.md
-
-  - id: agent.compression-agent
-    model: haiku
-    when: "JICM v5 compression — compress context before /clear"
-    file: .claude/agents/compression-agent.md
-
-  - id: agent.context-compressor
-    model: haiku
-    when: "Compress conversation context before /clear"
-    file: .claude/agents/context-compressor.md
-
-  - id: agent.memory-bank-synchronizer
-    model: sonnet
-    when: "Sync documentation with code changes"
-    file: .claude/agents/memory-bank-synchronizer.md
-
-  - id: agent.jicm-agent
-    model: haiku
-    when: "Autonomous JICM monitoring — runs in background"
-    file: .claude/agents/jicm-agent.md
-
-# ─── KEY PATTERNS (behavioral rules, load on demand) ───
 patterns:
-  - id: pattern.agent-selection
-    when: "Choosing between tools, skills, agents"
-    file: .claude/context/patterns/agent-selection-pattern.md
+  - {id: pattern.agent-selection, when: "Choosing tools/skills/agents", file: .claude/context/patterns/agent-selection-pattern.md}
+  - {id: pattern.selection-intelligence, when: "Quick tool selection guidance", file: .claude/context/patterns/selection-intelligence-guide.md}
+  - {id: pattern.mcp-loading, when: "MCP tool loading strategy", file: .claude/context/patterns/mcp-loading-strategy.md}
+  - {id: pattern.wiggum-loop, when: "Iterative execution loop (AC-02 default)", file: .claude/context/patterns/wiggum-loop-pattern.md}
+  - {id: pattern.jicm, when: "JICM thresholds/flow (AC-04)", file: .claude/context/patterns/jicm-pattern.md}
+  - {id: pattern.startup-protocol, when: "Session start protocol (AC-01)", file: .claude/context/patterns/startup-protocol.md}
+  - {id: pattern.milestone-review, when: "Milestone/PR completion validation (AC-03)", file: .claude/context/patterns/milestone-review-pattern.md}
+  - {id: pattern.context-budget, when: "Token budgets/MCP tiers/context optimization", file: .claude/context/patterns/context-budget-management.md}
+  - {id: pattern.observation-masking, when: "Large tool outputs (80%+ tokens)", file: .claude/context/patterns/observation-masking-pattern.md}
+  - {id: pattern.parallelization, when: "Parallel vs sequential decisions", file: .claude/context/patterns/parallelization-strategy.md}
 
-  - id: pattern.selection-intelligence
-    when: "Quick tool selection guidance"
-    file: .claude/context/patterns/selection-intelligence-guide.md
-
-  - id: pattern.mcp-loading
-    when: "MCP tool loading strategy"
-    file: .claude/context/patterns/mcp-loading-strategy.md
-
-  - id: pattern.wiggum-loop
-    when: "Iterative execution loop (AC-02 default)"
-    file: .claude/context/patterns/wiggum-loop-pattern.md
-
-  - id: pattern.jicm
-    when: "JICM context management thresholds and flow (AC-04 MANDATORY)"
-    file: .claude/context/patterns/jicm-pattern.md
-
-  - id: pattern.startup-protocol
-    when: "Session start three-phase protocol (AC-01 MANDATORY)"
-    file: .claude/context/patterns/startup-protocol.md
-
-  - id: pattern.milestone-review
-    when: "Milestone/PR completion validation (AC-03 MANDATORY)"
-    file: .claude/context/patterns/milestone-review-pattern.md
-
-  - id: pattern.context-budget
-    when: "Token budgets, MCP tiers, context optimization"
-    file: .claude/context/patterns/context-budget-management.md
-
-  - id: pattern.observation-masking
-    when: "Large tool outputs consuming context (80%+ of tokens)"
-    file: .claude/context/patterns/observation-masking-pattern.md
-
-  - id: pattern.parallelization
-    when: "Parallel vs sequential execution decisions"
-    file: .claude/context/patterns/parallelization-strategy.md
-
-# ─── WORKFLOWS (multi-phase processes) ───
 workflows:
-  - id: flow.jicm-compression
-    when: "Context approaching threshold — intelligent compression"
-    file: .claude/commands/intelligent-compress.md
+  - {id: flow.jicm-compression, when: "Context near threshold", file: .claude/commands/intelligent-compress.md}
+  - {id: flow.end-session, when: "Clean exit w/ documentation", file: .claude/commands/end-session.md}
+  - {id: flow.checkpoint, when: "Save state before /clear", file: .claude/commands/checkpoint.md}
+  - {id: flow.setup, when: "Initial project configuration", file: .claude/commands/setup.md}
 
-  - id: flow.end-session
-    when: "Clean session exit with documentation"
-    file: .claude/commands/end-session.md
-
-  - id: flow.checkpoint
-    when: "Save state before /clear"
-    file: .claude/commands/checkpoint.md
-
-  - id: flow.setup
-    when: "Initial project configuration"
-    file: .claude/commands/setup.md
-
-# ─── AUTONOMIC COMPONENTS (AC signals) ───
 components:
-  - id: ac.01-self-launch
-    signal: "SessionStart"
-    file: .claude/context/components/AC-01-self-launch.md
-
-  - id: ac.02-wiggum-loop
-    signal: "Always (default execution loop)"
-    file: .claude/context/components/AC-02-wiggum-loop.md
-
-  - id: ac.03-milestone-review
-    signal: "Work completion"
-    file: .claude/context/components/AC-03-milestone-review.md
-
-  - id: ac.04-jicm
-    signal: "Context >= threshold"
-    file: .claude/context/components/AC-04-jicm.md
-
-  - id: ac.05-self-reflection
-    signal: "Session end, /reflect"
-    file: .claude/context/components/AC-05-self-reflection.md
-
-  - id: ac.06-self-evolution
-    signal: "/evolve, idle time"
-    file: .claude/context/components/AC-06-self-evolution.md
-
-  - id: ac.07-research
-    signal: "/research"
-    file: .claude/context/components/AC-07-rd-cycles.md
-
-  - id: ac.08-maintenance
-    signal: "/maintain, quarterly"
-    file: .claude/context/components/AC-08-maintenance.md
-
-  - id: ac.09-session-completion
-    signal: "/end-session"
-    file: .claude/context/components/AC-09-session-completion.md
+  - {id: ac.01-self-launch, signal: "SessionStart", file: .claude/context/components/AC-01-self-launch.md}
+  - {id: ac.02-wiggum-loop, signal: "Always (default execution loop)", file: .claude/context/components/AC-02-wiggum-loop.md}
+  - {id: ac.03-milestone-review, signal: "Work completion", file: .claude/context/components/AC-03-milestone-review.md}
+  - {id: ac.04-jicm, signal: "Context >= threshold", file: .claude/context/components/AC-04-jicm.md}
+  - {id: ac.05-self-reflection, signal: "Session end, /reflect", file: .claude/context/components/AC-05-self-reflection.md}
+  - {id: ac.06-self-evolution, signal: "/evolve, idle time", file: .claude/context/components/AC-06-self-evolution.md}
+  - {id: ac.07-research, signal: "/research", file: .claude/context/components/AC-07-rd-cycles.md}
+  - {id: ac.08-maintenance, signal: "/maintain, quarterly", file: .claude/context/components/AC-08-maintenance.md}
+  - {id: ac.09-session-completion, signal: "/end-session", file: .claude/context/components/AC-09-session-completion.md}
 
   - id: ac.10-ulfhedthnar
     signal: "Defeat signals >= threshold, /unleash"
@@ -291,10 +161,10 @@ components:
     status: active
     script: .claude/scripts/jicm-watcher.sh
     signal_files: [".jicm-state", ".compression-done.signal", ".jicm-sleep.signal"]
-    note: "Aion Quartet: Watcher=defensive awareness (JICM v6 stop-and-wait, tmux window 1). Ulfhedthnar can sleep JICM via .jicm-sleep.signal"
+    note: "Aion Quartet: Watcher=defensive awareness (tmux window 1)"
 
   - id: flow.housekeep
-    when: "Quick infrastructure cleanup — signal files, log rotation, state freshness"
+    when: "Quick infra cleanup — signal files, log rotation, state freshness"
     status: active
     script: .claude/scripts/housekeep.sh
     command: .claude/commands/housekeep.md
@@ -305,59 +175,29 @@ components:
     status: active
     script: .claude/scripts/command-handler.sh
     signal_files: [".command-signal"]
-    note: "Standalone command handler (extracted from jarvis-watcher.sh v5, tmux window 4)"
+    note: "Standalone command handler (tmux window 4)"
 
-# ─── SKILL COMPOSITIONS (dynamic chaining) ───
-# Extracted from OMC "orchestration skills" pattern (Stream 2).
-# Instead of hardcoding delegation, define compositions that
-# the manifest router can invoke as multi-step workflows.
-# Each composition chains 2-3 skills/agents in sequence.
 compositions:
   - id: compose.research-then-implement
     when: "Feature requires research before coding"
-    steps:
-      - skill.research-ops     # gather information
-      - agent.code-analyzer    # understand codebase context
-      - agent.code-implementer # write the code
+    steps: [skill.research-ops, agent.code-analyzer, agent.code-implementer]
     data_flow: "research findings → codebase analysis → implementation"
 
   - id: compose.analyze-then-review
     when: "Code changes need quality validation"
-    steps:
-      - agent.code-analyzer    # understand what changed
-      - agent.code-review      # evaluate quality
+    steps: [agent.code-analyzer, agent.code-review]
     data_flow: "change analysis → quality assessment"
 
   - id: compose.investigate-then-fix
-    when: "Bug or service issue needs diagnosis and resolution"
-    steps:
-      - agent.service-troubleshooter  # diagnose root cause
-      - agent.code-implementer        # apply fix
-      - agent.code-tester             # verify fix
+    when: "Bug/service issue needs diagnosis+resolution"
+    steps: [agent.service-troubleshooter, agent.code-implementer, agent.code-tester]
     data_flow: "diagnosis → fix → verification"
 
   - id: compose.learn-from-session
     when: "End of session or after corrections — automatic learning"
-    steps:
-      - ac.05-self-reflection  # capture corrections
-      - skill.knowledge-ops    # store in memory hierarchy
+    steps: [ac.05-self-reflection, skill.knowledge-ops]
     data_flow: "corrections JSONL → Tier 1/2 memory entities"
     hook_trigger: "self-correction-capture.js detects corrections"
-    note: "Automatic learner pattern — session corrections become persistent patterns"
+    note: "Automatic learner pattern"
 
-# Composition rules:
-# - Compositions are advisory — Jarvis selects based on task context
-# - Each step produces output consumed by the next step
-# - Steps may run sequentially (default) or in parallel (if independent)
-# - Compositions do NOT replace direct skill/agent invocation
-# - Add new compositions when recurring multi-skill workflows emerge
-
-# ─── MCP-TO-SKILL PIPELINE ───
-# When evaluating a new MCP for decomposition:
-# 1. Check mcp-decomposition-registry.md — already analyzed?
-# 2. ToolSearch "+<mcp-name>" — inventory all tools
-# 3. Map each tool to built-in equivalent (Read/Write/Edit/Glob/Grep/Bash/WebFetch/WebSearch)
-# 4. If ALL mapped → create skill, validate, register here, remove MCP
-# 5. If ANY unique → RETAIN MCP
-# 6. Measure token delta via statusline-input.json
-# See: .claude/context/reference/mcp-decomposition-registry.md
+# Notes in source: future consolidations, MCP-to-skill pipeline guidance.

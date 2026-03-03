@@ -1,184 +1,69 @@
-# Psyche — Master Archon Topology
+# Psyche — Master Archon Topology (v1.0.0) — "You are here" map
 
-The complete structural map of Jarvis as an Archon.
+Purpose: structural navigation map of Jarvis Archon stack: Nous→Pneuma→Soma, connected by Neuro pathways.
 
-**Version**: 1.0.0
-**Purpose**: "You are here" navigation for the entire Archon structure
+## Archon structure (paths + key dirs)
+- NOUS (Knowledge): `/.claude/context/`
+  - dirs: `patterns/` (51), `standards/` (5), `workflows/` (1), `designs/` (arch), `components/` (AC-*), `integrations/`, `lessons/` (memory), `reference/` (on-demand), `psyche/` (topology), `troubleshooting/`
+  - session files (as diagram): `session-state.md` | `current-priorities.md` | `_index.md`
+- PNEUMA (Capabilities): `/.claude/`
+  - dirs+counts: `agents/` (12), `commands/` (40), `skills/` (28), `hooks/` (28), `scripts/` (session)
+  - ops dirs: `state/` (runtime), `config/` (settings), `metrics/` (telemetry), `reports/` (AC output), `logs/` (telemetry)
+  - identity files: `CLAUDE.md` | `psyche/jarvis-identity.md` | `settings.json`
+- SOMA (Infrastructure): `/Jarvis/`
+  - dirs: `docker/` (services), `scripts/` (system), `models/` (local), `lancedb/` (vector), `docs/` (user)
+  - workspace: `projects/project-aion/` (designs|plans|progress|evolution|ideas|reports)
+  - config: `paths-registry.yaml` | `CHANGELOG.md`
 
----
+## Layer summaries (what/where)
+### Nous = what Jarvis KNOWS
+- `patterns/`: behavioral rules (wiggum-loop, selection-intelligence, etc.)
+- `standards/`: conventions (readme-standard, model-selection)
+- `components/`: AC-01..AC-09 specs
+- `integrations/`: tool knowledge; key: `capability-map.yaml` (manifest router)
+- `reference/`: glossary, mcp-decision-map, etc.
+- `psyche/`: topology maps (this file)
+- `psyche/self-knowledge/`: strengths, weaknesses, patterns-observed
+Detail pointer: `nous-map.md`
 
-## The Archon Structure
+### Pneuma = what Jarvis CAN DO
+- `agents/` (12), `commands/` (40), `skills/` (28; includes absorbed/example/_shared), `hooks/` (28), `scripts/` (~20)
+Detail pointer: `pneuma-map.md`
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              JARVIS ARCHON                                   │
-│                                                                              │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                         NOUS (Knowledge)                             │   │
-│  │                       /.claude/context/                              │   │
-│  │                                                                      │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │ patterns │ │standards │ │workflows │ │ designs  │ │components│  │   │
-│  │  │   (51)   │ │   (5)    │ │   (1)    │ │  (arch)  │ │  (AC-*)  │  │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │integrat- │ │ lessons  │ │reference │ │ psyche   │ │ trouble- │  │   │
-│  │  │  ions    │ │ (memory) │ │(on-demand│ │(topology)│ │ shooting │  │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
-│  │                                                                      │   │
-│  │  Session: session-state.md | current-priorities.md | _index.md      │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                     │                                       │
-│                                     │ Neuro                                 │
-│                                     │ (connections)                         │
-│                                     ▼                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        PNEUMA (Capabilities)                         │   │
-│  │                            /.claude/                                 │   │
-│  │                                                                      │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │ agents   │ │ commands │ │  skills  │ │  hooks   │ │ scripts  │  │   │
-│  │  │  (12)    │ │  (40)    │ │  (28)    │ │  (28)    │ │ (session)│  │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │  state   │ │  config  │ │ metrics  │ │ reports  │ │  logs    │  │   │
-│  │  │(runtime) │ │(settings)│ │(telemetry│ │(AC output│ │(telemetry│  │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
-│  │                                                                      │   │
-│  │  Identity: CLAUDE.md | psyche/jarvis-identity.md | settings.json    │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                     │                                       │
-│                                     │ Neuro                                 │
-│                                     │ (connections)                         │
-│                                     ▼                                       │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │                        SOMA (Infrastructure)                         │   │
-│  │                            /Jarvis/                                  │   │
-│  │                                                                      │   │
-│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │   │
-│  │  │  docker  │ │ scripts  │ │  models  │ │ lancedb  │ │   docs   │  │   │
-│  │  │(services)│ │ (system) │ │ (local)  │ │ (vector) │ │  (user)  │  │   │
-│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘  │   │
-│  │  ┌──────────────────────────────────────────────────────────────┐  │   │
-│  │  │                      projects/project-aion/                   │  │   │
-│  │  │  designs | plans | progress | evolution | ideas | reports     │  │   │
-│  │  └──────────────────────────────────────────────────────────────┘  │   │
-│  │                                                                      │   │
-│  │  Configuration: paths-registry.yaml | CHANGELOG.md                  │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+### Soma = how Jarvis INTERACTS
+- `docker/`, `scripts/`, `models/`, `projects/`, `docs/`
+Detail pointer: `soma-map.md`
 
----
+## Neuro pathways (key connections)
+Primary nav from `CLAUDE.md`:
+- `patterns/_index.md` → individual patterns
+- `context/_index.md` → all Nous directories
+- `session-state.md` → current work status
+- `current-priorities.md` → task queue
 
-## Layer Summaries
+Pattern → implementation linking:
+- pattern references: other patterns (prereqs) + components (AC specs) + Pneuma capabilities (agents/scripts)
 
-### Nous (Knowledge) — What Jarvis KNOWS
+Selection intelligence routing:
+- task arrives → `patterns/selection-intelligence-guide.md` (quick)
+- → `psyche/capability-map.yaml` (manifest router)
+- → `patterns/agent-selection-pattern.md` (agents)
 
-| Directory | Purpose | Key Files |
-|-----------|---------|-----------|
-| patterns/ | Behavioral rules | 51 patterns, wiggum-loop, selection-intelligence |
-| standards/ | Conventions | readme-standard, model-selection |
-| components/ | AC specs | AC-01 through AC-09 |
-| integrations/ | Tool knowledge | capability-map.yaml (manifest router) |
-| reference/ | On-demand docs | glossary, mcp-decision-map |
-| psyche/ | Topology maps | This document |
-| psyche/self-knowledge/ | Operational introspection | strengths, weaknesses, patterns-observed |
+## Quick navigation table (intent → path)
+- structure: this file
+- find pattern: `patterns/_index.md`
+- select tool: `psyche/capability-map.yaml`
+- current work: `session-state.md`
+- next tasks: `current-priorities.md`
+- agent: `.claude/agents/README.md`
+- skill: `.claude/skills/_index.md`
+- troubleshoot: `troubleshooting/_index.md`
+- term lookup: `reference/glossary.md`
 
-**Detail**: [nous-map.md](nous-map.md)
+## Cross-refs
+- glossary: `reference/glossary.md`
+- orchestration: `components/orchestration-overview.md`
+- selection intel: `patterns/selection-intelligence-guide.md`
+- orchestration philosophy: `designs/orchestration-philosophy.md`
 
-### Pneuma (Capabilities) — What Jarvis CAN DO
-
-| Directory | Purpose | Count |
-|-----------|---------|-------|
-| agents/ | Custom agents | 12 active |
-| commands/ | Slash commands | 40 |
-| skills/ | On-demand skills | 28 (11 discoverable + 15 absorbed + 1 example + 1 _shared) |
-| hooks/ | Event automation | 28 registered |
-| scripts/ | Session scripts | ~20 |
-
-**Detail**: [pneuma-map.md](pneuma-map.md)
-
-### Soma (Infrastructure) — How Jarvis INTERACTS
-
-| Directory | Purpose |
-|-----------|---------|
-| docker/ | Container services |
-| scripts/ | System utilities |
-| models/ | Local model storage |
-| projects/ | Development workspaces |
-| docs/ | User documentation |
-
-**Detail**: [soma-map.md](soma-map.md)
-
----
-
-## Neuro Pathways (Key Connections)
-
-### Primary Navigation Paths
-
-```
-CLAUDE.md
-    │
-    ├─→ patterns/_index.md ─→ Individual patterns
-    │
-    ├─→ context/_index.md ─→ All Nous directories
-    │
-    ├─→ session-state.md ─→ Current work status
-    │
-    └─→ current-priorities.md ─→ Task queue
-```
-
-### Pattern → Implementation
-
-```
-Pattern file
-    │
-    ├─→ References other patterns (prerequisites)
-    │
-    ├─→ References components (AC specs)
-    │
-    └─→ Points to Pneuma capabilities (agents, scripts)
-```
-
-### Selection Intelligence
-
-```
-Task arrives
-    │
-    ├─→ selection-intelligence-guide.md (quick)
-    │
-    ├─→ capability-map.yaml (manifest router)
-    │
-    └─→ agent-selection-pattern.md (agents)
-```
-
----
-
-## Quick Navigation
-
-| I want to... | Go to... |
-|--------------|----------|
-| Understand Jarvis structure | This document |
-| Find a pattern | `patterns/_index.md` |
-| Select a tool | `psyche/capability-map.yaml` |
-| Check current work | `session-state.md` |
-| See what's next | `current-priorities.md` |
-| Find an agent | `.claude/agents/README.md` |
-| Use a skill | `.claude/skills/_index.md` |
-| Troubleshoot | `troubleshooting/_index.md` |
-| Look up a term | `reference/glossary.md` |
-
----
-
-## Cross-References
-
-- **Glossary**: `reference/glossary.md` — All terminology
-- **Component Orchestration**: `components/orchestration-overview.md`
-- **Selection Intelligence**: `patterns/selection-intelligence-guide.md`
-- **Orchestration Philosophy**: `designs/orchestration-philosophy.md`
-
----
-
-*Psyche v1.0.0 — Master Archon Topology*
+Psyche v1.0.0 — Master Archon Topology
