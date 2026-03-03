@@ -1795,3 +1795,7 @@ For a pedigree, a **custom tree position calculator** feeding into vis.js gives 
 ### 2026-03-03 [16a66993b5a6]
 
 **How `aspect-ratio` + `width` interact**: With `aspect-ratio: 1` and `width: 100%`, the browser computes the height to equal the width of the parent `.section-card` container. Removing `max-height: 80vh` means the square is purely width-driven — on a 1200px-wide container, the graph will be 1200x1200px. The page scrolls vertically to accommodate it, which is the expected behavior for a large data visualization.
+
+### 2026-03-03 [26bbdf6abbf4]
+
+**hf_site_links vs change hf state events**: The `hf_site_links` table (2,074 entries) comes from XML-declared relationships like "home structure" or "seat of power" — these are structural, not temporal. Meanwhile, 26,523 HFs have `change hf state` events (settling/traveling) at sites, but these *event-based* relationships aren't materialized into a linkage table. That's why Stodir's settling at Metalsnarl doesn't create a queryable site link — it's recorded as an event but not a relationship.
