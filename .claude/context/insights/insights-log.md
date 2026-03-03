@@ -1825,3 +1825,7 @@ For a pedigree, a **custom tree position calculator** feeding into vis.js gives 
 **Why two files?** Dwarf Fortress's vanilla `legends.xml` was the original export, designed before DFHack existed. It prioritizes human-readable descriptions and complete event histories. DFHack's `legends_plus.xml` was created later to fill gaps: structured metadata, relationship graphs, creature definitions, and semantic context (like `reason` fields on events). Neither file is a superset of the other — they're two complementary views of the same world. A robust parser must treat them as a single logical dataset split across two physical files.
 
 **The merge pattern**: Every properly-merged table in our parser follows the same strategy: (1) INSERT from base first (richer text data), (2) UPSERT/UPDATE from plus to add structured metadata. The three gaps identified all deviate from this pattern — events and structures only read from one source, and supplements are completely skipped.
+
+### 2026-03-03 [f8a4fd3c5c66]
+
+The `executemany` silent-success pattern is a significant gotcha in asyncpg: it returns `None` regardless of whether 0 or 1000 rows matched the WHERE clause. Unlike single `execute()` which returns a status string like `"UPDATE 1"`, `executemany` provides no row-count feedback. For enrichment pipelines that merge data via UPDATE, always follow up with a validation query to confirm actual persistence. This is now documented in the Phase 2 PRD risk mitigation as an emergent risk.

@@ -1,276 +1,495 @@
-# Phase 2: Explorer Core — Validation Walkthrough
+# Phase 2: Explorer Core — Validation Walkthrough v2.0
 
-**Purpose**: Step-by-step guide for manually verifying all Phase 2 features.
-**Prerequisites**: PostgreSQL running with Chronicler data (world "Tar Thran" ingested).
+**Purpose**: Step-by-step guide to verify all Phase 2 features (30 DoD + 12 enhancements).
+**Prerequisites**: PostgreSQL running, world "Tar Thran" ingested (1,675,297 records).
+**Server**: Chronicler running on port 8099.
+**Date**: 2026-03-03
 
 ---
 
 ## Setup
 
+If the server isn't running:
+
 ```bash
 cd /Users/nathanielcannon/Claude/Projects/DwarfCron
-.venv/bin/chronicler serve --port 8000
+.venv/bin/chronicler serve --port 8099
 ```
 
-Open your browser to **http://localhost:8000/explorer**
+Open your browser to **http://localhost:8099/explorer?world_id=1**
+
+World stats to confirm: 48,273 HFs, 4,847 entities, 2,154 sites, 436,455 events, 2,278 regions.
 
 ---
 
-## 1. Global Search (all pages)
+## Part A: Core DoD (30 items)
 
-The search bar is in the top navigation bar, visible on every page.
+### 1. Global Search
 
-1. Click the search input in the top-right corner
-2. Type `dwarf` — results should appear after 200ms with color-coded type badges
-3. Type `asob` — should find "Asob Worshipfuliron the Jade Trumpet of Channeling" (Historical Figure)
-4. Use **Arrow Down/Up** to navigate results, **Enter** to select, **Escape** to dismiss
-5. Click a result to navigate to that entity's detail page
+From any page, use the search bar in the top navigation:
 
-**Verify**: Results show type badges (HF in gold, Entity in blue, Site in green), names match search term, keyboard navigation works.
+1. Type `asob` — results should appear after ~200ms debounce
+2. Expect 22+ results, all HFs named "Asob ...", with type badges
+3. Type `Tar Thran` — should find the world/site entries
+4. Use **Arrow Down/Up** to navigate, **Enter** to select, **Escape** to dismiss
+5. Click a result — should navigate to that entity's detail page
 
----
-
-## 2. Historical Figure Detail Page
-
-Navigate to: **http://localhost:8000/explorer/hf/1**
-
-### Check these features:
-- **Header**: Name "Asob Worshipfuliron the Jade Trumpet of Channeling" in gold, race/caste info
-- **Type badges**: Look for badges like "deity", "vampire", etc. (this HF may not have special types, but check HF #1779 for a vampire+werebeast+necromancer)
-- **Tabs**: 4 tabs should be visible: **Overview**, **Relationships**, **Career**, **Events** (click through each)
-- **Events**: Events section with perspective-aware rendering — the current HF's name should appear in **gold bold** (`<em>` tags), while other entities are blue clickable links
-- **Cross-links**: Click any blue entity name — it should navigate to that entity's detail page
-- **Popovers**: Hover over any blue entity link — a tooltip should appear after 300ms showing a mini-summary (name, type, key stats)
-- **Breadcrumb**: Top bar shows "Explorer > People > [name]"
-- **Prev/Next**: Navigation buttons for Previous/Next HF by ID
-- **Load All events**: Events tab shows "Showing first 50 of N events" with a "Load all" link. Clicking "Load all" (or appending `?events=all` to the URL) loads the full event list
-
-### Caste-Aware Pronouns
-
-Navigate to: **http://localhost:8000/explorer/hf/0** (HF #0, "Slalsto Tundrateal", FEMALE)
-- Events should use **she/her** pronouns for this HF (rendered in gold `<em>` tags)
-
-Navigate to: **http://localhost:8000/explorer/hf/1** (HF #1, check caste)
-- Male HFs should use **he/him/his**; unknown/default caste uses **they/them/their**
-
-### Vampire/Special HF
-
-Navigate to: **http://localhost:8000/explorer/hf/1779**
-- Should show type badges for vampire, werebeast, necromancer
+**Verify**: Type badges colored by entity type, accent-insensitive matching, keyboard navigation.
 
 ---
 
-## 3. Entity/Civilization Detail Page
+### 2. Historical Figure Detail Page
 
-Navigate to: **http://localhost:8000/explorer/entity/24** (The Dwarven Diamond)
+**URL**: http://localhost:8099/explorer/hf/1?world_id=1
 
-### Check these features:
-- **Tabs**: Leaders, Sites, Members, Groups, Wars (5 tabs)
-- **Leaders tab**: List of historical figures who led this civilization
-- **Sites tab**: Sites owned or controlled by this civilization
-- **Members tab**: Historical figures associated with this civilization
-- **Cross-links**: All entity names are clickable links with popovers
+HF #1 is **Zogast Budzeniths the Esteemed** (HYDRA, MALE, deity, born -217, 15 kills).
+
+Check:
+- **Header**: Name, race resolved via creature dictionary ("hydra" not "HYDRA"), sex
+- **Deity badge**: Gold badge since this HF is a deity
+- **Tabs**: Click through all tabs (Overview, Relationships, Career, Events)
+- **Events tab**: Perspective-aware — this HF referenced as **he/him** in gold italic text; other entities are blue clickable links
+- **Popovers**: Hover over any blue entity link — tooltip appears after ~300ms with mini-summary
+- **Breadcrumb**: "Explorer > People > Zogast Budzeniths the Esteemed"
+- **Prev/Next**: Navigation arrows to adjacent HFs
+
+#### Caste-Aware Pronouns
+
+- **http://localhost:8099/explorer/hf/0?world_id=1** — HF #0 (check caste; should use appropriate he/she/they)
+- Male HFs: **he/him/his**
+- Female HFs: **she/her/her**
+- Unknown/DEFAULT: **they/them/their**
+
+#### Vampire/Special Badges
+
+- **http://localhost:8099/explorer/hf/1779?world_id=1** — check for vampire/werebeast/necromancer badges
 
 ---
 
-## 4. Site Detail Page
+### 3. Entity/Civilization Detail Page
 
-Navigate to: **http://localhost:8000/explorer/site/1**
+**URL**: http://localhost:8099/explorer/entity/24?world_id=1
 
-### Check these features:
-- **Tabs**: Structures, Properties, History (3 tabs)
-- **Structures tab**: List of structures at this site, each linked to its detail page
+Check:
+- **5 tabs**: Leaders, Sites, Members, Groups, Wars
+- **Leaders tab**: Position holders with linked HF names
+- **Sites tab**: Owned/controlled sites with links
+- **Members tab**: Notable members sorted by importance
+- **Wars tab**: War participation showing aggressor/defender
+- **Cross-links**: All names are clickable with popovers
+
+---
+
+### 4. Site Detail Page
+
+**URL**: http://localhost:8099/explorer/site/1?world_id=1
+
+Check:
+- **3 tabs**: Structures, Properties, History
+- **Structures tab**: Linked structure list (click through to structure detail)
 - **Owner**: Current owner civilization linked
-- **Cross-links**: All referenced entities are clickable
+- **History tab**: Ownership history and events
 
 ---
 
-## 5. Artifact Detail Page
+### 5. Artifact Detail Page
 
-Navigate to: **http://localhost:8000/explorer/artifact/1**
+**URL**: http://localhost:8099/explorer/artifact/1?world_id=1
 
-### Check these features:
-- **Item details**: Type, material, creation info
-- **Events**: Related events showing artifact creation, transfers
-- **Cross-links**: Creator and holder links
-
----
-
-## 6. Region Detail Page
-
-Navigate to: **http://localhost:8000/explorer/region/1**
-
-### Check these features:
-- **Biome badge**: Shows the region's biome type
-- **Evilness badge**: Benign (cyan), Neutral (gray), or Evil (purple)
-- **Events**: Events that occurred in this region
+Check:
+- Item type, material, creation info
+- Chain-of-custody / related events
+- Creator and holder cross-links
 
 ---
 
-## 7. Structure Detail Page
+### 6. Region Detail Page
 
-Navigate to: **http://localhost:8000/explorer/site/38/structure/0** (site 1 has no structures; site 38 has a market)
+**URL**: http://localhost:8099/explorer/region/1?world_id=1
 
-If you want to test a temple, try: **http://localhost:8000/explorer/site/301/structure/6** ("The Cradled Temple")
-
-### Check these features:
-- **Type badge**: Structure type (e.g., "market", "temple", "tomb", "mead_hall")
-- **Deity link**: For temples with deity data, shows linked deity as clickable HF link
-- **Parent site**: Link back to the parent site
+Check:
+- **Biome badge**: Region biome type
+- **Evilness badge**: Benign (cyan), Neutral (gray), Evil (purple)
+- Events in this region
 
 ---
 
-## 8. Written Content Detail Page
+### 7. Structure Detail Page
 
-Navigate to: **http://localhost:8000/explorer/written_content/1**
+**URL**: http://localhost:8099/explorer/site/38/structure/0?world_id=1 (market)
 
-### Check these features:
-- **Author**: Linked historical figure who wrote/created this
-- **Referenced entities**: Other entities mentioned in the content
-- **Form type**: Musical composition, poem, choreography, etc.
+Temple with deity enrichment: **http://localhost:8099/explorer/site/301/structure/6?world_id=1**
 
----
-
-## 9. Event Collection Detail Page
-
-Navigate to: **http://localhost:8000/explorer/collection/1**
-
-### Check these features:
-- **Hierarchy**: If this is a war, should show sub-collections (battles)
-- **Events**: Events within this collection
-- **Related entities**: Combatants, locations linked
+Check:
+- **Type badge**: "market", "temple", "tomb", "mead_hall", etc.
+- **Deity link** (temples): Clickable HF link to the associated deity
+- **Religion** (temples): Religion/entity references from plus-XML enrichment
+- **Parent site**: Link back to parent site
 
 ---
 
-## 10. Secondary Entity Pages
+### 8. Written Content Detail Page
 
-Test each of these — they should all render with basic info and cross-links:
+**URL**: http://localhost:8099/explorer/written_content/1?world_id=1
+
+Check:
+- Author linked to HF page
+- Referenced entities all cross-linked
+- Form type displayed (poem, musical_composition, etc.)
+
+---
+
+### 9. Event Collection Detail Page
+
+**URL**: http://localhost:8099/explorer/collection/1?world_id=1
+
+Check:
+- Hierarchy display (wars contain battles, battles contain events)
+- Events within collection listed
+- Combatants and locations cross-linked
+
+---
+
+### 10. Secondary Entity Pages
+
+All should render with basic info and cross-links:
 
 | Entity Type | URL | What to Check |
 |------------|-----|---------------|
-| Underground Region | http://localhost:8000/explorer/underground_region/1 | Type, depth info |
-| Landmass | http://localhost:8000/explorer/landmass/1 | Name, regions |
-| Mountain Peak | http://localhost:8000/explorer/mountain_peak/1 | Name, height |
-| River | http://localhost:8000/explorer/river/1 | Name, path |
-| World Construction | http://localhost:8000/explorer/construction/1 | Type, name |
-| Art Form | http://localhost:8000/explorer/art_form/1 | Type (musical/poetic/dance) |
-| Identity | http://localhost:8000/explorer/identity/1 | Linked HF |
-| Historical Era | http://localhost:8000/explorer/era/Age%20of%20Myth | Time range, events |
+| Underground Region | http://localhost:8099/explorer/underground_region/1?world_id=1 | Type, depth |
+| Landmass | http://localhost:8099/explorer/landmass/1?world_id=1 | Name, regions |
+| Mountain Peak | http://localhost:8099/explorer/mountain_peak/1?world_id=1 | Name, height, is_volcano |
+| River | http://localhost:8099/explorer/river/1?world_id=1 | Name, path |
+| World Construction | http://localhost:8099/explorer/construction/1?world_id=1 | Type (road/bridge/tunnel) |
+| Art Form | http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form | Type + description |
+| Identity | http://localhost:8099/explorer/identity/1?world_id=1 | Linked HF |
+| Historical Era | http://localhost:8099/explorer/era/Age%20of%20Myth?world_id=1 | Time range, events |
+
+**Art Form special check**: The description field should contain text from base legends.xml (e.g., "The Poetry of Lathering is a solo celebration dance..."). This validates the dual-XML merge.
 
 ---
 
-## 11. Years and Events Browser
+### 11. Years and Events Browser
 
-Navigate to: **http://localhost:8000/explorer/years**
+**URL**: http://localhost:8099/explorer/years?world_id=1
 
-### Check these features:
-- **Year list**: Shows all years with event counts
-- **Click a year**: Drill into events for that year
-- **Event count**: Total should be ~436,455 events
-- **Navigation**: Pagination for large event lists
-
----
-
-## 12. HF Type Filtering
-
-Navigate to: **http://localhost:8000/explorer** (main explorer, People tab)
-
-### Check these features:
-- **Type checkboxes**: Deity, Vampire, Necromancer, Werebeast, Ghost
-- Check "Vampire" — list should filter to show only vampires
-- Check multiple types — should show union of selected types
-- **Text filter**: Additional name filter below the checkboxes
+Check:
+- Year list with event counts (total ~436,455 events)
+- Click a year to drill into its events
+- Pagination for large event lists
+- Event type filter/categorization
 
 ---
 
-## 13. Data Browser Features
+### 12. Three-Layer People Filter
 
-Navigate to: **http://localhost:8000/explorer** and click the **Data** tab
+**URL**: http://localhost:8099/explorer?world_id=1 (People tab)
 
-### JSONB Field Inventory
-1. Select a table with JSONB columns (e.g., `historical_figures`)
-2. Look for the JSONB column `details`
-3. The schema browser should show available JSONB keys
+#### Layer 1 — Race Category Pills
+- Click different race pills (Dwarf, Elf, Human, Goblin, etc.)
+- Should filter the HF list to show only that race
+- Check special categories: gods, demigods, titans
 
-### Row Detail Overlay
-1. Click on a data row in the table
-2. A modal overlay should appear showing all fields for that row
-3. JSONB fields should be displayed in expanded format
-4. Close the overlay by clicking outside or pressing Escape
+#### Layer 2 — Variant Bars
+- 5 always-visible bar indicators: **Vampire** (43), **Necromancer** (289), **Werebeast** (105), **Ghost**, **Animated Dead**
+- Click "Vampire" bar — list filters to show 43 vampires
+- Click "Necromancer" — should show 289 necromancers
+- Combine with a race pill — should AND the filters
 
-### Query Results Export
-1. Go to the **SQL** tab
-2. Run a query: `SELECT name, race, birth_year FROM historical_figures LIMIT 10`
-3. Look for export buttons (CSV/JSON)
-4. Click CSV — should download a CSV file
-5. Click JSON — should download a JSON file
+#### Layer 3 — Status + Text
+- Toggle **Alive/Dead** status filter
+- Type a name in the text search box
+- All three layers compose together
 
 ---
 
-## 14. URL Hash Tab Persistence
+### 13. Data Browser Features
 
-1. Navigate to an entity with tabs (e.g., http://localhost:8000/explorer/entity/24)
-2. Click the "Wars" tab — URL should update to include `#tab=wars`
-3. Copy the URL and open in a new tab — the Wars tab should be pre-selected
-4. Navigate away and use browser back — tab state should be preserved
+**URL**: http://localhost:8099/explorer?world_id=1 (Data tab)
+
+#### JSONB Field Inventory
+1. Select `historical_figures` table
+2. Look for JSONB column `details`
+3. Schema browser should show union of all keys found across rows
+
+#### Row Detail Overlay
+1. Click any data row
+2. Modal overlay shows all fields, JSONB expanded as tree
+3. FK values are clickable links
+4. Close with Escape or click outside
+
+#### Query Results Export
+1. Go to **SQL** tab
+2. Run: `SELECT name, race, birth_year FROM historical_figures LIMIT 10`
+3. Click **CSV** export button — downloads CSV file
+4. Click **JSON** export button — downloads JSON file
 
 ---
 
-## 15. Cross-Cutting Verification
+### 14. URL Hash Tab Persistence
 
-### Cross-Links
-- On any detail page, every entity name should be a clickable blue link
-- Clicking a link navigates to that entity's detail page
-- Links span all entity types: HF (gold), Entity (blue), Site (green), Artifact (purple), Region (orange)
+1. Go to http://localhost:8099/explorer/entity/24?world_id=1
+2. Click "Wars" tab — URL should update to `#tab=wars`
+3. Copy URL, open in new browser tab — Wars tab should be pre-selected
+4. Navigate away, use browser Back — tab state preserved
 
-### Perspective Rendering
-- On HF detail pages, the current HF's name is replaced with **caste-aware pronouns** in gold bold:
-  - MALE HFs: he/him/his
-  - FEMALE HFs: she/her/her
-  - Unknown/DEFAULT caste: they/them/their
-- On Site detail pages, the current site is replaced with "here"
+---
+
+### 15. Cross-Cutting Verification
+
+#### Cross-Links
+- On any detail page, entity names are clickable colored links
+- Links navigate to the correct entity detail page
+- Types: HF (gold), Entity (blue), Site (green), Artifact (purple), Region (orange)
+
+#### Perspective Rendering
+- HF pages: current HF replaced with **caste-aware pronouns** in gold italic
+- Site pages: current site replaced with "here"
 - Other entities remain as clickable links
 
-### DF Calendar
-- Events display dates as "Year N" or "the Nth of Month, Year N"
-- Month names are DF-canonical: Granite, Slate, Felsite, Hematite, Malachite, Galena, Limestone, Sandstone, Timber, Moonstone, Opal, Obsidian
+#### DF Calendar
+- Events show "Year N" or "the Nth of Month, Year N"
+- DF months: Granite, Slate, Felsite, Hematite, Malachite, Galena, Limestone, Sandstone, Timber, Moonstone, Opal, Obsidian
 
-### Hover Popovers
-- Hover over any entity link for 300ms — a tooltip appears
-- HF popovers show: name, race, caste, born/died years, kill count, type badges
-- Site popovers show: name, type, owner, coordinates
-- Entity popovers show: name, type, race
-- Artifact popovers show: name, item type, material, holder
+#### Hover Popovers
+- HF: name, race (resolved display name), caste, born/died, kill count, type badges
+- Site: name, type, owner
+- Entity: name, type, race
+- Artifact: name, item type, material, holder
+
+---
+
+## Part B: Enhancement Features (12 items)
+
+These were delivered beyond the original PRD scope during Phase 2.
+
+### 16. Unified Scoring System
+
+On the People tab, HFs should show **scoring badges** (prominence + salience):
+- Sort by prominence — most event-connected HFs first
+- Scoring uses IDF-weighting across 10 entity types
+- Check that deities, supernatural creatures, and leaders rank highly
+
+---
+
+### 17. Multi-Mode Graph Visualization
+
+**URL**: http://localhost:8099/explorer?world_id=1 (Graph tab)
+
+Test with HF #19639 (Minaro Autumnalsculpt, Elf werebeast — rich graph: 47 nodes, 132 edges at depth 2):
+
+#### Pedigree Mode
+- Select "Pedigree" — shows family tree layout
+- Tree should show parent/child/spouse relationships
+- Generation-depth slider controls how many generations displayed
+
+#### Mentorship Mode
+- Switch to "Mentorship" — career graph
+- Shows master/apprentice edges
+
+#### Full Network Mode
+- Switch to "Full Network"
+- **Degree selector**: Try 1-hop, 2-hop, 3-hop (more hops = more nodes)
+- **Layout algorithms**: Try Force Atlas 2, Barnes-Hut, Hierarchical, Circle, Grid
+- **Edge toggles**: Toggle family/romantic/mentorship/companion/imprisonment/membership/residence/conflict
+- **Node type toggles**: Toggle different HF types, entity subtypes, sites
+- **Entity/Site nodes**: Diamonds for entities, squares for sites
+
+---
+
+### 18. Hide Isolated Nodes
+
+In the Graph tab:
+- Toggle "Hide isolated nodes" — nodes with no visible edges should disappear
+- Helps declutter sparse networks
+
+---
+
+### 19. Inline HF Detail Expansion
+
+From the People tab or any list of HFs:
+- Click an HF name in the Explorer panel (not the full detail link)
+- An inline detail panel should expand showing partial HF info
+- Has its own sub-tab system (`switchInlineTab()`)
+- "Open Full Page" and "View Graph" escape hatches available
+
+---
+
+### 20. Chat Popup
+
+Look for a chat icon/button (usually bottom-right):
+- Click to open chat popup
+- Type a question about the world (e.g., "Who are the most powerful dwarves?")
+- Should stream a response via SSE from local Qwen3 LLM
+- Response should be RAG-augmented with world data
+
+**Note**: Requires Qwen3 LLM running locally. If not available, popup may show an error — that's OK for validation.
+
+---
+
+### 21. Dual-XML Enrichment (Data Verification)
+
+These checks verify that the enrichment pipeline is working:
+
+#### Event Enrichment (290K events)
+- Open any HF with many events
+- Events should show enriched fields: `reason`, nested `circumstance` data
+- The event text should have detail beyond just the base event type
+
+#### Structure Enrichment
+- Visit the temple at http://localhost:8099/explorer/site/301/structure/6?world_id=1
+- Should show: **deity**, **religion**, **inhabitants**, **name2** from plus-XML data
+
+#### Art Form Description Merge
+- Visit http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
+- Should have a text description like "The Poetry of Lathering is a solo celebration dance..."
+- This description comes from base legends.xml merged into plus metadata
+
+#### Relationship Supplements (334 records)
+- These are merged into `event_relationships.details` JSONB
+- Contains: `occasion_type`, `supplement_site_id`, `supplement_reason`
+- Can verify via SQL tab: `SELECT details FROM event_relationships WHERE details IS NOT NULL AND details != '{}' LIMIT 5`
+
+---
+
+### 22. Co-Member/Co-Occupant Graph Wings
+
+On HF detail pages with organizational membership:
+- Relationship section should show co-member and co-occupant connections
+- These appear as "wings" on the relationship display
+
+---
+
+### 23. Site Residents Tab
+
+On site detail pages:
+- Look for a **Residents** section or tab
+- Should show HFs linked as residents/former residents
+- These come from materialized settlement links (post-parse step 10)
+
+---
+
+### 24. Ownership Timeline
+
+On site detail pages with ownership changes:
+- Look for a visual timeline showing ownership transitions
+- Format: "Year X-Y: Owned by [Entity]" with colored segments
+
+---
+
+### 25. Art Form Composite PK Routing
+
+Art forms use a composite primary key (world_id, id, form_type):
+- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
+- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=poetic_form
+- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=dance_form
+- Each should route correctly, prev/next links should stay within the same form_type
+
+---
+
+## Regression Checks
+
+These verify that recent fixes didn't break existing functionality:
+
+### R1. Relationship Supplements Persisted
+```sql
+-- Run in SQL tab
+SELECT COUNT(*) FROM event_relationships WHERE details IS NOT NULL AND details != '{}'::jsonb;
+-- Expected: 334
+```
+
+### R2. Event Enrichment Count
+```sql
+SELECT COUNT(*) FROM history_events WHERE details ? 'circumstance';
+-- Expected: ~13,261
+```
+
+### R3. Structure Enrichment Count
+```sql
+SELECT COUNT(*) FROM structures WHERE details ? 'deity';
+-- Expected: > 0 (temples with deity data)
+```
+
+### R4. Art Form Descriptions Present
+```sql
+SELECT COUNT(*) FROM art_forms WHERE description IS NOT NULL AND description != '';
+-- Expected: 658
+```
+
+### R5. Total Record Count
+```sql
+SELECT
+  (SELECT COUNT(*) FROM historical_figures WHERE world_id=1) as hfs,
+  (SELECT COUNT(*) FROM entities WHERE world_id=1) as entities,
+  (SELECT COUNT(*) FROM sites WHERE world_id=1) as sites,
+  (SELECT COUNT(*) FROM history_events WHERE world_id=1) as events;
+-- Expected: 48273, 4847, 2154, 436455
+```
 
 ---
 
 ## Validation Checklist
 
-Check off each item as you verify it:
+### Core DoD (30 items)
 
-- [ ] Global search works from all pages with 200ms debounce
-- [ ] HF detail page renders with tabs, events, badges
-- [ ] Entity/Civilization detail page shows 5 tabs
-- [ ] Site detail page shows 3 tabs with structures
-- [ ] Artifact detail page renders with holder info
-- [ ] Region detail page shows biome + evilness badges
-- [ ] Structure detail page shows type badge
-- [ ] Written Content detail page shows author link
-- [ ] Event Collection detail page shows hierarchy
-- [ ] All 8 secondary entity pages render (underground region through era)
-- [ ] Years browser shows chronological event index
-- [ ] HF type filtering works (vampire, deity, etc.)
-- [ ] Hover popovers appear on entity links
-- [ ] Breadcrumb navigation present on all detail pages
-- [ ] Prev/Next navigation present on all detail pages
-- [ ] URL hash tab persistence works
-- [ ] Row detail overlay works in data browser
-- [ ] Query export (CSV/JSON) works
-- [ ] Cross-links are clickable and navigate correctly
-- [ ] Perspective rendering shows gold text for current entity
-- [ ] DF calendar dates display correctly
+**Entity Detail Pages (17)**:
+- [ ] Historical Figure detail (tabs, events, badges, 24 sections)
+- [ ] Entity/Civilization detail (5 tabs)
+- [ ] Site detail (3 tabs + structures)
+- [ ] Artifact detail (chain-of-custody)
+- [ ] Region detail (biome + evilness badges)
+- [ ] Structure detail (type badge, deity link for temples)
+- [ ] Written Content detail (author link, form type)
+- [ ] Event Collection detail (hierarchy)
+- [ ] Underground Region detail
+- [ ] Landmass detail
+- [ ] Mountain Peak detail
+- [ ] River detail
+- [ ] World Construction detail
+- [ ] Art Form detail (3 types, description text)
+- [ ] Identity detail (linked HF)
+- [ ] Historical Era detail (time range)
+- [ ] Years and Events browser
+
+**Search and Navigation (8)**:
+- [ ] Global search with live autocomplete (accent-insensitive)
+- [ ] Three-layer People filter (race pills, variant bars, status/text)
+- [ ] Hover popovers on entity links
+- [ ] Breadcrumb navigation on all detail pages
+- [ ] Prev/Next navigation on all detail pages
+- [ ] URL hash tab persistence
+- [ ] Row detail overlay in data browser
+- [ ] Query results export (CSV/JSON)
+
+**Cross-Cutting (5)**:
+- [ ] Cross-linked entity references everywhere
+- [ ] Perspective-aware event rendering (caste-aware pronouns)
+- [ ] DF calendar formatting
+- [ ] Entity name cache (pages load within performance targets)
+- [ ] All pages load without errors
+
+### Enhancements (12 items)
+- [ ] Unified scoring (prominence + salience badges)
+- [ ] Multi-mode graph (pedigree, mentorship, full network)
+- [ ] Graph features (degree selector, 6 layouts, edge/node toggles)
+- [ ] Hide isolated nodes toggle
+- [ ] Inline HF detail expansion
+- [ ] Chat popup (SSE streaming)
+- [ ] Dual-XML enrichment (events, structures, supplements)
+- [ ] Co-member/co-occupant graph wings
+- [ ] Site residents tab
+- [ ] Ownership timeline
+- [ ] Art form composite PK routing
+- [ ] Materialized HF settlement links
+
+### Regression Checks (5 SQL queries)
+- [ ] R1: 334 relationship supplements
+- [ ] R2: ~13,261 circumstance events
+- [ ] R3: Structures with deity data
+- [ ] R4: 658 art form descriptions
+- [ ] R5: Record counts match expected
 
 ---
 
-*Phase 2: Explorer Core — Validation Walkthrough*
-*21 verification items covering all 30 DoD requirements*
+*Phase 2: Explorer Core — Validation Walkthrough v2.0*
+*47 verification items covering 30 DoD + 12 enhancements + 5 regression checks*
