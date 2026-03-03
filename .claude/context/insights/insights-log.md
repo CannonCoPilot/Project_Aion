@@ -1758,3 +1758,30 @@ The variant chart counts are **independent of the variant filter** — they show
 ### 2026-03-03 [763317ac2b95]
 
 **Why so many "invisible" partnerships?** Dwarf Fortress tracks parent-child links meticulously (every HF has `<mother>` and `<father>` tags), but only records spouse/lover links when a formal relationship event occurs. Many children are born from unions that DF never formally marked — perhaps short-lived relationships, or simply relationships that ended before the world generation completed. The co-parent inference recovers these by triangulating: if A→child→B exists but A↔B doesn't, they must have had some partnership.
+
+### 2026-03-03 [3608d1fd1c18]
+
+**vis.js hierarchical `level` property + generation mapping**: In `direction: 'UD'` mode, a lower `level` number renders *higher* on screen. By assigning `level = generation` directly (where ancestors are negative, center is 0, descendants are positive), the layout naturally places ancestors at the top and descendants below — no sign-flipping needed.
+
+**Client-side toggle via `DataSet.update({hidden})`**: vis.js DataSets support live updates — calling `update({id, hidden: true})` instantly hides a node without re-creating the network. This is why the generation sliders and legend toggles work without any AJAX or full re-render. The physics engine gracefully adjusts to the reduced graph.
+
+**Edge visibility sync**: When hiding nodes via legend toggles, edges connected to hidden nodes also need hiding — but vis.js doesn't do this automatically. The `_syncEdgeVisibility()` function iterates edges and hides any that touch a hidden node. For the pedigree slider, we explicitly check both endpoints since entire generations can be hidden at once.
+
+### 2026-03-03 [40f237c33e02]
+
+**Why `--reload` matters for development servers**: The port 8095 uvicorn instance (started Thursday, PID 99113) was running without `--reload`, meaning Python module changes weren't picked up — only Jinja2 template changes were (Jinja2 reloads templates from disk on each request by default). The new backend helpers (`_build_pedigree_data`, etc.) and route context changes required a process restart. The replacement server now includes `--reload` to avoid this stale-code issue going forward.
+
+**Conditional template sections degrade gracefully**: The `{% if graph_data_X and graph_data_X.edges|length > 0 %}` guards ensure that graph containers are only rendered when there's actual data. This avoids empty vis.js canvases and wasted JavaScript initialization — the lazy `IntersectionObserver` would fire but have nothing to render.
+
+### 2026-03-03 [bec5b9e442fc]
+
+**The problem with vis.js hierarchical layout for pedigrees**: vis.js's built-in hierarchical mode treats all nodes as equal participants and uses a generic Sugiyama-style algorithm. It doesn't understand that a pedigree has a *binary tree structure upward* (each person has exactly 2 parents) and a *variable-arity tree downward* (each person can have N children). This means it can't naturally produce the "roots above, branches below, subject in the center" look.
+
+**The open-source landscape for tree layouts**:
+- **yFiles** — commercial, excellent tree layout, $$$
+- **dagre.js** — MIT, purpose-built for DAG layout, used by Mermaid/Cytoscape
+- **ELK (elkjs)** — Eclipse Layout Kernel ported to JS, handles complex hierarchies
+- **D3 hierarchy** — built into D3, good for strict trees
+- **Custom Reingold-Tilford** — no dependencies, full control, ideal for genealogies
+
+For a pedigree, a **custom tree position calculator** feeding into vis.js gives the best result: ancestors fan out in a binary tree upward, descendants fan out by subtree width downward, and the subject stays fixed at center. No new JS dependencies needed — just pure position math.
