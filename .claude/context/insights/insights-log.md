@@ -1799,3 +1799,11 @@ For a pedigree, a **custom tree position calculator** feeding into vis.js gives 
 ### 2026-03-03 [26bbdf6abbf4]
 
 **hf_site_links vs change hf state events**: The `hf_site_links` table (2,074 entries) comes from XML-declared relationships like "home structure" or "seat of power" — these are structural, not temporal. Meanwhile, 26,523 HFs have `change hf state` events (settling/traveling) at sites, but these *event-based* relationships aren't materialized into a linkage table. That's why Stodir's settling at Metalsnarl doesn't create a queryable site link — it's recorded as an event but not a relationship.
+
+### 2026-03-03 [ee1f6df5fbc3]
+
+**What we built and why it works automatically:**
+1. **Post-parse step 10** materializes `change hf state (settled)` events into `hf_site_links` rows with `link_type='settled'`. This is the "universal join table" pattern — 4 API routes already query `hf_site_links`, so all get settlement data for free.
+2. **The `ON CONFLICT DO NOTHING` + `DISTINCT` combo** makes the step idempotent — safe to re-run during re-ingestion.
+3. **The reverse index** (`idx_hf_site_links_site`) enables efficient site→HF lookups (6ms for 933-link sites vs potential sequential scan).
+4. **Edge color `#34d399`** (emerald-400) is visually distinct from the existing green `#22c55e` used for home structure/occupation, so settled vs. owned relationships are distinguishable in the graph.
