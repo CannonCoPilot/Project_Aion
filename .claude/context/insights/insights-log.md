@@ -1785,3 +1785,13 @@ The variant chart counts are **independent of the variant filter** — they show
 - **Custom Reingold-Tilford** — no dependencies, full control, ideal for genealogies
 
 For a pedigree, a **custom tree position calculator** feeding into vis.js gives the best result: ancestors fan out in a binary tree upward, descendants fan out by subtree width downward, and the subject stays fixed at center. No new JS dependencies needed — just pure position math.
+
+### 2026-03-03 [3f7cbf5d08c6]
+
+**Why remove/re-add beats hidden flags**: vis.js's `hidden: true` property is a rendering-only flag — the physics engine still calculates forces for hidden nodes. This creates "phantom gaps" in the layout where invisible nodes push visible ones apart. By actually removing nodes from the `DataSet` with `clear()` + `add()`, vis.js has no knowledge of the hidden nodes at all, so the physics simulation produces a tight, natural layout with only the visible elements. The tradeoff is slightly more CPU work on toggle (rebuilding DataSets), but since typical graphs have <200 nodes, this is imperceptible.
+
+**BFS expansion with frontier pattern**: The degree selector uses a classic BFS (Breadth-First Search) approach. At degree 1, we use the already-fetched relationships (no extra DB query). At degree 2+, each iteration queries `hf_links` in both directions (forward + reverse) for the "frontier" nodes discovered in the previous iteration, collecting new HF IDs not yet visited. The 200-node cap prevents graph explosion for well-connected HFs like kings or deities.
+
+### 2026-03-03 [16a66993b5a6]
+
+**How `aspect-ratio` + `width` interact**: With `aspect-ratio: 1` and `width: 100%`, the browser computes the height to equal the width of the parent `.section-card` container. Removing `max-height: 80vh` means the square is purely width-driven — on a 1200px-wide container, the graph will be 1200x1200px. The page scrolls vertically to accommodate it, which is the expected behavior for a large data visualization.
