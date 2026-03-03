@@ -8,13 +8,38 @@
 
 ## Current Work Status
 
-**Status**: Active -- Session 36
+**Status**: Active -- Session 36 (continued)
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: aad19dd (IDF entity scoring docs)
+**Last Commit**: aad19dd (IDF entity scoring docs) [Jarvis repo]
 **Last Pushed**: aad19dd (to origin/Project_Aion)
-**DwarfCron Last Commit**: d656942 (IDF-weighted entity importance scoring)
-**DwarfCron Last Pushed**: d656942 (to origin/main)
+**DwarfCron Last Commit**: 234becf (relationship supplements fix)
+**DwarfCron Last Pushed**: 234becf (to origin/main)
+
+---
+
+## What Was Accomplished (2026-03-03, Session 36 -- Phase 2 COMPLETE)
+
+### Phase 2: Explorer Core — ALL DoD CHECKS PASSED + 12 ENHANCEMENTS
+
+**Parser audit & enrichment**:
+- Identified 3 merge gaps between base and plus XML
+- Event enrichment: 290K events gain plus-only fields (reason, nested circumstance)
+- Structure enrichment: 1,833 name2 / 882 inhabitants / 306 religion / 4 deity
+- Relationship supplements: 334 occasion_type/site/reason merged (after fixing table + column targeting bug)
+- Art form descriptions: 658 merged from base legends into plus metadata
+
+**Bugs fixed**:
+- JSONB double-encoding (asyncpg codec auto-encodes; removed redundant json.dumps)
+- Scoring crash on non-dict structure details (list guard added)
+- Relationship supplements targeting wrong table (history_events → event_relationships) and wrong column (serial id → event_id FK)
+
+**Planning documents updated**:
+- Phase 2 PRD updated to v2.0 with implementation status, design evolution, and paradigm notes
+
+**Key metrics**: 1,675,297 total records, 0 referential integrity issues, 17 entity detail pages, 71 event type templates
+
+**Next**: Phase 3 — Narrative Engine (per `reports/phases/phase-3-narrative-engine.md`)
 
 ---
 
@@ -35,7 +60,7 @@ All 4 stages completed across sessions 34-35:
 - Phase 1 completion report: `projects/chronicler/reports/phase-1-completion-report.md`
 - Both repos committed and pushed
 
-**Next**: Phase 2 — Explorer Pages
+**Next**: Phase 2 — Explorer Pages (NOW COMPLETE)
 
 ---
 

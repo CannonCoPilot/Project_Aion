@@ -1,15 +1,16 @@
 # Phase 2: Explorer Core -- PRD/Roadmap
 
-**Version**: 1.0
-**Date**: 2026-02-25
-**Phase Duration**: 4-6 weeks
-**Milestone**: M2 -- Explorer Complete
+**Version**: 2.0
+**Date**: 2026-03-03 (updated from 2026-02-25 v1.0)
+**Phase Duration**: 4-6 weeks (actual: ~5 weeks, 2026-02-01 through 2026-03-03)
+**Milestone**: M2 -- Explorer Complete (DELIVERED)
 **Entry State**: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid, FK navigation, JSONB expansion, creature dictionary populated with display names and classification flags
-**Exit State**: Full entity detail pages for all 15+ entity types, global search with autocomplete, perspective-aware cross-linking, hover popovers, prev-next navigation, all race displays resolved via creature dictionary
+**Exit State**: Full entity detail pages for all 17 entity types, global search with autocomplete, perspective-aware cross-linking (71 event type templates), hover popovers (Tippy.js), prev-next navigation, three-layer People filtering, unified scoring (prominence + salience), multi-mode graph visualization, inline HF detail, chat popup, dual-XML enrichment pipeline
 
 **Parent Document**: Full Project Roadmap (full-project-roadmap.md)
 **Dependencies**: Phase 1 (M1 -- Data Complete, including Stage 1.5 Creature Dictionary)
 **Requirements Covered**: REQ-EXP-001 through EXP-030, REQ-NAV-001 through NAV-005, REQ-VIS-022, REQ-VIS-023
+**Status**: COMPLETE -- all DoD checkboxes pass, all original requirements delivered plus enhancements
 
 ---
 
@@ -25,30 +26,62 @@ Phase 2 builds the complete entity browsing experience. After Phase 1 populates 
 4. **Consistent navigation**: Hover popovers, breadcrumbs, prev/next buttons, and URL hash persistence work identically across all entity types
 5. **Server-side rendering**: HTML generated server-side via Jinja2 templates, with JavaScript for interactive components only
 
-### 1.2 Current State
+### 1.2 Current State (as of v2.0, 2026-03-03)
 
-**Built**:
+**All Phase 2 PRD requirements delivered.** The following catalogs everything built.
+
+**Core Explorer Infrastructure**:
 - Explorer UI shell with 6 tabs (People, Civilizations, Geography, Schema, Data, Graph)
 - Paginated data grid (10/25/50/100 per page, server-side)
-- Column-level filtering (partially)
-- Column sorting (partially)
+- Column-level filtering and sorting
 - FK link navigation (click FK values)
 - JSONB collapsible expansion
 - SQL Runner (read-only, safety measures)
-- Schema browser (table list + column detail)
-- Graph tab (vis.js ego network, partially built)
+- Schema browser (table list + column detail + JSONB key inventory)
+- Row detail overlay (click any row for full-screen detail with FK links)
+- Query results export (CSV/JSON, streaming for large sets)
 
-**Not built**:
-- Entity detail pages (0 of 15+ types)
-- Cross-linking infrastructure
-- Perspective-aware event rendering
-- Global search with autocomplete
-- Hover popovers
-- Prev/next navigation
-- DF calendar utility
-- JSONB field inventory in schema browser
-- Row detail overlay
-- Query results export
+**Entity Detail Pages** (17 types, all delivered):
+- Historical Figure (24 sections, inline HF detail with partial rendering)
+- Entity/Civilization (5 tabs: Leaders, Sites, Members, Groups, Wars)
+- Site (3 tabs: Structures, Properties, History + ownership timeline)
+- Artifact (chain-of-custody timeline)
+- Region, Structure, Written Content, Event Collection (hierarchy)
+- Underground Region, Landmass, Mountain Peak, River, World Construction
+- Art Form (3 types: dance, musical, poetic; composite PK routing)
+- Identity, Historical Era, Years/Events browser
+
+**Cross-Linking & Navigation**:
+- `EntityLinkRenderer` with routes for 16 entity types
+- `EntityNameCache` with per-world TTL-based caching + bulk resolution
+- `PerspectiveRenderer` with 71 event type templates + pronoun substitution (he/she/they)
+- `DFCalendar` utility (12 months x 28 days, seconds72 conversion)
+- Hover popovers (Tippy.js v6 + Popper.js v2, AJAX-loaded with cache)
+- Breadcrumb / prev-next navigation on all detail pages
+- URL hash tab persistence (replaceState + hashchange listener)
+- Global search with debounced autocomplete (200ms, accent-insensitive)
+
+**Enhancements Beyond Original PRD** (delivered during Phase 2 implementation):
+- Unified scoring system: dual-metric (prominence + salience), IDF-weighted, 10 entity types
+- Three-layer People filter: race pills → biological variant bars → alive/dead status
+- Multi-mode Graph: pedigree (tree layout), mentorship (career graph), full network
+- Graph features: entity/site nodes, 1-3 hop degree selector, 6 layout algorithms, edge category toggles, node type toggles, hide-isolated-nodes
+- Inline HF detail expansion (partial rendering in Explorer panel)
+- Chat popup (SSE streaming via local Qwen3 LLM, RAG-augmented)
+- Scoring badges on entity cards
+- Co-member/co-occupant relationship graph wings
+- Site residents tab
+- Ownership timeline visualization
+- Bidirectional romantic link enforcement in hf_links
+- Materialized HF settlement links (resident/former resident, post-parse step 10)
+
+**Data Handling Improvements** (delivered during Phase 2):
+- Dual-XML merge paradigm: base legends.xml (CP437, descriptions) + legends_plus.xml (UTF-8, structured metadata) merged as complementary sources
+- Event enrichment: 290K events gain plus-only fields (reason, nested circumstance) via JSONB `||` merge
+- Structure enrichment: deity, religion, inhabitants, name2 from plus site data
+- Relationship supplements: occasion_type, site, reason merged into event_relationships.details
+- Art form description merge: text descriptions from base legends into plus metadata
+- JSONB enrichment pattern: `COALESCE(details, '{}'::jsonb) || $1::jsonb` (avoids double-encoding via asyncpg custom codec)
 
 ---
 
@@ -1017,30 +1050,132 @@ Phase 2 is complete when ALL of the following are true:
 - [x] Entity name cache for performance
 - [x] All pages load within performance targets
 
+### Enhancements (beyond original PRD scope, delivered during Phase 2)
+- [x] Unified scoring system (prominence + salience, IDF-weighted, 10 entity types)
+- [x] Three-layer People filter (race pills → variant bars → alive/dead)
+- [x] Multi-mode graph visualization (pedigree, mentorship, full network)
+- [x] Graph advanced features (entity/site nodes, degree selector, 6 layouts, edge/node toggles, isolation)
+- [x] Inline HF detail expansion (partial rendering in Explorer panel)
+- [x] Chat popup (SSE streaming via local LLM, RAG-augmented)
+- [x] Dual-XML enrichment pipeline (event + structure + relationship supplement merge)
+- [x] Co-member/co-occupant relationship wings
+- [x] Site residents tab
+- [x] Ownership timeline visualization
+- [x] Art form composite PK routing (world_id, id, form_type)
+- [x] Materialized HF settlement links (post-parse step 10)
+
 ---
 
-## 7. Risk Mitigation
+## 7. Design Evolution & Paradigm Notes
 
-| Risk | Likelihood | Impact | Mitigation |
+This section documents design patterns and paradigms that emerged during Phase 2 implementation. These inform subsequent phases.
+
+### 7.1 Dual-XML Merge Paradigm
+
+Neither `legends.xml` nor `legends_plus.xml` is a superset — they are complementary sources. The parser now follows a consistent pattern:
+
+1. **Base first**: Parse `legends.xml` (CP437, 298MB, 436K events) for all entities with text descriptions
+2. **Plus enrichment**: Parse `legends_plus.xml` (UTF-8, 115MB, 290K events) for structured metadata
+3. **Merge via JSONB `||`**: `SET details = COALESCE(details, '{}'::jsonb) || $1::jsonb`
+4. **asyncpg codec awareness**: The connection pool registers a custom JSONB codec (`json.dumps`/`json.loads`), so Python dicts pass directly — never call `json.dumps()` before `executemany`.
+
+Three enrichment types: event enrichment (290K events, nested elements like `<circumstance>`), structure enrichment (deity/religion/inhabitants/name2), relationship supplements (occasion_type/site/reason via `event_relationships.event_id` FK).
+
+### 7.2 Unified Scoring Architecture
+
+Two independent metrics per entity, avoiding a single conflated "importance" number:
+
+- **Prominence** (structural): event count, link degree, TF-IDF weighting per entity type, collection participation (attacker/defender weighted differently)
+- **Salience** (intrinsic): supernatural flags, rarity, danger rating, deity status, site strategic value
+
+IDF weighting prevents event-heavy entities from dominating: `log(N / df_i)` across entity's event type distribution.
+
+### 7.3 Three-Layer Filter Pattern
+
+The People tab demonstrates a composable filter pattern applicable to other tabs:
+
+1. **Layer 1 — Category pills**: High-level grouping (race categories, including special groups like `_demigod`, `_gods`, `_titan`)
+2. **Layer 2 — Variant bar chart**: 5 always-visible bars (vampire/necromancer/werebeast/ghost/animated_dead), toggleable
+3. **Layer 3 — Status + text**: Alive/dead cycle + free-text name search
+
+All layers compose via query parameters: `race=&flags=&alive=&search=`.
+
+### 7.4 Graph View Architecture
+
+The graph system evolved from a single ego-network into a multi-modal visualization:
+
+- **Pedigree mode**: Custom tree layout with generation-depth sliders, spouse nodes
+- **Mentorship mode**: Career graph with master/apprentice edges
+- **Full network mode**: Entity/site nodes (diamonds/squares), 1-3 hop degree selector, 6 layout algorithms (Force Atlas 2, Barnes-Hut, Repulsion, Hierarchical, Circle, Grid)
+- **Edge category toggles**: family/romantic/mentorship/companion/imprisonment/membership/residence/conflict
+- **Node type toggles**: 7 HF types + 10 entity subtypes + site
+- **Hide isolated nodes**: Declutters sparse networks
+
+### 7.5 Inline Detail Pattern
+
+HF detail pages support `?partial=1` rendering, returning `_hf_inline.html` instead of the full-page template. This enables:
+- In-app detail exploration without full page navigation
+- Independent sub-tab system (`switchInlineTab()` vs `switchDetailTab()`)
+- "Open Full Page" / "View Graph" escape hatches
+- Script re-execution for dynamically injected HTML
+
+### 7.6 DB Operations Pattern
+
+- **Full world re-ingestion**: `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` + `init-db` + `ingest` (instant vs CASCADE DELETE which takes minutes on 500K+ rows)
+- **Targeted updates**: `DELETE FROM` only for surgical changes to specific records
+- **Enrichment merges**: Always `COALESCE(details, '{}'::jsonb) || $1::jsonb` (idempotent, additive)
+
+---
+
+## 8. Risk Mitigation (Retrospective)
+
+| Risk | Predicted | Actual | Resolution |
 |------|-----------|--------|------------|
-| HF detail page too slow (24 sections, many queries) | Medium | High | Lazy-load sections; use event_entity_xref index; cache heavy queries |
-| Search too slow across 15+ tables | Medium | Medium | Use ILIKE with index; consider pg_trgm extension for fuzzy matching |
-| Popover AJAX storms (many links hovered quickly) | Medium | Low | Debounce + LRU cache on client; rate limit on server |
-| Cross-linking breaks for deleted/missing entities | Low | Medium | Graceful fallback text for unresolvable entity IDs |
-| Tab state lost on navigation | Low | Low | URL hash persistence handles this |
+| HF detail page too slow (24 sections) | Medium/High | Mitigated | Inline partial rendering (`?partial=1`), event_entity_xref index, EntityNameCache with TTL + bulk resolution |
+| Search too slow across 15+ tables | Medium/Medium | Mitigated | Debounced autocomplete (200ms), accent-insensitive ILIKE, results ordered by prominence_score |
+| Popover AJAX storms | Medium/Low | Mitigated | Tippy.js with `popoverCache`, one AJAX call per entity per session |
+| Cross-linking breaks for deleted entities | Low/Medium | Mitigated | `EntityNameCache._lookup()` returns graceful fallback text |
+| Tab state lost on navigation | Low/Low | Resolved | URL hash persistence via `replaceState` + `hashchange` listener |
+| JSONB double-encoding (emergent) | Not predicted | High impact | asyncpg custom codec auto-encodes dicts; removed redundant `json.dumps()` calls |
+| Supplement ID confusion (emergent) | Not predicted | Medium impact | DF XML naming ambiguity: supplement `<event>` references `event_relationships.event_id`, not the serial PK |
 
 ---
 
-## 8. Dependencies on Other Phases
+## 9. Dependencies on Other Phases
 
 | Consumer Phase | What It Needs From Phase 2 |
 |---------------|---------------------------|
-| **Phase 3 (Narrative)** | Event rendering infrastructure, cross-linking, perspective engine |
-| **Phase 4 (Visualization)** | Detail page framework for embedding maps, charts, trees |
-| **Phase 5 (Live Integration)** | Entity detail pages for KH-masked views |
-| **Phase 6 (Advanced)** | Labor Manager builds on unit/HF detail pages |
+| **Phase 3 (Narrative)** | Event rendering infrastructure (71 templates), cross-linking, perspective engine, DFCalendar |
+| **Phase 4 (Visualization)** | Detail page framework, graph infrastructure (vis-network, pedigree/mentorship modes), inline partial pattern |
+| **Phase 5 (Live Integration)** | Entity detail pages for KH-masked views, scoring system for priority ranking |
+| **Phase 6 (Advanced)** | Labor Manager builds on unit/HF detail pages, three-layer filter pattern |
 
 ---
 
-*Phase 2: Explorer Core PRD/Roadmap v1.0 -- 2026-02-25*
-*4 Stages, 30+ Tasks, 4-6 Weeks Estimated*
+## 10. Commit History (Phase 2 delivery, newest first)
+
+| Commit | Description |
+|--------|-------------|
+| `234becf` | fix: relationship supplements target event_relationships.event_id |
+| `66f9d60` | feat: merge plus-only enrichment data for events, structures, relationships |
+| `c167837` | fix: art form detail routing with composite PK |
+| `f3c329e` | feat: graph isolation toggle and search alive/dead filter |
+| `6b5ed8a` | feat: co-member/co-occupant graph wings and site residents tab |
+| `057b0bf` | feat: materialize HF settlement links (step 10) |
+| `41a3fb3` | fix: entity-site ownership gaps + ownership timeline |
+| `7e9499f` | feat: Graph Tab entity/site nodes, degree selector, layout options |
+| `bba06e5` | feat: split HF graphs into pedigree, mentorship, full network |
+| `d6540cf` | fix: bidirectional romantic link enforcement in hf_links |
+| `fb7b494` | feat: three-layer filter system for People tab |
+| `97d62e6` | feat: unified scoring v2.0 (prominence + salience) |
+| `3f244b0` | feat: scoring badges, HF inline detail, creature parsing |
+| `0ae4337` | feat: inline HF detail, relationship graph, chat popup, search filters |
+| `9adb7ee` | fix: JSONB double-encoding + race pills + creature dictionary |
+| `d656942` | feat: IDF-weighted entity importance scoring |
+| `1259fdc` | feat: Phase 2 Explorer Core — 17 entity detail pages, search, cross-linking |
+
+---
+
+*Phase 2: Explorer Core PRD/Roadmap v2.0 -- 2026-03-03 (original v1.0: 2026-02-25)*
+*4 Stages, 30+ Tasks, ~5 Weeks Actual*
+*Status: COMPLETE — all DoD items pass, plus 12 enhancement deliverables*

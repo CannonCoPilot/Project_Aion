@@ -1807,3 +1807,21 @@ For a pedigree, a **custom tree position calculator** feeding into vis.js gives 
 2. **The `ON CONFLICT DO NOTHING` + `DISTINCT` combo** makes the step idempotent — safe to re-run during re-ingestion.
 3. **The reverse index** (`idx_hf_site_links_site`) enables efficient site→HF lookups (6ms for 933-link sites vs potential sequential scan).
 4. **Edge color `#34d399`** (emerald-400) is visually distinct from the existing green `#22c55e` used for home structure/occupation, so settled vs. owned relationships are distinguishable in the graph.
+
+### 2026-03-03 [50e649cc309e]
+
+**Graph architecture**: The detail page uses a two-phase graph build. Phase 1 collects HF-to-HF relationships via BFS (capped at 200 HF nodes). Phase 2 adds entity/site "wings" — the center HF's entity memberships and site residences, plus co-members (10/entity cap) and co-occupants (10/site cap). This fan-out pattern keeps the graph readable while showing meaningful neighborhood context.
+
+**Disambiguating the two graph endpoints**: The detail page graph (`_build_full_graph_data` in `detail_pages.py`) is embedded directly in the HTML. The explorer graph (`/api/explorer/graph/hf/...` in `explorer.py`) is a separate AJAX endpoint used for the degree slider. They share helper functions but have different logic — the explorer graph shows all entity links without co-member expansion.
+
+### 2026-03-03 [ab9ceef7ea37]
+
+**Unified filter pipeline**: Both `searchPeople()` and `browsePeople()` now funnel through `filterPeopleList()` instead of rendering directly. This means the alive/dead toggle (and the text filter) are always applied consistently, regardless of whether the user searched by name or is browsing the top figures list. Before this change, `searchPeople()` bypassed the text filter entirely — that was a latent bug where typing in the "Filter results..." box would be ignored until you scrolled or clicked.
+
+**Button group pattern**: The All/Alive/Dead toggle uses a "mutually exclusive button group" pattern — a single state variable (`peopleAliveFilter`) with visual feedback via class swapping. The active button gets the amber highlight, inactive buttons get stone-400 text. This matches the existing UI language (amber = active/selected) without adding another checkbox style.
+
+### 2026-03-03 [5e2a953e1511]
+
+**Why two files?** Dwarf Fortress's vanilla `legends.xml` was the original export, designed before DFHack existed. It prioritizes human-readable descriptions and complete event histories. DFHack's `legends_plus.xml` was created later to fill gaps: structured metadata, relationship graphs, creature definitions, and semantic context (like `reason` fields on events). Neither file is a superset of the other — they're two complementary views of the same world. A robust parser must treat them as a single logical dataset split across two physical files.
+
+**The merge pattern**: Every properly-merged table in our parser follows the same strategy: (1) INSERT from base first (richer text data), (2) UPSERT/UPDATE from plus to add structured metadata. The three gaps identified all deviate from this pattern — events and structures only read from one source, and supplements are completely skipped.
