@@ -1,9 +1,9 @@
-# Phase 2: Explorer Core — Validation Walkthrough v2.0
+# Phase 2: Explorer Core — Validation Walkthrough v2.1
 
-**Purpose**: Step-by-step guide to verify all Phase 2 features (30 DoD + 12 enhancements).
+**Purpose**: Step-by-step guide to verify all Phase 2 features (30 DoD + 13 enhancements).
 **Prerequisites**: PostgreSQL running, world "Tar Thran" ingested (1,675,297 records).
 **Server**: Chronicler running on port 8099.
-**Date**: 2026-03-03
+**Date**: 2026-03-03 (updated 2026-03-04)
 
 ---
 
@@ -47,8 +47,9 @@ HF #1 is **Zogast Budzeniths the Esteemed** (HYDRA, MALE, deity, born -217, 15 k
 Check:
 - **Header**: Name, race resolved via creature dictionary ("hydra" not "HYDRA"), sex
 - **Deity badge**: Gold badge since this HF is a deity
-- **Tabs**: Click through all tabs (Overview, Relationships, Career, Events)
+- **Tabs**: Click through all 5 tabs (Overview, Relationships, Career, Events, Graph)
 - **Events tab**: Perspective-aware — this HF referenced as **he/him** in gold italic text; other entities are blue clickable links
+- **Events enrichment**: Some event rows have a `▸` marker — click to expand inline enrichment tags (reason, circumstance, link_type, etc.)
 - **Popovers**: Hover over any blue entity link — tooltip appears after ~300ms with mini-summary
 - **Breadcrumb**: "Explorer > People > Zogast Budzeniths the Esteemed"
 - **Prev/Next**: Navigation arrows to adjacent HFs
@@ -71,10 +72,11 @@ Check:
 **URL**: http://localhost:8099/explorer/entity/24?world_id=1
 
 Check:
-- **5 tabs**: Leaders, Sites, Members, Groups, Wars
+- **5 tabs**: Leaders, Sites, Members, Positions, Wars
 - **Leaders tab**: Position holders with linked HF names
 - **Sites tab**: Owned/controlled sites with links
 - **Members tab**: Notable members sorted by importance
+- **Positions tab**: Named positions defined for this entity (e.g., "king", "general")
 - **Wars tab**: War participation showing aggressor/defender
 - **Cross-links**: All names are clickable with popovers
 
@@ -85,10 +87,12 @@ Check:
 **URL**: http://localhost:8099/explorer/site/1?world_id=1
 
 Check:
-- **3 tabs**: Structures, Properties, History
+- **4 tabs**: Structures, Properties, Ownership, History
 - **Structures tab**: Linked structure list (click through to structure detail)
-- **Owner**: Current owner civilization linked
-- **History tab**: Ownership history and events
+- **Properties tab**: Site type, coordinates, and metadata
+- **Ownership tab**: Current owner civilization linked, ownership timeline showing transitions
+- **History tab**: Events at this site with enrichment tags (click `▸` to expand)
+- **Residents**: HFs linked as current/former residents (visible in Ownership section)
 
 ---
 
@@ -116,15 +120,29 @@ Check:
 
 ### 7. Structure Detail Page
 
-**URL**: http://localhost:8099/explorer/site/38/structure/0?world_id=1 (market)
+Test with three different structure types:
 
-Temple with deity enrichment: **http://localhost:8099/explorer/site/301/structure/6?world_id=1**
+| Structure | URL | Expected Tabs |
+|-----------|-----|---------------|
+| Market | http://localhost:8099/explorer/site/38/structure/0?world_id=1 | Overview, Events |
+| Inn Tavern | http://localhost:8099/explorer/site/301/structure/0?world_id=1 | Overview, Events |
+| Temple | http://localhost:8099/explorer/site/301/structure/6?world_id=1 | Overview, Positions (2), Members (67), Events |
 
-Check:
-- **Type badge**: "market", "temple", "tomb", "mead_hall", etc.
-- **Deity link** (temples): Clickable HF link to the associated deity
-- **Religion** (temples): Religion/entity references from plus-XML enrichment
+#### All Structures
+- **Type badge**: "market", "temple", "inn_tavern", "mead_hall", etc.
 - **Parent site**: Link back to parent site
+- **Events**: Event rows with enrichment tags (click `▸` to expand)
+
+#### Temple-Specific (entity_id present)
+- **Deity link**: Clickable HF link to the associated deity
+- **Sect link**: Religion entity reference (e.g., "The Fellowship of Thirst")
+- **Alt Name**: Displayed if `name2` exists in plus-XML details
+- **Positions tab**: Named position roles (should show "Sacred Law" and "High Nourishment" — NOT "Position 0"/"Position 1")
+- **Members tab**: 67 members with current/former badges
+
+#### Inn Tavern (no entity_id)
+- Should show **no** Positions or Members tabs — only Overview and Events
+- This verifies the conditional tab rendering works correctly
 
 ---
 
@@ -178,6 +196,7 @@ Check:
 - Click a year to drill into its events
 - Pagination for large event lists
 - Event type filter/categorization
+- Enrichment tags on event rows (click `▸` to expand — ~64% of events have enrichment data)
 
 ---
 
@@ -259,7 +278,7 @@ Check:
 
 ---
 
-## Part B: Enhancement Features (12 items)
+## Part B: Enhancement Features (13 items)
 
 These were delivered beyond the original PRD scope during Phase 2.
 
@@ -329,21 +348,24 @@ Look for a chat icon/button (usually bottom-right):
 
 ### 21. Dual-XML Enrichment (Data Verification)
 
-These checks verify that the enrichment pipeline persisted data correctly. Some enrichments are visible in the UI; others are data-layer only (validated via SQL in the Regression Checks section).
+These checks verify that the enrichment pipeline persisted data correctly and is surfaced in the UI.
+
+#### Event Enrichment (UI-visible)
+- 290K events gained plus-only fields (`reason`, nested `circumstance`) via JSONB `||` merge
+- **Now visible in UI**: Event rows with enrichment data show a `▸` marker — click to expand inline tags showing reason, circumstance, link_type, action, quality, etc.
+- Enrichment display filters out entity IDs, sentinel values, and fields already in the narrative text — only showing meaningful extra metadata
+- Test on any HF page: ~64% of events will have expandable enrichment tags
+- Verify data via SQL tab: `SELECT event_type, details->'reason', details->'circumstance' FROM history_events WHERE details ? 'circumstance' LIMIT 5`
 
 #### Structure Enrichment (UI-visible)
 - Visit the temple at http://localhost:8099/explorer/site/301/structure/6?world_id=1
-- Should show: **deity**, **religion**, **inhabitants**, **name2** from plus-XML data
+- Should show: **deity**, **religion (Sect)**, **positions**, **members**, **name2** from plus-XML data
+- Positions should display named roles ("Sacred Law", "High Nourishment") not numeric "Position N" entries
 
 #### Art Form Description Merge (UI-visible)
 - Visit http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
 - Should have a text description like "The Poetry of Lathering is a solo celebration dance..."
 - This description comes from base legends.xml merged into plus metadata
-
-#### Event Enrichment (data-layer only — verify via SQL)
-- 290K events gained plus-only fields (`reason`, nested `circumstance`) via JSONB `||` merge
-- These fields are stored in `details` JSONB but **not yet surfaced in event text templates** (71 templates use entity-reference placeholders; enrichment fields like `reason` and `circumstance` are available for Phase 3 narrative rendering)
-- Verify via SQL tab: `SELECT event_type, details->'reason', details->'circumstance' FROM history_events WHERE details ? 'circumstance' LIMIT 5`
 
 #### Relationship Supplements (data-layer only — verify via SQL)
 - 334 records merged into `event_relationships.details` JSONB
@@ -352,7 +374,19 @@ These checks verify that the enrichment pipeline persisted data correctly. Some 
 
 ---
 
-### 22. Co-Member/Co-Occupant Graph Wings
+### 22. Event Enrichment UI Display
+
+On any detail page with events (HF, site, structure, region, etc.):
+- Event rows with enrichment data show a small `▸` marker before the date
+- Click the row to expand — inline tags appear showing metadata like **reason**, **circumstance**, **link_type**, **action**, **quality**, etc.
+- Click again to collapse
+- The enrichment filter suppresses entity IDs, sentinel values (`none`, `-1`), and fields already substituted into the narrative text — only meaningful extra metadata is shown
+- Test on HF #1: ~39 out of ~120 events have expandable enrichment
+- Test on year browser: ~64% of events in a typical year have enrichment data
+
+---
+
+### 23. Co-Member/Co-Occupant Graph Wings
 
 On HF detail pages with organizational membership:
 - Relationship section should show co-member and co-occupant connections
@@ -360,7 +394,7 @@ On HF detail pages with organizational membership:
 
 ---
 
-### 23. Site Residents Tab
+### 24. Site Residents Tab
 
 On site detail pages:
 - Look for a **Residents** section or tab
@@ -369,7 +403,7 @@ On site detail pages:
 
 ---
 
-### 24. Ownership Timeline
+### 25. Ownership Timeline
 
 On site detail pages with ownership changes:
 - Look for a visual timeline showing ownership transitions
@@ -377,7 +411,7 @@ On site detail pages with ownership changes:
 
 ---
 
-### 25. Art Form Composite PK Routing
+### 26. Art Form Composite PK Routing
 
 Art forms use a composite primary key (world_id, id, form_type):
 - http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
@@ -426,6 +460,25 @@ SELECT
 -- Expected: 48273, 4847, 2154, 436455
 ```
 
+### R6. Event-Entity Xref Structure Coverage
+```sql
+SELECT COUNT(*) FROM event_entity_xref WHERE entity_type = 'structure';
+-- Expected: ~6,196 (added in post-parse xref gap fix)
+```
+
+### R7. Position Profile Corrections Applied
+```sql
+-- Temple entity 1604 should show named positions, not "Position N"
+SELECT ep.name, COUNT(*) as holders
+FROM hf_position_links pl
+JOIN entity_positions ep ON ep.world_id = pl.world_id
+  AND ep.entity_id = pl.entity_id AND ep.position_id = pl.position_id
+WHERE pl.entity_id = 1604 AND pl.world_id = 1
+GROUP BY ep.name ORDER BY ep.name;
+-- Expected: "high nourishment" (1), "sacred law" (22)
+-- Verify NO results contain "Position N" pattern
+```
+
 ---
 
 ## Validation Checklist
@@ -435,10 +488,10 @@ SELECT
 **Entity Detail Pages (17)**:
 - [ ] Historical Figure detail (tabs, events, badges, 24 sections)
 - [ ] Entity/Civilization detail (5 tabs)
-- [ ] Site detail (3 tabs + structures)
+- [ ] Site detail (4 tabs: structures, properties, ownership, history)
 - [ ] Artifact detail (chain-of-custody)
 - [ ] Region detail (biome + evilness badges)
-- [ ] Structure detail (type badge, deity link for temples)
+- [ ] Structure detail (type badge, deity/sect links, positions/members tabs for temples, no tabs for inns)
 - [ ] Written Content detail (author link, form type)
 - [ ] Event Collection detail (hierarchy)
 - [ ] Underground Region detail
@@ -468,7 +521,7 @@ SELECT
 - [ ] Entity name cache (pages load within performance targets)
 - [ ] All pages load without errors
 
-### Enhancements (12 items)
+### Enhancements (13 items)
 - [ ] Unified scoring (prominence + salience badges)
 - [ ] Multi-mode graph (pedigree, mentorship, full network)
 - [ ] Graph features (degree selector, 6 layouts, edge/node toggles)
@@ -476,20 +529,23 @@ SELECT
 - [ ] Inline HF detail expansion
 - [ ] Chat popup (SSE streaming)
 - [ ] Dual-XML enrichment (events, structures, supplements)
+- [ ] Event enrichment UI display (expandable tags on all detail pages)
 - [ ] Co-member/co-occupant graph wings
 - [ ] Site residents tab
 - [ ] Ownership timeline
 - [ ] Art form composite PK routing
 - [ ] Materialized HF settlement links
 
-### Regression Checks (5 SQL queries)
+### Regression Checks (7 SQL queries)
 - [ ] R1: 334 relationship supplements
 - [ ] R2: ~13,261 circumstance events
 - [ ] R3: Structures with deity data
 - [ ] R4: 658 art form descriptions
 - [ ] R5: Record counts match expected
+- [ ] R6: ~6,196 structure xref rows
+- [ ] R7: Position profiles corrected (named positions, not "Position N")
 
 ---
 
-*Phase 2: Explorer Core — Validation Walkthrough v2.0*
-*47 verification items covering 30 DoD + 12 enhancements + 5 regression checks*
+*Phase 2: Explorer Core — Validation Walkthrough v2.1*
+*50 verification items covering 30 DoD + 13 enhancements + 7 regression checks*
