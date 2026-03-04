@@ -329,26 +329,26 @@ Look for a chat icon/button (usually bottom-right):
 
 ### 21. Dual-XML Enrichment (Data Verification)
 
-These checks verify that the enrichment pipeline is working:
+These checks verify that the enrichment pipeline persisted data correctly. Some enrichments are visible in the UI; others are data-layer only (validated via SQL in the Regression Checks section).
 
-#### Event Enrichment (290K events)
-- Open any HF with many events
-- Events should show enriched fields: `reason`, nested `circumstance` data
-- The event text should have detail beyond just the base event type
-
-#### Structure Enrichment
+#### Structure Enrichment (UI-visible)
 - Visit the temple at http://localhost:8099/explorer/site/301/structure/6?world_id=1
 - Should show: **deity**, **religion**, **inhabitants**, **name2** from plus-XML data
 
-#### Art Form Description Merge
+#### Art Form Description Merge (UI-visible)
 - Visit http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
 - Should have a text description like "The Poetry of Lathering is a solo celebration dance..."
 - This description comes from base legends.xml merged into plus metadata
 
-#### Relationship Supplements (334 records)
-- These are merged into `event_relationships.details` JSONB
+#### Event Enrichment (data-layer only — verify via SQL)
+- 290K events gained plus-only fields (`reason`, nested `circumstance`) via JSONB `||` merge
+- These fields are stored in `details` JSONB but **not yet surfaced in event text templates** (71 templates use entity-reference placeholders; enrichment fields like `reason` and `circumstance` are available for Phase 3 narrative rendering)
+- Verify via SQL tab: `SELECT event_type, details->'reason', details->'circumstance' FROM history_events WHERE details ? 'circumstance' LIMIT 5`
+
+#### Relationship Supplements (data-layer only — verify via SQL)
+- 334 records merged into `event_relationships.details` JSONB
 - Contains: `occasion_type`, `supplement_site_id`, `supplement_reason`
-- Can verify via SQL tab: `SELECT details FROM event_relationships WHERE details IS NOT NULL AND details != '{}' LIMIT 5`
+- Verify via SQL tab: `SELECT details FROM event_relationships WHERE details IS NOT NULL AND details != '{}' LIMIT 5`
 
 ---
 
