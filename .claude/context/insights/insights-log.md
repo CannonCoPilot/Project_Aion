@@ -1909,3 +1909,19 @@ The untracked screenshots and plan stubs are a good candidate for `.gitignore` e
 ### 2026-03-04 [9f302f22b9a1]
 
 The current Chronicler chat is a **one-shot text pipeline**: search once, inject context, stream text. The v2.0 prompt template requires a **multi-turn tool-use loop**: the LLM decides what to query, the backend executes it, the LLM sees the results, decides if it needs more, and eventually writes the narrative. This is a fundamentally different interaction pattern — it's the difference between a reference librarian handing you a book vs. giving you a library card and a map.
+
+### 2026-03-04 [056bf65312a6]
+
+**Composite primary keys in REST APIs**: Art forms use `(world_id, id, form_type)` as their composite PK. The DB stores `form_type` as `dance`, `musical`, `poetic` — not `dance_form`, `musical_form`, `poetic_form` as the original walkthrough assumed. This is a common trap: the XML element names (`<musical_form>`) differ from the stored enum values. Always verify against the actual DB schema, not the source format.
+
+### 2026-03-04 [3c82985075fa]
+
+**Phase 2 by the numbers**: 17 entity detail pages, 11 API endpoints, 5 cross-cutting systems (linking, name cache, perspective, calendar, popovers), 13 enhancements beyond the original PRD — all verified against a world with 48,273 historical figures and 436,455 events. The single real bug found (JSON export) was a classic FastAPI pattern issue: POST body vs query parameter routing. The fix was one line in the Pydantic model + removing 6 lines of convoluted precedence logic.
+
+### 2026-03-04 [0575d49ef22d]
+
+Cache reads dominate today's token profile (75.8M of 78.6M = 96.5%) — this is typical for Jarvis sessions where the large CLAUDE.md context tree gets cache-hit repeatedly across turns. The actual "new" information flowing is just the 22K input + 8K output tokens.
+
+### 2026-03-04 [616cd2c8ec13]
+
+This file defines the "test harness" role — W5 can observe and interact with W0 (the primary Jarvis instance) without being monitored itself, making it ideal for testing autonomic behaviors, JICM cycles, and command IPC without interference.
