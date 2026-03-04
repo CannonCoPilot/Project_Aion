@@ -1,12 +1,13 @@
 # Phase 2: Explorer Core — Completion Report
 
-**Date**: 2026-02-26
+**Date**: 2026-02-26 (validated 2026-03-04)
 **Phase**: 2 of 7 (Explorer Core)
 **Milestone**: M2 — Explorer Complete
-**Status**: DEFERRED — 30/30 DoD items implemented, pending User itemized review
+**Status**: COMPLETE — 50/50 validation items passed (30 DoD + 13 enhancements + 7 regression SQL)
 
 ### Post-Implementation Fixes
 - **Race categorization priority fix** (2026-02-28): Forgotten beasts, titans, and demons were miscategorized as "Demigod" because DF marks them as `is_deity=TRUE`. Fixed by prioritizing creature-type flags (`has_any_feature_beast`, `has_any_titan`, `has_any_unique_demon`, `has_any_night_creature`) over `is_deity` in both the race-summary endpoint and the browse filter SQL. Now correctly shows: Forgotten Beast (867), Titan (33), Demon (9), Night Creature (394), Demigod (315), Gods (46).
+- **JSON export format fix** (2026-03-04): POST `/api/explorer/export/query` always returned CSV regardless of requested format. Root cause: `format` parameter was a FastAPI query param but callers send it in the POST body. Fix: added `format` field to `QueryRequest` Pydantic model, removed redundant query parameter. Both CSV and JSON export now work correctly.
 - **Race pill UI + "Other" category** (2026-02-28): Replaced hardcoded checkbox filters with dynamic race pills rendered from `race-summary` API. 13 categories with counts auto-populate from creature_dictionary flags. Added biological variants tile that updates on race selection. The `_other` catch-all pill uses exclusion-based filtering (not entity races, not deities, not beasts/titans/demons/night creatures, not animated dead, not animal people) and has dimmer styling (55% opacity, dashed border) to visually distinguish it as a catch-all.
 
 ---
@@ -216,4 +217,4 @@ No special handling required. The server starts, connects to PostgreSQL, and ser
 ---
 
 *Phase 2: Explorer Core — Completion Report*
-*Chronicler v0.2.0 — 30/30 DoD items verified*
+*Chronicler v0.2.0 — 50/50 validation items verified (2026-03-04)*

@@ -11,10 +11,10 @@
 **Status**: Idle -- Session 37 complete
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: (pending) [Jarvis repo]
-**Last Pushed**: (pending)
-**DwarfCron Last Commit**: (pending, JSON export fix)
-**DwarfCron Last Pushed**: (pending)
+**Last Commit**: feed264 (session 37 — validation fixes) [Jarvis repo]
+**Last Pushed**: feed264 (to origin/Project_Aion)
+**DwarfCron Last Commit**: 4323725 (JSON export fix)
+**DwarfCron Last Pushed**: 4323725 (to origin/main)
 
 ---
 
