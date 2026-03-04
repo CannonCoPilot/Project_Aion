@@ -1829,3 +1829,42 @@ For a pedigree, a **custom tree position calculator** feeding into vis.js gives 
 ### 2026-03-03 [f8a4fd3c5c66]
 
 The `executemany` silent-success pattern is a significant gotcha in asyncpg: it returns `None` regardless of whether 0 or 1000 rows matched the WHERE clause. Unlike single `execute()` which returns a status string like `"UPDATE 1"`, `executemany` provides no row-count feedback. For enrichment pipelines that merge data via UPDATE, always follow up with a validation query to confirm actual persistence. This is now documented in the Phase 2 PRD risk mitigation as an emergent risk.
+
+### 2026-03-03 [abf5b8ebc9c7]
+
+**Why this walkthrough is structured in 3 parts**: The validation is split into Core DoD (30 items that map directly to the PRD requirements), Enhancement Features (12 items beyond scope that emerged during development), and Regression Checks (5 SQL queries to catch silent data loss — the exact class of bug that bit us with the `executemany` silent-success pattern). The regression queries are the most important new addition: they catch issues that look fine in the UI but have missing data underneath.
+
+**Composite PK routing** is called out specifically because art forms are the only entity type in Chronicler using a composite primary key (world_id + id + form_type). This is architecturally unique — all other entities use (world_id + id) as their route params — and the prev/next navigation needs special handling to stay within the same form_type.
+
+### 2026-03-03 [998e0e0283f5]
+
+**The enrichment data exists but is invisible in event text.** The `PerspectiveRenderer` operates in two modes:
+1. **Template mode**: Uses `EVENT_TEMPLATES` (71 templates) — these only contain entity reference placeholders like `{hfid}`, `{site_id}`. None of the templates include `{reason}` or `{circumstance}`.
+2. **Generic mode** (`_render_generic`): Only iterates over `ENTITY_REF_FIELDS` (entity ID references), ignoring all other details keys.
+
+The `reason` and `circumstance` fields are in the JSONB `details` column but neither rendering path displays them. The template's final loop (line 379-382) does substitute non-entity placeholders — but only if the template string *contains* the placeholder `{reason}` or `{circumstance}`, which none do.
+
+### 2026-03-04 [164b72db6664]
+
+**The enrichment pipeline gap was a classic "data exists but isn't surfaced" problem.** Phase 1's XML parser correctly extracted all fields from both `legends.xml` and `legends_plus.xml` into the JSONB `details` column, but the rendering pipeline was designed around entity-reference templates only. The fix required touching all three layers: extraction logic (what to show), route handlers (passing data to templates), and templates (rendering the data). The progressive-disclosure pattern (click-to-expand tags) avoids cluttering the existing clean event timeline while making all enrichment data accessible.
+
+### 2026-03-04 [3b0caad34439]
+
+**Structure IDs in Dwarf Fortress are site-local, not global.** This is unlike historical figures, sites, entities, and artifacts which all have world-unique IDs. Structure 6 at site 301 (the cradled temple) is completely different from structure 6 at site 100. The `event_entity_xref` table was designed for global IDs, so adding structure references to it is useful for aggregate analytics (scoring, statistics), but querying for a *specific* structure's events must always filter by both `structure_id` AND `site_id` via the `history_events` table directly.
+
+**The xref gap masked 6,196 event-structure relationships.** The original ingestion in Phase 1 covered HF, site, region, entity, and artifact references but overlooked the `structure_id` column and structure-related detail keys (`destroyed_structure_id`, `dest_structure_id`, `source_structure_id`, `new_structure`, `old_structure`). This is a common pattern in DF data — the XML schema has more reference types than are obvious at first glance.
+
+### 2026-03-04 [8732cc841f80]
+
+**The position_profile_id / position_id confusion is a classic DF XML parsing trap.** Dwarf Fortress uses two layers of indirection for organizational positions:
+
+1. **Position definitions** (`entity_position`): Named roles like "sacred law" or "high nourishment" — each has a `position_id` (0, 1, etc.)
+2. **Position assignments** (`entity_position_assignment`): Slots (profiles) that map to position definitions. An entity can have 12 "sacred law" slots (assignments 0–11 all mapping to position_id=0) and 1 "high nourishment" slot (assignment 12 → position_id=1).
+
+The base `legends.xml` only stores `position_profile_id` (the assignment slot number) in HF position links. The `legends_plus.xml` provides the mapping table from assignment → definition. Without this mapping, 58% of position links (12,665 out of 21,778) had incorrect position IDs — showing unnamed "Position N" entries instead of their actual role names.
+
+**The fix corrected data at three levels:** (1) ingestion pipeline now applies the mapping during XML processing, (2) existing data was retroactively fixed via a one-time migration, (3) the display layer properly joins against corrected position definitions.
+
+### 2026-03-04 [4d6e3f4b2c79]
+
+**Why not split commit 3 further?** The structure backend changes in `detail_pages.py` and the enrichment additions are interleaved in the same file — the structure route handler rewrite *includes* an enrichment line within it, and both features share the same import. Splitting would require temporary file manipulation that risks staging errors. The 2+1 split (two clean ingestion commits + one UI commit) preserves bisectability since the ingestion fixes are independent, while the UI changes all compose a single "detail page improvements" theme.
