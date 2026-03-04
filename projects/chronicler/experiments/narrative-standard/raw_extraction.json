@@ -1,0 +1,3872 @@
+{
+  "hf_core": [
+    {
+      "id": 19639,
+      "world_id": 1,
+      "name": "minaro autumnalsculpt the windy",
+      "race": "ELF",
+      "caste": "FEMALE",
+      "sex": null,
+      "birth_year": -16,
+      "birth_seconds": null,
+      "death_year": null,
+      "death_seconds": null,
+      "death_cause": null,
+      "entity_id": null,
+      "is_deity": false,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": true,
+      "is_ghost": false,
+      "is_author": true,
+      "is_auteur": false,
+      "kill_count": 12,
+      "event_count": 90,
+      "prominence_score": 1.0,
+      "salience_score": 0.16025641560554504,
+      "spheres": null,
+      "goals": "[\"see the great natural sites\"]",
+      "skills": "[{\"name\": \"HERBALISM\", \"total_ip\": 18000}, {\"name\": \"LYING\", \"total_ip\": 11200}, {\"name\": \"CONVERSATION\", \"total_ip\": 18000}, {\"name\": \"INTIMIDATION\", \"total_ip\": 11986}, {\"name\": \"NEGOTIATION\", \"total_ip\": 10900}, {\"name\": \"SPEAKING\", \"total_ip\": 18000}, {\"name\": \"POETRY\", \"total_ip\": 18000}, {\"name\": \"WRITING\", \"total_ip\": 500}, {\"name\": \"TEACHING\", \"total_ip\": 5800}, {\"name\": \"WRESTLING\", \"total_ip\": 76}, {\"name\": \"GRASP_STRIKE\", \"total_ip\": 41}, {\"name\": \"STANCE_STRIKE\", \"total_ip\": 94}, {\"name\": \"DISCIPLINE\", \"total_ip\": 7447}, {\"name\": \"SITUATIONAL_AWARENESS\", \"total_ip\": 7495}, {\"name\": \"DODGING\", \"total_ip\": 8051}, {\"name\": \"ARMOR\", \"total_ip\": 8926}, {\"name\": \"SHIELD\", \"total_ip\": 8236}, {\"name\": \"SPEAR\", \"total_ip\": 9654}, {\"name\": \"CLIMBING\", \"total_ip\": 500}, {\"name\": \"SNEAK\", \"total_ip\": 2120}, {\"name\": \"INTRIGUE\", \"total_ip\": 3009}, {\"name\": \"JUDGING_INTENT\", \"total_ip\": 1476}, {\"name\": \"PACIFY\", \"total_ip\": 400}, {\"name\": \"FLATTERY\", \"total_ip\": 500}, {\"name\": \"CONSOLE\", \"total_ip\": 600}, {\"name\": \"COMEDY\", \"total_ip\": 500}, {\"name\": \"PERSUASION\", \"total_ip\": 800}]",
+      "kills": "{\"event_kills\": [{\"year\": 199, \"cause\": \"struck\", \"victim_id\": 38676}, {\"year\": 206, \"cause\": \"struck\", \"victim_id\": 39116}, {\"year\": 207, \"cause\": \"struck\", \"victim_id\": 16622}, {\"year\": 208, \"cause\": \"struck\", \"victim_id\": 25609}, {\"year\": 209, \"cause\": \"struck\", \"victim_id\": 40214}, {\"year\": 209, \"cause\": \"struck\", \"victim_id\": 37681}, {\"year\": 221, \"cause\": \"struck\", \"victim_id\": 40312}, {\"year\": 223, \"cause\": \"struck\", \"victim_id\": 42244}, {\"year\": 230, \"cause\": \"struck\", \"victim_id\": 43373}, {\"year\": 231, \"cause\": \"struck\", \"victim_id\": 39168}, {\"year\": 233, \"cause\": \"struck\", \"victim_id\": 40101}, {\"year\": 237, \"cause\": \"struck\", \"victim_id\": 41422}]}",
+      "whereabouts": "{}",
+      "entity_reputations": "[]",
+      "intrigue_actors": "[]",
+      "used_identities": "[]",
+      "journey_pets": "[]",
+      "holds_artifact": null,
+      "active_interactions": [
+        "DEITY_CURSE_WEREBEAST_BULL_BITE"
+      ],
+      "details": "{\"positions\": [{\"end_year\": null, \"entity_id\": 3969, \"start_year\": null, \"position_name\": \"lieutenant\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": null, \"position_name\": \"representative\"}, {\"end_year\": 205, \"entity_id\": 4077, \"start_year\": 198, \"position_name\": \"master\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 205, \"position_name\": \"lieutenant\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 226, \"position_name\": \"representative\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 228, \"position_name\": \"Unknown\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 237, \"position_name\": \"Unknown\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 242, \"position_name\": \"Unknown\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 244, \"position_name\": \"Unknown\"}, {\"end_year\": null, \"entity_id\": 3969, \"start_year\": 247, \"position_name\": \"Unknown\"}]}"
+    }
+  ],
+  "hf_links": [
+    {
+      "id": 38902,
+      "world_id": 1,
+      "hf_id": 5801,
+      "target_hf_id": 19639,
+      "link_type": "former apprentice"
+    },
+    {
+      "id": 140595,
+      "world_id": 1,
+      "hf_id": 19639,
+      "target_hf_id": 1668,
+      "link_type": "deity"
+    },
+    {
+      "id": 140598,
+      "world_id": 1,
+      "hf_id": 19639,
+      "target_hf_id": 26020,
+      "link_type": "former apprentice"
+    },
+    {
+      "id": 140599,
+      "world_id": 1,
+      "hf_id": 19639,
+      "target_hf_id": 26008,
+      "link_type": "former apprentice"
+    },
+    {
+      "id": 140597,
+      "world_id": 1,
+      "hf_id": 19639,
+      "target_hf_id": 27024,
+      "link_type": "former apprentice"
+    },
+    {
+      "id": 140600,
+      "world_id": 1,
+      "hf_id": 19639,
+      "target_hf_id": 27292,
+      "link_type": "former apprentice"
+    },
+    {
+      "id": 140596,
+      "world_id": 1,
+      "hf_id": 19639,
+      "target_hf_id": 5801,
+      "link_type": "former master"
+    },
+    {
+      "id": 176905,
+      "world_id": 1,
+      "hf_id": 26008,
+      "target_hf_id": 19639,
+      "link_type": "former master"
+    },
+    {
+      "id": 176948,
+      "world_id": 1,
+      "hf_id": 26020,
+      "target_hf_id": 19639,
+      "link_type": "former master"
+    },
+    {
+      "id": 182041,
+      "world_id": 1,
+      "hf_id": 27024,
+      "target_hf_id": 19639,
+      "link_type": "former master"
+    },
+    {
+      "id": 183561,
+      "world_id": 1,
+      "hf_id": 27292,
+      "target_hf_id": 19639,
+      "link_type": "former master"
+    }
+  ],
+  "hf_entity_links": [
+    {
+      "id": 89503,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1035,
+      "link_type": "former member",
+      "position_name": null
+    },
+    {
+      "id": 89504,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1656,
+      "link_type": "former member",
+      "position_name": null
+    },
+    {
+      "id": 89505,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1553,
+      "link_type": "former member",
+      "position_name": null
+    },
+    {
+      "id": 89506,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3621,
+      "link_type": "former member",
+      "position_name": null
+    },
+    {
+      "id": 89507,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 4077,
+      "link_type": "former member",
+      "position_name": null
+    },
+    {
+      "id": 89508,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2039,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89509,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 993,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89510,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2420,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89511,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1031,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89512,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3029,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89513,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "link_type": "member",
+      "position_name": null
+    },
+    {
+      "id": 89514,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1538,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89515,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2738,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89516,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3057,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89517,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1960,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89518,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2230,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89519,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3097,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89520,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2424,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89521,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 4300,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89522,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2950,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89523,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2262,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89524,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2390,
+      "link_type": "former member",
+      "position_name": null
+    },
+    {
+      "id": 89525,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1620,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89526,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 985,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89527,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2156,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89528,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 4350,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89529,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1401,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89530,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 2695,
+      "link_type": "enemy",
+      "position_name": null
+    },
+    {
+      "id": 89531,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 1851,
+      "link_type": "member",
+      "position_name": null
+    }
+  ],
+  "hf_position_links": [
+    {
+      "id": 6559,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 1,
+      "start_year": 205,
+      "end_year": null
+    },
+    {
+      "id": 6560,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": 226,
+      "end_year": null
+    },
+    {
+      "id": 6561,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": 228,
+      "end_year": null
+    },
+    {
+      "id": 6562,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": 237,
+      "end_year": null
+    },
+    {
+      "id": 6563,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": 242,
+      "end_year": null
+    },
+    {
+      "id": 6564,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": 244,
+      "end_year": null
+    },
+    {
+      "id": 6566,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 4077,
+      "position_id": 0,
+      "start_year": 198,
+      "end_year": 205
+    },
+    {
+      "id": 6565,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": 247,
+      "end_year": null
+    },
+    {
+      "id": 21243,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 1,
+      "start_year": null,
+      "end_year": null
+    },
+    {
+      "id": 21244,
+      "world_id": 1,
+      "hf_id": 19639,
+      "entity_id": 3969,
+      "position_id": 2,
+      "start_year": null,
+      "end_year": null
+    }
+  ],
+  "hf_site_links": [
+    {
+      "id": 410,
+      "world_id": 1,
+      "hf_id": 19639,
+      "site_id": 817,
+      "link_type": "seat of power"
+    }
+  ],
+  "event_xref": [
+    {
+      "world_id": 1,
+      "event_id": 133071,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 103,
+      "seconds": 260400,
+      "details": "{\"wc_id\": \"4942\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 131173,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf job",
+      "year": 103,
+      "seconds": null,
+      "details": "{\"new_job\": \"poet\", \"old_job\": \"standard\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 135719,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf hf link",
+      "year": 104,
+      "seconds": 25200,
+      "details": "{\"hf\": \"19639\", \"hf_target\": \"5801\", \"link_type\": \"master\", \"hfid_target\": \"5801\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 135721,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 104,
+      "seconds": 25200,
+      "details": "{\"wc_id\": \"5001\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 135720,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 104,
+      "seconds": 25200,
+      "details": "{\"state\": \"settler\", \"reason\": \"be_with_master\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 212893,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf hf link",
+      "year": 127,
+      "seconds": 193200,
+      "details": "{\"hf\": \"19639\", \"hf_target\": \"5801\", \"link_type\": \"former_master\", \"hfid_target\": \"5801\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 213049,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 127,
+      "seconds": 260400,
+      "details": "{\"wc_id\": \"9487\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 221971,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 130,
+      "seconds": 109200,
+      "details": "{\"wc_id\": \"10073\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 227876,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 132,
+      "seconds": 33600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 229056,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 132,
+      "seconds": 294000,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 229110,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 132,
+      "seconds": 319200,
+      "details": "{\"wc_id\": \"10657\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"dream about hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 231255,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 133,
+      "seconds": 75600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 235109,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 134,
+      "seconds": 243600,
+      "details": "{\"wc_id\": \"11101\", \"circumstance\": \"dream\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 238160,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 135,
+      "seconds": 201600,
+      "details": "{\"wc_id\": \"11313\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 247798,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 138,
+      "seconds": 344400,
+      "details": "{\"wc_id\": \"12074\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 261002,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 143,
+      "seconds": 33600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 261388,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 143,
+      "seconds": 134400,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 261989,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 143,
+      "seconds": 361200,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 263503,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 144,
+      "seconds": 0,
+      "details": "{\"wc_id\": \"13251\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 274853,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf relationship denied",
+      "year": 148,
+      "seconds": 117600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 296848,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 156,
+      "seconds": 75600,
+      "details": "{\"wc_id\": \"16066\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 297660,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 156,
+      "seconds": 361200,
+      "details": "{\"wc_id\": \"16246\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1721\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 300018,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 157,
+      "seconds": 159600,
+      "details": "{\"civ\": \"3621\", \"link\": \"member\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"member\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 300045,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 157,
+      "seconds": 176400,
+      "details": "{\"wc_id\": \"16371\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 313792,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 162,
+      "seconds": 159600,
+      "details": "{\"wc_id\": \"17630\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 344287,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 173,
+      "seconds": 193200,
+      "details": "{\"wc_id\": \"20234\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 344461,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 173,
+      "seconds": 260400,
+      "details": "{\"wc_id\": \"20281\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 346203,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 174,
+      "seconds": 16800,
+      "details": "{\"wc_id\": \"20386\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"dream about hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 346759,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 174,
+      "seconds": 176400,
+      "details": "{\"wc_id\": \"20468\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 356364,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 178,
+      "seconds": 58800,
+      "details": "{\"wc_id\": \"21326\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 389708,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "written content composed",
+      "year": 190,
+      "seconds": 336000,
+      "details": "{\"wc_id\": \"24195\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1721\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 399346,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf does interaction",
+      "year": 194,
+      "seconds": 25200,
+      "details": "{\"doer\": \"6475\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"19639\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 399344,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 194,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"6475\", \"group_2_hfid\": \"19639\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 399347,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 194,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"2 lost after receiving wounds\", \"group_1_hfid\": \"6475\", \"group_2_hfid\": \"19639\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 399345,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "hf wounded",
+      "year": 194,
+      "seconds": 25200,
+      "details": "{\"woundee\": \"19639\", \"wounder\": \"6475\", \"body_part\": \"80\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"574\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 400466,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 195,
+      "seconds": null,
+      "details": "{\"state\": \"wanderer\", \"coords\": \"198,103\", \"reason\": \"flight\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 410404,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 198,
+      "seconds": 327600,
+      "details": "{\"civ\": \"4077\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"master\", \"link_type\": \"position\", \"position_id\": \"0\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 411994,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"38676\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 411993,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"civ\": \"993\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 411992,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"civ\": \"2039\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 411995,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"38676\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 417238,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"13587\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 417235,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"civ\": \"2420\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 417239,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"4989\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 417240,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"4989\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 417237,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"13587\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 417236,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"civ\": \"1031\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 420941,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 202,
+      "seconds": 92400,
+      "details": "{\"civ\": \"3029\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 429424,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 205,
+      "seconds": 33600,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"lieutenant\", \"link_type\": \"position\", \"position_id\": \"1\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 432164,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"39116\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 432161,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"39116\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 432160,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"civ\": \"1538\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 432162,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf wounded",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"woundee\": \"39116\", \"wounder\": \"19639\", \"body_part\": \"16\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"575\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 432163,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "hf does interaction",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"39116\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434561,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf wounded",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"woundee\": \"12634\", \"wounder\": \"19639\", \"body_part\": \"20\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"575\", \"woundee_caste\": \"1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434556,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"civ\": \"2738\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434562,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "hf does interaction",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"12634\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434558,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"16622\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434557,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"16622\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434560,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"12634\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 434563,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"subtype\": \"2 lost after receiving wounds\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"12634\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436971,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"25609\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436970,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"25609\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436977,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"27022\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436976,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"27022\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436974,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"27339\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436969,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"civ\": \"3057\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 436975,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"27339\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 439593,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 209,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"40214\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 439590,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 209,
+      "seconds": 0,
+      "details": "{\"civ\": \"1960\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 439592,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 209,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"40214\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 439813,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 209,
+      "seconds": 58800,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"37681\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 439814,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 209,
+      "seconds": 58800,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"37681\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455099,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 214,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"33313\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455097,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 214,
+      "seconds": 0,
+      "details": "{\"civ\": \"2230\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455098,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 214,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"33313\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455253,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"39468\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455260,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"2 lost after receiving wounds\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"39736\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455257,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"39736\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455258,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf wounded",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"woundee\": \"39736\", \"wounder\": \"19639\", \"body_part\": \"50\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"573\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455259,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "hf does interaction",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"39736\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455254,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"39468\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455252,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"civ\": \"3097\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 455409,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 214,
+      "seconds": 58800,
+      "details": "{\"civ\": \"2424\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 458057,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 215,
+      "seconds": 58800,
+      "details": "{\"civ\": \"4300\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473266,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"40312\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473264,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"42263\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473267,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"40312\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473269,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"40311\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473265,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"42263\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473261,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"42262\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473262,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"42262\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473270,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"40311\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 473481,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 221,
+      "seconds": 58800,
+      "details": "{\"civ\": \"2950\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 478268,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 223,
+      "seconds": 0,
+      "details": "{\"civ\": \"2262\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 478270,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 223,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"42244\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 478271,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 223,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"42244\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 483845,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 225,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"33313\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 483844,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 225,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"33313\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 487152,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 226,
+      "seconds": 159600,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 487150,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 226,
+      "seconds": 159600,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 492315,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 228,
+      "seconds": 226800,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 492317,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 228,
+      "seconds": 226800,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 496755,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43373\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 496752,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"civ\": \"985\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 496756,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"43373\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 496753,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43644\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 496754,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43644\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 498388,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 231,
+      "seconds": null,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"39168\", \"death_cause\": \"struck_down\", \"slayer_race\": \"574\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 498387,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 231,
+      "seconds": null,
+      "details": "{\"subtype\": \"confront\", \"group_1_hfid\": \"39168\", \"group_2_hfid\": \"19639\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501626,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "hf does interaction",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"28789\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501627,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"subtype\": \"2 lost after receiving wounds\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"28789\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501624,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"28789\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501623,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43848\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501625,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf wounded",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"woundee\": \"28789\", \"wounder\": \"19639\", \"body_part\": \"76\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"573\", \"woundee_caste\": \"1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501622,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43848\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 501621,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"civ\": \"2156\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 500695,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 232,
+      "seconds": null,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"38383\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 500694,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 232,
+      "seconds": null,
+      "details": "{\"subtype\": \"confront\", \"group_1_hfid\": \"38383\", \"group_2_hfid\": \"19639\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 503709,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "hf wounded",
+      "year": 233,
+      "seconds": null,
+      "details": "{\"woundee\": \"19639\", \"wounder\": \"40101\", \"body_part\": \"73\", \"part_lost\": \"true\", \"injury_type\": \"gore\", \"woundee_race\": \"574\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 503710,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 233,
+      "seconds": null,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"40101\", \"death_cause\": \"struck_down\", \"slayer_race\": \"574\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 503708,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 233,
+      "seconds": null,
+      "details": "{\"subtype\": \"confront\", \"group_1_hfid\": \"40101\", \"group_2_hfid\": \"19639\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 515108,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 237,
+      "seconds": 50400,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 515106,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 237,
+      "seconds": 50400,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 515171,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 237,
+      "seconds": 58800,
+      "details": "{\"civ\": \"4350\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 515174,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 237,
+      "seconds": 58800,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"41422\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 515175,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hf died",
+      "year": 237,
+      "seconds": 58800,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"41422\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 522564,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 240,
+      "seconds": 100800,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43621\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 522566,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 240,
+      "seconds": 100800,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43108\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 522565,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 240,
+      "seconds": 100800,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43108\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 522562,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 240,
+      "seconds": 100800,
+      "details": "{\"civ\": \"1401\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 522563,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 240,
+      "seconds": 100800,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"43621\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 528285,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 242,
+      "seconds": 294000,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 528283,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 242,
+      "seconds": 294000,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 533198,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 244,
+      "seconds": 201600,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 533200,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 244,
+      "seconds": 201600,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 535024,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 245,
+      "seconds": 0,
+      "details": "{\"civ\": \"2695\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 539249,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 246,
+      "seconds": 0,
+      "details": "{\"subtype\": \"scuffle\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"38393\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 539248,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "participant",
+      "event_type": "hf simple battle event",
+      "year": 246,
+      "seconds": 0,
+      "details": "{\"subtype\": \"attacked\", \"group_1_hfid\": \"19639\", \"group_2_hfid\": \"38393\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 542596,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "add hf entity link",
+      "year": 247,
+      "seconds": 252000,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 542598,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "subject",
+      "event_type": "change hf state",
+      "year": 247,
+      "seconds": 252000,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "world_id": 1,
+      "event_id": 540551,
+      "entity_type": "hf",
+      "entity_id": 19639,
+      "role": "object",
+      "event_type": "hfs formed intrigue relationship",
+      "year": 247,
+      "seconds": null,
+      "details": "{\"circumstance\": \"is entity subordinate\", \"corruptor_hfid\": \"33351\", \"target_seen_as\": \"general purpose asset\", \"circumstance_id\": \"3969\", \"corruptor_seen_as\": \"master\"}"
+    }
+  ],
+  "events_by_hf_cols": [
+    {
+      "id": 133071,
+      "event_type": "written content composed",
+      "year": 103,
+      "seconds": 260400,
+      "details": "{\"wc_id\": \"4942\"}"
+    },
+    {
+      "id": 131173,
+      "event_type": "change hf job",
+      "year": 103,
+      "seconds": null,
+      "details": "{\"new_job\": \"poet\", \"old_job\": \"standard\"}"
+    },
+    {
+      "id": 135721,
+      "event_type": "written content composed",
+      "year": 104,
+      "seconds": 25200,
+      "details": "{\"wc_id\": \"5001\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\"}"
+    },
+    {
+      "id": 135719,
+      "event_type": "add hf hf link",
+      "year": 104,
+      "seconds": 25200,
+      "details": "{\"hf\": \"19639\", \"hf_target\": \"5801\", \"link_type\": \"master\", \"hfid_target\": \"5801\"}"
+    },
+    {
+      "id": 135720,
+      "event_type": "change hf state",
+      "year": 104,
+      "seconds": 25200,
+      "details": "{\"state\": \"settler\", \"reason\": \"be_with_master\"}"
+    },
+    {
+      "id": 212893,
+      "event_type": "add hf hf link",
+      "year": 127,
+      "seconds": 193200,
+      "details": "{\"hf\": \"19639\", \"hf_target\": \"5801\", \"link_type\": \"former_master\", \"hfid_target\": \"5801\"}"
+    },
+    {
+      "id": 213049,
+      "event_type": "written content composed",
+      "year": 127,
+      "seconds": 260400,
+      "details": "{\"wc_id\": \"9487\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "id": 221971,
+      "event_type": "written content composed",
+      "year": 130,
+      "seconds": 109200,
+      "details": "{\"wc_id\": \"10073\"}"
+    },
+    {
+      "id": 227876,
+      "event_type": "hf relationship denied",
+      "year": 132,
+      "seconds": 33600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 229056,
+      "event_type": "hf relationship denied",
+      "year": 132,
+      "seconds": 294000,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 229110,
+      "event_type": "written content composed",
+      "year": 132,
+      "seconds": 319200,
+      "details": "{\"wc_id\": \"10657\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"dream about hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "id": 231255,
+      "event_type": "hf relationship denied",
+      "year": 133,
+      "seconds": 75600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 235109,
+      "event_type": "written content composed",
+      "year": 134,
+      "seconds": 243600,
+      "details": "{\"wc_id\": \"11101\", \"circumstance\": \"dream\"}"
+    },
+    {
+      "id": 238160,
+      "event_type": "written content composed",
+      "year": 135,
+      "seconds": 201600,
+      "details": "{\"wc_id\": \"11313\"}"
+    },
+    {
+      "id": 247798,
+      "event_type": "written content composed",
+      "year": 138,
+      "seconds": 344400,
+      "details": "{\"wc_id\": \"12074\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "id": 261002,
+      "event_type": "hf relationship denied",
+      "year": 143,
+      "seconds": 33600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 261388,
+      "event_type": "hf relationship denied",
+      "year": 143,
+      "seconds": 134400,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 261989,
+      "event_type": "hf relationship denied",
+      "year": 143,
+      "seconds": 361200,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 263503,
+      "event_type": "written content composed",
+      "year": 144,
+      "seconds": 0,
+      "details": "{\"wc_id\": \"13251\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "id": 274853,
+      "event_type": "hf relationship denied",
+      "year": 148,
+      "seconds": 117600,
+      "details": "{\"reason\": \"prefers working alone\", \"reason_id\": \"19639\", \"relationship\": \"apprentice\"}"
+    },
+    {
+      "id": 296848,
+      "event_type": "written content composed",
+      "year": 156,
+      "seconds": 75600,
+      "details": "{\"wc_id\": \"16066\"}"
+    },
+    {
+      "id": 297660,
+      "event_type": "written content composed",
+      "year": 156,
+      "seconds": 361200,
+      "details": "{\"wc_id\": \"16246\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1721\"}"
+    },
+    {
+      "id": 300018,
+      "event_type": "add hf entity link",
+      "year": 157,
+      "seconds": 159600,
+      "details": "{\"civ\": \"3621\", \"link\": \"member\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"member\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 300045,
+      "event_type": "written content composed",
+      "year": 157,
+      "seconds": 176400,
+      "details": "{\"wc_id\": \"16371\"}"
+    },
+    {
+      "id": 313792,
+      "event_type": "written content composed",
+      "year": 162,
+      "seconds": 159600,
+      "details": "{\"wc_id\": \"17630\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\"}"
+    },
+    {
+      "id": 344287,
+      "event_type": "written content composed",
+      "year": 173,
+      "seconds": 193200,
+      "details": "{\"wc_id\": \"20234\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\"}"
+    },
+    {
+      "id": 344461,
+      "event_type": "written content composed",
+      "year": 173,
+      "seconds": 260400,
+      "details": "{\"wc_id\": \"20281\"}"
+    },
+    {
+      "id": 346203,
+      "event_type": "written content composed",
+      "year": 174,
+      "seconds": 16800,
+      "details": "{\"wc_id\": \"20386\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\", \"circumstance\": \"dream about hf\", \"circumstance_id\": \"1668\"}"
+    },
+    {
+      "id": 346759,
+      "event_type": "written content composed",
+      "year": 174,
+      "seconds": 176400,
+      "details": "{\"wc_id\": \"20468\", \"reason\": \"glorify hf\", \"reason_id\": \"1668\"}"
+    },
+    {
+      "id": 356364,
+      "event_type": "written content composed",
+      "year": 178,
+      "seconds": 58800,
+      "details": "{\"wc_id\": \"21326\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\"}"
+    },
+    {
+      "id": 389708,
+      "event_type": "written content composed",
+      "year": 190,
+      "seconds": 336000,
+      "details": "{\"wc_id\": \"24195\", \"reason\": \"glorify hf\", \"reason_id\": \"1721\", \"circumstance\": \"pray to hf\", \"circumstance_id\": \"1721\"}"
+    },
+    {
+      "id": 399346,
+      "event_type": "hf does interaction",
+      "year": 194,
+      "seconds": 25200,
+      "details": "{\"doer\": \"6475\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"19639\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "id": 399345,
+      "event_type": "hf wounded",
+      "year": 194,
+      "seconds": 25200,
+      "details": "{\"woundee\": \"19639\", \"wounder\": \"6475\", \"body_part\": \"80\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"574\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "id": 400466,
+      "event_type": "change hf state",
+      "year": 195,
+      "seconds": null,
+      "details": "{\"state\": \"wanderer\", \"coords\": \"198,103\", \"reason\": \"flight\"}"
+    },
+    {
+      "id": 410404,
+      "event_type": "add hf entity link",
+      "year": 198,
+      "seconds": 327600,
+      "details": "{\"civ\": \"4077\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"master\", \"link_type\": \"position\", \"position_id\": \"0\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 411992,
+      "event_type": "add hf entity link",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"civ\": \"2039\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 411993,
+      "event_type": "add hf entity link",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"civ\": \"993\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 411995,
+      "event_type": "hf died",
+      "year": 199,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"38676\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 417236,
+      "event_type": "add hf entity link",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"civ\": \"1031\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 417235,
+      "event_type": "add hf entity link",
+      "year": 201,
+      "seconds": 0,
+      "details": "{\"civ\": \"2420\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 420941,
+      "event_type": "add hf entity link",
+      "year": 202,
+      "seconds": 92400,
+      "details": "{\"civ\": \"3029\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 429424,
+      "event_type": "add hf entity link",
+      "year": 205,
+      "seconds": 33600,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"lieutenant\", \"link_type\": \"position\", \"position_id\": \"1\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 432163,
+      "event_type": "hf does interaction",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"39116\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "id": 432160,
+      "event_type": "add hf entity link",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"civ\": \"1538\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 432162,
+      "event_type": "hf wounded",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"woundee\": \"39116\", \"wounder\": \"19639\", \"body_part\": \"16\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"575\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "id": 432164,
+      "event_type": "hf died",
+      "year": 206,
+      "seconds": 25200,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"39116\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 434556,
+      "event_type": "add hf entity link",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"civ\": \"2738\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 434558,
+      "event_type": "hf died",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"16622\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 434561,
+      "event_type": "hf wounded",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"woundee\": \"12634\", \"wounder\": \"19639\", \"body_part\": \"20\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"575\", \"woundee_caste\": \"1\"}"
+    },
+    {
+      "id": 434562,
+      "event_type": "hf does interaction",
+      "year": 207,
+      "seconds": 0,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"12634\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "id": 436971,
+      "event_type": "hf died",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"25609\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 436969,
+      "event_type": "add hf entity link",
+      "year": 208,
+      "seconds": 0,
+      "details": "{\"civ\": \"3057\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 439590,
+      "event_type": "add hf entity link",
+      "year": 209,
+      "seconds": 0,
+      "details": "{\"civ\": \"1960\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 439593,
+      "event_type": "hf died",
+      "year": 209,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"40214\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 439814,
+      "event_type": "hf died",
+      "year": 209,
+      "seconds": 58800,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"37681\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 455097,
+      "event_type": "add hf entity link",
+      "year": 214,
+      "seconds": 0,
+      "details": "{\"civ\": \"2230\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 455258,
+      "event_type": "hf wounded",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"woundee\": \"39736\", \"wounder\": \"19639\", \"body_part\": \"50\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"573\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "id": 455252,
+      "event_type": "add hf entity link",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"civ\": \"3097\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 455259,
+      "event_type": "hf does interaction",
+      "year": 214,
+      "seconds": 25200,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"39736\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "id": 455409,
+      "event_type": "add hf entity link",
+      "year": 214,
+      "seconds": 58800,
+      "details": "{\"civ\": \"2424\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 458057,
+      "event_type": "add hf entity link",
+      "year": 215,
+      "seconds": 58800,
+      "details": "{\"civ\": \"4300\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 473267,
+      "event_type": "hf died",
+      "year": 221,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"40312\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 473481,
+      "event_type": "add hf entity link",
+      "year": 221,
+      "seconds": 58800,
+      "details": "{\"civ\": \"2950\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 478268,
+      "event_type": "add hf entity link",
+      "year": 223,
+      "seconds": 0,
+      "details": "{\"civ\": \"2262\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 478271,
+      "event_type": "hf died",
+      "year": 223,
+      "seconds": 0,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"42244\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 487150,
+      "event_type": "add hf entity link",
+      "year": 226,
+      "seconds": 159600,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 487152,
+      "event_type": "change hf state",
+      "year": 226,
+      "seconds": 159600,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "id": 492315,
+      "event_type": "add hf entity link",
+      "year": 228,
+      "seconds": 226800,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 492317,
+      "event_type": "change hf state",
+      "year": 228,
+      "seconds": 226800,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "id": 496752,
+      "event_type": "add hf entity link",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"civ\": \"985\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 496756,
+      "event_type": "hf died",
+      "year": 230,
+      "seconds": 25200,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"43373\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 498388,
+      "event_type": "hf died",
+      "year": 231,
+      "seconds": null,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"39168\", \"death_cause\": \"struck_down\", \"slayer_race\": \"574\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 501626,
+      "event_type": "hf does interaction",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"doer\": \"19639\", \"region\": \"-1\", \"source\": \"0\", \"target\": \"28789\", \"interaction\": \"DEITY_CURSE_WEREBEAST_bull_BITE\", \"interaction_action\": \"bit passing on the bull monster curse\"}"
+    },
+    {
+      "id": 501621,
+      "event_type": "add hf entity link",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"civ\": \"2156\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 501625,
+      "event_type": "hf wounded",
+      "year": 232,
+      "seconds": 0,
+      "details": "{\"woundee\": \"28789\", \"wounder\": \"19639\", \"body_part\": \"76\", \"part_lost\": \"false\", \"injury_type\": \"bludgeon\", \"woundee_race\": \"573\", \"woundee_caste\": \"1\"}"
+    },
+    {
+      "id": 503709,
+      "event_type": "hf wounded",
+      "year": 233,
+      "seconds": null,
+      "details": "{\"woundee\": \"19639\", \"wounder\": \"40101\", \"body_part\": \"73\", \"part_lost\": \"true\", \"injury_type\": \"gore\", \"woundee_race\": \"574\", \"woundee_caste\": \"0\"}"
+    },
+    {
+      "id": 503710,
+      "event_type": "hf died",
+      "year": 233,
+      "seconds": null,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"40101\", \"death_cause\": \"struck_down\", \"slayer_race\": \"574\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 515106,
+      "event_type": "add hf entity link",
+      "year": 237,
+      "seconds": 50400,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 515108,
+      "event_type": "change hf state",
+      "year": 237,
+      "seconds": 50400,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "id": 515175,
+      "event_type": "hf died",
+      "year": 237,
+      "seconds": 58800,
+      "details": "{\"cause\": \"struck\", \"slayer_hf\": \"19639\", \"victim_hf\": \"41422\", \"death_cause\": \"struck_down\", \"slayer_race\": \"1820\", \"slayer_caste\": \"0\"}"
+    },
+    {
+      "id": 515171,
+      "event_type": "add hf entity link",
+      "year": 237,
+      "seconds": 58800,
+      "details": "{\"civ\": \"4350\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 522562,
+      "event_type": "add hf entity link",
+      "year": 240,
+      "seconds": 100800,
+      "details": "{\"civ\": \"1401\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 528283,
+      "event_type": "add hf entity link",
+      "year": 242,
+      "seconds": 294000,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 528285,
+      "event_type": "change hf state",
+      "year": 242,
+      "seconds": 294000,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "id": 533200,
+      "event_type": "change hf state",
+      "year": 244,
+      "seconds": 201600,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "id": 533198,
+      "event_type": "add hf entity link",
+      "year": 244,
+      "seconds": 201600,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 535024,
+      "event_type": "add hf entity link",
+      "year": 245,
+      "seconds": 0,
+      "details": "{\"civ\": \"2695\", \"link\": \"enemy\", \"histfig\": \"19639\", \"position\": \"-1\", \"link_type\": \"enemy\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 542598,
+      "event_type": "change hf state",
+      "year": 247,
+      "seconds": 252000,
+      "details": "{\"state\": \"settler\", \"reason\": \"none\"}"
+    },
+    {
+      "id": 542596,
+      "event_type": "add hf entity link",
+      "year": 247,
+      "seconds": 252000,
+      "details": "{\"civ\": \"3969\", \"link\": \"position\", \"histfig\": \"19639\", \"position\": \"representative\", \"link_type\": \"position\", \"position_id\": \"2\", \"appointer_hfid\": \"-1\", \"promise_to_hfid\": \"-1\"}"
+    },
+    {
+      "id": 540551,
+      "event_type": "hfs formed intrigue relationship",
+      "year": 247,
+      "seconds": null,
+      "details": "{\"circumstance\": \"is entity subordinate\", \"corruptor_hfid\": \"33351\", \"target_seen_as\": \"general purpose asset\", \"circumstance_id\": \"3969\", \"corruptor_seen_as\": \"master\"}"
+    }
+  ],
+  "events_in_details": [],
+  "event_relationships": [],
+  "artifacts": [],
+  "written_contents": [],
+  "identities": [],
+  "collection_events": [
+    {
+      "world_id": 1,
+      "collection_id": 23423,
+      "event_id": 399344,
+      "coll_id": 23423,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 194,
+      "end_year": 194,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 23423,
+      "event_id": 399345,
+      "coll_id": 23423,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 194,
+      "end_year": 194,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 23423,
+      "event_id": 399346,
+      "coll_id": 23423,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 194,
+      "end_year": 194,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 23423,
+      "event_id": 399347,
+      "coll_id": 23423,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 194,
+      "end_year": 194,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24373,
+      "event_id": 411992,
+      "coll_id": 24373,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 199,
+      "end_year": 199,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24373,
+      "event_id": 411993,
+      "coll_id": 24373,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 199,
+      "end_year": 199,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24373,
+      "event_id": 411994,
+      "coll_id": 24373,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 199,
+      "end_year": 199,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24373,
+      "event_id": 411995,
+      "coll_id": 24373,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 199,
+      "end_year": 199,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24762,
+      "event_id": 417235,
+      "coll_id": 24762,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 201,
+      "end_year": 201,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24762,
+      "event_id": 417236,
+      "coll_id": 24762,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 201,
+      "end_year": 201,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24762,
+      "event_id": 417237,
+      "coll_id": 24762,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 201,
+      "end_year": 201,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24762,
+      "event_id": 417238,
+      "coll_id": 24762,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 201,
+      "end_year": 201,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24762,
+      "event_id": 417239,
+      "coll_id": 24762,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 201,
+      "end_year": 201,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 24762,
+      "event_id": 417240,
+      "coll_id": 24762,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 201,
+      "end_year": 201,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25050,
+      "event_id": 420941,
+      "coll_id": 25050,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 202,
+      "end_year": 202,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25828,
+      "event_id": 432160,
+      "coll_id": 25828,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 206,
+      "end_year": 206,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25828,
+      "event_id": 432161,
+      "coll_id": 25828,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 206,
+      "end_year": 206,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25828,
+      "event_id": 432162,
+      "coll_id": 25828,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 206,
+      "end_year": 206,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25828,
+      "event_id": 432163,
+      "coll_id": 25828,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 206,
+      "end_year": 206,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25828,
+      "event_id": 432164,
+      "coll_id": 25828,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 206,
+      "end_year": 206,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434556,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434557,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434558,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434560,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434561,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434562,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 25996,
+      "event_id": 434563,
+      "coll_id": 25996,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 207,
+      "end_year": 207,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436969,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436970,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436971,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436974,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436975,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436976,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26178,
+      "event_id": 436977,
+      "coll_id": 26178,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 208,
+      "end_year": 208,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26374,
+      "event_id": 439590,
+      "coll_id": 26374,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 209,
+      "end_year": 209,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26374,
+      "event_id": 439592,
+      "coll_id": 26374,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 209,
+      "end_year": 209,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26374,
+      "event_id": 439593,
+      "coll_id": 26374,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 209,
+      "end_year": 209,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26409,
+      "event_id": 439813,
+      "coll_id": 26409,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 209,
+      "end_year": 209,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 26409,
+      "event_id": 439814,
+      "coll_id": 26409,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 209,
+      "end_year": 209,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27408,
+      "event_id": 455097,
+      "coll_id": 27408,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27408,
+      "event_id": 455098,
+      "coll_id": 27408,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27408,
+      "event_id": 455099,
+      "coll_id": 27408,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455252,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455253,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455254,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455257,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455258,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455259,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27440,
+      "event_id": 455260,
+      "coll_id": 27440,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27463,
+      "event_id": 455409,
+      "coll_id": 27463,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 214,
+      "end_year": 214,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 27650,
+      "event_id": 458057,
+      "coll_id": 27650,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 215,
+      "end_year": 215,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473261,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473262,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473264,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473265,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473266,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473267,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473269,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28773,
+      "event_id": 473270,
+      "coll_id": 28773,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 28821,
+      "event_id": 473481,
+      "coll_id": 28821,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 221,
+      "end_year": 221,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 29198,
+      "event_id": 478268,
+      "coll_id": 29198,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 223,
+      "end_year": 223,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 29198,
+      "event_id": 478270,
+      "coll_id": 29198,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 223,
+      "end_year": 223,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 29198,
+      "event_id": 478271,
+      "coll_id": 29198,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 223,
+      "end_year": 223,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 29612,
+      "event_id": 483844,
+      "coll_id": 29612,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 225,
+      "end_year": 225,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 29612,
+      "event_id": 483845,
+      "coll_id": 29612,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 225,
+      "end_year": 225,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 30690,
+      "event_id": 496752,
+      "coll_id": 30690,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 230,
+      "end_year": 230,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 30690,
+      "event_id": 496753,
+      "coll_id": 30690,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 230,
+      "end_year": 230,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 30690,
+      "event_id": 496754,
+      "coll_id": 30690,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 230,
+      "end_year": 230,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 30690,
+      "event_id": 496755,
+      "coll_id": 30690,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 230,
+      "end_year": 230,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 30690,
+      "event_id": 496756,
+      "coll_id": 30690,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 230,
+      "end_year": 230,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501621,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501622,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501623,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501624,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501625,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501626,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 31070,
+      "event_id": 501627,
+      "coll_id": 31070,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 232,
+      "end_year": 232,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32121,
+      "event_id": 515171,
+      "coll_id": 32121,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 237,
+      "end_year": 237,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32121,
+      "event_id": 515174,
+      "coll_id": 32121,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 237,
+      "end_year": 237,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32121,
+      "event_id": 515175,
+      "coll_id": 32121,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 237,
+      "end_year": 237,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32753,
+      "event_id": 522562,
+      "coll_id": 32753,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 240,
+      "end_year": 240,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32753,
+      "event_id": 522563,
+      "coll_id": 32753,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 240,
+      "end_year": 240,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32753,
+      "event_id": 522564,
+      "coll_id": 32753,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 240,
+      "end_year": 240,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32753,
+      "event_id": 522565,
+      "coll_id": 32753,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 240,
+      "end_year": 240,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 32753,
+      "event_id": 522566,
+      "coll_id": 32753,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 240,
+      "end_year": 240,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 33810,
+      "event_id": 535024,
+      "coll_id": 33810,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 245,
+      "end_year": 245,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 34083,
+      "event_id": 539248,
+      "coll_id": 34083,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 246,
+      "end_year": 246,
+      "coll_details": null
+    },
+    {
+      "world_id": 1,
+      "collection_id": 34083,
+      "event_id": 539249,
+      "coll_id": 34083,
+      "coll_name": null,
+      "coll_type": "beast attack",
+      "start_year": 246,
+      "end_year": 246,
+      "coll_details": null
+    }
+  ],
+  "referenced_hfs": [
+    {
+      "id": 1668,
+      "name": "ola",
+      "race": null,
+      "caste": null,
+      "birth_year": null,
+      "death_year": null,
+      "is_deity": true,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": false,
+      "is_ghost": false
+    },
+    {
+      "id": 5801,
+      "name": "lolama seawaxes",
+      "race": "ELF",
+      "caste": "FEMALE",
+      "birth_year": 43,
+      "death_year": null,
+      "is_deity": false,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": false,
+      "is_ghost": false
+    },
+    {
+      "id": 26008,
+      "name": "lene tresscut",
+      "race": "ELF",
+      "caste": "FEMALE",
+      "birth_year": -28,
+      "death_year": 159,
+      "is_deity": false,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": false,
+      "is_ghost": false
+    },
+    {
+      "id": 26020,
+      "name": "nine lakevirtue",
+      "race": "ELF",
+      "caste": "FEMALE",
+      "birth_year": -14,
+      "death_year": null,
+      "is_deity": false,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": false,
+      "is_ghost": false
+    },
+    {
+      "id": 27024,
+      "name": "thilu scaleshark",
+      "race": "ELF",
+      "caste": "MALE",
+      "birth_year": 97,
+      "death_year": 145,
+      "is_deity": false,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": false,
+      "is_ghost": false
+    },
+    {
+      "id": 27292,
+      "name": "ale wardedweather",
+      "race": "ELF",
+      "caste": "MALE",
+      "birth_year": 61,
+      "death_year": null,
+      "is_deity": false,
+      "is_force": false,
+      "is_vampire": false,
+      "is_necromancer": false,
+      "is_werebeast": false,
+      "is_ghost": false
+    }
+  ],
+  "referenced_entities": [
+    {
+      "id": 985,
+      "name": "the nation of stability",
+      "type": "civilization"
+    },
+    {
+      "id": 993,
+      "name": "the nation of sports",
+      "type": "civilization"
+    },
+    {
+      "id": 1031,
+      "name": "the stupid spiders",
+      "type": "civilization"
+    },
+    {
+      "id": 1035,
+      "name": "the oily gorge",
+      "type": "civilization"
+    },
+    {
+      "id": 1401,
+      "name": "the group of comets",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 1538,
+      "name": "the torment of fools",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 1553,
+      "name": "the impervious spring",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 1620,
+      "name": "the craterous league",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 1656,
+      "name": "the roar of rooms",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 1851,
+      "name": "the prim coalition",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 1960,
+      "name": "the sloppy council",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2039,
+      "name": "the coalition of stops",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2156,
+      "name": "the band of ears",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2230,
+      "name": "the coalition of sweetness",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2262,
+      "name": "the disemboweled band",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2390,
+      "name": "the dishonest lie",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2420,
+      "name": "the dungeons of sieging",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2424,
+      "name": "the wordy fellowship",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2695,
+      "name": "the council of teaching",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 2738,
+      "name": "the crucifixions of hating",
+      "type": "nomadicgroup"
+    },
+    {
+      "id": 2950,
+      "name": "the jackal of slitting",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 3029,
+      "name": "the scorpion of mechanisms",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 3057,
+      "name": "the coalition of mastery",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 3097,
+      "name": "the contingent league",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 3621,
+      "name": "the cardinal clearings",
+      "type": "performancetroupe"
+    },
+    {
+      "id": 3969,
+      "name": "the meanness of omens",
+      "type": "outcast"
+    },
+    {
+      "id": 4077,
+      "name": "the society of creams",
+      "type": "outcast"
+    },
+    {
+      "id": 4300,
+      "name": "the greatest council",
+      "type": "sitegovernment"
+    },
+    {
+      "id": 4350,
+      "name": "the fatal bronze-belts",
+      "type": "nomadicgroup"
+    }
+  ],
+  "referenced_sites": [
+    {
+      "id": 817,
+      "name": "skintame",
+      "type": "town",
+      "details": "{\"is_ruin\": false, \"ownership_history\": [{\"year\": 75, \"event\": \"created site\", \"entity_id\": 993}, {\"year\": 212, \"event\": \"attacked site\"}, {\"year\": 219, \"event\": \"attacked site\"}, {\"year\": 230, \"event\": \"attacked site\"}]}"
+    }
+  ],
+  "referenced_regions": [],
+  "referenced_structures": []
+}

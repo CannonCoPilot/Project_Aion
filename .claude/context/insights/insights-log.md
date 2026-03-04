@@ -1868,3 +1868,18 @@ The base `legends.xml` only stores `position_profile_id` (the assignment slot nu
 ### 2026-03-04 [4d6e3f4b2c79]
 
 **Why not split commit 3 further?** The structure backend changes in `detail_pages.py` and the enrichment additions are interleaved in the same file — the structure route handler rewrite *includes* an enrichment line within it, and both features share the same import. Splitting would require temporary file manipulation that risks staging errors. The 2+1 split (two clean ingestion commits + one UI commit) preserves bisectability since the ingestion fixes are independent, while the UI changes all compose a single "detail page improvements" theme.
+
+### 2026-03-04 [eac810763898]
+
+**Why the inn has no entity_id while the temple does:** In Dwarf Fortress, temples and guildhalls are always associated with a religious/guild entity (the sect or order that operates them). Inns/taverns, by contrast, are civic structures — they don't have a governing entity, just a site location. This is why `entity_id` is NULL for inn taverns, making the conditional tab rendering (`{% if positions %}`) the correct approach: the template adapts to the data model rather than hardcoding assumptions about which structure types have organizational hierarchies.
+
+### 2026-03-04 [971f868f5a2c]
+
+**The graph legend was already close to complete — `nomadicgroup` and `migratinggroup` had backend styling defined in `_ENTITY_NODE_STYLES` but were missing from the HTML legend.** This is a common pattern when styling maps are added incrementally: the Python dict grows but the template legend lags behind. The fix ensures the legend's checkbox `data-group` values (`entity_nomadicgroup`, `entity_migratinggroup`) match the backend's `f'entity_{etype}'` pattern, so the existing toggle filter logic works without any JS changes.
+
+### 2026-03-04 [baa4474ebd53]
+
+**Key experimental findings for Chronicler Phase 3:**
+1. **Zero fabrications across all three model tiers** — the fact-constrained prompt format (full registry + explicit instructions) effectively prevents hallucination. This validates the Extract→Register→Narrate→Validate pipeline design.
+2. **Coverage scales with model capability** (52% → 58% → 72%), but the *quality* tradeoff is non-linear: Sonnet produced the best prose despite lower coverage than Opus. This suggests using Sonnet for user-facing narratives and Opus for reference/validation tasks.
+3. **Wild guess discipline correlates with model tier** (4 → 2 → 0) — more capable models maintain tighter separation between supported inference and pure speculation, which is critical for a fact-grounded storytelling system.
