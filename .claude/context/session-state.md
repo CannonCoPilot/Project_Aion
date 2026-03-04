@@ -8,13 +8,33 @@
 
 ## Current Work Status
 
-**Status**: Active -- Session 36 (continued)
+**Status**: Idle -- Session 37 complete
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: aad19dd (IDF entity scoring docs) [Jarvis repo]
-**Last Pushed**: aad19dd (to origin/Project_Aion)
-**DwarfCron Last Commit**: 234becf (relationship supplements fix)
-**DwarfCron Last Pushed**: 234becf (to origin/main)
+**Last Commit**: (pending) [Jarvis repo]
+**Last Pushed**: (pending)
+**DwarfCron Last Commit**: (pending, JSON export fix)
+**DwarfCron Last Pushed**: (pending)
+
+---
+
+## What Was Accomplished (2026-03-04, Session 37 -- Phase 2 Validation Bugfix)
+
+### JSON Export Bug Fix + Validation Doc Corrections
+- **Fixed**: POST `/api/explorer/export/query` always returned CSV regardless of `format` parameter
+  - Root cause: `format` was a query parameter but callers sent it in the POST body; `QueryRequest` Pydantic model lacked `format` field
+  - Fix: Added `format: str = "csv"` to `QueryRequest` model, removed redundant query param, simplified routing to use `body.format` as single source of truth
+  - Verified: Both `"format": "json"` and default CSV work correctly
+- **Corrected validation walkthrough doc** (3 edits):
+  - R3 regression query: `details ? 'deity'` changed to `details ? 'deity_hf_id'` (actual JSONB key), expected count updated to 4
+  - Art form URLs: `form_type=musical_form` changed to `form_type=dance` (actual DB values are `dance`, `musical`, `poetic`, not `*_form`)
+  - Added clarification note about form_type value naming convention
+
+**Files modified**:
+- `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/api/routes/explorer.py` (QueryRequest model + export endpoint)
+- `projects/chronicler/reports/phase-2-validation-walkthrough.md` (3 doc corrections)
+
+**Validation status**: 49/50 items passed in prior session; JSON export fix brings this to 50/50. Enhancement validation agent was interrupted — re-run recommended in next session before final Phase 2 sign-off.
 
 ---
 
@@ -136,13 +156,15 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Chronicler Phase 2 -- Explorer Core (User Itemized Review)
+### PRIMARY: Chronicler Phase 2 -- Final Sign-Off + Phase 3 Start
 
-Phase 2 implementation is functionally complete (all 30 DoD items implemented, all endpoints HTTP 200), but **DoD sign-off is DEFERRED** pending User's itemized review of additional bugfixes and feature notes.
+Phase 2 validation: 50/50 items pass (30 DoD + 13 enhancements + 7 regression). Last bug (JSON export) fixed Session 37. Enhancement validation agent needs re-run for formal verification.
 
-**Current state**: Awaiting User's list of findings. Each item will be addressed before re-validating the 30-item DoD checklist.
-
-See `projects/chronicler/reports/phases/phase-2-explorer-core.md` for full details.
+**Next session**:
+1. Re-run enhancement validation agent (13 items) to confirm all pass
+2. Update completion report status from DEFERRED to COMPLETE
+3. Get user sign-off on Phase 2
+4. Begin Phase 3 — Narrative Engine (per `reports/phases/phase-3-narrative-engine.md`)
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)

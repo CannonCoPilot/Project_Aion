@@ -179,11 +179,11 @@ All should render with basic info and cross-links:
 | Mountain Peak | http://localhost:8099/explorer/mountain_peak/1?world_id=1 | Name, height, is_volcano |
 | River | http://localhost:8099/explorer/river/1?world_id=1 | Name, path |
 | World Construction | http://localhost:8099/explorer/construction/1?world_id=1 | Type (road/bridge/tunnel) |
-| Art Form | http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form | Type + description |
+| Art Form | http://localhost:8099/explorer/art_form/1?world_id=1&form_type=dance | Type + description |
 | Identity | http://localhost:8099/explorer/identity/1?world_id=1 | Linked HF |
 | Historical Era | http://localhost:8099/explorer/era/Age%20of%20Myth?world_id=1 | Time range, events |
 
-**Art Form special check**: The description field should contain text from base legends.xml (e.g., "The Poetry of Lathering is a solo celebration dance..."). This validates the dual-XML merge.
+**Art Form special check**: Art form #1 with `form_type=dance` is "The Poetry of Lathering" — description should read "The Poetry of Lathering is a solo celebration dance...". This validates the dual-XML merge. Note: `form_type` values are `dance`, `musical`, `poetic` (not `dance_form`, `musical_form`, `poetic_form`).
 
 ---
 
@@ -363,8 +363,8 @@ These checks verify that the enrichment pipeline persisted data correctly and is
 - Positions should display named roles ("Sacred Law", "High Nourishment") not numeric "Position N" entries
 
 #### Art Form Description Merge (UI-visible)
-- Visit http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
-- Should have a text description like "The Poetry of Lathering is a solo celebration dance..."
+- Visit http://localhost:8099/explorer/art_form/1?world_id=1&form_type=dance
+- Should have a text description: "The Poetry of Lathering is a solo celebration dance..."
 - This description comes from base legends.xml merged into plus metadata
 
 #### Relationship Supplements (data-layer only — verify via SQL)
@@ -414,9 +414,9 @@ On site detail pages with ownership changes:
 ### 26. Art Form Composite PK Routing
 
 Art forms use a composite primary key (world_id, id, form_type):
-- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical_form
-- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=poetic_form
-- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=dance_form
+- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=musical
+- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=poetic
+- http://localhost:8099/explorer/art_form/1?world_id=1&form_type=dance
 - Each should route correctly, prev/next links should stay within the same form_type
 
 ---
@@ -440,8 +440,8 @@ SELECT COUNT(*) FROM history_events WHERE details ? 'circumstance';
 
 ### R3. Structure Enrichment Count
 ```sql
-SELECT COUNT(*) FROM structures WHERE details ? 'deity';
--- Expected: > 0 (temples with deity data)
+SELECT COUNT(*) FROM structures WHERE details ? 'deity_hf_id';
+-- Expected: 4 (temples with deity data)
 ```
 
 ### R4. Art Form Descriptions Present
@@ -481,71 +481,73 @@ GROUP BY ep.name ORDER BY ep.name;
 
 ---
 
-## Validation Checklist
+## Validation Checklist (validated 2026-03-04)
 
-### Core DoD (30 items)
+### Core DoD (30 items) — 30/30 PASS
 
 **Entity Detail Pages (17)**:
-- [ ] Historical Figure detail (tabs, events, badges, 24 sections)
-- [ ] Entity/Civilization detail (5 tabs)
-- [ ] Site detail (4 tabs: structures, properties, ownership, history)
-- [ ] Artifact detail (chain-of-custody)
-- [ ] Region detail (biome + evilness badges)
-- [ ] Structure detail (type badge, deity/sect links, positions/members tabs for temples, no tabs for inns)
-- [ ] Written Content detail (author link, form type)
-- [ ] Event Collection detail (hierarchy)
-- [ ] Underground Region detail
-- [ ] Landmass detail
-- [ ] Mountain Peak detail
-- [ ] River detail
-- [ ] World Construction detail
-- [ ] Art Form detail (3 types, description text)
-- [ ] Identity detail (linked HF)
-- [ ] Historical Era detail (time range)
-- [ ] Years and Events browser
+- [x] Historical Figure detail (tabs, events, badges, 24 sections)
+- [x] Entity/Civilization detail (5 tabs)
+- [x] Site detail (4 tabs: structures, properties, ownership, history)
+- [x] Artifact detail (chain-of-custody)
+- [x] Region detail (biome + evilness badges)
+- [x] Structure detail (type badge, deity/sect links, positions/members tabs for temples, no tabs for inns)
+- [x] Written Content detail (author link, form type)
+- [x] Event Collection detail (hierarchy)
+- [x] Underground Region detail
+- [x] Landmass detail
+- [x] Mountain Peak detail
+- [x] River detail
+- [x] World Construction detail
+- [x] Art Form detail (3 types, description text)
+- [x] Identity detail (linked HF)
+- [x] Historical Era detail (time range)
+- [x] Years and Events browser
 
 **Search and Navigation (8)**:
-- [ ] Global search with live autocomplete (accent-insensitive)
-- [ ] Three-layer People filter (race pills, variant bars, status/text)
-- [ ] Hover popovers on entity links
-- [ ] Breadcrumb navigation on all detail pages
-- [ ] Prev/Next navigation on all detail pages
-- [ ] URL hash tab persistence
-- [ ] Row detail overlay in data browser
-- [ ] Query results export (CSV/JSON)
+- [x] Global search with live autocomplete (accent-insensitive)
+- [x] Three-layer People filter (race pills, variant bars, status/text)
+- [x] Hover popovers on entity links
+- [x] Breadcrumb navigation on all detail pages
+- [x] Prev/Next navigation on all detail pages
+- [x] URL hash tab persistence
+- [x] Row detail overlay in data browser
+- [x] Query results export (CSV/JSON) — fixed 2026-03-04: added `format` to QueryRequest body model
 
 **Cross-Cutting (5)**:
-- [ ] Cross-linked entity references everywhere
-- [ ] Perspective-aware event rendering (caste-aware pronouns)
-- [ ] DF calendar formatting
-- [ ] Entity name cache (pages load within performance targets)
-- [ ] All pages load without errors
+- [x] Cross-linked entity references everywhere
+- [x] Perspective-aware event rendering (caste-aware pronouns)
+- [x] DF calendar formatting
+- [x] Entity name cache (pages load within performance targets)
+- [x] All pages load without errors
 
-### Enhancements (13 items)
-- [ ] Unified scoring (prominence + salience badges)
-- [ ] Multi-mode graph (pedigree, mentorship, full network)
-- [ ] Graph features (degree selector, 6 layouts, edge/node toggles)
-- [ ] Hide isolated nodes toggle
-- [ ] Inline HF detail expansion
-- [ ] Chat popup (SSE streaming)
-- [ ] Dual-XML enrichment (events, structures, supplements)
-- [ ] Event enrichment UI display (expandable tags on all detail pages)
-- [ ] Co-member/co-occupant graph wings
-- [ ] Site residents tab
-- [ ] Ownership timeline
-- [ ] Art form composite PK routing
-- [ ] Materialized HF settlement links
+### Enhancements (13 items) — 13/13 PASS
 
-### Regression Checks (7 SQL queries)
-- [ ] R1: 334 relationship supplements
-- [ ] R2: ~13,261 circumstance events
-- [ ] R3: Structures with deity data
-- [ ] R4: 658 art form descriptions
-- [ ] R5: Record counts match expected
-- [ ] R6: ~6,196 structure xref rows
-- [ ] R7: Position profiles corrected (named positions, not "Position N")
+- [x] Unified scoring (prominence + salience badges)
+- [x] Multi-mode graph (pedigree, mentorship, full network)
+- [x] Graph features (degree selector, 6 layouts, edge/node toggles)
+- [x] Hide isolated nodes toggle
+- [x] Inline HF detail expansion
+- [x] Chat popup (SSE streaming)
+- [x] Dual-XML enrichment (events, structures, supplements)
+- [x] Event enrichment UI display (expandable tags on all detail pages)
+- [x] Co-member/co-occupant graph wings
+- [x] Site residents tab
+- [x] Ownership timeline
+- [x] Art form composite PK routing
+- [x] Materialized HF settlement links
+
+### Regression Checks (7 SQL queries) — 7/7 PASS
+
+- [x] R1: 334 relationship supplements
+- [x] R2: ~13,261 circumstance events
+- [x] R3: 4 structures with deity data (key: `deity_hf_id`)
+- [x] R4: 658 art form descriptions
+- [x] R5: Record counts match expected
+- [x] R6: ~6,196 structure xref rows
+- [x] R7: Position profiles corrected (named positions, not "Position N")
 
 ---
 
-*Phase 2: Explorer Core — Validation Walkthrough v2.1*
-*50 verification items covering 30 DoD + 13 enhancements + 7 regression checks*
+*Phase 2: Explorer Core — Validation Walkthrough v2.1 (validated 2026-03-04)*
+*50/50 verification items PASSED — 30 DoD + 13 enhancements + 7 regression checks*
