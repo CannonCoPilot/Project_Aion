@@ -1883,3 +1883,7 @@ The base `legends.xml` only stores `position_profile_id` (the assignment slot nu
 1. **Zero fabrications across all three model tiers** — the fact-constrained prompt format (full registry + explicit instructions) effectively prevents hallucination. This validates the Extract→Register→Narrate→Validate pipeline design.
 2. **Coverage scales with model capability** (52% → 58% → 72%), but the *quality* tradeoff is non-linear: Sonnet produced the best prose despite lower coverage than Opus. This suggests using Sonnet for user-facing narratives and Opus for reference/validation tasks.
 3. **Wild guess discipline correlates with model tier** (4 → 2 → 0) — more capable models maintain tighter separation between supported inference and pure speculation, which is critical for a fact-grounded storytelling system.
+
+### 2026-03-04 [d57c9d1a1149]
+
+**Commit strategy note:** I deliberately excluded the untracked screenshots (~30 PNGs), plan stubs, and bio_graph folder from this commit. Binary screenshots bloat the repo and those plan stubs are transient Claude Code artifacts. The narrative-standard folder is the clean, self-contained deliverable — 8 files totaling ~345 KB of structured experiment data.
