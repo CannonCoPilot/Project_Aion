@@ -2065,3 +2065,13 @@ The ETL plan reveals an interesting architectural pattern: **two temporal resolu
 ### 2026-03-05 [8c09b81961d1]
 
 The PRD revision incorporates findings from a 5-stage "Wiggum Loop" — a structured investigation pattern: (1) analyze df-structures naming changes, (2) map memory→CDM fields, (3) audit for CONNECT vs APPEND violations, (4) design ETL plan, (5) revise PRD. The most critical finding was the APPEND violations — places where live data would create parallel data stores instead of connecting to existing CDM entities. The `units.id` PK mismatch alone would have caused subtle multi-world breakage.
+
+### 2026-03-05 [a36027dcfc0d]
+
+**Three patterns from the inline viewer ported to server-side rendering:**
+
+1. **Data-attribute-based DOM sorting** — Instead of re-fetching data for sort, each `<tr>` carries `data-sg-name`, `data-population`, etc. The JS simply reorders DOM nodes via `appendChild`. This is dramatically simpler than the inline viewer's approach of maintaining a JS array + re-rendering HTML strings.
+
+2. **Progressive enhancement for members** — The page server-renders the first 100 members immediately (no loading spinner), then the "Load All" button fetches up to 10K via the existing API and switches to full JS-managed sorting/filtering. This gives instant content on page load while preserving the full interactive experience.
+
+3. **Jinja2 globals vs template filters** — `struct_icon()` and `cat_badge_class()` are registered as Jinja2 globals rather than filters because they're callable functions (not string transformations). Globals are invoked as `{{ struct_icon(type) }}` vs filters as `{{ type|struct_icon }}` — globals are more readable for lookup-table patterns.
