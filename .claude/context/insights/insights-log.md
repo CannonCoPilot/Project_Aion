@@ -1925,3 +1925,79 @@ Cache reads dominate today's token profile (75.8M of 78.6M = 96.5%) — this is 
 ### 2026-03-04 [616cd2c8ec13]
 
 This file defines the "test harness" role — W5 can observe and interact with W0 (the primary Jarvis instance) without being monitored itself, making it ideal for testing autonomic behaviors, JICM cycles, and command IPC without interference.
+
+### 2026-03-04 [322effa194d4]
+
+The validation walkthrough has 50 items across 3 categories: 30 Core DoD, 13 Enhancements, and 7 Regression SQL checks. All were previously marked PASS on 2026-03-04, so this is a re-validation run against a fresh server instance — good practice to catch any regressions from stale state.
+
+### 2026-03-04 [80ae84f3a4d9]
+
+**What we surfaced from the data layers:**
+
+1. **Composition Event** (37,486 events) — The "written content composed" events link via `details.wc_id` and include `circumstance` (dream/nightmare/pray to hf/dream about hf) and `reason` (glorify hf) with linked HF IDs. This tells the story of *why* a work was written — e.g., "Composed in Year 3 after praying to Loli Dutywisp, to glorify them."
+
+2. **Art Form linkage** (22,576 WCs) — The `details.form_id` links to the `art_forms` table via composite PK (id + form_type). The form_type is derived from the written content's `form` field: poem→poetic, musical composition→musical, choreography→dance. Art forms have rich text descriptions of the tradition's rules, structure, and origin.
+
+3. **Author Roll** (22,915 WCs) — A numeric quality score (typically 10-50) representing the author's skill roll for this specific work. Higher values suggest higher quality.
+
+4. **Reference resolution** (14,571 WCs) — Already fixed in the previous round, but now also properly handles null-ID flag types via `ref_counts_by_type`.
+
+### 2026-03-04 [6079f24316e3]
+
+**Audit results — only ONE table has data loss:**
+
+| Table | Merge Method | Base Keys | Plus Keys | Data Loss? |
+|-------|
+
+### 2026-03-04 [7f03a5f5f2c6]
+
+**Full audit results — the single data loss bug and its fix:**
+
+**Root Cause**: The `written_contents` plus-XML merge at `xml_parser.py:1352` used `COALESCE(EXCLUDED.details, written_contents.details)` — a full column replacement where non-NULL plus-XML details completely overwrites base XML details. Every other table either uses JSONB `||` (additive merge) or has `details=NULL` in the base parse.
+
+**Data Recovered**:
+| Field | Before | After | Source |
+|-------|--------|-------|--------|
+| author_roll | 22,915 | **37,486** (100%) | Base XML `<author_roll>` |
+| form_id | 22,607 | **30,151** | Base XML `<form_id>` |
+| Both author_roll + references | 0 | **14,571** | Both XMLs merged |
+
+**Two-part Fix**:
+1. **Ingestion fix** (`xml_parser.py:1352`): Changed merge from `COALESCE(EXCLUDED, existing)` to `COALESCE(existing, '{}') || COALESCE(EXCLUDED, '{}')` — additive JSONB merge, matching the pattern used by events/artifacts/structures.
+2. **Data recovery**: Re-parsed base XML and merged `author_roll`/`form_id` back into existing DB rows via `|| $1::jsonb`. No re-ingest needed.
+
+**No other tables affected**: Full audit confirmed events, artifacts, structures, entities, and all other tables use correct merge patterns.
+
+### 2026-03-04 [19d0f21c3316]
+
+**The occasion mystery solved — it's a 3-layer hierarchy:**
+1. **Entity** (civilization) → has named `<occasion>` records (festivals) in plus XML
+2. **Event collection** (type=occasion) → references `civ_id` + `occasion_id`, linking to the entity's festival
+3. **Sub-collections** (performances/competitions/ceremonies) → linked via `collection_subcollections` table
+
+The occasion collection appears empty because: (a) it correctly has 0 direct events (it's a container), (b) the sub-collection query only checked `parent_id` column (now fixed to also check `collection_subcollections`), and (c) the festival **name** lives in the entity's plus XML data, not on the collection itself.
+
+### 2026-03-04 [966f9ea67429]
+
+**Procession route data — what DF actually exports:**
+
+1. **No site-to-site or structure-to-structure route data exists.** Each procession event has exactly one `site_id` and one `civ_id` — the site where it took place. There's no start/end location, no waypoints, no structure path. DF's internal model may simulate processions moving through a site, but the legends export only records the single hosting site.
+
+2. **Each procession collection contains exactly 1 event** (checked all procession collections — 0 have more than 1 event). So there's no implicit route derivable from a sequence of events at different sites either.
+
+3. **What IS available for processions:**
+   - The `occasion_schedules` table has **feature tags** for the procession (costumes, criers_in_front, acrobats, candles, images, dance_performance references, musical_performance references)
+   - The hosting `site_id` (where it occurred)
+   - The `civ_id` (which civilization organized it)
+   - The `schedule_id` linking to which schedule entry in the occasion it fulfills
+
+4. **Interesting contrast — `journey` collections DO have multi-event structure** (e.g., collection #12 has 2 events), suggesting DF records waypoints for journeys but not processions. This makes sense: processions happen within a single site, while journeys span sites.
+
+### 2026-03-04 [b25b8b2c35e6]
+
+**Journey collections DO encode routes — here's the structure:**
+
+A journey collection contains a **sequence of `hf travel` events** that form a route. Taking collection #12 (HF 1417, year 1) as an example:
+
+| Event | site_id | subregion_id | coords | `<return/>` | Meaning |
+|-------|---------|
