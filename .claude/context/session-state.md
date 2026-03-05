@@ -8,7 +8,7 @@
 
 ## Current Work Status
 
-**Status**: Idle -- Session 37 complete
+**Status**: Active -- Session 38 (Phase 3 prep)
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: feed264 (session 37 — validation fixes) [Jarvis repo]
@@ -156,15 +156,20 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Chronicler Phase 2 -- Final Sign-Off + Phase 3 Start
+### PRIMARY: Chronicler Phase 3 -- Live Integration
 
-Phase 2 validation: 50/50 items pass (30 DoD + 13 enhancements + 7 regression). Last bug (JSON export) fixed Session 37. Enhancement validation agent needs re-run for formal verification.
+Phase 2: COMPLETE (50/50 validation passed, completion report finalized).
+Phase 3 Wiggum Loop research COMPLETE — 5 stages:
+1. df-structures 53.11-r1 analysis (naming convention only, no structural changes)
+2. Memory-to-CDM mapping (phase-3-memory-cdm-mapping.md)
+3. 1:1 CONNECT vs APPEND audit (5 violations identified)
+4. ETL plan for all game modes (phase-3-etl-plan.md)
+5. PRD revised to v2.0 with CDM schema fixes section + companion doc refs
 
-**Next session**:
-1. Re-run enhancement validation agent (13 items) to confirm all pass
-2. Update completion report status from DEFERRED to COMPLETE
-3. Get user sign-off on Phase 2
-4. Begin Phase 3 — Narrative Engine (per `reports/phases/phase-3-narrative-engine.md`)
+**Next**:
+1. Get user sign-off on Phase 2 (completion report ready)
+2. Begin Phase 3 Stage 3.0: CDM schema fixes (4 APPEND violations)
+3. Then Stage 3.1: Bridge Enhancements
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
