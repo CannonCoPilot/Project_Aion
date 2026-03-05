@@ -2001,3 +2001,25 @@ A journey collection contains a **sequence of `hf travel` events** that form a r
 
 | Event | site_id | subregion_id | coords | `<return/>` | Meaning |
 |-------|---------|
+
+### 2026-03-05 [3bebf0618c8a]
+
+The battle entity inheritance pattern is worth noting — DF legends XML stores belligerent entity IDs on the *war* collection but not on individual *battle* sub-collections. The fix walks up the parent chain (`parent_id`) to find the war and pulls `attacker_entity_id`/`defender_entity_id` down. This parent-lookup pattern will recur for other hierarchical collection types (e.g., persecutions, purges).
+
+### 2026-03-05 [33474495315a]
+
+**DF time precision was hiding in plain sight.** The `seconds72` field (game ticks at 72x speed) was already being parsed and stored in `start_seconds`/`end_seconds` columns, but no code was using it for duration computation. The key constants: 1 day = 1,200 ticks, 1 month = 33,600 ticks, 1 year = 403,200 ticks. With 99.7% of collections happening within a single year, year-level duration was nearly useless — but tick-level gives us month/day precision that reveals a festival lasted "1 month, 20 days" or a war lasted "34 years, 10 months".
+
+The dual-surface approach (Python `DFCalendar.format_duration()` for server-rendered pages + JS `dfFormatDuration()` for SPA views) ensures consistent duration display everywhere without requiring an API round-trip for formatting.
+
+### 2026-03-05 [30b47921a217]
+
+**Why kobold civs show 0 sites:** The sites query uses `owner_entity_id`, but caves/lairs have `NULL` owners (93-100%). Kobolds live in caves/lairs via `hf_site_links` (link_type='lair') — an indirect relationship through their members, not direct ownership. The `site_entity_links` table mentioned in the first query **doesn't exist** — there's only `hf_site_links`. To find kobold-associated sites, you'd need to join through `hf_entity_links → hf_site_links`.
+
+**Key data gap:** 252 lair-type HF-site links exist but aren't surfaced anywhere in the entity detail page.
+
+### 2026-03-05 [e71e9397e4d6]
+
+**Template coverage went from 52 → 106 event types (102/102 DB types covered).** The key architectural insight is that ~40% of new event types store all their entity references in JSONB `details` (not in the generic DB columns like `hf_id_1`, `site_id`). For these, `COLUMN_MAP_BY_EVENT` is set to `{}` (empty), so `merge_columns_into_details()` skips the column→field mapping and relies entirely on JSONB field names matching `ENTITY_REF_FIELDS`. This two-layer resolution (DB columns + JSONB keys) is what makes the template system flexible enough to handle DF's inconsistent XML field naming.
+
+**The reason/circumstance rendering** uses a template-first approach: if the raw value matches a template key, the natural-language version is used; if not, it falls back to humanized raw text (underscores→spaces). JSON-object circumstances (like `{"type": "histeventcollection"}`) get special handling to generate cross-links to event collections.

@@ -59,7 +59,7 @@
 
 **Key metrics**: 1,675,297 total records, 0 referential integrity issues, 17 entity detail pages, 71 event type templates
 
-**Next**: Phase 3 — Narrative Engine (per `reports/phases/phase-3-narrative-engine.md`)
+**Next**: Phase 3 — Live Integration (per `reports/phases/phase-3-live-integration.md`; roadmap v2.0 reorder)
 
 ---
 
