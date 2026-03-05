@@ -1,15 +1,17 @@
-# Phase 5: Live Integration -- PRD/Roadmap
+# Phase 3: Live Integration -- PRD/Roadmap
 
-**Version**: 1.0
-**Date**: 2026-02-25
+**Version**: 1.1 (renumbered from Phase 5 → Phase 3 in Roadmap v2.0)
+**Date**: 2026-02-25 (renumbered 2026-03-04)
 **Phase Duration**: 3-4 weeks
-**Milestone**: M5 -- Live Complete
+**Milestone**: M3 -- Live Complete
 **Entry State**: Bridge v6 (7 domains, polling only), no worldgen monitoring, no Knowledge Horizon
-**Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring with live map, Knowledge Horizon Phase 1-3, embedding pipelines for live data
+**Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring with live map, Knowledge Horizon Phase 1-3 (data layer), embedding pipelines for live data
 
-**Parent Document**: Full Project Roadmap (full-project-roadmap.md)
-**Dependencies**: Phase 1 (complete CDM), Phase 3 (storyteller for KH integration)
-**Requirements Covered**: REQ-ETL-005 through ETL-012, REQ-KH-001 through KH-012, REQ-STR-032, REQ-EMB-001 through EMB-006
+**Parent Document**: Full Project Roadmap v2.0 (full-project-roadmap.md)
+**Dependencies**: Phase 1 (complete CDM), Phase 2 (entity detail pages for KH toggle)
+**Requirements Covered**: REQ-ETL-005 through ETL-012, REQ-KH-001 through KH-012, REQ-EMB-001 through EMB-006
+
+> **Note**: REQ-STR-032 (KH-storyteller integration) is deferred to Phase 4 (Narrative Engine) where the agentic storyteller is built. This phase builds the KH data layer only.
 
 ---
 
@@ -38,7 +40,7 @@ Phase 5 extends Chronicler's real-time data capabilities in four directions: (1)
 
 ---
 
-## 2. Stage 5.1: Bridge Enhancements
+## 2. Stage 3.1: Bridge Enhancements
 
 **Duration**: 1-2 weeks
 **Dependencies**: Phase 1 (HF field extensions for enrichment targets)
@@ -306,7 +308,7 @@ end
 
 ---
 
-## 3. Stage 5.2: Worldgen Monitoring
+## 3. Stage 3.2: Worldgen Monitoring
 
 **Duration**: 1 week
 **Dependencies**: Phase 1 (worldgen_snapshots table), Phase 4 (map rendering for preview)
@@ -510,7 +512,7 @@ async def worldgen_ws(websocket: WebSocket):
 
 ---
 
-## 4. Stage 5.3: Knowledge Horizon
+## 4. Stage 3.3: Knowledge Horizon
 
 **Duration**: 2-3 weeks
 **Dependencies**: Phase 1 (complete HF data), Phase 2 (entity detail pages), Phase 3 (storyteller)
@@ -811,10 +813,10 @@ async def build_storyteller_context(world_id: int, query: str, kh_enabled: bool 
 
 ---
 
-## 5. Stage 5.4: Modified Embedding Pipelines for Live In-Game Data
+## 5. Stage 3.4: Modified Embedding Pipelines for Live In-Game Data
 
 **Duration**: 1 week
-**Dependencies**: Phase 1 (embeddings table schema, pgvector), Stage 5.1 (live bridge data)
+**Dependencies**: Phase 1 (embeddings table schema, pgvector), Stage 3.1 (live bridge data)
 **Deliverables**: Text extraction pipeline, batch + incremental embedding generation, semantic search integration
 
 ### 5.1 Current Embedding Infrastructure
@@ -1060,7 +1062,7 @@ async def get_narrative_context(query: str, world_id: int, max_chunks: int = 10)
 
 ---
 
-## 6. Definition of Done (M5 Milestone)
+## 6. Definition of Done (M3 Milestone)
 
 ### Bridge Enhancements
 - [ ] Eventful subscriptions (5 event types)
@@ -1100,5 +1102,5 @@ async def get_narrative_context(query: str, world_id: int, max_chunks: int = 10)
 
 ---
 
-*Phase 5: Live Integration PRD/Roadmap v1.1 -- 2026-02-27*
+*Phase 3: Live Integration PRD/Roadmap v1.1 -- 2026-03-04*
 *4 Stages, 35+ Tasks, 3-4 Weeks Estimated*

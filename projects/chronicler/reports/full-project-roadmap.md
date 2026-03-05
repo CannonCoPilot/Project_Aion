@@ -1,8 +1,8 @@
 # Chronicler -- Full Project Roadmap
 
-**Version**: 1.0
-**Date**: 2026-02-25
-**Status**: Comprehensive end-to-end development outline
+**Version**: 2.0
+**Date**: 2026-03-04
+**Status**: Comprehensive end-to-end development outline (updated with completed phases + reordering)
 **Reference**: Product Requirements Document (product-requirements.md), Research Synthesis v2 (research-synthesis-v2.md)
 
 ---
@@ -11,12 +11,16 @@
 
 The Chronicler project is organized into **7 development phases**, progressing from foundational data completeness through full application maturity. Each phase builds on the prior phase's deliverables. Within each phase, work is organized into stages that can be executed in parallel where dependencies allow.
 
+### v2.0 Revision Notes (2026-03-04)
+
+**Phases 1-2 are COMPLETE.** Phase 3 (Narrative Engine) and Phase 5 (Live Integration) have been **swapped**. Live Integration is now Phase 3 because integrating live in-game data will likely introduce schema changes (new tables, modified columns for real-time state), which would cascade into narrative template and agentic schema rewrites. Stabilizing the schema with live data first avoids rework. Additionally, substantial narrative engine work was already completed during Phase 2 enhancements and early Phase 3 sessions (114 event templates, death cause renderer, circumstance/reason rendering, monitoring dashboard), reducing the remaining Narrative Engine scope.
+
 ```
-Phase 1: Data Foundation (CDM completeness, XML parser, post-parse pipeline)
-Phase 2: Explorer Core (entity detail pages, search, navigation, cross-linking)
-Phase 3: Narrative Engine (event templates, death causes, agentic storyteller)
-Phase 4: Visualization (world map, charts, family trees, graphs)
-Phase 5: Live Integration (bridge enhancements, worldgen, Knowledge Horizon, embedding pipelines)
+Phase 1: Data Foundation — COMPLETE (2026-02-25, 64/64 checks)
+Phase 2: Explorer Core — COMPLETE (2026-03-03, 50/50 checks)
+Phase 3: Live Integration (bridge enhancements, worldgen, Knowledge Horizon, embedding pipelines)
+Phase 4: Narrative Engine (agentic storyteller, war/biography generators, remaining templates)
+Phase 5: Visualization (world map, charts, family trees, graphs)
 Phase 6: Advanced Components (Mod Manager, Labor Manager, AI Advisor)
 Phase 7: Polish & Production (performance, testing, packaging, deployment)
 ```
@@ -24,38 +28,41 @@ Phase 7: Polish & Production (performance, testing, packaging, deployment)
 ### Phase Dependencies
 
 ```
-Phase 1 --> Phase 2 (explorer needs complete data)
-Phase 1 --> Phase 3 (narrative needs complete events)
-Phase 2 --> Phase 4 (visualizations sit on explorer pages)
-Phase 3 --> Phase 5 (KH integrates with storyteller)
-Phase 2, Phase 3 --> Phase 6 (advanced components need explorer + narrative)
+Phase 1 --> Phase 2 (explorer needs complete data) ✓ DONE
+Phase 1 --> Phase 3 (live integration needs complete CDM) ✓ Phase 1 DONE
+Phase 2 --> Phase 3 (KH needs entity detail pages for visibility toggle)
+Phase 3 --> Phase 4 (narrative engine needs stable schema from live integration)
+Phase 2 --> Phase 5 (visualizations sit on explorer pages)
+Phase 3, Phase 4 --> Phase 6 (advanced components need live data + narrative)
 All --> Phase 7 (polish is last)
 ```
 
 ### Estimated Timeline
 
-| Phase | Estimated Duration | Cumulative |
-|-------|-------------------|------------|
-| Phase 1 | 3-4 weeks | 3-4 weeks |
-| Phase 2 | 4-6 weeks | 7-10 weeks |
-| Phase 3 | 4-6 weeks | 11-16 weeks |
-| Phase 4 | 3-4 weeks | 14-20 weeks |
-| Phase 5 | 3-4 weeks | 17-24 weeks |
-| Phase 6 | 6-10 weeks | 23-34 weeks |
-| Phase 7 | 2-3 weeks | 25-37 weeks |
+| Phase | Status | Estimated Duration | Actual/Cumulative |
+|-------|--------|-------------------|-------------------|
+| Phase 1 | **COMPLETE** | 3-4 weeks | Completed 2026-02-25 |
+| Phase 2 | **COMPLETE** | 4-6 weeks | Completed 2026-03-03 |
+| Phase 3 | Next | 3-4 weeks | — |
+| Phase 4 | Pending | 2-4 weeks (reduced; ~60% pre-built) | — |
+| Phase 5 | Pending | 3-4 weeks | — |
+| Phase 6 | Pending | 6-10 weeks | — |
+| Phase 7 | Pending | 2-3 weeks | — |
 
 ---
 
-## Phase 1: Data Foundation
+## Phase 1: Data Foundation — COMPLETE
+
+**Completed**: 2026-02-25
+**Validation**: 64/64 checks passed, user-reviewed
+**Milestone**: M1 — Data Complete
 
 **Goal**: Complete the CDM schema, XML parser, and post-parse processing so all DF data is available in PostgreSQL with full cross-referencing.
 
-**Entry State**: v0.8 -- 35 tables, 8/14+ XML sections parsed, 1.65M records
+**Entry State**: v0.8 — 35 tables, 8/14+ XML sections parsed, 1.65M records
 **Exit State**: 40+ tables, all 15+ XML sections parsed (including creature_raw), post-parse pipeline running, creature dictionary populated, all entity types and fields complete
 
-### Stage 1.1: CDM Schema Extensions
-
-**Duration**: 1 week
+### Stage 1.1: CDM Schema Extensions — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -69,9 +76,7 @@ All --> Phase 7 (polish is last)
 | 1.1.8 | CDM-010 | Add `worldgen_snapshots` table | SQL migration |
 | 1.1.9 | CDM-011 | Add `world_modpacks` table | SQL migration |
 
-### Stage 1.2: XML Parser Completion
-
-**Duration**: 1-2 weeks
+### Stage 1.2: XML Parser Completion — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -84,9 +89,7 @@ All --> Phase 7 (polish is last)
 | 1.2.7 | ETL-003 | Parse `<entity_populations>` section fully | Parser extension |
 | 1.2.8 | ETL-002 | Audit dual-file merge rules against LV-Next/LB2 merge strategies | Verification report |
 
-### Stage 1.3: Post-Parse Processing Pipeline
-
-**Duration**: 1-2 weeks
+### Stage 1.3: Post-Parse Processing Pipeline — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -101,9 +104,7 @@ All --> Phase 7 (polish is last)
 | 1.3.9 | ETL-004 | Step 9: Resolve site ownership history from events | Processing step |
 | 1.3.10 | ETL-004 | Step 10: Validate referential integrity (all FK refs resolve) | Processing step + tests |
 
-### Stage 1.4: Test Suite Extension
-
-**Duration**: 0.5 weeks (parallel with 1.2-1.3)
+### Stage 1.4: Test Suite Extension — COMPLETE
 
 | Task | Description | Deliverable |
 |------|-------------|-------------|
@@ -112,9 +113,7 @@ All --> Phase 7 (polish is last)
 | 1.4.3 | Add tests for new CDM tables and constraints | pytest additions |
 | 1.4.4 | Re-ingest all worlds and verify record counts | Verification |
 
-### Stage 1.5: Creature Dictionary
-
-**Duration**: 0.5-1 week
+### Stage 1.5: Creature Dictionary — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -126,16 +125,18 @@ All --> Phase 7 (polish is last)
 
 ---
 
-## Phase 2: Explorer Core
+## Phase 2: Explorer Core — COMPLETE
+
+**Completed**: 2026-03-03
+**Validation**: 50/50 checks passed (30 DoD + 13 enhancements + 7 regression SQL)
+**Milestone**: M2 — Explorer Complete
 
 **Goal**: Build comprehensive entity detail pages, global search, cross-linking, and navigation so users can browse all world data.
 
 **Entry State**: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid
-**Exit State**: Full entity detail pages for all types, global search, perspective-aware cross-linking, hover popovers
+**Exit State**: 17 entity detail pages, global search, perspective-aware cross-linking, hover popovers, 114 event templates, death cause rendering, monitoring dashboard
 
-### Stage 2.1: Entity Detail Page Framework
-
-**Duration**: 1 week
+### Stage 2.1: Entity Detail Page Framework — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -144,9 +145,7 @@ All --> Phase 7 (polish is last)
 | 2.1.3 | EXP-028 | Implement perspective-aware rendering (context entity suppression, relational pronouns) | Event renderer |
 | 2.1.4 | NAV-005 | Implement DF calendar utility (seconds72 -> date/month/season) | Shared utility |
 
-### Stage 2.2: Primary Entity Detail Pages
-
-**Duration**: 2-3 weeks
+### Stage 2.2: Primary Entity Detail Pages — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -159,9 +158,7 @@ All --> Phase 7 (polish is last)
 | 2.2.7 | EXP-017 | Written Content detail page | API + template |
 | 2.2.8 | EXP-018 | Event Collection detail page (19 types, drill-down hierarchy) | API + template |
 
-### Stage 2.3: Secondary Entity Detail Pages
-
-**Duration**: 1 week
+### Stage 2.3: Secondary Entity Detail Pages — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -175,9 +172,7 @@ All --> Phase 7 (polish is last)
 | 2.3.8 | EXP-019 | Historical Era detail page | API + template |
 | 2.3.9 | VIS-022 | Years and Events browser (chronological index) | API + template |
 
-### Stage 2.4: Search and Navigation
-
-**Duration**: 1 week
+### Stage 2.4: Search and Navigation — COMPLETE
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
@@ -189,194 +184,224 @@ All --> Phase 7 (polish is last)
 | 2.4.6 | EXP-010 | Row detail overlay/modal in data browser | UI enhancement |
 | 2.4.7 | EXP-025 | Query results export (CSV/JSON) | Export functionality |
 
+### Stage 2.5: Early Narrative Infrastructure (built during Phase 2 enhancements)
+
+The following narrative engine components were built ahead of schedule during Phase 2 enhancement work and early Phase 3 sessions. They are credited here and marked as pre-completed in Phase 4.
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| **Event Template System** | COMPLETE | `PerspectiveRenderer` with 114 event templates in `perspective.py` |
+| **Entity Name Cache** | COMPLETE | `EntityNameCache` for batch name resolution across templates |
+| **Entity Link Renderer** | COMPLETE | `EntityLinkRenderer` for cross-linked entity names in event text |
+| **Death Cause Renderer** | COMPLETE | `DeathCauseRenderer` in `death_cause.py` — 36 HF cause codes + 25 event cause codes |
+| **Age at Death** | COMPLETE | `render_age_at_death()` with fractional precision (DF calendar ticks) |
+| **Circumstance/Reason Rendering** | COMPLETE | 21 reason templates + 7 circumstance templates with JSON-object handling |
+| **Annotated Schema** | COMPLETE | `annotated_schema.py` for storyteller system prompts |
+| **Monitoring Dashboard** | COMPLETE | `/monitoring` route with interaction list, summary stats, detail view |
+
 ---
 
-## Phase 3: Narrative Engine
+## Phase 3: Live Integration
 
-**Goal**: Build the complete event narrative system and upgrade the storyteller to agentic mode with autonomous SQL exploration.
+**Goal**: Enhance the live bridge, implement worldgen monitoring, build the Knowledge Horizon system, and activate embedding pipelines for both batch and live data. Stabilize the DB schema before building the agentic storyteller.
 
-**Entry State**: Keyword-routed storyteller with 23 routes, SSE streaming, dual-tier context
-**Exit State**: Agentic SQL storyteller, 132+ event narrative templates, death cause rendering, war chronicles
+**Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH, embedding table empty (schema only)
+**Exit State**: Bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines for batch + live data
 
-### Stage 3.1: Event Narrative Template System
+**PRD**: `reports/phases/phase-3-live-integration.md` (renamed from phase-5)
 
-**Duration**: 2-3 weeks
+> **Note on KH-Storyteller Integration**: The Knowledge Horizon storyteller integration (REQ-STR-032) requires the agentic storyteller from Phase 4. Stage 3.3 builds the KH data layer (tables, views, masking rules); the storyteller query integration is deferred to Phase 4 Stage 4.3.
+
+### Stage 3.1: Bridge Enhancements
+
+**Duration**: 1-2 weeks
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 3.1.1 | STR-016 | Design template system architecture (Event -> Context -> Template -> HTML) | Architecture doc + base classes |
-| 3.1.2 | STR-016 | Implement HF lifecycle event templates (15 types: died, revived, wounded, abducted, etc.) | Template implementations |
-| 3.1.3 | STR-017 | Implement death cause rendering (50+ variants with weapon info, slayer, age at death) | Death cause renderer |
-| 3.1.4 | STR-016 | Implement relationship event templates (10 types: add/remove HF/entity/site links) | Template implementations |
-| 3.1.5 | STR-016 | Implement artifact event templates (13 types) | Template implementations |
-| 3.1.6 | STR-016 | Implement site/construction event templates (18 types) | Template implementations |
-| 3.1.7 | STR-016 | Implement entity event templates (14 types) | Template implementations |
-| 3.1.8 | STR-016 | Implement war/combat event templates (8 types) | Template implementations |
-| 3.1.9 | STR-016 | Implement diplomacy event templates (10 types) | Template implementations |
-| 3.1.10 | STR-016 | Implement culture/art event templates (7 types) | Template implementations |
-| 3.1.11 | STR-016 | Implement remaining event templates (masterpieces, occasions, misc -- ~25 types) | Template implementations |
-| 3.1.12 | STR-022 | Implement missing event fallback (raw field dump or DF getSentence) | Fallback renderer |
+| 3.1.1 | ETL-006 | Add eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, UNIT_NEW_ACTIVE, SYNDROME) | Lua script update |
+| 3.1.2 | ETL-007 | Add death cause enrichment (incidents.all lookup) | Lua function |
+| 3.1.3 | ETL-008 | Add family chain extraction (relationship_ids.Mother/Father) | Lua function |
+| 3.1.4 | ETL-009 | Add book/written work detection (getBookTitle) | Lua function |
+| 3.1.5 | ETL-010 | Add personality/soul data (50 facets, beliefs, goals, needs) | Lua section |
+| 3.1.6 | ETL-011 | Add skill progression tracking per unit | Lua section + Python delta |
 
-### Stage 3.2: Narrative Enrichment
+### Stage 3.2: Worldgen Monitoring
 
 **Duration**: 1 week
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 3.2.1 | STR-018 | Implement circumstance/reason rendering | Enrichment module |
-| 3.2.2 | STR-019 | Implement age at death with fractions (1/4, 1/2, 3/4) | Utility function |
-| 3.2.3 | STR-020 | Implement temporal context (year/season prefix, suppress repeats) | Event wrapper |
-| 3.2.4 | STR-013 | Implement war narrative generation (collection -> battles -> events) | Narrative generator |
-| 3.2.5 | STR-014 | Implement battle detail rendering | Narrative generator |
-| 3.2.6 | STR-015 | Implement civilization rise-and-fall narratives | Narrative generator |
-| 3.2.7 | STR-008 | Implement character profile/biography generation | Biography generator |
+| 3.2.1 | ETL-012 | Create `worldgen-bridge.lua` (poll worldgen_status every 30 frames) | Lua script |
+| 3.2.2 | ETL-012 | Implement auto-start via `dfhack.onStateChange.worldgen_monitor` | State hook |
+| 3.2.3 | ETL-012 | Build Python worldgen snapshot ingester | Python module |
+| 3.2.4 | VIS-008 | Implement worldgen live map preview (WebSocket push) | Frontend component |
+| 3.2.5 | ETL-012 | Build worldgen dashboard (phase progress, civilization counts, event curves) | Dashboard |
 
-### Stage 3.3: Agentic Storyteller
+### Stage 3.3: Knowledge Horizon
 
 **Duration**: 2-3 weeks
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 3.3.1 | STR-007 | Build annotated schema summary for system prompt (~2K tokens) | Schema generator |
-| 3.3.2 | STR-007 | Implement SQL tool definition (read-only, 50 row max, 5s timeout) | Tool executor |
-| 3.3.3 | STR-007 | Implement SQL safety layer (keyword blocklist, readonly transaction, LIMIT cap) | Safety module |
-| 3.3.4 | STR-007 | Build agentic prompt with schema + tool + denizen summary + instructions | Prompt template |
-| 3.3.5 | STR-007 | Implement multi-round SQL exploration (up to 5 rounds) | Agent loop |
-| 3.3.6 | STR-007 | Filter tool calls from SSE stream (only narrative tokens to client) | Stream filter |
-| 3.3.7 | STR-007 | Config toggle: keyword vs. agentic mode | Configuration |
-| 3.3.8 | STR-030 | Implement template vs. LLM hybrid rendering | Mode selector |
+| 3.3.1 | KH-011 | Create `knowledge_horizon` table + `visible_*` views | SQL migration |
+| 3.3.2 | KH-012 | Phase 1: Denizen registry as starting point for visibility | Initialization logic |
+| 3.3.3 | KH-003 | Phase 2: Individual scope masking (fortress inhabitants + direct family) | Masking rules |
+| 3.3.4 | KH-001 | Phase 3: Geographic scope masking (fortress region + revealed regions) | Masking rules |
+| 3.3.5 | KH-002 | Phase 3: Civilization scope masking (parent civ + contacted civs) | Masking rules |
+| 3.3.6 | KH-009 | CAV-006: Event-based revelation (wars, caravans, migrants, raids) | Event handlers |
+| 3.3.7 | KH-004 | CAV-001: Organization membership propagation | Propagation rules |
+| 3.3.8 | KH-005 | CAV-002: Nobles always visible | Exception rule |
+| 3.3.9 | KH-010 | CAV-007: LLM inference restrictions (system prompt) | Prompt update |
+| 3.3.10 | — | Explorer KH toggle (on/off per session) | UI toggle |
 
-### Stage 3.4: Monitoring and Observability
+### Stage 3.4: Embedding Pipelines
 
-**Duration**: 0.5 weeks
+**Duration**: 1 week
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 3.4.1 | STR-028 | Enhance storyteller logging (four-phase latency) | Logging improvements |
-| 3.4.2 | STR-029 | Build monitoring dashboard (/monitoring) | Dashboard UI |
+| 3.4.1 | EMB-001 | Build entity text extractors for all entity types | Python module |
+| 3.4.2 | EMB-002 | Implement chunking strategy with content_hash deduplication | Chunker class |
+| 3.4.3 | EMB-003 | Add `chronicler embed` CLI command (batch embedding) | CLI command |
+| 3.4.4 | EMB-004 | Build incremental live embedding via watcher (delta detection) | LiveEmbedder class |
+| 3.4.5 | EMB-004 | Add reactive event embedding (immediate embed for deaths, invasions) | Event handler |
+| 3.4.6 | EMB-005 | Implement hybrid search (ILIKE + pgvector with RRF ranking) | Search upgrade |
+| 3.4.7 | EMB-006 | Build narrative context retrieval for storyteller prompts | Context retriever |
 
 ---
 
-## Phase 4: Visualization
+## Phase 4: Narrative Engine
+
+**Goal**: Complete the event narrative system and upgrade the storyteller to agentic mode with autonomous SQL exploration. Build war, biography, and civilization narrative generators. Integrate Knowledge Horizon with the storyteller.
+
+**Entry State**: 114 event templates (built in Phase 2), death cause renderer, circumstance/reason rendering, monitoring dashboard, keyword-routed storyteller with 23 routes, stable schema from Phase 3
+**Exit State**: Agentic SQL storyteller, 132+ event templates (gap-fill), war/battle/biography narratives, KH-integrated storyteller
+
+**PRD**: `reports/phases/phase-4-narrative-engine.md` (renamed from phase-3)
+
+> **Reduced scope**: ~60% of the original Narrative Engine PRD was completed during Phase 2 enhancements. The remaining work focuses on: (a) gap-filling event templates to reach 132+, (b) the agentic storyteller with SQL tool use, (c) higher-order narrative generators, and (d) KH-storyteller integration.
+
+### Stage 4.1: Event Template Gap-Fill
+
+**Duration**: 0.5-1 week
+
+**Pre-completed work** (from Phase 2 / early Phase 3):
+- [x] Template system architecture (`PerspectiveRenderer`, `EntityLinkRenderer`, `EntityNameCache`)
+- [x] 114 event type templates (covering all 102 DB event types + 12 dynamic overrides)
+- [x] Death cause renderer (61 cause mappings across HF + event levels)
+- [x] Circumstance/reason rendering (21 reason + 7 circumstance templates)
+- [x] Age at death with fractional precision
+- [x] Fallback template for uncovered types (generic with entity linking)
+
+**Remaining work**:
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 4.1.1 | STR-016 | Audit 114 templates against LB2/weblegends for accuracy; fix mismatches | Template corrections |
+| 4.1.2 | STR-016 | Add templates for any new event types introduced by Phase 3 schema changes | New templates |
+| 4.1.3 | STR-020 | Implement temporal context rendering (year/season prefix, suppress repeats) | Event wrapper |
+
+### Stage 4.2: Narrative Generators
+
+**Duration**: 1-2 weeks
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 4.2.1 | STR-013 | Implement war narrative generation (collection -> battles -> events) | Narrative generator |
+| 4.2.2 | STR-014 | Implement battle detail rendering | Narrative generator |
+| 4.2.3 | STR-015 | Implement civilization rise-and-fall narratives | Narrative generator |
+| 4.2.4 | STR-008 | Implement character profile/biography generation | Biography generator |
+
+### Stage 4.3: Agentic Storyteller
+
+**Duration**: 2-3 weeks
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 4.3.1 | STR-007 | Update annotated schema summary for final schema (post-Phase 3 changes) | Schema generator |
+| 4.3.2 | STR-007 | Implement SQL tool definition (read-only, 50 row max, 5s timeout) | Tool executor |
+| 4.3.3 | STR-007 | Implement SQL safety layer (keyword blocklist, readonly transaction, LIMIT cap) | Safety module |
+| 4.3.4 | STR-007 | Build agentic prompt with schema + tool + denizen summary + instructions | Prompt template |
+| 4.3.5 | STR-007 | Implement multi-round SQL exploration (up to 5 rounds) | Agent loop |
+| 4.3.6 | STR-007 | Filter tool calls from SSE stream (only narrative tokens to client) | Stream filter |
+| 4.3.7 | STR-007 | Config toggle: keyword vs. agentic mode | Configuration |
+| 4.3.8 | STR-030 | Implement template vs. LLM hybrid rendering | Mode selector |
+| 4.3.9 | STR-032 | Integrate Knowledge Horizon with storyteller (query visible_* views) | Storyteller KH integration |
+
+### Stage 4.4: Monitoring Enhancements
+
+**Duration**: 0.5 weeks
+
+**Pre-completed work** (from Phase 2):
+- [x] Monitoring dashboard (`/monitoring`) with interaction list, summary stats, detail view
+- [x] Per-interaction logging (`storyteller_log` table)
+
+**Remaining work**:
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 4.4.1 | STR-028 | Enhance logging with four-phase latency tracking (context, TTFT, LLM, SSE) | Logging improvements |
+| 4.4.2 | STR-029 | Add agentic-mode metrics (SQL query count, SQL total time, per-query stats) | Dashboard enhancements |
+
+---
+
+## Phase 5: Visualization
 
 **Goal**: Build the interactive world map, charts, family trees, and all data visualizations.
 
 **Entry State**: vis.js graph tab (partially built), no maps or charts
 **Exit State**: Leaflet world map, Chart.js demographics, Cytoscape family trees, D3 war diagrams
 
-### Stage 4.1: World Map
+**PRD**: `reports/phases/phase-5-visualization.md` (renamed from phase-4)
+
+### Stage 5.1: World Map
 
 **Duration**: 1-2 weeks
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 4.1.1 | VIS-001 | Implement Leaflet.js world map (CRS.Simple, image overlay, zoom/pan) | Map component |
-| 4.1.2 | VIS-001 | Implement map image generation (Python Pillow, 3 cached sizes) | Image generator |
-| 4.1.3 | VIS-002 | Implement toggleable layer groups (sites, regions, mountains, etc.) | Layer system |
-| 4.1.4 | VIS-003 | Implement site marker shapes by type (circle/triangle/square/pentagon/hexagon/star) | Marker renderer |
-| 4.1.5 | VIS-004 | Implement civilization color system (HSV rotation) | Color generator |
-| 4.1.6 | VIS-009 | Implement map search and jump (autocomplete, camera centering) | Search overlay |
-| 4.1.7 | VIS-010 | Implement site bounding box display | Rectangle overlay |
+| 5.1.1 | VIS-001 | Implement Leaflet.js world map (CRS.Simple, image overlay, zoom/pan) | Map component |
+| 5.1.2 | VIS-001 | Implement map image generation (Python Pillow, 3 cached sizes) | Image generator |
+| 5.1.3 | VIS-002 | Implement toggleable layer groups (sites, regions, mountains, etc.) | Layer system |
+| 5.1.4 | VIS-003 | Implement site marker shapes by type (circle/triangle/square/pentagon/hexagon/star) | Marker renderer |
+| 5.1.5 | VIS-004 | Implement civilization color system (HSV rotation) | Color generator |
+| 5.1.6 | VIS-009 | Implement map search and jump (autocomplete, camera centering) | Search overlay |
+| 5.1.7 | VIS-010 | Implement site bounding box display | Rectangle overlay |
 
-### Stage 4.2: Charts and Demographics
+### Stage 5.2: Charts and Demographics
 
 **Duration**: 1 week
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 4.2.1 | VIS-012 | Population doughnut/pie charts (by race, by biome area) | Chart components |
-| 4.2.2 | VIS-013 | Event timeline line chart (events per year) | Chart component |
-| 4.2.3 | VIS-014 | Event type breakdown bar chart | Chart component |
-| 4.2.4 | VIS-020 | World Summary Dashboard (map thumbnail, charts, statistics) | Dashboard page |
+| 5.2.1 | VIS-012 | Population doughnut/pie charts (by race, by biome area) | Chart components |
+| 5.2.2 | VIS-013 | Event timeline line chart (events per year) | Chart component |
+| 5.2.3 | VIS-014 | Event type breakdown bar chart | Chart component |
+| 5.2.4 | VIS-020 | World Summary Dashboard (map thumbnail, charts, statistics) | Dashboard page |
 
-### Stage 4.3: Genealogy and Network Graphs
+### Stage 5.3: Genealogy and Network Graphs
 
 **Duration**: 1-2 weeks
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 4.3.1 | VIS-017 | Family tree visualization (Cytoscape.js dagre, 3-gen depth, node classes) | Family tree component |
-| 4.3.2 | VIS-019 | Polish ego-network graph (vis.js, performance guards, node info panel) | Graph improvements |
-| 4.3.3 | VIS-005 | Per-object mini-maps (entity detail pages, highlighted tiles) | Mini-map generator |
-| 4.3.4 | VIS-023 | Event collection hierarchy drill-down | Hierarchy component |
+| 5.3.1 | VIS-017 | Family tree visualization (Cytoscape.js dagre, 3-gen depth, node classes) | Family tree component |
+| 5.3.2 | VIS-019 | Polish ego-network graph (vis.js, performance guards, node info panel) | Graph improvements |
+| 5.3.3 | VIS-005 | Per-object mini-maps (entity detail pages, highlighted tiles) | Mini-map generator |
+| 5.3.4 | VIS-023 | Event collection hierarchy drill-down | Hierarchy component |
 
-### Stage 4.4: Advanced Visualizations (P3)
+### Stage 5.4: Advanced Visualizations (P3)
 
 **Duration**: 1-2 weeks (can be deferred)
 
 | Task | REQs | Description | Deliverable |
 |------|------|-------------|-------------|
-| 4.4.1 | VIS-015 | War chord diagram (D3.js, inter-civ conflict web) | D3 component |
-| 4.4.2 | VIS-016 | Warfare graph (Cytoscape.js cola, force-directed) | Graph component |
-| 4.4.3 | VIS-018 | Curse lineage tree (vampire/werebeast chains) | Lineage component |
-| 4.4.4 | VIS-006 | Map timeline scrubber (historical ownership state) | Timeline component |
-| 4.4.5 | VIS-007 | Civilization territory overlays (convex hull) | Territory renderer |
-| 4.4.6 | VIS-021 | Historical eras browser | Era browser |
-
----
-
-## Phase 5: Live Integration
-
-**Goal**: Enhance the live bridge, implement worldgen monitoring, build the Knowledge Horizon system, and activate embedding pipelines for both batch and live data.
-
-**Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH, embedding table empty
-**Exit State**: Bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines for batch + live data
-
-### Stage 5.1: Bridge Enhancements
-
-**Duration**: 1-2 weeks
-
-| Task | REQs | Description | Deliverable |
-|------|------|-------------|-------------|
-| 5.1.1 | ETL-006 | Add eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, UNIT_NEW_ACTIVE, SYNDROME) | Lua script update |
-| 5.1.2 | ETL-007 | Add death cause enrichment (incidents.all lookup) | Lua function |
-| 5.1.3 | ETL-008 | Add family chain extraction (relationship_ids.Mother/Father) | Lua function |
-| 5.1.4 | ETL-009 | Add book/written work detection (getBookTitle) | Lua function |
-| 5.1.5 | ETL-010 | Add personality/soul data (50 facets, beliefs, goals, needs) | Lua section |
-| 5.1.6 | ETL-011 | Add skill progression tracking per unit | Lua section + Python delta |
-
-### Stage 5.2: Worldgen Monitoring
-
-**Duration**: 1 week
-
-| Task | REQs | Description | Deliverable |
-|------|------|-------------|-------------|
-| 5.2.1 | ETL-012 | Create `worldgen-bridge.lua` (poll worldgen_status every 30 frames) | Lua script |
-| 5.2.2 | ETL-012 | Implement auto-start via `dfhack.onStateChange.worldgen_monitor` | State hook |
-| 5.2.3 | ETL-012 | Build Python worldgen snapshot ingester | Python module |
-| 5.2.4 | VIS-008 | Implement worldgen live map preview (WebSocket push) | Frontend component |
-| 5.2.5 | ETL-012 | Build worldgen dashboard (phase progress, civilization counts, event curves) | Dashboard |
-
-### Stage 5.3: Knowledge Horizon
-
-**Duration**: 2-3 weeks
-
-| Task | REQs | Description | Deliverable |
-|------|------|-------------|-------------|
-| 5.3.1 | KH-011 | Create `knowledge_horizon` table + `visible_*` views | SQL migration |
-| 5.3.2 | KH-012 | Phase 1: Denizen registry as starting point for visibility | Initialization logic |
-| 5.3.3 | KH-003 | Phase 2: Individual scope masking (fortress inhabitants + direct family) | Masking rules |
-| 5.3.4 | KH-001 | Phase 3: Geographic scope masking (fortress region + revealed regions) | Masking rules |
-| 5.3.5 | KH-002 | Phase 3: Civilization scope masking (parent civ + contacted civs) | Masking rules |
-| 5.3.6 | KH-009 | CAV-006: Event-based revelation (wars, caravans, migrants, raids) | Event handlers |
-| 5.3.7 | KH-004 | CAV-001: Organization membership propagation | Propagation rules |
-| 5.3.8 | KH-005 | CAV-002: Nobles always visible | Exception rule |
-| 5.3.9 | KH-010 | CAV-007: LLM inference restrictions (system prompt) | Prompt update |
-| 5.3.10 | STR-032 | Integrate KH with storyteller (query visible_* views) | Storyteller update |
-
-### Stage 5.4: Modified Embedding Pipelines for Live In-Game Data
-
-**Duration**: 1 week
-
-| Task | REQs | Description | Deliverable |
-|------|------|-------------|-------------|
-| 5.4.1 | EMB-001 | Build entity text extractors for all entity types | Python module |
-| 5.4.2 | EMB-002 | Implement chunking strategy with content_hash deduplication | Chunker class |
-| 5.4.3 | EMB-003 | Add `chronicler embed` CLI command (batch embedding) | CLI command |
-| 5.4.4 | EMB-004 | Build incremental live embedding via watcher (delta detection) | LiveEmbedder class |
-| 5.4.5 | EMB-004 | Add reactive event embedding (immediate embed for deaths, invasions) | Event handler |
-| 5.4.6 | EMB-005 | Implement hybrid search (ILIKE + pgvector with RRF ranking) | Search upgrade |
-| 5.4.7 | EMB-006 | Build narrative context retrieval for storyteller prompts | Context retriever |
+| 5.4.1 | VIS-015 | War chord diagram (D3.js, inter-civ conflict web) | D3 component |
+| 5.4.2 | VIS-016 | Warfare graph (Cytoscape.js cola, force-directed) | Graph component |
+| 5.4.3 | VIS-018 | Curse lineage tree (vampire/werebeast chains) | Lineage component |
+| 5.4.4 | VIS-006 | Map timeline scrubber (historical ownership state) | Timeline component |
+| 5.4.5 | VIS-007 | Civilization territory overlays (convex hull) | Territory renderer |
+| 5.4.6 | VIS-021 | Historical eras browser | Era browser |
 
 ---
 
@@ -522,8 +547,8 @@ All --> Phase 7 (polish is last)
 
 | Priority | Meaning | Phases |
 |----------|---------|--------|
-| P1 | Critical / v1.0 | Phases 1-3 |
-| P2 | High Value | Phases 2-5 |
+| P1 | Critical / v1.0 | Phases 1-4 |
+| P2 | High Value | Phases 3-5 |
 | P3 | Important | Phases 5-6 |
 | P4 | Stretch / Future | Phase 6 (deferred stages), beyond |
 
@@ -531,15 +556,31 @@ All --> Phase 7 (polish is last)
 
 | Milestone | Phase | Definition of Done |
 |-----------|-------|--------------------|
-| **M1: Data Complete** | Phase 1 complete | All 14+ XML sections parsed, 40+ CDM tables, post-parse pipeline running, all worlds re-ingested |
-| **M2: Explorer Complete** | Phase 2 complete | All entity detail pages, global search, cross-linking, hover popovers |
-| **M3: Storyteller v1.0** | Phase 3 complete | Agentic SQL mode, 132 event templates, death cause rendering |
-| **M4: Visualization** | Phase 4 complete | Leaflet map, Chart.js demographics, Cytoscape family trees |
-| **M5: Live Complete** | Phase 5 complete | Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3, embedding pipelines (batch + live) |
-| **M6: Full Suite** | Phase 6 complete | Mod manager, labor manager, AI advisor all functional |
-| **M7: Release** | Phase 7 complete | Performance optimized, fully tested, packaged, documented |
+| **M1: Data Complete** | Phase 1 ✓ | All 14+ XML sections parsed, 40+ CDM tables, post-parse pipeline running, all worlds re-ingested |
+| **M2: Explorer Complete** | Phase 2 ✓ | All entity detail pages, global search, cross-linking, hover popovers, 114 event templates |
+| **M3: Live Complete** | Phase 3 | Enhanced bridge, worldgen monitoring, Knowledge Horizon Phase 3, embedding pipelines (batch + live) |
+| **M4: Storyteller v1.0** | Phase 4 | Agentic SQL mode, 132+ event templates, war/biography narratives, KH-storyteller integration |
+| **M5: Visualization** | Phase 5 | Leaflet map, Chart.js demographics, Cytoscape family trees |
+| **M6: Full Suite** | Phase 6 | Mod manager, labor manager, AI advisor all functional |
+| **M7: Release** | Phase 7 | Performance optimized, fully tested, packaged, documented |
 
-## Appendix C: Risk Register
+## Appendix C: Phase PRD File Mapping
+
+The individual phase PRD files should be renamed to match the new phase numbering:
+
+| New Phase | PRD File | Old Phase |
+|-----------|----------|-----------|
+| Phase 1 | `phase-1-data-foundation.md` | Phase 1 (unchanged) |
+| Phase 2 | `phase-2-explorer-core.md` | Phase 2 (unchanged) |
+| Phase 3 | `phase-3-live-integration.md` | Was Phase 5 (`phase-5-live-integration.md`) |
+| Phase 4 | `phase-4-narrative-engine.md` | Was Phase 3 (`phase-3-narrative-engine.md`) |
+| Phase 5 | `phase-5-visualization.md` | Was Phase 4 (`phase-4-visualization.md`) |
+| Phase 6 | `phase-6-advanced-components.md` | Phase 6 (unchanged) |
+| Phase 7 | `phase-7-polish-production.md` | Phase 7 (unchanged) |
+
+> **Note**: PRD file renames should be performed as a follow-up task to avoid breaking existing references in completion reports and validation walkthroughs.
+
+## Appendix D: Risk Register
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
@@ -549,9 +590,18 @@ All --> Phase 7 (polish is last)
 | LLM hallucination in agentic mode | High | Read-only SQL, evidence citations, confidence signaling |
 | Knowledge Horizon complexity | Medium | Phased rollout (4 phases); start with simple denizen-based masking |
 | Mod compiler complexity | Low | Deferred to P4; core mod manager does not require compiler |
+| Live data schema changes breaking templates | Medium | Moved Live Integration before Narrative Engine (v2.0 reorder) |
+| Bridge Lua changes require VM testing | Medium | Structured test protocol with `dfhack-run` validation |
+
+## Appendix E: Completed Work Summary
+
+| Phase | Completion Date | Checks Passed | Key Deliverables |
+|-------|----------------|---------------|------------------|
+| Phase 1 | 2026-02-25 | 64/64 | 40+ CDM tables, 15+ XML sections, post-parse pipeline, creature dictionary |
+| Phase 2 | 2026-03-03 | 50/50 | 17 entity detail pages, global search, 114 event templates, death cause renderer, monitoring dashboard |
 
 ---
 
-*Chronicler Full Project Roadmap v1.0 -- 2026-02-25*
-*7 Phases, 26 Stages, ~150 Tasks*
-*Estimated timeline: 25-37 weeks*
+*Chronicler Full Project Roadmap v2.0 -- 2026-03-04*
+*7 Phases, 26 Stages, ~150 Tasks (2 phases complete)*
+*Remaining estimated: 16-28 weeks*

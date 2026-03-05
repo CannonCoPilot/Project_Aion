@@ -1,13 +1,13 @@
-# Phase 4: Visualization -- PRD/Roadmap
+# Phase 5: Visualization -- PRD/Roadmap
 
-**Version**: 1.0
-**Date**: 2026-02-25
+**Version**: 1.1 (renumbered from Phase 4 → Phase 5 in Roadmap v2.0)
+**Date**: 2026-02-25 (renumbered 2026-03-04)
 **Phase Duration**: 3-4 weeks
-**Milestone**: M4 -- Visualization Complete
+**Milestone**: M5 -- Visualization Complete
 **Entry State**: vis.js graph tab (partially built), no maps or charts
 **Exit State**: Leaflet world map with 7+ layer groups, Chart.js demographics, Cytoscape family trees, D3 war diagrams, per-object mini-maps
 
-**Parent Document**: Full Project Roadmap (full-project-roadmap.md)
+**Parent Document**: Full Project Roadmap v2.0 (full-project-roadmap.md)
 **Dependencies**: Phase 1 (geographic data), Phase 2 (entity detail pages for embedding visualizations)
 **Requirements Covered**: REQ-VIS-001 through VIS-024
 
@@ -15,7 +15,7 @@
 
 ## 1. Phase Overview
 
-Phase 4 builds all visual data representations: the interactive world map, population charts, event timelines, family trees, war diagrams, and per-object mini-maps. These visualizations are embedded within the entity detail pages built in Phase 2 and serve as the primary "World History & Demographics Visualizer" component (MC-1).
+Phase 5 builds all visual data representations: the interactive world map, population charts, event timelines, family trees, war diagrams, and per-object mini-maps. These visualizations are embedded within the entity detail pages built in Phase 2 and serve as the primary "World History & Demographics Visualizer" component (MC-1).
 
 ### 1.1 Visualization Library Stack
 
@@ -33,7 +33,7 @@ Phase 4 builds all visual data representations: the interactive world map, popul
 
 ---
 
-## 2. Stage 4.1: World Map
+## 2. Stage 5.1: World Map
 
 **Duration**: 1-2 weeks
 **Dependencies**: Phase 1 (regions, sites, constructions, rivers, mountains, landmasses)
@@ -325,7 +325,7 @@ function addSiteBoundingBox(site) {
 
 ---
 
-## 3. Stage 4.2: Charts and Demographics
+## 3. Stage 5.2: Charts and Demographics
 
 **Duration**: 1 week
 **Dependencies**: Phase 1 (population data, event counts)
@@ -437,7 +437,7 @@ Horizontal bar chart showing count of each event type, sorted descending.
 
 ---
 
-## 4. Stage 4.3: Genealogy and Network Graphs
+## 4. Stage 5.3: Genealogy and Network Graphs
 
 **Duration**: 1-2 weeks
 **Dependencies**: Phase 1 (HF family links), Phase 2 (HF detail page for embedding)
@@ -619,7 +619,7 @@ Using simple HTML `<details>` / `<summary>` elements with AJAX loading of child 
 
 ---
 
-## 5. Stage 4.4: Advanced Visualizations (P3, Can Be Deferred)
+## 5. Stage 5.4: Advanced Visualizations (P3, Can Be Deferred)
 
 **Duration**: 1-2 weeks (optional)
 **Dependencies**: Stages 4.1-4.3
@@ -669,7 +669,7 @@ Era list with name, start/end year, duration. Era detail showing major events wi
 
 ---
 
-## 6. Definition of Done (M4 Milestone)
+## 6. Definition of Done (M5 Milestone)
 
 ### World Map
 - [ ] Leaflet.js map renders with CRS.Simple
@@ -702,5 +702,5 @@ Era list with name, start/end year, duration. Era detail showing major events wi
 
 ---
 
-*Phase 4: Visualization PRD/Roadmap v1.0 -- 2026-02-25*
+*Phase 5: Visualization PRD/Roadmap v1.1 -- 2026-03-04*
 *4 Stages, 25+ Tasks, 3-4 Weeks Estimated*

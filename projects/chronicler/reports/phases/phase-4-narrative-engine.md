@@ -1,21 +1,23 @@
-# Phase 3: Narrative Engine -- PRD/Roadmap
+# Phase 4: Narrative Engine -- PRD/Roadmap
 
-**Version**: 1.0
-**Date**: 2026-02-25
-**Phase Duration**: 4-6 weeks
-**Milestone**: M3 -- Storyteller v1.0
-**Entry State**: Keyword-routed storyteller with 23 routes, SSE streaming, dual-tier context, no event templates
-**Exit State**: Agentic SQL storyteller, 132+ event narrative templates, death cause rendering (50+ variants), war/battle/biography narratives
+**Version**: 1.1 (renumbered from Phase 3 → Phase 4 in Roadmap v2.0)
+**Date**: 2026-02-25 (renumbered 2026-03-04)
+**Phase Duration**: 2-4 weeks (reduced; ~60% pre-built during Phase 2)
+**Milestone**: M4 -- Storyteller v1.0
+**Entry State**: 114 event templates, death cause renderer (61 mappings), circumstance/reason rendering, monitoring dashboard, keyword-routed storyteller, stable schema from Phase 3
+**Exit State**: Agentic SQL storyteller, 132+ event narrative templates, war/battle/biography narratives, KH-storyteller integration
 
-**Parent Document**: Full Project Roadmap (full-project-roadmap.md)
-**Dependencies**: Phase 1 (M1 -- Data Complete), Phase 2 (M2 -- Explorer Complete, for rendering infrastructure)
+**Parent Document**: Full Project Roadmap v2.0 (full-project-roadmap.md)
+**Dependencies**: Phase 1 (M1), Phase 2 (M2, rendering infrastructure), Phase 3 (M3, stable schema + KH data layer)
 **Requirements Covered**: REQ-STR-001 through STR-032
+
+> **Scope reduction**: ~60% of the event template work (Stages 3.1.1–3.1.12 original numbering) was completed during Phase 2 enhancements. See Roadmap v2.0 Phase 2 Stage 2.5 for the pre-completed inventory. Remaining work focuses on: template gap-fill, agentic storyteller, narrative generators, and KH integration.
 
 ---
 
 ## 1. Phase Overview
 
-Phase 3 transforms the storyteller from a keyword-routing system into a full narrative engine with two modes: (1) deterministic event templates for the explorer UI and (2) an agentic LLM with autonomous SQL exploration for the chat interface. This phase also builds the comprehensive event narrative template bank covering 132+ event types, the death cause renderer handling 50+ variants, and higher-order narrative generators for wars, biographies, and civilization histories.
+Phase 4 transforms the storyteller from a keyword-routing system into a full narrative engine with two modes: (1) deterministic event templates for the explorer UI and (2) an agentic LLM with autonomous SQL exploration for the chat interface. This phase also builds the comprehensive event narrative template bank covering 132+ event types, the death cause renderer handling 50+ variants, and higher-order narrative generators for wars, biographies, and civilization histories.
 
 ### 1.1 Two Rendering Modes
 
@@ -46,7 +48,7 @@ Phase 3 transforms the storyteller from a keyword-routing system into a full nar
 
 ---
 
-## 2. Stage 3.1: Event Narrative Template System
+## 2. Stage 4.1: Event Narrative Template System
 
 **Duration**: 2-3 weeks
 **Dependencies**: Phase 1 (all event types in DB), Phase 2 (cross-linking infrastructure)
@@ -470,10 +472,10 @@ class FallbackTemplate(EventTemplate):
 
 ---
 
-## 3. Stage 3.2: Narrative Enrichment
+## 3. Stage 4.2: Narrative Enrichment
 
 **Duration**: 1 week
-**Dependencies**: Stage 3.1 (event templates)
+**Dependencies**: Stage 4.1 (event templates)
 **Deliverables**: Higher-order narrative generators
 
 ### 3.1 Circumstance/Reason Rendering
@@ -637,10 +639,10 @@ Legacy:
 
 ---
 
-## 4. Stage 3.3: Agentic Storyteller
+## 4. Stage 4.3: Agentic Storyteller
 
 **Duration**: 2-3 weeks
-**Dependencies**: Stage 3.1 (event templates for context), Phase 1 (complete data)
+**Dependencies**: Stage 4.1 (event templates for context), Phase 1 (complete data)
 **Deliverables**: Agentic SQL storyteller with tool use
 
 ### 4.1 Annotated Schema Summary
@@ -954,10 +956,10 @@ async def render_event_for_chat(event: dict, context: EventContext) -> str:
 
 ---
 
-## 5. Stage 3.4: Monitoring and Observability
+## 5. Stage 4.4: Monitoring and Observability
 
 **Duration**: 0.5 weeks
-**Dependencies**: Stage 3.3 (agentic storyteller)
+**Dependencies**: Stage 4.3 (agentic storyteller)
 **Deliverables**: Enhanced logging and monitoring dashboard
 
 ### 5.1 Enhanced Storyteller Logging
@@ -999,7 +1001,7 @@ class StorytellerMetrics:
 
 ---
 
-## 6. Definition of Done (M3 Milestone)
+## 6. Definition of Done (M4 Milestone)
 
 ### Event Templates
 - [ ] Template system architecture implemented
@@ -1031,5 +1033,5 @@ class StorytellerMetrics:
 
 ---
 
-*Phase 3: Narrative Engine PRD/Roadmap v1.0 -- 2026-02-25*
+*Phase 4: Narrative Engine PRD/Roadmap v1.1 -- 2026-03-04*
 *4 Stages, 40+ Tasks, 4-6 Weeks Estimated*
