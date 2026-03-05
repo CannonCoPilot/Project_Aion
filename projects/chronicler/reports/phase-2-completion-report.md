@@ -212,7 +212,7 @@ No special handling required. The server starts, connects to PostgreSQL, and ser
 
 ## Next Phase
 
-**Phase 3: Narrative Engine** — AI-powered story generation from event data, character biographies, and civilization histories. See `projects/chronicler/reports/phases/phase-3-narrative-engine.md`.
+**Phase 3: Live Integration** — Bridge enhancements, worldgen monitoring, Knowledge Horizon, and embedding pipelines. Schema stabilization before Narrative Engine (Roadmap v2.0 reorder). See `projects/chronicler/reports/phases/phase-3-live-integration.md`.
 
 ---
 

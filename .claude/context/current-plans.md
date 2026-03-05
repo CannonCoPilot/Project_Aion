@@ -29,73 +29,72 @@ Single source of truth for all Chronicler development. Consult in this order:
 
 | Phase | Name | Status | Milestone |
 |-------|------|--------|-----------|
-| 1 | Data Foundation | REOPENED -- Stage 1.5 (Creature Dictionary) added | M1 -- Data Complete |
-| **2** | **Explorer Core** | **IN PROGRESS -- User itemized review pending** | **M2 -- Explorer Complete** |
-| 3 | Narrative Engine | Pending | M3 -- Narrative Complete |
-| 4 | Visualization | Pending | M4 -- Visualization Complete |
-| 5 | Live Integration | Pending | M5 -- Live Complete |
+| 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 -- Data Complete |
+| 2 | Explorer Core | **COMPLETE** (50/50, 2026-03-03) | M2 -- Explorer Complete |
+| **3** | **Live Integration** | **NEXT** | **M3 -- Live Complete** |
+| 4 | Narrative Engine | Pending (~60% pre-built) | M4 -- Storyteller v1.0 |
+| 5 | Visualization | Pending | M5 -- Visualization Complete |
 | 6 | Advanced Components | Pending | M6 -- Full Suite |
 | 7 | Polish & Production | Pending | M7 -- Release |
 
-### Phase 1 Summary
+> **v2.0 Reorder (2026-03-04)**: Live Integration moved from Phase 5 → Phase 3 to stabilize schema before Narrative Engine. Narrative Engine moved to Phase 4, Visualization to Phase 5. See `full-project-roadmap.md` v2.0 revision notes.
+
+### Phase 1 Summary (COMPLETE)
 
 - 39 CDM tables, 19 XML sections parsed, 10-step post-parse pipeline
 - 1.94M records for test world "Tar Thran" (250 years, post-embark)
 - 190 unit tests, 0% referential integrity issues
 - Standalone CLI: `chronicler` with 11 commands
 - Reports: `phase-1-completion-report.md`, `phase-1-validation-walkthrough.md`
-- **Stage 1.5 (Creature Dictionary) added 2026-02-27**: Parse `<creature_raw>` from legends_plus.xml into `creature_dictionary` table. Provides display names for all 1,879 creatures (including procedural night creatures, titans, demons) and classification flags for UI badges. See REQ-CDM-013.
+
+### Phase 2 Summary (COMPLETE)
+
+- 17 entity detail pages, global search with autocomplete, hover popovers
+- 114 event templates, death cause renderer, circumstance/reason rendering
+- Monitoring dashboard, query export (CSV/JSON), race pill filtering
+- 50/50 validation checks (30 DoD + 13 enhancements + 7 regression)
+- Reports: `phase-2-completion-report.md`, `phase-2-validation-walkthrough.md`
 
 ---
 
-## Current Phase: Phase 2 -- Explorer Core
+## Current Phase: Phase 3 -- Live Integration
 
-**PRD**: `projects/chronicler/reports/phases/phase-2-explorer-core.md`
-**Duration**: 4-6 weeks
-**Entry State**: 6 tabs (People, Civilizations, Geography, Schema, Data, Graph), basic data grid
-**Exit State**: 15+ entity detail pages, global search with autocomplete, perspective-aware cross-linking, hover popovers, prev-next navigation
+**PRD**: `projects/chronicler/reports/phases/phase-3-live-integration.md`
+**Duration**: 3-4 weeks
+**Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH, embedding table empty
+**Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines
 
 ### Stage Breakdown
 
-#### Stage 2.1: Entity Detail Page Framework
-- Generic detail page template system (base, header, tabs, events, sidebar)
-- Cross-linking infrastructure (`EntityLinkRenderer` + `EntityNameCache`)
-- Perspective-aware event rendering (`PerspectiveRenderer`)
-- DF Calendar utility (months, seasons, ordinals)
+#### Stage 3.1: Bridge Enhancements
+- Eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, INVASION, SYNDROME)
+- Death cause enrichment (incidents.all lookup)
+- Family chain extraction, book detection
+- Personality/soul data (50 facets, beliefs, goals, needs)
+- Skill progression tracking with delta detection
 
-#### Stage 2.2: Primary Entity Detail Pages (8 types)
-- Historical Figure (24 sections -- most complex page)
-- Entity/Civilization (5 tabs: Leaders, Sites, Members, Groups, Wars)
-- Site (3 tabs: Structures, Properties, History)
-- Artifact (chain-of-custody timeline)
-- Region (biome + evilness badges)
-- Structure (12+ type badges, deity link for temples)
-- Written Content (author, referenced entities, form type)
-- Event Collection (hierarchy: War > Battles > Events)
+#### Stage 3.2: Worldgen Monitoring
+- `worldgen-bridge.lua` polling every 30 frames
+- Auto-start via `dfhack.onStateChange`
+- Python snapshot ingester + WebSocket push
+- Worldgen dashboard with phase progress
 
-#### Stage 2.3: Secondary Entity Detail Pages + Chronological Browser
-- Underground Region, Landmass, Mountain Peak, River, World Construction
-- Art Form (3 types), Identity, Historical Era
-- Years and Events browser (chronological index)
+#### Stage 3.3: Knowledge Horizon
+- `knowledge_horizon` table + `visible_*` views
+- KH Phase 1: Denizen registry initialization
+- KH Phase 2: Individual scope (direct family)
+- KH Phase 3: Geographic + civilization scope
+- Event-based revelation rules + caveats (CAV-001, 002, 006, 007)
+- Explorer KH toggle (on/off)
+- **Note**: KH-storyteller integration deferred to Phase 4
 
-#### Stage 2.4: Search and Navigation
-- Global search with live autocomplete (accent-insensitive, 200ms debounce)
-- HF filtering by type flags (vampire, necromancer, deity, etc.)
-- Hover popovers on all entity links (Tippy.js, AJAX-loaded)
-- Breadcrumb + Prev/Next navigation
-- URL hash tab persistence
-- JSONB field inventory in schema browser
-- Row detail overlay in data browser
-- Query results export (CSV/JSON)
-
-### Phase 2 Definition of Done (30 items) — DEFERRED
-
-DoD validation is **deferred** pending User itemized review of additional bugfixes and feature notes. All 30 items were initially implemented and server-verified (all endpoints HTTP 200), but User has additional findings that must be addressed before sign-off.
-
-See `phase-2-explorer-core.md` Section 6 for the complete checklist:
-- 17 entity detail pages (all types including years browser)
-- 8 search/navigation features
-- 5 cross-cutting requirements (linking, perspective, calendar, caching, performance)
+#### Stage 3.4: Embedding Pipelines
+- Entity text extractors for all types
+- Chunking with content_hash deduplication
+- `chronicler embed` CLI command (batch)
+- Incremental live embedding via watcher
+- Hybrid search (ILIKE + pgvector with RRF)
+- Narrative context retrieval for storyteller
 
 ---
 
