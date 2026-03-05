@@ -2023,3 +2023,45 @@ The dual-surface approach (Python `DFCalendar.format_duration()` for server-rend
 **Template coverage went from 52 → 106 event types (102/102 DB types covered).** The key architectural insight is that ~40% of new event types store all their entity references in JSONB `details` (not in the generic DB columns like `hf_id_1`, `site_id`). For these, `COLUMN_MAP_BY_EVENT` is set to `{}` (empty), so `merge_columns_into_details()` skips the column→field mapping and relies entirely on JSONB field names matching `ENTITY_REF_FIELDS`. This two-layer resolution (DB columns + JSONB keys) is what makes the template system flexible enough to handle DF's inconsistent XML field naming.
 
 **The reason/circumstance rendering** uses a template-first approach: if the raw value matches a template key, the natural-language version is used; if not, it falls back to humanized raw text (underscores→spaces). JSON-object circumstances (like `{"type": "histeventcollection"}`) get special handling to generate cross-links to event collections.
+
+### 2026-03-05 [274f2ce7d357]
+
+**File renaming in a document-heavy project requires a cross-reference audit.** The three-way file rename (5→3, 3→4, 4→5) touched 10 files across the Jarvis workspace: 3 PRD files (headers, stage numbers, milestones, footers), the roadmap, current-plans.md, session-state.md, phase-2 completion report, and MEMORY.md. The key technique was using `git mv` with temp files to avoid overwrite conflicts, then running a grep sweep to find all stale references. Archived/ephemeral files (JICM logs, compressed context) were intentionally left as-is since they're historical snapshots.
+
+**Stage numbering consistency** is critical for the PRD cross-reference system — the roadmap references "Stage 3.1" which must match the PRD's internal "## 2. Stage 3.1:" heading. A mismatch would create confusion when jumping between the roadmap overview and the detailed PRD.
+
+### 2026-03-05 [5fec8836e61e]
+
+**asyncpg type strictness**: asyncpg infers parameter types at prepare-time. When you write `$2::text || ...` in SQL, asyncpg expects a Python `str` for `$2`, not `int`. The fix is to pass `str(entity_id)` on the Python side. This is a common gotcha — asyncpg is stricter than psycopg2 about type matching.
+
+**Structure icon pattern**: The frontend uses a simple lookup map (`_STRUCT_ICONS`) with Unicode emoji for each DF structure type. The `title` attribute on each `<span>` provides a native browser tooltip on hover, so users can see the structure type name without extra UI components.
+
+**Collapsible site govt positions**: Using `<details>/<summary>` HTML elements gives us free collapse/expand behavior without any JavaScript. Only site govts with at least one filled position holder are shown, which prevents clutter on large civs with 40+ site govts (most of which have vacant positions).
+
+### 2026-03-05 [5e54d8fcc0e8]
+
+**DF position generation**: Dwarf entities have hardcoded positions in the raws (`[POSITION:MONARCH]`, `[POSITION:GENERAL]`, etc.). But human and goblin entities use `[VARIABLE_POSITIONS:ALL]`, which tells DF to **randomly generate** position names at world-gen. The game assigns responsibilities (LAW_MAKING, MILITARY_GOALS, etc.) to these generated positions internally, but the legends XML only exports the name — not the responsibility tokens. So "law-giver" is the human monarch equivalent and "master" is the goblin equivalent, but they don't contain words like "king" or "monarch" that our keyword categorizer would catch.
+
+**The fix**: Instead of relying on keyword matching alone for ruler detection, use `position_id == 0` as the primary signal. In DF, position ID 0 is always the highest-precedence ruler position (the one with `LAW_MAKING` + `RECEIVE_DIPLOMATS` + `MILITARY_GOALS` responsibilities).
+
+### 2026-03-05 [ece451f07f8f]
+
+**DF site govt noble hierarchy**: Site governments have nobles with gendered title variants (`name_male`/`name_female`). The presence of `name_male`/`name_female` is the reliable indicator of a "noble" position — administrative positions like "chamberlain" never have them. The hierarchy in this world: baron/baroness > lord/lady > chieftain/chieftess > chief/chieftess. The user wants barons to take priority over lords, but lords should still show if they're the only noble.
+
+**The algorithm**: Among positions with `name_male`/`name_female` (= nobles) that have current holders, prefer non-lord/lady nobles first; fall back to lord/lady if that's the only one.
+
+### 2026-03-05 [d3f82a686be0]
+
+**Two-tier noble detection in DF**: Dwarf Fortress handles noble positions at two levels:
+1. **Site-govt-level nobles** (lord/lady, chieftain) — stored directly on site government entities. Common for human/goblin civs with many hamlets.
+2. **Civ-level nobles** (baron/duke/count) — stored on the parent civilization entity, but the holder is a member of a specific site govt. Requires cross-referencing `hf_position_links` (who holds the position) with `hf_entity_links` (which site govt they belong to).
+
+The `DISTINCT ON (hel.entity_id)` with the ordering `CASE WHEN LOWER(ep.name) NOT IN ('lord') THEN 0 ELSE 1 END` ensures that higher-ranking civ-level nobles (baron/duke) take priority over lord positions.
+
+### 2026-03-05 [c59ed71feacd]
+
+The ETL plan reveals an interesting architectural pattern: **two temporal resolutions** coexist. `unit_events` is a high-frequency CDC (Change Data Capture) stream (~20 events/poll × 1,500 polls/hour = 30K events/hour), while `history_events` is a curated narrative record (0-5 events/poll). The reconciliation job bridges these — when a dwarf dies in the CDC stream, that event eventually appears in DF's internal history and we link them. This dual-resolution approach avoids flooding the narrative tables while preserving every detail.
+
+### 2026-03-05 [8c09b81961d1]
+
+The PRD revision incorporates findings from a 5-stage "Wiggum Loop" — a structured investigation pattern: (1) analyze df-structures naming changes, (2) map memory→CDM fields, (3) audit for CONNECT vs APPEND violations, (4) design ETL plan, (5) revise PRD. The most critical finding was the APPEND violations — places where live data would create parallel data stores instead of connecting to existing CDM entities. The `units.id` PK mismatch alone would have caused subtle multi-world breakage.

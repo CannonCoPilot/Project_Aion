@@ -1,15 +1,18 @@
 # Phase 3: Live Integration -- PRD/Roadmap
 
-**Version**: 1.1 (renumbered from Phase 5 → Phase 3 in Roadmap v2.0)
-**Date**: 2026-02-25 (renumbered 2026-03-04)
+**Version**: 2.0 (renumbered from Phase 5 → Phase 3 in Roadmap v2.0; revised with Wiggum Loop findings)
+**Date**: 2026-02-25 (renumbered 2026-03-04, revised 2026-03-05)
 **Phase Duration**: 3-4 weeks
 **Milestone**: M3 -- Live Complete
-**Entry State**: Bridge v6 (7 domains, polling only), no worldgen monitoring, no Knowledge Horizon
+**Entry State**: Bridge v7 (1,077 lines, 21 extraction functions, 7 domains, polling only), no worldgen monitoring, no Knowledge Horizon
 **Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring with live map, Knowledge Horizon Phase 1-3 (data layer), embedding pipelines for live data
 
 **Parent Document**: Full Project Roadmap v2.0 (full-project-roadmap.md)
 **Dependencies**: Phase 1 (complete CDM), Phase 2 (entity detail pages for KH toggle)
 **Requirements Covered**: REQ-ETL-005 through ETL-012, REQ-KH-001 through KH-012, REQ-EMB-001 through EMB-006
+**Companion Documents**:
+- `phase-3-memory-cdm-mapping.md` — In-game memory → CDM field mapping (df-structures 53.11-r1)
+- `phase-3-etl-plan.md` — Three-layer ETL plan for all game modes (worldgen, fortress, adventure)
 
 > **Note**: REQ-STR-032 (KH-storyteller integration) is deferred to Phase 4 (Narrative Engine) where the agentic storyteller is built. This phase builds the KH data layer only.
 
@@ -17,11 +20,11 @@
 
 ## 1. Phase Overview
 
-Phase 5 extends Chronicler's real-time data capabilities in four directions: (1) enhancing the live bridge with reactive event subscriptions and richer data extraction, (2) building the worldgen monitoring system for watching world generation in real time, (3) implementing the Knowledge Horizon masking system that limits the storyteller's and explorer's knowledge to what the fortress plausibly knows, and (4) activating the embedding pipelines for both batch legends data and live in-game data, enabling semantic search and richer narrative context retrieval.
+Phase 3 extends Chronicler's real-time data capabilities in four directions: (1) enhancing the live bridge with reactive event subscriptions and richer data extraction, (2) building the worldgen monitoring system for watching world generation in real time, (3) implementing the Knowledge Horizon masking system that limits the storyteller's and explorer's knowledge to what the fortress plausibly knows, and (4) activating the embedding pipelines for both batch legends data and live in-game data, enabling semantic search and richer narrative context retrieval.
 
-### 1.1 Current Live Bridge State (v6)
+### 1.1 Current Live Bridge State (v7)
 
-**chronicler-bridge.lua** (922 lines):
+**chronicler-bridge.lua** (1,077 lines, 21 extraction functions):
 - DFHack repeat job every 100 ticks (~2.4 seconds)
 - 7 data domains: game time, creature raws, unit summary, armies, buildings, artifacts, announcements, diplomacy, history
 - JSON output served over HTTP port 8889
@@ -1062,7 +1065,83 @@ async def get_narrative_context(query: str, world_id: int, max_chunks: int = 10)
 
 ---
 
-## 6. Definition of Done (M3 Milestone)
+## 6. CDM Schema Changes Required (APPEND Violation Fixes)
+
+The 1:1 mapping review (see `phase-3-memory-cdm-mapping.md`, §CONNECT vs APPEND audit) identified 5 schema violations where live data would create parallel data stores rather than connecting to existing CDM entities. These must be fixed as a prerequisite to Stage 3.1.
+
+### 6.1 Units Table PK Fix
+
+**Problem**: `units.id` is `INT PRIMARY KEY`, not composite `(world_id, id)` — breaks multi-world support and creates an island table.
+
+```sql
+-- Fix: align units PK with CDM convention
+ALTER TABLE units DROP CONSTRAINT units_pkey;
+ALTER TABLE units ADD PRIMARY KEY (world_id, id);
+```
+
+### 6.2 Unit Events → History Events Reconciliation
+
+**Problem**: `unit_events` is a parallel event stream disconnected from `history_events`. Deaths that occur in-game eventually become `history_events` when legends are exported.
+
+**Solution**: Add `reconciled_event_id` column to `unit_events` for linking to `history_events` after reconciliation. A periodic reconciliation job matches unit_events to history_events by type + participants + time proximity.
+
+```sql
+ALTER TABLE unit_events ADD COLUMN reconciled_event_id INTEGER;
+ALTER TABLE unit_events ADD COLUMN reconciled_at TIMESTAMP;
+```
+
+### 6.3 Entity-Entity Relationships Table
+
+**Problem**: No table for civ-to-civ links. Memory has `entity_entity_link` (PARENT/CHILD/RELIGIOUS with strength), but CDM has nothing.
+
+```sql
+CREATE TABLE entity_entity_links (
+    world_id INTEGER NOT NULL,
+    source_entity_id INTEGER NOT NULL,
+    target_entity_id INTEGER NOT NULL,
+    link_type TEXT NOT NULL,  -- 'PARENT', 'CHILD', 'RELIGIOUS'
+    strength INTEGER,
+    details JSONB DEFAULT '{}',
+    PRIMARY KEY (world_id, source_entity_id, target_entity_id, link_type),
+    FOREIGN KEY (world_id, source_entity_id) REFERENCES entities(world_id, id),
+    FOREIGN KEY (world_id, target_entity_id) REFERENCES entities(world_id, id)
+);
+```
+
+### 6.4 Entity-Site Links Table
+
+**Problem**: Only `sites.owner_entity_id` captures the current owner. Memory has rich `entity_site_link` with flags (capital, fortress, holy_city, trade_partner) and temporal data (start/end year).
+
+```sql
+CREATE TABLE entity_site_links (
+    world_id INTEGER NOT NULL,
+    entity_id INTEGER NOT NULL,
+    site_id INTEGER NOT NULL,
+    link_type TEXT NOT NULL,  -- 'capital', 'fortress', 'holy_city', 'trade_partner', etc.
+    start_year INTEGER,
+    end_year INTEGER,
+    details JSONB DEFAULT '{}',
+    PRIMARY KEY (world_id, entity_id, site_id, link_type),
+    FOREIGN KEY (world_id, entity_id) REFERENCES entities(world_id, id),
+    FOREIGN KEY (world_id, site_id) REFERENCES sites(world_id, id)
+);
+```
+
+### 6.5 Art Images Table (Deferred)
+
+**Problem**: `art_image` in memory (artwork descriptions, elements, properties) has no CDM table. Referenced by events and artifacts.
+
+**Decision**: Deferred to Phase 4 (Narrative Engine) where art content becomes narratively relevant. Not blocking for live data extraction.
+
+---
+
+## 7. Definition of Done (M3 Milestone)
+
+### CDM Schema Fixes (Pre-Stage 3.1)
+- [ ] Units table PK: composite `(world_id, id)`
+- [ ] Unit events reconciliation columns added
+- [ ] Entity-entity relationships table created
+- [ ] Entity-site links table created
 
 ### Bridge Enhancements
 - [ ] Eventful subscriptions (5 event types)
@@ -1102,5 +1181,5 @@ async def get_narrative_context(query: str, world_id: int, max_chunks: int = 10)
 
 ---
 
-*Phase 3: Live Integration PRD/Roadmap v1.1 -- 2026-03-04*
-*4 Stages, 35+ Tasks, 3-4 Weeks Estimated*
+*Phase 3: Live Integration PRD/Roadmap v2.0 -- 2026-03-05*
+*5 Sections (CDM Fixes + 4 Stages), 39+ Tasks, 3-4 Weeks Estimated*
