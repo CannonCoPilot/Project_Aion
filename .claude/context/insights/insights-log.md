@@ -2075,3 +2075,167 @@ The PRD revision incorporates findings from a 5-stage "Wiggum Loop" — a struct
 2. **Progressive enhancement for members** — The page server-renders the first 100 members immediately (no loading spinner), then the "Load All" button fetches up to 10K via the existing API and switches to full JS-managed sorting/filtering. This gives instant content on page load while preserving the full interactive experience.
 
 3. **Jinja2 globals vs template filters** — `struct_icon()` and `cat_badge_class()` are registered as Jinja2 globals rather than filters because they're callable functions (not string transformations). Globals are invoked as `{{ struct_icon(type) }}` vs filters as `{{ type|struct_icon }}` — globals are more readable for lookup-table patterns.
+
+### 2026-03-05 [811a8db3cc3f]
+
+- **Defense in depth**: The ingestion fix prevents future duplicates, while the UI filter handles any that might slip through (e.g., if ingestion order changes). Neither layer alone is sufficient — the ingestion fix doesn't help existing data, and the UI filter adds query overhead that's unnecessary once data is clean.
+- **`NULLS LAST` ordering**: Added to all three queries so that any remaining NULL-start rows (legitimate ones with no dated counterpart) sort to the bottom rather than the top. PostgreSQL sorts NULLs first in DESC and last in ASC by default, but explicit `NULLS LAST` makes intent clear.
+
+### 2026-03-05 [b967478bdbdb]
+
+- Uvicorn's `StatReload` polls files for mtime changes (~every 0.25s by default). When it detects a `.py` file change, it restarts the server process while the reloader parent stays alive — so the port remains bound and clients just see a brief reconnection. This means our duplicate-leaders fix is already live without any manual restart.
+- The `&` background launch means the process will terminate when this shell session ends. For persistent operation, you'd want it in a tmux window or systemd unit.
+
+### 2026-03-05 [fb28700d0226]
+
+- **Three outcome signals in DF data**: (1) `peace accepted` events with `source`/`destination` fields indicate a negotiated end, (2) `site conquered` sub-collections within wars indicate territorial gains, (3) wars with `end_year IS NULL` are still ongoing. DF doesn't store an explicit "winner" — it must be inferred from conquest balance.
+- **Perspectival rendering**: The same data must tell two different stories. Entity 1007 attacking entity 1043 and conquering 1 site → "Victory" from 1007's view, "Defeat" from 1043's. This is achieved by swapping `atk_conquests`/`def_conquests` based on whether the viewed entity is the attacker or defender — simple but critical for historical narrative accuracy.
+- **"Inconclusive" is common**: Wars that end without peace and without site conquests (just battles) are genuinely indeterminate — DF doesn't record why they stopped. This affects 8 of 17 wars for entity 1007, reflecting how medieval-style warfare often ended: armies clashed, both withdrew, and the world moved on.
+
+### 2026-03-05 [4a45126b8a31]
+
+### The Three-Layer Model
+
+Dwarf Fortress uses a **three-layer governance hierarchy**:
+
+```
+Civilization (e.g., "the brave kingdom", human)
+  ├── Site Government (e.g., "the weak coalition")
+  │     └── Site (e.g., "chainstakes", hamlet)  ← owner_entity_id points to the site gov
+  ├── Site Government (e.g., "the turquoise councils")
+  │     └── Site (e.g., "blotbottled", hamlet)
+  └── Religion (e.g., "the certain faith")
+        └── (no sites; spiritual/cultural entity)
+```
+
+**Layer 1: Civilization** — The top-level political entity. Races like human, dwarf, elf, goblin, kobold each form civilizations. A civilization has **positions** like monarch, duke, diplomat, general, law-giver, etc. Civilizations have CHILD links to their site governments and religions.
+
+**Layer 2: Site Government** — The administrative body that actually *owns* sites. Each site government typically controls 1 site (though some control 2+). Site governments have their own **positions** — and this is where it gets interesting by race.
+
+**Layer 3: Site** — The physical location (town, hamlet, castle, fortress, etc.). The `sites.owner_entity_id` column points to the **site government**, not the civilization.
+
+### The Anomaly: Entity 2098 ("the silvery mirrors")
+
+This is a **dwarf site government** with an unusual structure:
+- **163 CHILD links** — all pointing to other site governments
+- **64 sites** in its `children` array
+- **39 sites directly owned**
+- Its 163 child site governments own another **64 sites**
+- **No PARENT link** — it's not a child of any civilization!
+
+This is a **dwarven mountainhome network** — a "super-site-government" that acts as a regional authority. The "ringleader" title is the DF-generated name for the position of leader of this bandit/outlaw-style organization. The fact it has no parent civilization suggests it's either:
+1. A **conquered/fallen** civilization whose civ entity was destroyed but the site gov survived
+2. A **spontaneously formed** criminal/rebel organization
+
+### Position Naming by Race
+
+The position titles reveal the cultural character of each race:
+
+| Race | Civilization Titles | Site Gov Titles | Character |
+|------|
+
+### 2026-03-05 [28d24c6851cb]
+
+**The 692 "siteless" site governments are completely normal — it's not a bug.**
+
+The numbers tell the story:
+- **1,961 total site governments** → **1,269 own sites** (65%) → **692 don't** (35%)
+- **2,154 total sites** → **1,466 have owners** → **688 don't**
+
+The **688 unowned sites** are exclusively **wild/uninhabited locations**:
+| Type | Count |
+|------|-------|
+| monastery | 189 |
+| lair | 180 |
+| camp | 173 |
+| cave | 93 |
+| shrine | 33 |
+| labyrinth | 20 |
+
+These are locations occupied by megabeasts, forgotten beasts, bandits, and hermits — they have no formal governance. Meanwhile, all towns, hamlets, castles, and fortresses DO have site government owners.
+
+**So what are the 692 siteless site governments?** They are **destroyed or conquered governments** — political entities that once governed a site but lost it through war, conquest, or abandonment. Dwarf Fortress preserves the entity record even after the site changes hands. The site government still exists as a historical artifact (it may have members, former leaders, wars fought), but it no longer controls territory.
+
+This is visible in the data:
+- Site ownership comes from `legends_plus.xml` via `<cur_owner_id>` — this is the **current** owner
+- When a goblin dark fortress conquers a human hamlet, the human site government loses its `cur_owner_id` reference and the goblin one gains it
+- The old human site government persists as an entity with former members, position history, and war records — but with zero current sites
+
+**The near-match (692 vs 688) is coincidental** — these are different phenomena. 692 governments lost their sites through history; 688 wild locations never had formal governance. They're not supposed to pair up 1:1.
+
+### 2026-03-05 [7e3347a9fe14]
+
+**The site count in the sidebar is wrong for most site governments — they show 0 when they should show 1.**
+
+The `civ_sites` CTE rolls site counts **up to the parent**, by design. Here's the logic:
+
+```
+civ_sites AS (
+    SELECT cs.parent_id AS civ_id, COUNT(*) AS cnt
+    FROM sites s
+    JOIN child_sg cs ON cs.sg_id = s.owner_entity_id  -- sg owns site
+    WHERE s.world_id = 1
+    GROUP BY cs.parent_id  -- but count goes to PARENT
+)
+```
+
+This was designed for **civilizations** — it correctly shows that "the brave kingdom" has 53 sites by rolling up from its child site governments. But when the same query runs for the `sitegovernment` entity type in the sidebar:
+
+- **Entity 1008** ("the weak coalition") directly owns 1 site. But the CTE attributes that site to 1008's **parent** (civ 1007), not to 1008 itself. So 1008 shows **0 sites** in the sidebar.
+- **Entity 2098** ("the silvery mirrors") has 163 child site governments. Those children have PARENT links pointing to 2098. So 64 of their sites get rolled up to 2098. But 2098 also directly owns 39 sites that aren't counted (because 2098 has no PARENT link — those 39 don't appear in `child_sg`).
+
+**The sidebar shows 64, but the real number is 39 direct + 64 via children = 103 total sites under 2098's umbrella.**
+
+**The fix**: For site governments, the site count should be the number of sites the entity directly owns (`sites.owner_entity_id = entity.id`), not the parent-rolled-up count. The roll-up logic is correct for civilizations but wrong for site governments.
+
+### 2026-03-06 [b1e5d45d14f9]
+
+**The double-counting mechanism**: DF records HFs as members of *both* their civilization and their local site government. When the code sums `civ_member_count (3,209) + sg_pop_total (5,125)`, the 2,787 HFs who belong to both get counted twice → 8,334 shown vs 3,447 actual unique HFs.
+
+**Three distinct population concepts**:
+1. **Known Historical Figures** — union of all (civ + child SGs), deduplicated, includes living + dead + former members = 3,447
+2. **Current Members** — `link_type = 'member'` only (excludes former) = 2,625 for the civ
+3. **Living Population** — current members who are alive (`death_year IS NULL`) = 894
+
+**No duplicates within a single entity** — 0 HFs have both `member` and `former member` for the same entity. The "former member" entries are genuine (HFs who left/were banished). And 238 HFs belong to a site government but not the parent civ — these are likely conquered/assimilated populations.
+
+### 2026-03-06 [371ce7a2339a]
+
+- **The fix eliminated double-counting** by using `COUNT(DISTINCT hf_id)` across `[entity_id] + sg_ids` in a single query, rather than summing `civ_member_count + sg_pop_total` separately.
+- **Three population tiers** are now computed: `total_known_hfs` (all links), `current_members` (active only), `living_population` (alive + active) — but only `living_population` is surfaced to the template as `total_population`.
+- **Gap found**: `total_known_hfs` and `current_members` are computed but never passed to the template — we may want to expose those.
+
+### 2026-03-06 [795302293f2d]
+
+- **Three-tier population model works well**: `living_population` (populace) vs `current_members` (active links) vs `total_known_hfs` (historical record) gives appropriate context at each level.
+- **Sidebar vs Detail intentional divergence**: The sidebar shows direct-entity-only member count (fast, no joins) while the detail page shows deduplicated counts across civ + child SGs. For Brave Kingdom: sidebar=2,625 vs detail living=894 — the detail is *lower* because it filters to `death_year IS NULL`, while the sidebar counts all active `member` links (living + dead). This is actually a UX consideration worth noting — sidebar "pop" is larger than detail "Population" for large civs.
+- **Minor discrepancy noted**: Brave Kingdom shows "Sites 53" in overview vs "Sites (52)" in the tab header — off-by-one worth investigating in a follow-up if relevant.
+
+### 2026-03-06 [99d23a0adb20]
+
+**The ontological framework is now cleanly implemented:**
+
+| Term | Definition | Where Used |
+|---|---|---|
+| **Population** | Living current members (`link_type='member'` + `death_year IS NULL`) | Overview tile, Civ tab inline Pop. |
+| **Members** | Organizational association with an entity via `hf_entity_links` | Members tab (filterable: Current/Former, Alive/Dead) |
+| **Residents** | Physical site attachment via `hf_site_links` | Site Residents tab (filterable: Alive/Dead, by link type) |
+
+**Key design decisions:**
+- The sidebar `member_count` shows direct-entity member links (fast, no joins) — intentionally different from the deduplicated `Population` on the detail page.
+- DF's `former member` means "left/expelled" (not "died") — dead HFs keep `link_type='member'`. The filter chips make this visible.
+- `hf_entity_links` and `hf_site_links` are orthogonal dimensions — entity membership ≠ site presence. The 101 living members of entity 1525 vs 23 alive residents at site 621 measures fundamentally different relationships.
+
+### 2026-03-06 [d6f696897799]
+
+**Statistics Tab Architecture:**
+- **Orthogonal data dimensions**: `hf_entity_links` (organizational membership) and `hf_site_links` (physical site presence) are independent tables — a figure can be a member without being a resident and vice versa. The cross-reference stats (2,054 HFs with both, 45,020 entity-only, 12 site-only) quantify this gap.
+- **Chart.js over D3**: For 5 straightforward chart types (bar, scatter, doughnut), Chart.js at ~60KB is far lighter than D3 and matches the CDN-based approach already used for Tailwind and vis-network. The tradeoff: less customization, but the responsive defaults handle the dark theme well with minimal config.
+- **FILTER aggregate pattern**: PostgreSQL's `COUNT(*) FILTER (WHERE ...)` computes multiple conditional counts in a single pass, avoiding self-joins. This lets us get alive/dead breakdowns alongside totals in one query per table.
+
+### 2026-03-06 [33acda06c952]
+
+**Two distinct navigation patterns in the Explorer:**
+- **In-tab navigation** (`navigateTo('geo','site',...)`) switches Explorer tabs and loads inline detail — used for sites, HFs, and civs within the Explorer SPA.
+- **Full-page navigation** (`<a href="/explorer/entity/...">`) navigates to the dedicated detail page — used here for site governments because the entity detail page provides the full Members/Sites/Positions tabbed view that the inline view can't replicate.
+- The default sort change from `site_name ASC` to `population DESC` front-loads the most strategically important sites — the ones with the most living members — which is the natural "at a glance" question when reviewing a civilization's holdings.
