@@ -2239,3 +2239,28 @@ This was designed for **civilizations** — it correctly shows that "the brave k
 - **In-tab navigation** (`navigateTo('geo','site',...)`) switches Explorer tabs and loads inline detail — used for sites, HFs, and civs within the Explorer SPA.
 - **Full-page navigation** (`<a href="/explorer/entity/...">`) navigates to the dedicated detail page — used here for site governments because the entity detail page provides the full Members/Sites/Positions tabbed view that the inline view can't replicate.
 - The default sort change from `site_name ASC` to `population DESC` front-loads the most strategically important sites — the ones with the most living members — which is the natural "at a glance" question when reviewing a civilization's holdings.
+
+### 2026-03-06 [b59c5fe74550]
+
+**The root cause is a semantic mismatch, not a bug.** Dwarf Fortress legends XML never uses the word "resident" in `hf_site_links`. The six actual link types (`home structure`, `occupation`, `seat of power`, `lair`, `hangout`, `home site building`) represent specific *roles* at a site, not general residency. Only 4.3% of all HFs have any site link — because DF only creates these for figures with notable site roles (rulers, craftsdwarves with workshops, deities with lairs). The 95.7% majority are political members of entities but have no individual site attachment in the legends data.
+
+**Three population tiers exist with fundamentally different scopes:**
+1. `entity_populations` (1.66M) — the game's actual census including unnamed NPCs
+2. `hf_entity_links` (44K unique members) — named figures' political affiliations
+3. `hf_site_links` (2K unique figures) — named figures' physical site attachments
+
+These aren't meant to agree — they're orthogonal dimensions of the same world.
+
+### 2026-03-07 [096a0481c666]
+
+**The same entity's "population" is computed differently at each UI location**, leading to four distinct numbers for the same civilization. The key distinction is *scope* (single entity vs. entity + children) and *metric* (all member links vs. alive-only vs. deduplicated). Understanding which query produces which number is essential.
+
+### 2026-03-07 [65bfaffde6d7]
+
+**The 2,644 vs 603 gap is the most confusing.** They look like they should be the same metric — both labeled "population" — but they use completely different scopes and filters:
+- **2,644** = all-time current members of entity 991 alone (alive + dead, single entity)
+- **603** = living current members deduplicated across entity 991 + 42 child SGs (alive only, rolled up)
+
+The rolled-up count (603) is *lower* because: (a) ~60% of HFs are dead, and (b) deduplication removes HFs counted in both the civ and a child SG. The list-view "pop" label is **deeply misleading** — it's not a population count, it's a total membership tally including the dead.
+
+**The "Sites (33)" vs "35 sites" gap** exists because the tab counts SGs-with-sites (33 of 42 SGs have sites), while the list counts total sites (35, since 2 SGs own 2 sites each). Also: `sg_sites` dict (line 120) uses `owner_entity_id` as key, overwriting when an SG owns multiple sites — a **data loss bug**.
