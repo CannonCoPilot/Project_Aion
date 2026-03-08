@@ -2264,3 +2264,79 @@ These aren't meant to agree — they're orthogonal dimensions of the same world.
 The rolled-up count (603) is *lower* because: (a) ~60% of HFs are dead, and (b) deduplication removes HFs counted in both the civ and a child SG. The list-view "pop" label is **deeply misleading** — it's not a population count, it's a total membership tally including the dead.
 
 **The "Sites (33)" vs "35 sites" gap** exists because the tab counts SGs-with-sites (33 of 42 SGs have sites), while the list counts total sites (35, since 2 SGs own 2 sites each). Also: `sg_sites` dict (line 120) uses `owner_entity_id` as key, overwriting when an SG owns multiple sites — a **data loss bug**.
+
+### 2026-03-07 [a8a7c33f41df]
+
+**Phases 1 & 2 (documentation) are complete.** The report now contains the canonical glossary (§2), occupation analysis (§7.1), animal-person home structure profiles (§7.2), and comprehensive appendix with dual Alive/All breakdowns across all categories (§10). Now moving to **Phase 3.1 — the code refactoring** where we align the actual queries with the glossary definitions.
+
+### 2026-03-07 [70a7bc1834c4]
+
+**What v8 adds over v7 (329 new lines, 5 new capabilities):**
+
+1. **Eventful subscriptions** (lines 187-316): Registers callbacks on 6 DFHack event types (UNIT_DEATH, UNIT_NEW_ACTIVE, ITEM_CREATED, JOB_COMPLETED, SYNDROME, INVASION). Events buffer between cycles and flush atomically — this is a producer-consumer pattern where the game thread produces events and our bridge cycle consumes them.
+
+2. **Death cause enrichment** (lines 88-129): When `onUnitDeath` fires, we immediately search `incidents.all` backwards for the matching death record, extracting cause enum + killer identity. This avoids a second pass on the Python side.
+
+3. **Family chain extraction** (lines 131-172): Extracts Mother/Father/Spouse from `unit.relationship_ids` plus children via `histfig_hf_link_childst` traversal. Added to every fortress dwarf in `unit_summary` (line 516).
+
+4. **Book detection** (lines 174-183): When `onItemCreated` fires, checks `dfhack.items.getBookTitle()` — non-nil means a written work was created, which is narratively significant.
+
+5. **Skill delta tracking** (lines 321-375): Maintains a persistent `{unit_id -> {skill_id -> rating}}` snapshot. Each cycle compares current ratings to previous, emitting `skill_changes` entries only when ratings increase. This is the "derived events from state diffs" pattern — no separate event source needed.
+
+**Key architectural decisions:**
+- `init_eventful()` runs inside `write_state()` with an idempotency guard, so the repeat job self-initializes
+- Event buffers use atomic swap (replace entire table) to avoid race conditions
+- All enrichment functions use `pcall` defensively since DF memory structures can be inconsistent during transitions
+
+### 2026-03-07 [78e06a54f6bb]
+
+**Stage 3.0 CDM Schema Fixes — fully verified against live DB.** All 4 violations fixed + supplementary columns + indexes confirmed:
+
+| Violation | Fix | DB Status |
+|
+
+### 2026-03-08 [16b172ac1568]
+
+**The four metrics measure fundamentally different things, and the "Residents" union has a real problem.**
+
+The current "Residents" union (`Civ members + SG members + ALL site links`) pulls in **252 lair-dwelling megabeasts** (rocs, bronze colossi, ettins, minotaurs, cyclopes, giants) — exactly the creatures you said should be excluded. It also pulls in `GIANT_DINGO`, `GIANT_ALLIGATOR`, and `TROLL` via `home structure` links, which are questionable.
+
+### 2026-03-08 [b62d4e00ca46]
+
+**The "UNKNOWN → CHECK" category reveals several important DF creature classes we need to classify:**
+- **TITAN_N**: Unique procedurally-generated megabeasts — sentient, named, historically important. 13 in lairs.
+- **NIGHT_CREATURE_N**: Cursed beings (werebeasts, vampires, bogeymen) — sentient, dangerous, historically important. ~45 across lairs and home structures.
+- **DEMON_N**: Demons holding seats of power in dark fortresses — sentient rulers. 5 total.
+- **TROGLODYTE, SASQUATCH, BLIND_CAVE_OGRE, MOLEMARIAN**: Underground semi-sentient creatures.
+- **BAT_GIANT, SPIDER_CAVE_GIANT**: Giant cave creatures — note the naming pattern is `[ANIMAL]_GIANT` not `GIANT_[ANIMAL]`, so a simple `GIANT_` prefix filter wouldn't catch these.
+- **JABBERER, HUNGRY_HEAD, VORACIOUS_CAVE_CRAWLER**: Forgotten-beast-style underground creatures.
+- **HFEXP_N E_HUM1**: DF experiment races (modded or procedural human variants).
+- **RODENT MAN**: Space-delimited variant (like `GIANT TORTOISE MAN`) — sentient.
+
+### 2026-03-08 [b9fa9f501ec9]
+
+**The zero-resident counts are correct, not a bug.** The old system showed 275 members at *every* site governed by SG 2098 — a 39x inflation. The new system correctly counts per-site residents via `hf_site_links`. These sites genuinely have no HFs structurally linked to them. The `whereabouts.site_id` field in the XML was identified during research but hasn't been parsed into the DB yet — that's a Phase 3 live-integration task. The key improvement is: **wrong inflated number → correct sparse number**.
+
+### 2026-03-08 [02f2dc988217]
+
+**Summary of the population counting refactor:**
+
+1. **Sentience filter** uses DF's own `creature_dictionary.flags` — `has_any_intelligent_speaks` OR `has_any_intelligent_learns`. This cleanly separates civilized races + animal people + trolls from giant animals, megabeasts, forgotten beasts, and underground predators. No brittle name-pattern matching needed (fallback only for missing dictionary entries).
+
+2. **Multi-site SG inflation fixed**: SG 2098 ("the silvery mirrors") previously showed 275 members at every one of its 39 sites (10,725 total). Now each site gets its own residents count from `hf_site_links`, correctly showing 0 for sites with no explicit resident data.
+
+3. **Three metrics instead of one**: "Population" was meaninglessly overloaded. Now civs show DF Census (37,880 for the top civ), Citizens (610 sentient named HFs), and Residents (53 with site links). SGs show Citizens. Guilds/religions show Members. Each metric answers a distinct question.
+
+### 2026-03-08 [cb8203ae32f0]
+
+**Summary of all work completed:**
+
+1. **17 UI fixes across 3 templates** — The inline Members table for Site Governments now auto-loads with an Alive/Dead/All toggle, compact 25px rows, and Citizen + Link columns. The full-view Members tab mirrors these changes. The Site detail Residents tab gained Citizen, Profession, and Position columns.
+
+2. **Backend `is_citizen` is SQL-computed** — Rather than a front-end approximation, citizenship is determined at query time as the intersection of: living (`death_year IS NULL`) + sentient (creature_dictionary flags) + current member (`link_type = 'member'`). For site residents, citizenship also requires membership in the site's governing entity.
+
+3. **Fresh DB ingestion** — World ID shifted from 8 → 1 (the previous DB had two duplicate "Tar Thran" worlds). The `DROP SCHEMA CASCADE` approach takes <1 second vs. `DELETE FROM worlds` which would cascade through 500K+ rows and take minutes. 1,677,998 records loaded with 0 referential integrity issues.
+
+### 2026-03-08 [aff138e16fb7]
+
+**Site residents vs SG members**: The site detail page queries `hf_site_links` (line 1469, `FROM hf_site_links l`), which contains explicit historical figure ↔ site relationships. This is different from counting SG members via `hf_entity_links`. The `hf_site_links` table has only 2,075 entries, so the 130 count reflects HFs explicitly linked to site 672 — a subset of the 201 SG members. This is the more precise relationship: "who actually lives at this specific site" vs "who belongs to this site's government."
