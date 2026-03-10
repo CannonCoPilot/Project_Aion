@@ -2340,3 +2340,10 @@ The current "Residents" union (`Civ members + SG members + ALL site links`) pull
 ### 2026-03-08 [aff138e16fb7]
 
 **Site residents vs SG members**: The site detail page queries `hf_site_links` (line 1469, `FROM hf_site_links l`), which contains explicit historical figure ↔ site relationships. This is different from counting SG members via `hf_entity_links`. The `hf_site_links` table has only 2,075 entries, so the 130 count reflects HFs explicitly linked to site 672 — a subset of the 201 SG members. This is the more precise relationship: "who actually lives at this specific site" vs "who belongs to this site's government."
+
+### 2026-03-08 [8b458325fbc0]
+
+**Fresh DB validation — all checks pass:**
+1. **V1** Entity distribution: identical (1,890 SGs, 985 religions, 810 civs). The `type` column is now a proper SQL column rather than JSONB — a CDM schema improvement from Phase 3 prep.
+2. **V4** Sentience filter: exact match (17,073 living, 16,004 sentient, 8 no-dict, 44 giant animals). The sentience detection uses `has_any_intelligent_speaks` / `has_any_intelligent_learns` creature flags rather than a computed `is_sentient` field.
+3. **V3** Multi-site inflation: SG 2098 still 39 sites / 275 members — no inflation.

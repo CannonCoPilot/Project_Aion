@@ -8,13 +8,43 @@
 
 ## Current Work Status
 
-**Status**: Active -- Session 38 (Phase 3 prep)
+**Status**: Idle -- Session 38 complete
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: feed264 (session 37 — validation fixes) [Jarvis repo]
-**Last Pushed**: feed264 (to origin/Project_Aion)
-**DwarfCron Last Commit**: 4323725 (JSON export fix)
-**DwarfCron Last Pushed**: 4323725 (to origin/main)
+**Last Commit**: a2bd2ea (session report) [Jarvis repo]
+**Last Pushed**: (pending)
+**DwarfCron Last Commit**: 4849839 (Members/Residents table enhancements)
+**DwarfCron Last Pushed**: (pending)
+
+---
+
+## What Was Accomplished (2026-03-08/09, Session 38 -- Population UI & Fresh DB Validation)
+
+### Population Counting Analysis
+- Three-tier audit of population data: DF Census (1.66M), Entity Membership (44K HFs), Site Presence (2K HFs)
+- Critical finding: `hf_site_links` has zero `link_type='resident'` records; 6 actual types (home structure, occupation, seat of power, lair, hangout, home site building)
+- Established canonical demographic glossary (Population, Residents, Citizens, Members, Site Presence)
+
+### 17 UI Fixes Across 3 Templates
+- **SG Inline Members** (6 fixes): Alive/Dead/All toggle, auto-load, compact 25px rows, Citizen column, Link column, dynamic "showing Y" counter
+- **SG Full View Members** (6 fixes): Same set mirrored to entity_detail.html
+- **Site Detail** (5 fixes): Citizen/Profession/Position columns, tab reorder, region + co-located details tile
+
+### Database Re-ingestion
+- `DROP SCHEMA public CASCADE; CREATE SCHEMA public;` (instant wipe)
+- Fresh ingest: 1,677,998 records, 0 referential integrity issues
+- World ID now 1 (previously 8 due to duplicate worlds)
+
+### 8-Check Validation Suite — All Pass
+- V1: Entity distribution matches exactly
+- V2: Top civs by citizen count (Nation of Stability #1, 864)
+- V3: Multi-site SG inflation absent (SG 2098: 39 sites, 275 members)
+- V4: Sentience filter exact (16,004/17,073 sentient, 8 no-dict, 44 GIANT excluded)
+- V5-V8: Page loads, API fields, template features all verified
+
+**Files modified**:
+- DwarfCron: `civilizations.py`, `detail_pages.py`, `explorer.html`, `entity_detail.html`, `site_detail.html`
+- Jarvis: `population-analysis-report.md`, `population-ui-validation-report.md`, `population-ui-fixes-plan.md`, `session-report-2026-03-08.md`
 
 ---
 
@@ -22,19 +52,8 @@
 
 ### JSON Export Bug Fix + Validation Doc Corrections
 - **Fixed**: POST `/api/explorer/export/query` always returned CSV regardless of `format` parameter
-  - Root cause: `format` was a query parameter but callers sent it in the POST body; `QueryRequest` Pydantic model lacked `format` field
-  - Fix: Added `format: str = "csv"` to `QueryRequest` model, removed redundant query param, simplified routing to use `body.format` as single source of truth
-  - Verified: Both `"format": "json"` and default CSV work correctly
-- **Corrected validation walkthrough doc** (3 edits):
-  - R3 regression query: `details ? 'deity'` changed to `details ? 'deity_hf_id'` (actual JSONB key), expected count updated to 4
-  - Art form URLs: `form_type=musical_form` changed to `form_type=dance` (actual DB values are `dance`, `musical`, `poetic`, not `*_form`)
-  - Added clarification note about form_type value naming convention
-
-**Files modified**:
-- `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/api/routes/explorer.py` (QueryRequest model + export endpoint)
-- `projects/chronicler/reports/phase-2-validation-walkthrough.md` (3 doc corrections)
-
-**Validation status**: 49/50 items passed in prior session; JSON export fix brings this to 50/50. Enhancement validation agent was interrupted — re-run recommended in next session before final Phase 2 sign-off.
+- **Corrected validation walkthrough doc** (3 edits)
+- **Validation status**: 50/50 items passed
 
 ---
 
@@ -167,8 +186,8 @@ Phase 3 Wiggum Loop research COMPLETE — 5 stages:
 5. PRD revised to v2.0 with CDM schema fixes section + companion doc refs
 
 **Next**:
-1. Get user sign-off on Phase 2 (completion report ready)
-2. Begin Phase 3 Stage 3.0: CDM schema fixes (4 APPEND violations)
+1. Begin Phase 3 Stage 3.0: CDM schema fixes (4 APPEND violations — entity_site_links, entity_entity_links)
+2. Wire entity_site_links / entity_entity_links into ingestion pipeline
 3. Then Stage 3.1: Bridge Enhancements
 
 ### SECONDARY: Infrastructure Maintenance
@@ -187,4 +206,4 @@ Phase 3 Wiggum Loop research COMPLETE — 5 stages:
 
 ---
 
-*Session state updated 2026-02-27 -- Phase 2 DoD deferred pending User itemized review of bugfixes/features*
+*Session state updated 2026-03-09 -- Session 38 exit (population UI + fresh DB validation complete)*
