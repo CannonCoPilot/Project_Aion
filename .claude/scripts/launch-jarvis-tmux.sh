@@ -29,7 +29,7 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-02-17 — v2.3: Deterministic session UUIDs for W0+W5, --resume by default
+# Updated: 2026-03-09 — v2.4: Service pre-flight checks + MLX-Embed auto-start
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-jarvis}"
@@ -54,11 +54,13 @@ fi
 ITERM2_MODE=false
 FRESH_MODE=false
 DEV_MODE=false
+SKIP_PREFLIGHT=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --iterm2|-i) ITERM2_MODE=true; shift ;;
         --fresh|-f) FRESH_MODE=true; shift ;;
         --dev|-d) DEV_MODE=true; shift ;;
+        --skip-preflight|-s) SKIP_PREFLIGHT=true; shift ;;
         *) shift ;;
     esac
 done
@@ -80,7 +82,7 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║              JARVIS TMUX LAUNCHER v2.3                        ║"
+echo "║              JARVIS TMUX LAUNCHER v2.4                        ║"
 echo "║       (Deterministic UUIDs + Aion Quartet + JICM)            ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
@@ -110,6 +112,108 @@ if ! command -v jq &> /dev/null; then
     echo -e "${YELLOW}WARNING: jq not installed (needed for watcher)${NC}"
     echo "Install with: brew install jq (macOS) or apt-get install jq (Linux)"
     WATCHER_ENABLED=false
+fi
+
+# ─── Service Pre-Flight ───────────────────────────────────────────────────────
+# Ensures all Jarvis dependencies are healthy before launching Claude sessions.
+# Auto-starts services we control (Docker stack, MLX embeddings, LiteLLM).
+# Warns for externally managed services (Ollama via macOS launchd).
+
+preflight_services() {
+    echo -e "${CYAN}Service pre-flight checks...${NC}"
+    local failures=0
+
+    # 1. Docker Engine
+    if docker info &>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} Docker Engine"
+    else
+        echo -e "  ${RED}✗${NC} Docker Engine — not running (start Docker Desktop)"
+        failures=$((failures + 1))
+    fi
+
+    # 2. Docker Compose stack (5 containers: postgres, qdrant, neo4j, redis, n8n)
+    local infra_dir="$PROJECT_DIR/infrastructure"
+    if [[ -f "$infra_dir/docker-compose.yml" ]]; then
+        local running_count
+        running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || echo 0)
+        if [[ "$running_count" -ge 5 ]]; then
+            echo -e "  ${GREEN}✓${NC} Docker Compose stack ($running_count containers)"
+        else
+            echo -e "  ${YELLOW}✗${NC} Docker Compose stack ($running_count/5 running) — starting..."
+            (cd "$infra_dir" && docker compose up -d 2>/dev/null)
+            # Wait up to 30s for containers
+            local waited=0
+            while [[ $waited -lt 30 ]]; do
+                running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || echo 0)
+                if [[ "$running_count" -ge 5 ]]; then
+                    break
+                fi
+                sleep 2
+                waited=$((waited + 2))
+            done
+            if [[ "$running_count" -ge 5 ]]; then
+                echo -e "  ${GREEN}✓${NC} Docker Compose stack ($running_count containers — started)"
+            else
+                echo -e "  ${RED}✗${NC} Docker Compose stack ($running_count/5 after ${waited}s)"
+                failures=$((failures + 1))
+            fi
+        fi
+    fi
+
+    # 3. Ollama (macOS launchd managed — warn only)
+    if curl -sf --max-time 2 http://localhost:11434/api/version &>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} Ollama (localhost:11434)"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Ollama — not reachable (launchd-managed; check manually)"
+    fi
+
+    # 4. MLX Embedding Server
+    if curl -sf --max-time 2 http://localhost:8000/health &>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} MLX Embedding Server (localhost:8000)"
+        MLX_STARTED_BY_PREFLIGHT=false
+    else
+        echo -e "  ${YELLOW}✗${NC} MLX Embedding Server — not running, will start in tmux window"
+        MLX_STARTED_BY_PREFLIGHT=true
+    fi
+
+    # 5. LiteLLM Proxy
+    if curl -sf --max-time 2 http://localhost:4000/health &>/dev/null; then
+        echo -e "  ${GREEN}✓${NC} LiteLLM Proxy (localhost:4000)"
+    else
+        echo -e "  ${YELLOW}✗${NC} LiteLLM Proxy — starting..."
+        (cd "$PROJECT_DIR/infrastructure" && .venv/bin/litellm --config litellm-config.yaml --port 4000 &>/tmp/litellm.log &)
+        # Wait up to 10s for health
+        local waited=0
+        while [[ $waited -lt 10 ]]; do
+            if curl -sf --max-time 1 http://localhost:4000/health &>/dev/null; then
+                break
+            fi
+            sleep 1
+            waited=$((waited + 1))
+        done
+        if curl -sf --max-time 1 http://localhost:4000/health &>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} LiteLLM Proxy (localhost:4000 — started)"
+        else
+            echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy — still starting (may take a few more seconds)"
+        fi
+    fi
+
+    if [[ $failures -gt 0 ]]; then
+        echo -e "${RED}Pre-flight: $failures critical service(s) failed. Continuing anyway...${NC}"
+    else
+        echo -e "${GREEN}Pre-flight: all services healthy.${NC}"
+    fi
+    echo ""
+}
+
+# Track whether MLX needs starting (set by preflight, used during window creation)
+MLX_STARTED_BY_PREFLIGHT=false
+
+if [[ "$SKIP_PREFLIGHT" == "true" ]]; then
+    echo -e "${YELLOW}Skipping pre-flight checks (--skip-preflight)${NC}"
+    echo ""
+else
+    preflight_services
 fi
 
 # Check if session already exists
@@ -319,6 +423,27 @@ if [[ "$DEV_MODE" == "true" ]]; then
     "$TMUX_BIN" set-window-option -t "$SESSION_NAME:5" automatic-rename off 2>/dev/null || true
 fi
 
+# MLX-Embed window — auto-start embedding server if preflight detected it was down
+if [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]]; then
+    echo "Launching MLX Embedding Server in tmux window..."
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "MLX-Embed" -d \
+        "cd '$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:MLX-Embed" automatic-rename off 2>/dev/null || true
+    # Wait up to 15s for MLX health endpoint
+    WAITED=0
+    while [[ $WAITED -lt 15 ]]; do
+        if curl -sf --max-time 1 http://localhost:8000/health &>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} MLX Embedding Server ready (${WAITED}s)"
+            break
+        fi
+        sleep 1
+        WAITED=$((WAITED + 1))
+    done
+    if [[ $WAITED -ge 15 ]]; then
+        echo -e "  ${YELLOW}⚠${NC} MLX Embedding Server still starting after 15s (may need longer for model load)"
+    fi
+fi
+
 # Set tmux options for better experience
 "$TMUX_BIN" set-option -t "$SESSION_NAME" mouse on 2>/dev/null || true
 "$TMUX_BIN" set-option -t "$SESSION_NAME" history-limit 10000 2>/dev/null || true
@@ -339,6 +464,13 @@ echo "  Window 2: Ennoia"
 echo "  Window 3: Virgil"
 echo "  Window 4: Commands"
 [[ "$DEV_MODE" == "true" ]] && echo "  Window 5: Jarvis-dev (test driver)"
+[[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : MLX-Embed (embedding server)"
+echo ""
+echo "Services:"
+echo -n "  Docker: "; docker info &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}"
+echo -n "  MLX Embed: "; curl -sf --max-time 1 http://localhost:8000/health &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}starting${NC}"
+echo -n "  LiteLLM: "; curl -sf --max-time 1 http://localhost:4000/health &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
+echo -n "  Ollama: "; curl -sf --max-time 1 http://localhost:11434/api/version &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
 echo ""
 
 if [[ "$ITERM2_MODE" == "true" ]]; then
