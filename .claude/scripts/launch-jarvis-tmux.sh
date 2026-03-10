@@ -177,25 +177,13 @@ preflight_services() {
     fi
 
     # 5. LiteLLM Proxy
-    if curl -sf --max-time 2 http://localhost:4000/health &>/dev/null; then
+    # Note: /health probes all backends (hangs if Ollama models not loaded).
+    # Use /v1/models instead — lightweight metadata check that confirms proxy is up.
+    if curl -sf --max-time 2 http://localhost:4000/v1/models &>/dev/null; then
         echo -e "  ${GREEN}✓${NC} LiteLLM Proxy (localhost:4000)"
     else
-        echo -e "  ${YELLOW}✗${NC} LiteLLM Proxy — starting..."
-        (cd "$PROJECT_DIR/infrastructure" && .venv/bin/litellm --config litellm-config.yaml --port 4000 &>/tmp/litellm.log &)
-        # Wait up to 10s for health
-        local waited=0
-        while [[ $waited -lt 10 ]]; do
-            if curl -sf --max-time 1 http://localhost:4000/health &>/dev/null; then
-                break
-            fi
-            sleep 1
-            waited=$((waited + 1))
-        done
-        if curl -sf --max-time 1 http://localhost:4000/health &>/dev/null; then
-            echo -e "  ${GREEN}✓${NC} LiteLLM Proxy (localhost:4000 — started)"
-        else
-            echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy — still starting (may take a few more seconds)"
-        fi
+        echo -e "  ${YELLOW}✗${NC} LiteLLM Proxy — not running, will start in tmux window"
+        LITELLM_STARTED_BY_PREFLIGHT=true
     fi
 
     if [[ $failures -gt 0 ]]; then
@@ -206,8 +194,9 @@ preflight_services() {
     echo ""
 }
 
-# Track whether MLX needs starting (set by preflight, used during window creation)
+# Track whether services need starting (set by preflight, used during window creation)
 MLX_STARTED_BY_PREFLIGHT=false
+LITELLM_STARTED_BY_PREFLIGHT=false
 
 if [[ "$SKIP_PREFLIGHT" == "true" ]]; then
     echo -e "${YELLOW}Skipping pre-flight checks (--skip-preflight)${NC}"
@@ -255,6 +244,41 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         else
             echo "  Jarvis-dev window already exists."
         fi
+    fi
+
+    # Add missing service windows to existing session
+    EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
+    if [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^MLX-Embed$"; then
+        echo "Adding MLX-Embed window to existing session..."
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "MLX-Embed" -d \
+            "cd '$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:MLX-Embed" automatic-rename off 2>/dev/null || true
+        WAITED=0
+        while [[ $WAITED -lt 15 ]]; do
+            if curl -sf --max-time 1 http://localhost:8000/health &>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} MLX Embedding Server ready (${WAITED}s)"
+                break
+            fi
+            sleep 1
+            WAITED=$((WAITED + 1))
+        done
+        [[ $WAITED -ge 15 ]] && echo -e "  ${YELLOW}⚠${NC} MLX Embedding Server still starting"
+    fi
+    if [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^LiteLLM$"; then
+        echo "Adding LiteLLM window to existing session..."
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "LiteLLM" -d \
+            "cd '$PROJECT_DIR/infrastructure' && .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:LiteLLM" automatic-rename off 2>/dev/null || true
+        WAITED=0
+        while [[ $WAITED -lt 10 ]]; do
+            if curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null; then
+                echo -e "  ${GREEN}✓${NC} LiteLLM Proxy ready (${WAITED}s)"
+                break
+            fi
+            sleep 1
+            WAITED=$((WAITED + 1))
+        done
+        [[ $WAITED -ge 10 ]] && echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting"
     fi
 
     if [[ "$ITERM2_MODE" == "true" ]]; then
@@ -444,6 +468,27 @@ if [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]]; then
     fi
 fi
 
+# LiteLLM window — auto-start proxy if preflight detected it was down
+if [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]]; then
+    echo "Launching LiteLLM Proxy in tmux window..."
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "LiteLLM" -d \
+        "cd '$PROJECT_DIR/infrastructure' && .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:LiteLLM" automatic-rename off 2>/dev/null || true
+    # Wait up to 10s for /v1/models endpoint
+    WAITED=0
+    while [[ $WAITED -lt 10 ]]; do
+        if curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null; then
+            echo -e "  ${GREEN}✓${NC} LiteLLM Proxy ready (${WAITED}s)"
+            break
+        fi
+        sleep 1
+        WAITED=$((WAITED + 1))
+    done
+    if [[ $WAITED -ge 10 ]]; then
+        echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting after 10s"
+    fi
+fi
+
 # Set tmux options for better experience
 "$TMUX_BIN" set-option -t "$SESSION_NAME" mouse on 2>/dev/null || true
 "$TMUX_BIN" set-option -t "$SESSION_NAME" history-limit 10000 2>/dev/null || true
@@ -465,11 +510,12 @@ echo "  Window 3: Virgil"
 echo "  Window 4: Commands"
 [[ "$DEV_MODE" == "true" ]] && echo "  Window 5: Jarvis-dev (test driver)"
 [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : MLX-Embed (embedding server)"
+[[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : LiteLLM (proxy server)"
 echo ""
 echo "Services:"
 echo -n "  Docker: "; docker info &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}"
 echo -n "  MLX Embed: "; curl -sf --max-time 1 http://localhost:8000/health &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}starting${NC}"
-echo -n "  LiteLLM: "; curl -sf --max-time 1 http://localhost:4000/health &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
+echo -n "  LiteLLM: "; curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
 echo -n "  Ollama: "; curl -sf --max-time 1 http://localhost:11434/api/version &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
 echo ""
 
