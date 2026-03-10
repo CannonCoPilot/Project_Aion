@@ -31,7 +31,7 @@ Single source of truth for all Chronicler development. Consult in this order:
 |-------|------|--------|-----------|
 | 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 -- Data Complete |
 | 2 | Explorer Core | **COMPLETE** (50/50, 2026-03-03) | M2 -- Explorer Complete |
-| **3** | **Live Integration** | **NEXT** | **M3 -- Live Complete** |
+| **3** | **Live Integration** | **IN PROGRESS** (Stage 3.0 complete) | **M3 -- Live Complete** |
 | 4 | Narrative Engine | Pending (~60% pre-built) | M4 -- Storyteller v1.0 |
 | 5 | Visualization | Pending | M5 -- Visualization Complete |
 | 6 | Advanced Components | Pending | M6 -- Full Suite |
@@ -65,6 +65,15 @@ Single source of truth for all Chronicler development. Consult in this order:
 **Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines
 
 ### Stage Breakdown
+
+#### Stage 3.0: CDM Schema Fixes — COMPLETE (2026-03-09)
+- V1: Units PK composite fix (world_id, id) — applied
+- V2: Unit events reconciliation columns — applied
+- V3: entity_entity_links table — created + wired into ingestion (5,594 rows: PARENT/CHILD/RELIGIOUS)
+- V4: entity_site_links table — created + wired into ingestion (1,328 ownership + 1,585 event-derived)
+- Supplementary columns (hf_links.strength, sites.founded_year, history_events.source) — applied
+- Python ripple fixes (sync.py ON CONFLICT, denizens.py JOIN) — applied
+- Fresh ingestion validated: 1,684,920 records, 0% RI issues
 
 #### Stage 3.1: Bridge Enhancements
 - Eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, INVASION, SYNDROME)

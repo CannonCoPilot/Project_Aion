@@ -2354,3 +2354,11 @@ The current "Residents" union (`Civ members + SG members + ALL site links`) pull
 1. **`MLX_STARTED_BY_PREFLIGHT` flag bridges two phases** — the preflight function (runs before session creation) sets the flag, and the window creation phase (runs after all W0-W5 windows) reads it. This avoids starting the MLX window inside the function where `$TMUX_BIN new-window` would fail (no session yet).
 2. **LiteLLM runs as a background process, MLX runs in a tmux window** — LiteLLM is a lightweight proxy that just needs to stay alive; a tmux window would be overkill. MLX loads a 2.5GB model into GPU memory and benefits from having a visible window for debugging/monitoring output.
 3. **`--skip-preflight` uses `-s` short flag** (not `-p`, which could be confused with project/path arguments in future flags). Useful for fast relaunches when you know services are already healthy.
+
+### 2026-03-10 [0424cb27af3c]
+
+The entity_entity_links population happens in two places for completeness:
+1. **XML parsing** (legends_plus) — extracts `<entity_link>` children with type/target/strength, inserting 5,594 PARENT/CHILD/etc. links
+2. **Post-parse step 9** — derives entity_site_links from ownership-changing events (created site, site taken over, reclaim site, etc.), creating 1,585 temporal links with link_types like "founded", "conquered", "owner"
+
+The entity_site_links table also gets a baseline from the site_owners pass (1,328 current ownership records). The ON CONFLICT clause prevents duplicates between the two sources.
