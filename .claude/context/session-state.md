@@ -8,13 +8,30 @@
 
 ## Current Work Status
 
-**Status**: Idle -- Session 38 complete
+**Status**: Idle -- Session 39 complete
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: a2bd2ea (session report) [Jarvis repo]
 **Last Pushed**: (pending)
-**DwarfCron Last Commit**: 4849839 (Members/Residents table enhancements)
+**DwarfCron Last Commit**: (uncommitted — Stage 3.0 ingestion pipeline changes)
 **DwarfCron Last Pushed**: (pending)
+
+---
+
+## What Was Accomplished (2026-03-09, Session 39 -- Phase 3 Stage 3.0 CDM Schema Fixes)
+
+### Stage 3.0: CDM Schema Fixes — COMPLETE
+- All 4 APPEND violations fixed: schema.sql, migration file, Python ripple fixes (sync.py, denizens.py)
+- **entity_entity_links** wired into legends_plus ingestion: 5,594 rows (PARENT: 2786, CHILD: 2786, RELIGIOUS: 22)
+- **entity_site_links** wired from two sources:
+  - Legends_plus site_owners → 1,328 "owner" links
+  - Post-parse step_9 ownership history events → 1,585 links (founded: 1216, conquered: 313, owner: 56)
+- Fresh DB re-ingestion validated: 1,684,920 records, 0% referential integrity issues
+- World_id fixup loop updated for new `entity_entity_links` key
+
+**Files modified (DwarfCron)**:
+- `chronicler/ingest/xml_parser.py` — 5 edits (result dict, entity_link collection, world_id fixup, batch insert, site_link derivation)
+- `chronicler/ingest/post_parse.py` — 1 edit (entity_site_links derivation in step_9)
 
 ---
 
@@ -178,17 +195,14 @@ Previous session histories have been archived. For full details, see:
 ### PRIMARY: Chronicler Phase 3 -- Live Integration
 
 Phase 2: COMPLETE (50/50 validation passed, completion report finalized).
-Phase 3 Wiggum Loop research COMPLETE — 5 stages:
-1. df-structures 53.11-r1 analysis (naming convention only, no structural changes)
-2. Memory-to-CDM mapping (phase-3-memory-cdm-mapping.md)
-3. 1:1 CONNECT vs APPEND audit (5 violations identified)
-4. ETL plan for all game modes (phase-3-etl-plan.md)
-5. PRD revised to v2.0 with CDM schema fixes section + companion doc refs
+Phase 3 Wiggum Loop research COMPLETE.
+**Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
 
 **Next**:
-1. Begin Phase 3 Stage 3.0: CDM schema fixes (4 APPEND violations — entity_site_links, entity_entity_links)
-2. Wire entity_site_links / entity_entity_links into ingestion pipeline
-3. Then Stage 3.1: Bridge Enhancements
+1. Stage 3.1: Bridge Enhancements — eventful subscriptions, death cause enrichment, family chain, personality/soul data, skill tracking
+2. Stage 3.2: Worldgen Monitoring
+3. Stage 3.3: Knowledge Horizon
+4. Stage 3.4: Embedding Pipelines
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
@@ -206,4 +220,4 @@ Phase 3 Wiggum Loop research COMPLETE — 5 stages:
 
 ---
 
-*Session state updated 2026-03-09 -- Session 38 exit (population UI + fresh DB validation complete)*
+*Session state updated 2026-03-09 -- Session 39 (Stage 3.0 CDM schema fixes complete, Stage 3.1 Bridge Enhancements next)*
