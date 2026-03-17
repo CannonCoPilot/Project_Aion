@@ -2532,3 +2532,29 @@ The site detail page passes `owner_entity_id` (the SG entity) as the `viewing_en
 2. HFs 30699 and 31638 each have **two** positions in "the regal cult" (entity 1477) — one with a name ("high tower", "sacred healer") and one **orphaned** (NULL name → "Unknown")
 3. `derive_position()` only checks `positions[0]` — if the orphaned one comes first, it returns `None` (because of the "Unknown" skip)
 4. The template then falls back to `r.position_name` from the SQL lateral join, which has the name but **no entity context**
+
+### 2026-03-17 [07b431a98d6b]
+
+The bug was a classic "first-match-only" pattern. When an HF held multiple positions in the same entity — one named, one orphaned (NULL in `entity_positions`) — the code only checked `positions[0]`. If the orphaned one happened to sort first, the function returned `None` and the template fell back to a lateral join that provided the raw name without entity context. The fix was twofold: (1) sort named positions before "Unknown" ones, and (2) iterate through all positions in `derive_position` instead of only checking the first.
+
+### 2026-03-17 [a4aca5578836]
+
+**Appendix expansion summary:**
+
+The appendix grew from ~230 lines to ~530 lines. Key additions:
+1. **10.2.1 (NEW)**: Entity links by target entity type — shows where `member`, `former member`, and adversarial links concentrate across civilization types
+2. **10.3 (REWRITTEN)**: Added `resident` (25,643) and `former resident` (24,949) link types from Stage 3.0, plus §10.3.1 (by site type) and §10.3.2 (by race)
+3. **10.5 (EXPANDED)**: Entity types now show Members All/Alive + Former Members All/Alive
+4. **10.6 (UPDATED)**: Site types refreshed with post-Stage 3.0 data (e.g., towns went from 963→34 sites but with 4,817 HFs)
+5. **10.8 (EXPANDED)**: Full comparison table with coverage percentages
+6. **Descriptive "Insight" blocks**: Every table now has contextual analysis explaining *who* these individuals are, *where* they live, and *what* the numbers mean
+
+The report body was also updated: §1 Critical Finding marked RESOLVED, §3.3 refreshed with new link types, §6 Issues 1 and 3 marked RESOLVED/MITIGATED.
+
+### 2026-03-17 [aa485006661b]
+
+**Architecture choice — two-tier loading**: The demographics tab uses a "progressive disclosure" pattern: the first 7 charts (race, age, entity types, caste, birth/death timeline, civ comparison, lifespan, time-series) load immediately when the tab is opened. The extended analytics (death causes, relationships, conflicts, culture — 8 more charts + 3 data tables) load on demand via a button click. This keeps the initial load snappy (~360ms parallel) while still offering deep exploration for power users. All 15 chart instances are tracked in `_demoCharts` for proper Chart.js cleanup on re-render.
+
+### 2026-03-17 [6962e2876e44]
+
+The commit adds 1,822 lines across 3 files — a full analytics subsystem. The two-tier loading pattern (core charts instant, extended on-demand) is a good UX practice for data-heavy dashboards: it keeps first-paint under 400ms while offering 15+ visualizations for deep exploration. The `jsonb_agg` fix is worth remembering — asyncpg's type codec only auto-decodes `jsonb`, not `json`, so always use `jsonb_*` functions when you need Python-native types from aggregate results.
