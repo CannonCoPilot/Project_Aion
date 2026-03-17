@@ -70,7 +70,7 @@ Phase 2 builds the complete entity browsing experience. After Phase 1 populates 
 - Chat popup (SSE streaming via local Qwen3 LLM, RAG-augmented)
 - Scoring badges on entity cards
 - Co-member/co-occupant relationship graph wings
-- Site residents tab
+- Site denizens tab (Citizens/Residents/Visitors) + Ne'er-do-wells tab
 - Ownership timeline visualization
 - Bidirectional romantic link enforcement in hf_links
 - Materialized HF settlement links (resident/former resident, post-parse step 10)
@@ -1059,7 +1059,7 @@ Phase 2 is complete when ALL of the following are true:
 - [x] Chat popup (SSE streaming via local LLM, RAG-augmented)
 - [x] Dual-XML enrichment pipeline (event + structure + relationship supplement merge)
 - [x] Co-member/co-occupant relationship wings
-- [x] Site residents tab
+- [x] Site denizens tab (Citizens/Residents/Visitors) + Ne'er-do-wells tab
 - [x] Ownership timeline visualization
 - [x] Art form composite PK routing (world_id, id, form_type)
 - [x] Materialized HF settlement links (post-parse step 10)

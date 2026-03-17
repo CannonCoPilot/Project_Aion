@@ -8,7 +8,7 @@
 
 ## Current Work Status
 
-**Status**: Idle -- Session 39 complete
+**Status**: Between Phase 2 and Phase 3 — awaiting user validation of population UI work
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: a2bd2ea (session report) [Jarvis repo]
@@ -192,13 +192,23 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Chronicler Phase 3 -- Live Integration
+### PRIMARY: Phase 2 → Phase 3 Transition (BLOCKED on user validation)
 
-Phase 2: COMPLETE (50/50 validation passed, completion report finalized).
-Phase 3 Wiggum Loop research COMPLETE.
-**Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
+**Phase 2**: Formally COMPLETE (50/50 DoD passed, 2026-03-03), but post-Phase 2 population UI work requires user validation before Phase 3 can fully proceed.
 
-**Next**:
+**Population UI Work (Sessions 37-38)**:
+- 17 UI fixes applied (SG inline/full members, site detail) — all verified by Jarvis
+- `is_citizen` computed via sentience filter (creature_dictionary flags)
+- Fresh DB re-ingestion validated (1,677,998 records, 0% RI issues, world_id=1)
+- 8-check validation suite passed
+- **Remaining**: Full population counting refactor (plan: `drifting-sparking-simon.md`) — overview tile three-way conditionals (Civ/SG/Other), sidebar label changes (pop/citizens/members), per-site Residents column, DF census Population display — partially implemented, needs user review and validation
+
+**Phase 3 Readiness**:
+- Phase 3 Wiggum Loop research COMPLETE
+- **Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
+- Stage 3.1+ BLOCKED pending user sign-off on population UI
+
+**When user validates Phase 2 population work**:
 1. Stage 3.1: Bridge Enhancements — eventful subscriptions, death cause enrichment, family chain, personality/soul data, skill tracking
 2. Stage 3.2: Worldgen Monitoring
 3. Stage 3.3: Knowledge Horizon
@@ -220,4 +230,4 @@ Phase 3 Wiggum Loop research COMPLETE.
 
 ---
 
-*Session state updated 2026-03-09 -- Session 39 (Stage 3.0 CDM schema fixes complete, Stage 3.1 Bridge Enhancements next)*
+*Session state updated 2026-03-09 -- Between Phase 2 and Phase 3; population UI validation pending with user; Stage 3.0 complete, Stage 3.1 blocked*

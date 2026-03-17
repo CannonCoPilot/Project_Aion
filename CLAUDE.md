@@ -90,7 +90,7 @@ Role: Master Archon; autonomous infra/dev/self-improvement agent for Project Aio
 - `.claude/context/psyche/self-knowledge/weaknesses.md`
 
 ## Active plans
-- `.claude/context/current-plans.md`
+@.claude/context/current-plans.md
 - `.projects/chronicler/reports/phases/phase-2-explorer-core.md`
 - `.projects/chronicler/reports/unified-scoring-design.md`
 
