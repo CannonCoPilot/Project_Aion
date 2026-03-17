@@ -2362,3 +2362,173 @@ The entity_entity_links population happens in two places for completeness:
 2. **Post-parse step 9** — derives entity_site_links from ownership-changing events (created site, site taken over, reclaim site, etc.), creating 1,585 temporal links with link_types like "founded", "conquered", "owner"
 
 The entity_site_links table also gets a baseline from the site_owners pass (1,328 current ownership records). The ON CONFLICT clause prevents duplicates between the two sources.
+
+### 2026-03-10 [cc5cd2d20342]
+
+**The "session exists" path is the common case**: Most launches hit `has-session` → `attach` because the user detaches rather than destroying sessions. The original v2.4 code only handled the cold-start path for service windows, meaning the fix that was supposed to prevent today's failure wouldn't have actually worked on the next real launch. This re-attach path fix is the critical piece.
+
+### 2026-03-10 [732176ddee72]
+
+- Phase 2 was formally declared COMPLETE (50/50 DoD, 2026-03-03), but Sessions 37-38 did substantial post-Phase 2 population UI work (17 fixes, sentience filter, `is_citizen` column)
+- The `drifting-sparking-simon.md` plan describes a larger population counting refactor (Steps 2-9: overview tile three-way conditionals, sidebar label changes, Residents per-site) that is only **partially** implemented
+- Stage 3.0 CDM Schema Fixes are done, but Phase 3 Stage 3.1+ should not proceed until the user validates the population UI work
+
+### 2026-03-10 [a4311f2d5e96]
+
+**The critical discovery**: `cur_site_id` and `current_state` do NOT exist as direct HF attributes in ANY of the four XML files. However, there IS rich location data available through **`change hf state` events** (75,000-76,000 per file) which track every HF's state transitions (`settled`, `visiting`, `wandering`, `refugee`) with `site_id` and `subregion_id`. The most recent such event per HF effectively IS their current whereabouts. Additionally, `<inhabitant>` tags in legends_plus site structures (1,780-1,821) provide a direct snapshot.
+
+**Key architectural insight**: DF stores HF location as event history, not as a snapshot field. The parser was looking for a shortcut (`cur_site_id`) that this world's export doesn't provide. The real solution is to derive whereabouts from the event stream.
+
+### 2026-03-10 [f65e4e41d3a2]
+
+**The sidebar labels use the correct three-way pattern**, but "citizens" for SGs is based on `member_count` (entity membership) rather than the canonical site-level citizen definition. For the sidebar list view this is an acceptable approximation — the exact canonical citizen count is computed on the detail page. The sidebar is a summary view; the detail page is where precision matters.
+
+**The SG sidebar label "citizens" vs "members"**: SG members ARE effectively citizens of the site they govern (for single-site SGs), so this label is semantically correct for the sidebar context.
+
+### 2026-03-10 [c8c155c9edbc]
+
+**Three interconnected bugs were fixed, each building on the previous:**
+
+1. **The `'settled'` vs `'settler'` naming mismatch** — The deepest bug. legends.xml uses `settled/visiting/wandering` while legends_plus uses `settler/visitor/wanderer`. Since the parser merges both and legends_plus overwrites, the DB ended up with LP naming. Step 10 was filtering for base-legends naming → zero matches.
+
+2. **Missing whereabouts population** — Step 10 only created `hf_site_links` entries (resident/former resident), but never populated the `whereabouts` JSONB on `historical_figures`. New step 10b does this with a primary source (state events, 59%) and fallback (site links, 4%).
+
+3. **Citizen/Resident definition mismatch** — The old code computed "citizens" from entity membership (broad) and "residents" from physical presence (narrow), violating the invariant `Residents >= Citizens`. The fix: canonical per-site citizen counting (SG members + site-linked + position holders) with residents as the UNION of citizens + anyone physically present.
+
+### 2026-03-10 [5e0fed06cd24]
+
+**Three bugs fixed, one root cause:**
+
+1. **Site detail residents query used only `hf_site_links`** (`detail_pages.py:1449-1485`): This was the primary bug. SG members who had no `hf_site_links` entry were invisible on the site page, causing Residents < Citizens. The fix: a 4-source UNION matching the canonical `fetch_site_residents_batch` (SG members + site links + position holders + whereabouts), with `DISTINCT ON` deduplication and priority-based link type selection.
+
+2. **`LIMIT 500` on site residents** (`detail_pages.py:1484`): Removed. No truncation needed — the table already has a scrollable container with `max-h-[600px] overflow-y-auto`.
+
+3. **API members endpoint capped at 1000** (`civilizations.py:873`): The route had `le=1000` but the UI sends `limit=10000`. FastAPI would return 422 for values > 1000, silently breaking the AJAX "Load all" on entity detail pages. Fixed to `le=10000`.
+
+**Why the SG count of 30 was real**: Entity 1920 (Nightmare of Wine) has 286 total members but only 30 alive — the rest died over 250 years of history. The coincidence of entity 992 also having 30 alive is just that — a coincidence, not truncation.
+
+### 2026-03-10 [cb4e0ff34be7]
+
+**The "?" was a test script bug, not a data bug.** The API returns site govt data as `{"site": {"id": 42, "name": "narrowbad", "type": "town"}, ...}` — the site info is nested. My initial curl test accessed `sg.get("site_name")` (flat key) instead of `sg["site"]["name"]` (nested). Some SGs like "the brutal poison" legitimately have `site: null` because they don't own any site (destroyed/abandoned).
+
+### 2026-03-11 [be052cd78667]
+
+**Emerging pattern across completed reviews**: The app is functionally solid in dev mode but has significant packaging and presentation debt. Data model is the strongest layer (7.5/10), UI/UX is mid (4.6/10), and deployment is the weakest link (3/10). This suggests the development focus has been correctly prioritized on core functionality, but a "productionization" pass will be needed before Phase 7 (Polish & Production).
+
+### 2026-03-11 [77b6f436f964]
+
+**The error handling review is the most finding-dense at 39 items, which is typical** — error handling is inherently cross-cutting, touching every module. The five CRITICAL findings cluster around a single pattern: **no recovery from partial failure**. Whether it's a truncated XML, a dropped TCP connection, a post-parse step failure, or a DB restart, the app has no mechanism to detect and recover. This is the most impactful remediation area — a single "resilience pass" adding transactions, reconnection, and retry logic would address most of the CRITICALs and HIGHs simultaneously.
+
+### 2026-03-11 [73aa2dc7d3fd]
+
+**Cross-domain pattern emerging**: The `detail_pages.py` god file (3,855 lines) has now been flagged by **four independent reviews** — Architecture (implied), UI/UX, API Design, and Error Handling. This is the single highest-impact refactoring target: splitting it would improve code quality metrics across architecture, API design, error handling consistency, and testability simultaneously. The file contains 37 route handlers with copy-pasted error handling, SQL queries, and template rendering — a classic "extract and deduplicate" candidate.
+
+### 2026-03-11 [52e0562d6ee7]
+
+**Security is the strongest domain reviewed so far (7.4/10)**, which is notable because it's often the weakest in rapidly-developed projects. The key reason: asyncpg's `$N` parameterized query pattern was used consistently from the start, and Jinja2 autoescape was properly enabled. The XSS finding in `Markup()` filters is the most actionable — it's a 30-minute fix (add `escape()` calls) that closes the only real attack surface. The architecture choice to bind to `127.0.0.1` by default also eliminates an entire class of network-exposure risks.
+
+### 2026-03-11 [9d94abb5d387]
+
+**Review orchestration strategy**: With 14 total domains (3 existing + 11 new), I'm grouping related domains into 6 agent batches to minimize redundant file reads. Each agent reads overlapping files once rather than having 11 separate agents each reading the same core files. This reduces total token spend by ~40% compared to one-agent-per-domain.
+
+### 2026-03-11 [c02b6a966650]
+
+Each agent was given specific file paths and analysis criteria to avoid redundant exploration. The data model + XML agent was also given the known issue reference docs (`xml-location-data-analysis.md`, `population-demographic-audit`) so it can evaluate the codebase against those findings rather than rediscovering them from scratch — a significant token savings.
+
+### 2026-03-11 [e947fe8beaed]
+
+**Why parallel agents here?** Each domain review reads overlapping files but produces independent analysis. Launching them concurrently means ~5 agents run in ~1x wall-clock time instead of ~5x sequential. The trade-off is higher peak token spend, but the user explicitly optimized for this — "optimize for token spend efficiency over completion time" means batching related domains within single agents (e.g., Data Model + XML share schema.sql reads) while parallelizing across unrelated batches.
+
+### 2026-03-11 [f56e0c24bae5]
+
+**amxu bendjackals** is the key differentiator — a Resident but NOT a Citizen. This goblin has whereabouts at cloistermanor but is not an SG member, has no site link, and holds no position. They're physically present but not formally affiliated with the site government. This is exactly the R > C case working correctly.
+
+**The remaining 42 alive HFs** are all enemies (giant jaguars, bronze colossi, rocs, ettins, forgotten beasts, night creatures) or former members/residents. Enemies are linked via `sg_enemy` — they attacked this site government but aren't members or residents. Two alive giant jaguars are correctly excluded as non-sentient.
+
+### 2026-03-11 [eca28580d085]
+
+**Critical discovery from the raw data — `former resident` inflates counts:**
+
+The `fetch_site_citizens_batch` and `fetch_site_residents_batch` Source 2 (hf_site_links) does NOT filter out `link_type = 'former resident'`. This means 9 alive HFs who are former residents of cloistermanor (but currently live at other sites) are being counted as citizens/residents. That's where the "14 Citizens" and "15 Residents" come from.
+
+**True ground truth for cloistermanor (site 705):**
+- **Current SG members (alive)**: 5 (doren, mato, olngo sinfuluttered, olon, stasost seducedwilt)
+- **True Citizens**: 5 (same — all are SG members + alive + sentient)
+- **True Residents**: 6 (the 5 citizens + amxu bendjackals via whereabouts as visitor)
+- **Former residents (alive, elsewhere)**: 9 (inflating the count to 14/15)
+
+Also: Position column on the site page shows positions held at OTHER entities (e.g., stasost drilljackal's "Administrator" is at e3342, not at SG 3344).
+
+### 2026-03-11 [f8731d6b05ac]
+
+**Before/After comparison for cloistermanor (site 705):**
+- **Before fix**: Citizens 14, Residents 15 (inflated by 9 alive former residents)
+- **After fix**: Citizens 5, Residents 6 (correct — matches XML ground truth)
+
+The `former resident` link type in `hf_site_links` is a permanent historical record in DF. When an HF moves away, they get a `former resident` link. Without filtering, these 9 HFs who moved elsewhere were still being counted as citizens/residents of cloistermanor. The `whereabouts` source (Source 4) correctly handles the case where a former member is *physically still present* — amxu bendjackals is counted as a resident via whereabouts, not via site links.
+
+**Civ-level numbers**: Citizens 341, Residents 347, DF Population 37,880. The DF Population >> Citizens because entity_populations includes unnamed NPCs.
+
+### 2026-03-11 [3a70ea08f5e2]
+
+**The R ≥ C invariant holds perfectly:** Residents (347) ≥ Citizens (341) at the civ level, and Residents (6) ≥ Citizens (5) at the site level. The 6 extra residents civ-wide are HFs physically present at sites via whereabouts but not formal entity members — exactly like amxu bendjackals at cloistermanor. The DF Population (37,880) >> Citizens (341) because `entity_populations` includes all unnamed NPCs in the world simulation.
+
+### 2026-03-11 [047083d4279c]
+
+**How the fix works across three layers:**
+
+1. **Data layer** (`detail_pages.py`): For SG entities, after fetching the standard members list, we query the two additional citizen sources (hf_site_links + position holders) and merge them in. Then we run the *canonical* citizen query (same 3-source UNION as `fetch_site_citizens_batch`) to get the true citizen HF set, and override `is_citizen` for every row. This ensures former members who are citizens via site links get `is_citizen=True`.
+
+2. **Classification layer** (`detail_pages.py` recount + template): Rows with `is_citizen=True` are classified as "current" regardless of their `hf_entity_links` status. This means a "former member" who is a citizen via a site link shows up under the "Current" filter — because they ARE a current citizen of this SG, just not via formal SG membership.
+
+3. **Display layer** (`entity_detail.html`): The Membership column still shows the original `link_type` (Member, Former Member, Citizen (Site Link)) so users can see *why* each person is in the list. The Citizen column confirms Yes/No.
+
+**The 117 = 101 + 9 + 7 breakdown:**
+- 101: Current SG members who are alive (original)
+- 9: Former SG members who are alive AND citizens via site links (reclassified from former→current)
+- 7: HFs not in SG at all, but citizens via site links (newly added rows)
+
+### 2026-03-17 [3e566f740db0]
+
+**Critical distinction revealed by the data:**
+
+Abo and Mebas have `home_structure` links where the `entity_id` field = **1525** (the SG itself). The game is saying the SG *assigned* them a home — they're recognized inhabitants. But they're also tagged as `enemy` / `criminal` of that same SG. This is DF's way of modeling someone who *lives* at a site but has turned against its government.
+
+Gasom's `home_structure` has `entity_id = 4373` (her own outcast gang), meaning her home was established by *her* organization, not the SG. She's a squatter-warlord operating out of a tavern.
+
+Sekel has **zero** site links to 621 — she may be elsewhere entirely, or present only via a visiting/wandering event not captured as a site link. She has a `used_identity_id` (false identity), suggesting she's an agent/spy.
+
+Stral is a **former member** of the SG — a departed citizen. She left, no longer lives there.
+
+### 2026-03-17 [163d52295f5d]
+
+**Population taxonomy implementation complete. Key design decisions:**
+
+1. **Stale `resident` link detection**: The `resident` link type is materialized from `change_hf_state` settler events (not XML), so it can become stale. Added a whereabouts cross-check: if an HF's whereabouts places them at a *different* site, their `resident` link is considered stale and they're excluded. This correctly handles Stral Mergedwaves (settled at 621 in Y209, but visiting 1366 in Y227).
+
+2. **Native vs materialized structural links**: `home structure`, `seat of power`, `occupation`, `hangout` are from XML and are persistent — an HF with a home at a site retains structural presence even if temporarily wandering (Gasom). The `resident` type is derived/materialized and can be invalidated by later events.
+
+3. **Gasom's classification**: No direct adversarial link to SG 1525, but classified as Ne'er-do-well via the **indirect werebeast check** (is_werebeast + no SG membership). She's also a member of outcast entity 4373, but the werebeast check caught her first.
+
+4. **Count breakdown at Pocketdumplings**: 276 denizens (99 Citizens, 104 Residents, 73 Visitors) + 54 Ne'er-do-wells = 330 total classified HFs. Zero overlap between tabs.
+
+### 2026-03-17 [7b2a54db64a8]
+
+The enhanced profession waterfall dramatically improves coverage by leveraging DF's own `change hf job` events as the primary source. For Entity 1525 (the nourishing league, a Site Government with 383 members):
+- **Profession**: 86% coverage (was ~66% with naive skills-only approach)
+- **Position**: 28% coverage across any entity (was ~10% SG-internal only)
+
+Key design decisions: (1) "criminal", "standard", "snatcher", "thief" are excluded from profession — they're status markers, not occupations; (2) Cross-entity positions show the entity name in parentheses for context; (3) The `derive_profession` function accepts either the new `prof_data` dict or the legacy `entity_types` list for backward compatibility; (4) Orphaned "Unknown" positions (35% of all position entries) are suppressed in display since only 6.3% are resolvable from event data.
+
+### 2026-03-17 [b235df6c19fd]
+
+The site detail page passes `owner_entity_id` (the SG entity) as the `viewing_entity_id` to `batch_fetch_positions`. Since the positions are in a religion (entity 1477), not the SG, they should show entity context. The bug likely means `is_viewing_entity` is incorrectly set to `True`, or the entity name isn't being appended. Let me trace the exact data flow.
+
+### 2026-03-17 [731f8bb3f8cb]
+
+**Root cause of missing entity context in site Denizens Position column:**
+
+1. Site 621 has **no owner entity** (0 rows in `entity_site_links` with `ownership`)
+2. HFs 30699 and 31638 each have **two** positions in "the regal cult" (entity 1477) — one with a name ("high tower", "sacred healer") and one **orphaned** (NULL name → "Unknown")
+3. `derive_position()` only checks `positions[0]` — if the orphaned one comes first, it returns `None` (because of the "Unknown" skip)
+4. The template then falls back to `r.position_name` from the SQL lateral join, which has the name but **no entity context**

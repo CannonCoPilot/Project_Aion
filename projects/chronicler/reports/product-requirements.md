@@ -99,6 +99,27 @@ Worldgen Monitor --> Snapshots --> PostgreSQL
 
 ---
 
+## 2.3 Standardized Demographic Terminology
+
+All planning documents, code comments, UI labels, and docstrings must use these terms consistently. Full specification: `population-taxonomy-plan.md` §1.6.
+
+| Term | Scope | Definition |
+|------|-------|-----------|
+| **Population (DF Census)** | Civilization only | Simulated headcount from `entity_populations`. |
+| **Residents** | Civilization or Site | Total HFs linked (via `hf_entity_links` + `hf_site_links`) to a Civilization or Site. Superset of Citizens. |
+| **Citizens** | Civilization, SG, or Site | HFs with membership links to a Civilization, SG entity, or Site directly. Subset of Residents. |
+| **Members** | Any entity | Generic term for HFs belonging to any entity (non-Civ, non-SG). |
+
+**Site-level four-way classification** (mutually exclusive, priority-ordered):
+1. **Ne'er-do-well** — adversarial HF present at site
+2. **Citizen** — sentient HF with current SG affiliation, present at site
+3. **Resident** — structural presence, not Citizen, not Ne'er-do-well
+4. **Visitor** — event-only presence, no structural tie
+
+**Denizens** = Citizens + Residents + Visitors. **Invariant**: Population >> Residents >= Citizens.
+
+---
+
 ## 3. MC-1: World History & Demographics Visualizer
 
 ### REQ-VIS-001: Interactive World Map (Leaflet.js)
@@ -346,10 +367,11 @@ Worldgen Monitor --> Snapshots --> PostgreSQL
 - Position badges: Noble=amber, Military=red, Administrator=blue, Other=stone
 - **Priority**: P1
 
-### REQ-EXP-013: Site Detail Page (3 tabs)
-- Structures, Properties, History
-- Mini-map, world populations, inhabitants, artifacts
+### REQ-EXP-013: Site Detail Page (5 tabs)
+- Structures, Properties, History, Denizens (Citizens/Residents/Visitors), Ne'er-do-wells
+- Mini-map, world populations, denizen counts, artifacts
 - Owner entity with ownership history
+- Denizen classification per `population-taxonomy-plan.md` §1.6 and §2
 - **Priority**: P1
 
 ### REQ-EXP-014: Artifact Detail Page

@@ -30,8 +30,8 @@ Single source of truth for all Chronicler development. Consult in this order:
 | Phase | Name | Status | Milestone |
 |-------|------|--------|-----------|
 | 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 -- Data Complete |
-| 2 | Explorer Core | **COMPLETE** (50/50, 2026-03-03) | M2 -- Explorer Complete |
-| **3** | **Live Integration** | **IN PROGRESS** (Stage 3.0 complete) | **M3 -- Live Complete** |
+| 2 | Explorer Core | **COMPLETE** (50/50 DoD, 2026-03-03) — population UI validation pending | M2 -- Explorer Complete |
+| **3** | **Live Integration** | **BLOCKED** (Stage 3.0 complete; 3.1+ awaiting Phase 2 sign-off) | **M3 -- Live Complete** |
 | 4 | Narrative Engine | Pending (~60% pre-built) | M4 -- Storyteller v1.0 |
 | 5 | Visualization | Pending | M5 -- Visualization Complete |
 | 6 | Advanced Components | Pending | M6 -- Full Suite |
@@ -47,7 +47,7 @@ Single source of truth for all Chronicler development. Consult in this order:
 - Standalone CLI: `chronicler` with 11 commands
 - Reports: `phase-1-completion-report.md`, `phase-1-validation-walkthrough.md`
 
-### Phase 2 Summary (COMPLETE)
+### Phase 2 Summary (DoD COMPLETE — population UI validation pending)
 
 - 17 entity detail pages, global search with autocomplete, hover popovers
 - 114 event templates, death cause renderer, circumstance/reason rendering
@@ -55,14 +55,29 @@ Single source of truth for all Chronicler development. Consult in this order:
 - 50/50 validation checks (30 DoD + 13 enhancements + 7 regression)
 - Reports: `phase-2-completion-report.md`, `phase-2-validation-walkthrough.md`
 
+**Post-DoD Population UI Work (Sessions 37-38)**:
+- 17 UI fixes: SG inline/full members tables + site detail enhancements
+- `is_citizen` SQL-computed via creature_dictionary sentience flags
+- Fresh DB re-ingestion: 1,677,998 records, 0% RI issues, world_id=1
+- 8-check validation suite — all pass
+- Population taxonomy plan (`population-taxonomy-plan.md`): largely implemented
+  - **Done**: sentience filter, `is_citizen` column, members table enhancements, site detail Denizens tab (Citizens/Residents/Visitors), Ne'er-do-wells tab, four-way classification
+  - **Remaining**: overview tile three-way conditionals (Civ/SG/Other), sidebar labels (pop/citizens/members), per-site Denizens column replacing Pop, DF census Population display
+  - **Terminology standardized**: §1.6 added to taxonomy plan; definitions propagated to product-requirements.md §2.3, demographic audit, phase-2 PRD, explorer.html
+- **Status**: Awaiting user walkthrough and validation before proceeding to Phase 3 Stage 3.1+
+
 ---
 
-## Current Phase: Phase 3 -- Live Integration
+## Current Phase: Phase 2 → Phase 3 Transition
 
-**PRD**: `projects/chronicler/reports/phases/phase-3-live-integration.md`
-**Duration**: 3-4 weeks
+**Phase 2 DoD**: PASSED (50/50, 2026-03-03)
+**Phase 2 Population UI**: Partially implemented, awaiting user validation
+**Phase 3 PRD**: `projects/chronicler/reports/phases/phase-3-live-integration.md`
+**Phase 3 Duration**: 3-4 weeks (not yet started beyond Stage 3.0 schema prep)
 **Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH, embedding table empty
 **Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines
+
+> **GATE**: Phase 3 Stage 3.1+ is BLOCKED until user validates population UI work and signs off on Phase 2 completion. Stage 3.0 (CDM schema fixes) was completed as a prerequisite that doesn't depend on the population UI gate.
 
 ### Stage Breakdown
 
