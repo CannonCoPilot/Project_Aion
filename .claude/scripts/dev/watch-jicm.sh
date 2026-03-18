@@ -83,6 +83,8 @@ output_json() {
     state=$(read_field "state" "UNKNOWN")
     context_pct=$(read_field "context_pct" "0")
     tokens=$(read_field "context_tokens" "0")
+    token_threshold=$(read_field "token_threshold" "200000")
+    pct_threshold=$(read_field "pct_threshold" "25")
     compressions=$(read_field "compressions" "0")
     errors=$(read_field "errors" "0")
     sleeping="false"
@@ -95,13 +97,15 @@ output_json() {
             --arg s "$state" \
             --argjson cp "${context_pct:-0}" \
             --argjson t "${tokens:-0}" \
+            --argjson tt "${token_threshold:-200000}" \
+            --argjson pt "${pct_threshold:-25}" \
             --argjson c "${compressions:-0}" \
             --argjson e "${errors:-0}" \
             --argjson sl "$sleeping" \
             --argjson cd "${cooldown:-0}" \
-            '{state:$s, context_pct:$cp, tokens:$t, compressions:$c, errors:$e, sleeping:$sl, cooldown_until:$cd}'
+            '{state:$s, context_pct:$cp, tokens:$t, token_threshold:$tt, pct_threshold:$pt, compressions:$c, errors:$e, sleeping:$sl, cooldown_until:$cd}'
     else
-        echo "{\"state\":\"$state\",\"context_pct\":$context_pct,\"tokens\":$tokens,\"compressions\":$compressions,\"errors\":$errors,\"sleeping\":$sleeping,\"cooldown_until\":$cooldown}"
+        echo "{\"state\":\"$state\",\"context_pct\":$context_pct,\"tokens\":$tokens,\"token_threshold\":$token_threshold,\"pct_threshold\":$pct_threshold,\"compressions\":$compressions,\"errors\":$errors,\"sleeping\":$sleeping,\"cooldown_until\":$cooldown}"
     fi
     return 0
 }

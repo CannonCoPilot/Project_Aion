@@ -2625,3 +2625,47 @@ DF doesn't process ticks one-at-a-time — it batches frames. When we poll after
 - No Windows Firewall rules needed
 - No extra PowerShell HTTP server process to manage
 - base64 encoding handles encoding mismatches cleanly
+
+### 2026-03-18 [35c7b15d300c]
+
+**Why `exec` matters most**: The memory structure mapping exercise needs rapid iteration — you'll want to probe `df.global.world.units.active[0].status.current_soul` and dozens of similar paths. A raw exec command avoids editing controller.py for each exploration query. We can always promote useful patterns into proper commands later.
+
+### 2026-03-18 [7fd73a7f21f9]
+
+**The `probe` and `fields` commands are the key enablers for memory mapping.** With 93 top-level fields on `df.global.world` alone, and each field containing nested structs (like `unit.status` with souls, labors, demands, etc.), the total addressable memory surface is enormous. The probe/fields commands let us walk this tree interactively without editing any code — each call takes ~3-4 seconds round-trip through SSH.
+
+**`exec` is the Swiss army knife.** Any Lua one-liner can be sent and output captured. This means we can write complex aggregation queries (e.g., "count units by profession", "list all artifact types") without touching controller.py.
+
+### 2026-03-18 [147537382b50]
+
+**Why absolute tokens > percentage**: At 200K window, "70%" meant ~140K tokens — a reasonable trigger point. At 1M window, "70%" means 700K tokens — you'd burn $350+ before JICM fires. By switching to an absolute 200K token threshold, JICM triggers at the same cost point regardless of window size. The percentage becomes a fallback only used when the screen-scraper can't read a token count.
+
+**Why 25% as the fallback percentage**: 25% of 1M = 250K, which aligns with the ~250K effectiveness target. If the token count is unavailable (rare — only when Claude's status bar isn't rendering), the percentage trigger provides a consistent backstop.
+
+**Autocompact at 30%**: 30% of 1M = 300K. This is the "last resort" safety net — if JICM somehow fails to fire at 200K, native autocompact kicks in at 300K. The 100K gap between them prevents both systems from racing.
+
+### 2026-03-18 [f8e79357b508]
+
+**Live validation**: W0 is currently at 188,499 tokens (19% of 1M). Under the old 70% threshold, JICM wouldn't fire until ~700K tokens. Under the new 200K absolute threshold, it will fire at 200K — roughly 11.5K tokens from now. The watcher is already reading `token_threshold: 200000` from the state file and displaying "Trigger: 200k tok (25%)" in the TUI. The fallback percentage (25%) would trigger at 250K if token counting fails.
+
+**Window numbering recovery**: When scripts trap Ctrl-C and exit, tmux destroys the window (no shell fallback). The `; echo 'stopped.'; read` suffix in the launcher pattern is meant to catch *script* exits, not signal traps. The scripts' `trap 'exit 0' INT` handlers bypass that suffix. This is by design — clean shutdown means clean window closure.
+
+### 2026-03-18 [3293967f02a2]
+
+**The `units.details` JSONB column is our escape valve.** The CDM was designed with a `details` JSONB on most tables precisely for flexible data that doesn't warrant its own columns. Personality facets (50 values), mental attributes (26 values), and preferences (variable length) are perfect candidates for JSONB storage — they're read-heavy, rarely queried individually, and change infrequently. Only fields we need to filter/sort on (like `profession`, `is_alive`, `civ_id`) should be top-level columns.
+
+**The bridge is the bottleneck, not the DB.** Each bridge invocation takes ~3-4 seconds via SSH. The data volume per cycle is small (a few KB of JSON for 15 citizens). The expensive part is the SSH round-trip, not the PostgreSQL writes. This means we should capture as much data as possible per bridge call to amortize the transport cost.
+
+### 2026-03-18 [6e1d2e4f483e]
+
+This is the **asyncpg JSONB codec** gotcha documented in MEMORY.md — Chronicler's pool registers `set_type_codec('jsonb', encoder=json.dumps)`, so Python dicts are automatically serialized. If you call `json.dumps()` yourself first, the codec double-encodes: `'{"key": "val"}'` becomes `'"{\\"key\\": \\"val\\"}"'`, which PostgreSQL interprets as a JSON string literal (not an object). The `||` merge then produces `[old, new]` instead of `{...merged...}`. Always pass raw dicts to asyncpg JSONB columns.
+
+### 2026-03-18 [554725587137]
+
+**Full Live ETL Pipeline — Operational**
+
+1. **50 personality traits** captured per dwarf (GREED: 47, HUMOR: 46, PRIDE: 51, etc.) — the full DF personality facet space
+2. **13 mental attributes** (ANALYTICAL_ABILITY, FOCUS, WILLPOWER, etc.)
+3. **Delta detection working** — Nil and Urdim were assigned mining labors between cycles, triggering `profession_change` events from Sage → Miner
+4. **HF cross-refs: 15/15** — every live unit is linked to its historical figure record from the legends XML. This is the critical CONNECT pattern: `units.hist_fig_id` → `historical_figures.id`
+5. **Fortress denizens** auto-populated with 15 residents, all linked to both unit IDs and HF IDs
