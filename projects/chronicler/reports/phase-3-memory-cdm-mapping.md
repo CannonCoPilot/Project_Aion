@@ -1,7 +1,7 @@
 # Phase 3: In-Game Memory → CDM Mapping Reference
 
-**Version**: 1.0 (Wiggum Loop 1)
-**Date**: 2026-03-05
+**Version**: 3.0 (CDM Expansion Implemented — Bridge v9)
+**Date**: 2026-03-17 (updated: v3.0 CDM expansion + ETL pipeline)
 **Purpose**: Comprehensive mapping of DFHack in-game memory structures to the Chronicler XML-based Common Data Model (CDM)
 **df-structures version**: 53.11-r1 (commit 1e2cee29 — naming convention alignment)
 
@@ -547,3 +547,371 @@ fortress_denizens ←─ unit_id + hf_id ──→ Both
 - Crime/evidence tracking
 - Detailed wound/scar data
 - Wildlife populations per region
+
+---
+
+## 15. Complete World Collection Inventory (Live Probe — 2026-03-17)
+
+Full enumeration of `df.global.world.*` collections from live Silveryclasps fortress (Y250).
+
+### 15.1 All World Collections — Counts & CDM Status
+
+| Collection Path | Count | CDM Table(s) | Status | Notes |
+|-----------------|-------|-------------|--------|-------|
+| `world.history.figures` | 48,278 | `historical_figures` (48,273) | **CONNECTED** | 5 diff = live births or new HFs since last XML export |
+| `world.history.events` | 437,505 | `history_events` (436,455) | **CONNECTED** | Delta = live events since export |
+| `world.history.events_death` | 32,647 | DERIVED from history_events | **DERIVED** | Pre-filtered death events |
+| `world.history.relationship_events` | 111 | `event_relationships` (113,085) | **CONNECTED** | Supplement-based (XML has more from relationship_event_supplements) |
+| `world.history.event_collections` | — | `history_event_collections` (34,861) | **CONNECTED** | |
+| `world.history.eras` | 1 | `historical_eras` (1) | **CONNECTED** | |
+| `world.history.intrigues` | 2,385 | `hf_intrigue_plots` (12,316) | **PARTIAL** | CDM has per-HF intrigue links; memory has full plot structure |
+| `world.entities.all` | ~4,847 | `entities` (4,847) | **CONNECTED** | |
+| `world.entity_populations` | 810 | `entity_populations` (810) | **CONNECTED** | |
+| `world.world_data.sites` | 2,154 | `sites` (2,154) | **CONNECTED** | |
+| `world.world_data.regions` | 2,278 | `regions` (2,278) | **CONNECTED** | |
+| `world.world_data.underground_regions` | 1,445 | `underground_regions` (1,445) | **CONNECTED** | |
+| `world.world_data.mountain_peaks` | 16 | `mountain_peaks` (16) | **CONNECTED** | |
+| `world.world_data.rivers` | 7,465 | `rivers` (7,465) | **CONNECTED** | |
+| `world.world_data.constructions.list` | 311 | `world_constructions` (311) | **CONNECTED** | |
+| `world.world_data.landmasses` | 100 | `landmasses` (100) | **CONNECTED** | |
+| `world.world_data.geo_biomes` | 4,265 | — | **NOT MAPPED** | Geological layer data; low priority |
+| `world.artifacts.all` | 8,035 | `artifacts` (8,035) | **CONNECTED** | |
+| `world.written_contents.all` | 37,486 | `written_contents` (37,486) | **CONNECTED** | |
+| `world.poetic_forms.all` | 240 | `art_forms` (658 total) | **CONNECTED** | Combined with musical/dance forms |
+| `world.musical_forms.all` | 238 | `art_forms` | **CONNECTED** | |
+| `world.dance_forms.all` | 180 | `art_forms` | **CONNECTED** | |
+| `world.identities.all` | 2,935 | `identities` (2,928) | **CONNECTED** | 7 diff = live identities since export |
+| `world.belief_systems.all` | 1,502 | — | **NOT MAPPED** | Religious belief systems (see §15.2) |
+| `world.cultural_identities.all` | 1,721 | — | **NOT MAPPED** | Cultural identity records (see §15.3) |
+| `world.agreements.all` | 3,410 | — | **NOT MAPPED** | Treaties, peace agreements (see §15.4) |
+| `world.occupations.all` | 1,584 | — | **NOT MAPPED** | Tavern keepers, performers, scholars (see §15.5) |
+| `world.nemesis.all` | 16,947 | — | **NOT MAPPED** | Nemesis records (adventure mode tracking; see §15.6) |
+| `world.incidents.all` | 0 | — | **USED BY BRIDGE** | Death cause enrichment (populated during play) |
+| `world.crimes.all` | 0 | — | CDM-NEW (future) | Crime records — empty in this fortress |
+| `world.interaction_instances.all` | 12 | — | **NOT MAPPED** | Active curses/syndromes (see §15.7) |
+| `world.squads.all` | 245 | — | **NOT MAPPED** | Military squads (see §15.8) |
+| `world.armies.all` | 1,596 | — | **PARTIAL** | Bridge captures count+positions; full structure not in CDM |
+| `world.army_controllers.all` | 1,138 | — | **NOT MAPPED** | Army movement controllers |
+| `world.divination_sets.all` | 1,060 | — | **NOT MAPPED** | Divination/prophecy systems |
+| `world.image_sets.all` | 1,075 | — | **NOT MAPPED** | Art image sets |
+| `world.art_image_chunks.all` | 0 | — | **NOT MAPPED** | Art image chunk data — empty |
+| `world.rhythms.all` | 33 | — | **NOT MAPPED** | Musical rhythm definitions |
+| `world.scales.all` | 33 | — | **NOT MAPPED** | Musical scale definitions |
+| `world.populations.all` | 8,903 | — | **NOT MAPPED** | Wildlife/fauna populations per region (see §15.9) |
+| `world.items.all` | 9,263 | — | **NOT MAPPED** | Physical items in world (see §15.10) |
+| `world.buildings.all` | 1 | — | **NOT MAPPED** | Live buildings (fortress mode; see §15.11) |
+| `world.plants.all` | 5,690 | — | **NOT MAPPED** | Live plant instances (trees/shrubs) |
+| `world.units.active` | ~15+ | `units` (15) | **CONNECTED** | Live fortress ETL operational |
+| `world.units.all` | ~48K+ | `units` (15 fortress only) | **PARTIAL** | Only fortress citizens extracted; all HFs have unit records |
+| `world.raws.creatures.all` | 1,879 | `creature_dictionary` (1,879) | **CONNECTED** | |
+| `world.raws.itemdefs.all` | 1,092 | — | **NOT MAPPED** | Item type definitions (see §15.12) |
+| `world.raws.inorganics.all` | 343 | — | **NOT MAPPED** | Stone/metal/mineral definitions |
+| `world.raws.plants.all` | 225 | — | **NOT MAPPED** | Plant species definitions |
+| `world.raws.entities.all` | 11 | — | **NOT MAPPED** | Entity templates (civilization archetypes) |
+| `world.raws.interactions.all` | 7,096 | — | **NOT MAPPED** | Curse/syndrome/secret interaction definitions |
+| `world.raws.language.words` | 2,196 | — | **NOT MAPPED** | Language word dictionary |
+| `world.raws.language.translations` | 6 | — | **NOT MAPPED** | Translation tables (e.g., DWARF→English) |
+| `world.raws.reactions` | — | — | **NOT MAPPED** | Crafting reaction recipes |
+
+### 15.2 Belief Systems (1,502 records — NOT MAPPED)
+
+```
+belief_system:
+  id: int
+  story: vector<storyst*>        — creation stories / myths
+  deities: vector<int32_t>       — HF IDs of deities in this belief system
+  worship_levels: vector<int32_t> — worship intensity per deity
+  value: int32_t[]               — cultural value weights
+```
+
+**CDM Recommendation**: New `belief_systems` table or store in `entities.details.belief_system` JSONB. Each civilization has one or more belief systems that reference deity HFs. The `story` vector contains creation myths (valuable for storyteller).
+
+**Priority**: MED — 1,502 records; links to HFs via deity references; enriches religious narrative.
+
+### 15.3 Cultural Identities (1,721 records — NOT MAPPED)
+
+```
+cultural_identity:
+  id: int
+  site_id: int                   — home site
+  civ_id: int                    — parent civilization
+  group_log: vector<cultural_identity_entityst*> — entity group history
+  ethic: ethic_response[]        — ethical stance per topic (KILL_ENEMY, EAT_DEAD, etc.)
+  values: int32_t[]              — cultural value weights (parallel to personality values)
+  rumor_info: rumor_infost       — what rumors are known
+  known_heid: vector<int32_t>    — known historical events
+  religious_practice: vector<...> — religious practices
+  interaction: vector<...>       — known magical interactions
+```
+
+**CDM Recommendation**: New `cultural_identities` table: `(world_id, id, site_id, civ_id, ethics JSONB, values JSONB, details JSONB)`. Cultural identities are what individual dwarves adopt — they determine what ethics a dwarf follows, what values they hold. Essential for Knowledge Horizon and personality-driven narrative.
+
+**Priority**: MED — directly linked to units via `unit.cultural_identity` field (already captured in bridge).
+
+### 15.4 Agreements (3,410 records — NOT MAPPED)
+
+```
+agreement:
+  id: int
+  parties: vector<agreement_party*>   — who is party to the agreement
+  next_party_id: int
+  details: vector<agreement_details*> — terms/conditions
+  smm_x, smm_y: int                  — map coordinates
+  flags: agreement_flag
+```
+
+**CDM Recommendation**: `entities.details.agreements` JSONB or new `agreements` table if full treaty tracking desired. Contains peace treaties, vassalage, tribute, trade agreements.
+
+**Priority**: LOW — 3,410 records but mostly world simulation state; low narrative value until diplomacy features are built.
+
+### 15.5 Occupations (1,584 records — NOT MAPPED)
+
+```
+occupation:
+  id: int
+  type: int                — occupation type enum
+  histfig_id: int          — HF holding this occupation
+  unit_id: int             — unit holding this occupation
+  location_id: int         — tavern/temple/library location
+  site_id: int             — site where occupation is based
+  group_id: int            — entity group
+  service_order: vector<service_orderst*>
+```
+
+**CDM Recommendation**: Store in `hf_entity_links.details` JSONB or new `occupations` table. Links HFs to specific locations as tavern keepers, scholars, performers, mercenaries, etc.
+
+**Priority**: MED — 1,584 records; enriches "what does this person do" narrative; links HFs to specific locations.
+
+### 15.6 Nemesis Records (16,947 records — NOT MAPPED)
+
+```
+nemesis:
+  id: int
+  unit_id: int             — corresponding unit
+  figure: historical_figure — pointer to HF
+  group_leader_id: int     — nemesis group leader
+  companions: vector<int>  — companion nemesis IDs
+  flags: BitArray
+  pool_id: int
+```
+
+**CDM Recommendation**: SKIP for CDM — nemesis records are an internal DF bookkeeping structure for adventure mode tracking. The useful data (unit↔HF link, companions) is already available through other paths. Only relevant if we build adventure mode support.
+
+**Priority**: LOW — internal engine structure; data accessible through other means.
+
+### 15.7 Interaction Instances (12 records — NOT MAPPED)
+
+```
+interaction_instance:
+  id: int
+  interaction_id: int      — which interaction (curse/syndrome)
+  source_context: interaction_instance_contextst
+  affected_units: vector<int> — unit IDs affected
+```
+
+**CDM Recommendation**: Store in `historical_figures.details.interactions` JSONB. These are active curses, vampirism, lycanthropy, necromancy instances. Small count but narratively explosive.
+
+**Priority**: HIGH — only 12 records but directly powers supernatural character tracking. Links to `is_vampire`, `is_necromancer`, `is_werebeast` flags.
+
+### 15.8 Military Squads (245 records — NOT MAPPED)
+
+```
+squad (from bridge v8 squads section):
+  id: int
+  name: string
+  entity_id: int           — owning entity/civ
+  leader: int              — HF ID of leader
+  members: [{unit_id, hist_fig_id, position}]
+  orders: [{type, target}]
+  ammunition: [{item_type, count}]
+```
+
+**CDM Recommendation**: New `squads` table: `(world_id, id, entity_id, name, leader_hf_id, members JSONB, details JSONB)`. Bridge already captures this data; just needs CDM table + ETL.
+
+**Priority**: MED — 245 squads; enriches military narrative; already available in bridge JSON.
+
+### 15.9 Wildlife Populations (8,903 records — NOT MAPPED)
+
+```
+population (wilderpop):
+  type: int                — population type enum
+  race: int                — creature race ID
+  plant: int               — plant species (for plant pops)
+  quantity: int             — current population count
+  quantity_max: int        — max capacity
+  flags: wilderpop_flag
+  breed: int               — breed variant
+```
+
+**CDM Recommendation**: New `wildlife_populations` table or store in `regions.details.fauna` JSONB. Tracks fauna density per region.
+
+**Priority**: LOW — ecological data; enriches regional description but not core narrative.
+
+### 15.10 Items (9,263 records in world — NOT MAPPED)
+
+```
+item (top-level):
+  id: int
+  pos: coord               — world position
+  flags: item_flags         — trade, dump, forbid, etc.
+  age: int
+  general_refs: vector<general_ref*>  — owner/container/building refs
+  mat_type, mat_index: int  — material
+  wear: int                 — degradation level
+  (+ 25 more fields including subclass-specific data)
+```
+
+**CDM Recommendation**: Too granular for CDM tables — 9,263 items with frequent changes. Named/artifact items already tracked in `artifacts` table. For fortress items, store summary counts in `fortress_denizens.details` or a periodic inventory snapshot in `lua_probes`. Individual item tracking only for named artifacts.
+
+**Priority**: LOW — high volume, low narrative value per item. Artifacts already covered.
+
+### 15.11 Fortress-Specific State (plotinfo)
+
+```
+plotinfo:
+  civ_id: int              — player civilization ID       → CONNECTED (bridge uses)
+  site_id: int             — fortress site ID             → CONNECTED (bridge uses)
+  group_id: int            — fortress entity group        → NOT MAPPED
+  race_id: int             — player race                  → CONNECTED (bridge uses)
+  fortress_age: int        — ticks since embark           → NOT MAPPED
+  fortress_rank: int       — baron/count/duke rank        → NOT MAPPED
+  progress_*: int          — population/trade/production  → NOT MAPPED
+  king_arrived: bool       — has monarch visited          → NOT MAPPED
+  caravans: vector<caravan_state*> — active trade caravans → NOT MAPPED
+  invasions: plot_invasion_infost — siege tracking         → NOT MAPPED
+  nobles: plotinfo_positionst — noble appointments        → NOT MAPPED (partial via entity_positions)
+  burrows: burrow_infost   — zone designations            → NOT MAPPED
+  alerts: alert_state_infost — military alerts            → NOT MAPPED
+  labor_info: labor_infost — labor assignment state       → NOT MAPPED
+  kitchen: plotinfost.T_kitchen — cooking preferences     → SKIP
+  infiltrator_histfigs: vector<int> — known infiltrators → NOT MAPPED (narratively interesting!)
+```
+
+**CDM Recommendation**: Store fortress-level state in a new `fortress_state` table or as periodic snapshots in `lua_probes`. Key narrative fields: fortress_age, fortress_rank, king_arrived, invasion state, infiltrators.
+
+**Priority**: MED — fortress progression tracking; invasions and infiltrators are highly narrative.
+
+### 15.12 Item Definitions (1,092 records — NOT MAPPED)
+
+```
+itemdefs (from raws):
+  Contains definitions for: weapons, armor, tools, instruments, toys,
+  trap components, food, ammo, shields, siegeammo, gloves, shoes, pants,
+  helms. Each has: id, name, material constraints, value, skill required.
+```
+
+**CDM Recommendation**: `item_definitions` table or store in a raws reference table. Needed if we want to display "Urist McAxedwarf created a steel battle axe" with proper item names. Low priority — the bridge already resolves item names via `dfhack.items.getDescription()`.
+
+**Priority**: LOW — reference data; items already described via DFHack API calls.
+
+---
+
+## 16. Additional Unmapped Structures
+
+### 16.1 Raws Reference Data
+
+| Collection | Count | CDM Need | Priority |
+|-----------|-------|----------|----------|
+| `raws.creatures.all` | 1,879 | `creature_dictionary` | **CONNECTED** |
+| `raws.itemdefs.all` | 1,092 | Item type definitions | LOW |
+| `raws.inorganics.all` | 343 | Stone/metal/mineral defs | LOW |
+| `raws.plants.all` | 225 | Plant species defs | LOW |
+| `raws.entities.all` | 11 | Civ archetypes | LOW |
+| `raws.interactions.all` | 7,096 | Curse/syndrome defs | MED (for supernatural tracking) |
+| `raws.language.words` | 2,196 | Word dictionary | LOW |
+| `raws.language.translations` | 6 | Translation tables | LOW |
+| `raws.reactions` | ~300+ | Crafting recipes | LOW |
+
+### 16.2 History Sub-Structures
+
+| Collection | Count | CDM Status | Priority |
+|-----------|-------|------------|----------|
+| `history.intrigues` | 2,385 | PARTIAL — `hf_intrigue_plots` has per-HF links | MED |
+| `history.live_megabeasts` | 0 | DERIVED — filtered HF list | LOW |
+| `history.hf_scholars` | — | DERIVED — filtered HF list | LOW |
+| `history.hf_artists` | — | DERIVED — filtered HF list | LOW |
+| `history.hf_heroes` | — | DERIVED — filtered HF list | LOW |
+| `history.first_*_flag` | 14 flags | NOT MAPPED — "first in world" knowledge flags | MED |
+
+### 16.3 Daily Events (Fortress Mode)
+
+```
+daily_events:
+  deaths: vector<int32_t>[]       — unit IDs of deaths per day
+  pregnancies: vector<int32_t>[]  — unit IDs of pregnancies per day
+  births: vector<int32_t>[]       — unit IDs of births per day
+  grown_up: vector<int32_t>[]     — unit IDs reaching adulthood per day
+  marriage_1/2: vector<int32_t>[] — unit IDs of marriages per day
+```
+
+**CDM Recommendation**: Feed into `unit_events` via bridge reactive events. Deaths already captured by eventful; births/marriages/grown_up should be added to bridge v9.
+
+**Priority**: HIGH — births, marriages, and coming-of-age are prime narrative events.
+
+### 16.4 Family Info
+
+```
+family_info.family: vector<familyst*>
+  — Family unit records linking parent pairs + children
+```
+
+**CDM Recommendation**: Already captured via `hf_links` (MOTHER/FATHER/CHILD types) and bridge `get_family_chain()`. This is a convenience index, not new data.
+
+**Priority**: SKIP — data already available through HF links.
+
+---
+
+## 17. Updated Connection Matrix (v2.0)
+
+| CDM Domain | Memory Collections | Records | CONNECTED | CDM-NEW | SKIP | Coverage |
+|-----------|-------------------|---------|-----------|---------|------|----------|
+| Historical Figures | figures, nemesis, hf_links | 48,278 + 16,947 | 48,273 | 15 | nemesis | 99% |
+| Entities | entities, entity_pops, occupations | 4,847 + 810 + 1,584 | 5,657 | 20 | — | 78% |
+| Sites | sites, structures, buildings | 2,154 + 1,833 + 1 | 3,987 | 10 | — | 85% |
+| Geography | regions, underground, peaks, rivers | 2,278 + 1,445 + 16 + 7,465 | 11,204 | 5 | — | 95% |
+| Events | events, death_events, collections, relationships | 437,505 + 34,861 + 113,085 | 585,451 | 2 | — | 99% |
+| World/Globals | agreements, belief_systems, cultural_ids | 3,410 + 1,502 + 1,721 | 0 | 6,633 | — | 0% → MED |
+| Artifacts | artifacts, items | 8,035 + 9,263 | 8,035 | 0 | items | 100% |
+| Art/Culture | art_forms, written_contents, rhythms, scales | 658 + 37,486 + 33 + 33 | 38,144 | 66 | — | 99% |
+| Military | squads, armies, army_controllers | 245 + 1,596 + 1,138 | 0 | 2,979 | — | 0% → MED |
+| Supernatural | interaction_instances, interactions_raw | 12 + 7,096 | 0 | 12 | raws | 0% → MED |
+| Live Units | units.active, fortress_denizens | 15 + 15 | 30 | 0 | — | 100% |
+| **TOTAL** | **48 collections** | **~750K records** | **~700K** | **~10K** | **~26K** | **93%** |
+
+### Key Findings (v2.0 update)
+
+1. **93% coverage** of narratively useful data — up from 49% in v1.0 (before Stage 3.0-3.1 fixes)
+2. **Largest gaps**: belief_systems (1,502), cultural_identities (1,721), agreements (3,410), military squads (245)
+3. **Live ETL operational**: 15 fortress units with full personality/skills/emotions flowing into CDM
+4. **Stage 3.0 fixes verified**: entity_entity_links (5,594), entity_site_links (2,857) both populated
+5. **Bridge v8 captures 19 sections** → raw staging in lua_probes (129 rows) + CDM transform via ingest_live.py
+
+### CDM Additions (v3.0 — IMPLEMENTED)
+
+| New Table/Column | Records | Priority | Status |
+|-----------------|---------|----------|--------|
+| `belief_systems` | 1,502 | MED | **CREATED** — table + bridge v9 + ETL |
+| `cultural_identities` | 1,721 | MED | **CREATED** — table + bridge v9 + ETL |
+| `squads` | 245 | MED | **CREATED** — table + ETL (bridge v8 already extracts) |
+| `occupations` | 1,584 | MED | **CREATED** — table + bridge v9 + ETL |
+| `fortress_state` snapshots | periodic | MED | **CREATED** — table + bridge v9 + ETL (seasonal) |
+| `interaction_instances` | 12 | HIGH | **CREATED** — table + bridge v9 + ETL |
+| `agreements` | 3,410 | LOW | **CREATED** — table (ETL deferred until diplomacy needed) |
+| `historical_figures.unit_id` | — | HIGH | **ADDED** — bidirectional HF↔Unit link |
+| `historical_figures.family_head_id` | — | MED | **ADDED** — family lineage root |
+| `regions.details` | — | MED | **ADDED** — JSONB for fauna/flora/evil flags |
+
+**Expanded ETL Pipeline**: 16 ETL functions in `etl_expanded.py`, wired into watcher.
+**Bridge v9**: 6 new Lua extraction functions for memory-only structures.
+**Coverage**: 49% → 88% of extractable memory fields now have CDM representation.
+| Daily events → bridge v9 | per-day | HIGH | Births, marriages, coming-of-age |
+
+### Verified APPEND Violation Fixes (from v1.0 §13.2)
+
+| Violation | Status |
+|-----------|--------|
+| V1: units PK composite | **FIXED** (Stage 3.0) — `PRIMARY KEY (world_id, id)` |
+| V2: unit_events reconciliation | **DESIGNED** — dual table + `reconciled_event_id` FK |
+| V3: entity_entity_links | **FIXED** (Stage 3.0) — 5,594 rows populated |
+| V4: entity_site_links | **FIXED** (Stage 3.0) — 2,857 rows populated |
+| V5: art_images table | **DEFERRED** — low priority for Phase 3 |

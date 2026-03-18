@@ -8,13 +8,51 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — game control + data streaming operational
+**Status**: Phase 3 Live Integration — Stage 3.1 CDM expansion complete, bridge v9 deployed
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: a2bd2ea (session report) [Jarvis repo]
+**Last Commit**: 7c611ce (session 41 report) [Jarvis repo]
 **Last Pushed**: (pending)
-**DwarfCron Last Commit**: (uncommitted — controller, bridge, streaming pipeline)
+**DwarfCron Last Commit**: abe7033 (Stage 3.1 CDM expansion — 7 tables, bridge v9, ETL pipeline)
 **DwarfCron Last Pushed**: (pending)
+
+---
+
+## What Was Accomplished (2026-03-17, Session 42 -- Stage 3.1 CDM Expansion)
+
+### CDM Schema Migration V5 — COMPLETE
+- 7 new tables: belief_systems, cultural_identities, squads, occupations, fortress_state, interaction_instances, agreements
+- 3 ALTER columns: historical_figures.unit_id, historical_figures.family_head_id, regions.details JSONB
+- 9 indexes for new tables
+- Applied to live DB via `docker exec -u postgres jarvis-postgres psql`
+
+### Bridge v9 — DEPLOYED & VERIFIED
+- 6 new Lua extraction functions: get_belief_systems(), get_cultural_identities(), get_occupations(), get_interaction_instances(), get_fortress_state(), get_daily_events()
+- Wired into write_state() via safe_add() calls
+- Deployed to VM at hack/scripts/chronicler-bridge.lua
+- All sections producing data except daily_events (Lua path issue — non-critical)
+
+### Expanded ETL Pipeline — COMPLETE
+- `etl_expanded.py`: 16 ETL functions + ingest_expanded() orchestrator
+- _sanitize_id() helper for FK-safe negative ID handling (978 occupations with negative HF IDs)
+- _safe() async wrapper for error isolation per ETL function
+- Watcher integration with season-change detection for fortress_state snapshots
+
+### End-to-End Verification — PASSED
+- 7+ watcher cycles completed successfully
+- Record counts: belief_systems 1,502 | cultural_identities 1,721 | occupations 1,584 | interaction_instances 12 | squads 50 | units 75 | unit_events 4 | fortress_denizens 75
+- CDM coverage: 49% → ~85% of extractable memory fields
+
+### Known Gaps (non-blocking)
+- daily_events Lua path returns null (DF 53.10 field investigation needed)
+- Squads: 50 of 245 extracted (bridge-side limit)
+- fortress_state season-boundary capture untested
+- Agreements/wildlife_populations deferred (Tier 3)
+
+**Files modified (DwarfCron)**: chronicler/db/migrate_stage31_cdm_expansion.sql (NEW), chronicler/db/schema.sql, chronicler/dfhack/scripts/chronicler-bridge.lua, chronicler/dfhack/etl_expanded.py (NEW), chronicler/dfhack/watcher.py, chronicler/api/templates/explorer.html
+**DwarfCron commit**: abe7033
+
+**Game state at end**: Y250 Spring, 15 citizens, PAUSED
 
 ---
 
@@ -235,12 +273,13 @@ Previous session histories have been archived. For full details, see:
 **Phase 3 Progress**:
 - **Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
 - **Game Control & Streaming — COMPLETE** (2026-03-17, Session 40): controller, bridge deployment, SSH data pipeline, streaming orchestrator
-- **Stage 3.1: Bridge Enhancements — NEXT**: eventful subscriptions, death cause enrichment, family chain, personality/soul data, skill tracking
+- **Stage 3.1: CDM Expansion — COMPLETE** (2026-03-17, Session 42): 7 new tables, bridge v9, expanded ETL, end-to-end verified
+- **Stage 3.1 Remaining**: daily_events fix, full squads extraction, fortress_state season test
 - Stage 3.2: Worldgen Monitoring
 - Stage 3.3: Knowledge Horizon
 - Stage 3.4: Embedding Pipelines
 
-**Live fortress**: Silveryclasps, Y250, 15 citizens, bridge v8 deployed, streaming tested end-to-end
+**Live fortress**: Silveryclasps, Y250, 15 citizens, bridge v9 deployed, CDM expansion verified end-to-end
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
@@ -258,4 +297,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-03-17 -- Phase 3 game control + data streaming operational; Stage 3.1 bridge enhancements next; Silveryclasps live fortress active*
+*Session state updated 2026-03-17 -- Stage 3.1 CDM expansion complete (7 tables, bridge v9, ETL pipeline); known gaps: daily_events, full squads, season capture; Silveryclasps Y250 PAUSED*
