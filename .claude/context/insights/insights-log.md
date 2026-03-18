@@ -2590,3 +2590,38 @@ The commit adds 1,822 lines across 3 files — a full analytics subsystem. The t
 **DF XML quirk discovered**: `<first_ageless_year>` is nested inside `<entity_reputation>` elements due to DF's XML generator bug — the tag's indentation makes it look like a direct child of `<historical_figure>`, but ElementTree correctly parses it as nested. We handle this with a fallback search through `entity_reputation` children. This pattern may apply to other DF tags in future versions.
 
 **Relationship data unlocked**: The 17,208 emotional profiles (love/respect/trust/loyalty/fear scores) and 17,007 vague relationships (childhood friends, war buddies, grudges) form a complete social fabric graph. Combined with 12,316 intrigue plots, this enables rich narrative generation in Phase 4's Storyteller.
+
+### 2026-03-18 [e2898464bc96]
+
+**Confirmed: DFHack 53.x under Prism (ARM emulation) blocks ALL `CoreRunCommand` calls** — even `version`. The CoreSuspender is never acquired from the network thread. Only pre-cached methods like `GetWorldInfo` work via TCP RPC. The good news: `GetWorldInfo` returned successfully — the game is running in `MODE_DWARF` with civ_id 1009 at site 2154 in "The Land of Dawning" (same world as Tar Thran). The `run_command("lua", ...)` approach cannot work over TCP RPC.
+
+### 2026-03-18 [0b20c59adfb3]
+
+**Transport architecture**: The controller uses a three-layer command pipeline: **SSH → PowerShell → dfhack-run.exe → Lua**. This completely bypasses the broken TCP RPC CoreSuspender issue on DFHack 53.x under Prism. Each command takes ~3-4 seconds round-trip (SSH handshake + Prism emulation overhead), but that's perfectly acceptable for control operations. The `step()` command polls game time every 0.5s to detect when enough ticks have elapsed — the 507-tick result (vs 500 target) shows the polling granularity is about 1 poll cycle worth of overshoot.
+
+**Key discovery**: `dfhack-run.exe` lives in the DF root directory (not `hack/`), and the Lua translation API is `dfhack.translation.translateName()` (not `dfhack.TranslateName()`). Both differ from documentation — always introspect first.
+
+### 2026-03-18 [dd112d812660]
+
+**What the `[~]` status indicator means:**
+- `[+]` = data collected AND ingested to DB
+- `[~]` = data collected but not ingested (dry-run or no DB)
+- `[!]` = step succeeded but bridge data fetch failed
+
+**Why ticks overshoot slightly (104, 101, 194):**
+DF doesn't process ticks one-at-a-time — it batches frames. When we poll after the target, the game has usually advanced a few extra ticks. The 194-tick overshoot on cycle 3 suggests the game was processing a busy frame (pathfinding, job allocation). This is expected behavior and the bridge captures the actual state regardless.
+
+### 2026-03-18 [30fcfb9def27]
+
+**End-to-end data streaming architecture (what we just built):**
+
+1. **Game Control** (SSH → dfhack-run.exe → Lua): `pause_state=false` → poll ticks → `pause_state=true`
+2. **Bridge Capture** (SSH → dfhack-run.exe → chronicler-bridge.lua): Snapshots 19 data sections to JSON
+3. **Data Transport** (SSH → PowerShell → base64): Avoids Windows Firewall; handles non-ASCII DF names
+4. **Ingestion** (asyncpg → PostgreSQL): `lua_probes` table stores each section with game timestamp
+
+**Why this beats the original HTTP approach:**
+- Single transport (SSH) vs two (SSH + HTTP on port 8888)
+- No Windows Firewall rules needed
+- No extra PowerShell HTTP server process to manage
+- base64 encoding handles encoding mismatches cleanly
