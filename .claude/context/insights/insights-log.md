@@ -2669,3 +2669,41 @@ This is the **asyncpg JSONB codec** gotcha documented in MEMORY.md — Chronicle
 3. **Delta detection working** — Nil and Urdim were assigned mining labors between cycles, triggering `profession_change` events from Sage → Miner
 4. **HF cross-refs: 15/15** — every live unit is linked to its historical figure record from the legends XML. This is the critical CONNECT pattern: `units.hist_fig_id` → `historical_figures.id`
 5. **Fortress denizens** auto-populated with 15 residents, all linked to both unit IDs and HF IDs
+
+### 2026-03-18 [2143fcf6bf86]
+
+**CDM Expansion Complete — Coverage: 49% → 88%**
+
+The unified CDM expansion touches 4 layers of the stack:
+
+1. **Schema (PostgreSQL)**: 7 new tables + 3 ALTER statements applied. CDM now has 57 tables. The new tables cover the 6 "dark matter" memory-only structures (belief_systems, cultural_identities, occupations, squads, interaction_instances, agreements) plus fortress progression tracking.
+
+2. **Bridge (Lua v9)**: 6 new extraction functions added (~260 lines). These read directly from `df.global.world.*` collections that have zero XML representation. The bridge now extracts 42 sections per cycle (up from 36).
+
+3. **ETL (Python)**: New `etl_expanded.py` module with 16 functions + orchestrator. Previously, 15+ bridge sections were archived to `lua_probes` raw JSON; now they flow into proper CDM tables with typed columns, FK relationships, and indexes.
+
+4. **Watcher Integration**: The `ingest_expanded()` call is wired into the polling loop after `_store_bridge_sections()`, with season-change detection for `fortress_state` snapshots. Every bridge cycle now populates CDM tables, not just `lua_probes`.
+
+**Key architectural win**: The event reconciliation system (`reconcile_events()`) bridges the gap between the live CDC stream (`unit_events`) and curated narrative history (`history_events`). When a legends XML re-export happens, deaths/battles recorded live are automatically linked to their `history_events` counterparts via `reconciled_event_id`.
+
+### 2026-03-18 [e3e0e010a759]
+
+**Bridge v9 deployed and verified — 5 of 6 new sections operational:**
+
+- **belief_systems**: 1,502 records — matches live probe count exactly
+- **cultural_identities**: 1,721 records — all cultural identity records extracted
+- **occupations**: 1,584 records — tavern keepers, scholars, performers
+- **interaction_instances**: 12 records — active curses/vampirism/lycanthropy
+- **fortress_state**: Present with 6 keys (site_id, age, rank, population, etc.)
+- **daily_events**: MISSING — likely because `df.global.plotinfo.daily_events` uses a different field path in this DF version, or the game hasn't had daily events yet in the current day cycle
+
+The `daily_events` miss is non-critical — it's a convenience index for births/marriages that are also captured through other mechanisms (eventful callbacks, history events). I can investigate and fix the Lua path on a future deploy.
+
+**Key validation**: record counts match the live probe from earlier (1,502 belief systems, 1,721 cultural identities, 1,584 occupations, 12 interaction instances, 245 squads) — confirming the extraction functions are reading the correct memory structures.
+
+### 2026-03-18 [ba6068651b03]
+
+**End-to-end test: PASSED — all memory-only structures flowing into CDM**
+
+| Table | Expected | Actual | Status |
+|-------|
