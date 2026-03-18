@@ -8,12 +8,12 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stage 3.1 CDM expansion complete, bridge v9 deployed
+**Status**: Phase 3 Live Integration — Stage 3.1 fully operational, all ETL verified end-to-end
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: 7c611ce (session 41 report) [Jarvis repo]
+**Last Commit**: def4a98 (session 42 report) [Jarvis repo]
 **Last Pushed**: (pending)
-**DwarfCron Last Commit**: abe7033 (Stage 3.1 CDM expansion — 7 tables, bridge v9, ETL pipeline)
+**DwarfCron Last Commit**: d3f4291 (ETL key mismatches + announcements fix)
 **DwarfCron Last Pushed**: (pending)
 
 ---
@@ -43,16 +43,24 @@
 - Record counts: belief_systems 1,502 | cultural_identities 1,721 | occupations 1,584 | interaction_instances 12 | squads 50 | units 75 | unit_events 4 | fortress_denizens 75
 - CDM coverage: 49% → ~85% of extractable memory fields
 
+### B1-B3 Fixes + Phase B ETL Verification — COMPLETE
+- **B1**: daily_events fixed — `world.daily_events` (not plotinfo), 30-day rolling window, 121-155 scheduled nemesis IDs
+- **B2**: Squads uncapped — 247/247 extracted (was 50)
+- **B3**: fortress_state season capture — VERIFIED, Spring→Summer snapshot captured at tick 100,800
+- **Wealth fields**: Fixed for DF 53.10 (wealth_total, not wealth_created; added architecture/displayed)
+- **ETL key mismatches fixed**: live_history (recent_events), announcements (recent), hfid field mapping
+- **Live ETL verified**: 303 live history events, 99 announcements, 73 unit events (ARRIVED/DEPARTED/SKILL_UP), 1 fortress_state snapshot
+- **Daily events dedup**: Replace-all strategy prevents accumulation across cycles
+- **FPS freeze incident**: Setting enabler.fps=0 froze DF permanently — saved to memory, never again
+
 ### Known Gaps (non-blocking)
-- daily_events Lua path returns null (DF 53.10 field investigation needed)
-- Squads: 50 of 245 extracted (bridge-side limit)
-- fortress_state season-boundary capture untested
+- fortress_state.population NULL (bridge civ_id matching needs tuning)
+- Bridge repeat job doesn't survive DF restart (needs onMapLoad.init on VM)
 - Agreements/wildlife_populations deferred (Tier 3)
 
-**Files modified (DwarfCron)**: chronicler/db/migrate_stage31_cdm_expansion.sql (NEW), chronicler/db/schema.sql, chronicler/dfhack/scripts/chronicler-bridge.lua, chronicler/dfhack/etl_expanded.py (NEW), chronicler/dfhack/watcher.py, chronicler/api/templates/explorer.html
-**DwarfCron commit**: abe7033
+**DwarfCron commits**: abe7033 (CDM expansion), ab6ccc7 (B1-B3 fixes), d3f4291 (ETL key fixes)
 
-**Game state at end**: Y250 Spring, 15 citizens, PAUSED
+**Game state at end**: Y250 Summer (tick 109,039), 15 citizens, PAUSED, quicksave at tick ~99K near Spring/Summer boundary
 
 ---
 
@@ -273,8 +281,7 @@ Previous session histories have been archived. For full details, see:
 **Phase 3 Progress**:
 - **Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
 - **Game Control & Streaming — COMPLETE** (2026-03-17, Session 40): controller, bridge deployment, SSH data pipeline, streaming orchestrator
-- **Stage 3.1: CDM Expansion — COMPLETE** (2026-03-17, Session 42): 7 new tables, bridge v9, expanded ETL, end-to-end verified
-- **Stage 3.1 Remaining**: daily_events fix, full squads extraction, fortress_state season test
+- **Stage 3.1: CDM Expansion — COMPLETE** (2026-03-17, Session 42): 7 new tables, bridge v9, 14 ETL functions, all verified end-to-end including season boundary capture
 - Stage 3.2: Worldgen Monitoring
 - Stage 3.3: Knowledge Horizon
 - Stage 3.4: Embedding Pipelines
