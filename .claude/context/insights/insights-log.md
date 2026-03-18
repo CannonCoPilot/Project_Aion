@@ -2558,3 +2558,35 @@ The report body was also updated: §1 Critical Finding marked RESOLVED, §3.3 re
 ### 2026-03-17 [6962e2876e44]
 
 The commit adds 1,822 lines across 3 files — a full analytics subsystem. The two-tier loading pattern (core charts instant, extended on-demand) is a good UX practice for data-heavy dashboards: it keeps first-paint under 400ms while offering 15+ visualizations for deep exploration. The `jsonb_agg` fix is worth remembering — asyncpg's type codec only auto-decodes `jsonb`, not `json`, so always use `jsonb_*` functions when you need Python-native types from aggregate results.
+
+### 2026-03-17 [1dcf9851d3ad]
+
+**Repo separation**: DwarfCron now has its own home at `CannonCoPilot/DwarfCron` — product code stays separate from Jarvis infrastructure code on `davidmoneil/AIfred:Project_Aion`. This is the correct topology: deliverable code in its own repo, dev artifacts/orchestration in the Jarvis workspace. The `CannonCoPilot/DwarfCron` repo already existed (possibly created during an earlier session), so it had prior commits we pushed on top of.
+
+### 2026-03-18 [4085189d6455]
+
+**Why 1,324 new HFs for 14 days?** DF's legends export has a "notability" threshold — during worldgen, only HFs involved in significant events get exported. But once the game enters fortress mode, the simulation runs at full fidelity for the 14 days between embark and autosave. HFs that were "below the radar" during worldgen (recent births, minor members of organizations) get promoted to legends status as they participate in events. The birth year distribution (peaking around years 218-231) confirms these are young, recently-born members of the world's civilizations who crossed the notability threshold during active play.
+
+**HFEXP entries** (`HFEXP20691 E_HUM1`, etc.) are DF's **procedurally generated night creatures** — bogeymen, night trolls, or experiment-lineage beings. The number references the generating experiment, and `E_HUM1`/`E_HUM2` indicate humanoid body plans. Completely normal DF behavior.
+
+**The 37 new entities** are all site governments created during the 14-day simulation — including the player's fortress government. They show up as `type=unknown` in legends.xml but are properly typed as `sitegovernment` in legends_plus.
+
+### 2026-03-18 [60d235aa5ef9]
+
+**The relationship data gap is the most significant finding.** The 42K `relationship_profile_hf_visual` entries contain per-HF emotional scores (love, respect, trust, loyalty, fear) toward other HFs — this is the raw social fabric of the world. Combined with 34K `vague_relationship` entries (war buddies, grudges, childhood friends) and 24K `intrigue_plot` entries (political schemes), this represents the richest unmined narrative data in the XML. For Phase 4's Narrative Engine, this data is essentially the difference between "X killed Y" and "X killed Y, his childhood friend whom he had grown to fear, as part of a corruption plot orchestrated by Z."
+
+**The `hf_link.link_strength` column** already exists in the CDM but the parser never writes to it — a silent data loss. The XML contains strength values for family/social links that would weight the relationship graph.
+
+### 2026-03-18 [87a5c61d3916]
+
+**Phase 3.0 data enrichment results**: All 14 features are now implemented and validated:
+- **6 quick wins**: `associated_type` (48,137), `appeared` (48,137), `first_ageless_year` (261 unique HFs, extracted from DF's broken XML nesting), `current_identity_id` (862), `hf_link.strength` (87,617), `site.founder_entity_id` (1,820)
+- **8 structural additions**: `hf_relationship_profiles` (17,208 emotional bonds), `hf_vague_relationships` (17,007 informal bonds across 12 types), `hf_intrigue_plots` (12,316 political schemes), `hf_squad_links` (960 military assignments), `site_properties` (503 property records), `entity_honors` (123 military honor definitions), `entity.worship_id` (1,008 deity links), `entity.weapons` (22 military units with weapon preferences)
+- **Total new data points**: ~135,000+ previously unmined records now available
+- **RI**: 0% orphans across all new tables
+
+### 2026-03-18 [36ef8ac1bcac]
+
+**DF XML quirk discovered**: `<first_ageless_year>` is nested inside `<entity_reputation>` elements due to DF's XML generator bug — the tag's indentation makes it look like a direct child of `<historical_figure>`, but ElementTree correctly parses it as nested. We handle this with a fallback search through `entity_reputation` children. This pattern may apply to other DF tags in future versions.
+
+**Relationship data unlocked**: The 17,208 emotional profiles (love/respect/trust/loyalty/fear scores) and 17,007 vague relationships (childhood friends, war buddies, grudges) form a complete social fabric graph. Combined with 12,316 intrigue plots, this enables rich narrative generation in Phase 4's Storyteller.
