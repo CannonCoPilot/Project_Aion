@@ -8,13 +8,49 @@
 
 ## Current Work Status
 
-**Status**: Between Phase 2 and Phase 3 — awaiting user validation of population UI work
+**Status**: Phase 3 Live Integration — game control + data streaming operational
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: a2bd2ea (session report) [Jarvis repo]
 **Last Pushed**: (pending)
-**DwarfCron Last Commit**: (uncommitted — Stage 3.0 ingestion pipeline changes)
+**DwarfCron Last Commit**: (uncommitted — controller, bridge, streaming pipeline)
 **DwarfCron Last Pushed**: (pending)
+
+---
+
+## What Was Accomplished (2026-03-17, Session 40 -- Game Control & Data Streaming)
+
+### Game Controller (SSH + dfhack-run transport) — COMPLETE
+- `GameController` class: pause, unpause, step (N ticks), status, is_paused
+- SSH transport bypasses broken TCP RPC (CoreSuspender issue on DFHack 53.x under Prism)
+- All 4 commands tested and confirmed working on live Silveryclasps fortress (15 citizens, Y250)
+
+### Bridge Data Pipeline via SSH — COMPLETE
+- Deployed `chronicler-bridge.lua` v8 to VM (`hack/scripts/`)
+- Bridge writes 19 data sections to `chronicler-state.json` (units, skills, emotions, personality, squads, armies, buildings, artifacts, announcements, diplomacy, history, entities, zones, event_collections, mandates, incidents, reactive_events, skill_changes)
+- Data transport via SSH + base64 (avoids Windows Firewall; handles non-ASCII DF names)
+- `fetch_bridge_data()` reads JSON cleanly despite Windows-1252 encoding
+
+### Streaming Orchestrator — COMPLETE
+- `chronicler control stream` CLI: step→collect→ingest loop
+- Orchestrates: unpause → poll ticks → re-pause → run bridge → fetch JSON → ingest to PostgreSQL
+- Tested: 2-cycle ingestion verified (34 probe records, 2 snapshots ingested)
+- Dry-run mode available for testing without DB writes
+- Graceful SIGINT handling (stops after current cycle)
+
+### CLI Commands Added
+- `chronicler control status` — fortress name, citizens, time, pause state
+- `chronicler control pause` — pause the game
+- `chronicler control unpause` — resume the game
+- `chronicler control step --ticks N` — advance N ticks then re-pause
+- `chronicler control bridge` — run bridge + fetch data (diagnostic)
+- `chronicler control stream --ticks N --cycles M` — full step→collect→ingest loop
+
+**Files modified (DwarfCron)**:
+- `chronicler/dfhack/controller.py` — NEW: GameController class (pause/unpause/step/status/bridge/stream)
+- `chronicler/cli.py` — 6 new CLI commands under `control` group + `_ingest_bridge_cycle()`
+
+**Game state at end**: Y250 T18482 Spring, 15 citizens, PAUSED
 
 ---
 
@@ -192,27 +228,19 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Phase 2 → Phase 3 Transition (BLOCKED on user validation)
+### PRIMARY: Phase 3 Live Integration — IN PROGRESS
 
-**Phase 2**: Formally COMPLETE (50/50 DoD passed, 2026-03-03), but post-Phase 2 population UI work requires user validation before Phase 3 can fully proceed.
+**Phase 2**: Formally COMPLETE (50/50 DoD). Population UI validation still pending but not blocking game control work.
 
-**Population UI Work (Sessions 37-38)**:
-- 17 UI fixes applied (SG inline/full members, site detail) — all verified by Jarvis
-- `is_citizen` computed via sentience filter (creature_dictionary flags)
-- Fresh DB re-ingestion validated (1,677,998 records, 0% RI issues, world_id=1)
-- 8-check validation suite passed
-- **Remaining**: Full population counting refactor (plan: `drifting-sparking-simon.md`) — overview tile three-way conditionals (Civ/SG/Other), sidebar label changes (pop/citizens/members), per-site Residents column, DF census Population display — partially implemented, needs user review and validation
-
-**Phase 3 Readiness**:
-- Phase 3 Wiggum Loop research COMPLETE
+**Phase 3 Progress**:
 - **Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
-- Stage 3.1+ BLOCKED pending user sign-off on population UI
+- **Game Control & Streaming — COMPLETE** (2026-03-17, Session 40): controller, bridge deployment, SSH data pipeline, streaming orchestrator
+- **Stage 3.1: Bridge Enhancements — NEXT**: eventful subscriptions, death cause enrichment, family chain, personality/soul data, skill tracking
+- Stage 3.2: Worldgen Monitoring
+- Stage 3.3: Knowledge Horizon
+- Stage 3.4: Embedding Pipelines
 
-**When user validates Phase 2 population work**:
-1. Stage 3.1: Bridge Enhancements — eventful subscriptions, death cause enrichment, family chain, personality/soul data, skill tracking
-2. Stage 3.2: Worldgen Monitoring
-3. Stage 3.3: Knowledge Horizon
-4. Stage 3.4: Embedding Pipelines
+**Live fortress**: Silveryclasps, Y250, 15 citizens, bridge v8 deployed, streaming tested end-to-end
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
@@ -230,4 +258,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-03-09 -- Between Phase 2 and Phase 3; population UI validation pending with user; Stage 3.0 complete, Stage 3.1 blocked*
+*Session state updated 2026-03-17 -- Phase 3 game control + data streaming operational; Stage 3.1 bridge enhancements next; Silveryclasps live fortress active*
