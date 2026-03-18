@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# JICM v7 WATCHER — Script-Based Context Preparation
+# JICM v7.1.1 WATCHER — Absolute Token Threshold + Script-Based Context Preparation
 # ============================================================================
 #
 # A simple, precise, responsive, accurate, stable context monitoring and
@@ -15,7 +15,7 @@
 # Analysis: .claude/context/designs/jicm-v6-critical-analysis.md
 #
 # Usage:
-#   .claude/scripts/jicm-watcher.sh [--threshold PCT] [--interval SEC]
+#   .claude/scripts/jicm-watcher.sh [--token-threshold N] [--threshold PCT] [--interval SEC]
 #
 # ============================================================================
 
@@ -44,7 +44,10 @@ ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
 EXPORTS_DIR="$PROJECT_DIR/.claude/exports"
 
 # Thresholds and timing
-JICM_THRESHOLD=${JICM_THRESHOLD:-70}
+# Primary trigger: absolute token count (decoupled from window size)
+JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-200000}
+# Legacy percentage trigger (fallback; only used if token count unavailable)
+JICM_THRESHOLD=${JICM_THRESHOLD:-25}
 POLL_INTERVAL=${POLL_INTERVAL:-5}
 HALT_TIMEOUT=60
 COMPRESS_TIMEOUT=300
@@ -54,19 +57,21 @@ RESTORE_RETRY_DELAY=15
 COOLDOWN_PERIOD=600
 
 # Context window constants
-MAX_CONTEXT_TOKENS=200000
+MAX_CONTEXT_TOKENS=1000000
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
     case $1 in
+        --token-threshold) JICM_TOKEN_THRESHOLD="$2"; shift 2 ;;
         --threshold) JICM_THRESHOLD="$2"; shift 2 ;;
         --interval) POLL_INTERVAL="$2"; shift 2 ;;
         -h|--help)
-            echo "JICM v7 Watcher — Stop-and-Wait Context Management"
+            echo "JICM v7.1.1 Watcher — Stop-and-Wait Context Management"
             echo ""
             echo "Usage: $0 [options]"
-            echo "  --threshold PCT   Compression trigger (default: $JICM_THRESHOLD)"
-            echo "  --interval SEC    Poll interval (default: $POLL_INTERVAL)"
+            echo "  --token-threshold N   Absolute token trigger (default: $JICM_TOKEN_THRESHOLD)"
+            echo "  --threshold PCT       Percentage fallback trigger (default: $JICM_THRESHOLD%)"
+            echo "  --interval SEC        Poll interval (default: $POLL_INTERVAL)"
             exit 0
             ;;
         *) shift ;;
@@ -227,11 +232,12 @@ state: $JICM_STATE
 timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 context_pct: ${LAST_PCT:-0}
 context_tokens: ${LAST_TOKENS:-0}
-threshold: $JICM_THRESHOLD
+token_threshold: $JICM_TOKEN_THRESHOLD
+pct_threshold: $JICM_THRESHOLD
 compressions: $COMPRESSION_COUNT
 errors: $ERROR_COUNT
 pid: $$
-version: 6.1.0
+version: 7.1.0
 sleeping: $sleeping
 EOF
 
@@ -595,8 +601,8 @@ get_token_count() {
     local tokens
     tokens=$(echo "$pane" | tail -5 | grep -oE '[0-9,]+ tokens' | tail -1 | grep -oE '[0-9,]+' | tr -d ',' || true)
 
-    # Range validation: 0 < N < 200001 (context window max is 200K tokens)
-    if [[ -n "$tokens" ]] && [[ "$tokens" -gt 0 ]] && [[ "$tokens" -lt 200001 ]]; then
+    # Range validation: 0 < N < 1000001 (context window max is 200K tokens)
+    if [[ -n "$tokens" ]] && [[ "$tokens" -gt 0 ]] && [[ "$tokens" -lt 1000001 ]]; then
         echo "$tokens"
         return 0
     fi
@@ -611,7 +617,7 @@ get_token_count() {
         else
             tokens=$((num * 1000))
         fi
-        if [[ -n "$tokens" ]] && [[ "$tokens" -gt 0 ]] && [[ "$tokens" -lt 200001 ]]; then
+        if [[ -n "$tokens" ]] && [[ "$tokens" -gt 0 ]] && [[ "$tokens" -lt 1000001 ]]; then
             echo "$tokens"
             return 0
         fi
@@ -903,7 +909,7 @@ do_compress() {
     rm -f "$COMPRESSION_SIGNAL"
     rm -f "$PROJECT_DIR/.claude/context/.compression-in-progress"
 
-    # JICM v7: Run prep script directly (replaces LLM agent spawning)
+    # JICM v7.1: Run prep script directly (replaces LLM agent spawning)
     # The prep script extracts user messages from JSONL transcript, active plan,
     # and session status into .compressed-context-ready.md (~0.06s vs 210s).
     # No chat export needed — JSONL has the full structured conversation.
@@ -967,7 +973,7 @@ do_restore() {
     # The hook fires on /clear and injects compressed context via JSON
     sleep 5
 
-    # JICM v7: Resume prompt with multi-archive awareness.
+    # JICM v7.1: Resume prompt with multi-archive awareness.
     # - [JICM-RESUME] tag signals this is a JICM continuation
     # - CLAUDE.md and capability-map.yaml are auto-loaded — no need to read
     # - Compressed context is injected by session-start hook via additionalContext
@@ -1037,8 +1043,10 @@ draw_progress_bar() {
     for ((i=0; i<filled; i++)); do bar+="█"; done
     for ((i=0; i<empty; i++)); do bar+="░"; done
 
-    # Color based on percentage
-    if [[ $pct -ge $JICM_THRESHOLD ]]; then
+    # Color based on token proximity to threshold
+    # Yellow if tokens >= 80% of token threshold, or pct >= pct threshold
+    local tok_warn_pct=$(( JICM_TOKEN_THRESHOLD * 80 / 100 / 1000 ))
+    if [[ ${LAST_TOKENS:-0} -ge $((JICM_TOKEN_THRESHOLD * 80 / 100)) ]] || [[ $pct -ge $JICM_THRESHOLD ]]; then
         echo "${C_YELLOW}${bar}${C_RESET}"
     else
         echo "${C_GREEN}${bar}${C_RESET}"
@@ -1116,7 +1124,7 @@ init_tui() {
 
     # Row 0: top border
     tput cup 0 0 2>/dev/null
-    draw_header_border "┌" " JICM v7 " "┐"
+    draw_header_border "┌" " JICM v7.1 " "┐"
 
     # Row 5: activity separator
     tput cup 5 0 2>/dev/null
@@ -1213,8 +1221,8 @@ refresh_header() {
 
     # Row 2: Threshold, Session, Poll
     tput cup 2 0 2>/dev/null
-    printf "${C_CYAN}│${C_RESET} Threshold: ${C_YELLOW}%d%%${C_RESET}        Session: %-8s  Poll: %s (%ds)" \
-        "$JICM_THRESHOLD" "$uptime" "$ts" "$POLL_INTERVAL"
+    printf "${C_CYAN}│${C_RESET} Trigger: ${C_YELLOW}%dk tok${C_RESET} (%d%%)  Session: %-8s  Poll: %s (%ds)" \
+        "$((JICM_TOKEN_THRESHOLD / 1000))" "$JICM_THRESHOLD" "$uptime" "$ts" "$POLL_INTERVAL"
     tput el 2>/dev/null || true
     tput cup 2 "$w" 2>/dev/null
     printf "${C_CYAN}│${C_RESET}"
@@ -1286,10 +1294,10 @@ refresh_header_legacy() {
     LEGACY_DRAWN=1
 
     echo -e "${C_CYAN}╔══════════════════════════════════════════════════════╗${C_RESET}"
-    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7${C_RESET}                          ${state_ind}  ${C_CYAN}║${C_RESET}"
+    echo -e "${C_CYAN}║${C_RESET}  ${C_BOLD}JICM v7.1${C_RESET}                          ${state_ind}  ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╠══════════════════════════════════════════════════════╣${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Context: ${bar} ${pct}%%  ${tokens} tokens$(printf '%*s' $((14 - ${#tokens} - ${#pct})) '')${C_CYAN}║${C_RESET}"
-    echo -e "${C_CYAN}║${C_RESET}  Threshold: ${C_YELLOW}${JICM_THRESHOLD}%${C_RESET}                                      ${C_CYAN}║${C_RESET}"
+    echo -e "${C_CYAN}║${C_RESET}  Trigger: ${C_YELLOW}$((JICM_TOKEN_THRESHOLD / 1000))k tok${C_RESET} (${JICM_THRESHOLD}% fallback)              ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Session: ${uptime}  Comps: ${COMPRESSION_COUNT}  Errs: ${ERROR_COUNT}  Poll: ${ts}  ${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}║${C_RESET}  Last: ${cycle_info}$(printf '%*s' $((42 - ${#LAST_CYCLE_SUMMARY})) '' 2>/dev/null || true)${C_CYAN}║${C_RESET}"
     echo -e "${C_CYAN}╚══════════════════════════════════════════════════════╝${C_RESET}"
@@ -1340,7 +1348,7 @@ main() {
         exit 1
     fi
 
-    log INFO "JICM v7 Watcher started (threshold=${JICM_THRESHOLD}%, interval=${POLL_INTERVAL}s)"
+    log INFO "JICM v7.1.1 Watcher started (token_threshold=${JICM_TOKEN_THRESHOLD}, pct_fallback=${JICM_THRESHOLD}%, interval=${POLL_INTERVAL}s)"
     write_state
 
     local poll_count=0
@@ -1417,8 +1425,17 @@ main() {
             fi
 
             # Threshold check → start JICM cycle
-            if [[ "$pct" -ge "$JICM_THRESHOLD" ]] && [[ "$pct" != "0" ]]; then
-                log JICM "Threshold hit: ${pct}% >= ${JICM_THRESHOLD}%"
+            # Primary: absolute token count (decoupled from window size)
+            # Fallback: percentage (if token count unavailable)
+            local threshold_hit=false
+            if [[ "$tokens" -gt 0 ]] && [[ "$tokens" -ge "$JICM_TOKEN_THRESHOLD" ]]; then
+                threshold_hit=true
+                log JICM "Token threshold hit: ${tokens} >= ${JICM_TOKEN_THRESHOLD}"
+            elif [[ "$tokens" -eq 0 ]] && [[ "$pct" -ge "$JICM_THRESHOLD" ]] && [[ "$pct" != "0" ]]; then
+                threshold_hit=true
+                log JICM "Percentage fallback threshold hit: ${pct}% >= ${JICM_THRESHOLD}%"
+            fi
+            if [[ "$threshold_hit" == "true" ]]; then
                 # Metrics: record cycle start
                 CYCLE_START_TIME=$(date +%s)
                 CYCLE_START_PCT="$pct"

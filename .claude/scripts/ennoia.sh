@@ -406,6 +406,16 @@ EOF
 
 # Check idle-hands for all Claude windows
 check_idle_hands() {
+    # Toggle: .idle-hands-disabled.signal suppresses all idle-hands activity
+    local disable_signal="$PROJECT_DIR/.claude/context/.idle-hands-disabled.signal"
+    if [[ -f "$disable_signal" ]]; then
+        # Log once per 60 cycles (~30 min at 30s refresh) to avoid spam
+        if [[ $(( $(date +%s) % 1800 )) -lt $REFRESH ]]; then
+            echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | idle-hands: DISABLED by signal file" >> "$LOG" 2>/dev/null
+        fi
+        return 0
+    fi
+
     for win in 0; do
         # Only check if the window exists
         if "$TMUX_BIN" list-windows -t jarvis 2>/dev/null | grep -q "^${win}:"; then
