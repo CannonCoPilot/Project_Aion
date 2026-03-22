@@ -118,27 +118,37 @@ agenda:
         category: external
         focus: tool
         rationale: "Claude Code 2.1.x adds LSP tool for go-to-definition, find references, hover documentation. Could enhance code navigation in Jarvis."
-        status: pending
+        status: completed
         created: "2026-01-20T04:30:00.000Z"
+        completed: "2026-03-22T00:00:00.000Z"
         source: "Claude Code 2.1.x release notes"
+        result: ADOPT
+        report: ".claude/reports/research/rd-2026-01-030-lsp-tool.md"
+        action: "pyright installed via npm; pyright-lsp plugin pending /plugin install"
 
       - id: rd-2026-01-031
         topic: "Evaluate background agent support"
         category: external
         focus: pattern
         rationale: "Claude Code 2.1.x supports background agents. Could enable autonomous operations without blocking main session."
-        status: pending
+        status: completed
         created: "2026-01-20T04:30:00.000Z"
+        completed: "2026-03-22T00:00:00.000Z"
         source: "Claude Code 2.1.x release notes"
+        result: ADAPT
+        report: ".claude/reports/research/rd-2026-01-031-background-agents.md"
 
       - id: rd-2026-01-032
         topic: "Evaluate /mcp enable|disable quick toggles"
         category: external
         focus: efficiency
         rationale: "Native CLI command for MCP toggling. Could simplify MCP management compared to current approach."
-        status: pending
+        status: completed
         created: "2026-01-20T04:30:00.000Z"
+        completed: "2026-03-22T00:00:00.000Z"
         source: "Claude Code 2.1.x release notes"
+        result: ADOPT
+        report: ".claude/reports/research/rd-2026-01-032-mcp-toggles.md"
 
 # Completed topics moved to completed section
 completed:
@@ -176,7 +186,7 @@ completed:
     completed: "2026-01-18"
 
 metadata:
-  last_updated: "2026-01-20T04:30:00.000Z"
+  last_updated: "2026-03-22T00:00:00.000Z"
   total_topics: 11
-  pending_count: 3
-  completed_count: 8
+  pending_count: 0
+  completed_count: 11
