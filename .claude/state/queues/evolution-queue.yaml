@@ -438,4 +438,49 @@ proposals:
       - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/storyteller/context.py"
       - ".claude/reports/reflections/reflection-2026-02-22-session32b.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-02-22 (Reflection #15b, Session 32b)
+  - id: REFL-027
+    date: "2026-03-22"
+    source: reflection-16
+    priority: medium
+    status: queued
+    summary: "Three-source DF corroboration protocol"
+    problem: |
+      DF fortress assessments based on single data source (isCitizen() query) produce
+      incomplete or wrong results. Missed 15 non-citizen dwarves, 4 necromancer visitors,
+      and 21 undead. DB denizen registry was stale (visitors departed, spawned units unregistered).
+    proposal: |
+      Before any DF fortress assessment, ALWAYS check all three sources:
+      1. Bridge state file on VM (chronicler-state.json)
+      2. Live DFHack probes (citizen + non-citizen + visitor + undead)
+      3. DB denizen registry (with staleness caveat)
+      Note discrepancies explicitly.
+    implementation:
+      - Add to DF session resume checklist in MEMORY.md
+      - Consider consolidated probe CLI command (chronicler control probe)
+    estimated_effort: low
+    related:
+      - "projects/chronicler/reports/girderpriced-gameplay-plan.md"
+      - "projects/chronicler/reports/game-control-validation-report.md"
+
+  - id: REFL-028
+    date: "2026-03-22"
+    source: reflection-16
+    priority: medium
+    status: queued
+    summary: "JICM checkpoint fortress identity verification"
+    problem: |
+      JICM compressed context carried wrong fortress name (Silveryclasps vs Girderpriced)
+      and wrong task state (Stage 3.1 IN PROGRESS when COMPLETE). LLM enrichment during
+      compression inferred stale task descriptions from prior session data.
+    proposal: |
+      When resuming after JICM clear for DF work, immediately verify game identity via
+      dfhack-run lua before referencing any cached fortress names. Add to DF resume protocol.
+    implementation:
+      - Add verification step to DF session resume in MEMORY.md
+      - Run dfhack-run lua print(active_site.id) as first DF action
+    estimated_effort: low
+    related:
+      - ".claude/scripts/jicm-prep-context.sh"
+      - "projects/chronicler/reports/dev-environment-reference.md"
+
+# Queue maintained by AC-05/AC-06 — Updated 2026-03-22 (Reflection #16, Session 44)

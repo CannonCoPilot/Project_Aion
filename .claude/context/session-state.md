@@ -8,13 +8,38 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stages 3.0-3.4 COMPLETE, ready for Stage 3.5+ or Phase 4
+**Status**: Phase 3 Live Integration — Stages 3.0-3.4 COMPLETE; Girderpriced gameplay plan written
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: def4a98 (session 42 report) [Jarvis repo]
+**Last Commit**: (pending session 44 commit) [Jarvis repo]
 **Last Pushed**: (pending)
 **DwarfCron Last Commit**: d3f4291 (ETL key mismatches + announcements fix)
 **DwarfCron Last Pushed**: (pending)
+**Active fortress**: Girderpriced (site 2212), world Orid Zurko (world_id=3), Y256 Autumn, PAUSED
+
+---
+
+## What Was Accomplished (2026-03-22, Session 44 -- Girderpriced Gameplay Plan)
+
+### Fortress Investigation & Gameplay Plan — COMPLETE
+- **Corrected fortress identity**: JICM context referenced Silveryclasps; actual live game is Girderpriced (site 2212) in Orid Zurko (world_id=3)
+- **Three-source corroboration**: Cross-referenced live DFHack probes, bridge state file (4.7MB chronicler-state.json), and DB denizen registry
+- **Full population discovered**: 13 citizens + 15 non-citizen dwarves + 4 necromancer visitors + 21 raised invasion corpses + 40+ wildlife
+- **Incident analysis**: 50 incidents Y251-Y255 including Y251 tantrum chain and Y252 mass undead event
+- **Gameplay plan written**: `projects/chronicler/reports/girderpriced-gameplay-plan.md` — pure observation plan for fortress collapse
+
+### Key Findings
+- Six necromancers present (Dastot citizen + Geshud resident + 4 visitors)
+- 21 elf/human soldier corpses raised as undead from 2 defeated invasions
+- Many "dead" dwarves walking (died in incidents but now alive — necromantic resurrection or DFHack spawning)
+- Etur Egendatan at stress=100,000 (completely insane, non-citizen)
+- Food: 0 prepared meals, 9 edible items (1 meat + 3 fish + 5 cheese), 0 drink
+- Bridge `food_stocks=3` counts differently from `items.other.FOOD=0`
+
+### Reflection #16
+- 3 corrections from user (wrong fortress, incomplete data, unchecked bridge file)
+- 2 evolution proposals: REFL-027 (three-source corroboration), REFL-028 (JICM fortress identity check)
+- 1 skill candidate: consolidated DF probe command
 
 ---
 
