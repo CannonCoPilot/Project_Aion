@@ -3597,3 +3597,15 @@ The critical crisis has been resolved. From 18 citizens to 1 (death spiral), now
 **README.md -> CLAUDE.md rename**: Claude Code auto-discovers `CLAUDE.md` files in subdirectories and includes them in context when working in those directories. By renaming 56 README files to CLAUDE.md, every subdirectory now has its documentation auto-loaded when Claude navigates there — no explicit `@` import needed. This is the intended Claude Code convention.
 
 **Two-remote DwarfCron setup**: The DwarfCron repo now has `origin` (davidmoneil/DwarfCron — legacy) and `cannoncopilot` (CannonCoPilot/DwarfCron — active). The Dev branch on CannonCoPilot is the development target. The README.md in Jarvis documents both push patterns clearly.
+
+### 2026-03-22 [9c42972c7f67]
+
+**The corrected picture of Girderpriced is far more dramatic than initially described:**
+
+1. **It's a necropolis** — 6 necromancers (2 resident, 4 visiting), 21 raised invasion corpses walking the halls, 15 former citizens who died but walk again. This isn't a starving fortress; it's a city of the dead with a starvation problem.
+
+2. **Three data sources tell different stories** — the DB said 14 dwarf residents + 14 visitors. The live `isCitizen()` said 13 citizens. The bridge said 28 fortress units. The truth required all three: 13 citizens + 15 non-citizen dwarves (undead/insane) + 4 necromancer visitors + 21 raised corpses + wildlife. No single source was sufficient.
+
+3. **The incident history reveals a Y251 tantrum chain** — Cerol drowns Minkot → Minkot kills Lorbam → Lorbam kills Inod → Inod kills Kogan → Kogan kills Geshud. Five dwarves killing each other in sequence. Then a mass undead event in Y252 at tick 154,560 killed 10+ units simultaneously.
+
+4. **The bridge `food_stocks=3` vs live `FOOD=0` discrepancy** — bridge counts edible items broadly (meat, fish, cheese = 9 items), while the FOOD item category only counts prepared meals. Both are right; they measure different things.
