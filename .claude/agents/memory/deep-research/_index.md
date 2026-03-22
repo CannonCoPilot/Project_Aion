@@ -113,3 +113,27 @@
 **Verdict**: Likely to work on Prism, architecturally sound, but untested in the wild
 **Status**: Complete
 **Report**: `.claude/agents/memory/deep-research/dfhack-windows11-arm-2026-02-24.md`
+
+## [aifred-current-state-2026-03-22](aifred-current-state-2026-03-22.md)
+**Date**: 2026-03-22
+**Topic**: AIfred v3.0.0 current state vs Jarvis fork point (2ea4e8b) — architectural comparison, new capabilities, port candidates
+**Key Findings**:
+- AIfred v3.0.0 added 26 commits since Jarvis fork at 2ea4e8b (2026-01-16); primary additions: headless automation, Document Guard V1+V2, TELOS strategic framework, parallel-dev skill, memory-maintenance hook, team-runner multi-agent consensus, testing framework (yamllint/shellcheck/bats)
+- **No autonomic components**: AIfred has no AC-01 through AC-10 equivalent, no Wiggum Loop, no JICM watcher — Jarvis's self-governance is entirely original
+- **Context management gap**: AIfred's pre-compact hook preserves only ~4KB (compaction-essentials.md + session-state.md excerpts) vs Jarvis JICM dual-mechanism 5-15K token restoration
+- **Hook inventory**: 43 active hooks vs Jarvis ~28; AIfred adds document-guard, memory-maintenance, subagent-dispatcher, index-sync, cross-project-commit-tracker, service-registration-detector
+- **Document Guard**: Glob-pattern file protection with structural integrity validation (YAML frontmatter, markdown sections, shebangs), credential scanning, optional Ollama semantic validation, violation tiers (critical/high blocks), override tokens with configurable TTL — Jarvis has no equivalent
+- **TELOS strategic framework**: Quarterly goals, anti-goals, weekly/monthly/quarterly review cadence, "Scaffolding over Model" + "Code Before Prompts" principles — Jarvis has no equivalent
+- **Headless jobs system** (7 registered): cron dispatcher + executor + team-runner.py multi-agent consensus (parallel spawn, unanimous/majority/any-deny-blocks verdict rules, Telegram escalation when consensus fails) — substantial gap vs Jarvis
+- **parallel-dev skill**: git worktrees, fresh-context-loop.sh (--no-session-persistence), genuine parallel multi-agent context isolation — Jarvis has no worktree isolation
+- **memory-maintenance.js**: Entity access tracking per 30-day windows, 90-day review / 180-day archive recommendations, fires every 100 operations — Jarvis has no lifecycle tracking
+- **OpenCode portability**: .opencode/ directory with parallel agent definitions for Claude Code AND OpenCode
+- **AIProjects private hub**: Features originate in private AIProjects, mature for 1 week + generalization, then flow to AIfred distributable — explains why AIfred capabilities lag Jarvis's custom additions
+**Top Port Candidates for Jarvis**:
+1. Document Guard hook — protect Nous files (.claude/context/**) from structural corruption
+2. TELOS framework — formalize Chronicler phase milestones as quarterly goals with anti-goals
+3. memory-maintenance.js pattern — add entity access tracking to Memory MCP agent
+4. team-runner.py consensus — improve AC-03 with parallel agent verdicts
+5. YAML/shell/bats testing framework — add CI validation to Jarvis hooks
+**Status**: Complete
+**Report**: `.claude/agents/memory/deep-research/aifred-current-state-2026-03-22.md`
