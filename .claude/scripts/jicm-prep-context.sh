@@ -566,6 +566,29 @@ else:
 fi
 
 # ============================================================================
+# Step 4b: Validate checkpoint — detect LLM hallucination (REFL-022)
+# ============================================================================
+# Compare checkpoint's "Current Task" against current-plans.md Active section.
+# If the LLM inferred a stale or wrong task, log a self-correction.
+
+SELF_CORRECTIONS="$PROJECT_DIR/.claude/context/psyche/self-knowledge/self-corrections.md"
+CURRENT_PLANS="$PROJECT_DIR/.claude/context/current-plans.md"
+
+if [[ -f "$OUTPUT" ]] && [[ -f "$CURRENT_PLANS" ]]; then
+    # Extract "Current Task" line from checkpoint (case-insensitive)
+    CHECKPOINT_TASK=$(grep -i 'current task\|currently working\|in progress' "$OUTPUT" | head -1 | sed 's/^[#*: -]*//' | tr -d '\n' || true)
+
+    if [[ -n "$CHECKPOINT_TASK" ]] && [[ ${#CHECKPOINT_TASK} -gt 10 ]]; then
+        # Check if checkpoint references something marked COMPLETE in current-plans
+        STALE_MATCH=$(echo "$CHECKPOINT_TASK" | grep -iE 'Stage 3\.[0-3]|CDM Schema Fixes|CDM Expansion|Worldgen Monitoring|Knowledge Horizon' || true)
+        if [[ -n "$STALE_MATCH" ]]; then
+            echo "# $(date -u +%Y-%m-%dT%H:%M:%SZ) | judgment | JICM checkpoint inferred stale task: '${CHECKPOINT_TASK:0:100}' — stages 3.0-3.3 are COMPLETE per current-plans.md | Should derive current task from recent conversation only | Lesson: LLM enrichment continues to hallucinate completed tasks as active" >> "$SELF_CORRECTIONS"
+            echo "WARN: Checkpoint task validation detected stale reference — logged to self-corrections.md" >&2
+        fi
+    fi
+fi
+
+# ============================================================================
 # Step 5: Write completion signal
 # ============================================================================
 
