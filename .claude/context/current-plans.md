@@ -60,7 +60,7 @@ Single source of truth. Consult in this order:
 ## Current Phase: Phase 3 -- Live Integration
 
 **Active PRD**: `projects/chronicler/reports/phases/phase-3-completion-prd.md` (v3.0)
-**Live fortress**: Silveryclasps (Girderpriced), Y250+, 15 citizens, bridge v9
+**Live fortress**: Girderpriced
 
 ### Stage Status
 
