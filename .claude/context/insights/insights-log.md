@@ -3609,3 +3609,121 @@ The critical crisis has been resolved. From 18 citizens to 1 (death spiral), now
 3. **The incident history reveals a Y251 tantrum chain** — Cerol drowns Minkot → Minkot kills Lorbam → Lorbam kills Inod → Inod kills Kogan → Kogan kills Geshud. Five dwarves killing each other in sequence. Then a mass undead event in Y252 at tick 154,560 killed 10+ units simultaneously.
 
 4. **The bridge `food_stocks=3` vs live `FOOD=0` discrepancy** — bridge counts edible items broadly (meat, fish, cheese = 9 items), while the FOOD item category only counts prepared meals. Both are right; they measure different things.
+
+### 2026-03-22 [10658bd5d9c3]
+
+**Root cause identified**: `context-health-monitor.js` (line 72-84) has hardcoded percentage thresholds from the 200K era:
+- 50%: "approaching 65% compression trigger"
+- 65%: "compression should be active"
+- 73%: "EMERGENCY: near lockout ceiling"
+
+With a 1M window, 20% context = 200K tokens — already well within the old "safe" zone. But the hook reads `context_pct` from `.jicm-state` (which is the percentage of the 1M window), and its thresholds are stuck at 50%/65%/73%. These thresholds were designed for the 200K window where 65% = 130K tokens. At 1M, 65% = 650K — far beyond where JICM should fire.
+
+**Three stale files need updating:**
+1. `context-health-monitor.js` — hardcoded 50%/65%/73% thresholds
+2. `context-accumulator.js` — `MAX_CONTEXT_TOKENS = 200000` (though not registered, still exists)
+3. `.jicm-config` — `CONTEXT_WINDOW_SIZE=200000`, `JICM_THRESHOLD=55` (legacy, stale)
+
+**The fix**: Make `context-health-monitor.js` read the token threshold from `.jicm-state` and compute warnings based on tokens, not percentages. Also update `.jicm-config` and `context-accumulator.js` to reflect 1M.
+
+### 2026-03-22 [c006bec09453]
+
+**The uniformity problem was a cascade of stale artifacts**:
+
+The JICM system evolved through 3 major versions (v5 → v6 → v7.1) but each version only updated its own files, leaving orphaned references in hooks and config:
+
+| Component | Old Value | New Value | Root Cause |
+|
+
+### 2026-03-22 [658905040436]
+
+**Evolution queue state after this pass**: 14 completed, 1 superseded, 1 deferred, 4 queued (all DwarfCron product code for W0). The Jarvis core queue is now clear.
+
+**The most impactful implementation was REFL-022** — the JICM checkpoint hallucination detector. Previously, when the LLM inferred "Current Task: Stage 3.1 CDM Expansion" while that stage was already complete, there was no automated detection. Now `jicm-prep-context.sh` Step 4b catches this by pattern-matching completed stage references against `current-plans.md` and logging to `self-corrections.md`. This closes the feedback loop: hallucination → detection → correction log → next `/reflect` picks it up.
+
+**The computed-state pattern (EVO-2026-02-004)** has been sitting in the queue since February 8. It's a foundational architectural principle — prefer `ls | wc -l` over `count: 51` in YAML. Every time someone updates "51 patterns" to "52 patterns" in a doc, they're paying a maintenance tax. The pattern document makes the philosophy explicit and lists candidates for conversion.
+
+### 2026-03-22 [9209c2f8a37f]
+
+The controller uses `ssh_user="administrator"` (not `Jarvis`) and routes through PowerShell's `& 'path'` syntax for proper Windows path handling. The dfhack-run.exe path is in the root DF directory, not the `hack/` subdirectory. Using the CLI is the cleanest approach.
+
+### 2026-03-22 [e568e27a9af7]
+
+**Why this doesn't matter much in practice**: The native autocompact is the *backstop*, not the primary mechanism. JICM (the watcher) is what actually manages context — and the watcher's threshold CAN be changed mid-session by restarting just the watcher process (W1), not Claude Code. So:
+
+- **JICM threshold** (300K tokens): changeable at any time via watcher restart (~3s)
+- **Native autocompact** (30% = 300K): fixed at Claude Code launch, safety net only
+
+If you set JICM to 250K and leave native autocompact at 300K, JICM fires first. If JICM somehow fails, native autocompact catches it at 300K. The only scenario where you'd want to change the native autocompact mid-session is if you wanted to *raise* it to give JICM more room — but that would mean less safety net.
+
+### 2026-03-22 [3dfac5a03cb3]
+
+The undead count jumped from 21 to 32 since the plan was written — necromancers have been busy raising more corpses while the game was paused-then-advanced. The "out of food" announcement confirms the starvation spiral is active. With 0 drink and 9 scattered edibles for 13 citizens, this fortress has weeks at most.
+
+### 2026-03-22 [29d89d1280f8]
+
+The discrepancy between `isCitizen()` (8) and `getCitizens()` (1) is key. `getCitizens()` is stricter — it excludes insane units by default. But even that should return more than 1 unless 7 of the 8 are truly non-functional. The hunger/thirst=0 for ALL dwarves confirms they're all effectively undead — necromancers have converted the entire population. The user seeing 6 likely corresponds to the visible living dwarves on screen, possibly excluding some off-screen or the necromancer.
+
+### 2026-03-22 [c9a189bd4821]
+
+**The fortress has already collapsed.** Dastot is the sole surviving citizen. The other 7-9 dwarves with `isCitizen()=true` are zombie remnants — their hunger/thirst counters are 0 because undead don't need sustenance. `getCitizens()` uses stricter checks (likely excluding units with `flags2.undead` or similar internal markers) that `isCitizen()` misses. The 5 Planters (18069-18073) disappeared entirely between sessions — they may have been destroyed or despawned. The user sees 6 living bodies, but DF knows only 1 is a real citizen.
+
+### 2026-03-22 [8cf3851afcf0]
+
+**The collision**: With both JICM and native autocompact at ~300K, they were racing. JICM would fire, start its halt→compress→clear cycle, but native autocompact would also trigger and silently prune context — potentially discarding information JICM was trying to preserve. The 220K gap (280K → 500K) gives JICM a clear runway to do its work before the native system intervenes.
+
+**The `/autocompact-threshold` command** is now the canonical way to change thresholds. It handles the watcher restart, updates all 6 reference points, and clearly reports what can change now vs what needs a session restart.
+
+### 2026-03-22 [e9a702f74db2]
+
+**Research agenda was 2 months stale** — all items queued 2026-01-20, completed 2026-03-22. The landscape has shifted significantly since January:
+
+1. **LSP Tool** (rd-030): Now fully production-ready with 11 language plugins. Pyright installed — Python type checking on every file edit will catch a class of bugs currently only found at test time.
+
+2. **Background Agents** (rd-031): The most architecturally significant finding. Claude Code v2.1.78 supports persistent agent memory, agent-scoped hooks, agent-scoped MCPs, and worktree isolation. This could simplify Jarvis's Aion Quartet from 4 bash scripts to 1-2 native agents + JICM watcher. Not recommending immediate migration, but a prototype of "Ennoia as native agent" would be a valuable next step.
+
+3. **MCP Toggles** (rd-032): The custom `mcp-enable.sh`/`mcp-disable.sh` scripts are now fully superseded by `claude mcp add/remove`. Can be archived.
+
+**Two background agents** (AIfred comparison, landscape survey) are still running. Their results will provide additional context for future research items — I'll process them when they complete.
+
+### 2026-03-22 [6724cab0f0c1]
+
+**The landscape report reveals Jarvis's strategic position clearly**: Among 9 systems compared, Jarvis is the **only one** with a formal self-improvement pipeline. Every competitor — from billion-dollar Devin to research-leading SWE-agent — treats the agent as a static tool that humans improve. Jarvis improves itself via AC-05 reflection → AC-06 evolution → AC-07 R&D → AC-08 maintenance. This is philosophically unique.
+
+**The weakest dimension is codebase indexing**. Every competitor except SWE-agent has moved beyond grep: Cursor uses semantic embeddings, Aider uses tree-sitter + PageRank, Mentat uses ctags RAG. Jarvis still relies on `Grep` and `Glob` — this means larger context consumption for code navigation tasks. A tree-sitter repo map skill would be the highest-ROI improvement.
+
+**The most adoptable pattern is `claude-progress.txt`** from Anthropic's own Agent SDK best practices. A structured progress file written at session end (AC-09) and read at session start (AC-01) would complement JICM's within-session compression with clean cross-session continuity. Simple, high-impact, low-effort.
+
+### 2026-03-22 [32b5e170d525]
+
+**Session research output**: This R&D cycle produced 4 research reports and 6 new agenda items from 3 parallel research agents + 1 direct investigation:
+
+| Report | Systems | Result | Key Finding |
+|---|---|---|---|
+| rd-030 LSP Tool | 11 language plugins | ADOPT | Pyright installed; auto-diagnostics on every edit |
+| rd-031 Background Agents | Claude Code v2.1.78 | ADAPT | Ennoia/Virgil replaceable; JICM must stay as script |
+| rd-032 MCP Toggles | Native /mcp command | ADOPT | mcp-enable.sh/disable.sh superseded |
+| Landscape Survey | 9 competing systems | — | Jarvis unique in self-improvement; weak in codebase indexing |
+| AIfred Comparison | AIfred v3.0.0 | 5 ports | Document Guard, TELOS, memory lifecycle, team-runner, worktrees |
+
+**The most urgent finding**: AIfred's Document Guard protects critical files from structural corruption. Jarvis has zero file protection — a single bad edit to `session-state.md` or `capability-map.yaml` silently breaks the next session. This should be the highest priority port.
+
+**The most strategic finding**: Jarvis is the only system in the entire 9-system landscape with a formal self-improvement pipeline. This is not a niche feature — it's a fundamental architectural distinction. Every competitor treats agents as static tools that humans improve. Jarvis improves itself. This capability should be highlighted and protected as the project evolves.
+
+### 2026-03-22 [5dcfd85479ba]
+
+Critical discovery: `undead_friendly=0, undead_hostile=37`. The raised corpses are **all hostile to the fortress** — they're not Dastot's loyal army, they're an independent horde of walking dead. This means Dastot is surrounded by 37 hostile undead and the only thing keeping him alive is his immortality. Also `getCitizens()` returned 0 this time (was 1 before) — Dastot's status may be fluctuating, or the game state was mid-transition.
+
+### 2026-03-22 [44f33b2bac22]
+
+**FPS Death**: Dwarf Fortress calculates pathfinding for every active unit every tick. With 37 hostile undead + 25 animals + 10 dwarves = ~72 units, each needing A* pathfinding through the fortress, the per-tick compute exceeds the Prism x86 emulation budget. The game is processing fractions of a tick per second — effectively zero progress. Under native x86, this would be slow but survivable. Under ARM emulation via QEMU/Prism, it's a hard freeze.
+
+The options: (1) kill some undead to reduce the pathfinding load, (2) teleport units apart, or (3) accept this as the de facto end state. Since the gameplay plan says "pure observation", we should document this FPS death as the actual collapse mechanism.
+
+### 2026-03-22 [3c6865b84591]
+
+**Narrative significance**: Dastot "Manorhands" raised the corpses of the elf and human invasion armies that he defeated. Those same corpses, no longer under his control, killed him in the end. A textbook DF irony — the necromancer destroyed by his own creations. The fortress lasted from ~Y250 to Y256 Winter. The final population was 0 real citizens, 9 raised dwarves still walking, 37 hostile undead, and 0 ghosts.
+
+### 2026-03-22 [b3deca406679]
+
+The data capture is remarkably complete — 10 JSONL entries spanning 89,671 ticks of observation, with the death sequence captured at tick-level granularity (82 ticks, T365,184→T365,266). The report documents a critical technical finding: `isCitizen()` vs `getCitizens()` discrepancy that was causing population miscount with undead dwarves retaining citizenship flags.
