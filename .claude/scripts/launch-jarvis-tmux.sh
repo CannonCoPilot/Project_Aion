@@ -316,8 +316,8 @@ export TERM=xterm-256color
 # Context management environment variables
 # - ENABLE_TOOL_SEARCH: Enable MCP tool search to reduce context usage
 # - CLAUDE_CODE_MAX_OUTPUT_TOKENS: Set max output to 20K (affects effective context budget)
-# Note: CLAUDE_AUTOCOMPACT_PCT_OVERRIDE set to 30% (300K at 1M window) as safety net
-#       JICM triggers at 200K tokens (absolute); autocompact is the backstop
+# Note: CLAUDE_AUTOCOMPACT_PCT_OVERRIDE set to 50% (500K at 1M window) as backstop
+#       JICM triggers at 280K tokens (absolute); native autocompact is the safety net
 # Determine session type
 if [[ "$FRESH_MODE" == "true" ]]; then
     JARVIS_SESSION_TYPE="fresh"
@@ -325,7 +325,7 @@ else
     JARVIS_SESSION_TYPE="resume"
 fi
 
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=30 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0"
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
