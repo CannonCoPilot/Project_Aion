@@ -183,6 +183,7 @@ Patterns defining Archon structure and organization.
 |---------|---------|-------------|
 | [archon-architecture-pattern](archon-architecture-pattern.md) | Three-layer Archon structure | Designing new Archons |
 | [organization-pattern](organization-pattern.md) | File placement decisions | Creating new files/directories |
+| [computed-state-pattern](computed-state-pattern.md) | Computed values over stored state | State files, counts, boolean flags |
 
 ---
 

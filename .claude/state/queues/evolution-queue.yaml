@@ -156,7 +156,9 @@ proposals:
     date: "2026-02-08"
     source: reflection
     priority: low
-    status: queued
+    status: completed
+    resolution: "Pattern document created at .claude/context/patterns/computed-state-pattern.md. Covers principle, when to apply, anti-patterns, and candidates for conversion."
+    resolved_date: "2026-03-22"
     summary: "Computed State Over Maintained State Pattern"
     problem: |
       Hardcoded counts (patterns, skills, agents) drift from actual values.
@@ -324,7 +326,9 @@ proposals:
     date: "2026-02-21"
     source: reflection-14
     priority: low
-    status: queued
+    status: completed
+    resolution: "Added Step 4b to jicm-prep-context.sh — validates checkpoint 'Current Task' against current-plans.md. Detects references to completed stages and logs to self-corrections.md."
+    resolved_date: "2026-03-22"
     summary: "Auto-capture self-corrections for JICM hallucination events"
     problem: |
       JICM checkpoint hallucination (PAT-008) was only detected via manual analysis.
@@ -442,7 +446,9 @@ proposals:
     date: "2026-03-22"
     source: reflection-16
     priority: medium
-    status: queued
+    status: completed
+    resolution: "Added three-source corroboration protocol to MEMORY.md DF session protocols section: always check (1) bridge state, (2) live DFHack probes, (3) DB denizen registry."
+    resolved_date: "2026-03-22"
     summary: "Three-source DF corroboration protocol"
     problem: |
       DF fortress assessments based on single data source (isCitizen() query) produce
@@ -466,7 +472,9 @@ proposals:
     date: "2026-03-22"
     source: reflection-16
     priority: medium
-    status: queued
+    status: completed
+    resolution: "Added fortress identity verification step to MEMORY.md DF session protocols: run dfhack-run lua to verify site name after JICM clear before referencing cached names."
+    resolved_date: "2026-03-22"
     summary: "JICM checkpoint fortress identity verification"
     problem: |
       JICM compressed context carried wrong fortress name (Silveryclasps vs Girderpriced)
@@ -483,4 +491,9 @@ proposals:
       - ".claude/scripts/jicm-prep-context.sh"
       - "projects/chronicler/reports/dev-environment-reference.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-03-22 (Reflection #16, Session 44)
+# Queue maintained by AC-05/AC-06 — Updated 2026-03-22 (W5 evolution pass)
+# Remaining queued items (REFL-023..026) are DwarfCron product code — W0:Jarvis scope.
+# REFL-023: XML parser boolean flags (chronicler/ingest/)
+# REFL-024: Storyteller confidence signaling (chronicler/storyteller/)
+# REFL-025: War event enrichment (chronicler/storyteller/context.py)
+# REFL-026: CDM composite PK migration (chronicler/db/schema.sql)
