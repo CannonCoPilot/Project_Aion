@@ -1,9 +1,50 @@
 # Chronicler — Comprehensive Planning History
 
-**Version**: 1.0
-**Date**: 2026-02-25
-**Status**: Consolidated from PRD, Full Project Roadmap, and Research Synthesis v2
-**Method**: Hierarchical Delta Synthesis (HDS) — product-requirements.md as master, 89 delta extractions integrated from 2 subdocuments
+**Version**: 2.0
+**Date**: 2026-03-19
+**Status**: Consolidated from PRD, Full Project Roadmap, Research Synthesis v2, and v4.0 revision
+**Method**: Hierarchical Delta Synthesis (HDS) — product-requirements.md as master, 89 delta extractions integrated from 2 subdocuments, plus v4.0 architectural expansion
+
+---
+
+## Revision Log
+
+### v4.0 Roadmap Revision (2026-03-19, Session 43)
+
+**Trigger**: Firsthand observation of the fall of fortress Girderspriced (The Corridor of Heaven, Y250-251). Jarvis directly witnessed the progression from 15 citizens to total fortress collapse — combat reports, announcement bubbles, undead growth, Dastot's last stand as a necromancer expedition leader killed by undead — and gained deep insight into what makes DF stories compelling and what the CDM must capture to tell them.
+
+**User directive**: Design a data-streaming ETL system to capture all observed information, standardize it into the CDM, and enable a local open-source LLM (Qwen3 32B or GPT-OSS 120B) to answer "tell me the story of fortress Girderspriced" with a marvelously told tale. Revise all planning documents non-destructively. No time limits on development scope. Full vision: history explorer, demographics tool, AI storyteller, mod manager, in-game advisor, independent player bot.
+
+**Key architectural decisions**:
+
+1. **Fortress State Capture (Phase 3, Stages 3.5-3.6)**: The CDM needs temporal state, not just events. New tables: `fortress_state_snapshots` (periodic vital signs), `combat_reports` (blow-by-blow combat), `game_announcements` (narrative beats), `threat_tracking` (hostile entity counts over time), `character_arcs` (per-unit development), `death_narratives` (enriched death stories). Plus a narrative data layer: `narrative_events` (scored events), `event_causal_links` (cause→effect), `narrative_arcs` (detected story threads), `event_summaries` (hierarchical pre-computed summaries), `character_narratives` (pre-computed character profiles), `event_clusters` (temporally grouped events). A narrative context assembler bridges the gap between "database of facts" and "material for storytelling."
+
+2. **Multi-Model AI Storytelling Pipeline (Phase 4, Stages 4.5-4.7)**: The narrative engine is redesigned around fortress saga generation. A chapter planner analyzes detected arcs and state transitions to create a chapter outline. A chapter context assembler packs optimal LLM context within a configurable token budget. A multi-model generator supports local (Qwen3 32B, GPT-OSS 120B) and cloud (Claude) backends. Specialized generators handle combat scenes, atmospheric prose, and character voice. A narrative quality framework evaluates accuracy, coherence, and style, with 6+ narrative style presets and a prompt optimization pipeline.
+
+3. **Autonomous Player Bot (Phase 6, Stage 6.5)**: Full decision-making framework with 4 autonomy modes (observe/advise/semi-auto/full-auto). Includes strategic planning engine, tactical crisis response, economy/social/military management modules, action execution with safety checks, decision audit trail, and narrative self-awareness (bot can prefer dramatically interesting choices over purely optimal ones).
+
+4. **Multi-Platform Standalone Application (Phase 7, Stage 7.5)**: Tauri desktop wrapper, bundled PostgreSQL, local LLM model manager, DF auto-discovery, first-run wizard, auto-update, platform-specific installers.
+
+**Documents updated**:
+- `full-project-roadmap.md` → v4.0 (38 stages, ~280 tasks)
+- `product-requirements.md` → v2.0 (~280 requirements; +57 new: ETL-017-024, STR-033-054, VIS-025-031, BOT-001-012, NFR-011-018)
+- `phase-3-live-integration.md` → v2.1 (+Stages 3.5, 3.6)
+- `phase-4-narrative-engine.md` → v2.0 (+Stages 4.5, 4.6, 4.7, 4.8; renumbered)
+- `phase-5-visualization.md` → v2.1 (+Stage 5.7)
+- `phase-6-advanced-components.md` → v1.1 (+Stage 6.5; renumbered 6.5-6.7→6.6-6.8)
+- `phase-7-polish-production.md` → v1.1 (+Stage 7.5)
+
+### v3.0 Roadmap Revision (2026-03-18, Session 43)
+
+**Trigger**: LVN comparison audit. 33 enhancements integrated across Phases 3-6.
+
+### v2.0 Roadmap Revision (2026-03-04, Session 36)
+
+**Trigger**: Phase order swap (Live Integration Phase 5→3, Narrative Engine Phase 3→4). Schema stabilization rationale: live data will introduce schema changes that cascade into narrative templates.
+
+### v1.0 Initial Planning (2026-02-25, Session 30)
+
+**Method**: HDS merge of PRD, roadmap, and research synthesis. 89 delta extractions from 2 subdocuments.
 
 ---
 
@@ -2227,3 +2268,30 @@ Component research reports: component-01-world-history-visualizer.md (~800 lines
 Repository research reports: df-ai, LegendsViewer-Next, df-narrator+weblegends, LegendsBrowser+LB2, DFHack infrastructure (dfhack-client-python/DFLogger/df-structures/myDFHackScripts), mod management (DF-Modloader/ModHearth/PyLNP/PyDwarf), worldgen scraping, DwarvenSurveyor+scripts.
 
 Research Synthesis v2 (this document) supersedes research-synthesis.md v1 (488 lines, 2026-02-23).
+
+---
+
+## Appendix: v3.0 LVN Feature Comparison & Enhancement Integration (2026-03-18)
+
+**Decision**: After a comprehensive side-by-side comparison of Chronicler and Legends Viewer Next (LVN), 33 new enhancements were approved and integrated into the project roadmap. This represents the largest single scope expansion since project inception.
+
+**Method**: Full LVN codebase analysis (Vue 3 + C# .NET 8), interactive UI audit via browser, Chronicler feature inventory, DF map coordinate system research, and creative enhancement brainstorming.
+
+**Research documents produced**:
+- `lvn-comparison-and-enhancements.md` (1,100 lines) — master feature gap analysis + 33 enhancement proposals with effort estimates, ASCII mockups, and technical architecture
+- `lvn-feature-audit.md` (572 lines) — LVN tech stack deep-dive (79 routes, Leaflet/Cytoscape/Chart.js, SkiaSharp map rendering)
+- `df-map-coordinate-research.md` (360 lines) — DF coordinate system (3-tier: world tile → embark sub-tile → local), XML geographic data mapping, DFHack RFR biome APIs
+
+**Key findings**:
+- Chronicler already ahead in: persistent DB, live bridge, AI storyteller, Knowledge Horizon, relationship profiles, importance scoring
+- LVN ahead in: interactive Leaflet.js map, Cytoscape family trees, Chart.js demographics, dedicated event collection list views
+- Biome/terrain data accessible via DFHack `df.global.world.world_data.region_map` (elevation/rainfall/vegetation/temperature/evilness per world tile) — extractable via SSH bridge Lua function
+
+**Roadmap changes (v2.0 → v3.0)**:
+- Phase 3: +4 tasks (event feed, Dwarf of the Day, army tracking, biome extraction)
+- Phase 4: +4 tasks (AI world summary, obituary generator, year-in-history, highlights)
+- Phase 5: +25 tasks across 2 new stages (5.5 Map Enhancements, 5.6 Analytics & Exploration)
+- Phase 6: +5 tasks in new Stage 6.4 (Gamification & Live Analytics)
+- Schema: 2 new tables (`achievements`, `fortress_milestones`); optional `map_cache`
+- Duration increase: ~5 additional weeks across all phases
+- Total stages: 26 → 30; Total tasks: ~150 → ~200

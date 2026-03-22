@@ -309,6 +309,17 @@ end
 
 **Python-side delta tracking**: Compare skill snapshots between watcher cycles. Generate SKILL_UP events when rating increases.
 
+### Stage 3.1 Additions (LVN v3.0)
+
+The following tasks were added after the Legends Viewer Next feature comparison (2026-03-18). They extend the bridge with live UI features and biome data extraction.
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 3.1.7 | REQ-LVN-LIVE-001 | **Real-time event feed via WebSocket** — eventful subscriptions push events through PerspectiveRenderer to SSE/WS client. Scrolling feed component on fortress page showing live game events (deaths, jobs, invasions) as they occur with rendered narrative text. | Event feed component |
+| 3.1.8 | REQ-LVN-LIVE-002 | **"Dwarf of the Day" highlight** — daily random fortress dwarf selection with mini-biography (name, profession, notable events, skills, mood, relationships). Dashboard widget on fortress overview page. Rotates on each page load or via manual refresh. | Dashboard widget |
+| 3.1.9 | REQ-LVN-LIVE-003 | **Live army tracking placeholder** — INVASION eventful subscription triggers approaching army alert with composition sidebar (race, count, equipment if available). Pre-map placeholder using list/card view; full map integration deferred to Phase 5 Stage 5.5. | Alert system |
+| 3.1.10 | REQ-LVN-MAP-001 | **DFHack biome/terrain data extraction** — new bridge Lua function that dumps `df.global.world.world_data.region_map` per-tile arrays (elevation, rainfall, vegetation, temperature, evilness, drainage, biome) as JSON to HTTP endpoint. Enables proper terrain-colored base maps in Phase 5 instead of region-type proxies. One-time extraction per world (data is static post-worldgen). | Bridge Lua function + JSON endpoint |
+
 ---
 
 ## 3. Stage 3.2: Worldgen Monitoring
@@ -1151,24 +1162,27 @@ CREATE TABLE entity_site_links (
 - [ ] Personality/soul data (50 facets, values, goals, needs, emotions)
 - [ ] Skill progression tracking with delta detection
 
-### Worldgen Monitoring
-- [ ] worldgen-bridge.lua polling every 30 frames
-- [ ] Auto-start via onStateChange
-- [ ] Python snapshot ingester
-- [ ] WebSocket push for live updates
-- [ ] Worldgen dashboard with phase progress
+### Worldgen Monitoring — COMPLETE (2026-03-20)
+- [x] worldgen-bridge.lua polling every 30 frames (258 lines, deployed to VM)
+- [x] Auto-start via onStateChange (registered in dfhack.init)
+- [x] Python snapshot ingester (WorldgenIngester, 142 lines)
+- [x] WebSocket push for live updates (/ws/worldgen endpoint)
+- [x] Worldgen dashboard with phase progress (timeline + live monitor tabs)
+- [ ] Live map preview — DEFERRED to Phase 5 (depends on Phase 4 map rendering; REQ-VIS-008, P3)
 
-### Knowledge Horizon
-- [ ] knowledge_horizon table + visible_* views
-- [ ] KH Phase 1: Denizen registry initialization
-- [ ] KH Phase 2: Individual scope (direct family)
-- [ ] KH Phase 3: Geographic + civilization scope
-- [ ] Event-based revelation rules
-- [ ] CAV-001 organization propagation
-- [ ] CAV-002 nobles always visible
-- [ ] CAV-007 LLM inference restrictions
-- [ ] Storyteller integration (query visible_* views)
-- [ ] Explorer toggle (KH on/off)
+### Knowledge Horizon — COMPLETE (2026-03-20)
+- [x] knowledge_horizon table + visible_* views (6 views: HFs, entities, sites, regions, artifacts, events)
+- [x] KH Phase 1: Denizen registry initialization (23 fortress denizens)
+- [x] KH Phase 2: Individual scope (direct family — mother, father, child, spouse)
+- [x] KH Phase 3: Geographic + civilization scope (40 regions, 55 civ sites, 137 child entities)
+- [x] Event-based revelation rules (invasions, caravans, migrants, artifact discovery)
+- [x] CAV-001 organization propagation (cults/squads/guilds/religion; no civ propagation)
+- [x] CAV-002 nobles always visible (421 position holders)
+- [x] CAV-007 LLM inference restrictions (KH_SYSTEM_PROMPT defined; storyteller integration deferred → Phase 4)
+- [x] Storyteller integration — DEFERRED to Phase 4 Stage 4.3 (KH data layer complete; query integration requires storyteller)
+- [x] Explorer toggle (KH on/off) — nav toggle + search filtering + detail page gate (5 entity types)
+- [x] Watcher integration (event-based KH expansion every 10 cycles)
+- [x] CLI commands (kh init/stats/clear) + API endpoints (/api/kh/status, /api/kh/check)
 
 ### Embedding Pipelines
 - [ ] Entity text extractors for all entity types (HF, site, entity, artifact, event, written content)

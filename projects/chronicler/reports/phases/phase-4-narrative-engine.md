@@ -1,11 +1,11 @@
 # Phase 4: Narrative Engine -- PRD/Roadmap
 
-**Version**: 1.1 (renumbered from Phase 3 → Phase 4 in Roadmap v2.0)
-**Date**: 2026-02-25 (renumbered 2026-03-04)
-**Phase Duration**: 2-4 weeks (reduced; ~60% pre-built during Phase 2)
+**Version**: 2.0 (v4.0 roadmap: AI Storytelling Pipeline redesign)
+**Date**: 2026-03-19 (original 2026-02-25, renumbered 2026-03-04, expanded 2026-03-19)
+**Phase Duration**: 6-9 weeks (expanded: +fortress saga generator, +narrative quality & tuning)
 **Milestone**: M4 -- Storyteller v1.0
-**Entry State**: 114 event templates, death cause renderer (61 mappings), circumstance/reason rendering, monitoring dashboard, keyword-routed storyteller, stable schema from Phase 3
-**Exit State**: Agentic SQL storyteller, 132+ event narrative templates, war/battle/biography narratives, KH-storyteller integration
+**Entry State**: 114 event templates, death cause renderer (61 mappings), circumstance/reason rendering, monitoring dashboard, keyword-routed storyteller, stable schema + narrative data layer from Phase 3
+**Exit State**: Multi-model AI storytelling pipeline, fortress saga generator (multi-chapter narratives), agentic SQL storyteller, 132+ event narrative templates, war/battle/biography/civilization narratives, KH-storyteller integration, narrative quality evaluation, style presets, support for local LLMs (Qwen3 32B, GPT-OSS 120B) and cloud (Claude)
 
 **Parent Document**: Full Project Roadmap v2.0 (full-project-roadmap.md)
 **Dependencies**: Phase 1 (M1), Phase 2 (M2, rendering infrastructure), Phase 3 (M3, stable schema + KH data layer)
@@ -17,7 +17,7 @@
 
 ## 1. Phase Overview
 
-Phase 4 transforms the storyteller from a keyword-routing system into a full narrative engine with two modes: (1) deterministic event templates for the explorer UI and (2) an agentic LLM with autonomous SQL exploration for the chat interface. This phase also builds the comprehensive event narrative template bank covering 132+ event types, the death cause renderer handling 50+ variants, and higher-order narrative generators for wars, biographies, and civilization histories.
+Phase 4 transforms the storyteller from a keyword-routing system into a full multi-model AI storytelling pipeline. The crown jewel: "tell me the story of fortress Girderspriced" generates a marvelously told multi-chapter saga using a local open-source LLM. The phase delivers: (1) deterministic event templates for the explorer UI, (2) an agentic LLM with autonomous SQL exploration for the chat interface, (3) a fortress saga generator that produces multi-chapter narratives from pre-processed narrative data (arcs, clusters, character profiles from Phase 3 Stage 3.6), (4) narrative quality evaluation and style tuning. Supports local LLMs (Qwen3 32B, GPT-OSS 120B) alongside cloud models (Claude).
 
 ### 1.1 Two Rendering Modes
 
@@ -1033,5 +1033,460 @@ class StorytellerMetrics:
 
 ---
 
-*Phase 4: Narrative Engine PRD/Roadmap v1.1 -- 2026-03-04*
-*4 Stages, 40+ Tasks, 4-6 Weeks Estimated*
+## Stage 4.5: AI Narrative Generators (LVN v3.0)
+
+**Duration**: 1-2 weeks
+
+These enhancements leverage the agentic storyteller infrastructure from Stage 4.3 to generate higher-order narratives. Added after the Legends Viewer Next feature comparison (2026-03-18).
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 4.5.1 | REQ-LVN-NAR-001 | **AI-generated world summary** — on world load, aggregate key statistics (total HFs, civs, wars, sites, notable events) and feed to LLM to generate a cached 2-3 paragraph overview. Displayed on world landing page. Cache invalidated on re-ingestion. | World summary generator |
+| 4.5.2 | REQ-LVN-NAR-002 | **Character obituary generator** — newspaper-style obituary for dead HFs. Template-based with optional LLM enhancement: birth/death dates, notable positions, key relationships, cause of death, legacy. Accessible from HF detail page death badge. | Obituary template + generator |
+| 4.5.3 | REQ-LVN-NAR-003 | **"This Year in History" summary** — for any selected year, generate a newspaper-style page showing: major events, notable births/deaths, wars started/ended, sites founded/destroyed, position changes. Template-rendered with optional AI narrative. | Year summary page |
+| 4.5.4 | REQ-LVN-NAR-004 | **Notable events highlight reel** — top 20 most notable events by importance score, rendered with AI prose. Displayed as a "Greatest Moments" page with event cards, context, and drill-down links. | Highlight reel page |
+
+### Definition of Done (Stage 4.5)
+- [ ] World summary generates on world page load (< 5s with LLM, < 500ms cached)
+- [ ] Character obituary accessible from dead HF detail pages
+- [ ] Year-in-history page renders for any valid year with template content
+- [ ] Highlight reel shows top 20 events with drill-down links
+
+---
+
+## Stage 4.6: Fortress Saga Generator (v4.0)
+
+**Duration**: 2-3 weeks
+**Dependencies**: Stage 4.3 (agentic storyteller infra), Phase 3 Stage 3.6 (narrative data layer)
+**Deliverables**: Multi-chapter fortress narrative generation pipeline
+
+> **Design rationale**: This is the crown jewel. Watching Girderspriced fall — population dwindling, undead growing, Dastot's last stand — crystallized what the AI storyteller must become. Not just a Q&A interface, but a saga generator that captures founding, struggle, personality, battle, and fate in a narrative that rivals hand-written fiction. The system consumes pre-processed narrative structures (arcs, clusters, character profiles, state snapshots) from Phase 3 Stage 3.6 and feeds them chapter-by-chapter to a local LLM.
+
+### 6.1 Saga Chapter Planner
+
+**Requirement**: REQ-STR-041
+**Priority**: P1
+
+```python
+class SagaChapterPlanner:
+    """Plans chapter structure for a fortress saga."""
+
+    CHAPTER_TYPES = [
+        'founding',      # The embark and early days
+        'early_days',    # Establishing the fortress
+        'first_crisis',  # First major challenge
+        'golden_age',    # Peak prosperity period
+        'challenges',    # Multiple intermediate crises
+        'decline',       # Things going wrong
+        'last_stand',    # Final battle or crisis
+        'fall',          # Fortress loss (if applicable)
+        'epilogue',      # Legacy and aftermath
+    ]
+
+    async def plan_saga(self, world_id: int, fortress_id: int,
+                         token_budget_per_chapter: int = 24000) -> list[SagaChapter]:
+        """Generate chapter outline from narrative arcs and state snapshots."""
+        # Load detected arcs
+        arcs = await self.load_narrative_arcs(world_id)
+        # Load state transitions (population milestones, threat spikes)
+        transitions = await self.load_state_transitions(world_id)
+        # Load character profiles for key figures
+        characters = await self.load_key_characters(world_id, top_n=10)
+
+        chapters = []
+        for chapter_type in self.CHAPTER_TYPES:
+            relevant_arcs = self._match_arcs_to_chapter(arcs, chapter_type)
+            if not relevant_arcs and chapter_type not in ('founding', 'epilogue'):
+                continue  # Skip chapters with no content
+
+            chapters.append(SagaChapter(
+                chapter_type=chapter_type,
+                title=None,  # LLM-generated later
+                focus_arcs=relevant_arcs,
+                key_characters=self._select_chapter_characters(characters, relevant_arcs),
+                time_range=self._compute_time_range(relevant_arcs, transitions),
+                narrative_tone=self._infer_tone(chapter_type, relevant_arcs),
+                token_budget=token_budget_per_chapter,
+            ))
+
+        return chapters
+```
+
+### 6.2 Multi-Model Narrative Generator
+
+**Requirement**: REQ-STR-043
+**Priority**: P1
+
+```python
+class NarrativeGenerator:
+    """Generate narrative text against configurable LLM backends."""
+
+    MODEL_CONFIGS = {
+        'qwen3-32b': {
+            'provider': 'ollama',
+            'model': 'qwen3:32b',
+            'context_window': 128000,
+            'recommended_budget': 24000,
+            'strengths': 'Long context, good creative writing',
+        },
+        'gpt-oss-120b': {
+            'provider': 'litellm',
+            'model': 'ollama/gpt-oss:120b',
+            'context_window': 64000,
+            'recommended_budget': 16000,
+            'strengths': 'Strong reasoning, detailed prose',
+        },
+        'claude-sonnet': {
+            'provider': 'anthropic',
+            'model': 'claude-sonnet-4-6',
+            'context_window': 200000,
+            'recommended_budget': 48000,
+            'strengths': 'Highest quality, excellent narrative coherence',
+        },
+    }
+
+    async def generate_chapter(self, chapter: SagaChapter,
+                                context: str, style: str,
+                                model: str = 'qwen3-32b') -> AsyncIterator[str]:
+        """Generate a saga chapter, streaming tokens."""
+        config = self.MODEL_CONFIGS[model]
+        prompt = self._build_chapter_prompt(chapter, context, style)
+
+        async for token in self._stream_llm(config, prompt):
+            yield token
+
+    def _build_chapter_prompt(self, chapter, context, style) -> list[dict]:
+        """Build LLM messages for chapter generation."""
+        style_preset = NARRATIVE_STYLE_PRESETS[style]
+
+        return [
+            {"role": "system", "content": f"""You are the Chronicler, a master storyteller
+recording the history of a Dwarf Fortress world.
+
+{style_preset.system_instructions}
+
+You are writing Chapter {chapter.index}: "{chapter.title}" of the saga of this fortress.
+Narrative tone for this chapter: {chapter.narrative_tone}
+Time period: Year {chapter.time_range.start_year} to Year {chapter.time_range.end_year}
+
+IMPORTANT: Only include facts present in the context below. Do not invent events,
+characters, or details not supported by the data. If information is sparse, let the
+narrative reflect that — silence and mystery are powerful storytelling tools."""},
+            {"role": "user", "content": f"""Write this chapter using the following
+fortress data:
+
+{context}
+
+Key characters in this chapter:
+{chapter.character_summaries}
+
+Write a compelling, detailed narrative chapter. Include specific names, dates, and
+details from the data. Use vivid prose appropriate to the {style} style."""}
+        ]
+```
+
+### 6.3 Combat Scene Generator
+
+**Requirement**: REQ-STR-045
+**Priority**: P2
+
+```python
+class CombatSceneGenerator:
+    """Transform combat report chains into vivid prose."""
+
+    async def generate_combat_scene(self, combat_reports: list[dict],
+                                      context: dict, model: str) -> str:
+        """Generate combat prose from structured combat reports."""
+        # Build combat timeline
+        timeline = self._build_combat_timeline(combat_reports)
+
+        prompt = f"""Transform these combat reports into vivid narrative prose.
+Maintain chronological order. Describe the flow of combat — momentum shifts,
+critical blows, the final strike. Use the weapon and body part details for
+visceral description.
+
+Combat Reports:
+{self._format_reports(timeline)}
+
+Combatants:
+- Attacker: {context.get('attacker_name', 'Unknown')} ({context.get('attacker_race', '')})
+- Defender: {context.get('defender_name', 'Unknown')} ({context.get('defender_race', '')})
+
+Write 2-4 paragraphs of vivid combat prose."""
+
+        return await self._generate(prompt, model)
+
+    def _format_reports(self, timeline: list[dict]) -> str:
+        """Format combat reports for LLM consumption."""
+        lines = []
+        for report in timeline:
+            lines.append(
+                f"Tick {report['tick']}: {report['attacker']} "
+                f"{report['attack_type']} {report['defender']} "
+                f"in the {report['body_part']} with {report['weapon']}. "
+                f"Result: {report['result_text']}"
+            )
+        return '\n'.join(lines)
+```
+
+### 6.4 Atmospheric Prose Generator
+
+**Requirement**: REQ-STR-046
+**Priority**: P2
+
+```python
+class AtmosphericGenerator:
+    """Generate scene-setting prose from fortress state + environment."""
+
+    async def generate_scene_setting(self, state_snapshot: dict,
+                                       environmental: dict,
+                                       recent_events: list[dict],
+                                       model: str) -> str:
+        """Generate atmospheric opening paragraph for a chapter."""
+        prompt = f"""Write a single atmospheric paragraph setting the scene for
+a Dwarf Fortress narrative chapter.
+
+Environmental conditions:
+- Season: {environmental.get('season', 'Unknown')}
+- Year: {state_snapshot.get('year', '?')}
+
+Fortress state:
+- Population: {state_snapshot.get('population', '?')} citizens remaining
+- Military: {state_snapshot.get('military_count', '?')} soldiers
+- Food stores: {state_snapshot.get('food_stocks', '?')} units
+- Threats outside: {state_snapshot.get('threats', {}).get('hostile_count', 0)} hostile entities
+  ({state_snapshot.get('threats', {}).get('undead_count', 0)} undead)
+
+Recent notable events:
+{chr(10).join(f'- {e.get("summary", "")}' for e in recent_events[:5])}
+
+Write vivid, evocative prose. No more than 3-4 sentences. Set the mood."""
+
+        return await self._generate(prompt, model)
+```
+
+### 6.5 Saga Compilation
+
+**Requirement**: REQ-STR-047
+**Priority**: P2
+
+Assembles generated chapters into a complete saga document with:
+- Table of contents with chapter titles and time ranges
+- Character index (all named characters with links to entity detail pages)
+- Timeline sidebar (key dates alongside chapter navigation)
+- Cross-links to entity detail pages (entity names are clickable)
+- Output formats: HTML (for saga reader), Markdown (for export), PDF (via WeasyPrint)
+
+---
+
+## Stage 4.7: Narrative Quality & Tuning (v4.0)
+
+**Duration**: 1-2 weeks
+**Dependencies**: Stage 4.6 (saga generator to evaluate)
+**Deliverables**: Quality evaluation framework, style presets, prompt optimization, feedback system
+
+### 7.1 Narrative Style Presets
+
+**Requirement**: REQ-STR-051
+**Priority**: P2
+
+```python
+NARRATIVE_STYLE_PRESETS = {
+    'epic_saga': StylePreset(
+        name='Epic Saga',
+        description='Tolkien-esque high fantasy prose',
+        system_instructions="""Write in the style of a grand epic saga. Use elevated
+language, dramatic pacing, and sweeping descriptions. Treat dwarves as heroic figures
+in a mythic narrative. Deaths should be dramatic, battles should be sweeping, and
+quiet moments should carry weight.""",
+        vocabulary_hints=['thus', 'ere', 'fell', 'smote', 'wrought'],
+    ),
+    'war_correspondent': StylePreset(
+        name='War Correspondent',
+        description='Journalistic, factual, AP-style reporting',
+        system_instructions="""Write as a war correspondent embedded in the fortress.
+Use clear, factual prose with specific numbers and dates. Quote announcements directly.
+Report on casualties with clinical precision but human empathy. Include logistics
+(food stores, military strength) as context for events.""",
+    ),
+    'personal_diary': StylePreset(
+        name='Personal Diary',
+        description='First-person journal entries from a fortress dwarf',
+        system_instructions="""Write as diary entries from a dwarf living in the fortress.
+Use first-person perspective, colloquial language, personal observations. Express
+emotions about events. Worry about food, complain about the weather, mourn the fallen.
+Include mundane details alongside dramatic events.""",
+    ),
+    'academic_history': StylePreset(
+        name='Academic History',
+        description='Dry, scholarly historical analysis',
+        system_instructions="""Write as a scholarly historian analyzing the fortress.
+Use formal academic prose, cite specific dates and figures, discuss causes and effects.
+Maintain analytical distance. Use footnote-style asides for speculation.""",
+    ),
+    'bardic_tale': StylePreset(
+        name='Bardic Tale',
+        description='Oral tradition storytelling with rhythm and repetition',
+        system_instructions="""Write as a bard telling the tale around a fire. Use
+rhythmic prose, repetition for emphasis, direct dialogue, audience address ("and
+there stood Dastot, mark you well"). Make heroes larger than life and villains
+terrifying. Build to dramatic climaxes.""",
+    ),
+    'dark_comedy': StylePreset(
+        name='Dark Comedy',
+        description='Ironic, absurdist, gallows humor',
+        system_instructions="""Write with dry, ironic humor in the style of Pratchett
+or Adams. Find the absurdity in fortress life. Zombie cats attacking kittens is funny.
+A necromancer killed by his own undead is darkly ironic. Treat tragedy with understated
+wit. The fortress is simultaneously heroic and ridiculous.""",
+    ),
+}
+```
+
+### 7.2 Factual Accuracy Checker
+
+**Requirement**: REQ-STR-049
+**Priority**: P2
+
+```python
+class FactualAccuracyChecker:
+    """Validate generated narratives against CDM data."""
+
+    async def check(self, narrative_text: str, world_id: int) -> AccuracyReport:
+        """Check narrative for factual accuracy."""
+        # Extract entity mentions via NER or regex
+        mentions = self._extract_entity_mentions(narrative_text)
+
+        verified = 0
+        hallucinated = 0
+        unverifiable = 0
+
+        for mention in mentions:
+            if mention.type == 'character':
+                exists = await self._verify_character(mention.name, world_id)
+            elif mention.type == 'site':
+                exists = await self._verify_site(mention.name, world_id)
+            elif mention.type == 'date':
+                exists = await self._verify_date(mention.value, world_id)
+            else:
+                unverifiable += 1
+                continue
+
+            if exists:
+                verified += 1
+            else:
+                hallucinated += 1
+
+        accuracy = verified / max(verified + hallucinated, 1) * 100
+        return AccuracyReport(
+            accuracy_score=accuracy,
+            verified_count=verified,
+            hallucinated_count=hallucinated,
+            unverifiable_count=unverifiable,
+            hallucinated_mentions=[m for m in mentions if not m.verified],
+        )
+```
+
+### 7.3 Narrative Caching
+
+**Requirement**: REQ-STR-054
+**Priority**: P2
+
+```sql
+CREATE TABLE generated_narratives (
+    id SERIAL PRIMARY KEY,
+    world_id INTEGER REFERENCES worlds(id),
+    scope TEXT NOT NULL,          -- 'fortress', 'character', 'war', 'year', 'world'
+    scope_id TEXT,                -- entity identifier within scope
+    style TEXT NOT NULL,          -- preset name
+    model TEXT NOT NULL,          -- model used for generation
+    narrative_text TEXT NOT NULL,
+    quality_score FLOAT,          -- composite of accuracy + coherence
+    version INTEGER DEFAULT 1,
+    data_hash TEXT,               -- hash of input data; re-generate when changed
+    generated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(world_id, scope, scope_id, style, model, version)
+);
+
+CREATE INDEX idx_narratives_lookup ON generated_narratives(world_id, scope, scope_id, style);
+```
+
+---
+
+## Stage 4.8: Monitoring Enhancements
+
+**Duration**: 0.5 weeks
+
+**Pre-completed work** (from Phase 2):
+- [x] Monitoring dashboard (`/monitoring`) with interaction list, summary stats, detail view
+- [x] Per-interaction logging (`storyteller_log` table)
+
+**Remaining work**:
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 4.8.1 | STR-028 | Enhance logging with four-phase latency tracking (context, TTFT, LLM, SSE) | Logging improvements |
+| 4.8.2 | STR-029 | Add agentic-mode metrics (SQL query count, SQL total time, per-query stats) | Dashboard enhancements |
+| 4.8.3 | STR-055 | Add saga generation metrics (chapters generated, avg quality score, model comparison, token usage) | Saga monitoring |
+| 4.8.4 | STR-056 | Add narrative quality dashboard (accuracy trends, coherence, user feedback, prompt performance) | Quality monitoring |
+
+---
+
+## 8. Definition of Done (M4 Milestone)
+
+### Event Templates
+- [ ] Template system architecture implemented
+- [ ] 132+ event types have dedicated templates
+- [ ] Death cause renderer handles 50+ variants
+- [ ] Fallback template for remaining event types
+- [ ] Perspective-aware rendering integrated
+- [ ] Temporal context rendering works
+- [ ] Circumstance/reason rendering works
+
+### Narrative Generators
+- [ ] War narrative generation
+- [ ] Battle detail rendering
+- [ ] Civilization rise-and-fall narratives
+- [ ] Character biography generation
+- [ ] Age at death with fractions
+
+### Agentic Storyteller
+- [ ] Annotated schema summary generated
+- [ ] SQL tool definition and safety layer
+- [ ] Multi-round SQL exploration (up to 5 rounds)
+- [ ] SSE stream filtering (tool calls hidden)
+- [ ] Mode toggle (keyword/agentic/hybrid)
+- [ ] Template vs. LLM hybrid rendering
+
+### AI Narrative Generators (LVN)
+- [ ] World summary generates on world page load
+- [ ] Character obituary accessible from dead HF detail pages
+- [ ] Year-in-history page renders for any valid year
+- [ ] Highlight reel shows top 20 events
+
+### Fortress Saga Generator (v4.0)
+- [ ] Saga chapter planner generates coherent chapter outline from detected arcs
+- [ ] Multi-model generator produces narrative against Qwen3 32B and at least one other model
+- [ ] Combat scene generator transforms combat reports into vivid prose
+- [ ] Atmospheric prose generator creates scene-setting from state snapshots
+- [ ] Saga compilation produces HTML with ToC, character index, and entity links
+- [ ] Incremental saga updates detect chapter-worthy events and generate new chapters
+- [ ] Full fortress saga generates end-to-end (plan → chapters → compile) in < 10 minutes
+
+### Narrative Quality & Tuning (v4.0)
+- [ ] 6+ narrative style presets available with distinct voice
+- [ ] Factual accuracy checker validates entity names and dates against CDM
+- [ ] Narrative caching prevents re-generation of unchanged content
+- [ ] User feedback (thumbs up/down) collected and aggregated
+- [ ] Prompt optimization framework can compare prompt variants
+
+### Observability
+- [ ] Four-phase latency logging
+- [ ] Monitoring dashboard with auto-refresh
+- [ ] Saga generation metrics tracked
+- [ ] Narrative quality dashboard operational
+
+---
+
+*Phase 4: Narrative Engine PRD/Roadmap v2.0 -- 2026-03-19*
+*8 Stages, 65+ Tasks, 6-9 Weeks Estimated (v4.0: AI Storytelling Pipeline + Fortress Saga Generator + Narrative Quality & Tuning)*

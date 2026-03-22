@@ -45,7 +45,7 @@ EXPORTS_DIR="$PROJECT_DIR/.claude/exports"
 
 # Thresholds and timing
 # Primary trigger: absolute token count (decoupled from window size)
-JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-200000}
+JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-300000}
 # Legacy percentage trigger (fallback; only used if token count unavailable)
 JICM_THRESHOLD=${JICM_THRESHOLD:-25}
 POLL_INTERVAL=${POLL_INTERVAL:-5}
