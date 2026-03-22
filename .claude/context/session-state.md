@@ -8,13 +8,42 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stage 3.1 fully operational, all ETL verified end-to-end
+**Status**: Phase 3 Live Integration — Stages 3.0-3.4 COMPLETE, ready for Stage 3.5+ or Phase 4
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: def4a98 (session 42 report) [Jarvis repo]
 **Last Pushed**: (pending)
 **DwarfCron Last Commit**: d3f4291 (ETL key mismatches + announcements fix)
 **DwarfCron Last Pushed**: (pending)
+
+---
+
+## What Was Accomplished (2026-03-20, Session 43 -- Stage 3.4 Embedding Pipelines)
+
+### Stage 3.4: Embedding Pipelines — COMPLETE
+
+**New files (5)**:
+- `chronicler/embedding/__init__.py` — package init
+- `chronicler/embedding/extractors.py` — 9 entity text extractors + BATCH/LIVE registries
+- `chronicler/embedding/pipeline.py` — chunking, MLX client, batch/live embed, HNSW index
+- `chronicler/embedding/search.py` — hybrid_search (vector+ILIKE with RRF), semantic_search
+- `tests/test_embedding.py` — 20 unit tests (all passing)
+
+**Modified files (4)**:
+- `chronicler/db/schema.sql` — embeddings: world_id column, FK, UNIQUE index, hash index
+- `chronicler/cli.py` — `embed run` + `embed status` command group
+- `chronicler/dfhack/watcher.py` — step 6b3 live embedding hook + `_embed_cycle_changes()`
+- `chronicler/storyteller/narrative_context.py` — `_gather_embedding_context()` + integration
+
+**Validation results**: 8/8 checks pass (schema, batch pipeline, dedup, force re-embed, hybrid search, narrative context, unit tests, CLI commands)
+
+**Key findings during implementation**:
+- Art_forms have composite keys (world_id, id, form_type) — 3 records per id. Fixed with ROW_NUMBER()
+- pgvector IVFFlat/HNSW indexes cap at 2000 dims; Qwen3 is 2560. Using sequential scan (fast enough for <1M vectors)
+- Switched per-row execute → executemany for batch upserts
+- Initial batch: 14K embeddings (art_form 869, entity 4847, site 2154, hf 6139). Full batch running in background
+
+**DB state**: 14,009 embeddings in PostgreSQL, world_id=1. Full batch (48K HF + 8K artifact + 37K written_content + 75K events) in progress
 
 ---
 
@@ -282,9 +311,9 @@ Previous session histories have been archived. For full details, see:
 - **Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
 - **Game Control & Streaming — COMPLETE** (2026-03-17, Session 40): controller, bridge deployment, SSH data pipeline, streaming orchestrator
 - **Stage 3.1: CDM Expansion — COMPLETE** (2026-03-17, Session 42): 7 new tables, bridge v9, 14 ETL functions, all verified end-to-end including season boundary capture
-- Stage 3.2: Worldgen Monitoring
-- Stage 3.3: Knowledge Horizon
-- Stage 3.4: Embedding Pipelines
+- **Stage 3.2: Worldgen Monitoring — COMPLETE** (previously completed)
+- **Stage 3.3: Knowledge Horizon — COMPLETE** (previously completed)
+- **Stage 3.4: Embedding Pipelines — COMPLETE** (2026-03-20, Session 43): 5 new files, batch+live pipelines, hybrid search, narrative context integration, 20/20 tests
 
 **Live fortress**: Silveryclasps, Y250, 15 citizens, bridge v9 deployed, CDM expansion verified end-to-end
 
@@ -299,7 +328,7 @@ Previous session histories have been archived. For full details, see:
 **Branch**: Project_Aion
 **Baseline**: main (read-only AIfred baseline at 2ea4e8b)
 **MCPs**: 7 active
-**JICM threshold**: 200K tokens (25% fallback)
+**JICM threshold**: 300K tokens (25% fallback)
 **VM SSH**: DF-Windows at 192.168.64.3, key ~/.ssh/df-vm
 
 ---

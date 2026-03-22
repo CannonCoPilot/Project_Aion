@@ -686,24 +686,68 @@ On fortress loss, generate an LLM narrative from accumulated events, population 
 
 ---
 
-## 5. Stages 6.4-6.6: Advanced/Deferred Features (P4)
+## 5. Stage 6.4: Gamification & Live Analytics (LVN v3.0)
+
+**Duration**: 2-3 weeks
+
+These enhancements add gamification elements and deeper analytics for live fortress play, leveraging the bridge infrastructure from Phase 3 and visualization capabilities from Phase 5. Added after the Legends Viewer Next feature comparison (2026-03-18).
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 6.4.1 | REQ-LVN-GAME-001 | **Fortress health dashboard** — vital signs page: population trends, food/drink stocks, military readiness, happiness distribution, wealth. Color-coded (green/yellow/red) with sparkline trends. Live bridge polling. | Dashboard page |
+| 6.4.2 | REQ-LVN-GAME-002 | **Achievement system** — world-level achievements with badges and pattern detection ("First Blood", "Master Smith", "100 Population"). New `achievements` table. Notification toast + trophy case page. | Achievement engine |
+| 6.4.3 | REQ-LVN-GAME-003 | **Fortress milestones tracker** — first caravan, first siege, first noble, population milestones (10/25/50/100/200), first artifact. New `fortress_milestones` table. Milestone timeline on overview. | Milestone tracker |
+| 6.4.4 | REQ-LVN-MAP-009 | **Trade route inference visualization** — trade/caravan event analysis, map overlay lines connecting trading civ capitals. Line thickness ∝ trade frequency. | Map layer + analytics |
+| 6.4.5 | REQ-LVN-GAME-004 | **Prediction engine** — forecast siege probability, noble arrival timing, megabeast likelihood from historical patterns + fortress metrics. Probability cards on dashboard. | Prediction module |
+
+### Schema Changes (Stage 6.4)
+
+```sql
+CREATE TABLE achievements (
+    id SERIAL PRIMARY KEY,
+    world_id INTEGER REFERENCES worlds(id),
+    achievement_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    description TEXT,
+    icon TEXT,
+    earned_year INTEGER,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(world_id, achievement_id)
+);
+
+CREATE TABLE fortress_milestones (
+    id SERIAL PRIMARY KEY,
+    world_id INTEGER REFERENCES worlds(id),
+    milestone_type TEXT NOT NULL,
+    achieved_year INTEGER,
+    achieved_tick INTEGER,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(world_id, milestone_type)
+);
+```
+
+---
+
+## 6. Stages 6.5-6.7: Advanced/Deferred Features (P4)
 
 These stages contain stretch features that are not required for M6 milestone completion.
 
-### Stage 6.4: Advanced Mod Management
+### Stage 6.5: Advanced Mod Management
 - Level 2 conflict detection (object ID overlap)
 - Raw file tokenizer (state machine parser)
 - Three-way file merge (PyLNP algorithm)
 - Full raw compiler (EDIT/SELECT/CUT processing)
 - Steam Workshop integration
 
-### Stage 6.5: Advanced Labor Management
+### Stage 6.6: Advanced Labor Management
 - Skill-based labor auto-assignment
 - Labor optimization engine (constraint satisfaction)
 - AI-powered labor advisor (personality + skills + needs -> recommendations)
 - Stress trend analysis with prediction
 
-### Stage 6.6: Advanced Advisor
+### Stage 6.7: Advanced Advisor
 - Construction planning (22 room types, 4-state machine)
 - Trade cycle management (9-step process)
 - Embark site evaluation (water, metal, soil, trees, neighbors)

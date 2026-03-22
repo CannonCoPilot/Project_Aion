@@ -2,26 +2,40 @@
 
 ## Project Vision
 
-**Chronicler** is a standalone, installable, multi-platform desktop application that runs alongside a player's local Dwarf Fortress game on **Windows**, **Linux**, or **macOS** (via emulators like UTM). It is a living record and AI storyteller that transforms raw game data into browsable, cross-linked, narratively rich histories. The ultimate deliverable is a packaged application the User can run hands-off with no special handling by Jarvis.
+**Chronicler** is a standalone, installable, multi-platform desktop application that runs alongside a player's local Dwarf Fortress game on **Windows**, **Linux**, or **macOS** (via emulators like UTM). It is a living record and AI storyteller that transforms raw game data into browsable, cross-linked, narratively rich histories -- plus fortress management, advising, and autonomous play. The ultimate deliverable is a packaged application the User can run hands-off.
 
 **Product Code**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/`
 **Dev Artifacts**: `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/`
+
+### Runtime
+- **Web UI**: `http://localhost:8080/` (ALWAYS use `--reload` flag for auto-reload on code changes)
+- **Start command**: `cd /Users/nathanielcannon/Claude/Projects/DwarfCron && .venv/bin/chronicler serve --reload`
+- **CLI**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/.venv/bin/chronicler`
+
+### Database
+- **Host**: `localhost:5432`
+- **Database**: `chronicler`
+- **User**: `jarvis`
+- **Password**: `OSDbeydP6TOBGoJUym6rTBfULKJYqqPE`
+- **DSN**: `postgresql://jarvis:OSDbeydP6TOBGoJUym6rTBfULKJYqqPE@localhost:5432/chronicler`
+- **Config**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/config.py`
 
 ---
 
 ## Canonical Planning Documents
 
-Single source of truth for all Chronicler development. Consult in this order:
+Single source of truth. Consult in this order:
 
 | Document | Path | Purpose |
 |----------|------|---------|
-| **Product Requirements** | `projects/chronicler/reports/product-requirements.md` | ~200+ requirements, REQ-IDs, priorities, DFHack reference |
-| **Full Project Roadmap** | `projects/chronicler/reports/full-project-roadmap.md` | 7 phases, 26 stages, ~150 tasks, milestones, risk register |
-| **Phase PRDs** (7 docs) | `projects/chronicler/reports/phases/phase-{1-7}-*.md` | Detailed per-phase PRD/Roadmap with code examples |
-| **Research Synthesis** | `projects/chronicler/reports/research-synthesis-v2.md` | All repo research, event taxonomy, implementation patterns |
+| **Product Requirements** | `projects/chronicler/reports/product-requirements.md` | ~200+ REQ-IDs, priorities, DFHack ref |
+| **Full Project Roadmap** | `projects/chronicler/reports/full-project-roadmap.md` | 7 phases, 38 stages, ~280 tasks (v4.0) |
+| **Phase 3 Completion PRD** | `projects/chronicler/reports/phases/phase-3-completion-prd.md` | **ACTIVE** -- v3.0, Stages 3.4-3.6 remaining |
+| **Phase PRDs** (7 docs) | `projects/chronicler/reports/phases/phase-{1-7}-*.md` | Per-phase PRD/Roadmap with code examples |
+| **Research Synthesis** | `projects/chronicler/reports/research-synthesis-v2.md` | All repo research, event taxonomy, patterns |
 | **Planning History** | `projects/chronicler/reports/planning-history.md` | Consolidated history of all design decisions |
-| **Dev Environment** | `projects/chronicler/reports/dev-environment-reference.md` | UTM VM, DFHack, SSH, deployment procedures |
-| **Skill Review** | `projects/chronicler/reports/skill-review.md` | Relevant Jarvis skills and patterns for this project |
+| **Dev Environment** | `projects/chronicler/reports/dev-environment-reference.md` | UTM VM, DFHack, SSH, deploy procedures |
+| **Skill Review** | `projects/chronicler/reports/skill-review.md` | Relevant Jarvis skills for this project |
 
 ---
 
@@ -29,123 +43,90 @@ Single source of truth for all Chronicler development. Consult in this order:
 
 | Phase | Name | Status | Milestone |
 |-------|------|--------|-----------|
-| 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 -- Data Complete |
-| 2 | Explorer Core | **COMPLETE** (50/50 DoD, 2026-03-03) — population UI validation pending | M2 -- Explorer Complete |
-| **3** | **Live Integration** | **BLOCKED** (Stage 3.0 complete; 3.1+ awaiting Phase 2 sign-off) | **M3 -- Live Complete** |
-| 4 | Narrative Engine | Pending (~60% pre-built) | M4 -- Storyteller v1.0 |
-| 5 | Visualization | Pending | M5 -- Visualization Complete |
-| 6 | Advanced Components | Pending | M6 -- Full Suite |
-| 7 | Polish & Production | Pending | M7 -- Release |
+| 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 |
+| 2 | Explorer Core | **COMPLETE** (50/50 DoD, 2026-03-03) | M2 |
+| **3** | **Live Integration** | **IN PROGRESS** -- Stages 3.0-3.3 complete; 3.4-3.6 remaining | **M3** |
+| 4 | Narrative Engine | Pending (~60% pre-built) | M4 |
+| 5 | Visualization | Pending (+LVN: 22 enhancements) | M5 |
+| 6 | Advanced Components | Pending (+LVN: achievements, prediction, bot) | M6 |
+| 7 | Polish & Production | Pending | M7 |
 
-> **v2.0 Reorder (2026-03-04)**: Live Integration moved from Phase 5 → Phase 3 to stabilize schema before Narrative Engine. Narrative Engine moved to Phase 4, Visualization to Phase 5. See `full-project-roadmap.md` v2.0 revision notes.
-
-### Phase 1 Summary (COMPLETE)
-
-- 39 CDM tables, 19 XML sections parsed, 10-step post-parse pipeline
-- 1.94M records for test world "Tar Thran" (250 years, post-embark)
-- 190 unit tests, 0% referential integrity issues
-- Standalone CLI: `chronicler` with 11 commands
-- Reports: `phase-1-completion-report.md`, `phase-1-validation-walkthrough.md`
-
-### Phase 2 Summary (DoD COMPLETE — population UI validation pending)
-
-- 17 entity detail pages, global search with autocomplete, hover popovers
-- 114 event templates, death cause renderer, circumstance/reason rendering
-- Monitoring dashboard, query export (CSV/JSON), race pill filtering
-- 50/50 validation checks (30 DoD + 13 enhancements + 7 regression)
-- Reports: `phase-2-completion-report.md`, `phase-2-validation-walkthrough.md`
-
-**Post-DoD Population UI Work (Sessions 37-38)**:
-- 17 UI fixes: SG inline/full members tables + site detail enhancements
-- `is_citizen` SQL-computed via creature_dictionary sentience flags
-- Fresh DB re-ingestion: 1,677,998 records, 0% RI issues, world_id=1
-- 8-check validation suite — all pass
-- Population taxonomy plan (`population-taxonomy-plan.md`): largely implemented
-  - **Done**: sentience filter, `is_citizen` column, members table enhancements, site detail Denizens tab (Citizens/Residents/Visitors), Ne'er-do-wells tab, four-way classification
-  - **Remaining**: overview tile three-way conditionals (Civ/SG/Other), sidebar labels (pop/citizens/members), per-site Denizens column replacing Pop, DF census Population display
-  - **Terminology standardized**: §1.6 added to taxonomy plan; definitions propagated to product-requirements.md §2.3, demographic audit, phase-2 PRD, explorer.html
-- **Status**: Awaiting user walkthrough and validation before proceeding to Phase 3 Stage 3.1+
+> **Roadmap v4.0 (2026-03-19)**: AI Storytelling Pipeline. Phase 3 gains 3.5-3.6. Phase 4 gains 4.5-4.7. Total: 38 stages, ~280 tasks. Full vision: history explorer, AI storyteller, mod manager, advisor, player bot.
+> **v3.0 LVN (2026-03-18)**: 33 enhancements from Legends Viewer Next integrated across Phases 3-6.
+> **v2.0 Reorder (2026-03-04)**: Live Integration moved from Phase 5 -> Phase 3.
 
 ---
 
-## Current Phase: Phase 2 → Phase 3 Transition
+## Current Phase: Phase 3 -- Live Integration
 
-**Phase 2 DoD**: PASSED (50/50, 2026-03-03)
-**Phase 2 Population UI**: Partially implemented, awaiting user validation
-**Phase 3 PRD**: `projects/chronicler/reports/phases/phase-3-live-integration.md`
-**Phase 3 Duration**: 3-4 weeks (not yet started beyond Stage 3.0 schema prep)
-**Entry State**: Bridge v6 (7 domains, polling only), no worldgen, no KH, embedding table empty
-**Exit State**: Enhanced bridge with eventful + enrichment, worldgen monitoring, KH Phase 1-3, embedding pipelines
+**Active PRD**: `projects/chronicler/reports/phases/phase-3-completion-prd.md` (v3.0)
+**Live fortress**: Silveryclasps (Girderpriced), Y250+, 15 citizens, bridge v9
 
-> **GATE**: Phase 3 Stage 3.1+ is BLOCKED until user validates population UI work and signs off on Phase 2 completion. Stage 3.0 (CDM schema fixes) was completed as a prerequisite that doesn't depend on the population UI gate.
+### Stage Status
 
-### Stage Breakdown
+| Stage | Name | Status |
+|-------|------|--------|
+| 3.0 | CDM Schema Fixes | **COMPLETE** (2026-03-09) |
+| 3.1 | CDM Expansion + ETL | **COMPLETE** (2026-03-17) -- 7 tables, bridge v9, 14 ETL functions |
+| 3.2 | Worldgen Monitoring | **COMPLETE** (deferred scope per PRD v3.0) |
+| 3.3 | Knowledge Horizon | **COMPLETE** (deferred scope per PRD v3.0) |
+| **3.4** | **Embedding Pipelines** | **NEXT** |
+| 3.5 | Fortress State Capture | Pending |
+| 3.6 | Narrative Data Layer | Pending |
 
-#### Stage 3.0: CDM Schema Fixes — COMPLETE (2026-03-09)
-- V1: Units PK composite fix (world_id, id) — applied
-- V2: Unit events reconciliation columns — applied
-- V3: entity_entity_links table — created + wired into ingestion (5,594 rows: PARENT/CHILD/RELIGIOUS)
-- V4: entity_site_links table — created + wired into ingestion (1,328 ownership + 1,585 event-derived)
-- Supplementary columns (hf_links.strength, sites.founded_year, history_events.source) — applied
-- Python ripple fixes (sync.py ON CONFLICT, denizens.py JOIN) — applied
-- Fresh ingestion validated: 1,684,920 records, 0% RI issues
+---
 
-#### Stage 3.1: Bridge Enhancements
-- Eventful subscriptions (UNIT_DEATH, ITEM_CREATED, JOB_COMPLETED, INVASION, SYNDROME)
-- Death cause enrichment (incidents.all lookup)
-- Family chain extraction, book detection
-- Personality/soul data (50 facets, beliefs, goals, needs)
-- Skill progression tracking with delta detection
+## Phase 3 Working Documents
 
-#### Stage 3.2: Worldgen Monitoring
-- `worldgen-bridge.lua` polling every 30 frames
-- Auto-start via `dfhack.onStateChange`
-- Python snapshot ingester + WebSocket push
-- Worldgen dashboard with phase progress
+| Document | Path |
+|----------|------|
+| Phase 3 ETL Plan | `projects/chronicler/reports/phase-3-etl-plan.md` |
+| Phase 3 Memory->CDM Mapping | `projects/chronicler/reports/phase-3-memory-cdm-mapping.md` |
+| Comprehensive Validation | `projects/chronicler/reports/comprehensive-validation-2026-03-17.md` |
+| Game Control Validation | `projects/chronicler/reports/game-control-validation-report.md` |
 
-#### Stage 3.3: Knowledge Horizon
-- `knowledge_horizon` table + `visible_*` views
-- KH Phase 1: Denizen registry initialization
-- KH Phase 2: Individual scope (direct family)
-- KH Phase 3: Geographic + civilization scope
-- Event-based revelation rules + caveats (CAV-001, 002, 006, 007)
-- Explorer KH toggle (on/off)
-- **Note**: KH-storyteller integration deferred to Phase 4
+## DF Reference Documents
 
-#### Stage 3.4: Embedding Pipelines
-- Entity text extractors for all types
-- Chunking with content_hash deduplication
-- `chronicler embed` CLI command (batch)
-- Incremental live embedding via watcher
-- Hybrid search (ILIKE + pgvector with RRF)
-- Narrative context retrieval for storyteller
+| Document | Path |
+|----------|------|
+| DF Gameplay Mechanics | `projects/chronicler/reports/df-gameplay-mechanics-reference.md` |
+| DF Hands-On Verified | `projects/chronicler/reports/df-gameplay-hands-on-verified.md` |
+| DF Live Data Systems | `projects/chronicler/reports/df-live-data-systems-reference.md` |
+| DF Map Coordinates | `projects/chronicler/reports/df-map-coordinate-research.md` |
+| DF Quickfort Reference | `projects/chronicler/reports/df-quickfort-reference.md` |
+| DFHack Command Catalog | `projects/chronicler/reports/dfhack-command-catalog.md` |
+| Girderpriced Gameplay Plan | `projects/chronicler/reports/girderpriced-gameplay-plan.md` |
+| LVN Comparison & Enhancements | `projects/chronicler/reports/lvn-comparison-and-enhancements.md` |
+| LVN Feature Audit | `projects/chronicler/reports/lvn-feature-audit.md` |
+
+## Active Implementation Plans (`.claude/plans/`)
+
+| Plan | Purpose |
+|------|---------|
+| `lazy-riding-stonebraker.md` | Stage 3.4: Embedding Pipelines |
+| `cheerful-knitting-whisper.md` | Phase 3 Realignment: Chronicler as Living Game Mirror |
+| `modular-mapping-sparkle.md` | Unified CDM Expansion: Map All In-Game Memory |
+| `rustling-singing-lake.md` | Unified CDM Expansion Plan -- Memory-to-CDM Full Mapping |
+| `pure-stargazing-cerf.md` | Stage 3.2: Worldgen Monitoring |
 
 ---
 
 ## Development Rules (MANDATORY)
 
-1. **Phase-linear execution**: Complete Phase N before starting Phase N+1. Complete Stage N.M before N.(M+1). No skipping.
-2. **Scope fidelity**: Every requirement in the Phase PRD must be implemented. Only the User may defer or remove requirements. Default: "when in doubt, put it in."
-3. **No drift**: Do not add features not in the PRD. Do not remove features from the PRD.
-4. **Autonomous development**: Develop autonomously -- assess, decide, act. Do not wait for instructions between tasks within a stage.
-5. **Self-testing**: Perform your own testing and validation after each stage. Run the test suite, verify UI functionality, check database queries, confirm performance targets.
-6. **User validation at phase end**: Before signing off on Phase 2, provide the User with:
-   - A completion report (summary of all implemented features)
-   - A validation walkthrough (step-by-step manual verification tutorial)
-   - Wait for User confirmation before declaring Phase 2 complete
-7. **Standalone executable**: No phase is complete unless the application runs hands-off with no special handling by Jarvis. The `chronicler` CLI and web UI must work from a standard `pip install`.
-8. **Consult Phase PRD before coding**: Read the relevant Phase PRD section before starting any task.
+1. **Phase-linear execution**: Complete Phase N before N+1. Complete Stage N.M before N.(M+1).
+2. **Scope fidelity**: Every PRD requirement implemented. Only User may defer/remove.
+3. **No drift**: No extra features; no skipping.
+4. **Autonomous development**: Assess, decide, act. Don't wait between tasks within a stage.
+5. **Self-testing**: Test after each stage. Run test suite, verify UI, check DB, confirm perf.
+6. **User validation at phase end**: Completion report + validation walkthrough + wait for confirmation.
+7. **Standalone executable**: `chronicler` CLI and web UI must work from `pip install`.
+8. **Consult Phase PRD before coding**.
 
 ---
 
-## Infrastructure (Lower Priority)
+## Infrastructure
 
-- [Mac Studio Roadmap](.claude/plans/mac-studio-db-ai-roadmap.md) -- long-term infrastructure roadmap
+- [Mac Studio Roadmap](.claude/plans/mac-studio-db-ai-roadmap.md) -- long-term infra
 - UTM VM operational (DF-Windows / 192.168.64.3)
 - Docker stack stable (PostgreSQL, Qdrant, Neo4j, Redis, n8n)
-
-## Archived Plans
-
-Previous Chronicler-related plan files have been superseded by the canonical documents above.
-- `.claude/plans/` -- various phase-specific plans (now archived)
-- `projects/chronicler/plans/archive/` -- consolidated planning source material
+- LegendsViewer-Next running at `http://localhost:8081` (tmux W8, .NET 8 + Vue 3)

@@ -1,8 +1,8 @@
 # Phase 5: Visualization -- PRD/Roadmap
 
-**Version**: 1.1 (renumbered from Phase 4 → Phase 5 in Roadmap v2.0)
-**Date**: 2026-02-25 (renumbered 2026-03-04)
-**Phase Duration**: 3-4 weeks
+**Version**: 2.0 (LVN v3.0 integration: +2 stages, +25 tasks)
+**Date**: 2026-03-18 (original 2026-02-25, renumbered 2026-03-04)
+**Phase Duration**: 5-7 weeks (updated from 3-4)
 **Milestone**: M5 -- Visualization Complete
 **Entry State**: vis.js graph tab (partially built), no maps or charts
 **Exit State**: Leaflet world map with 7+ layer groups, Chart.js demographics, Cytoscape family trees, D3 war diagrams, per-object mini-maps
@@ -699,8 +699,63 @@ Era list with name, start/end year, duration. Era detail showing major events wi
 - [ ] Map timeline scrubber
 - [ ] Territory overlays
 - [ ] Eras browser
+- [ ] War chord diagram — D3.js ribbon (LVN-P5-7)
+- [ ] Alliance network graph — Cytoscape.js entity_entity_links (LVN-P5-11)
+- [ ] Curse lineage tree — vampire/werebeast infection chains (LVN-P5-17)
+- [ ] HF relationship web — N-hop social network with vague relationships (LVN-P5-19)
 
 ---
 
-*Phase 5: Visualization PRD/Roadmap v1.1 -- 2026-03-04*
-*4 Stages, 25+ Tasks, 3-4 Weeks Estimated*
+## Stage 5.5: Map Enhancements (LVN v3.0)
+
+**Duration**: 2-3 weeks
+
+Advanced map overlays and animated geographic visualizations derived from the LVN feature gap analysis (2026-03-18).
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 5.5.1 | REQ-LVN-MAP-002 | **Territory animation over time** — animated convex hull polygons showing civ territorial extent per year. Year slider + play/pause. Data: `entity_site_links` + `sites` coords. Leaflet time animation plugin. | Territory animation layer |
+| 5.5.2 | REQ-LVN-MAP-003 | **HF migration path visualization** — "Journey Map" tab on HF detail page. Numbered waypoints from 11 event types. 6 color-coded movement types (peaceful=green, flee=yellow, kidnap=red, military=blue, diplomatic=purple, unknown=gray). Timeline scrubber. API: `GET /api/map/hf_journey/{hf_id}` | Journey Map tab + API |
+| 5.5.3 | REQ-LVN-MAP-004 | **Army movement & war visualization** — animated polylines (red=attacker, blue=defender). Battle diamond markers sized by participants. Campaign trail animation. War timeline sidebar. | War animation layer |
+| 5.5.4 | REQ-LVN-MAP-005 | **Migration heatmap** — Leaflet.heat plugin, HF density over time with year slider. | Heatmap layer |
+| 5.5.5 | REQ-LVN-MAP-006 | **Underground explorer** — cavern depth layers (surface, cavern 1/2/3, magma sea, HFS). Depth-appropriate styling. | Underground layer selector |
+| 5.5.6 | REQ-LVN-MAP-007 | **Religious spread map** — animated overlay of religion geographic expansion. Data: religion entities + temple structures + entity_entity_links RELIGIOUS. | Religion overlay |
+| 5.5.7 | REQ-LVN-MAP-008 | **River system tracer** — interactive polyline with tributary connections and site proximity. | River layer |
+| 5.5.8 | REQ-LVN-MAP-009 | **Trade route inference** — connect trading civ capitals with dashed lines, thickness ∝ trade event frequency. | Trade route overlay |
+
+---
+
+## Stage 5.6: Analytics, Dashboards & Exploration (LVN v3.0)
+
+**Duration**: 2-3 weeks
+
+Analytical dashboards, ranking systems, and collection browsers that provide high-level world understanding.
+
+| Task | REQs | Description | Deliverable |
+|------|------|-------------|-------------|
+| 5.6.1 | REQ-LVN-ANLZ-001 | **Power rankings dashboard** — ranked civs by pop/sites/military/culture, sparkline trends, sortable | Dashboard page |
+| 5.6.2 | REQ-LVN-ANLZ-002 | **Death statistics dashboard** — deaths by cause (pie), race (bar), deadliest years (line), sites/killers (tables) | Dashboard page |
+| 5.6.3 | REQ-LVN-ANLZ-003 | **World records & superlatives** — oldest HF, largest battle, longest war, most prolific author, etc. | Records page |
+| 5.6.4 | REQ-LVN-ANLZ-004 | **"Most Interesting" rankings** — top entities by prominence/salience scores, configurable weights | Rankings page |
+| 5.6.5 | REQ-LVN-ANLZ-005 | **Megabeast tracker** — megabeasts/FBs/titans: status, kills, location, events, map overlay | Tracker page |
+| 5.6.6 | REQ-LVN-ANLZ-006 | **Population trend lines** — multi-series civ pop over time from birth/death events, war period overlays | Chart component |
+| 5.6.7 | REQ-LVN-ANLZ-007 | **Civilization comparison view** — radar chart of 2-4 civs across dimensions | Comparison page |
+| 5.6.8 | REQ-LVN-ANLZ-008 | **Rivalry tracker** — intense rivalries via war/battle/casualty aggregation | Analytics page |
+| 5.6.9 | REQ-LVN-COLL-001 | **Event collection list views** — browsable wars, battles, raids with type-specific columns, CSV export | Collection pages |
+| 5.6.10 | REQ-LVN-COLL-002 | **Art form gallery** — card-layout browser for dance/musical/poetic forms | Gallery page |
+| 5.6.11 | REQ-LVN-COLL-003 | **Written content library** — browsable, searchable with author/style/type filters | Library page |
+| 5.6.12 | REQ-LVN-COLL-004 | **Era browser with event density** — horizontal era bars with event density heatmap | Browser page |
+| 5.6.13 | REQ-LVN-COLL-005 | **World timeline browser** — full-page timeline with importance-sized event cards, filterable | Timeline page |
+
+### Definition of Done (Stages 5.5 + 5.6)
+- [ ] Territory animation plays smoothly with year slider
+- [ ] HF journey map shows correct waypoints with 6 color-coded movement types
+- [ ] War animation displays army movements and battle markers
+- [ ] All analytics dashboards compute from live CDM data
+- [ ] Collection browsers support pagination, search, filtering
+- [ ] All pages responsive and load in < 3s
+
+---
+
+*Phase 5: Visualization PRD/Roadmap v2.0 -- 2026-03-18*
+*6 Stages, 50+ Tasks, 5-7 Weeks Estimated (includes LVN v3.0 enhancements)*

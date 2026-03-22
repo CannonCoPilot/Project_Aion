@@ -2707,3 +2707,893 @@ The `daily_events` miss is non-critical — it's a convenience index for births/
 
 | Table | Expected | Actual | Status |
 |-------|
+
+### 2026-03-18 [889b47ea1d90]
+
+**Results breakdown:**
+- **B1 (daily_events)**: 810 scheduled events captured (270/cycle × 3 cycles — ON CONFLICT DO NOTHING should be deduplicating but the nemesis IDs are stored as unit_id which makes each cycle unique due to different unit_id+game_tick combinations). This is an accumulation issue — we're inserting duplicates across cycles. Need to add dedup logic.
+- **B2 (squads)**: 245/245 — full extraction working.
+- **B3 (fortress_state)**: 0 rows — expected! The game hasn't had a season change (game is paused). The watcher correctly gates this behind `season_changed`.
+- **C (expanded ETL)**: All Tier 2 functions running: artifacts (200), event_collections (49), entities (101). Tier 1 functions (live_history, incidents) produce 0 since no game time is passing.
+
+### 2026-03-18 [5aaa552c172e]
+
+**What happened**: DF's `enabler.fps` and `calculated_fps` control the frame timing loop. Setting them to 0 caused a divide-by-zero or infinite-wait in the frame pacer, freezing the entire process — including DFHack's Lua execution which runs on the game thread. This is why dfhack-run hangs: it's waiting for a game tick that will never come.
+
+**Recovery options**:
+1. If DF's window is responsive on the VM, press any key / interact with the UI — sometimes the render loop recovers
+2. If fully frozen, force-kill DF and reload from the autosave (which should be at tick ~34K, recent enough)
+
+### 2026-03-18 [7fe807cfae2b]
+
+**Lesson learned**: Never set `df.global.enabler.calculated_fps` or `.fps` to 0 — it freezes DF's frame timing loop. These are output counters, not input caps. The actual FPS cap in DF 53.10 is likely controlled via `init.txt` (`FPS_CAP`) or a different struct. I'll save this to memory.
+
+### 2026-03-18 [0ab3d6c2774c]
+
+The bridge repeat job doesn't persist across DF restarts — it's a DFHack `repeat` timer that only lives in memory. After force-quit and reload, it needs to be manually re-triggered. The `onMapLoad.init` auto-start (from `chronicler-setup.ps1`) handles this on the HomeServer, but the VM doesn't have it configured yet.
+
+### 2026-03-18 [19787fa6125b]
+
+**Live CDC working perfectly.** The watcher detected real fortress events from game time advancing:
+- **14 DEPARTED** — units leaving the map (travelers, merchants)
+- **13 ARRIVED** — new units appearing (travelers, possibly a migrant wave)
+- **4 SKILL_UP** — dwarves leveling skills (Mining 5→6, Herbalism 0→1, etc.)
+- **2 profession_change** — dwarves changing jobs
+
+**Daily events dedup working** — 121 scheduled events (stable, not accumulating across cycles).
+
+**Squads**: 247 now (2 new squads formed during gameplay — up from 245).
+
+**Fortress_state**: Still 0 as expected — no season change occurred.
+
+### 2026-03-18 [f7488a1547df]
+
+**Session 42 complete.** The full CDM expansion pipeline is now operational end-to-end:
+
+**What's flowing through the system:**
+- **14 ETL functions** routing bridge data into proper CDM tables (not just lua_probes archival)
+- **Live history events** seamlessly extending the legends XML dataset (549,540+ IDs, `source='live_bridge'`)
+- **CDC stream** detecting real gameplay changes: unit arrivals/departures, skill-ups, profession changes
+- **Fortress state** captured at season boundaries — append-only progression snapshots
+- **Scheduled events** providing a 30-day forecast of upcoming births, marriages, deaths
+
+**The key architectural win:** Legends XML gives us 250 years of curated history. The live bridge gives us moment-to-moment reality. The `source` column and `reconciled_event_id` bridge the two, creating a unified timeline that spans from world generation through real-time gameplay.
+
+### 2026-03-18 [281602f2d725]
+
+Found it: `unit_flags1.dead` doesn't exist in DF 53.10. The flag name has changed. The `pcall` silently catches this error and `state.population` never gets set. Need to find the correct death flag name.
+
+### 2026-03-18 [682e76344cf1]
+
+26 vs 15 — the `civ_id` match includes visitors and merchants who share the fortress civ. `dfhack.units.getCitizens()` is more precise (excludes visitors/animals/merchants). The 11 extra are likely diplomat visitors, merchant escorts, etc. who are `civ_id=1009` but not actual fortress citizens.
+
+Best approach: use `dfhack.units.getCitizens()` for the population count — it's the authoritative DFHack helper.
+
+### 2026-03-18 [6914c6c7872f]
+
+**Key realization**: Phase 3 is a **data layer** phase, not a UI phase. The PRD explicitly states the goal is building the data infrastructure — bridge enhancements, worldgen monitoring, Knowledge Horizon data layer, and embedding pipelines. UI integration of this data happens in later phases (Phase 4: Narrative Engine uses KH views; Phase 5: Visualization builds dashboards).
+
+So seeing the same data as before in the Explorer is **expected** at this point.
+
+### 2026-03-18 [130fa3f24cd5]
+
+**The root cause is now clear.** Here's the data topology:
+
+1. **Civ 1009 owns site 2154** via `sites.owner_entity_id = 1009` ✅ (Explorer can find this)
+2. **SG 4846 governs site 2154** — but this relationship exists ONLY in:
+   - History event 549502: "created site" with entity_id_1=1009, entity_id_2=4846, site_id=2154
+   - Live DFHack memory (entity→site_id)
+   - It does NOT exist in `entity_site_links` for entity 4846
+   - The site's `owner_entity_id` points to the civ (1009), not the SG (4846)
+
+3. **The Explorer queries `sites.owner_entity_id`** to find an entity's sites — so civ 1009 finds site 2154, but SG 4846 never will.
+
+**The fix**: We need to derive the SG→site relationship and make it queryable. The "created site" event tells us entity_id_2 (SG) governs site_id. This should be wired into `entity_site_links` as a "governs" link.
+
+### 2026-03-18 [8b8c67f941a0]
+
+**What changed**: The site detail view now has a 5th data source — `fortress_denizens` — which enriches the existing legends-based denizen list with live bridge data. When viewing the active fortress site, each denizen row shows whether it comes from "Live" (bridge-observed) or "Legends" (XML-parsed) data.
+
+**Key design decisions**:
+1. **Implicit site linking**: `fortress_denizens` has no `site_id` column, so we join through `fortress_state.site_id` — if the viewed site is the active fortress, all fortress denizens belong to it.
+2. **Enrichment, not replacement**: Existing denizens get `live_tracked`, `arrival_year`, `embark` flags overlaid. New bridge-only denizens are appended as Source 5.
+3. **Conditional column**: The "Source" column only appears for the active fortress site — other sites render identically to before (zero regressions).
+
+### 2026-03-18 [3147c84a0b6d]
+
+**Audit methodology**: We used a "control vs test" approach — comparing an established XML-only SG-Site pair (entity 1010 / site 317 "cudgelpoint") against our live-data test pair (entity 4846 / site 2154 "Silveryclasps"). This reveals both pre-existing bugs shared by both pairs AND new issues specific to the live integration.
+
+### 2026-03-18 [38d886c0e70c]
+
+**Design choices for the JSONL logger**:
+1. **Separate module** (`bridge_log.py`) rather than inline in watcher — keeps the watcher clean and makes the logger testable/reusable (e.g., a future `chronicler replay` command).
+2. **Append after fetch, before ETL** — if ETL fails or DB is wiped, the raw capture survives.
+3. **`flush()` after every line** — crash-safe; partial sessions are still readable (every line is a complete JSON record).
+4. **World name in directory path** — supports multiple worlds without collision. File naming: `session-{UTC timestamp}.jsonl`.
+5. **No compression yet** — plain JSONL for now (~200-400KB/cycle). zstd can be added later when sessions get long (a simple `zstd` post-process would compress 10:1).
+
+### 2026-03-18 [1c7bab03dfac]
+
+**All 7 pre-existing bugs fixed in one pass.** The root causes were:
+1. **Hardcoded strings** in the template (title/breadcrumb said "Civilization" regardless of entity type)
+2. **Missing data paths** — no parent civ query, no SG query for site pages, ruler only checked `position_id == 0`
+3. **Unresolved race tokens** — DF's `HFEXP` creature types were passed raw; now a `clean_race` Jinja filter resolves them globally
+
+The `clean_race` filter approach means any future template that displays race will get automatic cleanup without per-view code changes.
+
+### 2026-03-18 [37a5df6c0bed]
+
+**Popover fix**: The core issue was a **composite key vs global ID mismatch**. Structures use `(world_id, site_id, id)` as their PK, but the popover system assumed globally unique IDs. The fix propagates `site_id` through 4 layers: HTML data attributes → JS cache key → fetch URL → API SQL query. This pattern is important — any future composite-key entity (like world constructions) will need the same treatment.
+
+**Structure tab redesign**: Moved from a flat table to **grouped cards by type** with:
+- Type icons from the existing `struct_icon` global
+- Native DF names (`name2`) in italic
+- Inhabitant HF links (scholars in libraries, guild members, performers)
+- Inhabitant count badges with overflow ("+48 more" for the library)
+- Two-column responsive grid layout
+
+### 2026-03-18 [e147577d9b40]
+
+**Why this works on macOS**: LegendsViewer-Next is a modern .NET 8 app (not .NET Framework). .NET 8 has first-class macOS ARM64 support. The frontend is standard Vue/Vite which is platform-agnostic. The only Windows-specific code is a conditional `ApplicationIcon` in the `.csproj` that only applies when building for `win-x64`. The app loads DF legends XML files (which you already have at `Projects/DwarfCron/data/legends/`) and serves a local web UI — perfect for screenshot-based mockups.
+
+**Bonus**: The frontend runs independently via `npm run dev` with Vite hot-reload, so you could potentially browse the UI components even without the .NET backend during design iteration.
+
+### 2026-03-18 [5f487556f1cf]
+
+**Why fortress positions had NULL start dates**: DF's legends XML export records `<start_year>` for political appointments (baron, duke) but NOT for player-assigned fortress roles (manager, broker, bookkeeper). These `<entity_position_link>` elements simply lack the element, so `_int(link, "start_year")` returns `None`.
+
+**The solution has three parts**:
+
+1. **Lua bridge** (`chronicler-bridge.lua`): New `get_noble_positions()` reads `entity.positions.assignments` from the fortress entity and site government, capturing which HFs hold which positions right now.
+
+2. **Python ETL** (`etl_expanded.py`): New `etl_noble_positions()` runs each bridge cycle. For existing rows with `start_year IS NULL`, it backfills with the current game year. For newly detected assignments, it inserts with the game year. This means the *first* bridge cycle after appointment captures the timestamp.
+
+3. **Immediate backfill**: The 3 existing NULL rows for kogsak at entity 4846 were set to year 250 (the current world year from the legends export).
+
+**Future behavior**: When the player appoints a new manager/broker/bookkeeper in-game, the next bridge cycle (every 100 ticks) will detect it and create the `hf_position_links` row with the correct game year. No more '?' dates.
+
+### 2026-03-18 [e4cbb72900ef]
+
+**The refactored position sync works as a set-diff algorithm**:
+
+1. **Bridge truth set**: Read the Lua bridge's live snapshot → `{(position_id, hf_id)}` pairs currently held
+2. **DB active set**: Query all `hf_position_links` rows where `end_year IS NULL` for the fortress entity
+3. **Set difference**: `DB - Bridge = removals` (stale XML positions), `Bridge - DB = additions` (new appointments)
+4. **Removals get `end_year = game_year`** instead of being deleted — preserving historical record
+
+**What changed in the live data**: DF's legends XML export captured sheriff (pos=6) and militia commander (pos=4) as active at export time. But the live game data shows those positions are actually **vacant** (`hf=-1`). DF may auto-assign these during embark but they can be reassigned later. The bridge now correctly reflects the ground truth.
+
+**The "orphan" position (pos=3)** with no name in `entity_positions` was also ended — it appears in the XML as `position_profile_id=3` but has no corresponding entry in the entity's position definitions table, suggesting it's a DF internal artifact.
+
+### 2026-03-18 [53a78a5eac55]
+
+**Three state transitions now captured by the ETL**:
+
+1. **Initial sync** (cycle 4): 3 XML-stale positions (orphan, militia commander, sheriff) ended because the live game didn't have them assigned. These were artifacts of the legends export snapshot.
+
+2. **Reassignment** (cycle 6): The user reassigned broker and sheriff from kogsak to vabok bronzerain in-game. The ETL detected:
+   - `(pos=12, hf=48266)` disappeared → ended kogsak's broker
+   - `(pos=12, hf=48272)` appeared → created vabok's broker
+   - `(pos=6, hf=48272)` appeared → created vabok's sheriff
+
+3. **Historical record preserved**: Ended positions retain their rows with `end_year` set, so the leaders tab shows the full succession history — who held what, when it started, and when it ended.
+
+**Key architectural choice**: Using a set-diff approach (bridge truth vs DB active) means the ETL is **idempotent** — running it multiple times with the same bridge data produces no additional changes. Only actual state transitions (position changes between cycles) generate DB writes.
+
+### 2026-03-18 [6cdb00c37cc1]
+
+**Three data quality fixes in one step**:
+
+1. **NULL start_year backfill** (2,857 rows): DF's XML `<entity_position_link>` often omits `<start_year>`, but the `add hf entity link` history events always include the appointment year. Cross-referencing by (entity_id, position_id, hf_id) resolves every single NULL.
+
+2. **Removal event end_years** (11 rows): `remove hf entity link` events explicitly record when someone lost a position. These were never applied to `hf_position_links.end_year`.
+
+3. **Single-holder overlap closure** (1,587 rows): For positions like monarch, general, diplomat — where only one person holds the role at a time — the CTE detects which positions have sequential (non-overlapping) historical successions and closes the older holder at the newer holder's start_year. Multi-holder positions like baron/count (where overlapping tenures are normal) are automatically excluded.
+
+**The key heuristic**: If a position's *historical* holders (those with end_year set) never overlap, it's single-holder. If they overlap, it's multi-holder. This lets us automatically classify without needing DF-specific position metadata.
+
+### 2026-03-18 [783d9a3ae929]
+
+**The visitor ghost problem**: The `fortress_denizens` table records every unit the bridge has ever seen — including transient visitors who passed through briefly. The table tracks their lifecycle with `status`, `departure_year`, and `departure_cause`. Previously, ALL bridge-known denizens were added to the site view, including those with `status='missing'` (unit no longer visible) and `departure_year` set (confirmed left). These 53 phantom entries inflated the visitor count.
+
+**The fix applies two gates**:
+1. `departure_year IS NOT NULL` → skip (they left)
+2. `status == 'missing'` → skip (bridge lost track of them)
+
+This ensures only currently-present fortress denizens appear. The denizen count now matches the actual game state (15 citizens, 0 visitors).
+
+**Position flow**: The `batch_fetch_positions()` function queries `hf_position_links WHERE end_year IS NULL`, which now includes all live-synced positions from the bridge ETL. For denizens that come solely from the bridge data (no prior XML linkage), a secondary position fetch enriches them after the bridge enrichment loop.
+
+### 2026-03-18 [6db0c803b7b7]
+
+**The main comparison report** (`lvn-comparison-and-enhancements.md`) contains:
+
+- **70+ feature gap line items** across 11 categories with priority ratings
+- **33 enhancement proposals** each with data source, difficulty, and phase alignment
+- **5 ASCII mockups**: interactive world map, war detail with battle graph, HF migration path view, world timeline browser, real-time fortress dashboard
+- **Interactive map design**: Leaflet.js, 13 data sources, 13 map layers, live fortress overlay
+- **Army movement visualization**: battle location mapping, campaign trail animation, warfare network graph
+- **HF migration paths**: 12 event types for movement extraction, color-coded paths, timeline scrubber
+- **Implementation priority matrix**: 8 quick wins, 3 Phase 3, 5 Phase 4, 22 Phase 5, 5 Phase 6+
+
+**Critical finding**: 28 of 33 proposed enhancements require **zero schema changes** — they're pure visualization layers over Chronicler's already-complete CDM. The biggest gap is the interactive world map (Phase 5).
+
+**The DF map research** confirms all geographic data is already in the CDM (2,154 sites with coordinates, 2,278 regions with tile coverage, 7,465 rivers, 311 roads, 778 battles with coordinates, 76,247 HF movement events). Three minor schema gaps identified for indexed coordinate columns.
+
+**LVN's biggest strengths to adopt**: Leaflet.js map, Cytoscape dagre family trees, Chart.js events-per-year sparklines, deaths-by-race doughnut charts, ExpandableCard pattern, warfare network graphs.
+
+**Chronicler's unique advantages**: Live DFHack bridge, persistent PostgreSQL, population taxonomy, AI storyteller, death enrichment, Knowledge Horizon concept — none of which LVN has.
+
+### 2026-03-18 [3e8ef1fb5b91]
+
+The site denizens tab at site 2154 is already working well:
+- 15 denizens shown, all classified as Citizens
+- 7 of 15 have position displays (Manager, Expedition Leader, Militia Captain, Hammerer, Chief Medical Dwarf, Broker, Militia Commander)
+- Position display includes the entity name "(the halls of subtlety)" for context
+- Live bridge enrichment is active ("Live" badge with "arrived Y250")
+
+### 2026-03-18 [50b3e73daf1d]
+
+**How fortress visitors work in the data pipeline:**
+1. The live bridge detects units arriving at the fortress and records them in `fortress_denizens`
+2. If a unit disappears from subsequent bridge polls, it gets marked "missing" with `consecutive_missing` count
+3. HF 29771 (alir wildnesstwists) was a transient visitor — appeared at tick 42048 and immediately went missing (likely left the map or entered an inaccessible area)
+4. The XML legends data has NO events tying this HF to site 2154 — visitors don't generate legends events until they do something notable
+5. The site denizens query uses `whereabouts` from XML data (site_id=1355 for this HF), not the live bridge data, so the visitor doesn't appear in the Denizens tab
+
+### 2026-03-18 [8045afb05edf]
+
+**Document cascade pattern**: When integrating scope changes across a multi-document planning hierarchy, you need to update in dependency order: (1) Product Requirements (REQ-IDs), (2) Full Roadmap (task assignments + stage structure), (3) Phase PRDs (detailed task descriptions), (4) Current Plans (status summaries), (5) Planning History (decision record). Each level references the ones above it, so consistency requires touching all levels. The 33 enhancements added ~1,200 lines of planning content across 8 files.
+
+### 2026-03-18 [104e557157dd]
+
+**Stage 3.2 (Worldgen Monitoring) complete**. Four deliverables:
+
+1. **`worldgen-bridge.lua`** (185 lines): Polls `df.global.world.worldgen_status` every 30 frames. Maps the 11-phase `world_generatorst.state` enum to progress percentages with sub-phase interpolation (river progress during RunningRivers, year tracking during RecountingLegends). Auto-registers via `dfhack.onStateChange` for hands-off operation. Supports manual CLI: `worldgen-bridge start|stop|status|snapshot`.
+
+2. **`WorldgenIngester`** (Python): Async polling class that fetches `worldgen-status.json` every 2s, stores DB snapshots every 10s, broadcasts to WebSocket clients. Clean lifecycle management with `stop()` and `CancelledError` handling.
+
+3. **Worldgen dashboard** (`/worldgen`): Progress bar with percentage, 4 entity count cards (HFs, events, sites, entities), phase timeline with done/active/pending markers, detail panel (rivers, rejects, caves, megabeasts, world size). All updating live via WebSocket.
+
+4. **CLI command**: `chronicler watch-worldgen --world-id N --bridge-host H` starts the ingester with signal handling.
+
+**Testing limitation**: Worldgen monitoring can't be tested with the current fortress (gamemode=0). It requires starting a new world generation. The code is structurally sound and tested for import/route-registration/DB-schema compatibility.
+
+### 2026-03-19 [4dc69a0878a3]
+
+**Layout**: 2-column responsive grid (Tailwind `lg:grid-cols-3`). The event feed takes 2/3 width on desktop, sidebar widgets take 1/3. On mobile it collapses to single column. The nav bar shows a live connection indicator (green dot when WebSocket is connected, pulsing amber when connecting, red when disconnected).
+
+### 2026-03-19 [9aec4f77e625]
+
+**Why only 4 units?** The bridge reports `unit_count: 4` — these are the units currently loaded in the DF viewport. The `units` table in the DB has many more dwarves (the full fortress population from the watcher's historical sync), so the DotD query actually draws from all known living citizens. The fortress has ~15 citizens in Silveryclasps, but some may have been loaded at different sync times.
+
+### 2026-03-19 [fe751f750916]
+
+**Terrain data interpretation**: The center tile [128,128] of Tar Thran has elevation 142 (mid-range, not ocean or mountain), temperature 100 (warm tropical — DF uses a custom Urist scale where 10000 = 0°C), evilness 64 (borderline evil at 66 threshold), volcanism 87 (highly volcanic!), and zero savagery (calm). This is a volcanic desert/neutral zone. Region 1052 would be one of the 504 desert regions.
+
+**Phase 5 usage**: This data enables terrain-colored maps — elevation for height shading, evilness for evil/good coloring, temperature for climate zones, volcanism for volcanic highlighting. Previously we only had region-type proxies (Forest/Desert/etc). Now we have per-tile continuous values for proper gradient rendering.
+
+### 2026-03-19 [1714ec76f029]
+
+**The root cause of the ~300 phantom events**: The WebSocket poller in `live.py` has no state tracking. Every 3-second poll, it treats ALL events in the bridge JSON as new. Reactive events flush naturally (the Lua bridge clears buffers each cycle), but `skill_changes` persists — and the poller has no cursor to remember what it already sent. So skill changes get re-broadcast every poll. Additionally, if a poll happens to catch the same bridge cycle twice (bridge runs every ~2.4s, poller runs every 3s), it'll re-send the same reactive events.
+
+**The fix**: Track the bridge's `cur_year_tick` as a cursor. Only broadcast events from a new tick. For skill_changes, hash or fingerprint the data to detect actual changes.
+
+### 2026-03-19 [2bfcfbf751d6]
+
+**Knowledge Horizon in action**: The fortress of Silveryclasps knows about Lali Naturaltells (one of their own), but has never heard of Lali Anvilrose, Lali Bodicejumped, Lali Elbowcoast, Lali Godsnarl, or Lali Tickdawned — they're all HFs from distant parts of the world the fortress has no contact with. This is exactly the "fog of war" effect we want for immersive storytelling.
+
+The search filtering works by querying `visible_historical_figures` (the KH-filtered view) instead of `historical_figures` (the raw table). The JOIN through `knowledge_horizon` is efficient because of the `idx_kh_visible` partial index on `(world_id, entity_type) WHERE visible = TRUE`.
+
+### 2026-03-19 [586ff96aeeb7]
+
+**JSONB fix successful**: Skills are now queryable (3-20 skills per dwarf). Some dwarves have personality data (those synced after bridge v7). Most don't have relationships/family yet — those come from the `dwarf_personality` bridge section which may not be fully wired for all units. Stress appears null for most — the bridge may only send stress for dwarves who have non-zero stress. Squad IDs are present for all.
+
+The missing personality/relationships data is a bridge coverage issue, not a DB bug. The watcher's `transform_unit()` only includes personality when `dwarf_personality` section data is available for that unit. This will fill in as the watcher runs more cycles.
+
+### 2026-03-19 [3a3c9419b2b8]
+
+**Knowledge Horizon wiring complete.** The system now has:
+- **KH check API** (`/api/kh/check/{type}/{id}`): Returns `{visible, reason}` from the `knowledge_horizon` table (709 entries: 474 HFs, 139 entities, 73 sites, 23 regions — all currently visible as initialized from fortress denizens)
+- **Fog-of-war banner**: Already existed in `detail_base.html` — now the backend endpoint it calls actually exists
+- **Fetch interceptor**: Extended to add `kh=true` to search AND partial detail page loads when KH is enabled
+- **Search filtering**: Already worked — swaps base tables for `visible_*` views
+
+The KH initialization seeded 709 entities as visible (denizens + their known connections). HFs not in the KH table (e.g., HF #999999) return `visible: false` with reason "Unknown to the fortress". When a user toggles KH on, the fog-of-war banner appears for entities outside the horizon.
+
+### 2026-03-19 [4ad68b322cb2]
+
+**Worldgen monitoring pipeline validated — all 6 layers are wired and functional.** The pipeline can't be end-to-end tested without an active worldgen session (it's a watch-and-record system), but all code paths are verified:
+- Lua auto-registers `onStateChange` handler, detects worldgen mode (world loaded + no map)
+- Phase progress estimation uses weighted phases (RecountingLegends = 40% of total, realistic since it simulates history)
+- River sub-progress interpolation during RunningRivers phase gives smooth progress updates
+- The UI dashboard has 11 phases, 4 stats cards, a details panel, and WebSocket auto-reconnect
+
+The only gap: worldgen requires the DF game to be generating a new world (not in fortress mode). The bridge Lua and Python ingester are ready to go the next time a worldgen is initiated.
+
+### 2026-03-19 [5f347a74503d]
+
+The diff shows 2,583 insertions across 21 files — but the bulk is from previous sessions (the full diff against HEAD includes all uncommitted work). The changes from this session specifically are:
+
+**This session's work:**
+- `live.py`: Denizen list + detail API endpoints, replaced DotD
+- `fortress.html`: Denizen Inspector with dropdown, full character sheet, auto-refresh
+- `etl_expanded.py`: 3 new ETL functions (armies, zones, mandates) + buildings merge into fortress_state
+- `schema.sql`: 3 new CDM tables (fortress_armies, fortress_zones, fortress_mandates)
+- `detail_pages.py`: Live unit detection for HFs, KH check API endpoint
+- `hf_detail.html`: LIVE badge + auto-refresh panel for fortress denizens
+- `_nav.html`: Extended fetch interceptor for KH parameter propagation
+
+### 2026-03-19 [94ccb2002c59]
+
+**Audit methodology**: Combined direct DB schema probing (asyncpg queries), codebase grep/read analysis, CLI command introspection, and 6 parallel code-analyzer agents. This cross-validation approach catches both "code exists but isn't wired" and "schema exists but code is missing" gaps that a single-axis check would miss.
+
+### 2026-03-19 [84890094c404]
+
+**Phase 3 is 75% complete (26/36 DoD items).** The overwhelming blocker is Stage 3.4 (Embedding Pipelines) — all 7 items are unimplemented, accounting for 78% of remaining work. Stages 3.0-3.2 are fully implemented and verified. Stage 3.3 (Knowledge Horizon) is essentially complete — the sole gap is storyteller integration which the PRD itself defers. The "army tracking placeholder" in 3.1 LVN needs a small UI component.
+
+**Key architectural observation**: The embedding pipeline has all its infrastructure (pgvector, embeddings table, MLX server, codec registration) from Phase 1, but none of the Stage 3.4 application logic. This is a clean build — no conflicting or partial implementations to work around.
+
+### 2026-03-19 [3e6814b964b0]
+
+**Agent accuracy vs direct investigation**: The agents struggled with the project's directory structure. The Chronicler codebase has a non-standard layout — code lives in `chronicler/dfhack/scripts/` (Lua), `chronicler/api/routes/` (Python routes), `chronicler/api/templates/` (HTML), and `chronicler/kh.py` (standalone module). Several agents searched in paths like `chronicler/web/`, `chronicler/live/`, `chronicler/bridge/` which don't exist at those paths. My direct DB queries, CLI checks, and grep results are authoritative.
+
+Key discrepancies resolved:
+- **Stage 3.2 agent said 0/5 FAIL** — WRONG. I directly confirmed `worldgen-bridge.lua` (9,270 bytes), `worldgen.py` (5,057 bytes), `worldgen.html` template, `watch-worldgen` CLI command, and `worldgen_snapshots` table (12 columns). Agent searched wrong dirs.
+- **Stage 3.3 agent said 0/10 FAIL** — WRONG. I directly confirmed `kh.py` (519 lines), `knowledge_horizon` table (709 rows), 6 `visible_*` views, KH toggle in nav, `chronicler kh` CLI. Agent searched wrong dirs.
+- **Stage 3.0 agent: CORRECT** (4/4 PASS) — matches my findings exactly.
+- **Stage 3.1 agent: CORRECT** (6/6 PASS) — matches my findings.
+- **Stage 3.4 agent: CORRECT** (0/7 FAIL) — matches my findings.
+- **Stage 3.1 LVN agent said 4/4 PASS** — I rated 3.1.9 as PARTIAL since the invasion alert appears only in the general event feed without a dedicated army composition sidebar/card. The agent referenced file paths that don't exist at those locations and may have hallucinated some UI elements.
+
+### 2026-03-19 [58bdabc04964]
+
+The reason I called this PARTIAL rather than FAIL is that the three-layer pipeline (Lua subscription → WS broadcast → UI card with animation) is fully wired. The only missing piece is **data richness** — the invasion event payload is `{invasion_id, tick}` when it should be `{invasion_id, tick, attacker_race, attacker_entity, squad_count, ...}`. The UI placeholder already exists and reacts correctly; it just displays "Hostile forces approaching!" instead of "Goblin siege — 3 squads, ~45 warriors." That's maybe 30 lines of Lua enrichment + 10 lines of JS template update. Probably 15-20 minutes of work, with the main risk being identifying the correct df-structures path to army composition data at runtime.
+
+### 2026-03-19 [d571aff2d22c]
+
+**What was done for 3.1.9 Army Tracking**:
+
+**Lua enrichment** (`chronicler-bridge.lua`):
+- `onInvasion` handler now looks up `df.global.world.army_controllers.all` to find the invasion controller, then resolves `entity_id` → entity name + race via `df.historical_entity.find()` and `df.creature_raw.find()`. Also counts total army members and squads across all armies under that controller.
+- `get_armies()` now builds a controller cache with pre-resolved entity names and races, attaching them to every controlled army in the output. Added `squad_count` field.
+
+**UI enrichment** (`fortress.html`):
+- `showArmyAlert()` now displays entity name, race, squad count, and warrior estimate instead of generic "Hostile forces approaching!"
+- `formatEventText()` for invasion events now shows entity name + race + member count in the event feed
+
+**Data flow**: Invasion event → Lua enrichment (entity name, race, member count, squad count) → WebSocket broadcast → JS renders in Army Watch card + event feed
+
+**Deployment status**: New Lua deployed to VM (`C:\...\hack\scripts\chronicler-bridge.lua`, 65,146 bytes). Waiting for game unpause to activate the repeat job.
+
+### 2026-03-19 [f3efce1cdbbb]
+
+The Knowledge Horizon engine was pre-built with production-quality code including:
+- Proper batch insert with `ON CONFLICT DO NOTHING`
+- Cascading parent civ → child entities → owned sites
+- Per-org-type propagation rules (CAV-001 — guilds limited to same-site, civs no propagation)
+- Coverage statistics with percentage calculations
+- Full LLM prompt addendum (CAV-007)
+
+This is essentially the entire Stage 3.3 data layer.
+
+### 2026-03-19 [29037ec90468]
+
+The KH provides a realistic "fortress's eye view" of the world:
+- **HFs**: 474/48,273 (1.0%) — mostly denizens, their families, and civilization nobles
+- **Entities**: 139/4,847 (2.9%) — fortress entity, parent civ, child entities
+- **Sites**: 73/2,154 (3.4%) — nearby sites + civ-owned sites
+- **Regions**: 23/2,278 (1.0%) — only near the fortress
+- **Artifacts**: 0/8,035 (0%) — none yet discovered (needs artifact events)
+
+This is exactly the effect we want: a small fortress knows about itself, its neighbors, and its civilization, but is ignorant of the vast world beyond.
+
+### 2026-03-19 [ba3f915a2517]
+
+**Live/Legends Correlation — Remarkable Results**:
+- **100% HF match rate**: All 18 living citizens map to historical figures in the Legends DB. Live `unit_id` → bridge `hist_fig_id` → PostgreSQL `historical_figures.id` — the chain is complete.
+- **Embark party identification confirmed**: 15 dwarves have ZERO pre-embark events (they're the embark party, created at game start). 3 are worldgen migrants: **Kulet Bûnemkol** (46 events, age 159), **Ustuth Atormafol** (63 events, age 150), and **Thob Erarcatten** (1 event, age 23). Kulet and Ustuth are ancient — 159 and 150 years old — they arrived as migrants with rich worldgen histories.
+- **Live CDC capturing what Legends doesn't**: The `unit_events` table captures real-time stress changes, arrivals, departures, skill-ups, and profession changes that Legends XML never records. This is the live data layer that enriches the static legends.
+- **Event type continuity**: Legends records macro events (add_hf_entity_link, change_hf_state, change_hf_job) while live CDC captures micro events (stress_change, ARRIVED, DEPARTED, SKILL_UP). Together they provide a complete picture.
+
+### 2026-03-19 [9c10aee56b15]
+
+**Autonomous Gameplay Capabilities — Fully Validated**:
+- **Observation**: Full read access to all game structures — 9,927 items, 1,481 on ground, 19 buildings, 251 squads, weather (3 = light rain/drizzle)
+- **Needs Assessment**: `allneeds` reveals PrayOrMeditate and DrinkAlcohol as top unmet needs — 14/18 dwarves unfettered for prayer, 14/18 for alcohol. The fortress needs a temple and more brewing!
+- **Labor Monitoring**: Job types visible as numeric IDs (38=Rest, 12=DrillPractice, nil=truly idle). Most dwarves resting, militia drilling — quiet Autumn day.
+- **Autochop**: Already managing lumber autonomously — 207 accessible logs, waiting for minimum threshold before designating more trees
+- **Order Management**: Successfully imported `library/basic` order set — can programmatically manage the manager's work queue
+- **Military**: 6 named squads visible (The Triangular Brothers, The Spidery Kisses, etc.)
+- **Weather**: Light precipitation (sum=3 out of 25 max grid cells)
+
+### 2026-03-19 [f2c6d5055e09]
+
+**Intervention→Verification Loop Proven**:
+- **Direct stress reading**: Thob's soul stress was 2340 (stressed), confirmed at the Lua memory level
+- **Bridge data cross-check**: Bridge reports Thob's `longterm_stress=0` (the bridge samples a different stress metric than the soul personality stress — longterm vs immediate). Focus=95 (excellent).
+- **Quicksave works**: Game successfully saved at T202,804 Autumn. This means we can create restore points before risky operations.
+- **Step precision improved**: `step(100)` delivered exactly 100 ticks this time (game was paused, no velocity overshoot).
+
+**Key capability boundaries discovered**:
+1. **Full read access** to all DF memory structures (items, units, buildings, weather, squads, needs)
+2. **Game state control** (pause/unpause/step/save) — robust and reliable
+3. **DFHack plugin commands** (autochop, allneeds, orders, timestream) — full access
+4. **Lua execution** — arbitrary code on game thread, but PowerShell quoting limits some patterns
+5. **Bridge data pipeline** — 26 sections, tick-perfect freshness, full ETL to PostgreSQL
+
+### 2026-03-19 [6f56a46740e0]
+
+**Validation Complete — What We Proved Today**:
+1. **The full data pipeline works end-to-end**: SSH→dfhack-run→Lua→JSON→base64→Python→PostgreSQL. Every link in the chain validated.
+2. **Live and Legends data seamlessly connect**: 100% HF match rate means we can tell any citizen's complete story — from worldgen birth through live gameplay — in a single query.
+3. **Jarvis has genuine gameplay awareness**: Not just raw data access, but contextual understanding — identifying stressed dwarves, resource shortages, embark party membership, and military readiness.
+4. **Two bugs found and fixed**: `set_speed()` (d_init.fps_cap → timestream) and `setup_bridge_repeat()` (PowerShell quoting). Both are the kind of DF version-specific issues that only surface under real testing.
+
+### 2026-03-20 [996bf39ffaff]
+
+**Worldgen in DF is fundamentally batch, not streaming**: When DF generates a world, it runs through 12 sequential phases (Terrain → ElevationMap → Rainfall → ... → Civilizations → Done), simulating hundreds of years of history. This happens during the "Create New World" flow before any fortress is embarked. The key insight is that the data we care about — the history, entities, sites, events — is the *output* of worldgen, and it's exactly what the Legends XML export captures. The PRD envisions live polling during worldgen, but your instinct is right: a post-gen capture approach is more practical and equally valuable.
+
+### 2026-03-20 [b83ccbb235ad]
+
+**The key reframe**: Live polling during worldgen isn't about watching it happen — it's about capturing *temporal resolution* that the Legends XML doesn't have. Legends XML is a final snapshot: "site X exists, entity Y has 500 members." But if we poll during worldgen, we capture *when* site X was founded, *how* entity Y grew from 10 to 500, *which year* wars started and ended — the growth curve, not just the endpoint. That temporal data is what makes the "replay worldgen visually" feature possible in the explorer.
+
+### 2026-03-20 [917dcb7ae823]
+
+**The world of Tar Thran tells its story through numbers**: Population peaked around Y125 at 15,668, then gradually declined — the world is aging. 44,182 HFs were born across 250 years, 31,200 died. Site founding was most aggressive in the first 75 years (523 sites by Y75), then slowed to a trickle. The 0 births in Y250 is because that's the embark year — worldgen history simulation stopped and fortress mode began.
+
+### 2026-03-20 [176c5fb92b16]
+
+**Track A (temporal backfill) is substantially complete**. The infrastructure chain is:
+1. `step_12_materialize_world_timeline()` — CTEs with window functions compute cumulative births-deaths, site founding, and event counts per year, inserting into `worldgen_snapshots` with `phase='historical_backfill'`
+2. CLI: `chronicler worldgen backfill --world-id N` triggers steps 11+12
+3. API: `/api/world/{id}/timeline` serves the materialized data; `/api/world/{id}/state?year=N` computes live state-at-year queries
+4. UI: `worldgen.html` has dual-mode — Timeline (retrospective SVG chart with click-for-year-detail) + Live Monitor (WebSocket)
+5. WebSocket: `/ws/worldgen` endpoint in `live.py` connects to `WorldgenIngester`
+
+### 2026-03-20 [9742d2814645]
+
+**Stage 3.2 status — Track A is complete, Track B needs wiring**:
+- **Track A (Temporal Backfill)**: Fully operational. `step_12` materializes yearly snapshots, CLI `worldgen backfill/history` works, API `/api/world/{id}/timeline` and `/api/world/{id}/state` serve data, UI renders dual-mode with interactive SVG chart.
+- **Track B (Live Worldgen Capture)**: Code is written (`WorldgenIngester`, `/ws/worldgen` endpoint, live monitor UI panel) but untestable without running worldgen — which creates an entirely new world. This is by design; the user confirmed Track B testing happens when they manually run worldgen.
+- **Schema note**: `worldgen_snapshots` has both `pop_count` (fortress mode) and `hf_count` (worldgen/backfill). The backfill only populates `hf_count`, which is correct since `pop_count` is for fortress population snapshots.
+
+### 2026-03-20 [6719718f1572]
+
+**The worldgen-bridge.lua is well-engineered for autonomous operation**:
+- **Auto-detection via `dfhack.onStateChange`**: When a world loads but no map exists (= worldgen), monitoring starts automatically. When world unloads, it writes a final snapshot and stops.
+- **Rich data extraction**: Goes beyond basic phase tracking — captures river progress, prehistory flags (caves, megabeasts), civ placement counts, entity totals, and world dimensions. All wrapped in `pcall` for field-availability safety across DF versions.
+- **RecountingLegends sub-progress**: The slowest phase (simulating history, typically 70% of worldgen time) gets interpolated progress from `cur_year`, so the progress bar doesn't stall at ~50% for minutes.
+- **Phase weights**: Non-linear — RecountingLegends is 40% of total progress (50→90), while earlier phases are 2-8% each, reflecting actual time distribution.
+
+### 2026-03-20 [8a0518c27f8a]
+
+**Why the initial stale read**: The `worldgen-status.json` wasn't being written at first because the `repeatUtil.scheduleEvery` writes are frame-driven — during early worldgen phases (elevation, temperature, rivers), DF processes frames very rapidly and the file may have been written but immediately overwritten. The HTTP server was caching the old fortress-era file until the new one was created. Once we forced a manual snapshot, the path was established and the repeating job's writes started landing.
+
+### 2026-03-20 [6c9cc66c756b]
+
+**Live capture vs retrospective comparison preview**: This new world has 470K events vs Tar Thran's 436K events, 47,986 HFs vs 44,182 — a slightly larger world. The interesting spike at completion: sites jumped from 1,708 to 2,211 (+503) in the final step — DF likely creates minor sites (lairs, shrines, camps) during finalization, which are invisible during the history simulation loop. This is exactly the kind of data the live capture provides that XML-only ingestion would miss — the *when* of site creation is lost in the XML, but captured here.
+
+### 2026-03-20 [cad731e0efdd]
+
+**Complete data inventory for Orid Zurko (The Universe of Cyclones)**:
+
+| Source | Files | Size | Data Type |
+|--------|-------|------|
+
+### 2026-03-20 [5eb29f2c2382]
+
+**The comparison reveals fundamentally different counting methodologies — both correct, both valuable**:
+
+1. **HF counts diverge by +142%** — Live capture counts `#df.global.world.history.figures` (ALL HFs ever created, including dead ones), while backfill uses `cumulative births - deaths` (living HFs only). At Y250: live=47,986 (total ever), backfill=13,601 (alive now). **Neither is wrong** — they measure different things. The live capture gives us total population churn, the backfill gives net living population.
+
+2. **Events match perfectly at Y250** (470,922 = 470,922) — both sources count the same events, just measured differently mid-stream. The small mid-stream deltas (-0.2% avg) are because live capture counts `#events` in memory (which may lag slightly behind the year counter) vs backfill aggregating from completed event records.
+
+3. **Sites: the +300 constant offset is the finalization jump** — Live capture consistently shows ~300 more sites than backfill at every year. These are the lairs, shrines, and camps that exist in-memory during worldgen but have no `founded_year` in the XML. Backfill only counts sites with `founded_year ≤ Y`. The Y250 final jump (+800 vs backfill's +2) confirms: **503 additional sites were created during finalization, and the XML never records when they were founded.**
+
+4. **Complementary data**: Backfill provides Y1-Y136 (births/deaths/per-year detail), live capture provides entity counts, growth rates, phase timing, world metadata. Together they're more complete than either alone.
+
+### 2026-03-20 [e8007e37f1df]
+
+**Fascinating HF data from the new fort**: All 7 embark dwarves have exactly 1 `histfig_link` each — confirming our canonical rule that embark dwarves are created whole cloth with zero pre-embark event history. Their HF IDs (49607-49613) are at the very end of the 47,986 HFs, created after all worldgen HFs. The "events=1" here is actually `#hf.histfig_links` (number of relationship links), not event count — each has exactly one link (likely to their civilization entity). This is the perfect baseline for KH testing: new migrants will arrive with rich event histories that expand the fortress's knowledge.
+
+### 2026-03-20 [0dd554532088]
+
+**Three distinct pause mechanisms discovered, each with a different dismissal strategy:**
+
+1. **`world.status.popups`** — Announcement popups (caravan arrival, etc.) that block game advancement even though focus stays at `dwarfmode/Default`. Clear with: `df.global.world.status.popups:erase(0)` in a loop + reset `display_timer=0`.
+
+2. **Season boundary `pause_state`** — DF sets `pause_state=true` directly when season announcement has `PAUSE=true` in `d_init.announcements.flags`. No overlay, no popup, just a flag. Clear with: `df.global.pause_state=false`.
+
+3. **Viewscreen overlays** (gui/*, open-legends) — These register as non-`dwarfmode/Default` focus strings and override pause state. Clear with: `dfhack.screen._doSimulateInput(scr, {df.interface_key.LEAVESCREEN})`.
+
+The `dfhack.gui.getCurFocus(true)` check alone misses mechanism #1 entirely — that's why the game appeared stuck in previous sessions.
+
+### 2026-03-20 [38cef8b9f11a]
+
+**Breakthrough on multiple fronts:**
+1. **Digging is working now!** 57 remaining from 309 = **252 tiles dug!** The z=133 landing fix unblocked the miners.
+2. **Zero food and drink** — critical! 78 seeds but nothing to eat/drink. The dwarves will start starving/dehydrating soon. Need to plant crops and brew immediately.
+3. **1,025 accessible trees** — plenty of wood. `autochop` is disabled but could be enabled.
+4. **38 trees near wagon** — that's why workshops were `build_unsuitable` on the surface.
+5. **Key plugins enabled**: `autolabor`, `seedwatch`, `tailor`, `buildingplan`, `timestream`. Not enabled: `autochop`, `autofarm`, `autobutcher`.
+6. **157 seedable crops** out of 225 plant types.
+
+### 2026-03-20 [8abaa3e8316d]
+
+**Necromancers are UNDEAD — they don't need food or drink!**
+Dastot and Geshud both show thirst=0, hunger=0. This is a known DF mechanic: necromancers who have transformed are effectively immortal and don't require sustenance. They're the most reliable citizens in a starvation crisis — they'll outlive everyone else.
+
+Also notable: `constructBuilding` returns `nil` silently when tiles are unsuitable (trees, occupied). No error message — just nil. The Kitchen placed successfully at 110,93 but the Still failed at both locations. Surface building continues to be hampered by trees.
+
+### 2026-03-20 [49e0039e5097]
+
+**Session 43 — Comprehensive DF Gameplay Learning Summary:**
+
+The consolidated reference document covers **31 sections across 1,393 lines**, with every command and API path verified on the live game (Girderpriced fortress, Y251). Key coverage areas:
+
+**Core Systems (Sections 1-14)**: Digging, workshops, stockpiles, zones, farms, workorders, labors, game flow, state queries, enums, plugins, Quickfort, playthrough log, bot architecture.
+
+**New Systems (Sections 15-31)**: Military (squad creation/management), Nobles (14 positions, programmatic appointment), Trade (depot placement, item inventory), Water/Fluid (3,711 water + 702 magma tiles, muddying technique), Burrows (creation, tile management), Healthcare (counters2 struct, stress system), Advanced Construction (bridges/doors/levers/traps), Unit Deep Dive (skills, personality facets, necromancers), Comprehensive Quickfort Reference, Zone Type Enum (98 types), Complete Lua API, Updated Playthrough, Bot Architecture, and Hard-Won Lessons.
+
+**Notable discoveries**:
+- `unit.counters2` (not `counters`) holds biological timers — a 53.x struct change
+- `df.global.world.squads.all` is world-wide (331 squads) — must filter by entity_id
+- `BrewDrink` is NOT a valid workorder job type — brewing is a Still workshop reaction
+- Necromancers don't need food (thirst=0, hunger=0) — effectively immortal citizens
+- 93 surface crop types vs only 6 underground crops
+- Block flags renamed in 53.x: `update_liquid` not `liquid_1`
+
+### 2026-03-20 [b0ae72d443c5]
+
+**The fortress is in a tantrum spiral!**
+1. **Urist (Expedition Leader) died** — Cerol assumed leadership
+2. **Dwarves are fighting each other**: A peasant is punching, kicking, tearing muscles of another peasant — classic DF stress tantrum from starvation
+3. **11 dead citizens total** (originally 19+migrants) — all cause=NONE (starvation/dehydration)
+4. **"Fikod's mutilated corpse"** counted separately — someone destroyed a corpse (necromancer risk!)
+5. **97 tiles still wet at z=132** — muddying in progress but slow
+6. **No caravans, no locations** — fortress has no trade infrastructure
+7. This is a textbook DF "death spiral": hunger → stress → tantrums → injuries → more deaths
+
+### 2026-03-20 [309ef1955f69]
+
+**createitem syntax verified:**
+- `createitem DRINK PLANT_MAT:MUSHROOM_HELMET_PLUMP:DRINK 30` → creates 5 drinks (Dwarven Wine). Count was 30 but only 5 appeared — might be creating stacks or there's a cap.
+- `createitem PLANT PLANT_MAT:MUSHROOM_HELMET_PLUMP:STRUCTURAL 30` → creates raw plump helmets (43 plants now)
+- `createitem PLANT_GROWTH <plant>:<growth>` requires valid growth IDs (check plant raws)
+- **Cursor must be set** to a valid map position via `df.global.cursor.x/y/z` before calling createitem
+- **unit.pos.x/y/z** gives position directly (NOT `dfhack.units.getPosition()` which returns 3 numbers)
+
+### 2026-03-20 [1309d58126bb]
+
+**Session 43 Learning Summary — Final Report:**
+
+The consolidated hands-on reference grew from **488 → 1,432 lines** (31 sections), with every API call and command verified on a live fortress. Combined with research reports, the total DF documentation stands at **6,049 lines across 5 files**.
+
+**Systems verified on live game (Girderpriced, Y251):**
+- Digging, workshops, stockpiles, zones, farm plots, workorders, labors
+- Game flow control, state queries, enums, automation plugins, Quickfort
+- Military (squad creation, member assignment, world vs fortress filtering)
+- Nobles (14 positions, programmatic appointment)
+- Trade (depot placement, item inventory)
+- Water/fluids (3,711 tiles, muddying technique for underground farming)
+- Burrows (command-based creation)
+- Healthcare (counters2 biological timers, stress system)
+- Advanced construction (bridges, doors, levers, traps, fortifications)
+- Unit deep dive (skills, personality facets, necromancer detection)
+- Item creation (createitem command for emergencies)
+- Death types (51 enum values)
+- Announcement/event log access
+
+**Hard lessons learned through fortress failure:**
+- Food infrastructure is life-or-death: 11 of 19 dwarves died
+- Surface vs underground crops are completely different systems
+- Workorder command has hidden quirks (`BrewDrink` invalid)
+- Several API field names changed between DF versions
+- Necromancers are immortal (no hunger/thirst)
+- Tantrum spirals kill fortresses faster than sieges
+
+### 2026-03-20 [73f127c1ea8a]
+
+**Massive information system discoveries and fortress crisis!**
+
+1. **"The dead walk. Hide while you still can!"** (type=150) — The necromancers raised undead! This confirms the living dead siege.
+2. **Ghosts haunting**: "Melbil, Ghostly Stonecrafter has risen!" and "Minkot, Ghostly Mason batters Cerol!" — Two ghosts active, one is assaulting the living.
+3. **Missed a trade caravan** — Dwarven caravan arrived and left because no trade depot was accessible.
+4. **Kogan was MURDERED** — "Alâth Labormarks killed Kogan Guildworth" during a tantrum fight. Kogan suffocated.
+5. **695 reports** with rich struct: `id, year, time, type, text, color, bright, duration, speaker_id, activity_id`
+6. **Type 38 (combat)** is by far the most common (343), followed by 104 (cancellations, 96), 177 (dialog, 54)
+
+### 2026-03-20 [876150febb6f]
+
+**The Last Stand of Dastot Manorhands**
+
+The fortress situation is EPIC:
+1. **Dastot has raised 4 fallen dwarves** as his personal undead army: Cerol (former leader), Etur, Sakzul, and Zulban
+2. **76 hostile undead** are on the map — the invading necromancer's army
+3. **0 alive hostiles** — meaning the necromancer attackers themselves are either dead or have left; only their raised dead remain
+4. **4 vs 76** — Dastot's little army is vastly outnumbered
+5. Game is at tick 353,598 (advancing well past the popup block)
+6. No new popups — game is running smoothly
+
+The question: Can Dastot's 4 undead hold against 76 hostile undead until migrants arrive? In DF, migrants typically arrive in Spring (tick ~33,600) and Autumn (~268,800). We're at tick 353,598 of Y251 — that's late Autumn. The next migrant wave would be Spring Y252 (tick ~33,600).
+
+### 2026-03-20 [6847c242f293]
+
+**"The Last Necromancer" — a DF story writing itself**
+- Dastot is called "void hunter" (his title) — he's literally the void staring back
+- His necromancy is his only weapon: he raises fallen creatures to fight, but they keep getting destroyed
+- 43 hostile undead vs 1 necromancer — every battle is a desperate raise-and-fight cycle
+- Stress at -48,000 = extremely happy. Necromancers are immune to many stressors.
+- He's also immune to hunger/thirst (necromancer trait) — he can literally last forever if not killed
+- **Next migrant wave**: Spring Y252 (~tick 33,600, about 42,000 ticks away at current pace)
+- The question: will the hostile undead overwhelm him before migrants arrive?
+
+### 2026-03-20 [9b43fd7031df]
+
+**The v4.0 Architecture — Why This Design Works:**
+
+1. **The Narrative Data Layer is the keystone.** A 32B local LLM can't process 500K raw events. By pre-computing narrative scores, causal chains, arc detection, and hierarchical summaries in Phase 3, we create a "narrative API" that Phase 4's storytelling pipeline consumes. This is the same pattern used by search engines (index first, query later) applied to storytelling.
+
+2. **Multi-model support is essential for accessibility.** Users with a Mac Studio (64GB) run Qwen3 32B locally. Users with a gaming laptop (16GB) run Qwen3 8B. Users with lower specs use cloud Claude. The system adapts to the hardware without sacrificing the storytelling experience.
+
+3. **The autonomous player bot is the logical capstone.** Every system built in Phases 1-5 (data capture, narrative understanding, visualization, advisor intelligence) feeds into the bot. It doesn't just play — it plays *narratively*, creating stories worth telling by the same pipeline that tells them.
+
+### 2026-03-20 [4583d7ace9f5]
+
+**End-to-End Worldgen Pipeline Architecture:**
+
+1. **Dual-mode data flow**: The worldgen-bridge.lua writes to a *separate* JSON file (`worldgen-status.json`) from the fortress bridge (`chronicler-state.json`). This is intentional — worldgen and fortress mode are mutually exclusive game states, so separate files prevent confusion.
+
+2. **Snapshot vs polling trade-off**: The Lua side polls every 30 frames (~0.5s at 60fps) for responsive state tracking, while the Python side stores DB snapshots only every 10 seconds. This 20:1 ratio keeps the DB clean while giving WebSocket clients near-real-time updates.
+
+3. **Historical backfill complements live capture**: The backfill pipeline (`step_12_materialize_world_timeline`) reconstructs year-by-year snapshots from Legends XML data, filling the same `worldgen_snapshots` table. The `phase` column distinguishes `historical_backfill` from `live_capture`, and the API returns both seamlessly.
+
+### 2026-03-20 [9da6737e6010]
+
+**Knowledge Horizon — A Visibility System, Not a Filter System:**
+
+1. **The KH is additive**: entities start invisible and are *revealed* by mechanisms (denizen registry, family links, geographic proximity, events). This is the opposite of a blacklist approach — nothing is assumed known until proven.
+
+2. **421 nobles visible via CAV-002 is intentional**: In DF, noble positions are public knowledge. Your fortress knows who rules the Human kingdoms and Elf forests even without direct contact. This gives the KH a reasonable "world awareness" baseline beyond just the fortress itself.
+
+3. **The gate pattern is superior to full filtering**: Rather than rewriting every SQL query in 8+ detail pages to use `visible_*` views, the gate checks visibility *once* at page load. If the entity passes, the full page renders normally. This is 95% of the UX benefit with 5% of the code change. Full sub-query filtering (hiding individual linked entities within a detail page) is a Phase 4 refinement.
+
+### 2026-03-20 [6db41f1b757b]
+
+**Phase 3 Document Landscape — What I Found:**
+
+1. **Phase 3 PRD is stale (v2.0, 2026-03-05)**: Still says "Entry State: Bridge v7" when we're at v9. Doesn't reflect Stages 3.2/3.3 completion. Missing v4.0 additions (3.5/3.6) entirely. Missing LVN additions (3.1.7-3.1.10).
+
+2. **Stage ordering matters significantly**: The original order (3.4 embeddings next) would embed a *partial* corpus. But 3.5 creates 7 new tables of narrative-critical data, and 3.6 creates 7 more processed structures. Embedding AFTER these means the full corpus gets embedded once, not incrementally patched.
+
+3. **Critical schema gap discovered**: The `embeddings` table (line 653 of schema.sql) is missing `world_id` — the only CDM table without it. Also missing: content_hash UNIQUE constraint, vector similarity index (HNSW/IVFFlat). These must be fixed.
+
+4. **LVN tasks 3.1.7-3.1.10 are orphaned**: Listed as Stage 3.1 additions in the roadmap, but Stage 3.1 was marked COMPLETE without them. Need disposition.
+
+5. **Narrative Context Assembly is split across two stages**: Stage 3.6.7 (narrative context assembler) and Stage 3.4.7 (narrative context retrieval) are two halves of the same system — structured+semantic context assembly. They should be integrated.
+
+### 2026-03-20 [81674552ffc5]
+
+**Why 3.5 → 3.6 → 3.4 is the Right Order:**
+
+1. **Data flows downhill**: 3.5 creates raw temporal data (snapshots, combat reports, character arcs). 3.6 processes that raw data into narrative-optimized structures (scored events, detected arcs, causal chains). 3.4 embeds the complete corpus for semantic retrieval. Each stage consumes what the previous one produced. Reversing this means rework.
+
+2. **The "sparse embeddings" problem**: Embedding only legends-era entities (as the original 3.4-first order would do) produces ~2,500 vectors covering historical data but zero fortress-temporal data. After 3.5 and 3.6 add 15 new data types, the text extractors would need complete rewriting. Building 3.4 last means one clean pass over the full corpus (~3,300+ entities across 12 types).
+
+3. **The context assembler is the keystone**: Stage 3.6.7 (narrative context assembler) and Stage 3.4.7 (narrative context retrieval) are two halves of one system. The assembler uses SQL for structured data + semantic search for augmentation. Building 3.6 first means the assembler works SQL-only initially, then 3.4 extends it with semantic capabilities. Clean layering.
+
+### 2026-03-20 [1c5d4ce2903a]
+
+**Stage 3.5 Validation Summary**: The complete data pipeline is in place:
+1. **Schema**: 6 tables + game_reports enhancement — all created via migration V5
+2. **ETL**: 9 functions in `etl_state_capture.py` — fortress snapshots, report classification, threat tracking, character arcs (with delta detection), environmental state, session markers, death narratives (with combat report linking)
+3. **Watcher**: Calls `ingest_state_capture()` every cycle with full context
+4. **WebSocket**: Delta-detects population/threat/season changes and pushes events
+5. **Frontend**: CSS classes, `formatEventText`, `clearArmyAlert`, status bar updates all persisted
+6. **CLI**: `validate-stage35` (9-check validation), `fortress-state`, `threats`, `deaths` commands added
+
+The 8/9 failing validation checks are expected — they require a live DF session with the watcher running to populate the tables. Only `check 9` (schema existence) can pass without live data.
+
+### 2026-03-20 [71beaeb386de]
+
+**Validation without live data**: The key insight is that most of Stage 3.5 can be validated offline. Pure functions can be unit tested, schema can be introspected, cross-component contracts can be verified by code analysis, and the full ETL pipeline can be exercised with synthetic bridge data injected directly into `ingest_state_capture()`. Only the Lua→HTTP→Python transport and real-time WebSocket latency truly need a live DF session.
+
+### 2026-03-20 [3a0672c46b0f]
+
+The background tasks partially completed during validation — we can see the counts updated: 74 year summaries (was 50), 35 character profiles (was 6), 137 summarized clusters (was 100). The validation tests structural completeness (all 6 tables, scoring fields, index), content quality (no empty summaries), functional correctness (context assembler, timeline query), and breadth (≥3 arc types, ≥3 cluster types, ≥2 causal link types).
+
+### 2026-03-21 [fa6a9e7df18b]
+
+**The embedding value of a text field depends on two factors**: (1) semantic density — does it contain meaning that's searchable? and (2) length — is it long enough to capture in a chunk but not so short it's noise? The sweet spot is 100-2000 chars of descriptive prose. Raw JSONB with numeric IDs/codes (like `{"hf_id": 4024, "action": "corrupt"}`) is poor embedding material — it needs to be **rendered into natural language** first.
+
+### 2026-03-21 [0e9ed029319c]
+
+The core tension is **batch vs. streaming embeddings**. Legends XML ingestion is a one-time bulk load (~2M records) where you can optimize for throughput. Live data arrives continuously in small batches via the bridge watcher — you need low-latency, incremental embedding that doesn't block the ETL pipeline. These are genuinely different systems with different optimization profiles.
+
+### 2026-03-21 [2cc163ea75cf]
+
+**pgvector dimension limit**: Both IVFFlat and HNSW indexes cap at 2000 dimensions. Our Qwen3 embeddings are 2560-dim. Three options:
+1. **halfvec** (16-bit floats) — supports 4000 dims for indexes, but requires schema change
+2. **Dimension truncation** — Qwen3 uses Matryoshka representation learning, so first N dims are still useful
+3. **Skip the index** — sequential scan with ~100-300K vectors is fast enough (<1s on this hardware)
+
+For now, option 3 is simplest. The index becomes important at >1M vectors.
+
+### 2026-03-21 [b28bb9255138]
+
+**Stage 3.4 design evolution during implementation**:
+1. **Art_form composite keys** — discovered that `art_forms` uses `(world_id, id, form_type)` as its real unique key (3 records per `id`). Fixed with `ROW_NUMBER()` to generate unique entity_ids. Other tables (hf, site, entity, artifact, written_content) all have unique `id` per world.
+
+2. **pgvector dimension limit** — IVFFlat and HNSW both cap at 2000 dimensions. Our 2560-dim Qwen3 embeddings exceed this. Solution: skip vector index and use sequential scan (fast enough for <1M vectors). Future option: switch to `halfvec` type (4000 dim limit) or truncate to 2000 dims.
+
+3. **executemany optimization** — switched from individual `conn.execute()` per row to `conn.executemany()` for batch upserts. This reduces DB round-trips from N to 1 per sub-batch.
+
+### 2026-03-21 [b8835ddda3b5]
+
+**Landing page design**: The LVN screenshot shows a world-card grid layout. For Chronicler, I'll create a similar dashboard but with three key areas:
+1. **World cards** — existing loaded worlds with stats, plus an "Import new world" card
+2. **Live game connection** — status indicator and controls for the DFHack bridge (watcher)
+3. **Quick orientation** — what the user can do from here (explore, monitor, storyteller)
+
+The import card won't handle file upload (that's a CLI operation), but will show the `chronicler ingest` command to run. The live connection card will poll `/api/live/status` and provide start/stop guidance.
+
+### 2026-03-21 [dd935912ef69]
+
+**Landing page architecture**: The template uses a single-page approach with three async data sources:
+1. **`/api/worlds`** — enhanced to return `alt_name`, `max_year`, and `embedding_count` alongside base stats. This powers the world cards which show "Tar Thran / The Land of Dawning" with 30,803 embeddings.
+2. **`/api/live/status`** — polled every 15 seconds. Currently connected to fortress Thobteshkad (Orid Zurko), bridge v9, year 251. The live panel dynamically shows/hides fortress details vs. setup instructions.
+3. **Embedding status** — derived from the worlds API; shows semantic search readiness per-world.
+
+The "Import a World" card is a dashed-border affordance (inspired by the LVN screenshot) that reveals CLI instructions on click — a smart pattern since ingestion is compute-heavy and better suited to CLI than web upload.
+
+### 2026-03-21 [527281cb24da]
+
+**Summary of everything completed this session:**
+
+1. **Landing page** — World cards, live connection, import instructions, embedding status. Route `GET /` serves `landing.html`.
+
+2. **World selector** — Explorer now reads `?world_id=` from URL (was ignoring it). Added dropdown in tab bar to switch worlds without returning to the landing page.
+
+3. **Girderpriced recovery** — Post-embark XML re-ingested for Orid Zurko as world 3 (1,868,066 records, 2,212 sites including the player fortress). Incomplete pre-embark world 2 was deleted.
+
+4. **Dual-name display** — Where the data provides both a native and English name, the UI now shows both:
+   - People list: bold legends name + italic native name (from unit JOIN)
+   - Global search: returns `alt_name` for HFs (native unit name), rivers (`name_english`), and finds results when searching on either name
+   - Detail pages already support `entity_alt_name` via `detail_base.html`
+   - Civ/site/geo lists have forward-compatible `alt_name` hooks (show italic secondary name when data is available)
+
+5. **Embeddings for Orid Zurko** — Pipeline running in background for ~110K entities.
+
+**Data reality**: The DF legends XML only stores one name per entity for most types. Dual names exist primarily for units (from live game data) and rivers. The native Dwarvish name "Thobteshkad" for Girderpriced comes from the DFHack bridge, not the XML — so it will only appear once live fortress data is captured for world 3.
+
+### 2026-03-21 [9884288da200]
+
+**Final state — both worlds fully operational:**
+- **Tar Thran** (World 1): 2,154 sites, 101,795 embeddings, 121 live units
+- **Orid Zurko** (World 3): 2,212 sites (including Girderpriced!), 112,063 embeddings, ready for live fortress connection
+
+The embedding pipeline processed all 6 entity types for world 3 in ~90 minutes: art_forms (1,022), HFs (49,614), sites (2,212), entities (4,881), artifacts (10,526), written_contents (43,703). Semantic search now works across both worlds — users can find entities by meaning ("the most powerful necromancer") rather than just keyword matching.
+
+### 2026-03-22 [70ac6c3a198d]
+
+**How this works under the hood:**
+
+1. **No LLM in the search loop** — this is pure vector similarity. Your query text gets embedded by Qwen3-Embedding-4B (2560-dim) via the MLX server, then pgvector finds the closest chunks using cosine distance (`<=>` operator).
+
+2. **Hybrid search with RRF** — results come from two sources merged via Reciprocal Rank Fusion:
+   - Vector similarity (semantic meaning match)
+   - ILIKE keyword match (substring on chunk_text)
+   
+   RRF assigns `1/(k + rank)` scores from each source and sums them. Items appearing in both lists rank higher.
+
+3. **Why semantic beats text**: The embeddings table stores rich text descriptions of each entity (e.g., "baros — DWARF FEMALE — deity, necromancer. spheres: death"). Vector search matches the *meaning* of your query against these descriptions. Text search only matches against the entity *name* column. That's why searching "vampire" finds `kar beersdragons` semantically (her description says "vampire") but returns nothing via text.
+
+4. **The 213,858 embeddings** across both worlds are what make this possible — pre-computed vectors for HFs, sites, entities, artifacts, art forms, and written contents.
+
+### 2026-03-22 [af5b7063d863]
+
+The death narrative for unit 2773 (necromancer-doctor Dastot) at tick 390080 was captured from a **previous playthrough**. The current game was reloaded from an earlier save at ~tick 16801. This creates a fascinating narrative test case: will the same death happen again at tick 390080, or will our different management change the outcome? The narrative engine needs to handle timeline divergence — the original future is "known" but may not come to pass.
+
+### 2026-03-22 [5df6a3e46b85]
+
+**Root cause**: Using DFHack's `dig-now` to instantly excavate a large underground area (116 tiles at z=133) broke the game's internal consistency. DF expects tiles to be dug one at a time by dwarves, which updates pathfinding caches incrementally. Instant excavation can create invalid map states that prevent the simulation loop from advancing. **Lesson**: Never use `dig-now` for large areas during live gameplay — use normal designations and let dwarves dig naturally.
+
+### 2026-03-22 [a5d021fbb6a3]
+
+**Key fix**: The bridge Lua's popup dismissal runs on game ticks, but popups freeze tick advancement — a deadlock. The fix uses `dfhack.timeout(5, 'frames', callback)` which runs on real-time frames (the render loop), not game ticks. This fires every 5 rendered frames regardless of simulation state, breaking the deadlock. The popup is dismissed, ticks resume, and the bridge can run normally.
+
+### 2026-03-22 [68154ce2e341]
+
+**Stress categories** in DFHack: 0 = "Harrowed" (worst), 1 = "Unhappy", 2 = "Fine", 3 = "Content/Happy". The scale runs from -1,000,000 (ecstatic) to +100,000 (max stress, will snap).
+
+**Three dwarves at maximum stress (100,000)**:
+- Cerol the Miner and Etur the Clothier are at the ceiling — any further negative event could trigger a tantrum spiral
+- Erib the Stonecrafter is close at 53,000
+
+**One happy dwarf**: Melbil at -8,840 (category 3) — this stonecrafter is somehow content amid the carnage. Probably has strong personality traits that resist stress.
+
+**The death spiral dynamics**: When stressed dwarves tantrum, they attack others → more stress → more tantrums → fortress collapse. With 3 at max stress, this cascade could trigger at any time.
+
+### 2026-03-22 [c51e440b1b49]
+
+**The bridge data reveals the full story**:
+
+1. **Death timeline** (by DF day): 6 deaths recorded — Days 269 (2 deaths!), 274, 279, 285, 289. The deaths are accelerating — this is the classic DF tantrum spiral pattern.
+
+2. **Fortress economics**: wealth_total=57 (effectively zero). food_stocks=0, drink_stocks=0. fortress_rank=0 (lowest). This is why no migrants come — the fortress has no reputation.
+
+3. **invasion_count=1** — that "Intruders!" announcement was the first invasion. Probably kobold thieves.
+
+4. **The world keeps spinning**: 14 marriages happened worldwide, a birth on day 280, and someone grew up on day 286 — the wider world simulation continues regardless of the fortress's plight.
+
+5. **fortress_units=20**: The bridge sees 20 fortress units total (living + dead/ghost), matching the original embark party + migrants.
+
+### 2026-03-22 [291871998e7d]
+
+**The seeds are accessible and the labor is enabled!** But wait:
+- **68 seeds at z=134** (surface, where dwarves are)
+- **15 seeds at z=133** (underground, where farms are) 
+- **15 seeds at z=-30000** (limbo — probably in containers or a weird state)
+
+PLANT labor is enabled for all 6 citizens. The farms are complete. Seeds exist at z=133 (the farm level). So why no planting jobs?
+
+Possible issue: The farms might need to have the soil tilled or there could be a pathing issue between z=134 and z=133 that's not obvious. Or the farms might need to be on the right type of soil.
+
+### 2026-03-22 [4d65ed527dcb]
+
+**All seeds have `on_ground=false`!** This means they're not properly placed on the ground — they're in some kind of limbo state. DF items need `on_ground=true` to be accessible for hauling/planting. The seeds are at the right coordinates but aren't registered as ground items. This is likely because they were in bags inside the wagon, and the wagon's contents didn't scatter properly when the wagon was deconstructed during our rebuild.
+
+**The fix**: Move all seeds to the ground explicitly using `dfhack.items.moveToGround()`.
+
+### 2026-03-22 [094ba2520ad2]
+
+**Autofarm thinks it has 28 plump helmets and the limit is 30!** It's not generating planting jobs because it believes it's close to the 30-plant target. The 30 emergency plump helmets I just spawned are being counted as existing stock. Autofarm subtracts current count from limit — 30 limit minus 28 current = only 2 needed, not enough to fill the farm plots.
+
+**The fix**: Either increase the autofarm limit or let the dwarves eat through the spawned food first, bringing the count below the trigger threshold.
+
+### 2026-03-22 [9146582985e9]
+
+**The fortress has stabilized.** Key metrics:
+- **Zero deaths** in the last ~15,000 ticks (after clearing all necromancers/undead/ghosts)
+- **Farm system working**: 13 seeds consumed = active planting
+- **Dastot** (immortal necromancer) is the backbone — can't die from starvation/thirst
+- **6 spawned settlers** are alive and functional enough to survive, though their job pickup rate is slow
+- **No more ghosts** — the corpse removal + ghost_info nullification held through 2 season transitions
+
+The critical crisis has been resolved. From 18 citizens to 1 (death spiral), now back to 7 with a stable fortress.
+
+### 2026-03-22 [37b2f230f3b4]
+
+**Silveryclasps Y256 Autumn — Critical State:**
+- **Starvation alert active** since t252,100 ("Your fortress is out of food!")
+- 0 food, 0 drink → thirst will kill first (DF thirst counter is ~1 month)
+- No migrants attracted all year (3 rejections)
+- A caravan came and left — no trade depot to unload goods
+- Ghost-ward holding (0 ghosts) — the necromancer crisis is over
+- But the *food* crisis is terminal. Only Dastot (immortal necromancer) will survive
+- Stress escalating (5 dwarves above 25K) — tantrums/violence possible before starvation
+
+### 2026-03-22 [f37aee05838d]
+
+**Major correction**: The active fortress is **Girderpriced** (site 2212) in world **Orid Zurko** (world_id=3) — NOT Silveryclasps in Tar Thran. Key differences:
+- **33 missing dwarves** — massive prior casualties (similar death spiral history)
+- **14 non-dwarf sentient residents** (5 humans, 4 goblins, 4 kobolds, 1 elf) — tavern visitors
+- **Only 2 embarkers** (Cerol Brassringed, Melbil Oilyrouts) — most dwarves are migrants/created
+- **Dastot "Manorhands"** is here too — same immortal necromancer
+
+### 2026-03-22 [94e08f198a6b]
+
+**The full picture is dramatically different from what I had:**
+- **13 citizens** + **15 non-citizen dwarves** + **animals** = 28+ fortress units
+- Many of the non-citizen dwarves **died in recorded incidents** (hunger, bleeding, drowning, tantrum) but are **still walking around** — likely raised by the TWO necromancers (Dastot AND Geshud "Postheroes" the Doctor necromancer)
+- **Etur Egendatan** has stress=100,000 (maximum — completely insane)
+- **50 incidents** of violence spanning Y251-Y255: murder chains, mass death events, starvation
+- **5 invasions** recorded
+- The bridge data and live game are at nearly the same tick (275,539 vs 275,599)
+
+### 2026-03-22 [0d5bbeff8bc9]
+
+**README.md -> CLAUDE.md rename**: Claude Code auto-discovers `CLAUDE.md` files in subdirectories and includes them in context when working in those directories. By renaming 56 README files to CLAUDE.md, every subdirectory now has its documentation auto-loaded when Claude navigates there — no explicit `@` import needed. This is the intended Claude Code convention.
+
+**Two-remote DwarfCron setup**: The DwarfCron repo now has `origin` (davidmoneil/DwarfCron — legacy) and `cannoncopilot` (CannonCoPilot/DwarfCron — active). The Dev branch on CannonCoPilot is the development target. The README.md in Jarvis documents both push patterns clearly.
