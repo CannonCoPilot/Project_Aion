@@ -46,7 +46,7 @@ const SIGNAL_FILE = path.join(CONTEXT_DIR, '.auto-clear-signal');
 const TOKEN_CAPTURE_SCRIPT = path.join(WORKSPACE_ROOT, '.claude/scripts/capture-token-count.sh');
 
 // Default thresholds (can be overridden by config)
-const MAX_CONTEXT_TOKENS = 200000;
+const MAX_CONTEXT_TOKENS = 1000000;
 let WARNING_THRESHOLD = 50;       // Show warning (default)
 let VERIFY_THRESHOLD = 65;        // Trigger checkpoint (lowered from 75 to 65)
 

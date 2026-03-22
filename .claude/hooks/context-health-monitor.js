@@ -68,18 +68,19 @@ function main(hookData) {
     }
   }
 
-  // 3. Check if context is in warning zone
-  if (contextPct >= 50 && contextPct < 65) {
+  // 3. Check if context is in warning zone (token-based, reads threshold from watcher state)
+  const contextTokens = parseInt(watcherStatus.context_tokens) || 0;
+  const tokenThreshold = parseInt(watcherStatus.token_threshold) || 300000;
+  const warnAt = Math.round(tokenThreshold * 0.8);   // 80% of threshold
+  const criticalAt = Math.round(tokenThreshold * 0.95); // 95% of threshold
+
+  if (contextTokens >= criticalAt) {
     warnings.push(
-      `Context at ${contextPct}% — approaching 65% compression trigger`
+      `Context at ${Math.round(contextTokens/1000)}k tokens — CRITICAL: ${Math.round(tokenThreshold/1000)}k threshold imminent`
     );
-  } else if (contextPct >= 65 && contextPct < 73) {
+  } else if (contextTokens >= warnAt) {
     warnings.push(
-      `Context at ${contextPct}% — compression should be active`
-    );
-  } else if (contextPct >= 73) {
-    warnings.push(
-      `Context at ${contextPct}% — EMERGENCY: near lockout ceiling`
+      `Context at ${Math.round(contextTokens/1000)}k tokens — approaching ${Math.round(tokenThreshold/1000)}k compression threshold`
     );
   }
 
