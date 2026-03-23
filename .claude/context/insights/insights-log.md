@@ -3872,3 +3872,44 @@ This is the first concrete gap: **the watcher can't start at all** without a fun
 ### 2026-03-23 [e9bb5aaa64d7]
 
 The code analyzer revealed something transformative: **the bridge already provides a strict superset of all RPC data**. The watcher uses RPC for exactly ONE data domain (unit roster via `GetUnitList`), and the bridge's `units` section contains every field the RPC provides PLUS extras (stress, hunger, thirst, decoded flags, squad membership). The other 24 data domains are already bridge-only. This means the "unresolvable RPC issue" isn't actually blocking — it's exposing a legacy dependency that should have been removed when the bridge became the primary transport.
+
+### 2026-03-23 [8a25ed3faa99]
+
+The key architectural insight is that the bridge was designed as a workaround but actually became the superior data source. It runs in-process on the DFHack console thread (where CoreSuspender works), collects 26 data sections in a single atomic snapshot, and produces pre-resolved field names. RPC requires multiple round-trips, returns enum IDs requiring client-side resolution, and is inherently fragile across threading boundaries. The bridge is the correct primary transport; RPC is a nice-to-have optimization for low-latency scenarios.
+
+### 2026-03-23 [0da796614b42]
+
+The full bridge-primary pipeline works: bridge Lua v11 → HTTP fetch → `_bridge_units_to_upsert()` adapter → `upsert_units()` → PostgreSQL. The `units` table now has 15 rows with resolved profession names ("Miner", "Gem Cutter", "Clothier"), resolved race ("dwarf"), birth years (162-231), and sex. This is RICHER data than the RPC path ever provided — RPC never populated `birth_year` or `sex` at the column level.
+
+### 2026-03-23 [4fb73ddd4a48]
+
+**16 live history events are now in the Legends Tables** — this is the first time live game data has successfully flowed into `history_events` since the pipeline was designed. The bridge-primary architecture is working end-to-end: game memory → bridge Lua → HTTP → watcher → file_writer → live_etl → PostgreSQL Legends Tables.
+
+### 2026-03-23 [9eabccaafdfc]
+
+The pipeline is rock solid — 20 consecutive cycles with zero errors. Data is flowing from bridge → file_writer → live_etl → DB for all major tables. The `historical_figures` table now has 15 HFs with `unit_id` set (linking live fortress units to their historical figure records). This is the "Legends Table living update" the revised architecture designed for. The drink crisis remains — food at 82 but drink at 0. Autolabor should have assigned a brewer, but the lack of drink suggests either no brewable plants in the Still's reach, or no empty barrels accessible to the Still.
+
+### 2026-03-23 [e9486af4d704]
+
+The active plan (`swirling-juggling-perlis.md`) is the **Bridge-Primary Watcher Architecture** refactor — making the Lua bridge the default data transport with RPC as opt-in. The scratchpad confirms Steps 1-7 were implemented in the previous session (bridge v11 deployed, watcher refactored, adapter written). Step 8 (integration test) and final validation remain.
+
+### 2026-03-23 [6e88baf45458]
+
+**Phase 3 Exit Criteria — All Major Indicators GREEN:**
+
+The end-to-end data pipeline is validated:
+- **Bridge → JSON files → DB**: 27 data sections flowing, 185 fortress snapshots capturing the population decline from 10→3
+- **HF linkage**: 15 historical figures linked to live fortress units — this is the critical connection between legends data and live gameplay
+- **Events**: 551 unit events captured including 322 job completions, 147 item creations, profession changes, arrivals — real in-game activity
+- **Narrative**: 238K scored events, 6.6K arcs, 28K causal links from the Stage 3.6 analysis pipeline
+- **UI**: Site page renders Girderpriced with denizens; HF pages show live stress, unit_id, profession, and auto-refresh every 15 seconds
+
+The remaining gaps are cosmetic (site details JSONB format) not structural. The data pipeline architecture — bridge-primary, no RPC dependency — has proven robust across the entire gameplay session.
+
+### 2026-03-23 [2baa6348ea4a]
+
+Here's the full picture of what DFHack 53.x offers for event/creature manipulation:
+
+**Tier 1 — Built-in, reliable:**
+| Command | What it does |
+|---------|

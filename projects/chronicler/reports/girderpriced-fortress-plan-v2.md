@@ -3,7 +3,7 @@
 **Date**: 2026-03-22 (Session 46)
 **Fortress**: Girderpriced (site 2212), Orid Zurko (world_id=3→1 after re-ingest)
 **Starting state**: Y250, 15th Granite (Early Spring), PAUSED, fresh save load
-**Objective**: Play until all residents perish. No Armok Mode.
+**Objective**: Play until all residents perish. No Armok Mode. Do not end play session until there are NO survivors.
 **Data pipeline**: Bridge v10 → file_writer → live_etl → Legends Tables
 
 ---
