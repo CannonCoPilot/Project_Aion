@@ -22,7 +22,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
+const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Jarvis');
 const SESSION_STATE_PATH = path.join(WORKSPACE_ROOT, '.claude/context/session-state.md');
 const COMPACTION_LOG = path.join(WORKSPACE_ROOT, '.claude/logs/compaction-history.jsonl');
 

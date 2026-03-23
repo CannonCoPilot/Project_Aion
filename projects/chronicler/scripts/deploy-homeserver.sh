@@ -15,12 +15,12 @@
 # ===========================================================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_PYTHON="/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/bin/python3"
-CHRONICLER_VENV="/Users/nathanielcannon/Claude/Projects/DwarfCron/.venv/bin"
-BRIDGE_SRC="/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua"
-EXPORT_SRC="/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-export.lua"
-LEGENDS_DIR="/Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends"
-BACKUP_DIR="/Users/nathanielcannon/Claude/Projects/DwarfCron/data/backups"
+VENV_PYTHON="$HOME/Claude/Jarvis/infrastructure/.venv/bin/python3"
+CHRONICLER_VENV="$HOME/Claude/Projects/DwarfCron/.venv/bin"
+BRIDGE_SRC="$HOME/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua"
+EXPORT_SRC="$HOME/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-export.lua"
+LEGENDS_DIR="$HOME/Claude/Projects/DwarfCron/data/legends"
+BACKUP_DIR="$HOME/Claude/Projects/DwarfCron/data/backups"
 HOMESERVER="192.168.4.194"
 HTTP_PORT=8888
 
@@ -37,10 +37,11 @@ HOST = '192.168.4.194'
 USER = 'Nathaniel'
 PASS = 'DwarfF0rtress'
 
+home = os.environ.get('HOME', os.path.expanduser('~'))
 scripts = [
-    ('/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua',
+    (f'{home}/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua',
      'Nathaniel/dfhack-scripts/chronicler-bridge.lua'),
-    ('/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-export.lua',
+    (f'{home}/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-export.lua',
      'Nathaniel/dfhack-scripts/chronicler-export.lua'),
 ]
 
@@ -73,7 +74,7 @@ from impacket.smbconnection import SMBConnection
 import io, os, socket
 
 HOST = '192.168.4.194'
-SRC = '/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua'
+SRC = os.path.join(os.environ.get('HOME', os.path.expanduser('~')), 'Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua')
 
 # Check connectivity
 print("\n--- Network ---")
@@ -272,7 +273,7 @@ from datetime import datetime
 
 HOST = '192.168.4.194'
 HTTP_PORT = 8888
-BACKUP_DIR = '/Users/nathanielcannon/Claude/Projects/DwarfCron/data/backups'
+BACKUP_DIR = os.path.join(os.environ.get('HOME', os.path.expanduser('~')), 'Claude/Projects/DwarfCron/data/backups')
 
 # Get current save info from bridge
 try:
@@ -324,7 +325,7 @@ print("  The bridge snapshot above captures the current live game state")
 print(f"  including all {len([k for k in data.keys() if k not in ('cur_year','cur_year_tick','cur_season','creature_raws','creature_count','timestamp','bridge_version')])} data sections.")
 
 # Also try to list what legends we have locally
-legends_dir = '/Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends'
+legends_dir = os.path.join(os.environ.get('HOME', os.path.expanduser('~')), 'Claude/Projects/DwarfCron/data/legends')
 if os.path.exists(legends_dir):
     print(f"\n  Local legends backups in {legends_dir}:")
     for entry in sorted(os.listdir(legends_dir)):

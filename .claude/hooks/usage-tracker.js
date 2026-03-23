@@ -20,7 +20,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 
-const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
+const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Jarvis');
 const LOG_DIR = path.join(WORKSPACE_ROOT, '.claude/logs');
 
 // ============================================================

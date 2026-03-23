@@ -28,7 +28,7 @@ TRIMMED=$(echo "$PROMPT" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')
 case "$TRIMMED" in
     /clear|/compact|/clear*|/compact*)
         # Run context preparation script synchronously
-        PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+        PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
         PREP_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
         LOG_DIR="$PROJECT_DIR/.claude/logs"
 

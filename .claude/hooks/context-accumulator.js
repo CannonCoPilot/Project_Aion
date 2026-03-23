@@ -33,7 +33,7 @@ try {
 }
 
 // Configuration
-const WORKSPACE_ROOT = '/Users/nathanielcannon/Claude/Jarvis';
+const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Jarvis');
 const CONTEXT_DIR = path.join(WORKSPACE_ROOT, '.claude/context');
 const LOG_DIR = path.join(WORKSPACE_ROOT, '.claude/logs');
 const CONFIG_FILE = path.join(WORKSPACE_ROOT, '.claude/config/autonomy-config.yaml');

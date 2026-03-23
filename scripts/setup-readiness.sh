@@ -21,7 +21,7 @@ set -e
 # Determine Jarvis path
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JARVIS_PATH="${1:-$(dirname "$SCRIPT_DIR")}"
-AIFRED_PATH="/Users/nathanielcannon/Claude/AIfred"
+AIFRED_PATH="$HOME/Claude/AIfred"
 
 # Counters
 CRITICAL_PASS=0
