@@ -31,7 +31,7 @@ try {
 }
 
 // Configuration
-const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || '/Users/nathanielcannon/Claude/Jarvis';
+const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || (process.env.HOME + '/Claude/Jarvis');
 const STATE_FILE = path.join(WORKSPACE_ROOT, '.claude/ralph-loop.local.md');
 const AC02_STATE = path.join(WORKSPACE_ROOT, '.claude/state/components/AC-02-wiggum.json');
 

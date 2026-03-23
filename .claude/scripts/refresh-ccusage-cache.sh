@@ -7,10 +7,10 @@
 #
 # NOTE: Do NOT use set -e — this script must be resilient to partial failures.
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 CACHE_FILE="$PROJECT_DIR/.claude/context/.ccusage-blocks.json"
 LOCK_FILE="$PROJECT_DIR/.claude/context/.ccusage-refresh.lock"
-NPX="/Users/nathanielcannon/.nvm/versions/node/v24.13.1/bin/npx"
+NPX="$HOME/.nvm/versions/node/v24.13.1/bin/npx"
 MAX_AGE=300  # Only refresh if cache is older than 5 minutes
 
 # Guard: skip if lock exists (another refresh in progress)

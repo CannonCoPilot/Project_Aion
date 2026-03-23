@@ -29,7 +29,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Paths
-const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || '/Users/nathanielcannon/Claude/Jarvis';
+const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || (process.env.HOME + '/Claude/Jarvis');
 const SIGNAL_FILE = path.join(WORKSPACE_ROOT, '.claude/state/ulfhedthnar-signals.json');
 const AGENT_LOG = path.join(WORKSPACE_ROOT, '.claude/logs/agent-activity.jsonl');
 const RALPH_STATE = path.join(WORKSPACE_ROOT, '.claude/ralph-loop.local.md');

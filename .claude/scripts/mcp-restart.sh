@@ -5,7 +5,7 @@
 # Works with mcp-hot-reload proxy configured in .mcp.json.
 # The proxy watches specific files — touching them triggers a restart.
 
-PROJECT_ROOT="/Users/nathanielcannon/Claude/Jarvis"
+PROJECT_ROOT="$HOME/Claude/Jarvis"
 
 # Map server names to their watched files
 declare_watch_files() {

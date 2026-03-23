@@ -18,8 +18,8 @@
 # NEVER use set -euo pipefail — grep pipeline failures cause silent crashes
 set +e
 
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
-TMUX_BIN="${TMUX_BIN:-/Users/nathanielcannon/bin/tmux}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 IDLE_THRESHOLD="${IDLE_THRESHOLD:-900}"  # 15 minutes in seconds
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 # Priorities now consolidated into session-state.md (Session 28b)

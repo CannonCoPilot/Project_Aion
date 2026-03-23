@@ -14,7 +14,7 @@
 
 INPUT=$(cat)
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 WINDOW="${JARVIS_WINDOW:-0}"
 TS_FILE="$PROJECT_DIR/.claude/context/.last-prompt-ts.W${WINDOW}"
 IH_FILE="$PROJECT_DIR/.claude/context/.idle-hands-active.W${WINDOW}"

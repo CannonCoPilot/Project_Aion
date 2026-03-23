@@ -93,7 +93,7 @@ const TIER_1_TESTS = {
       autonomous: true,
       run: () => {
         try {
-          const result = execSync('node .claude/scripts/startup-greeting.js --test 2>&1', { timeout: 5000, cwd: '/Users/nathanielcannon/Claude/Jarvis' });
+          const result = execSync('node .claude/scripts/startup-greeting.js --test 2>&1', { timeout: 5000, cwd: (process.env.HOME + '/Claude/Jarvis') });
           return { passed: result.toString().length > 0, output: result.toString().slice(0, 200) };
         } catch (e) {
           return { passed: false, error: e.message };

@@ -5,7 +5,7 @@
 #
 # Usage: bash .claude/scripts/validate-phase1.sh
 
-PROJECT_DIR="/Users/nathanielcannon/Claude/Jarvis"
+PROJECT_DIR="$HOME/Claude/Jarvis"
 PASS=0
 FAIL=0
 WARN=0
@@ -170,7 +170,7 @@ for section in "macOS Bash 3.2" "tmux Interaction" "set -euo pipefail" "GH007" "
 done
 
 # Check: referenced from MEMORY.md
-MEMORY="/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/memory/MEMORY.md"
+MEMORY="$HOME/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/memory/MEMORY.md"
 if grep -q "bash-gotchas" "$MEMORY" 2>/dev/null; then
     check "Referenced from MEMORY.md" "PASS"
 else

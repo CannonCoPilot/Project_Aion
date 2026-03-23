@@ -15,7 +15,7 @@
 set -euo pipefail
 
 # --- Constants ---
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 CONTEXT_DIR="$PROJECT_DIR/.claude/context"
 LOGS_DIR="$PROJECT_DIR/.claude/logs"
 STATE_DIR="$PROJECT_DIR/.claude/state/components"

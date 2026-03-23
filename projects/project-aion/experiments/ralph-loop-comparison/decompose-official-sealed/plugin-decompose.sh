@@ -36,7 +36,7 @@ NC='\033[0m' # No Color
 # Paths
 PLUGIN_CACHE="$HOME/.claude/plugins/cache"
 PLUGIN_MARKETPLACES="$HOME/.claude/plugins/marketplaces"
-JARVIS_ROOT="/Users/nathanielcannon/Claude/Jarvis"
+JARVIS_ROOT="$HOME/Claude/Jarvis"
 JARVIS_CLAUDE="$JARVIS_ROOT/.claude"
 OUTPUT_DIR="$JARVIS_ROOT/docs/reports/plugin-analysis"
 ROLLBACK_DIR="$OUTPUT_DIR/rollbacks"

@@ -21,7 +21,7 @@ set -e
 MODE="${1:-tier1-only}"
 CHECKPOINT_CONTENT="${2:-}"
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 CHECKPOINT_FILE="$PROJECT_DIR/.claude/context/.soft-restart-checkpoint.md"
 LOG_FILE="$PROJECT_DIR/.claude/logs/mcp-unload-workflow.log"
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")

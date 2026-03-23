@@ -4,7 +4,7 @@
 # Usage: ./file-usage-tracker.sh <file_path> [action]
 # bash 3.2 compatible (macOS)
 
-LOG_FILE="/Users/nathanielcannon/Claude/Jarvis/.claude/logs/file-usage.jsonl"
+LOG_FILE="$HOME/Claude/Jarvis/.claude/logs/file-usage.jsonl"
 
 track_usage() {
     local file_path="$1"
