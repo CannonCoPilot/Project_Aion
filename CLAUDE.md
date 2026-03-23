@@ -219,14 +219,6 @@ All file writes MUST go to authorized locations. No exceptions.
   5) DoD: phase complete only when all DoD checkboxes pass
   6) When in doubt, include
   7) Consult Phase PRD before coding
-- World test data:
-  - `Projects/DwarfCron/data/legends/region1-post-embark`
-  - `Projects/DwarfCron/data/legends/region1-pre-embark`
-  - World name: "Tar Thran" / "The Land of Dawning"
-  - Live fortress: "Silveryclasps" (Girderpriced), Y250+
-- Current phase: Phase 3 -- Live Integration
-  - Active PRD: `projects/chronicler/reports/phases/phase-3-completion-prd.md` (v3.0)
-  - Phase 1 complete: 64/64 checks. Phase 2 complete: 50/50 DoD.
 - Mandatory completion reporting: cannot mark phase complete without:
   - standalone script for user to run
   - full report summary + mini-tutorial validation steps

@@ -1,0 +1,66 @@
+flowchart TD
+    subgraph GAME["🎮 DF Game Memory"]
+        MEM["df.global.*"]
+    end
+
+    subgraph CAPTURE["Live Capture Pipeline"]
+        BRIDGE["Bridge Lua\n26 sections"]
+        WATCHER["Watcher ETL"]
+    end
+
+    subgraph LIVE["Live Tables — 13 tables"]
+        UNITS["units"]
+        UE["unit_events"]
+        FD["fortress_denizens"]
+        LH["live_history"]
+        ANN["announcements"]
+        FS["fortress_state"]
+        SQ["squads + 6 more"]
+    end
+
+    STAGING["☠️ lua_probes\n13 sections\nRAW JSONB\nDEAD END"]
+
+    subgraph IMPORT["Legends XML Import — one-time"]
+        XML["Legends XML\nregion1-legends.xml"]
+        PARSER["XML Parser +\nPost-Parse"]
+    end
+
+    subgraph LEGENDS["Legends Tables — 25 tables\n⚠️ NEVER UPDATED AFTER IMPORT"]
+        HF["historical_figures\ndeath_year, alive, kill_count\n48K records"]
+        HE["history_events\n440K records"]
+        ENT["entities + sites\nhf_links, artifacts\nregions, eras, ..."]
+    end
+
+    subgraph UI["🖥️ Web UI — 6 Detail Pages"]
+        PAGES["HF Detail\nEntity Detail\nSite Detail\nRegion / Event / World"]
+    end
+
+    MEM -->|"every 100 ticks"| BRIDGE
+    BRIDGE -->|"SSH + JSON"| WATCHER
+    WATCHER -->|"12 sections\nwith ETL"| UNITS
+    WATCHER -->|"CDC\ndetection"| UE
+    WATCHER --> FD
+    WATCHER --> LH
+    WATCHER --> ANN
+    WATCHER --> FS
+    WATCHER --> SQ
+    WATCHER -->|"13 sections\nraw dump"| STAGING
+
+    XML -->|"one-time\nimport"| PARSER
+    PARSER --> HF
+    PARSER --> HE
+    PARSER --> ENT
+
+    HF -->|"SELECT"| PAGES
+    HE -->|"SELECT"| PAGES
+    ENT -->|"SELECT"| PAGES
+
+    LIVE -.-|"❌ NO\nCONNECTION"| LEGENDS
+
+    style STAGING fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#000
+    style LIVE fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style LEGENDS fill:#e3f2fd,stroke:#1565c0,stroke-width:2px
+    style UI fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style GAME fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
+    style CAPTURE fill:#f5f5f5,stroke:#616161
+    style IMPORT fill:#f5f5f5,stroke:#616161

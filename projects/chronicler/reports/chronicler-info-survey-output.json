@@ -1,0 +1,3595 @@
+{
+	"activities": {
+		"event_type_counts": {
+			"7": 2,
+			"8": 7
+		},
+		"total": 9
+	},
+	"announcements": {
+		"recent_20": {
+			"1": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb3bf76f0>",
+				"id": 1679,
+				"pos": {
+					"x": 15,
+					"y": 87,
+					"z": 134
+				},
+				"text": "The human maceman corpse punches the stray yak bull in the right front leg with her left hand, bruising the muscle!",
+				"time": 295120,
+				"type": 38,
+				"year": 251
+			},
+			"10": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb3bf7b50>",
+				"id": 1688,
+				"pos": {
+					"x": 16,
+					"y": 88,
+					"z": 134
+				},
+				"text": "The human maceman corpse kicks the stray yak bull in the lower body with her right foot, bruising the muscle and bruising the pancreas!",
+				"time": 295307,
+				"type": 38,
+				"year": 251
+			},
+			"11": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecc8492c70>",
+				"id": 1689,
+				"pos": {
+					"x": 16,
+					"y": 88,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the upper body with her ({silver mace}), bruising the muscle and bruising the right lung!",
+				"time": 295325,
+				"type": 38,
+				"year": 251
+			},
+			"12": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ec8e811b70>",
+				"id": 1690,
+				"pos": {
+					"x": 17,
+					"y": 89,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the upper body with her ({silver mace}), bruising the muscle and bruising the liver!",
+				"time": 295399,
+				"type": 38,
+				"year": 251
+			},
+			"13": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb18602f0>",
+				"id": 1691,
+				"pos": {
+					"x": 17,
+					"y": 89,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the left rear leg with her ({silver mace}), fracturing the bone!",
+				"time": 295475,
+				"type": 38,
+				"year": 251
+			},
+			"14": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb3bf8480>",
+				"id": 1694,
+				"pos": {
+					"x": 17,
+					"y": 89,
+					"z": 134
+				},
+				"text": "The stray yak bull has become enraged!",
+				"time": 295490,
+				"type": 40,
+				"year": 251
+			},
+			"15": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb1861cc0>",
+				"id": 1696,
+				"pos": {
+					"x": 18,
+					"y": 90,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the left rear leg with her ({silver mace}) and the injured part explodes into gore!",
+				"time": 295545,
+				"type": 38,
+				"year": 251
+			},
+			"16": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ec8de8bce0>",
+				"id": 1698,
+				"pos": {
+					"x": 18,
+					"y": 90,
+					"z": 134
+				},
+				"text": "The human maceman corpse punches the stray yak bull in the lower body with her right hand, bruising the muscle and bruising the guts!",
+				"time": 295599,
+				"type": 38,
+				"year": 251
+			},
+			"17": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb6ba2fa0>",
+				"id": 1700,
+				"pos": {
+					"x": 18,
+					"y": 90,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the lower body with her ({silver mace}), bruising the muscle and bruising the spleen!",
+				"time": 295660,
+				"type": 38,
+				"year": 251
+			},
+			"18": {
+				"bright": true,
+				"color": 5,
+				"flags_raw": "<announcement_flag: 0x1ecb18619b0>",
+				"id": 1701,
+				"pos": {
+					"x": 118,
+					"y": 78,
+					"z": 134
+				},
+				"text": "Dastot Manorhands has assumed the position of expedition leader of The Corridor of Heaven.",
+				"time": 295710,
+				"type": 178,
+				"year": 251
+			},
+			"19": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb1860ec0>",
+				"id": 1702,
+				"pos": {
+					"x": 18,
+					"y": 90,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the head with her ({silver mace}), bruising the muscle and chipping the skull!",
+				"time": 295710,
+				"type": 38,
+				"year": 251
+			},
+			"2": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ec8de8ad20>",
+				"id": 1680,
+				"pos": {
+					"x": 15,
+					"y": 87,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the right front leg with her ({silver mace}), but the attack glances away!",
+				"time": 295170,
+				"type": 38,
+				"year": 251
+			},
+			"20": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb1860c90>",
+				"id": 1703,
+				"pos": {
+					"x": 18,
+					"y": 90,
+					"z": 134
+				},
+				"text": "The force twists the neck, tearing apart the skin and bruising the muscle!",
+				"time": 295710,
+				"type": 38,
+				"year": 251
+			},
+			"3": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecc8493220>",
+				"id": 1681,
+				"pos": {
+					"x": 15,
+					"y": 87,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the right front hoof with her ({silver mace}) and the injured part is crushed!",
+				"time": 295180,
+				"type": 38,
+				"year": 251
+			},
+			"4": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb6ba5d90>",
+				"id": 1682,
+				"pos": {
+					"x": 15,
+					"y": 87,
+					"z": 134
+				},
+				"text": "The human maceman corpse kicks the stray yak bull in the left rear leg with her right foot, bruising the muscle!",
+				"time": 295205,
+				"type": 38,
+				"year": 251
+			},
+			"5": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecc84919a0>",
+				"id": 1683,
+				"pos": {
+					"x": 15,
+					"y": 87,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the left front hoof with her ({silver mace}), fracturing it!",
+				"time": 295220,
+				"type": 38,
+				"year": 251
+			},
+			"6": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecc84921f0>",
+				"id": 1684,
+				"pos": {
+					"x": 15,
+					"y": 87,
+					"z": 134
+				},
+				"text": "The force bends the left front leg!",
+				"time": 295220,
+				"type": 38,
+				"year": 251
+			},
+			"7": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb185ea70>",
+				"id": 1685,
+				"pos": {
+					"x": 16,
+					"y": 88,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the left horn with her ({silver mace}), chipping the bone!",
+				"time": 295250,
+				"type": 38,
+				"year": 251
+			},
+			"8": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb185ec30>",
+				"id": 1686,
+				"pos": {
+					"x": 16,
+					"y": 88,
+					"z": 134
+				},
+				"text": "The force twists the head, tearing apart the skin!",
+				"time": 295250,
+				"type": 38,
+				"year": 251
+			},
+			"9": {
+				"bright": true,
+				"color": 4,
+				"flags_raw": "<announcement_flag: 0x1ecb6ba55b0>",
+				"id": 1687,
+				"pos": {
+					"x": 16,
+					"y": 88,
+					"z": 134
+				},
+				"text": "The human maceman corpse bashes the stray yak bull in the left front hoof with her ({silver mace}) and the injured part is crushed!",
+				"time": 295290,
+				"type": 38,
+				"year": 251
+			}
+		},
+		"total": 1450
+	},
+	"buildings": {
+		"total": 21,
+		"type_counts": {
+			"1": 1,
+			"13": 5,
+			"23": 2,
+			"29": 6,
+			"30": 2,
+			"32": 1,
+			"4": 3,
+			"5": 1
+		}
+	},
+	"citizens": {
+		"1": {
+			"hist_figure_id": 49679,
+			"id": 17892,
+			"name": "al�th",
+			"name_en": "Al�th �rithlised \"Labormarks\", Farmer",
+			"pos": {
+				"x": 10,
+				"y": 191,
+				"z": 134
+			},
+			"profession": "FARMER",
+			"race": "DWARF",
+			"stress": -50000
+		},
+		"2": {
+			"hist_figure_id": 4489,
+			"id": 2773,
+			"name": "dastot",
+			"name_en": "Dastot Dedukotad \"Manorhands\", expedition leader necromancer",
+			"pos": {
+				"x": 118,
+				"y": 78,
+				"z": 134
+			},
+			"profession": "DOCTOR",
+			"race": "DWARF",
+			"stress": -50000
+		}
+	},
+	"emotions": {
+		"samples": {
+			"1": {
+				"name": "Al�th �rithlised \"Labormarks\", Farmer",
+				"recent_5": {
+					"1": {
+						"strength": 0,
+						"thought": 212,
+						"type": 24,
+						"year": 251,
+						"year_tick": 210810
+					},
+					"2": {
+						"strength": 100,
+						"thought": 165,
+						"type": 66,
+						"year": 251,
+						"year_tick": 288280
+					},
+					"3": {
+						"strength": 5,
+						"thought": 180,
+						"type": 156,
+						"year": 251,
+						"year_tick": 294000
+					},
+					"4": {
+						"strength": 5,
+						"thought": 180,
+						"type": 105,
+						"year": 251,
+						"year_tick": 294000
+					},
+					"5": {
+						"strength": 5,
+						"thought": 180,
+						"type": 156,
+						"year": 251,
+						"year_tick": 294000
+					}
+				},
+				"thought_count": 57,
+				"unit_id": 17892
+			},
+			"2": {
+				"name": "Dastot Dedukotad \"Manorhands\", expedition leader necromancer",
+				"recent_5": {
+					"1": {
+						"strength": 0,
+						"thought": 2,
+						"type": -1,
+						"year": 251,
+						"year_tick": 292280
+					},
+					"2": {
+						"strength": 100,
+						"thought": 2,
+						"type": -1,
+						"year": 251,
+						"year_tick": 292317
+					},
+					"3": {
+						"strength": 60,
+						"thought": 4,
+						"type": 135,
+						"year": 251,
+						"year_tick": 292317
+					},
+					"4": {
+						"strength": 50,
+						"thought": 4,
+						"type": 135,
+						"year": 251,
+						"year_tick": 292320
+					},
+					"5": {
+						"strength": 0,
+						"thought": 2,
+						"type": -1,
+						"year": 251,
+						"year_tick": 293375
+					}
+				},
+				"thought_count": 59,
+				"unit_id": 2773
+			}
+		}
+	},
+	"game_state": {
+		"cur_year": 251,
+		"cur_year_tick": 295719,
+		"gamemode": 0,
+		"gametype": 0,
+		"pause_state": false,
+		"save_dir": "autosave 2"
+	},
+	"gamelog": {
+		"last_20": {
+			"1": "The human maceman corpse bashes the stray yak bull in the left rear leg with her ({silver mace}) and the injured part explodes into gore!",
+			"10": "Dastot Dedukotad, Dwarf Doctor necromancer: I must withdraw!",
+			"11": "The human maceman corpse bashes the stray yak bull in the right rear leg with her ({silver mace}), bruising the fat!",
+			"12": "The dwarf doctor necromancer gestures!",
+			"13": "Etur Egendatan's head shudders and begins to move!",
+			"14": "The human maceman corpse bashes the stray yak bull in the lower body with her ({silver mace}), bruising the muscle and bruising the spleen!",
+			"15": "The human maceman corpse bashes the stray yak bull in the lower body with her ({silver mace}), bruising the muscle and bruising the guts!",
+			"16": "The stray yak bull looks sick!",
+			"17": "The human maceman corpse bashes the stray yak bull in the left rear leg with her ({silver mace}), bruising the fat!",
+			"18": "Dastot Manorhands has assumed the position of expedition leader of The Corridor of Heaven.",
+			"19": "The human maceman corpse bashes the stray yak bull in the head with her ({silver mace}), bruising the muscle and chipping the skull!",
+			"2": "An artery has been opened by the attack!",
+			"20": "The force twists the neck, tearing apart the skin and bruising the muscle!",
+			"3": "The human maceman corpse bashes the stray yak bull in the upper body with her ({silver mace}), bruising the muscle and bruising the left lung!",
+			"4": "The stray yak bull is having more trouble breathing!",
+			"5": "The human maceman corpse bashes the stray yak bull in the right front leg with her ({silver mace}), bruising the fat!",
+			"6": "The dwarf doctor necromancer gestures!",
+			"7": "Horse mutilated corpse shudders and begins to move!",
+			"8": "The human maceman corpse punches the stray yak bull in the lower body with her right hand, bruising the muscle and bruising the guts!",
+			"9": "The human maceman corpse bashes the stray yak bull in the left rear leg with her ({silver mace}), bruising the fat!"
+		},
+		"total_lines": "available"
+	},
+	"history_event_collections": {
+		"total": 0,
+		"type_counts": []
+	},
+	"history_events": {
+		"since_embark": 19205,
+		"total": 489455,
+		"type_counts": {
+			"0": 143,
+			"101": 73,
+			"102": 5,
+			"108": 298,
+			"109": 517,
+			"118": 1,
+			"13": 1,
+			"15": 3,
+			"17": 2,
+			"19": 50,
+			"2": 1,
+			"23": 51,
+			"27": 305,
+			"3": 559,
+			"32": 119,
+			"33": 2,
+			"34": 1791,
+			"4": 1354,
+			"44": 13276,
+			"45": 67,
+			"5": 15,
+			"50": 5,
+			"51": 8,
+			"53": 110,
+			"56": 11,
+			"63": 100,
+			"66": 6,
+			"67": 3,
+			"74": 78,
+			"75": 28,
+			"85": 88,
+			"94": 6,
+			"95": 15,
+			"96": 2,
+			"99": 112
+		}
+	},
+	"incidents": {
+		"samples": {
+			"0": {
+				"1": {
+					"criminal_id": 17826,
+					"flags": [],
+					"id": 0,
+					"site_id": 2212,
+					"time": 101175,
+					"type": 0,
+					"victim_id": 17853,
+					"year": 250
+				},
+				"2": {
+					"criminal_id": 17788,
+					"flags": [],
+					"id": 1,
+					"site_id": 2212,
+					"time": 123870,
+					"type": 0,
+					"victim_id": 17846,
+					"year": 250
+				},
+				"3": {
+					"criminal_id": 17790,
+					"flags": [],
+					"id": 2,
+					"site_id": 2212,
+					"time": 130800,
+					"type": 0,
+					"victim_id": 17827,
+					"year": 250
+				}
+			}
+		},
+		"total": 57,
+		"type_counts": {
+			"0": 57
+		}
+	},
+	"items": {
+		"total": 12740,
+		"type_counts": {
+			"0": 4,
+			"1": 1,
+			"10": 18,
+			"11": 4,
+			"12": 5,
+			"13": 11,
+			"14": 10,
+			"16": 3,
+			"17": 25,
+			"18": 6,
+			"19": 4,
+			"2": 4,
+			"20": 1,
+			"21": 2,
+			"22": 1,
+			"23": 27,
+			"24": 722,
+			"25": 41,
+			"26": 158,
+			"27": 18,
+			"28": 17,
+			"29": 86,
+			"3": 16,
+			"30": 4,
+			"31": 28,
+			"32": 6,
+			"34": 1,
+			"35": 1,
+			"36": 14,
+			"37": 11,
+			"38": 11,
+			"4": 91,
+			"40": 10,
+			"41": 20,
+			"42": 12,
+			"43": 29,
+			"44": 21,
+			"45": 2,
+			"46": 64,
+			"47": 12,
+			"48": 18,
+			"49": 14,
+			"5": 224,
+			"53": 141,
+			"54": 24,
+			"56": 25,
+			"57": 601,
+			"58": 45,
+			"59": 23,
+			"6": 2,
+			"60": 46,
+			"61": 8,
+			"62": 4,
+			"68": 17,
+			"69": 4,
+			"7": 3,
+			"70": 7,
+			"71": 14,
+			"73": 4,
+			"76": 152,
+			"78": 2,
+			"8": 1,
+			"82": 3,
+			"83": 5,
+			"86": 2942,
+			"87": 24,
+			"89": 6861,
+			"9": 2,
+			"90": 3
+		}
+	},
+	"jobs": {
+		"total": 0,
+		"type_counts": []
+	},
+	"manager_orders": {
+		"orders": {
+			"1": {
+				"amount_left": 10,
+				"amount_total": 10,
+				"id": 0,
+				"job_type": "PrepareMeal"
+			},
+			"10": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 9,
+				"job_type": "CustomReaction"
+			},
+			"100": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 100,
+				"job_type": "MakeTool"
+			},
+			"101": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 101,
+				"job_type": "CustomReaction"
+			},
+			"11": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 10,
+				"job_type": "CustomReaction"
+			},
+			"12": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 11,
+				"job_type": "SpinThread"
+			},
+			"13": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 12,
+				"job_type": "WeaveCloth"
+			},
+			"14": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 13,
+				"job_type": "WeaveCloth"
+			},
+			"15": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 14,
+				"job_type": "WeaveCloth"
+			},
+			"16": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 15,
+				"job_type": "DyeCloth"
+			},
+			"17": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 16,
+				"job_type": "MakeTool"
+			},
+			"18": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 17,
+				"job_type": "ConstructBin"
+			},
+			"19": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 18,
+				"job_type": "MakeTool"
+			},
+			"2": {
+				"amount_left": 2,
+				"amount_total": 2,
+				"id": 1,
+				"job_type": "CustomReaction"
+			},
+			"20": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 19,
+				"job_type": "MakeGoblet"
+			},
+			"21": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 20,
+				"job_type": "MakeTool"
+			},
+			"22": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 21,
+				"job_type": "MakeTool"
+			},
+			"23": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 22,
+				"job_type": "MakeBucket"
+			},
+			"24": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 23,
+				"job_type": "MakeCage"
+			},
+			"25": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 24,
+				"job_type": "ConstructMechanisms"
+			},
+			"26": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 25,
+				"job_type": "ConstructBag"
+			},
+			"27": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 26,
+				"job_type": "ConstructBag"
+			},
+			"28": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 27,
+				"job_type": "ConstructBag"
+			},
+			"29": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 28,
+				"job_type": "ConstructBag"
+			},
+			"3": {
+				"amount_left": 2,
+				"amount_total": 2,
+				"id": 2,
+				"job_type": "CustomReaction"
+			},
+			"30": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 29,
+				"job_type": "CustomReaction"
+			},
+			"31": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 30,
+				"job_type": "MakePants"
+			},
+			"32": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 31,
+				"job_type": "MakeTotem"
+			},
+			"33": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 32,
+				"job_type": "ConstructSplint"
+			},
+			"34": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 33,
+				"job_type": "ConstructCrutch"
+			},
+			"35": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 34,
+				"job_type": "ConstructBed"
+			},
+			"36": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 35,
+				"job_type": "MakeLye"
+			},
+			"37": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 36,
+				"job_type": "CustomReaction"
+			},
+			"38": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 37,
+				"job_type": "CustomReaction"
+			},
+			"39": {
+				"amount_left": 4,
+				"amount_total": 4,
+				"id": 38,
+				"job_type": "MakeAsh"
+			},
+			"4": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 3,
+				"job_type": "CustomReaction"
+			},
+			"40": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 39,
+				"job_type": "MakePotashFromAsh"
+			},
+			"41": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 40,
+				"job_type": "CustomReaction"
+			},
+			"42": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 41,
+				"job_type": "CustomReaction"
+			},
+			"43": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 42,
+				"job_type": "CustomReaction"
+			},
+			"44": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 43,
+				"job_type": "MakeTool"
+			},
+			"45": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 44,
+				"job_type": "CustomReaction"
+			},
+			"46": {
+				"amount_left": 5,
+				"amount_total": 5,
+				"id": 45,
+				"job_type": "MakeCharcoal"
+			},
+			"47": {
+				"amount_left": 5,
+				"amount_total": 5,
+				"id": 46,
+				"job_type": "ConstructBed"
+			},
+			"48": {
+				"amount_left": 5,
+				"amount_total": 5,
+				"id": 47,
+				"job_type": "ConstructTable"
+			},
+			"49": {
+				"amount_left": 5,
+				"amount_total": 5,
+				"id": 48,
+				"job_type": "ConstructDoor"
+			},
+			"5": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 4,
+				"job_type": "CustomReaction"
+			},
+			"50": {
+				"amount_left": 10,
+				"amount_total": 10,
+				"id": 49,
+				"job_type": "ConstructBed"
+			},
+			"51": {
+				"amount_left": 5,
+				"amount_total": 5,
+				"id": 50,
+				"job_type": "ConstructDoor"
+			},
+			"52": {
+				"amount_left": 5,
+				"amount_total": 5,
+				"id": 51,
+				"job_type": "ConstructTable"
+			},
+			"53": {
+				"amount_left": 10,
+				"amount_total": 10,
+				"id": 53,
+				"job_type": "MakeCharcoal"
+			},
+			"54": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 54,
+				"job_type": "ConstructTable"
+			},
+			"55": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 55,
+				"job_type": "MakeCharcoal"
+			},
+			"56": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 56,
+				"job_type": "SmeltOre"
+			},
+			"57": {
+				"amount_left": 10,
+				"amount_total": 10,
+				"id": 57,
+				"job_type": "PrepareMeal"
+			},
+			"58": {
+				"amount_left": 2,
+				"amount_total": 2,
+				"id": 58,
+				"job_type": "CustomReaction"
+			},
+			"59": {
+				"amount_left": 2,
+				"amount_total": 2,
+				"id": 59,
+				"job_type": "CustomReaction"
+			},
+			"6": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 5,
+				"job_type": "MillPlants"
+			},
+			"60": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 60,
+				"job_type": "CustomReaction"
+			},
+			"61": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 61,
+				"job_type": "CustomReaction"
+			},
+			"62": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 62,
+				"job_type": "MillPlants"
+			},
+			"63": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 63,
+				"job_type": "ProcessPlants"
+			},
+			"64": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 64,
+				"job_type": "CustomReaction"
+			},
+			"65": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 65,
+				"job_type": "ProcessPlantsBarrel"
+			},
+			"66": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 66,
+				"job_type": "CustomReaction"
+			},
+			"67": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 67,
+				"job_type": "CustomReaction"
+			},
+			"68": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 68,
+				"job_type": "SpinThread"
+			},
+			"69": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 69,
+				"job_type": "WeaveCloth"
+			},
+			"7": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 6,
+				"job_type": "ProcessPlants"
+			},
+			"70": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 70,
+				"job_type": "WeaveCloth"
+			},
+			"71": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 71,
+				"job_type": "WeaveCloth"
+			},
+			"72": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 72,
+				"job_type": "DyeCloth"
+			},
+			"73": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 73,
+				"job_type": "MakeTool"
+			},
+			"74": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 74,
+				"job_type": "ConstructBin"
+			},
+			"75": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 75,
+				"job_type": "MakeTool"
+			},
+			"76": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 76,
+				"job_type": "MakeGoblet"
+			},
+			"77": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 77,
+				"job_type": "MakeTool"
+			},
+			"78": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 78,
+				"job_type": "MakeTool"
+			},
+			"79": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 79,
+				"job_type": "MakeBucket"
+			},
+			"8": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 7,
+				"job_type": "CustomReaction"
+			},
+			"80": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 80,
+				"job_type": "MakeCage"
+			},
+			"81": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 81,
+				"job_type": "ConstructMechanisms"
+			},
+			"82": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 82,
+				"job_type": "ConstructBag"
+			},
+			"83": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 83,
+				"job_type": "ConstructBag"
+			},
+			"84": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 84,
+				"job_type": "ConstructBag"
+			},
+			"85": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 85,
+				"job_type": "ConstructBag"
+			},
+			"86": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 86,
+				"job_type": "CustomReaction"
+			},
+			"87": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 87,
+				"job_type": "MakePants"
+			},
+			"88": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 88,
+				"job_type": "MakeTotem"
+			},
+			"89": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 89,
+				"job_type": "ConstructSplint"
+			},
+			"9": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 8,
+				"job_type": "ProcessPlantsBarrel"
+			},
+			"90": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 90,
+				"job_type": "ConstructCrutch"
+			},
+			"91": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 91,
+				"job_type": "ConstructBed"
+			},
+			"92": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 92,
+				"job_type": "MakeLye"
+			},
+			"93": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 93,
+				"job_type": "CustomReaction"
+			},
+			"94": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 94,
+				"job_type": "CustomReaction"
+			},
+			"95": {
+				"amount_left": 4,
+				"amount_total": 4,
+				"id": 95,
+				"job_type": "MakeAsh"
+			},
+			"96": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 96,
+				"job_type": "MakePotashFromAsh"
+			},
+			"97": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 97,
+				"job_type": "CustomReaction"
+			},
+			"98": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 98,
+				"job_type": "CustomReaction"
+			},
+			"99": {
+				"amount_left": 1,
+				"amount_total": 1,
+				"id": 99,
+				"job_type": "CustomReaction"
+			}
+		},
+		"total": 101
+	},
+	"military": {
+		"fortress_squad_count": 1,
+		"squads": {
+			"1": {
+				"alias": "Iron Guard",
+				"id": 331,
+				"member_count": 0,
+				"member_hist_ids": [],
+				"name": ""
+			}
+		}
+	},
+	"plotinfo": {
+		"civ_id": 1042,
+		"fortress_age": 68211,
+		"group_id": 4900,
+		"race_id": 572,
+		"site_id": 2212
+	},
+	"populations": {
+		"total": 0
+	},
+	"reports": {
+		"counts": {
+			"0": 1,
+			"104": 103,
+			"106": 21,
+			"107": 2,
+			"11": 33,
+			"111": 16,
+			"115": 2,
+			"116": 2,
+			"117": 3,
+			"118": 23,
+			"12": 23,
+			"123": 7,
+			"124": 2,
+			"125": 8,
+			"126": 4,
+			"127": 3,
+			"132": 18,
+			"139": 2,
+			"148": 1,
+			"149": 21,
+			"15": 18,
+			"150": 1,
+			"151": 1,
+			"16": 20,
+			"17": 3,
+			"177": 123,
+			"178": 5,
+			"18": 8,
+			"182": 1,
+			"19": 2,
+			"20": 2,
+			"21": 1,
+			"22": 1,
+			"236": 2,
+			"239": 13,
+			"243": 3,
+			"245": 3,
+			"246": 3,
+			"247": 1,
+			"26": 2,
+			"278": 8,
+			"292": 1,
+			"294": 1,
+			"297": 1,
+			"298": 1,
+			"299": 1,
+			"30": 2,
+			"300": 1,
+			"32": 11,
+			"33": 6,
+			"34": 9,
+			"341": 1,
+			"342": 1,
+			"343": 1,
+			"348": 4,
+			"36": 1,
+			"38": 972,
+			"39": 60,
+			"4": 4,
+			"40": 4,
+			"41": 10,
+			"43": 16,
+			"45": 3,
+			"46": 6,
+			"47": 10,
+			"48": 5,
+			"5": 2,
+			"59": 1,
+			"6": 13,
+			"67": 2,
+			"69": 3,
+			"72": 3,
+			"8": 21,
+			"80": 3,
+			"84": 2,
+			"96": 5
+		},
+		"samples": {
+			"0": {
+				"1": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6ff3280>",
+					"id": 10,
+					"text": "Test announcement from Jarvis",
+					"time": 100810,
+					"type": 0,
+					"year": 250
+				}
+			},
+			"104": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e2a2eb0>",
+					"id": 41,
+					"text": "Bim Libashnåzom, Stonecrafter cancels Drink: Interrupted by a wolverine.",
+					"time": 145825,
+					"type": 104,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb507c400>",
+					"id": 46,
+					"text": "Såkzul Kosothulzest, Gem Cutter cancels Eat: Interrupted by a wolverine.",
+					"time": 147287,
+					"type": 104,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e0a40b0>",
+					"id": 82,
+					"text": "Cerol Konosathel, Miner cancels Give food: No food available.",
+					"time": 261135,
+					"type": 104,
+					"year": 250
+				}
+			},
+			"106": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e2913a0>",
+					"id": 135,
+					"text": "Bim Libashnåzom, Stonecrafter has been found, starved to death.",
+					"time": 7485,
+					"type": 106,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79127650>",
+					"id": 148,
+					"text": "Lorbam Edëmadas, Woodworker has been found, starved to death.",
+					"time": 49035,
+					"type": 106,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e36bb40>",
+					"id": 160,
+					"text": "Kib Idsezuk, Planter has been found dead, dehydrated.",
+					"time": 91021,
+					"type": 106,
+					"year": 251
+				}
+			},
+			"107": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb5848ea0>",
+					"id": 694,
+					"text": "Kogsak Lisidèrith, Billy Goat (Tame) has been found, starved to death.",
+					"time": 257400,
+					"type": 107,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6ba19c0>",
+					"id": 1218,
+					"text": "The Stray Dog (Tame) has been found dead.",
+					"time": 292285,
+					"type": 107,
+					"year": 251
+				}
+			},
+			"11": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e19b090>",
+					"id": 11,
+					"text": "The great horned owl attacks the raven but He jumps away!",
+					"time": 114052,
+					"type": 11,
+					"year": 250
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8df45180>",
+					"id": 16,
+					"text": "The great horned owl attacks the raven but She jumps away!",
+					"time": 123685,
+					"type": 11,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb871a130>",
+					"id": 310,
+					"text": "The mason attacks the clothier but He jumps away!",
+					"time": 129860,
+					"type": 11,
+					"year": 251
+				}
+			},
+			"111": {
+				"1": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2aa5350>",
+					"id": 27,
+					"text": "The raven falls over.",
+					"time": 123735,
+					"type": 111,
+					"year": 250
+				},
+				"2": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2ac80>",
+					"id": 196,
+					"text": "The metalsmith falls over.",
+					"time": 113460,
+					"type": 111,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab97850>",
+					"id": 261,
+					"text": "The blacksmith falls over.",
+					"time": 113735,
+					"type": 111,
+					"year": 251
+				}
+			},
+			"115": {
+				"1": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e80e6f0>",
+					"id": 1540,
+					"text": "The elf swordsman corpse slams into an obstacle!",
+					"time": 293730,
+					"type": 115,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6ba3390>",
+					"id": 1545,
+					"text": "The human spearman corpse slams into an obstacle!",
+					"time": 293820,
+					"type": 115,
+					"year": 251
+				}
+			},
+			"116": {
+				"1": {
+					"bright": true,
+					"color": 1,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dea25d0>",
+					"id": 1539,
+					"text": "The elf swordsman corpse slams into the human spearman corpse!",
+					"time": 293725,
+					"type": 116,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 1,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6b9eb60>",
+					"id": 1542,
+					"text": "The human swordsman corpse slams into the elf swordsman corpse!",
+					"time": 293760,
+					"type": 116,
+					"year": 251
+				}
+			},
+			"117": {
+				"1": {
+					"bright": false,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de8b8f0>",
+					"id": 1618,
+					"text": "The stray yak bull vomits.",
+					"time": 294575,
+					"type": 117,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6ba58c0>",
+					"id": 1622,
+					"text": "The stray yak bull retches.",
+					"time": 294590,
+					"type": 117,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6ba4dd0>",
+					"id": 1639,
+					"text": "The expedition leader vomits.",
+					"time": 294670,
+					"type": 117,
+					"year": 251
+				}
+			},
+			"118": {
+				"1": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec791259e0>",
+					"id": 187,
+					"text": "The metalsmith loses hold of the x(cave spider silk right glove)x.",
+					"time": 113419,
+					"type": 118,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2b3f0>",
+					"id": 210,
+					"text": "The metalsmith loses hold of the (cave spider silk left glove).",
+					"time": 113530,
+					"type": 118,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e47cb0>",
+					"id": 240,
+					"text": "The metalsmith loses hold of the (hungry head leather shoe).",
+					"time": 113645,
+					"type": 118,
+					"year": 251
+				}
+			},
+			"12": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e1a1f40>",
+					"id": 22,
+					"text": "The raven misses the great horned owl!",
+					"time": 123710,
+					"type": 12,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db8f410>",
+					"id": 40,
+					"text": "The wolverine misses the stonecrafter!",
+					"time": 145825,
+					"type": 12,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec7913cdc0>",
+					"id": 230,
+					"text": "The metalsmith misses the peasant!",
+					"time": 113595,
+					"type": 12,
+					"year": 251
+				}
+			},
+			"123": {
+				"1": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e30bf30>",
+					"id": 385,
+					"text": "The peasant is no longer stunned.",
+					"time": 192675,
+					"type": 123,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec7912ad70>",
+					"id": 871,
+					"text": "The dwarf doctor necromancer is no longer stunned.",
+					"time": 292070,
+					"type": 123,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6c25770>",
+					"id": 952,
+					"text": "The clothier is no longer stunned.",
+					"time": 292120,
+					"type": 123,
+					"year": 251
+				}
+			},
+			"124": {
+				"1": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79126230>",
+					"id": 459,
+					"text": "The peasant passes out from exhaustion.",
+					"time": 193320,
+					"type": 124,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de9ce50>",
+					"id": 1369,
+					"text": "The expedition leader passes out from exhaustion.",
+					"time": 292379,
+					"type": 124,
+					"year": 251
+				}
+			},
+			"125": {
+				"1": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab973f0>",
+					"id": 259,
+					"text": "The blacksmith gives in to pain.",
+					"time": 113730,
+					"type": 125,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb50773f0>",
+					"id": 1184,
+					"text": "The stray dog gives in to pain.",
+					"time": 292270,
+					"type": 125,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb5072ed0>",
+					"id": 1426,
+					"text": "The peasant gives in to pain.",
+					"time": 292420,
+					"type": 125,
+					"year": 251
+				}
+			},
+			"126": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d07a40>",
+					"id": 481,
+					"text": "The peasant breaks the grip of The shearer's right upper arm from The peasant's head!",
+					"time": 194499,
+					"type": 126,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de8b110>",
+					"id": 1626,
+					"text": "The human spearman corpse breaks the grip of The expedition leader's upper right back teeth from The human spearman corpse's head!",
+					"time": 294595,
+					"type": 126,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de8b2d0>",
+					"id": 1627,
+					"text": "The human spearman corpse breaks the grip of The expedition leader's lower front teeth from The human spearman corpse's head!",
+					"time": 294595,
+					"type": 126,
+					"year": 251
+				}
+			},
+			"127": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e1a32f0>",
+					"id": 20,
+					"text": "The raven is unable to break the grip of The great horned owl's beak on The raven's right upper leg!",
+					"time": 123710,
+					"type": 127,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e1a2a30>",
+					"id": 21,
+					"text": "The raven is unable to break the grip of The great horned owl's right wing on The raven's right lower leg!",
+					"time": 123710,
+					"type": 127,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79126070>",
+					"id": 49,
+					"text": "The raven is unable to break the grip of The great horned owl's left wing on The raven's third toe, left foot!",
+					"time": 194580,
+					"type": 127,
+					"year": 250
+				}
+			},
+			"132": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8df44d20>",
+					"id": 23,
+					"text": "The raven stands up.",
+					"time": 123725,
+					"type": 132,
+					"year": 250
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab97bd0>",
+					"id": 268,
+					"text": "Fikod Erushnish's mutilated corpse stands up.",
+					"time": 113750,
+					"type": 132,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecba920bd0>",
+					"id": 309,
+					"text": "The mason stands up.",
+					"time": 129845,
+					"type": 132,
+					"year": 251
+				}
+			},
+			"139": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1cf9e30>",
+					"id": 689,
+					"text": "Melbil Uzolmözir, Ghostly Stonecrafter has risen and is haunting the fortress!",
+					"time": 226419,
+					"type": 139,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab6a6b0>",
+					"id": 690,
+					"text": "Minkot Noramthîkut, Ghostly Mason batters Cerol Konosathel, expedition leader!",
+					"time": 231175,
+					"type": 139,
+					"year": 251
+				}
+			},
+			"148": {
+				"1": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab974d0>",
+					"id": 266,
+					"text": "The dwarf doctor necromancer gestures!",
+					"time": 113740,
+					"type": 148,
+					"year": 251
+				}
+			},
+			"149": {
+				"1": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab96cf0>",
+					"id": 267,
+					"text": "Fikod Erushnish's mutilated corpse shudders and begins to move!",
+					"time": 113740,
+					"type": 149,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb66b8f60>",
+					"id": 698,
+					"text": "Minkot Noramthîkut's head shudders and begins to move!",
+					"time": 291070,
+					"type": 149,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb66a5070>",
+					"id": 699,
+					"text": "Minkot Noramthîkut's right hand shudders and begins to move!",
+					"time": 291070,
+					"type": 149,
+					"year": 251
+				}
+			},
+			"15": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec653d61a0>",
+					"id": 742,
+					"text": "The goblin spearman corpse strikes at the dwarf doctor necromancer but the shot is deftly parried by the (copper battle axe)!",
+					"time": 291860,
+					"type": 15,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e74ef40>",
+					"id": 771,
+					"text": "The human maceman corpse strikes at the peasant but the shot is narrowly deflected by the (copper battle axe)!",
+					"time": 291910,
+					"type": 15,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db92890>",
+					"id": 798,
+					"text": "The human maceman corpse strikes at the peasant but the shot is effortlessly deflected by the (copper battle axe)!",
+					"time": 291950,
+					"type": 15,
+					"year": 251
+				}
+			},
+			"150": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e60f9a0>",
+					"id": 695,
+					"text": "The dead walk.  Hide while you still can!",
+					"time": 290195,
+					"type": 150,
+					"year": 251
+				}
+			},
+			"151": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbd53cd00>",
+					"id": 681,
+					"text": "Urist Edëmkashez, Metalcrafter has been missing for a week.",
+					"time": 200760,
+					"type": 151,
+					"year": 251
+				}
+			},
+			"16": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37c7e90>",
+					"id": 67,
+					"text": "The great horned owl collides with the raven!",
+					"time": 194790,
+					"type": 16,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37ce250>",
+					"id": 304,
+					"text": "The mason collides with the clothier!",
+					"time": 129835,
+					"type": 16,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37ce2c0>",
+					"id": 317,
+					"text": "The clothier collides with the mason!",
+					"time": 129910,
+					"type": 16,
+					"year": 251
+				}
+			},
+			"17": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37c88a0>",
+					"id": 68,
+					"text": "The raven is knocked over and tumbles backward!",
+					"time": 194790,
+					"type": 17,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db95e60>",
+					"id": 1033,
+					"text": "The stray dog is knocked over and tumbles backward!",
+					"time": 292154,
+					"type": 17,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6ba34e0>",
+					"id": 1171,
+					"text": "The outpost liaison is knocked over and tumbles backward!",
+					"time": 292260,
+					"type": 17,
+					"year": 251
+				}
+			},
+			"177": {
+				"1": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec7911c280>",
+					"id": 42,
+					"text": "Bim Libashnåzom, Stonecrafter: I must withdraw!",
+					"time": 145835,
+					"type": 177,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db8f950>",
+					"id": 44,
+					"text": "Bim Libashnåzom, Stonecrafter: I was attacked.  I'm really starting to panic.",
+					"time": 145885,
+					"type": 177,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e2a3700>",
+					"id": 45,
+					"text": "Bim Libashnåzom, Stonecrafter: How fleeting life is...  Begone fear!",
+					"time": 145920,
+					"type": 177,
+					"year": 250
+				}
+			},
+			"178": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e36c630>",
+					"id": 165,
+					"text": "Urist Keylesson has assumed the position of expedition leader of The Corridor of Heaven.",
+					"time": 92910,
+					"type": 178,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d124e0>",
+					"id": 369,
+					"text": "Cerol Brassringed has assumed the position of expedition leader of The Corridor of Heaven.",
+					"time": 192510,
+					"type": 178,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de8a850>",
+					"id": 1469,
+					"text": "Domas Boatssaints has been appointed to the position of militia commander of The Paints of Driving.",
+					"time": 292490,
+					"type": 178,
+					"year": 251
+				}
+			},
+			"18": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37cf2f0>",
+					"id": 318,
+					"text": "The mason is knocked over!",
+					"time": 129910,
+					"type": 18,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79120d50>",
+					"id": 364,
+					"text": "The peasant is knocked over!",
+					"time": 192480,
+					"type": 18,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb185ce00>",
+					"id": 844,
+					"text": "The dwarf doctor necromancer is knocked over!",
+					"time": 292040,
+					"type": 18,
+					"year": 251
+				}
+			},
+			"182": {
+				"1": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e29e10>",
+					"id": 168,
+					"text": "Sodel Rakuststukos, Doctor has gone stark raving mad!",
+					"time": 111930,
+					"type": 182,
+					"year": 251
+				}
+			},
+			"19": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37cf130>",
+					"id": 305,
+					"text": "The mason is knocked over and tumbles backward!",
+					"time": 129835,
+					"type": 19,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e80fe90>",
+					"id": 1567,
+					"text": "The human maceman corpse is knocked over and tumbles backward!",
+					"time": 294180,
+					"type": 19,
+					"year": 251
+				}
+			},
+			"20": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec897fe4d0>",
+					"id": 868,
+					"text": "The human axeman corpse bounces backward!",
+					"time": 292060,
+					"type": 20,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db976e0>",
+					"id": 1072,
+					"text": "The human spearman corpse bounces backward!",
+					"time": 292184,
+					"type": 20,
+					"year": 251
+				}
+			},
+			"21": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb185df80>",
+					"id": 902,
+					"text": "They tangle together and fall over!",
+					"time": 292090,
+					"type": 21,
+					"year": 251
+				}
+			},
+			"22": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e74d500>",
+					"id": 745,
+					"text": "They tangle together and tumble forward!",
+					"time": 291870,
+					"type": 22,
+					"year": 251
+				}
+			},
+			"236": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6a7a2d0>",
+					"id": 162,
+					"text": "Thîkut Ruthöshstâkud has become a Herbalist.",
+					"time": 91348,
+					"type": 236,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8ddcbcd0>",
+					"id": 682,
+					"text": "Alåth èrithlised has become a Farmer.",
+					"time": 204099,
+					"type": 236,
+					"year": 251
+				}
+			},
+			"239": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2a430>",
+					"id": 186,
+					"text": "The miner gains possession of the (iron pick).",
+					"time": 113400,
+					"type": 239,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79128fb0>",
+					"id": 302,
+					"text": "The clothier gains possession of the (iron pick).",
+					"time": 129830,
+					"type": 239,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6b9ea10>",
+					"id": 856,
+					"text": "The human swordsman corpse gains possession of the ({steel short sword}).",
+					"time": 292052,
+					"type": 239,
+					"year": 251
+				}
+			},
+			"243": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0f666e0>",
+					"id": 9,
+					"text": "The merchants need a trade depot to unload their goods.",
+					"time": 100810,
+					"type": 243,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab71bf0>",
+					"id": 77,
+					"text": "The merchants need a trade depot to unload their goods.",
+					"time": 212880,
+					"type": 243,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb66b1940>",
+					"id": 688,
+					"text": "The merchants need a trade depot to unload their goods.",
+					"time": 215030,
+					"type": 243,
+					"year": 251
+				}
+			},
+			"245": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e59f520>",
+					"id": 37,
+					"text": "The merchants from Urist âbir will be leaving soon.",
+					"time": 134970,
+					"type": 245,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec791333c0>",
+					"id": 79,
+					"text": "The merchants from Urist âbir will be leaving soon.",
+					"time": 245670,
+					"type": 245,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb3347130>",
+					"id": 691,
+					"text": "The merchants from Urist âbir will be leaving soon.",
+					"time": 243680,
+					"type": 245,
+					"year": 251
+				}
+			},
+			"246": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e1af8b0>",
+					"id": 38,
+					"text": "The merchants from Urist âbir have embarked on their journey.",
+					"time": 139970,
+					"type": 246,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dc71bf0>",
+					"id": 80,
+					"text": "The merchants from Urist âbir have embarked on their journey.",
+					"time": 250670,
+					"type": 246,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb15018a0>",
+					"id": 692,
+					"text": "The merchants from Urist âbir have embarked on their journey.",
+					"time": 248680,
+					"type": 246,
+					"year": 251
+				}
+			},
+			"247": {
+				"1": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79129790>",
+					"id": 471,
+					"text": "Zefon Katthirvucar has become a Stray Cat.",
+					"time": 194045,
+					"type": 247,
+					"year": 251
+				}
+			},
+			"26": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e284fa0>",
+					"id": 30,
+					"text": "The great horned owl locks the raven's right knee with The great horned owl's right wing!",
+					"time": 123770,
+					"type": 26,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d07570>",
+					"id": 463,
+					"text": "The peasant locks the peasant's right knee with The peasant's left hand!",
+					"time": 193385,
+					"type": 26,
+					"year": 251
+				}
+			},
+			"278": {
+				"1": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e377060>",
+					"id": 4,
+					"text": "An animal has grown to become a Stray Boar.",
+					"time": 78981,
+					"type": 278,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e284de0>",
+					"id": 14,
+					"text": "An animal has grown to become a Stray Horse.",
+					"time": 114633,
+					"type": 278,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d04e10>",
+					"id": 47,
+					"text": "Zefon Katthirvucar has grown to become a Cat.",
+					"time": 172069,
+					"type": 278,
+					"year": 250
+				}
+			},
+			"292": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8c7f2d10>",
+					"id": 2,
+					"text": "The weather has cleared.",
+					"time": 26700,
+					"type": 292,
+					"year": 250
+				}
+			},
+			"294": {
+				"1": {
+					"bright": true,
+					"color": 1,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e899cf0>",
+					"id": 3,
+					"text": "It has started raining.",
+					"time": 58700,
+					"type": 294,
+					"year": 250
+				}
+			},
+			"297": {
+				"1": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab9bad0>",
+					"id": 132,
+					"text": "Spring has arrived!",
+					"time": 0,
+					"type": 297,
+					"year": 251
+				}
+			},
+			"298": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dba72e0>",
+					"id": 5,
+					"text": "It is now summer.",
+					"time": 100800,
+					"type": 298,
+					"year": 250
+				}
+			},
+			"299": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec7911dd30>",
+					"id": 74,
+					"text": "Autumn has come.",
+					"time": 201600,
+					"type": 299,
+					"year": 250
+				}
+			},
+			"30": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e1a26b0>",
+					"id": 33,
+					"text": "The great horned owl releases the joint lock of The great horned owl's right wing on the raven's right lower leg.",
+					"time": 123790,
+					"type": 30,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2aa0260>",
+					"id": 465,
+					"text": "The peasant releases the joint lock of The peasant's left hand on the peasant's right lower leg.",
+					"time": 193399,
+					"type": 30,
+					"year": 251
+				}
+			},
+			"300": {
+				"1": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb66ad260>",
+					"id": 89,
+					"text": "Winter is upon you.",
+					"time": 302400,
+					"type": 300,
+					"year": 250
+				}
+			},
+			"32": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d126a0>",
+					"id": 394,
+					"text": "The peasant releases the grip of The peasant's left lower arm on the peasant's fourth toe, right foot.",
+					"time": 192780,
+					"type": 32,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec791267e0>",
+					"id": 461,
+					"text": "The peasant releases the grip of The peasant's left lower arm on the peasant's fifth toe, right foot.",
+					"time": 193340,
+					"type": 32,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79124d30>",
+					"id": 469,
+					"text": "The peasant releases the grip of The peasant's left hand on the peasant's right lower leg.",
+					"time": 193680,
+					"type": 32,
+					"year": 251
+				}
+			},
+			"33": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db8e220>",
+					"id": 35,
+					"text": "The raven struggles in vain against the grip of the great horned owl's beak on The raven's right upper leg.",
+					"time": 123825,
+					"type": 33,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de90740>",
+					"id": 54,
+					"text": "The raven struggles in vain against the grip of the great horned owl's left wing on The raven's third toe, left foot.",
+					"time": 194599,
+					"type": 33,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de900b0>",
+					"id": 56,
+					"text": "The raven struggles in vain against the grip of the great horned owl's beak on The raven's lower body.",
+					"time": 194610,
+					"type": 33,
+					"year": 250
+				}
+			},
+			"34": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8de90890>",
+					"id": 57,
+					"text": "The raven breaks the grip of The great horned owl's beak on the raven's lower body.",
+					"time": 194625,
+					"type": 34,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d07b90>",
+					"id": 417,
+					"text": "The peasant breaks the grip of The peasant's upper front teeth on the peasant's right cheek.",
+					"time": 192985,
+					"type": 34,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d08ae0>",
+					"id": 440,
+					"text": "The peasant breaks the grip of The peasant's upper front teeth on the peasant's right hand.",
+					"time": 193135,
+					"type": 34,
+					"year": 251
+				}
+			},
+			"341": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8cd35fd0>",
+					"id": 81,
+					"text": "A diplomat could not complete a meeting and has left unhappy.",
+					"time": 258570,
+					"type": 341,
+					"year": 250
+				}
+			},
+			"342": {
+				"1": {
+					"bright": true,
+					"color": 7,
+					"duration": 0,
+					"flags_raw": "<announcement_flag: 0x1ec3f132eb0>",
+					"id": 1,
+					"text": "[C:7:0:1]A Dwarven Outpost:[C:7:0:0]  You have arrived.  After a journey from the Mountainhomes into the forbidding wilderness beyond, your harsh trek has finally ended.  Your party of seven is to make an outpost for the glory of all of Urist âbir.  [B]There are almost no supplies left, but with stout labor comes sustenance.  Whether by bolt, plow or hook, provide for your dwarves.  You are expecting a supply caravan just before winter entombs you, but it is Spring now.  Enough time to delve secure lodgings, ere the wolves get hungry. [B]A new chapter of dwarven history begins here at this place, Thobteshkad, \"Girderpriced\".  [C:2:0:1]Strike the earth![C:7:0:0]",
+					"time": 16800,
+					"type": 342,
+					"year": 250
+				}
+			},
+			"343": {
+				"1": {
+					"bright": true,
+					"color": 1,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0f69bd0>",
+					"id": 7,
+					"text": "Although it is a grim reminder of the winter hardships to come, the supply caravan from The Dagger of Romancing is a welcome sight. Their eyes are alight with the anticipation of inspecting the splendid products of your industrious craftsdwarves. [B]Take careful stock of your own stores. What these merchants offer might very well be the difference between a prosperous future and a slow and meaningless death.",
+					"time": 100810,
+					"type": 343,
+					"year": 250
+				}
+			},
+			"348": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6a8f0a0>",
+					"id": 78,
+					"text": "Your fortress is out of food!  Consider placing a farmplot on some underground soil and planting seeds.  Try building a butcher's shop and slaughtering some livestock.  Perhaps you can gather plants, fruit, or go fishing.",
+					"time": 224100,
+					"type": 348,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dc74cf0>",
+					"id": 109,
+					"text": "Your fortress is out of food!  Consider placing a farmplot on some underground soil and planting seeds.  Try building a butcher's shop and slaughtering some livestock.  Perhaps you can gather plants, fruit, or go fishing.",
+					"time": 324900,
+					"type": 348,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2aa3f30>",
+					"id": 142,
+					"text": "Your fortress is out of food!  Are your farmplots working?  Make sure you are planting edible plants.  Try building a butcher's shop and slaughtering some livestock.  Perhaps you can gather plants, fruit, or go fishing.",
+					"time": 22500,
+					"type": 348,
+					"year": 251
+				}
+			},
+			"36": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dea3d00>",
+					"id": 606,
+					"text": "The shearer adjusts the grip of The shearer's right upper arm on the peasant's right hand.",
+					"time": 196070,
+					"type": 36,
+					"year": 251
+				}
+			},
+			"38": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e59b540>",
+					"id": 12,
+					"text": "The great horned owl snatches at the raven in the right lower leg with her first toe, left foot, tearing the skin!",
+					"time": 114075,
+					"type": 38,
+					"year": 250
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e19ae60>",
+					"id": 13,
+					"text": "The great horned owl snatches at the raven in the right lower leg with her first toe, left foot, denting the fat and bruising the muscle!",
+					"time": 114085,
+					"type": 38,
+					"year": 250
+				},
+				"3": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2aa52e0>",
+					"id": 17,
+					"text": "The great horned owl grabs the raven by the right lower leg with her right wing!",
+					"time": 123699,
+					"type": 38,
+					"year": 250
+				}
+			},
+			"39": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e284830>",
+					"id": 25,
+					"text": "A tendon in the right upper leg has been bruised!",
+					"time": 123730,
+					"type": 39,
+					"year": 250
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e285b00>",
+					"id": 26,
+					"text": "A tendon in the lower spine has been torn!",
+					"time": 123730,
+					"type": 39,
+					"year": 250
+				},
+				"3": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2aa45c0>",
+					"id": 29,
+					"text": "An artery in the right upper leg has been opened by the attack, many nerves have been severed and a tendon has been torn!",
+					"time": 123740,
+					"type": 39,
+					"year": 250
+				}
+			},
+			"4": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6a7e780>",
+					"id": 133,
+					"text": "You have struck white chalcedony!",
+					"time": 2035,
+					"type": 4,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e289220>",
+					"id": 136,
+					"text": "You have struck blue jade!",
+					"time": 9945,
+					"type": 4,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb507fce0>",
+					"id": 138,
+					"text": "You have struck jet!",
+					"time": 11680,
+					"type": 4,
+					"year": 251
+				}
+			},
+			"40": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e293470>",
+					"id": 39,
+					"text": "The wolverine has become enraged!",
+					"time": 145585,
+					"type": 40,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dea2bf0>",
+					"id": 1515,
+					"text": "The stray horse has become enraged!",
+					"time": 293266,
+					"type": 40,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecc3dee0a0>",
+					"id": 1664,
+					"text": "The expedition leader has become enraged!",
+					"time": 294820,
+					"type": 40,
+					"year": 251
+				}
+			},
+			"41": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2a6d0>",
+					"id": 184,
+					"text": "The (iron pick) has lodged firmly in the wound!",
+					"time": 113395,
+					"type": 41,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37c98d0>",
+					"id": 272,
+					"text": "The (copper battle axe) has lodged firmly in the wound!",
+					"time": 113760,
+					"type": 41,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dc785d0>",
+					"id": 839,
+					"text": "The ({steel short sword}) has lodged firmly in the wound!",
+					"time": 292035,
+					"type": 41,
+					"year": 251
+				}
+			},
+			"43": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e1a29c0>",
+					"id": 19,
+					"text": "The great horned owl latches on firmly!",
+					"time": 123710,
+					"type": 43,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2b690>",
+					"id": 214,
+					"text": "The metalsmith latches on firmly!",
+					"time": 113530,
+					"type": 43,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb871a910>",
+					"id": 329,
+					"text": "The clothier latches on firmly!",
+					"time": 129999,
+					"type": 43,
+					"year": 251
+				}
+			},
+			"45": {
+				"1": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb871b400>",
+					"id": 335,
+					"text": "The mason has been knocked unconscious!",
+					"time": 130025,
+					"type": 45,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb506e080>",
+					"id": 1354,
+					"text": "The clothier has been knocked unconscious!",
+					"time": 292368,
+					"type": 45,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dea1a70>",
+					"id": 1535,
+					"text": "The stray horse has been knocked unconscious!",
+					"time": 293375,
+					"type": 45,
+					"year": 251
+				}
+			},
+			"46": {
+				"1": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79126460>",
+					"id": 52,
+					"text": "The raven has been stunned!",
+					"time": 194590,
+					"type": 46,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e46580>",
+					"id": 238,
+					"text": "The metalsmith has been stunned!",
+					"time": 113625,
+					"type": 46,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 3,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb8719f00>",
+					"id": 320,
+					"text": "The mason has been stunned again!",
+					"time": 129930,
+					"type": 46,
+					"year": 251
+				}
+			},
+			"47": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab965f0>",
+					"id": 257,
+					"text": "The blacksmith is having trouble breathing!",
+					"time": 113725,
+					"type": 47,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d08a00>",
+					"id": 415,
+					"text": "The peasant is having trouble breathing!",
+					"time": 192985,
+					"type": 47,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2a9fd20>",
+					"id": 513,
+					"text": "The peasant is having more trouble breathing!",
+					"time": 194825,
+					"type": 47,
+					"year": 251
+				}
+			},
+			"48": {
+				"1": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dea1760>",
+					"id": 439,
+					"text": "The peasant looks sick!",
+					"time": 193133,
+					"type": 48,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb5063ff0>",
+					"id": 1296,
+					"text": "The expedition leader looks sick!",
+					"time": 292330,
+					"type": 48,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e803550>",
+					"id": 1440,
+					"text": "The gem cutter looks sick!",
+					"time": 292430,
+					"type": 48,
+					"year": 251
+				}
+			},
+			"5": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb1d12860>",
+					"id": 137,
+					"text": "You have struck limonite!",
+					"time": 10680,
+					"type": 5,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8ebae090>",
+					"id": 144,
+					"text": "You have struck cassiterite!",
+					"time": 31945,
+					"type": 5,
+					"year": 251
+				}
+			},
+			"59": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8db91860>",
+					"id": 702,
+					"text": "Intruders!  Drive them away!",
+					"time": 291325,
+					"type": 59,
+					"year": 251
+				}
+			},
+			"6": {
+				"1": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2b1c0>",
+					"id": 185,
+					"text": "The miner pulls on the embedded (iron pick).",
+					"time": 113400,
+					"type": 6,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec79129800>",
+					"id": 301,
+					"text": "The clothier pulls on the embedded (iron pick).",
+					"time": 129830,
+					"type": 6,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 5,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6b9ff10>",
+					"id": 855,
+					"text": "The human swordsman corpse pulls on the embedded ({steel short sword}).",
+					"time": 292052,
+					"type": 6,
+					"year": 251
+				}
+			},
+			"67": {
+				"1": {
+					"bright": true,
+					"color": 1,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab6fc00>",
+					"id": 76,
+					"text": "A caravan from Urist âbir has arrived.",
+					"time": 212880,
+					"type": 67,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 1,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb66c2730>",
+					"id": 687,
+					"text": "A caravan from Urist âbir has arrived.",
+					"time": 215030,
+					"type": 67,
+					"year": 251
+				}
+			},
+			"69": {
+				"1": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0f66670>",
+					"id": 8,
+					"text": "Some migrants have arrived.",
+					"time": 100810,
+					"type": 69,
+					"year": 250
+				},
+				"2": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb2aa5ba0>",
+					"id": 15,
+					"text": "Some migrants have arrived.",
+					"time": 120970,
+					"type": 69,
+					"year": 250
+				},
+				"3": {
+					"bright": false,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e0b8be0>",
+					"id": 83,
+					"text": "Some migrants have arrived.",
+					"time": 263960,
+					"type": 69,
+					"year": 250
+				}
+			},
+			"72": {
+				"1": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8ddcbf70>",
+					"id": 145,
+					"text": "The fortress attracted no migrants this season.",
+					"time": 34890,
+					"type": 72,
+					"year": 251
+				},
+				"2": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb6a8dac0>",
+					"id": 346,
+					"text": "The fortress attracted no migrants this season.",
+					"time": 140030,
+					"type": 72,
+					"year": 251
+				},
+				"3": {
+					"bright": false,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e46a550>",
+					"id": 693,
+					"text": "The fortress attracted no migrants this season.",
+					"time": 253830,
+					"type": 72,
+					"year": 251
+				}
+			},
+			"8": {
+				"1": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37c7bf0>",
+					"id": 66,
+					"text": "The great horned owl leaps at the raven!",
+					"time": 194790,
+					"type": 8,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37cf0c0>",
+					"id": 303,
+					"text": "The mason charges at the clothier!",
+					"time": 129835,
+					"type": 8,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 6,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb37cf8a0>",
+					"id": 316,
+					"text": "The clothier charges at the mason!",
+					"time": 129910,
+					"type": 8,
+					"year": 251
+				}
+			},
+			"80": {
+				"1": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0f69af0>",
+					"id": 6,
+					"text": "The outpost liaison Dastot Uzolalåth from Urist âbir has arrived.",
+					"time": 100810,
+					"type": 80,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecbab6fea0>",
+					"id": 75,
+					"text": "The outpost liaison ùshrir Amneksigun from Urist âbir has arrived.",
+					"time": 212880,
+					"type": 80,
+					"year": 250
+				},
+				"3": {
+					"bright": true,
+					"color": 7,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb66c28f0>",
+					"id": 686,
+					"text": "The outpost liaison ùshrir Amneksigun from Urist âbir has arrived.",
+					"time": 215030,
+					"type": 80,
+					"year": 251
+				}
+			},
+			"84": {
+				"1": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb7c35160>",
+					"id": 129,
+					"text": "Stray Cat (Tame) has given birth to kittens.",
+					"time": 383350,
+					"type": 84,
+					"year": 250
+				},
+				"2": {
+					"bright": true,
+					"color": 2,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8dea45c0>",
+					"id": 1537,
+					"text": "Stray Cow (Tame) has given birth to a bull calf.",
+					"time": 293599,
+					"type": 84,
+					"year": 251
+				}
+			},
+			"96": {
+				"1": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecb0e2a660>",
+					"id": 173,
+					"text": "Stinthäd Thalaltulon, Metalsmith has gone berserk!",
+					"time": 113120,
+					"type": 96,
+					"year": 251
+				},
+				"2": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ec8e09ff10>",
+					"id": 223,
+					"text": "Kogan Domasduthal, Peasant has gone berserk!",
+					"time": 113570,
+					"type": 96,
+					"year": 251
+				},
+				"3": {
+					"bright": true,
+					"color": 4,
+					"duration": 100,
+					"flags_raw": "<announcement_flag: 0x1ecba91e320>",
+					"id": 247,
+					"text": "Fikod Erushnish, Blacksmith has gone berserk!",
+					"time": 113670,
+					"type": 96,
+					"year": 251
+				}
+			}
+		},
+		"total": 1703
+	},
+	"stockpiles": {
+		"samples": {
+			"1": {
+				"id": 1,
+				"stockpile_number": 1,
+				"x1": 90,
+				"x2": 92,
+				"y1": 90,
+				"y2": 92,
+				"z": 134
+			},
+			"2": {
+				"id": 2,
+				"stockpile_number": 2,
+				"x1": 90,
+				"x2": 92,
+				"y1": 94,
+				"y2": 96,
+				"z": 134
+			},
+			"3": {
+				"id": 3,
+				"stockpile_number": 3,
+				"x1": 90,
+				"x2": 92,
+				"y1": 98,
+				"y2": 100,
+				"z": 134
+			},
+			"4": {
+				"id": 4,
+				"stockpile_number": 4,
+				"x1": 85,
+				"x2": 89,
+				"y1": 90,
+				"y2": 94,
+				"z": 134
+			},
+			"5": {
+				"id": 17,
+				"stockpile_number": 5,
+				"x1": 70,
+				"x2": 70,
+				"y1": 70,
+				"y2": 70,
+				"z": 134
+			},
+			"6": {
+				"id": 20,
+				"stockpile_number": 6,
+				"x1": 107,
+				"x2": 111,
+				"y1": 97,
+				"y2": 101,
+				"z": 134
+			}
+		},
+		"total": 6
+	},
+	"syndromes": {
+		"affected_citizens": 1,
+		"details": {
+			"1": {
+				"name": "Dastot Dedukotad \"Manorhands\", expedition leader necromancer",
+				"syndromes": {
+					"1": {
+						"name": "",
+						"ticks": 74401778,
+						"type_id": 1109,
+						"year": 66,
+						"year_time": 50400
+					}
+				},
+				"unit_id": 2773
+			}
+		}
+	},
+	"units": {
+		"alive": 142,
+		"animals": 0,
+		"by_race": {
+			"BIRD_GOOSE": 1,
+			"BIRD_PEAFOWL_BLUE": 1,
+			"BIRD_RAVEN": 6,
+			"CAMEL_2_HUMP": 1,
+			"CAT": 11,
+			"COW": 3,
+			"CRUNDLE": 17,
+			"DEMON_27": 3,
+			"DEMON_38": 1,
+			"DOG": 3,
+			"DWARF": 31,
+			"ELF": 6,
+			"GOAT": 2,
+			"GOBLIN": 12,
+			"HORSE": 2,
+			"HUMAN": 24,
+			"HUNGRY_HEAD": 43,
+			"LLAMA": 2,
+			"MAGMA_CRAB": 9,
+			"PIG": 1,
+			"TROGLODYTE": 5,
+			"YAK": 1
+		},
+		"citizens": 2,
+		"dead": 43,
+		"invaders": 0,
+		"total": 185,
+		"visitors": 0
+	},
+	"weather": {
+		"rain": "<coord[]: 0x7ff6d94de740>",
+		"snow": "<coord[]: 0x7ff6d93ff000>"
+	},
+	"zones": {
+		"samples": {
+			"1": {
+				"id": 7,
+				"name": "",
+				"type": 87,
+				"x1": 92,
+				"y1": 92,
+				"z": 134
+			},
+			"2": {
+				"id": 11,
+				"name": "",
+				"type": 91,
+				"x1": 80,
+				"y1": 80,
+				"z": 134
+			}
+		},
+		"total": 2,
+		"type_counts": {
+			"87": 1,
+			"91": 1
+		}
+	}
+}

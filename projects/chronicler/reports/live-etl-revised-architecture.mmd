@@ -1,0 +1,96 @@
+flowchart TD
+    subgraph GAME["🎮 DF Game Memory — df.global.*"]
+        MEM["Live Game State"]
+    end
+
+    subgraph CAPTURE["Stage 1: CAPTURE"]
+        BRIDGE["chronicler-bridge.lua\n26 data sections\nevery 100 ticks"]
+        SSH["controller.py\nfetch_bridge_data()\nSSH + SCP"]
+    end
+
+    subgraph DISK["Stage 2: ON-DISK FILES\nchronicler/data/live/"]
+        FILES["fortress_units.json\ndwarf_skills.json\nhistory.json\nbuildings.json\nartifacts.json\n... (26 files)\n_meta.json\n_prev/ (CDC diff)"]
+    end
+
+    subgraph ETL["Stage 3: TRANSFORM + LOAD\nlive_etl.py"]
+        DEATH["death_sync()\nUPDATE death_year,\ndeath_cause, alive"]
+        EVENT["event_sync()\nINSERT history_events\nsource='live'"]
+        HFSYNC["hf_sync()\nUPDATE skills, unit_id,\nwhereabouts, details"]
+        LINKS["link_sync()\nUPSERT hf_entity_links,\nhf_site_links,\nhf_squad_links,\nhf_position_links"]
+        STRUCT["structure_sync()\nUPSERT structures,\nsites.details,\nartifacts"]
+        ENTSYNC["entity_sync()\nUPDATE entities.details,\nentity_entity_links"]
+    end
+
+    subgraph XML["Legends XML Import"]
+        PREXML["Pre-Embark XML\nregion1-legends.xml\nregion1-legends_plus.xml\n\nDFHack: open-legends\nthen: exportlegends\n\nONE TIME — REQUIRED"]
+        POSTXML["Post-Embark XML\n(same files, updated)\n\nDFHack: exportlegends\n\nOPTIONAL — MANY TIMES\nDiff-based update"]
+        PARSER["xml_parser.py\n+ post_parse.py\n19 sections parsed\n10 enrichment steps"]
+        DIFFPARSER["xml_parser.py --update\nDiff mode:\nNew records → INSERT\nChanged records → UPDATE\nNever DELETE"]
+    end
+
+    subgraph CDM["📊 Chronicler Database — Core CDM (Legends Tables)"]
+        HF["historical_figures\nname, race, birth/death_year,\ndeath_cause, alive, kill_count,\nskills, whereabouts, details,\nunit_id"]
+        HE["history_events\nyear, event_type, details,\nsource (legends_xml | live)\nhf_id_1, site_id, entity_id_1"]
+        ENT["entities\nname, type, race, details"]
+        SITES["sites\nname, type, details\n(+ fortress_state JSONB)"]
+        STRUCT_T["structures\nsite buildings"]
+        ART["artifacts\nholder_hf_id, site_id"]
+        HF_LINKS["hf_links\nhf_entity_links\nhf_site_links\nhf_squad_links\nhf_position_links"]
+        XREF["event_entity_xref\nevent cross-references"]
+        OTHER["regions, rivers,\nlandmasses, eras,\nwritten_contents,\nart_forms, identities,\ncreature_dictionary, ..."]
+    end
+
+    subgraph UI["🖥️ Chronicler Web UI"]
+        PAGES["HF Detail — birth, death, skills, events\nEntity Detail — members, sites, wars\nSite Detail — residents, events, owners\nRegion / Event / World Detail"]
+    end
+
+    MEM -->|"every 100 ticks"| BRIDGE
+    BRIDGE -->|"SSH + base64"| SSH
+    SSH -->|"file_writer.py"| FILES
+
+    FILES -->|"read sections"| DEATH
+    FILES -->|"read sections"| EVENT
+    FILES -->|"read sections"| HFSYNC
+    FILES -->|"read sections"| LINKS
+    FILES -->|"read sections"| STRUCT
+    FILES -->|"read sections"| ENTSYNC
+
+    DEATH -->|"UPDATE"| HF
+    DEATH -->|"UPDATE"| HF_LINKS
+    EVENT -->|"INSERT"| HE
+    EVENT -->|"INSERT"| XREF
+    HFSYNC -->|"UPDATE"| HF
+    LINKS -->|"UPSERT"| HF_LINKS
+    STRUCT -->|"UPSERT"| STRUCT_T
+    STRUCT -->|"UPSERT"| ART
+    STRUCT -->|"UPDATE"| SITES
+    ENTSYNC -->|"UPDATE"| ENT
+    ENTSYNC -->|"UPSERT"| HF_LINKS
+
+    PREXML -->|"chronicler ingest"| PARSER
+    POSTXML -->|"chronicler ingest --update"| DIFFPARSER
+    PARSER -->|"INSERT all"| HF
+    PARSER --> HE
+    PARSER --> ENT
+    PARSER --> SITES
+    PARSER --> ART
+    PARSER --> HF_LINKS
+    PARSER --> OTHER
+    DIFFPARSER -->|"INSERT new\nUPDATE changed"| HF
+    DIFFPARSER --> HE
+    DIFFPARSER --> ENT
+
+    HF -->|"SELECT"| PAGES
+    HE -->|"SELECT"| PAGES
+    ENT -->|"SELECT"| PAGES
+    SITES -->|"SELECT"| PAGES
+    ART -->|"SELECT"| PAGES
+    HF_LINKS -->|"JOIN"| PAGES
+
+    style DISK fill:#fff9c4,stroke:#f9a825,stroke-width:2px
+    style CDM fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style UI fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+    style GAME fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
+    style ETL fill:#fff3e0,stroke:#ef6c00,stroke-width:2px
+    style XML fill:#f5f5f5,stroke:#616161
+    style CAPTURE fill:#f5f5f5,stroke:#616161
