@@ -8,15 +8,27 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stages 3.0-3.6 CODE COMPLETE; 
+**Status**: **PHASE 3 COMPLETE** (27/27 DoD) — Ready for Phase 4: Narrative Engine
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: 02d2e12 (Girderpriced session report + JSONL log) [Jarvis repo]
+**Last Commit**: (pending this session) [Jarvis repo]
 **Last Pushed**: (pending)
-**DwarfCron Last Commit**: acf3b4f (getCitizens fix + bridge v10 classification)
+**DwarfCron Last Commit**: e1d4110 (narrative scoring pagination fix)
 **DwarfCron Last Pushed**: (pending)
-**Active fortress**: Girderpriced — see 'Jarvis/projects/chronicler/reports/girderpriced-fortress-plan-v2.md' for game play aims.
-**Play Session***: Girderpriced - Active on VM, ready for remote control and data streaming, must play until full collapse no survivors
+**Active fortress**: Girderpriced — COLLAPSED Y256 Winter. New embark needed for Phase 4 live testing.
+**Play Session**: Girderpriced complete — observed full lifecycle Y250-Y256, 206 snapshots, 0 citizens
+---
+
+## What Was Accomplished (2026-03-23, Session 47 -- Phase 3 COMPLETE)
+
+### Phase 3 Completion — 27/27 DoD checks pass
+- **Narrative scoring fix**: Pagination bug caused 50.3% coverage → fixed to 100% (473,129/473,129 events)
+- **LLM generation**: 400 arc titles, 180 year summaries, 300 character profiles, 300 cluster summaries via Qwen3 8B
+- **Embedding rebuild**: Batch pipeline re-running (5.8K+ embeddings, rebuilding from DB wipe)
+- **Watcher UI dashboard**: New `/watcher` page with Chart.js timeline, DB stats, bridge status (committed: 9581d7f)
+- **Completion report**: `projects/chronicler/reports/phase-3-completion-report.md`
+- **DwarfCron commits**: 9581d7f (watcher UI), e1d4110 (scoring fix)
+
 ---
 
 ## What Was Accomplished (2026-03-23, Session 46 -- Stages 3.5+3.6 Validation)
@@ -371,30 +383,21 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Phase 3 Live Integration — IN PROGRESS
+### PRIMARY: Phase 4 — Narrative Engine (NEXT)
 
-**Phase 2**: Formally COMPLETE (50/50 DoD). Population UI validation still pending but not blocking game control work.
+**Phase 3**: COMPLETE (27/27 DoD, 2026-03-23). See `projects/chronicler/reports/phase-3-completion-report.md`.
+**Phase 4 PRD**: `projects/chronicler/reports/phases/phase-4-*.md` (to be reviewed)
 
-**Phase 3 Progress**:
-- **Stage 3.0: CDM Schema Fixes — COMPLETE** (2026-03-09, Session 39)
-- **Game Control & Streaming — COMPLETE** (2026-03-17, Session 40): controller, bridge deployment, SSH data pipeline, streaming orchestrator
-- **Stage 3.1: CDM Expansion — COMPLETE** (2026-03-17, Session 42): 7 new tables, bridge v9, 14 ETL functions, all verified end-to-end including season boundary capture
-- **Stage 3.2: Worldgen Monitoring — COMPLETE** (previously completed)
-- **Stage 3.3: Knowledge Horizon — COMPLETE** (previously completed)
-- **Stage 3.4: Embedding Pipelines — COMPLETE** (2026-03-20, Session 43): 5 new files, batch+live pipelines, hybrid search, narrative context integration, 20/20 tests
-- **Stage 3.5: Fortress State Capture — CODE COMPLETE** (2026-03-23, Session 46): 7 tables, 864-line ETL, WebSocket event feed, 61/61 tests. Pending: live data validation (fortress collapsed)
-- **Stage 3.6: Narrative Data Layer — CODE COMPLETE** (2026-03-23, Session 46): 6 tables, 2085-line analysis pipeline, 10/13 validation checks pass. Analysis run: 238K scored events, 28K causal links, 6.6K arcs, 746 clusters. Pending: LLM generation (summaries + profiles need Ollama)
-
-**Phase 3 remaining work**:
-- LLM generation batch run (`narrative generate --target all`) — requires Ollama + qwen3:8b
-- Live fortress data validation — requires new embark (Girderpriced collapsed)
-- Embedding pipeline extension for Stage 3.5/3.6 data types (optional, can extend in Phase 4)
-
-**Live fortress**: Girderpriced — COLLAPSED (Y256 Winter). Need new embark for live validation.
+**Pre-Phase 4 tasks**:
+- Push DwarfCron Dev branch (7 commits since last push)
+- Push Jarvis Project_Aion branch
+- New fortress embark for Phase 4 live testing
+- Review Phase 4 PRD and plan Stage 4.1
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
 - REFL-022: Auto-capture self-corrections (LOW)
+- Batch embeddings rebuilding (5.8K of ~14K, background)
 
 ---
 
@@ -408,4 +411,4 @@ Previous session histories have been archived. For full details, see:
 
 ---
 
-*Session state updated 2026-03-17 -- Stage 3.1 CDM expansion complete (7 tables, bridge v9, ETL pipeline); known gaps: daily_events, full squads, season capture; Silveryclasps Y250 PAUSED*
+*Session state updated 2026-03-23 -- Phase 3 COMPLETE (27/27 DoD). Next: Phase 4 Narrative Engine.*

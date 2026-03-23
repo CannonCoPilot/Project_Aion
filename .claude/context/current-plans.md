@@ -45,7 +45,7 @@ Single source of truth. Consult in this order:
 |-------|------|--------|-----------|
 | 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 |
 | 2 | Explorer Core | **COMPLETE** (50/50 DoD, 2026-03-03) | M2 |
-| **3** | **Live Integration** | **IN PROGRESS** -- Stages 3.0-3.3 complete; 3.4-3.6 remaining | **M3** |
+| **3** | **Live Integration** | **COMPLETE** (27/27 DoD, 2026-03-23) | **M3** |
 | 4 | Narrative Engine | Pending (~60% pre-built) | M4 |
 | 5 | Visualization | Pending (+LVN: 22 enhancements) | M5 |
 | 6 | Advanced Components | Pending (+LVN: achievements, prediction, bot) | M6 |
@@ -57,10 +57,13 @@ Single source of truth. Consult in this order:
 
 ---
 
-## Current Phase: Phase 3 -- Live Integration
+## Completed Phase: Phase 3 -- Live Integration
 
-**Active PRD**: `projects/chronicler/reports/phases/phase-3-completion-prd.md` (v3.0)
-**Live fortress**: Girderpriced
+**Completion Report**: `projects/chronicler/reports/phase-3-completion-report.md`
+**PRD**: `projects/chronicler/reports/phases/phase-3-completion-prd.md` (v3.0)
+**Live fortress**: Girderpriced (COLLAPSED Y256 Winter)
+
+**Next Phase**: Phase 4 — Narrative Engine (`projects/chronicler/reports/phases/phase-4-*.md`)
 
 ### Stage Status
 
@@ -71,8 +74,8 @@ Single source of truth. Consult in this order:
 | 3.2 | Worldgen Monitoring | **COMPLETE** (deferred scope per PRD v3.0) |
 | 3.3 | Knowledge Horizon | **COMPLETE** (deferred scope per PRD v3.0) |
 | 3.4 | Embedding Pipelines | **COMPLETE** (2026-03-20, Session 43) |
-| 3.5 | Fortress State Capture | **CODE COMPLETE** (2026-03-23, Session 46) — pending live validation |
-| 3.6 | Narrative Data Layer | **CODE COMPLETE** (2026-03-23, Session 46) — 10/13 checks, LLM gen pending |
+| 3.5 | Fortress State Capture | **COMPLETE** (2026-03-23) — 206 snapshots, 563 events, 76 units |
+| 3.6 | Narrative Data Layer | **COMPLETE** (2026-03-23) — 473K scored, 28K links, 13K arcs, LLM gen done |
 
 ---
 
