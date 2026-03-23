@@ -70,9 +70,9 @@ Single source of truth. Consult in this order:
 | 3.1 | CDM Expansion + ETL | **COMPLETE** (2026-03-17) -- 7 tables, bridge v9, 14 ETL functions |
 | 3.2 | Worldgen Monitoring | **COMPLETE** (deferred scope per PRD v3.0) |
 | 3.3 | Knowledge Horizon | **COMPLETE** (deferred scope per PRD v3.0) |
-| **3.4** | **Embedding Pipelines** | **NEXT** |
-| 3.5 | Fortress State Capture | Pending |
-| 3.6 | Narrative Data Layer | Pending |
+| 3.4 | Embedding Pipelines | **COMPLETE** (2026-03-20, Session 43) |
+| 3.5 | Fortress State Capture | **CODE COMPLETE** (2026-03-23, Session 46) — pending live validation |
+| 3.6 | Narrative Data Layer | **CODE COMPLETE** (2026-03-23, Session 46) — 10/13 checks, LLM gen pending |
 
 ---
 

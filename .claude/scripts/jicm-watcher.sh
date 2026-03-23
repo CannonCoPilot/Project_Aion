@@ -887,7 +887,7 @@ do_halt() {
     # - States the reason (context percentage)
     # - Gives explicit instruction (do not continue, do not ask)
     # - Requests minimal confirmation (reduces token waste)
-    tmux_send_prompt "[JICM-HALT] STOP. Context at ${pct}%. JICM compression cycle starting. HALT all work immediately. Do NOT continue interrupted tasks. Do NOT ask questions. Reply ONLY: Understood. Then STOP."
+    tmux_send_prompt "[JICM-HALT] STOP. Context at ${pct}%. JICM compression cycle starting. Before stopping: write any transient working details (active credentials, paths, commands, gotchas) to .claude/context/.scratchpad.md under Active Notes. Then reply ONLY: Understood. Then STOP."
 
     # Step 3: Wait for Jarvis to acknowledge HALT (skip_trigger=true to avoid ESC #2)
     wait_for_idle "$HALT_TIMEOUT" true
@@ -984,7 +984,7 @@ do_restore() {
     # - CLAUDE.md and capability-map.yaml are auto-loaded — no need to read
     # - Compressed context is injected by session-start hook via additionalContext
     # - Recent archives (<3h old) provide additional continuity depth
-    local resume_prompt='[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md for current state. For deeper continuity, also check recent archives in .claude/logs/jicm/archive/ (files less than 3 hours old). The active plan in CLAUDE.md @-import provides task alignment. Resume work immediately. Do NOT greet. Do NOT ask what to work on.'
+    local resume_prompt='[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md for current state and .claude/context/.scratchpad.md for transient working details. Query jarvis-rag (collection: sessions) and jarvis-graphiti for deeper continuity. The active plan and scratchpad in CLAUDE.md @-imports provide task alignment. Resume work immediately. Do NOT greet. Do NOT ask what to work on.'
     tmux_send_prompt "$resume_prompt"
 
     transition_to "RESTORING"

@@ -43,6 +43,7 @@ Fundamental patterns that govern how Jarvis operates.
 | [jicm-pattern](jicm-pattern.md) | Intelligent context management | Context approaching limits |
 | [parallelization-strategy](parallelization-strategy.md) | Parallel vs sequential execution | Multi-tool/agent tasks |
 | [self-interruption-prevention](self-interruption-prevention.md) | Prevent unintended work stops | When blockers encountered |
+| [filesystem-policy-pattern](filesystem-policy-pattern.md) | File write location guardrails | **Every file write** |
 
 ---
 
