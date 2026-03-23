@@ -3,6 +3,9 @@
 # Local settings (user-specific)
 .claude/settings.local.json
 
+# Scratch files (temp workspace, never tracked)
+.claude/scratch/
+
 # Logs (rotated, can be large)
 .claude/logs/*.jsonl
 .claude/logs/*.log

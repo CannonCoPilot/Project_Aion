@@ -31,11 +31,13 @@ set -eu
 # upstream command. This is normal pipe behavior, not an error.
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
-PROJECTS_DIR="$HOME/.claude/projects/-Users-nathanielcannon-Claude-Jarvis"
+PROJECT_SLUG=$(echo "$PROJECT_DIR" | tr '/' '-' | sed 's/^-//')
+PROJECTS_DIR="$HOME/.claude/projects/${PROJECT_SLUG}"
 OUTPUT="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
 SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
 ACTIVE_PLAN_FILE="$PROJECT_DIR/.claude/context/.active-plan"
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
+SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"
 
 # Configuration (defaults — can be overridden via .prep-override file)
 JSONL_TAIL_LINES=5000    # Scan last N JSONL entries for user messages
@@ -333,6 +335,16 @@ fi
         echo ""
     fi
 
+    # --- Scratchpad (short-term working memory) ---
+    if [[ -f "$SCRATCHPAD" ]]; then
+        SCRATCH_CONTENT=$(sed -n '/^## Active Notes/,$ p' "$SCRATCHPAD" 2>/dev/null | tail -n +2 | head -60)
+        if [[ -n "$SCRATCH_CONTENT" ]] && [[ "$SCRATCH_CONTENT" != *"(empty"* ]]; then
+            echo "## Scratchpad (Short-Term Memory)"
+            echo "$SCRATCH_CONTENT"
+            echo ""
+        fi
+    fi
+
     # --- Recent conversation ---
     echo "## Recent Conversation (last ${USER_MSG_COUNT} messages)"
     if [[ -n "$USER_MSGS" ]]; then
@@ -353,8 +365,14 @@ fi
     echo "## Resume Instructions"
     echo "You are Jarvis. Context was cleared via JICM v7 stop-and-wait cycle."
     echo "Foundation docs (CLAUDE.md, capability-map.yaml, identity) are auto-loaded."
-    echo "Review the session status, active plan, and conversation above, then continue the work."
-    echo "If the conversation is sparse, read session-state.md for full priorities."
+    echo ""
+    echo "### Context restoration checklist:"
+    echo "1. Review the session status, active plan, scratchpad, and conversation above."
+    echo "2. Check .claude/context/.scratchpad.md for transient working details (credentials, paths, gotchas)."
+    echo "3. Query jarvis-rag (collection: sessions) for recent session summaries relevant to current work."
+    echo "4. Query jarvis-graphiti for facts related to current task."
+    echo "5. If conversation above is sparse, read session-state.md for full priorities."
+    echo "6. Resume work immediately. Do NOT greet. Do NOT ask what to work on."
 
 } > "$OUTPUT"
 

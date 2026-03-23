@@ -8,7 +8,7 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stages 3.0-3.4 COMPLETE; Girderpriced COLLAPSED (Y256 Winter)
+**Status**: Phase 3 Live Integration — Stages 3.0-3.6 CODE COMPLETE; Girderpriced COLLAPSED (Y256 Winter)
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: 02d2e12 (Girderpriced session report + JSONL log) [Jarvis repo]
@@ -16,6 +16,35 @@
 **DwarfCron Last Commit**: acf3b4f (getCitizens fix + bridge v10 classification)
 **DwarfCron Last Pushed**: (pending)
 **Active fortress**: Girderpriced — COLLAPSED. Y256 Winter T365,270. 0 real citizens. Last citizen Dastot decapitated at T365,266.
+
+---
+
+## What Was Accomplished (2026-03-23, Session 46 -- Stages 3.5+3.6 Validation)
+
+### Stage 3.5: Fortress State Capture — CODE COMPLETE, VALIDATED
+- **Discovery**: All 7 tables exist in DB, 864-line ETL module (`etl_state_capture.py`) complete
+- **WebSocket event feed**: `routes/live.py` — `/ws/events` endpoint with 11 event types, dedup, bridge polling
+- **Tests**: 61/61 passing (`test_state_capture.py`) — report classification, combat parsing, happiness, ETL functions
+- **CLI**: `state` group + `validate-stage35` command
+- **Watcher**: Integrated at step 6b2
+- **Gap**: 0 rows in all tables — no live fortress data captured yet (Girderpriced collapsed)
+
+### Stage 3.6: Narrative Data Layer — CODE COMPLETE, 10/13 VALIDATION CHECKS PASS
+- **Schema**: 6 new tables added to `schema.sql` and applied to live DB (narrative_events, event_causal_links, narrative_arcs, event_summaries, character_narratives, event_clusters)
+- **CLI**: Added `narrative analyze` command wiring score_events, detect_causal_links, detect_arcs, detect_clusters
+- **Analysis pipeline validated** (full run on world 1):
+  - 238,127 events scored (5s) — base weights, drama, rarity, irony, tone
+  - 28,073 causal links detected (1s) — cascading_death(15919), invasion_triggered(11312), military_weakened(842)
+  - 6,603 narrative arcs (2s) — megabeast_attack(4762), golden_age(1611), siege_defense(193), rise_and_fall(37)
+  - 746 event clusters (1s) — combat_encounter(247), siege(233), cultural(204), construction(62)
+- **Tests**: 25/25 passing (`test_narrative.py`) — scoring, tone, drama, irony, character importance
+- **3 LLM-dependent checks pending**: event_summaries, character_narratives, world_overview context (need Ollama + qwen3:8b)
+- **API routes**: `/api/narrative/timeline`, `/api/narrative/arcs`, `/api/narrative/status`
+
+### Files Modified
+- `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/db/schema.sql` — added 6 Stage 3.6 tables + indexes
+- `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/cli.py` — added `narrative analyze` command
+- `/Users/nathanielcannon/Claude/Projects/DwarfCron/tests/test_narrative.py` — NEW: 25 unit tests
 
 ---
 
@@ -353,8 +382,15 @@ Previous session histories have been archived. For full details, see:
 - **Stage 3.2: Worldgen Monitoring — COMPLETE** (previously completed)
 - **Stage 3.3: Knowledge Horizon — COMPLETE** (previously completed)
 - **Stage 3.4: Embedding Pipelines — COMPLETE** (2026-03-20, Session 43): 5 new files, batch+live pipelines, hybrid search, narrative context integration, 20/20 tests
+- **Stage 3.5: Fortress State Capture — CODE COMPLETE** (2026-03-23, Session 46): 7 tables, 864-line ETL, WebSocket event feed, 61/61 tests. Pending: live data validation (fortress collapsed)
+- **Stage 3.6: Narrative Data Layer — CODE COMPLETE** (2026-03-23, Session 46): 6 tables, 2085-line analysis pipeline, 10/13 validation checks pass. Analysis run: 238K scored events, 28K causal links, 6.6K arcs, 746 clusters. Pending: LLM generation (summaries + profiles need Ollama)
 
-**Live fortress**: Silveryclasps, Y250, 15 citizens, bridge v9 deployed, CDM expansion verified end-to-end
+**Phase 3 remaining work**:
+- LLM generation batch run (`narrative generate --target all`) — requires Ollama + qwen3:8b
+- Live fortress data validation — requires new embark (Girderpriced collapsed)
+- Embedding pipeline extension for Stage 3.5/3.6 data types (optional, can extend in Phase 4)
+
+**Live fortress**: Girderpriced — COLLAPSED (Y256 Winter). Need new embark for live validation.
 
 ### SECONDARY: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)

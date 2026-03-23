@@ -3,6 +3,26 @@
 Reference for bash pitfalls commonly encountered when an LLM generates shell
 commands. macOS ships bash 3.2 (2007) which lacks many bash 4+ features.
 
+## Jarvis-Specific Conventions
+
+### Signal file timestamps — always epoch seconds
+```bash
+# Signal files use epoch seconds for machine-parseable timestamps
+echo "$(date +%s)" > "$PROJECT_DIR/.claude/context/.my-signal"
+```
+
+### Subshell return codes — bash 3.2 `set -e` safety
+```bash
+# WRONG — if my_func returns non-zero, `set -e` kills the parent script
+result=$(my_func)
+
+# RIGHT — ensure functions called via $(...) always return 0
+my_func() {
+    # ... do work ...
+    return 0  # explicit return 0
+}
+```
+
 ## macOS Bash 3.2 vs Linux Bash 4+
 
 ### `local` keyword — ONLY valid inside functions

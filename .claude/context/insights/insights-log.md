@@ -3731,3 +3731,118 @@ The data capture is remarkably complete — 10 JSONL entries spanning 89,671 tic
 ### 2026-03-23 [9130c94380f1]
 
 **Reflection #17 key pattern**: The "premature conclusion under degraded performance" correction is the second time this pattern has appeared (the first was the JICM checkpoint fortress identity error in Reflection #16). Both cases involve Jarvis jumping to conclusions when data is slow to arrive rather than waiting. This suggests a systemic bias toward action over patience when systems are responding slowly — worth monitoring.
+
+### 2026-03-23 [43d50f6e4935]
+
+**The W5 isolation design uses a layered approach**: Claude Code loads `CLAUDE.md` (shared, includes DwarfCron `@` imports) for both W0 and W5 — we can't prevent this. But W5 now has three layers of redirection:
+
+1. **`--append-system-prompt`** (launcher): "You are W5:Jarvis-dev. Focus on Jarvis core. Ignore DF-specific @-imports."
+2. **`dev-session-instructions.md`** (loaded as first prompt): Context Isolation section explicitly delineates W5 vs W0 domains
+3. **`JARVIS_SESSION_ROLE=dev`** env var: available to hooks for conditional behavior
+
+W0 gets none of these — it sees the full DwarfCron-focused CLAUDE.md with all 38 `@` imports. The shared CLAUDE.md is a feature for W0 and a cost for W5 that the system prompt overlay mitigates.
+
+**The effort level separation** (`medium` for W0, `high` for W5) reflects the different workloads: W0 does routine development (medium is cost-efficient), W5 does infrastructure research and system design (high provides deeper reasoning).
+
+### 2026-03-23 [f67db7e1cbdf]
+
+The JICM checkpoint carried stale task instructions ("continue playing") despite the status line correctly noting "COLLAPSED" — this is the JICM soft-restart data loss pattern documented in self-knowledge/weaknesses.md. The JSONL log and session report served as ground truth, which is why we commit early and write state to files before compression.
+
+### 2026-03-23 [ca04d6f2f183]
+
+This is essentially asking: "Does the live game data actually flow through to the UI?" The answer requires tracing the full pipeline: DF memory → bridge Lua → SSH transport → raw staging → ETL transforms → CDM tables → SQL queries → API endpoints → HTML templates. Any break in this chain means the UI is showing stale legends-only data.
+
+### 2026-03-23 [ee2a4cedf5b3]
+
+**The Two-Worlds Problem**: This is a classic data integration anti-pattern. The legends XML import creates a static "world history" snapshot, and the live bridge creates a separate "current state" stream. Neither system knows the other exists. The fix is conceptually simple — after each watcher cycle, propagate live changes back to the legends tables — but requires careful handling of ID generation (live events need unique IDs compatible with the legends `history_events` sequence) and idempotency (the same death shouldn't be synced twice).
+
+**Why this matters architecturally**: The UI was built during Phase 2 against legends-only data. Phase 3 added live data capture but treated it as a separate concern. This gap analysis reveals that "live integration" isn't complete until the live data *replaces* the stale legends data in the tables the UI actually queries.
+
+### 2026-03-23 [5e3171e66dc6]
+
+The two systems have diverged architecturally. AIfred went broad (32 hooks, external Beads CLI, composable profiles, Fabric integration). Jarvis went deep (AC-01..10 autonomic pipeline, JICM v7.2 state machine, Aion Quartet tmux scripts, 4-tier knowledge hierarchy). The standout portable idea is **compaction-essentials** — a static minimum-context file guaranteed to survive any compaction, complementing JICM's dynamic compression.
+
+### 2026-03-23 [0b3bc2a37e84]
+
+**Filesystem policy as a first-class pattern**: This correction revealed a gap in the guardrails. The CLAUDE.md `NEVER` list and the `ALWAYS` list covered git safety, secrets, and destructive ops — but never addressed *where files go*. By adding it as both a CLAUDE.md guardrail AND a mandatory pattern in `patterns/_index.md`, it gets enforced at two levels: the always-loaded identity document and the pattern-check step in the Wiggum Loop. The feedback memory ensures it persists across JICM clears.
+
+### 2026-03-23 [9f7dc45d1f5d]
+
+The 80/20 rule applies perfectly here: 235 of 289 files are markdown docs (cosmetic-only). The real portability wins come from fixing the ~49 executable files (.sh + .js) where hardcoded paths actually break on a different machine.
+
+### 2026-03-23 [5e41bc7d37b8]
+
+These Python heredoc sections use single-quoted delimiters (`<< 'PYEOF'`), which means the shell does NOT expand `$HOME` before passing to Python. The literal string `$HOME` is passed to Python, where it has no meaning. These paths need `os.environ.get('HOME')` or `os.path.expanduser('~')` instead.
+
+### 2026-03-23 [6fe2a8224464]
+
+- The Python-inside-heredoc case is a subtle portability trap. Single-quoted heredoc delimiters (`<< 'EOF'`) suppress shell expansion, so `$HOME` becomes a literal `$HOME` string in Python. The fix uses `os.environ.get('HOME')` which is Python-native.
+- The `insight-capture.js` PROJECTS_DIR was the trickiest replacement — Claude Code's internal project directory names encode the full path (e.g., `-Users-nathanielcannon-Claude-Jarvis`), making them inherently non-portable. The sed replaced it, but new installs will need the PORTABLE-INSTALL.md memory directory migration step.
+
+### 2026-03-23 [8394a2fc68d8]
+
+**The on-disk intermediate stage provides three key benefits**: (1) Durable capture — if the DB write fails, the JSON files are still there for replay. (2) CDC diffing — comparing `_prev/` vs current cycle detects arrivals, deaths, and departures without maintaining in-memory state. (3) Debuggability — you can inspect `chronicler/data/live/*.json` to see exactly what data the bridge produced, independent of DB state.
+
+**The type-safe wrappers** (`read_list_section`, `read_dict_section`) solve a real problem: JSON deserialization returns `Any`, but the ETL code needs to call `.get()` on dicts and iterate over lists. The typed wrappers narrow `list | dict | None` to `list` or `dict` with safe empty defaults, eliminating all Pyright warnings without runtime overhead.
+
+### 2026-03-23 [0d926887cd1a]
+
+**The diff import is working correctly.** Because we used `ON CONFLICT DO UPDATE` for `historical_figures`, existing HFs that gained new data (death_year, etc.) are being updated in-place. New HFs from the embark (the 7 founding dwarves + migrants + any new births) are being INSERTed. The `ON CONFLICT DO NOTHING` for events means only the ~2,189 genuinely new events are added. This is exactly the behavior the architecture specified.
+
+### 2026-03-23 [b40c978ba6fc]
+
+**DFHack path change**: In this version, `dfhack-run.exe` is at the DF root (`C:\Program Files (x86)\Steam\steamapps\common\Dwarf Fortress\dfhack-run.exe`) rather than in `hack/`. This likely changed with a DFHack update. I need to update the controller's SSH transport path.
+
+### 2026-03-23 [c63c4559f2c8]
+
+**Full ETL Pipeline Assessment**: The entire Live ETL Revised Architecture is already implemented:
+1. **Stage 1 (Capture)**: Bridge Lua v9 on VM → `chronicler-state.json` (4.6MB, 26 sections)
+2. **Stage 2 (Transform)**: `file_writer.py` writes 27 section files to `chronicler/data/live/`
+3. **Stage 3 (Load)**: `live_etl.py` has 11 sync functions covering all 28+ mappings from the architecture doc
+4. **Watcher Integration**: Step 6b4 in `watcher.py` calls `write_bridge_to_disk()` → `run_live_etl()`
+5. **XML Diff Import**: Already working — just completed post-embark diff ingestion successfully
+
+### 2026-03-23 [eeccb3735d5b]
+
+**Phase 3 Live Integration — Near Complete Assessment:**
+
+All 7 stages (3.0-3.6) now have CODE COMPLETE implementations. The remaining items are operational, not coding:
+
+1. **LLM generation** (3.6 event_summaries + character_narratives): `chronicler narrative generate --target all` — requires Ollama + qwen3:8b to be running. Pure batch operation.
+
+2. **Live data validation** (3.5 tables have 0 rows): Requires a new fortress embark — Girderpriced collapsed. When the watcher runs against a live fortress, all 7 ETL functions + WebSocket feed will populate automatically.
+
+3. **Embedding extension** (optional): Stage 3.4 extractors could be extended for the new 3.5/3.6 data types (combat reports, character arcs, narrative events), but this is enhancement not requirement.
+
+**By the numbers:**
+- 13 new tables across 3.5 + 3.6
+- 2,949 lines of ETL/analysis code (864 state capture + 2,085 narrative)
+- 86 unit tests (61 state capture + 25 narrative)
+- 238K events scored, 28K causal links, 6.6K arcs in < 10 seconds
+- WebSocket event feed with 11 event types and dedup
+
+### 2026-03-23 [ecc7567eb158]
+
+- The original section listed only 4 of 10 components, omitting the self-improvement pipeline entirely (AC-03, AC-05, AC-06, AC-07, AC-08). This meant new sessions had no awareness of reflection, evolution, R&D, or maintenance capabilities unless they happened to load the individual component specs.
+- The path example was also updated from the hardcoded `/Users/nathanielcannon/...` to `$HOME/...` to stay consistent with the portability refactor.
+
+### 2026-03-23 [f30111834f38]
+
+- The two planning tiers serve fundamentally different cognitive functions: `.active-plan` is *working memory* (what am I doing right now?), while `current-plans.md` is *episodic memory* (where does this fit in the larger project?). Both are force-loaded via `@` imports so they're always in context, but they address different questions at different time horizons.
+- The old section only documented Tier 1 and didn't mention `current-plans.md` at all — meaning after JICM compression, Jarvis could lose awareness of the strategic context entirely if it wasn't in the compressed checkpoint.
+
+### 2026-03-23 [9fd6c2874483]
+
+- The scratchpad creates a deliberate "speed tier" between ephemeral conversation context and persistent MEMORY.md. This is the cognitive equivalent of a whiteboard — always visible, easy to erase, prevents the notebook (MEMORY.md) from becoming cluttered.
+- The escalation ladder inverts the old "try alternatives" bias. By gating each stage, Jarvis must prove the original approach genuinely failed (not just that the first attempt had a typo) before reaching for workarounds. This directly addresses the ad-hoc-workaround debt accumulation pattern.
+- The HALT prompt change is the key JICM integration point: Jarvis now has ~60s (HALT_TIMEOUT) to write scratchpad notes before compression begins, and prep-context.sh mechanically includes whatever was written.
+
+### 2026-03-23 [c76c403a5676]
+
+Two categories account for **78% of force-loaded tokens**:
+
+1. **AC Components (45.5%)** — 10 full spec documents (AC-01 through AC-10) plus 3 overview files. Each AC spec is 300-490 lines with detailed implementation notes, validation checklists, and ASCII diagrams. The CLAUDE.md `## Autonomic behavior` section we just wrote provides a concise summary of all 10 components in ~30 lines. The full specs are rarely consulted during normal work — they're reference material for when you're *modifying* the AC system itself.
+
+2. **DF Reference (32.5%)** — 4 Chronicler/DF game control documents. These are exclusively W0:Jarvis domain (Chronicler development). W5:Jarvis-dev and infrastructure sessions pay the token cost but never use them. Even W0 only needs them during active DF gameplay sessions.
+
+**Potential savings**: Moving AC-01..10 full specs and DF reference docs to on-demand loading would save **~87K tokens (78%)**, reducing force-loaded context from ~112K to ~25K. The CLAUDE.md autonomic behavior summary + `capability-map.yaml` provide sufficient behavioral guidance for most sessions.
