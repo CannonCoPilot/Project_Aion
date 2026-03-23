@@ -3727,3 +3727,7 @@ The options: (1) kill some undead to reduce the pathfinding load, (2) teleport u
 ### 2026-03-22 [b3deca406679]
 
 The data capture is remarkably complete — 10 JSONL entries spanning 89,671 ticks of observation, with the death sequence captured at tick-level granularity (82 ticks, T365,184→T365,266). The report documents a critical technical finding: `isCitizen()` vs `getCitizens()` discrepancy that was causing population miscount with undead dwarves retaining citizenship flags.
+
+### 2026-03-23 [9130c94380f1]
+
+**Reflection #17 key pattern**: The "premature conclusion under degraded performance" correction is the second time this pattern has appeared (the first was the JICM checkpoint fortress identity error in Reflection #16). Both cases involve Jarvis jumping to conclusions when data is slow to arrive rather than waiting. This suggests a systemic bias toward action over patience when systems are responding slowly — worth monitoring.
