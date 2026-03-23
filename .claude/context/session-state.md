@@ -8,14 +8,28 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stages 3.0-3.4 COMPLETE; Girderpriced gameplay plan written
+**Status**: Phase 3 Live Integration — Stages 3.0-3.4 COMPLETE; Girderpriced COLLAPSED (Y256 Winter)
 **Version**: v5.11.0
 **Branch**: Project_Aion
-**Last Commit**: (pending session 44 commit) [Jarvis repo]
+**Last Commit**: 02d2e12 (Girderpriced session report + JSONL log) [Jarvis repo]
 **Last Pushed**: (pending)
-**DwarfCron Last Commit**: d3f4291 (ETL key mismatches + announcements fix)
+**DwarfCron Last Commit**: acf3b4f (getCitizens fix + bridge v10 classification)
 **DwarfCron Last Pushed**: (pending)
-**Active fortress**: Girderpriced (site 2212), world Orid Zurko (world_id=3), Y256 Autumn, PAUSED
+**Active fortress**: Girderpriced — COLLAPSED. Y256 Winter T365,270. 0 real citizens. Last citizen Dastot decapitated at T365,266.
+
+---
+
+## What Was Accomplished (2026-03-22, Session 45 -- Girderpriced Collapse)
+
+### Gameplay Session: Fortress Collapse Observation — COMPLETE
+- **10-cycle observation session**: Tracked Girderpriced from 13 nominal citizens to 0 (T275,599 → T365,270)
+- **Population counting bug fixed**: `isCitizen()` includes undead with residual citizenship; switched to `getCitizens()` for accurate count (actual: 1 citizen, not 13)
+- **Controller enhanced**: `survey_fortress()` classifies ALL active units (citizens, residents, visitors, invaders, undead, ghosts, animals)
+- **Bridge v10**: Added classification flags (`is_citizen`, `is_resident`, `is_visitor`, `is_undead`, `is_sane`, `is_fort_controlled`, `hunger`, `thirst`) + `real_citizen_count`
+- **Death sequence captured**: Dastot "Manorhands" killed by 5 undead (4 elf corpses + 1 human corpse) over 82 ticks at T365,266
+- **Session report**: `projects/chronicler/reports/girderpriced-session-report.md` — 181 lines, timeline + death sequence + census + narrative
+- **JSONL log**: `projects/chronicler/reports/girderpriced-session-log.jsonl` — 10 entries, full telemetry
+- **Reflection #17**: 2 corrections analyzed, 2 proposals (REFL-029 patience protocol, REFL-030 population cross-validation)
 
 ---
 
