@@ -491,9 +491,57 @@ proposals:
       - ".claude/scripts/jicm-prep-context.sh"
       - "projects/chronicler/reports/dev-environment-reference.md"
 
-# Queue maintained by AC-05/AC-06 — Updated 2026-03-22 (W5 evolution pass)
-# Remaining queued items (REFL-023..026) are DwarfCron product code — W0:Jarvis scope.
+  - id: REFL-029
+    date: "2026-03-22"
+    source: reflection-17
+    priority: low
+    status: queued
+    summary: "DF Performance Patience Protocol under Prism emulation"
+    problem: |
+      Declared game "completely stalled" and "FPS-dead" after only a few minutes of no tick
+      advancement. The game was actually advancing at <1 tick/second under ARM emulation with
+      37 hostile undead in constant combat pathfinding. Premature conclusion nearly caused
+      abandonment of observation that captured Dastot's death.
+    proposal: |
+      When game simulation appears stalled under Prism, wait 5+ minutes with periodic tick
+      checks (every 60s) before declaring FPS death. Log tick progression rate to distinguish
+      "slow" (<1 t/s) from "stopped" (zero delta across 5 checks).
+    implementation:
+      - Add patience protocol to DF gameplay session patterns
+      - In controller.py advance loops, log tick delta per poll cycle
+      - Consider adding a tick_rate field to session JSONL entries
+    estimated_effort: low
+    related:
+      - "projects/chronicler/reports/girderpriced-session-report.md"
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/controller.py"
+
+  - id: REFL-030
+    date: "2026-03-22"
+    source: reflection-17
+    priority: low
+    status: queued
+    summary: "Population cross-validation: always report both isCitizen and getCitizens counts"
+    problem: |
+      Reported 13 citizens based on isCitizen() filter, which includes undead dwarves retaining
+      citizenship flags. True population was 1 (per getCitizens()). User had to correct this.
+    proposal: |
+      Always report both isCitizen() count AND getCitizens() count in fortress assessments.
+      Bridge v10 real_citizen_count already provides this. The streaming orchestrator and
+      any automated reporting should surface both numbers.
+    implementation:
+      - Document the rule in DF session protocols
+      - Ensure streaming orchestrator logs both counts per cycle
+      - survey_fortress() already provides the breakdown — wire into stream output
+    estimated_effort: low
+    related:
+      - "projects/chronicler/reports/girderpriced-session-report.md"
+      - "/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/controller.py"
+
+# Queue maintained by AC-05/AC-06 — Updated 2026-03-22 (Reflection #17, Session 45)
+# Remaining queued items: REFL-023..026 (DwarfCron product code), REFL-029..030 (DF gameplay)
 # REFL-023: XML parser boolean flags (chronicler/ingest/)
 # REFL-024: Storyteller confidence signaling (chronicler/storyteller/)
 # REFL-025: War event enrichment (chronicler/storyteller/context.py)
 # REFL-026: CDM composite PK migration (chronicler/db/schema.sql)
+# REFL-029: DF performance patience protocol
+# REFL-030: Population cross-validation rule
