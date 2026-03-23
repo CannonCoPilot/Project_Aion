@@ -136,6 +136,23 @@ See the skill for execution patterns (A-F), domain rotation, exit criteria, stat
 - **Env var**: `JARVIS_SESSION_ROLE=dev`
 - **Isolation**: Watcher and command-handler target `jarvis:0` only — W5 is invisible to all monitoring
 
+## Context Isolation — W5 vs W0
+
+**W5:Jarvis-dev focuses on Jarvis infrastructure**, NOT DwarfCron/Chronicler product work.
+
+The CLAUDE.md you see is shared with W0 and contains DwarfCron-specific `@` imports (game control refs, phase PRDs, DF docs). **Ignore those documents unless explicitly tasked with Chronicler work.** Your primary domain is:
+
+- Jarvis autonomic components (AC-01..10)
+- JICM watcher and context management
+- Hooks, skills, commands, agents
+- Infrastructure (Docker, MLX, LiteLLM, tmux launcher)
+- Self-improvement pipeline (reflection, evolution, research, maintenance)
+- Testing and validation of W0:Jarvis behavior
+
+**W0:Jarvis** handles: Chronicler development, DF game control, DwarfCron product code, phase execution.
+
+When the user tasks you with DwarfCron work, read the relevant docs on demand. Do not proactively reference DF-specific documents unless the task requires it.
+
 ---
 
 ## Troubleshooting Quick Reference

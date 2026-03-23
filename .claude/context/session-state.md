@@ -367,7 +367,7 @@ Previous session histories have been archived. For full details, see:
 **Branch**: Project_Aion
 **Baseline**: main (read-only AIfred baseline at 2ea4e8b)
 **MCPs**: 7 active
-**JICM threshold**: 280K tokens (25% fallback); native autocompact: 50% (500K backstop)
+**JICM threshold**: 300K tokens; native autocompact: 50% (500K backstop)
 **VM SSH**: DF-Windows at 192.168.64.3, key ~/.ssh/df-vm
 
 ---
