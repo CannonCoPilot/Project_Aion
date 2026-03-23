@@ -8,15 +8,15 @@
 
 ## Current Work Status
 
-**Status**: Phase 3 Live Integration — Stages 3.0-3.6 CODE COMPLETE; Girderpriced COLLAPSED (Y256 Winter)
+**Status**: Phase 3 Live Integration — Stages 3.0-3.6 CODE COMPLETE; 
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: 02d2e12 (Girderpriced session report + JSONL log) [Jarvis repo]
 **Last Pushed**: (pending)
 **DwarfCron Last Commit**: acf3b4f (getCitizens fix + bridge v10 classification)
 **DwarfCron Last Pushed**: (pending)
-**Active fortress**: Girderpriced — COLLAPSED. Y256 Winter T365,270. 0 real citizens. Last citizen Dastot decapitated at T365,266.
-
+**Active fortress**: Girderpriced — see 'Jarvis/projects/chronicler/reports/girderpriced-fortress-plan-v2.md' for game play aims.
+**Play Session***: Girderpriced - Active on VM, ready for remote control and data streaming, must play until full collapse no survivors
 ---
 
 ## What Was Accomplished (2026-03-23, Session 46 -- Stages 3.5+3.6 Validation)

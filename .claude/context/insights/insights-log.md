@@ -3846,3 +3846,29 @@ Two categories account for **78% of force-loaded tokens**:
 2. **DF Reference (32.5%)** — 4 Chronicler/DF game control documents. These are exclusively W0:Jarvis domain (Chronicler development). W5:Jarvis-dev and infrastructure sessions pay the token cost but never use them. Even W0 only needs them during active DF gameplay sessions.
 
 **Potential savings**: Moving AC-01..10 full specs and DF reference docs to on-demand loading would save **~87K tokens (78%)**, reducing force-loaded context from ~112K to ~25K. The CLAUDE.md autonomic behavior summary + `capability-map.yaml` provide sufficient behavioral guidance for most sessions.
+
+### 2026-03-23 [d7b4e1a9b078]
+
+The remaining top 10 candidates for demotion are in the Psyche layer. `valedictions.yaml` (1,597 tokens) is only used during `/end-session` ceremonies — it's pure personality flavor that could be loaded on demand. `autopoietic-paradigm.md` (901 tokens) is philosophical framework rarely consulted mid-task. Together they'd save another ~2.5K tokens, though the personality cost of losing always-on valedictions is a style question.
+
+### 2026-03-23 [ba36346a3260]
+
+The three remaining items split into two categories: **infrastructure-dependent** (Ollama for LLM generation, new embark for live validation) and **optional scope** (embedding extension). The LLM generation is the most actionable — it only needs the local Ollama service, no VM or game state.
+
+### 2026-03-23 [de0b9c31b289]
+
+MEMORY.md entries use relative paths from the Jarvis repo root — this keeps them clickable from any tool that resolves relative to the workspace, while the short descriptions after `--` serve as the "when to read" heuristic for future sessions.
+
+### 2026-03-23 [b52efdb77d83]
+
+This is a good example of the **right separation** between CLAUDE.md and MEMORY.md: CLAUDE.md defines *rules* (phase-linear execution, scope fidelity, consult PRD before coding), while MEMORY.md holds *facts* (which phase we're on, what data exists, fortress status). Rules are stable; facts change every few sessions.
+
+### 2026-03-23 [95d31ab08c8c]
+
+**Disconnect #1 identified**: `watcher.py:407` — `client.connect()` crashes with `ConnectionError: DFHack connection closed`. The RPC handshake fails because DFHack's CoreSuspender can't acquire from the network thread under Prism x86 emulation. The watcher has **no error handling around RPC initialization** — it assumes RPC works. The bridge fallback at line 544 handles per-cycle RPC failures, but the initial `connect()` at startup is unguarded.
+
+This is the first concrete gap: **the watcher can't start at all** without a functional RPC connection, even though it has a bridge-based fallback for all data operations.
+
+### 2026-03-23 [e9bb5aaa64d7]
+
+The code analyzer revealed something transformative: **the bridge already provides a strict superset of all RPC data**. The watcher uses RPC for exactly ONE data domain (unit roster via `GetUnitList`), and the bridge's `units` section contains every field the RPC provides PLUS extras (stress, hunger, thirst, decoded flags, squad membership). The other 24 data domains are already bridge-only. This means the "unresolvable RPC issue" isn't actually blocking — it's exposing a legacy dependency that should have been removed when the bridge became the primary transport.
