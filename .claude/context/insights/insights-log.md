@@ -3913,3 +3913,68 @@ Here's the full picture of what DFHack 53.x offers for event/creature manipulati
 **Tier 1 — Built-in, reliable:**
 | Command | What it does |
 |---------|
+
+### 2026-03-23 [f1460ff6be60]
+
+**Phase 3 is the inflection point** for Chronicler. Phases 1-2 built the static data foundation (legends XML → PostgreSQL → web UI). Phase 3 added the live dimension: real-time game state capture, narrative scoring of 473K events, causal chain detection, LLM-powered prose generation, and embedding-based semantic search. Phase 4 will build the AI storyteller on top of this foundation — the narrative arcs, character profiles, and year summaries are the "raw material" the storyteller consumes.
+
+### 2026-03-23 [b5d1f8ada75b]
+
+**Design philosophy shift**: The old Live Data tab was a data dump — raw tables of snapshots, events, units. The new Fortress Chronicle is story-first: a summary banner tells you the fortress's fate at a glance (206 snapshots, 15 fallen, 10 hauntings, 2 survivors). Then progressive disclosure: chart → death cards → visual timeline → citizen profiles → raw tables (collapsed). Every name links to its HF page. The visual timeline uses colored dots (red=death, purple=ghost, green=arrival) that create a readable narrative flow even without reading the text.
+
+### 2026-03-24 [f556ad630098]
+
+**What Melbil's story reveals about the data model:**
+
+1. **The "live event blind spot"** — Deaths, ghosts, and combat events captured by the watcher go into `unit_events` but never get reconciled into `history_events`. This means the entire narrative scoring pipeline (weights, drama, irony, causal links, arcs) is blind to the most dramatic moments of fortress life. The legends XML gives us 250 years of distant history, but the watcher captures the intimate moments that actually matter to the player — and those moments fall through a crack.
+
+2. **Inferred relationships are the connective tissue** — Melbil has zero explicit social links, but we *can* deduce his social world: embark companions (shared `embark=true`), co-religionists (shared entity membership in The Creed of Grips: Cerol, Kogan, Stinthäd), and co-workers (fellow stonecrafter Bim Axedreams). These inferred bonds are what transform a list of dead dwarves into a *story*.
+
+3. **Thematic irony is computationally detectable** — Melbil worships Alnis, deity of *fortresses* and *chaos*. His fortress collapses into chaos. This isn't just poetic coincidence — it's the kind of pattern an LLM can detect by cross-referencing `hf_links.deity → historical_figures.spheres` against `fortress_state_snapshots.population → 0`. Phase 4's narrative engine should explicitly scan for these resonances.
+
+### 2026-03-24 [af85a9e03b2a]
+
+**Current HF page vs. Melbil deep-dive — the gap**:
+
+The HF detail page already has a rich 5-tab structure (Overview, Relationships, Career, Events, Graph) with vis.js pedigree graphs, kills tables, entity memberships, etc. But it queries *only* from the legends data model (`historical_figures`, `hf_links`, `history_events`, etc.). For fortress dwarves like Melbil who were born at embark, the page would show:
+- **Overview**: Race, birth year, caste — yes. But NO stress, NO live status details, NO deity sphere context.
+- **Relationships**: Only explicit `hf_links` — Melbil has just 1 (deity). Co-religionists, embark companions, co-workers: invisible.
+- **Events**: Only 4 legends events. Death and ghost events are in `unit_events`, not `history_events` → never shown.
+- **Live Status**: The template has a `live_unit_id` check, but it only fires for `is_alive = true`. Melbil is dead/ghost, so the live panel doesn't show.
+- **Graph**: Would show Melbil nearly isolated — 1 deity link, 3 entity memberships. The actual social web (fortress community) is invisible.
+
+### 2026-03-24 [be82c7145dba]
+
+**What was implemented and why each matters:**
+
+1. **Ghost/Dead Unit Status panel** — Before, the "Live Fortress Status" only showed for `is_alive=true`. Now dead/ghost units get a styled panel (gray for ghost, red for deceased) showing stress, combat hardened, profession, and undead/ghost flags. This transforms Melbil from "Dead, cause unknown" to "Ghost, stress 420, combat hardened 88/100."
+
+2. **Unit Events timeline** — DIED and GHOST events from `unit_events` were invisible on the HF page because they only exist in that table, not `history_events`. Now they show inline: "Y251 T40327 DIED", "Y251 T301359 GHOST."
+
+3. **Fortress Denizen context** — Shows embark status, arrival/departure dates, departure cause, and narrative value. Melbil: "Founding Member, Arrived Y250, Departed Y251 (death), Narrative Value 26."
+
+4. **Deity spheres inline** — Instead of just linking to the deity, we now show their spheres as badges. Alnis shows "Fortresses, War, Chaos" — immediately revealing the thematic irony.
+
+5. **Co-Religionists** — Cross-references `hf_entity_links` to find other fortress dwarves sharing the same religion. Melbil's Creed of Grips page now shows Cerol (ghost), Kogan (undead), Stinthäd (dead).
+
+6. **Fortress state at death** — Queries the nearest `fortress_state_snapshot` to the death tick. Shows pop 8, food 89, drink 0 (critical!) — painting the picture of a dying fortress.
+
+7. **Narrative scoring on events** — The Score column in the Events tab shows narrative weight with hover tooltip for drama/tone. Helps identify which events the narrative engine considers significant.
+
+### 2026-03-24 [16d8ae745c67]
+
+**The improved event header tells the data provenance story.** Instead of the confusing "95 total, showing 101" (which implied missing events), the header now reads "101 — 95 from legends, 6 from fortress." This instantly tells the user: Dastot has a rich pre-fortress history of 95 events from the world's legends, plus 6 events synthesized from his time at Girderpriced (embark, stress changes, death). The legends events include his 220-year career at Mergedtongs (knowledge discoveries, artifact creation, written compositions), while the fortress events capture his final chapter at Girderpriced.
+
+For non-fortress HFs like random figure #100, the count is just "(1)" — no breakdown needed, no visual noise.
+
+### 2026-03-24 [6a30affae386]
+
+**Root cause identified**: `watcher.py:295` — `is_first = not await has_denizens(conn, world_id)`. On the first watcher cycle, ALL units present are blindly marked `embark=True`. Since the watcher started on an already-established fortress, this captured citizens, migrants, necromancers, visitors, undead — everyone present at that moment. The legends data has a clean "settler" classification that could be used instead.
+
+### 2026-03-24 [45e6b05236de]
+
+The fundamental challenge: CLAUDE.md and `.claude/settings.json` (hooks) are **per-project, not per-session**. Any Claude Code instance launched from the Jarvis directory gets the FULL CLAUDE.md with all @-imports (~40K tokens) and ALL 20+ hooks firing on every event. There's no Claude Code flag to say "use this project but skip these hooks" or "load CLAUDE.md but ignore @-imports."
+
+### 2026-03-24 [02c530272957]
+
+**The 6 events are genuinely all the data we have for Dastot specifically.** His unit (2773) only recorded 1 unit_event (DIED) and appears in 1 incident (murdered by unit 17941). The 563 total unit_events are spread across all 76 tracked units — most belong to other dwarves. The stress trajectory points are synthesized from HF detail snapshots. The real gap is that bridge v10 doesn't yet track per-HF combat blows, necromancy actions, or relationship events — that requires the GAP-1 preprocessing from Phase 4 (announcement→HF attribution, incident detail enrichment). But all data that *exists* for Dastot is now surfaced with proper fortress names.

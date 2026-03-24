@@ -4,7 +4,7 @@
 **Date**: 2026-03-19 (original 2026-02-25, renumbered 2026-03-04, expanded 2026-03-19)
 **Phase Duration**: 6-9 weeks (expanded: +fortress saga generator, +narrative quality & tuning)
 **Milestone**: M4 -- Storyteller v1.0
-**Entry State**: 114 event templates, death cause renderer (61 mappings), circumstance/reason rendering, monitoring dashboard, keyword-routed storyteller, stable schema + narrative data layer from Phase 3
+**Entry State**: 114 event templates, death cause renderer (61 mappings), circumstance/reason rendering, monitoring dashboard, keyword-routed storyteller, stable schema + narrative data layer from Phase 3, bridge-primary watcher (206 snapshots, 563 events, 76 units), narrative scoring pipeline (473K events scored, 28K causal links, 13K arcs), HF detail page with Persona tab + fortress chronicle + denizen integration. Known gaps: sparse fortress-period HF events, no artifact claim tracking, limited live event types.
 **Exit State**: Multi-model AI storytelling pipeline, fortress saga generator (multi-chapter narratives), agentic SQL storyteller, 132+ event narrative templates, war/battle/biography/civilization narratives, KH-storyteller integration, narrative quality evaluation, style presets, support for local LLMs (Qwen3 32B, GPT-OSS 120B) and cloud (Claude)
 
 **Parent Document**: Full Project Roadmap v2.0 (full-project-roadmap.md)
@@ -25,7 +25,7 @@ Phase 4 transforms the storyteller from a keyword-routing system into a full mul
 
 **Agentic Mode (Rich Path)**: LLM with SQL tool use. Used for the chat/storyteller interface. The LLM receives an annotated schema summary, can execute read-only SQL queries (up to 5 rounds), and generates narrative responses. This is Chronicler's unique capability.
 
-### 1.2 Current State
+### 1.2 Current State (updated 2026-03-23, post-Phase 3)
 
 **Built**:
 - 23 keyword routes (hf_flag, hf_race, entity_type, collection_type, artifacts, etc.)
@@ -37,14 +37,69 @@ Phase 4 transforms the storyteller from a keyword-routing system into a full mul
 - 12,000 character context budget
 - Name-based ILIKE search fallback
 - World overview fallback
+- PerspectiveRenderer with 114 event templates, death cause renderer (61 mappings), circumstance/reason rendering
+- Narrative data layer: 473K scored events, 28K causal links, 13K arcs, 746 clusters
+- LLM-generated content: 400 arc titles, 180 year summaries, 300 character profiles, 300 cluster summaries
+- Embedding pipeline: hybrid search (vector + ILIKE + RRF), batch/live embed
+- Bridge-primary watcher: 206 snapshots, 563 fortress events, 76 units tracked
+- HF detail page: Persona tab (mental/physical state, fortress role), Fortress Chronicle tile, death cascade, denizen integration
+- Legends-based embark classification, event type underscore→space normalization
 
 **Not built**:
-- Event narrative templates (0 of 132+)
-- Death cause renderer (0 of 50+ variants)
+- Event narrative templates (remaining ~18 of 132+; 114 done in Phase 2-3)
 - Agentic SQL tool use
 - War/battle/biography narrative generators
 - Template vs. LLM hybrid rendering
-- Monitoring dashboard
+- Fortress saga generator
+- Narrative quality evaluation / style presets
+
+**Known gaps from Phase 3 validation** (see Section 1.3):
+- Sparse fortress-period HF events (only arrivals + deaths captured per-HF)
+- No artifact claim transfer tracking (claim formed but no "claim lost" events)
+- No combat/necromancy/relationship events attributed to individual HFs during fortress period
+- Limited persona data depth (no DF personality traits/beliefs/emotions yet)
+
+### 1.3 Phase 3→4 Gap Analysis
+
+The following gaps were identified during Phase 3 validation (Dastot Manorhands investigation, 2026-03-23). Each gap maps to a Phase 4 stage or requires a new preprocessing task.
+
+#### GAP-1: Fortress-Period HF Event Sparsity
+
+**Problem**: An HF's event list shows rich pre-embark legends history but nearly empty fortress period, even when the HF was involved in combat, necromancy, relationships, and ultimately died at the fortress. Only 2 event types are currently attributed to individual HFs from live data: `add_hf_site_link` (arrival) and `hf_died` (death).
+
+**Root cause**: Bridge announcements and incidents are ingested as generic events (`live_announcement`, `live_incident`) without cross-referencing to involved HFs. Unit events (SKILL_UP, MOOD, ARRIVED, DEPARTED, DIED, GHOST) live in `unit_events` table, not `history_events`.
+
+**Required preprocessing**:
+1. **Announcement→HF attribution**: Parse announcement text for HF names/unit IDs, link to hf_id_1/hf_id_2
+2. **Incident→HF attribution**: Map incident actors (biter, target) to HF IDs via unit→HF join
+3. **Unit event synthesis**: Promote significant unit events (DIED, GHOST, MOOD) to `history_events` with proper HF attribution
+4. **Combat event synthesis**: When bridge detects combat (reports section), create attributed combat events linking attacker/defender HFs
+
+**Maps to**: Stage 4.2 (Narrative Enrichment) — new task 4.2.x: Live Event HF Attribution Pipeline
+
+#### GAP-2: Artifact Claim Transfer Tracking
+
+**Problem**: DF records `artifact_claim_formed` when an HF claims an artifact but generates no explicit "claim lost" or "claim transferred" event when another HF subsequently claims it. An HF's event list shows them claiming a treasure but never losing it.
+
+**Required preprocessing**:
+1. **Claim chain detection**: For each artifact with multiple `artifact_claim_formed` events, detect when a new claimant supersedes a previous one
+2. **Synthesized events**: Generate `artifact_claim_lost` events for the prior claimant at the year the new claim forms
+3. **HF event injection**: Add synthesized events to the HF's rendered event list
+
+**Maps to**: Stage 4.1 (Event Template System) — new task 4.1.x: Artifact Claim Chain Preprocessing
+
+#### GAP-3: Persona Data Depth
+
+**Problem**: The Persona tab shows stress, focus, combat hardened, hunger/thirst, and fortress role. Missing: DF personality traits (110 traits with values), beliefs (50+ belief types), emotions, needs satisfaction, and accumulated thoughts.
+
+**Root cause**: Bridge v10 captures basic unit stats but not the full `unit.status.current_soul` personality data. The data exists in DF memory but isn't extracted by the bridge Lua script.
+
+**Required work**:
+1. **Bridge enhancement**: Extract personality traits, beliefs, and emotions from `unit.status.current_soul`
+2. **Schema addition**: Store personality snapshots in a new table or extend `units.details` JSONB
+3. **Persona tab update**: Display trait radar chart, belief table, emotion timeline
+
+**Maps to**: Stage 4.6 (Fortress Saga Generator) as input enrichment — the saga generator needs deep persona data for character portrayal. Also benefits Stage 4.5 (Character obituary generator).
 
 ---
 
@@ -1480,6 +1535,15 @@ CREATE INDEX idx_narratives_lookup ON generated_narratives(world_id, scope, scop
 - [ ] User feedback (thumbs up/down) collected and aggregated
 - [ ] Prompt optimization framework can compare prompt variants
 
+### Live Event Enrichment (GAP-1, GAP-2, GAP-3)
+- [ ] Announcement→HF attribution pipeline cross-references announcement text to HF IDs
+- [ ] Incident→HF attribution maps actors to HF IDs via unit→HF join
+- [ ] Significant unit events (DIED, GHOST, MOOD) promoted to history_events with HF attribution
+- [ ] Combat event synthesis from bridge reports creates attributed attacker/defender events
+- [ ] Artifact claim chain detection generates synthesized `artifact_claim_lost` events
+- [ ] Bridge enhanced to extract personality traits, beliefs, emotions from `unit.status.current_soul`
+- [ ] Persona tab updated with trait radar, belief table, emotion timeline
+
 ### Observability
 - [ ] Four-phase latency logging
 - [ ] Monitoring dashboard with auto-refresh
@@ -1488,5 +1552,5 @@ CREATE INDEX idx_narratives_lookup ON generated_narratives(world_id, scope, scop
 
 ---
 
-*Phase 4: Narrative Engine PRD/Roadmap v2.0 -- 2026-03-19*
-*8 Stages, 65+ Tasks, 6-9 Weeks Estimated (v4.0: AI Storytelling Pipeline + Fortress Saga Generator + Narrative Quality & Tuning)*
+*Phase 4: Narrative Engine PRD/Roadmap v2.1 -- 2026-03-23*
+*8 Stages + Gap Items, 70+ Tasks, 6-9 Weeks Estimated (v4.0: AI Storytelling Pipeline + Fortress Saga Generator + Narrative Quality & Tuning)*
