@@ -54,16 +54,109 @@ fi
 ITERM2_MODE=false
 FRESH_MODE=false
 DEV_MODE=false
+LITE_MODE=false
 SKIP_PREFLIGHT=false
 while [[ $# -gt 0 ]]; do
     case $1 in
         --iterm2|-i) ITERM2_MODE=true; shift ;;
         --fresh|-f) FRESH_MODE=true; shift ;;
         --dev|-d) DEV_MODE=true; shift ;;
+        --lite|-l) LITE_MODE=true; shift ;;
         --skip-preflight|-s) SKIP_PREFLIGHT=true; shift ;;
         *) shift ;;
     esac
 done
+
+# ═══════════════════════════════════════════════════════════════════════
+# LITE MODE — Isolated one-off session (W0 + Watcher only)
+# ═══════════════════════════════════════════════════════════════════════
+# Separate tmux session, separate project dir, no session persistence.
+# Runs from $HOME/Claude/lite-workspace/ with minimal CLAUDE.md (~1K tokens).
+# JSONL cleaned up on exit so --continue doesn't find it.
+
+if [[ "$LITE_MODE" == "true" ]]; then
+    LITE_SESSION="lite"
+    LITE_PROJECT="$HOME/Claude/lite-workspace"
+    LITE_WATCHER="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
+
+    echo -e "${CYAN}"
+    echo "╔═══════════════════════════════════════════════════════════════╗"
+    echo "║              JARVIS LITE LAUNCHER                             ║"
+    echo "║       (Isolated session — no persistence, no state)           ║"
+    echo "╚═══════════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+
+    # Check if lite session already exists
+    if "$TMUX_BIN" has-session -t "$LITE_SESSION" 2>/dev/null; then
+        echo -e "${GREEN}Lite session already running.${NC}"
+        if [[ "$ITERM2_MODE" == "true" ]]; then
+            exec "$TMUX_BIN" -CC attach-session -t "$LITE_SESSION"
+        else
+            exec "$TMUX_BIN" attach-session -t "$LITE_SESSION"
+        fi
+    fi
+
+    if [[ ! -d "$LITE_PROJECT" ]]; then
+        echo -e "${RED}ERROR: Lite workspace not found at $LITE_PROJECT${NC}"
+        echo "Create it with: mkdir -p $LITE_PROJECT/.claude/hooks"
+        exit 1
+    fi
+
+    # Determine Claude Code project slug for the lite workspace
+    LITE_SLUG="-$(echo "$LITE_PROJECT" | sed 's|^/||; s|/|-|g')"
+    LITE_PROJECTS_DIR="$HOME/.claude/projects/${LITE_SLUG}"
+
+    echo -e "  ${CYAN}Project:${NC} $LITE_PROJECT"
+    echo -e "  ${CYAN}Session:${NC} $LITE_SESSION"
+    echo -e "  ${CYAN}Mode:${NC} ${YELLOW}LITE${NC} (no persistence, no Jarvis context)"
+    echo ""
+
+    # Claude command — no deterministic UUID, no resume, dangerously-skip-permissions
+    LITE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_LITE=true"
+    LITE_CLAUDE="claude --dangerously-skip-permissions --effort medium --verbose"
+
+    # Wrapper: run Claude, clean up JSONL on exit so --continue can't find it
+    LITE_WRAPPER="export $LITE_ENV && $LITE_CLAUDE; echo ''; echo 'Lite session ended. Cleaning up...'; rm -f ${LITE_PROJECTS_DIR}/*.jsonl 2>/dev/null; echo 'Session data removed. Press Enter to close, or run claude for another session.'; read; $LITE_CLAUDE"
+
+    # Create tmux session
+    export TERM=xterm-256color
+    "$TMUX_BIN" new-session -d -s "$LITE_SESSION" -n "Claude" -c "$LITE_PROJECT" "$LITE_WRAPPER"
+    sleep 1
+
+    # W1: Watcher for JICM safety (uses lite project dir)
+    if [[ -x "$LITE_WATCHER" ]]; then
+        "$TMUX_BIN" new-window -t "$LITE_SESSION" -n "Watcher" -d \
+            "cd '$LITE_PROJECT' && CLAUDE_PROJECT_DIR='$LITE_PROJECT' TMUX_SESSION='$LITE_SESSION' '$LITE_WATCHER' --interval 5; echo 'Watcher stopped.'; read"
+    fi
+
+    # Set tmux options
+    "$TMUX_BIN" set-option -t "$LITE_SESSION" mouse on 2>/dev/null || true
+    "$TMUX_BIN" set-option -t "$LITE_SESSION" history-limit 10000 2>/dev/null || true
+    "$TMUX_BIN" set-window-option -t "$LITE_SESSION:0" automatic-rename off 2>/dev/null || true
+    "$TMUX_BIN" set-window-option -t "$LITE_SESSION:1" automatic-rename off 2>/dev/null || true
+
+    echo ""
+    echo -e "${GREEN}Lite session ready!${NC}"
+    echo ""
+    echo "Windows:"
+    echo "  Window 0: Claude (fresh, no prior context)"
+    echo "  Window 1: Watcher (JICM safety net)"
+    echo ""
+    echo "On exit: session JSONL will be automatically deleted."
+    echo "Main 'jarvis' session is unaffected."
+    echo ""
+
+    if [[ "$ITERM2_MODE" == "true" ]]; then
+        exec "$TMUX_BIN" -CC attach-session -t "$LITE_SESSION"
+    else
+        echo "Keyboard shortcuts:"
+        echo "  Ctrl+b then 0-1 - Switch windows: Claude (0), Watcher (1)"
+        echo "  Ctrl+b then d   - Detach (leave running)"
+        echo "  Ctrl+b then x   - Close current window"
+        echo ""
+        exec "$TMUX_BIN" attach-session -t "$LITE_SESSION"
+    fi
+fi
 
 # --dev only controls W5 creation; W0 resumes by default regardless
 # Use --fresh explicitly if you want a clean W0 slate

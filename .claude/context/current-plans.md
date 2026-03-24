@@ -63,7 +63,12 @@ Single source of truth. Consult in this order:
 **PRD**: `projects/chronicler/reports/phases/phase-3-completion-prd.md` (v3.0)
 **Live fortress**: Girderpriced (COLLAPSED Y256 Winter)
 
-**Next Phase**: Phase 4 — Narrative Engine (`projects/chronicler/reports/phases/phase-4-*.md`)
+**Next Phase**: Phase 4 — Narrative Engine (`projects/chronicler/reports/phases/phase-4-narrative-engine.md` v2.1)
+
+**Phase 3→4 Gaps** (identified 2026-03-23, Dastot Manorhands validation):
+- GAP-1: Fortress-period HF event sparsity — only arrivals/deaths attributed per-HF; combat/necromancy/relationships not linked
+- GAP-2: Artifact claim transfer tracking — no synthesized "claim lost" events when another HF claims same artifact
+- GAP-3: Persona data depth — bridge lacks personality traits/beliefs/emotions extraction from `unit.status.current_soul`
 
 ### Stage Status
 
