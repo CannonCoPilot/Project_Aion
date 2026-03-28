@@ -3978,3 +3978,342 @@ The fundamental challenge: CLAUDE.md and `.claude/settings.json` (hooks) are **p
 ### 2026-03-24 [02c530272957]
 
 **The 6 events are genuinely all the data we have for Dastot specifically.** His unit (2773) only recorded 1 unit_event (DIED) and appears in 1 incident (murdered by unit 17941). The 563 total unit_events are spread across all 76 tracked units — most belong to other dwarves. The stress trajectory points are synthesized from HF detail snapshots. The real gap is that bridge v10 doesn't yet track per-HF combat blows, necromancy actions, or relationship events — that requires the GAP-1 preprocessing from Phase 4 (announcement→HF attribution, incident detail enrichment). But all data that *exists* for Dastot is now surfaced with proper fortress names.
+
+### 2026-03-24 [2f427090e4cf]
+
+- The key architectural decision was **separate workspace directory** rather than env-var gating. Claude Code's hook and CLAUDE.md loading is per-project-directory — there's no way to selectively disable hooks or skip @-imports for a single session within the same project. A separate directory with symlinked skills gives full tool access without the context/state overhead.
+- The JSONL cleanup on exit (`rm -f ${LITE_PROJECTS_DIR}/*.jsonl`) is the critical isolation feature. Without it, `claude --continue` from ANY directory would find the lite session as the most recent, potentially confusing the main Jarvis workflow.
+
+### 2026-03-25 [97da5a459e01]
+
+The Phase 0 dashboard is a solid 821-line Streamlit app with 8 pages, but it's a flat single-file design with basic Plotly charts. The exercise demands something that exceeds professional standards — we need: (1) publication-grade visualizations with FamilySearch/academic branding, (2) interactive ML model builder with multiple algorithms and explanation tools, (3) dynamic report generation, (4) audience-adaptive presentation mode. This is effectively a data science portfolio piece that should look like it came from a Nature Genetics supplementary materials dashboard crossed with a FamilySearch product analytics tool.
+
+### 2026-03-25 [a818c1589031]
+
+The Pyright LSP diagnostics (`Import "streamlit" could not be resolved`) are expected because Pyright is running from the **Jarvis workspace**, which uses a different Python venv. The FamilySearch project has its own venv at `familysearch_hw/.venv/` with streamlit, plotly, sklearn, etc. installed. These imports resolve perfectly at runtime when Streamlit runs from the project directory.
+
+The `components.branding` and `src.data_loader` "unresolved" warnings are because the `sys.path.insert()` at the top of each file adds the project root dynamically — Pyright's static analysis can't follow dynamic path manipulation.
+
+### 2026-03-25 [c8c9fb7f471b]
+
+**Stage 4.1 completed much faster than estimated** because the codebase analysis revealed the template gap was 0 (not 18). The PerspectiveRenderer's 106 templates + underscore→space normalization already covered all 100 event types in the DB. The actual new work was the two genuinely missing features: temporal year headers (a lightweight stateful wrapper) and artifact claim chain synthesis (a pure-function render-time transformation). This is a good example of why "introspect first" matters — the PRD estimated 2-3 weeks for Stage 4.1, but actual implementation was ~1 hour once the gap analysis showed templates were already complete.
+
+### 2026-03-25 [14a7e79b13ab]
+
+The most striking empirical finding: the 10% null activity block is **NOT random** — it's almost exclusively Public accounts (99.9% vs 96.7% baseline) and only 1.3% have a login date (vs 93.7% for non-null users). This is a systematic data pipeline artifact, not missing-at-random. These aren't inactive users — they're **users the pipeline never tracked**. Treatment matters enormously for downstream clustering.
+
+Second key finding: tenure-normalized rates *reverse* the raw trend. Raw means increase with tenure (5.1 logins for 365+d vs 1.3 for 31-90d), but per-week rates show the **newest accounts are most active** (0.094 logins/week for 31-90d vs 0.080 for 365+d). This suggests early engagement velocity is the real signal, and tenure normalization is essential.
+
+### 2026-03-25 [c92e3e24374b]
+
+The subsampling design is the most methodologically sophisticated part of this analysis. The composite allocation with census strata for rare countries is directly from Cochran's 1977 canonical text — this approach has a 50-year pedigree in survey methodology. The multi-trial stability assessment (Hennig + Monti consensus clustering) adds a layer of rigor that most industry segmentation analyses skip entirely. Together, they provide a defensible answer to the question "how do we know these segments are real and not artifacts of the sample we happened to draw?"
+
+### 2026-03-25 [d0471d1059d0]
+
+DuckDB is the right choice here because it's an embedded columnar database — no server process, reads Parquet/CSV natively, and runs analytical SQL 10-100x faster than pandas groupby/merge. The single `data.duckdb` file replaces the current scatter of Parquet samples, session state dictionaries, and re-computed DataFrames. Most critically, the subsample registry and experiment tables solve the reproducibility problem: every subsample draw and clustering run is logged with its exact parameters, seed, and results. The schema is 100% PostgreSQL-compatible for future scale-up.
+
+### 2026-03-25 [0027fd52e0ad]
+
+**The agentic storyteller is architecturally novel for Chronicler** — it inverts the data flow. Currently, the code decides what data to fetch (keyword routing → hardcoded SQL). With agentic mode, the LLM reads the schema and decides autonomously. This is the same pattern as Claude's computer use or ChatGPT's code interpreter, but applied to a domain-specific database. The key engineering challenge isn't the loop (that's straightforward) — it's making the safety layer robust enough to trust LLM-generated SQL against a production database.
+
+### 2026-03-25 [89a267ff6307]
+
+**The practical recommendation is to start with Qwen3 32B via Ollama** — it's already installed, tool calling works, and it produces quality output. The MLX layer becomes relevant in two scenarios: (1) if we want to run a 70B+ model for premium narrative quality, MLX's more efficient Metal utilization would give meaningful speedups over Ollama, or (2) if we want to serve the model as a persistent background service (like the embed server) rather than Ollama's load-on-demand pattern. For Stage 4.3, Ollama + Qwen3 32B is the pragmatic starting point — MLX optimization can be a Stage 4.7 (Quality & Tuning) enhancement.
+
+### 2026-03-25 [6166a997c5ff]
+
+DDL = **Data Definition Language** — the subset of SQL used to define and modify database schema objects rather than manipulate data.
+
+### 2026-03-25 [12970444464d]
+
+The 66+ convention comes from public health and census reporting (CDC, Eurostat) where re-identification risk increases for elderly populations in small geographies. For internal analytical work on a 7.6M-user dataset, this protection is unnecessary and actively harmful — it hides the behavioral plateau→decline gradient the data clearly shows at 56+.
+
+### 2026-03-25 [cbe5dde1de51]
+
+**Why `log(tenure)` rather than linear tenure weighting**: A linear weight would make a 10-year account 100x more influential than a 5-week account — effectively discarding the newer cohort by drowning them out. The log transform gives concave, diminishing-returns scaling: going from 5 weeks to 50 weeks (log ratio ~2.3) matters substantially, but going from 500 to 5000 weeks (same log ratio) adds only the same increment. This mirrors the statistical reality — the marginal information gain from additional observation time decreases as the sample grows, following a rough `1/sqrt(n)` convergence rate for sample means.
+
+**Operationally**: `tenure_weight` is a column in `users_features`, not a filter. It enters clustering as a `sample_weight` parameter (scikit-learn's `KMeans(sample_weight=...)` and `GaussianMixture` via weighted log-likelihood), leaving the feature space unaffected.
+
+### 2026-03-25 [21f24dd8f486]
+
+**Why Stage E is gated behind Stage D, not run in parallel**: The baseline clustering (Stages A-D) establishes the reference segmentation against which any enrichment is measured. Without a stable baseline, there's no way to know whether survival scores or LCA classes actually *improve* the segmentation or just add complexity. The comparison in 5e.5 (silhouette/ARI of baseline vs enriched) requires the baseline to exist first. This is the standard "baseline-then-augment" pattern in applied ML — establish what simple features can do before adding expensive derived ones.
+
+**Funnel stage as both feature and stratifier**: The `funnel_stage` variable (3h4) serves double duty. In Stage B, it can enter as an ordinal feature alongside rates and counts. In Stage E (5e.1), it becomes a stratification variable for within-stage clustering. These are complementary, not redundant — the first asks "does funnel depth help separate behavioral segments?", the second asks "are there distinct behavioral types *within* each funnel stage?"
+
+### 2026-03-25 [51539e683bb4]
+
+The 0-9 bin breakdown confirms the data quality concern: **757 of 857 users (88%) have age=0**, with the remaining 100 at exactly age 9 (no ages 1-8 at all). This is almost certainly age=0 as a system default or data entry error, not real children. The age=9 cluster is also suspicious — possibly a placeholder. This validates the recommendation to flag 0-9 for data quality review.
+
+The new binning reveals patterns hidden by the old scheme:
+- **Login rates peak at 70-79** (0.271/wk), not 66+ — the old 66+ bin averaged down by mixing active 70s with declining 80+
+- **Tree edit rates peak at 50-59** (1.650/wk), sharper than the old "46-55" finding
+- **Source contributions peak at 50-59** (0.552/wk) — a new finding not visible in the old scheme
+- **80+ shows clear decline** across all metrics — confirming the behavioral plateau hypothesis behind the collapsed bin
+- **10-19 has highest activity breadth** (1.32) among real age groups, confirming the youth program burst pattern
+
+### 2026-03-25 [5ccb165868dd]
+
+The US split data reveals a critical confound: **PROVINCE availability is a perfect proxy for ACCOUNT_TYPE**. All 2,430 US users with known province are 100% Member accounts; all 63,014 with Unknown province are 0% Member. The UT/ID engagement premium (~2x) may be entirely explained by the Member confound already documented in Section 9, not by geography per se. USER_AREA_NAME ("Utah Area") shows the same pattern — 100% Members, 2x engagement.
+
+This doesn't invalidate the split — it means the split captures LDS-heartland Members specifically. The approach should acknowledge the confound and use USER_AREA_NAME (100% coverage) rather than PROVINCE (3.7% coverage).
+
+### 2026-03-25 [ea61cd775873]
+
+**Semi-stratified sampling for the preview table**: The n=500 sample uses proportional allocation by Country (top 15 individually + "Other" bucket) × Account Type, with a floor of 1 per stratum. This ensures rare groups (e.g., Member accounts from small countries) appear in the preview even though they'd be missed by pure random sampling. The 500-row sample ended up covering 67 countries across 32 strata — good representation for a visual inspection table. This mirrors the composite allocation strategy from Section 10 of the methodology report at a much smaller scale.
+
+**MNAR block verification**: Confirmed programmatically that all 11 activity count columns are null in exactly the same rows (r=1.0 co-occurrence). This block pattern is the strongest evidence for MNAR — if missingness were random or conditionally random (MAR), we'd expect some columns to be null independently.
+
+### 2026-03-25 [a55e2c134172]
+
+**Pandas nullable `Int64` vs numpy `int64`**: Regular numpy int64 can't hold NaN values — pandas auto-promotes to float64 when any row is NaN, giving the ugly `30.0` display. The pandas extension type `Int64` (capital I) supports `<NA>` natively, so integer columns display as `30` and `<NA>` instead of `30.0` and `NaN`. Streamlit's dataframe renderer respects this distinction.
+
+### 2026-03-25 [37f7e5b0215c]
+
+**Why module changes weren't picked up**: Streamlit's file watcher monitors the page `.py` files for changes, but imported modules like `src/data_loader.py` are cached by Python's import system. Even clicking "Rerun" re-executes the page script but reuses the already-imported `data_loader` module. The `--server.runOnSave true` flag helps with page files, but for imported module changes, a full process restart (kill + relaunch) is the reliable path. Streamlit also has `@st.cache_data` decorators that further cache results — those clear on restart too.
+
+### 2026-03-25 [b8cbc9dd3268]
+
+**`runOnSave` limitations**: Streamlit's file watcher triggers a page rerun when a `.py` file in the app directory changes, but Python's module import cache (`sys.modules`) persists across reruns within the same process. So editing `src/data_loader.py` won't take effect until the process restarts. For page-level `.py` files this isn't an issue because Streamlit re-executes them from scratch — but imported modules are loaded once and cached. A full kill+restart is the only reliable way to pick up changes in imported dependencies.
+
+### 2026-03-25 [2c64b8a5d162]
+
+Both columns confirm the decision to drop them from analysis. At ~3% coverage, they're not usable as features. But there's a secondary finding: the non-Unknown entries are **almost entirely Member accounts** (as we saw earlier), and the city-level data strongly skews toward Utah Valley / Wasatch Front cities. This means PROVINCE and CITY are essentially proxies for "LDS Member in the Intermountain West" — the same confound we identified in the US split analysis. The "Redacted" city value (8.3% of known cities) also suggests some privacy filtering was applied selectively to this population.
+
+### 2026-03-25 [2c2ad550a076]
+
+**Why this matters for model parameter selection**: If Province/City were left as categorical columns with "Unknown" as a value, any automated feature selection (e.g., mutual information, chi-squared, or tree-based importance) would detect that Province != "Unknown" is a near-perfect predictor of engagement — because it's really detecting Member vs Public. A model might select Province as a "useful" feature, producing clusters that are just a roundabout way of splitting on account type. Converting "Unknown" to NULL makes the column ~97% missing, so any reasonable feature selection threshold will exclude it from clustering while preserving the actual geographic values for targeted Member-only analysis.
+
+### 2026-03-26 [574347218dd7]
+
+**The 36-country Pew gap is the biggest methodological risk in the enrichment plan.** With 215 FamilySearch countries but only 36 covered by behavioral religiosity data, ~80% of countries will have null religiosity metrics. This affects the "High-eng, High-LDS" cluster definition — we can label countries as high-LDS from the Church statistics (170 countries), but we can't quantify *general population religiosity* for most of them. The mitigation is to use religious composition (% Christian, 201 countries) as a proxy rather than behavioral religiosity (prayer frequency, 36 countries), accepting that affiliation is a weaker signal than practice intensity.
+
+**Google Trends being blocked is less critical than it appears.** The literature review proposed a GEPI (Genealogy Engagement Propensity Index) composite that includes Google Trends genealogy search volume. But given the access difficulty, the other 5 components of GEPI (internet penetration, education index, LDS density, temples per capita, FamilySearch records per capita) are all available from the first 5 sources — Google Trends can be dropped from the composite with minimal loss.
+
+### 2026-03-26 [7a5d462e8f52]
+
+The data tells a clear story: **the geographic columns don't complement each other for the general population — they form two isolated tiers**. Tier 1 (COUNTRY, WORLD_REGION, AREA_NAME) covers ~100% of users but is coarse. Tier 2 (PROVINCE, CITY) is fine-grained but covers only ~2.7-2.9% of users, all Members. There's almost no middle ground where one column fills gaps in another.
+
+### 2026-03-26 [c4c9ef9b0e3d]
+
+**The pipeline inverts the usual segmentation workflow.** Most user segmentation projects start with unsupervised clustering ("find groups") and then describe them post-hoc. This pipeline starts with a supervised question ("what predicts Persistence?") and uses clustering as a validation step — checking whether natural data structure aligns with the discriminant function's predictions. This is methodologically stronger because it forces a falsifiable hypothesis before the data is explored, reducing the risk of finding clusters that are statistically significant but analytically meaningless.
+
+**The block comparison design (Phase 5) is the analytical core.** By entering features in construct-aligned blocks (Velocity-only, Volume-only, etc.) before the full model, we get clean incremental contribution estimates. If Block 4 (all behavioral) achieves AUC 0.82 and Block 6 (full) achieves 0.83, contextual features add almost nothing — strong H1 support. If Block 5 (contextual) alone achieves 0.78 vs Block 4's 0.72, the story reverses.
+
+### 2026-03-26 [178cbd6f3f6c]
+
+**The trimodal distribution in Figure 2 is the most telling visualization.** The three peaks (5, 7, 14-16 meaningful columns) correspond almost perfectly to the three population tiers: MNAR users who have only demographics, browse-only users who add a login, and active contributors who add tree edits + names + dates. There is very little data in between — users either engage with the core 3 activities or they don't engage at all. This bimodal engagement pattern (rather than a smooth gradient) is itself a finding about FamilySearch user behavior.
+
+### 2026-03-26 [1ef8ca29d113]
+
+**Two findings from the full 7.6M load that differ from the 250K sample:**
+- **Age=0 does not exist in the full dataset** (0 rows vs 757 in the sample). Instead, there are **23,134 negative ages** — the sample's `clip(lower=0)` during parquet creation converted these to 0. The raw data has negatives, not zeros. The cleaning logic handles both correctly (age <= 0 → NULL).
+- **16,720 ages > 110** — substantially more than expected. These are clipped to 110 rather than nullified, preserving the user record.
+- **Reference date = 2026-03-18** — inferred from MAX(EARLIEST_SOURCE_CONTRIBUTOR_DATE). This is the data extraction date.
+- **Tenure range: 78-441 days** (median 262). The minimum of 78 days means the 31-day tenure exclusion won't remove any users — they're all well above that threshold.
+
+### 2026-03-26 [e953833ce708]
+
+**Why single-pass SQL for most features**: DuckDB is a columnar analytical database — its strength is processing millions of rows in bulk SQL operations. Steps 2.1-2.6, 2.8-2.13 are all pure SQL expressions computed in a single `CREATE TABLE AS SELECT`. This is orders of magnitude faster than row-by-row Python processing.
+
+**The one exception is milestone sequence encoding (Step 2.7)**: Sorting a variable-length list of (date, code) pairs per row and encoding as an ordered string is awkward in SQL. Python handles this naturally with `sort()` on tuples. The batch UPDATE approach (500K rows per batch) balances memory usage with DuckDB transaction overhead.
+
+**Persistence Definition C's recency component**: The `days_since_last_milestone` uses a hardcoded reference date (`2026-03-18`) — the same reference date from Phase 1 step 1.5. This is intentional: recency is measured from the data extraction date, not "now." If the script is re-run months later, the recency scores remain stable.
+
+### 2026-03-26 [ccfbd8656962]
+
+**Phase 2 performance lesson**: The UNPIVOT+STRING_AGG approach processed 15.3M milestone records and encoded sequences for 6.8M users in seconds — vs the killed row-by-row UPDATE that was 4+ hours into processing 1.2M of 7.6M rows. The key: DuckDB's columnar engine excels at set-based operations (UNPIVOT, GROUP BY, JOIN) but is terrible at point-update workloads (UPDATE WHERE pk = X). Always restructure row-by-row operations into batch SQL when using analytical databases.
+
+**Phase 3 enrichment is strong**: 4 of 6 data sources succeeded. The coverage for user-level enrichment is excellent — 98.8% of users have GDP data, 99.4% have HDI, 96.8% have LDS membership. The GEPI composite covers 186 countries (77.5%) and 98.7% of users.
+
+### 2026-03-26 [7d3170a9a09a]
+
+**The three datasets complement each other perfectly for different analytical purposes:**
+
+1. **Religious Composition** (201 countries, 99.6%) — answers "what is the religious landscape?" High coverage, joins to nearly all FamilySearch users. Provides % Christian per country, which is a strong proxy for LDS engagement potential.
+
+2. **Religious Restrictions** (198 countries, 99.3%) — answers "how free is religious practice?" The GRI (government restrictions) and SHI (social hostilities) indices are unique — they capture whether a country's environment is *hostile* to religious engagement, which could explain low FamilySearch adoption in high-restriction countries regardless of religious composition.
+
+3. **Global Attitudes** (24 countries, 46.8%) — answers "how intensely do individuals practice?" This is the behavioral religiosity measure (prayer frequency, importance of religion). Only 24 countries but they're the RIGHT 24 — Brazil (1.6M users), Mexico (363K), Argentina (240K), and most of our top-15 countries are covered. The UK matched 0 users (FamilySearch uses "United Kingdom", Pew uses "UK" — a crosswalk fix).
+
+**The UK zero-match is a naming issue, not a data gap.** FamilySearch has 236K+ UK users. This needs a crosswalk entry: "United Kingdom" ↔ "UK".
+
+### 2026-03-26 [412e39de17c1]
+
+**The Tier D count from full data (3,176,788 = 41.7%) aligns closely with the 250K sample estimate (41.6%).** This is reassuring — the sample-based data density assessment accurately predicted the full-population analytical yield. Also notable: the enrichment join brought the column count to 91 per subsample, meaning each user in the analytical population has up to 91 features spanning behavioral engagement (Velocity/Volume/Sequencing/Persistence) and contextual factors (economic, religious, demographic) — a rich feature space for the Phase 5 discriminant analysis.
+
+### 2026-03-26 [bbf4b0348176]
+
+**H1 is overwhelmingly supported.** The data is unambiguous:
+
+- **Block 4 (H1: Velocity+Volume+Sequencing) AUC ≈ 0.998-0.999** across all three models
+- **Block 5 (H0: Contextual) AUC ≈ 0.59-0.63** — barely above chance (0.50)
+- **Block 6 (Full) AUC ≈ 0.998-0.999** — adding contextual features to engagement adds NOTHING
+
+The incremental analysis is definitive:
+- `delta_H1` (adding engagement to context) = **+0.32 to +0.41** — massive gain
+- `delta_H0` (adding context to engagement) = **-0.007 to +0.0004** — zero gain (slightly negative for LDA!)
+
+**Top features are all Volume**: `logins_90d` (34.7%) and `log_logins_pw` (31.2%) together account for 66% of RF importance. The next tier is Sequencing (`activity_breadth`, `funnel_stage`, `has_sources`). No contextual feature appears in the top 11.
+
+**The answer to the broader question**: Engagement patterns — specifically the *rate and volume* of login and contribution activity — predict Persistence far more powerfully than any demographic, geographic, or socioeconomic factor. People of all backgrounds who engage frequently, persist. Cultural context adds essentially zero predictive value beyond what behavioral engagement already captures.
+
+### 2026-03-26 [4538bcf4f05a]
+
+**The VIF check reveals significant multicollinearity — as expected but now quantified:**
+
+- **`activity_breadth` and the `has_*` flags**: VIF = infinity. This is by construction — `activity_breadth = has_sources + has_memories + has_record_edits + has_get_involved + has_login + has_tree_edits + has_names`. It's a perfect linear combination. In Tier D, `has_login`, `has_tree_edits`, `has_names` are constant (always 1), so `activity_breadth` = 3 + the remaining flags.
+- **`days_login_to_tree_edit` and `days_to_first_tree_edit`**: VIF ~660. These are nearly identical (differ only by `days_to_first_login` which is usually 0).
+- **`funnel_stage`**: VIF = 39. Also a linear function of the `has_*` flags.
+
+**Impact on the results**: The RF model is immune to multicollinearity (tree-based). LDA and logistic regression are affected — their coefficients are unstable (but AUC is still valid). The high VIF explains why LDA underperforms LogReg/RF: collinear features inflate LDA's covariance estimate.
+
+**For the report, this is a methodological note, not a crisis** — the hypothesis comparison (Block 4 vs Block 5) is valid regardless of VIF because we're comparing *block-level* AUC, not interpreting individual coefficients.
+
+### 2026-03-26 [0bc4de2662ce]
+
+**The gradient finding is itself a result.** The low ARI (0.027) isn't a failure of clustering — it's telling us the data doesn't have discrete segments. Users exist on a continuous engagement spectrum, and K-Means is forcing arbitrary cut-points on that spectrum. The Cramer's V of 0.455 means those cut-points *do* meaningfully separate Persistent from Transient users, but the same separation would be achieved (and better modeled) by the continuous Volume features directly. This reinforces Phase 5: **Volume (login frequency) IS the Persistence signal**, and discretizing it into clusters adds no information beyond what the continuous feature already provides.
+
+### 2026-03-26 [cd33e1c82b87]
+
+**The variance structure tells the story:**
+
+- **PC1 (20.4%) is the Volume axis** — it loads on login frequency and contribution rates. This is the Persistence dimension.
+- **PC2 (13.0%) is likely the Velocity/Sequencing axis** — milestone timing and breadth patterns.
+- **PC3 (11.7%) picks up the enrichment signal** — the contextual variables that don't correlate with behavior.
+- **10 PCs capture 80% of variance** — the data is moderately high-dimensional but compressible.
+
+The key visual to study is the **biplot** (`fig_biplot.png`): it shows user points colored by Persistence with feature vectors overlaid, revealing that the Volume arrows (logins, tree edits) point in the same direction as high Persistence, while the enrichment arrows (GDP, HDI, religiosity) point nearly orthogonally — they occupy a different dimension of the data that doesn't align with the Persistence gradient. This is the geometric interpretation of H1: the Persistence signal and the contextual signal live in different subspaces.
+
+The **interactive 3D HTMLs** are particularly worth opening in a browser — you can rotate the point cloud and see how the country clusters (geography/development) form bands that cut *across* the Persistence gradient rather than along it.
+
+### 2026-03-26 [0ea29add88ce]
+
+**The three principal components cleanly separate behavioral, temporal, and contextual dimensions:**
+
+**PC1 (20.4%) — The Volume/Engagement axis**: Loaded by `log_sources_pw` (0.31), `log_tree_edits_pw` (0.31), `log_names_pw` (0.31), `activity_breadth` (0.30), `names_90d` (0.28). This is the "how much do you do?" axis. All top loaders are Behavioral.
+
+**PC2 (13.0%) — The Velocity/Onboarding axis**: Loaded by `days_to_first_name` (0.48), `days_to_first_tree_edit` (0.48), `days_login_to_name` (0.47), `days_login_to_tree_edit` (0.47). This is the "how long did you take to start?" axis. Negative `activation_speed` (-0.25) confirms the direction: high PC2 = slow starters.
+
+**PC3 (11.7%) — The Contextual/Development axis**: Loaded by `gepi` (0.48), `gdp_per_capita_ppp` (0.47), `religious_diversity_index` (0.42), `hdi` (0.39). This is the "what kind of country are you from?" axis. Negative `social_hostilities_index` (-0.22) and `pct_christian` (-0.20) round it out. **Zero behavioral features appear in the PC3 top-5** — it's purely contextual.
+
+This geometric separation is the PCA equivalent of the Phase 5 finding: behavioral engagement (PC1) and country context (PC3) occupy **orthogonal dimensions** of the data. They don't fight for the same variance — they explain *different things*. Persistence maps onto PC1 (behavior), not PC3 (context).
+
+### 2026-03-26 [6318ffdf307b]
+
+**Comparing first-pass (Tier D) vs second-pass (Contributors Only):**
+
+| Metric | First Pass (all Tier D) | Second Pass (2+ logins) | Change |
+|--------|
+
+### 2026-03-26 [12fa3f1f5ea5]
+
+**The tier analysis reveals a nuanced interaction that the flat Phase 5 analysis missed:**
+
+**T1 (fastest onboarders, PC2 = -4.05)**: Mean 19.7 logins/90d, activation speed 0.83, mean persistence 0.40. BUT the gradient slope is the LOWEST (0.012) — for these fast starters, more Volume barely increases Persistence. They're already highly persistent regardless of how much they contribute. **Interpretation**: Users who onboard quickly have already self-selected for persistence — additional volume is confirmation, not cause.
+
+**T3 (middle velocity, PC2 = -1.21)**: The HIGHEST gradient slope (0.038) and highest R² (0.48) — Volume is the strongest predictor of Persistence in this tier. These users are "persuadable" — their persistence depends strongly on how much they actually do. **This is the intervention tier**: increasing their contribution rate would have the largest marginal impact on retention.
+
+**T5 (slowest onboarders, PC2 = +2.03)**: Largest persistence range (0.73) but moderate gradient (0.031). High variance — some slow starters become power users, others churn. Older on average (39.1 years), lower activation speed (0.72).
+
+**The interaction is statistically significant** (F = 190.1, p ≈ 0) — the relationship between Volume and Persistence genuinely differs across Velocity tiers. The interaction adds 2.3% R² beyond the additive model. This is small but real: it means a one-size-fits-all "increase engagement" strategy would be suboptimal. Different onboarding profiles need different retention approaches.
+
+### 2026-03-26 [6bd4ce2c104f]
+
+**The corrected interpretation actually produces a more interesting finding than the original.** The "velocity tier" interpretation said: "fast onboarders persist regardless of volume" — a somewhat tautological statement (people who act fast are committed). The **contextual tier** interpretation says: "users from high-development countries persist regardless of volume, while users from middle-development countries are the most responsive to engagement interventions." This is actionable, testable, and directly relevant to FamilySearch's international growth strategy. It suggests that retention investments should be concentrated in middle-development markets (Latin America, parts of Asia Pacific) where engagement volume has the strongest causal effect on persistence, rather than in high-development markets (Western Europe, North America) where persistence is already structurally supported.
+
+### 2026-03-27 [57d2be411bed]
+
+**All tiers except T5 show statistically significant plateau effects, but the nature of the curve differs:**
+
+| Tier | Best Model | Plateau? | What's Happening |
+|------|
+
+### 2026-03-27 [440ea95b9988]
+
+**Yes, it's the ΔR² + model type combination that tells the story.**
+
+- **ΔR²** answers "how much does nonlinearity matter?" — it's the percentage of variance explained *by the curve shape itself* after accounting for the linear trend. T1's ΔR² of +0.31 means curvature explains 31 percentage points of additional variance beyond the straight line. T5's ΔR² of 0.00 means a straight line is the complete story.
+
+- **Log vs Quadratic vs Linear** answers "what kind of curve?" — and this is where the qualitative transition matters:
+  - **Logarithmic** = rapid initial rise that asymptotes. The function's first derivative is `a/x` — it starts steep and decays toward zero. This is *saturation*: early engagement yields big persistence gains, but additional engagement beyond a threshold adds almost nothing.
+  - **Quadratic** = parabolic. The first derivative is `2ax + b` — it decreases linearly. This is *deceleration*: returns are diminishing but haven't yet reached zero. The curve is bending but hasn't flattened.
+  - **Linear** = constant derivative. Every additional unit of engagement produces the same marginal persistence gain, indefinitely.
+
+The T1→T5 progression is therefore: **saturation → deceleration → constant returns** — a smooth gradient in the *functional form* of the engagement→persistence relationship, not just in its magnitude. This is a stronger finding than "the slopes differ" — it means the *economic logic* of engagement interventions changes qualitatively across development contexts.
+
+### 2026-03-27 [6f28e739c1f5]
+
+### The Five Tiers Are Development × Religiosity Strata
+
+**The LDA confirms: 95.5% of tier discrimination is on a single axis** (LD1), driven by GDP per capita (loading 1.16), religious diversity (0.80), GEPI (0.59), and HDI (0.41). LDS density contributes essentially nothing (-0.006). The tiers are a **GDP × religious diversity gradient**, not an LDS-specific segmentation.
+
+| Tier | Identity | GDP/cap | HDI | % Christian | Relig. Diversity | Dominant Region | Key Countries |
+|------|
+
+### 2026-03-27 [a5d787353f8c]
+
+**The split analysis answers both questions decisively:**
+
+**(a) LDS confound?** No. Member AUC = 0.994, Public AUC = 0.997. If anything, the Public model performs *slightly better* — the opposite of what a confound would produce. Same top-4 features, same importance ranking, same delta_H0 ≈ 0. The LDS signal is not driving anything.
+
+**(b) Consistent pattern?** Yes. Both populations show nonlinear plateau effects in upper development tiers and more linear gradients in lower tiers. The strongest single finding: **Member T1 has ΔR² = +0.198** (logarithmic saturation) — LDS members in developing countries hit a persistence ceiling very early. This might reflect church-directed sign-up patterns where initial engagement is high but externally motivated, leading to rapid plateau.
+
+**One interesting divergence**: The Public population's tier structure shifts when analyzed independently — T5 disappears and T3 shows the strongest nonlinearity (+0.158). This suggests the tier boundaries are not fixed demographic strata but data-driven partitions that adjust to the population being analyzed. The *pattern* (upper tiers saturate, lower tiers are linear) is robust; the *specific boundaries* are population-dependent.
+
+### 2026-03-27 [94ec5fdaa1ff]
+
+**The velocity finding reframes the entire narrative.** In the Phase 5 analysis, we reported Volume at 82% importance and Velocity at 1% — suggesting onboarding speed barely matters. The partial correlation analysis reveals this was a **suppression artifact**: Volume and Velocity share so much variance (both correlate with the same "engaged user" latent factor) that whichever enters the model first absorbs the shared signal.
+
+After removing Volume: **velocity_score ↔ persistence r = -0.49** (p < 10⁻²⁹⁵). This is not a small effect. For context:
+- r = 0.49 is a "medium-to-large" effect by Cohen's standards
+- It means velocity explains ~24% of the *residual* persistence variance (after Volume takes its 80%)
+- Among the 20% of persistence variance NOT explained by Volume, velocity captures roughly half
+
+**The mediator interpretation** is the most compelling: Velocity → Volume → Persistence. Users who onboard fast (high velocity) tend to develop high engagement rates (high volume), which drives persistence. Velocity is the *upstream behavioral signal* — the first domino. This makes it arguably the most important intervention point: if you can make the onboarding faster and smoother, volume and persistence follow.
+
+This should be highlighted in the final presentation as a key methodological discovery — the raw feature importance underestimated Velocity because of a well-known statistical phenomenon (multicollinearity suppression), and the partial correlation reveals the true effect.
+
+### 2026-03-27 [d27e6979a0d6]
+
+**The final analysis reveals a new finding not visible in the iterative work: the Velocity signal differs dramatically between Member and Public accounts.**
+
+In the iterative analysis, we tested Member vs Public for classification AUC (same) and nonlinearity pattern (similar). But the velocity partial correlation analysis, run cleanly for the first time in the final pipeline, shows:
+
+- **Public velocity_score partial r = -0.53** (strong — faster onboarding strongly predicts persistence after controlling for volume)
+- **Member velocity_score partial r = -0.14** (weak — onboarding speed barely matters once you control for volume)
+
+This is the clearest evidence yet for *why* the velocity signal seemed weak globally: the 8.7% Member population has a weak velocity signal (church programs sustain persistence regardless of speed), while the 91.3% Public population has a strong one. When averaged together, the strong Public signal is diluted by the weak Member signal.
+
+**The intervention implication is precise**: improving onboarding velocity (reducing days-to-first-edit) would disproportionately benefit Public account retention, with minimal effect on Member retention. This is exactly the kind of actionable differentiation a hiring committee would want to see.
+
+### 2026-03-27 [829b038449a4]
+
+**The behavioral vector points at -12.4° from the PC1 axis** — not perfectly horizontal. This means the current PC2-only tiers are tilted 12.4° from the ideal segmentation direction. The perpendicular-axis method corrects this.
+
+**The comparison table is revealing:**
+
+| Method | Interaction R² | What it measures |
+|--------|
+
+### 2026-03-27 [83e0502afc66]
+
+**The corrected geometry changes the finding significantly:**
+
+The enrichment axis points at **79.9° from PC1** — nearly vertical (almost pure PC2), which means:
+- The previous PC2-only segmentation was only off by ~10°, not 12.4° as the behavioral-axis approach suggested
+- The enrichment gradient runs almost straight up/down in the PCA projection
+
+**However, the optimal k is 2, not 4-6.** The silhouette (0.75) and Davies-Bouldin both strongly favor k=2. BIC prefers k=3. The data along the enrichment axis splits most naturally into two groups:
+
+| Tier | Dev Score | GDP | HDI | Character | Countries |
+|------|
+
+### 2026-03-28 [a025f73de5f3]
+
+**Comparing the reference biplot tiers (bottom-left) with our solutions reveals exactly what happened:**
+
+The reference biplot tiers (sil=0.298, CV=0.195) segment along PC2 *only* — they capture contextual/development differences (GDP, HDI, religiosity) but barely touch behavioral engagement. That's why they look visually clean (nice horizontal strata) but have terrible Cramer's V — the tiers don't predict persistence.
+
+Our winning solutions flip this: they segment along a *combined* behavioral+discriminant axis that captures the persistence gradient directly. The visual "fan" structure in Solution B's scatter matches the comet-tail structure from the original phase6b PCA but with the LDA axis rotating it so the persistence gradient becomes a cluster boundary rather than a within-cluster gradient.
+
+**The FA k=6 radar is especially revealing**: C5 (purple, Heavy Loggers) has the distinctive spike on Logins(90d) — these are users who log in ~20x per 90 days but with moderate breadth. They're the "daily checkers." C3 (green, 100% persist, near-zero activation speed) is the "Slow Starters" — they took a long time to activate but once engaged, they never leave. This is a genuinely novel segment not visible in the original k=6 phase6b clustering.
