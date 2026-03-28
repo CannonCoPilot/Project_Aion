@@ -25,11 +25,19 @@
 # Commands (window 4): Signal file → command injection via send-keys
 # Jarvis-dev (window 5): Second Claude session for dev testing (--dev mode only)
 #
+# Modes:
+#   (default)    Full Jarvis with session persistence (W0-W4, resume by UUID)
+#   --dev        Add W5 Jarvis-dev test driver
+#   --fresh      Full Jarvis but new session (archive old, start clean)
+#   --lite       Isolated one-off session (W0+Watcher only, no persistence,
+#                separate tmux session 'lite', minimal CLAUDE.md ~340 tokens,
+#                JSONL cleaned on exit — for ad hoc tasks and small projects)
+#
 # iTerm2 Integration:
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-03-09 — v2.4: Service pre-flight checks + MLX-Embed auto-start
+# Updated: 2026-03-23 — v2.5: --lite mode for isolated one-off sessions
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-jarvis}"
