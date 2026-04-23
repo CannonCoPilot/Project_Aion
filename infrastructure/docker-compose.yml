@@ -91,12 +91,11 @@ services:
     image: redis/redis-stack:latest
     container_name: jarvis-redis
     restart: unless-stopped
-    command: >
-      redis-server
-        --maxmemory 2gb
-        --maxmemory-policy allkeys-lru
-        --appendonly yes
-        --protected-mode no
+    # Pass redis-server args via REDIS_ARGS env so the image's default
+    # entrypoint (which also starts RedisInsight on :8001) runs intact.
+    # Overriding `command:` disables RedisInsight startup.
+    environment:
+      REDIS_ARGS: "--maxmemory 2gb --maxmemory-policy allkeys-lru --appendonly yes"
     volumes:
       - redis_data:/data
     ports:
