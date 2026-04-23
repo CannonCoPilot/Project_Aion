@@ -1,0 +1,2452 @@
+# Deep Reflection on Token-Efficient Document Merging
+
+This is a fascinating design challenge. After analyzing the approaches discussed with Gemini and considering the constraints (lossless detail retention, non-redundant output, logical restructuring), I'll synthesize a novel hybrid approach that combines the best elements while addressing the weaknesses identified.
+
+## Analysis of Trade-offs in Proposed Approaches
+
+| Approach | Strengths | Weaknesses |
+|----------|-----------|------------|
+| **Tournament Merge** | High fidelity, structured reduction | Exponential output tokens, summarization drift |
+| **Master Ledger Delta** | Linear input growth, minimal output | Cold-start problem, requires pre-existing master |
+| **Atomic Extraction** | Structured data, easy deduplication | Loses prose context, requires predefined taxonomy |
+| **Header-Only Taxonomy** | Cheap structural discovery | May miss embedded details not in headers |
+
+Your **Master Ledger Delta** intuition is the most promising foundation because it correctly identifies that **output tokens are the primary cost driver**. However, it needs refinement to handle the cold-start problem and ensure truly lossless extraction.
+
+---
+
+## Proposed Approach: **Hierarchical Delta Synthesis (HDS)**
+
+This approach combines structural discovery, parallel delta extraction, and logarithmic delta consolidation into a coherent orchestration pattern.
+
+### Core Principles
+
+1. **Structure-First Discovery**: Derive the organizational taxonomy from the documents themselves
+2. **Delta-Only Outputs**: Agents output only differences, never full documents
+3. **Indexed Insertions**: Use precise addressing for placement instructions
+4. **Logarithmic Consolidation**: Binary tree reduction of delta files only
+5. **Single Final Assembly**: One agent performs the final integration and polish
+
+---
+
+## Formal Procedure Specification
+
+### Phase 0: Structural Discovery (Cheap Bootstrap)
+
+**Purpose**: Generate a Master Taxonomy without reading full document content.
+
+```
+MAIN_AGENT:
+  FOR each document D[i] in D[1..N] IN PARALLEL:
+    SPAWN SubAgent.StructuralScout(D[i])
+    OUTPUT: Headers[i] = {section_path, title, estimated_depth}
+  
+  AWAIT all Headers[1..N]
+  
+  SPAWN SubAgent.TaxonomyArchitect(Headers[1..N])
+  OUTPUT: MasterTaxonomy = {
+    hierarchical_section_structure,
+    section_ids (e.g., "2.3.1"),
+    semantic_category_labels
+  }
+```
+
+**Token Cost**: ~2-5% of total document tokens (headers only)
+
+---
+
+### Phase 1: Anchor Selection & Baseline Indexing
+
+**Purpose**: Select the most comprehensive document as the Master and create an addressable index.
+
+```
+MAIN_AGENT:
+  // Score documents by structural coverage against MasterTaxonomy
+  FOR each document D[i] in D[1..N] IN PARALLEL:
+    SPAWN SubAgent.CoverageScorer(D[i], MasterTaxonomy)
+    OUTPUT: CoverageScore[i] = {
+      sections_covered: [...],
+      unique_sections: [...],
+      depth_score: float
+    }
+  
+  AWAIT all CoverageScores
+  
+  Master = D[argmax(CoverageScore)]
+  SubDocs = D[1..N] - {Master}
+  
+  // Create addressable index of Master
+  SPAWN SubAgent.IndexBuilder(Master, MasterTaxonomy)
+  OUTPUT: MasterIndex = {
+    section_id -> {
+      start_marker: string,  // First 50 chars
+      end_marker: string,    // Last 50 chars  
+      paragraph_count: int,
+      content_hash: string
+    }
+  }
+```
+
+**Critical Design Decision**: The `MasterIndex` uses content markers rather than line numbers because line numbers shift during editing. Content hashes enable verification.
+
+---
+
+### Phase 2: Parallel Delta Extraction
+
+**Purpose**: Extract unique information from each SubDoc relative to Master.
+
+```
+MAIN_AGENT:
+  FOR each SubDoc S[j] in SubDocs IN PARALLEL:
+    SPAWN SubAgent.DeltaExtractor(
+      Master,           // Full text (input tokens - cached)
+      MasterIndex,      // Structural reference
+      MasterTaxonomy,   // Section schema
+      S[j]              // Comparison document
+    )
+    
+    OUTPUT: Delta[j] = {
+      extractions: [
+        {
+          content: string,           // The unique text/detail
+          insertion_target: {
+            section_id: "2.3.1",
+            position: "AFTER" | "BEFORE" | "REPLACE" | "APPEND_SUBSECTION",
+            anchor_text: string,     // Nearby text for precise placement
+          },
+          source_doc: j,
+          confidence: float,
+          conflict_flag: null | {
+            master_says: string,
+            subdoc_says: string
+          }
+        },
+        ...
+      ],
+      new_sections: [
+        {
+          proposed_section_id: "2.3.1.NEW",
+          parent_section: "2.3.1",
+          title: string,
+          content: string
+        },
+        ...
+      ],
+      uncategorized: [...]  // Safety valve for truly novel content
+    }
+```
+
+**Key Instruction to DeltaExtractor Agents**:
+
+```markdown
+## Your Task
+Compare SubDoc against Master. Output ONLY:
+1. Information in SubDoc that is ABSENT from Master
+2. Information in SubDoc that CONTRADICTS Master (flag as conflict)
+3. Information in SubDoc that EXTENDS/ELABORATES Master content
+
+## Output Rules
+- Do NOT output any information already present in Master
+- Do NOT paraphrase Master content
+- Do NOT write transitions or introductions
+- DO preserve the exact level of detail from SubDoc
+- DO provide precise insertion coordinates using section IDs and anchor text
+
+## Critical: Lossless Extraction
+If in doubt whether something is "new" or "redundant," ERR ON THE SIDE OF INCLUSION.
+Mark uncertain extractions with confidence < 0.7
+```
+
+**Token Cost**: Input = Master (cached) + SubDoc[j]. Output = Only deltas (~10-30% of SubDoc length typically)
+
+---
+
+### Phase 3: Logarithmic Delta Consolidation
+
+**Purpose**: Merge delta files pairwise, removing cross-document redundancies.
+
+```
+MAIN_AGENT:
+  DeltaFiles = Delta[1..N-1]
+  
+  WHILE len(DeltaFiles) > 1:
+    NextRoundDeltas = []
+    
+    FOR i in range(0, len(DeltaFiles), 2) IN PARALLEL:
+      IF i+1 < len(DeltaFiles):
+        SPAWN SubAgent.DeltaConsolidator(
+          DeltaFiles[i],
+          DeltaFiles[i+1],
+          MasterIndex,      // For validating insertion targets
+          MasterTaxonomy
+        )
+        OUTPUT: MergedDelta = {
+          // Same structure as Delta, but:
+          // - Duplicate extractions removed
+          // - Conflicting extractions flagged
+          // - Insertion targets validated/corrected
+        }
+        NextRoundDeltas.append(MergedDelta)
+      ELSE:
+        NextRoundDeltas.append(DeltaFiles[i])  // Odd one out
+    
+    AWAIT all consolidations
+    DeltaFiles = NextRoundDeltas
+  
+  FinalDelta = DeltaFiles[0]
+```
+
+**Key Instruction to DeltaConsolidator Agents**:
+
+```markdown
+## Your Task
+Merge two Delta files into one consolidated Delta file.
+
+## Operations
+1. DEDUPLICATE: If both deltas contain semantically identical extractions 
+   (even if worded differently), keep only ONE (prefer the more detailed)
+2. RESOLVE CONFLICTS: If extractions contradict each other:
+   - Keep both with conflict_flag noting the disagreement
+3. VALIDATE INSERTIONS: Verify insertion_target coordinates are valid 
+   against MasterIndex
+4. MERGE NEW_SECTIONS: Combine proposed new sections, nesting appropriately
+
+## Output Rules
+- Output ONLY the merged delta structure
+- Do NOT expand or elaborate on content
+- PRESERVE all unique information from both inputs
+```
+
+**Token Cost per Round**: Input = 2 Delta files. Output = 1 merged Delta (~60-80% of combined input due to redundancy removal)
+
+**Total Rounds**: ⌈log₂(N-1)⌉
+
+---
+
+### Phase 4: Final Assembly & Polish
+
+**Purpose**: Single agent integrates all deltas into Master and produces final document.
+
+```
+MAIN_AGENT:
+  SPAWN SubAgent.FinalAssembler(
+    Master,
+    FinalDelta,
+    MasterTaxonomy,
+    assembly_instructions: {
+      preserve_master_structure: true,
+      integrate_new_sections: true,
+      resolve_conflicts: "flag_for_human" | "prefer_most_detailed",
+      polish_transitions: true,
+      ensure_consistent_terminology: true
+    }
+  )
+  
+  OUTPUT: MasterDocument = {
+    content: string,           // The final merged document
+    conflict_report: [...],    // Any unresolved contradictions
+    source_attribution: {...}, // Optional: track which doc contributed what
+    completeness_checklist: {
+      sections_from_master: [...],
+      sections_added: [...],
+      extractions_integrated: count,
+      extractions_flagged: count
+    }
+  }
+```
+
+**Key Instruction to FinalAssembler**:
+
+```markdown
+## Your Task
+Integrate all delta extractions into the Master document to produce a 
+comprehensive, non-redundant, logically organized final document.
+
+## Integration Process
+1. Read Master document fully
+2. For each extraction in FinalDelta:
+   - Locate the insertion_target using section_id and anchor_text
+   - Insert the content at the specified position
+   - Ensure grammatical integration with surrounding text
+3. For each new_section in FinalDelta:
+   - Create the section at the appropriate location in hierarchy
+   - Insert all content
+4. For uncategorized items:
+   - Determine best placement OR create appendix section
+
+## Polish Pass
+After integration:
+- Smooth transitions between original and inserted content
+- Ensure consistent terminology throughout
+- Verify logical flow within sections
+- Remove any remaining redundancy created by integration
+- Preserve ALL detail - do not summarize or condense
+
+## Output
+The complete, polished Master Document
+```
+
+---
+
+## Token Efficiency Analysis
+
+For N=8 documents, ~10 pages each (~3,000 tokens/page = 24,000 tokens/doc):
+
+| Phase | Input Tokens | Output Tokens | Parallelism |
+|-------|--------------|---------------|-------------|
+| **Phase 0**: Structural Discovery | 8 × ~500 (headers) = 4,000 | ~2,000 (taxonomy) | 8 agents |
+| **Phase 1**: Anchor Selection | 8 × ~1,000 (sampling) = 8,000 | ~500 (scores) | 8 agents |
+| **Phase 2**: Delta Extraction | 7 × (24,000 + 24,000) = 336,000* | 7 × ~5,000 = 35,000 | 7 agents |
+| **Phase 3**: Delta Consolidation | Round 1: 3 × 10,000 = 30,000 | 3 × ~6,000 = 18,000 | 3 agents |
+| | Round 2: 2 × 6,000 = 12,000 | ~4,000 | 1-2 agents |
+| **Phase 4**: Final Assembly | 24,000 + 4,000 = 28,000 | ~35,000 | 1 agent |
+
+*With prompt caching, Master input cost is paid once: effective = 7 × 24,000 + 24,000 = 192,000
+
+**Total Output Tokens**: ~94,000
+**Tournament Merge Output** (for comparison): ~8 × 24,000 × 3 rounds = ~576,000
+
+**Savings: ~83% reduction in output tokens**
+
+---
+
+## Implementation as Claude Code Skill
+
+```yaml name=hierarchical_delta_synthesis.skill.yaml
+name: hierarchical_delta_synthesis
+description: |
+  Merges N overlapping documents into a single comprehensive master document
+  using token-efficient delta extraction and logarithmic consolidation.
+
+parameters:
+  - name: document_paths
+    type: array[string]
+    description: Paths to the N documents to merge
+  - name: output_path
+    type: string
+    description: Path for the final master document
+  - name: conflict_resolution
+    type: enum[flag_for_human, prefer_most_detailed, prefer_most_recent]
+    default: flag_for_human
+
+phases:
+  - id: structural_discovery
+    parallel: true
+    agents_per_doc: 1
+    
+  - id: anchor_selection
+    parallel: true
+    agents_per_doc: 1
+    
+  - id: delta_extraction
+    parallel: true
+    agents_per_subdoc: 1
+    cache_master: true
+    
+  - id: delta_consolidation
+    parallel: true
+    reduction: logarithmic
+    
+  - id: final_assembly
+    parallel: false
+    agents: 1
+```
+
+---
+
+## Orchestration Pseudocode for Main Agent
+
+```python name=hds_orchestrator.py
+async def hierarchical_delta_synthesis(documents: List[Path], output: Path):
+    """
+    Main orchestration function for Hierarchical Delta Synthesis.
+    Spawns and coordinates all sub-agents through the five phases.
+    """
+    
+    # Phase 0: Structural Discovery
+    header_tasks = [
+        spawn_agent("structural_scout", doc) 
+        for doc in documents
+    ]
+    headers = await gather_all(header_tasks)
+    
+    taxonomy = await spawn_agent("taxonomy_architect", headers)
+    
+    # Phase 1: Anchor Selection
+    coverage_tasks = [
+        spawn_agent("coverage_scorer", doc, taxonomy)
+        for doc in documents
+    ]
+    scores = await gather_all(coverage_tasks)
+    
+    master_idx = argmax(scores, key=lambda s: s.depth_score)
+    master = documents[master_idx]
+    subdocs = [d for i, d in enumerate(documents) if i != master_idx]
+    
+    master_index = await spawn_agent("index_builder", master, taxonomy)
+    
+    # Phase 2: Parallel Delta Extraction
+    delta_tasks = [
+        spawn_agent(
+            "delta_extractor",
+            master=master,           # Will be cached
+            master_index=master_index,
+            taxonomy=taxonomy,
+            subdoc=subdoc
+        )
+        for subdoc in subdocs
+    ]
+    deltas = await gather_all(delta_tasks)
+    
+    # Phase 3: Logarithmic Delta Consolidation  
+    while len(deltas) > 1:
+        next_round = []
+        consolidation_tasks = []
+        
+        for i in range(0, len(deltas), 2):
+            if i + 1 < len(deltas):
+                consolidation_tasks.append(
+                    spawn_agent(
+                        "delta_consolidator",
+                        delta_a=deltas[i],
+                        delta_b=deltas[i+1],
+                        master_index=master_index,
+                        taxonomy=taxonomy
+                    )
+                )
+            else:
+                next_round.append(deltas[i])  # Odd one passes through
+        
+        consolidated = await gather_all(consolidation_tasks)
+        deltas = consolidated + next_round
+    
+    final_delta = deltas[0]
+    
+    # Phase 4: Final Assembly
+    result = await spawn_agent(
+        "final_assembler",
+        master=master,
+        final_delta=final_delta,
+        taxonomy=taxonomy
+    )
+    
+    await write_file(output, result.content)
+    
+    return {
+        "master_document": output,
+        "conflict_report": result.conflict_report,
+        "completeness": result.completeness_checklist
+    }
+```
+
+---
+
+## Key Design Decisions & Rationale
+
+### 1. Why Anchor Selection Instead of Empty Start?
+
+Starting with the most comprehensive document as Master (rather than building from scratch) provides:
+- **Structural coherence** already present
+- **Reduced final assembly complexity** (integration vs. generation)
+- **Natural baseline** for comparison
+
+### 2. Why Content Markers Instead of Line Numbers?
+
+Line numbers are fragile—they shift with any edit. Content markers (anchor text + content hashes) provide:
+- **Edit-resistant addressing**
+- **Verifiable insertion points**
+- **Conflict detection** when Master content changes
+
+### 3. Why Logarithmic Consolidation of Deltas?
+
+The deltas from different SubDocs will contain redundancies (if SubDoc 2 and SubDoc 5 both have a detail missing from Master). Pairwise consolidation:
+- **Removes cross-document redundancy** before final assembly
+- **Validates insertion coordinates** incrementally
+- **Keeps individual agent context windows manageable**
+
+### 4. Why a "Safety Valve" Uncategorized Section?
+
+Documents may contain information that doesn't fit the derived taxonomy. The uncategorized bucket ensures:
+- **Lossless extraction** (nothing discarded due to schema mismatch)
+- **Human visibility** into edge cases
+- **Final agent discretion** for placement
+
+---
+
+## Failure Modes & Mitigations
+
+| Failure Mode | Mitigation |
+|--------------|------------|
+| Overly aggressive deduplication | Confidence scores; "when in doubt, include" instruction |
+| Insertion coordinate drift | Content markers + hashes; validation in consolidation |
+| Lost context in atomic extraction | Extractions include surrounding anchor text |
+| Taxonomy misses embedded details | Uncategorized safety valve; low confidence threshold |
+| Conflicting information | Explicit conflict flagging; human review option |
+
+---
+
+This **Hierarchical Delta Synthesis** approach should give you the lossless detail retention of your tournament merge, with output token costs closer to the atomic extraction method, while avoiding the cold-start problems of the pure ledger approach. The key insight is that **delta files are much cheaper to process recursively than full documents**, and the logarithmic consolidation ensures you're only ever comparing structured difference records rather than prose.
+
+Would you like me to elaborate on any specific phase, or help draft the actual prompts for each sub-agent type?
+
+
+name: hierarchical_delta_synthesis
+description: |
+  Merges N overlapping documents into a single comprehensive master document
+  using token-efficient delta extraction and logarithmic consolidation.
+
+parameters:
+  - name: document_paths
+    type: array[string]
+    description: Paths to the N documents to merge
+  - name: output_path
+    type: string
+    description: Path for the final master document
+  - name: conflict_resolution
+    type: enum[flag_for_human, prefer_most_detailed, prefer_most_recent]
+    default: flag_for_human
+
+phases:
+  - id: structural_discovery
+    parallel: true
+    agents_per_doc: 1
+    
+  - id: anchor_selection
+    parallel: true
+    agents_per_doc: 1
+    
+  - id: delta_extraction
+    parallel: true
+    agents_per_subdoc: 1
+    cache_master: true
+    
+  - id: delta_consolidation
+    parallel: true
+    reduction: logarithmic
+    
+  - id: final_assembly
+    parallel: false
+    agents: 1
+
+
+async def hierarchical_delta_synthesis(documents: List[Path], output: Path):
+    """
+    Main orchestration function for Hierarchical Delta Synthesis.
+    Spawns and coordinates all sub-agents through the five phases.
+    """
+    
+    # Phase 0: Structural Discovery
+    header_tasks = [
+        spawn_agent("structural_scout", doc) 
+        for doc in documents
+    ]
+    headers = await gather_all(header_tasks)
+    
+    taxonomy = await spawn_agent("taxonomy_architect", headers)
+    
+    # Phase 1: Anchor Selection
+    coverage_tasks = [
+        spawn_agent("coverage_scorer", doc, taxonomy)
+        for doc in documents
+    ]
+    scores = await gather_all(coverage_tasks)
+    
+    master_idx = argmax(scores, key=lambda s: s.depth_score)
+    master = documents[master_idx]
+    subdocs = [d for i, d in enumerate(documents) if i != master_idx]
+    
+    master_index = await spawn_agent("index_builder", master, taxonomy)
+    
+    # Phase 2: Parallel Delta Extraction
+    delta_tasks = [
+        spawn_agent(
+            "delta_extractor",
+            master=master,           # Will be cached
+            master_index=master_index,
+            taxonomy=taxonomy,
+            subdoc=subdoc
+        )
+        for subdoc in subdocs
+    ]
+    deltas = await gather_all(delta_tasks)
+    
+    # Phase 3: Logarithmic Delta Consolidation  
+    while len(deltas) > 1:
+        next_round = []
+        consolidation_tasks = []
+        
+        for i in range(0, len(deltas), 2):
+            if i + 1 < len(deltas):
+                consolidation_tasks.append(
+                    spawn_agent(
+                        "delta_consolidator",
+                        delta_a=deltas[i],
+                        delta_b=deltas[i+1],
+                        master_index=master_index,
+                        taxonomy=taxonomy
+                    )
+                )
+            else:
+                next_round.append(deltas[i])  # Odd one passes through
+        
+        consolidated = await gather_all(consolidation_tasks)
+        deltas = consolidated + next_round
+    
+    final_delta = deltas[0]
+    
+    # Phase 4: Final Assembly
+    result = await spawn_agent(
+        "final_assembler",
+        master=master,
+        final_delta=final_delta,
+        taxonomy=taxonomy
+    )
+    
+    await write_file(output, result.content)
+    
+    return {
+        "master_document": output,
+        "conflict_report": result.conflict_report,
+        "completeness": result.completeness_checklist
+    }
+
+
+
+# Sub-Agent Prompts for Hierarchical Delta Synthesis
+
+Below are the complete, production-ready prompts for each sub-agent type in the HDS pipeline. Each prompt is designed to be self-contained and includes explicit output format specifications.
+
+---
+
+## Phase 0: Structural Discovery
+
+### Sub-Agent: Structural Scout
+
+```markdown name=prompts/structural_scout.md
+# Structural Scout Agent
+
+## Role
+You are a document structure extractor. Your job is to identify and output ONLY the hierarchical structure of a document—headings, subheadings, and section organization—without reading or processing the body content.
+
+## Input
+You will receive a single document.
+
+## Task
+Extract the complete structural skeleton of this document:
+1. Identify all headings and subheadings at every level
+2. Preserve the hierarchical nesting relationships
+3. Note the approximate depth/detail level of each section
+4. Identify any numbered lists that represent distinct items (e.g., requirements, features)
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "document_id": "<filename or identifier>",
+  "structure": [
+    {
+      "level": 1,
+      "title": "Section Title",
+      "path": "1",
+      "subsections": [
+        {
+          "level": 2,
+          "title": "Subsection Title",
+          "path": "1.1",
+          "subsections": [...]
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "numeric|alpha|roman|none",
+    "has_toc": true|false,
+    "estimated_section_count": <number>
+  }
+}
+```
+
+## Rules
+- Do NOT read or summarize body content
+- Do NOT skip any heading, no matter how minor it seems
+- Do NOT infer sections that aren't explicitly marked as headings
+- DO capture headings even if they seem redundant or poorly named
+- DO preserve exact heading text (don't paraphrase)
+- DO note if a section appears to be a list of items (features, requirements, etc.)
+
+## Example
+If the document contains:
+```
+# Product Requirements
+## User Management
+### Authentication
+### Authorization
+## Data Processing
+```
+
+Output:
+```json
+{
+  "document_id": "product_requirements.md",
+  "structure": [
+    {
+      "level": 1,
+      "title": "Product Requirements",
+      "path": "1",
+      "subsections": [
+        {
+          "level": 2,
+          "title": "User Management",
+          "path": "1.1",
+          "subsections": [
+            {"level": 3, "title": "Authentication", "path": "1.1.1", "subsections": []},
+            {"level": 3, "title": "Authorization", "path": "1.1.2", "subsections": []}
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Data Processing",
+          "path": "1.2",
+          "subsections": []
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "none",
+    "has_toc": false,
+    "estimated_section_count": 5
+  }
+}
+```
+```
+
+---
+
+### Sub-Agent: Taxonomy Architect
+
+```markdown name=prompts/taxonomy_architect.md
+# Taxonomy Architect Agent
+
+## Role
+You are an information architect specializing in document taxonomy design. Your job is to synthesize multiple document structures into a single, comprehensive, unified taxonomy that can accommodate ALL content from ALL source documents.
+
+## Input
+You will receive a collection of structural extracts (JSON) from N different documents, each containing heading hierarchies.
+
+## Task
+Create a Master Taxonomy that:
+1. Encompasses EVERY unique topic across all documents
+2. Resolves naming variations (e.g., "Auth" vs "Authentication" → choose canonical name)
+3. Establishes a logical hierarchy that accommodates all levels of detail
+4. Assigns stable section IDs for precise referencing
+5. Includes an "Uncategorized" section as a catch-all
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "master_taxonomy": {
+    "version": "1.0",
+    "created_from_documents": ["doc1.md", "doc2.md", ...],
+    "sections": [
+      {
+        "section_id": "1",
+        "canonical_title": "Product Overview",
+        "aliases": ["Introduction", "Executive Summary", "Overview"],
+        "description": "High-level product description and goals",
+        "source_documents": ["doc1.md", "doc3.md"],
+        "subsections": [
+          {
+            "section_id": "1.1",
+            "canonical_title": "Vision Statement",
+            "aliases": ["Product Vision", "Mission"],
+            "description": "Core product vision and mission",
+            "source_documents": ["doc1.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "UNCATEGORIZED",
+        "canonical_title": "Uncategorized Content",
+        "aliases": [],
+        "description": "Content that does not fit existing taxonomy categories",
+        "source_documents": [],
+        "subsections": []
+      }
+    ]
+  },
+  "mapping_notes": {
+    "merged_sections": [
+      {
+        "canonical": "Authentication",
+        "merged_from": ["Auth", "Login System", "User Authentication"]
+      }
+    ],
+    "potential_conflicts": [
+      {
+        "topic": "Timeline",
+        "appears_differently_in": ["doc1.md: Section 3", "doc2.md: Section 7"],
+        "resolution": "Created unified 'Project Timeline' section"
+      }
+    ]
+  }
+}
+```
+
+## Rules
+- NEVER omit a topic that appears in any source document
+- ALWAYS create a section for every unique concept, even if only one document mentions it
+- DO normalize terminology (pick the most descriptive/professional term as canonical)
+- DO preserve granularity—if one document has deep nesting, reflect that capability
+- DO include the UNCATEGORIZED section as the final top-level section
+- DO document your merging decisions in mapping_notes
+
+## Taxonomy Design Principles
+1. **Completeness over elegance**: Include everything, even if the structure seems unbalanced
+2. **Depth accommodation**: Design for the most detailed document's level of nesting
+3. **Semantic grouping**: Group related concepts even if source documents organized differently
+4. **Stable IDs**: Use numeric paths (1, 1.1, 1.1.1) that won't change during processing
+
+## Common Section Patterns for Product Documents
+Consider these typical categories when organizing (but don't force content into them):
+- Product Overview / Vision
+- User Personas / Stakeholders
+- Requirements (Functional, Non-functional, Technical)
+- Features / Capabilities
+- Architecture / Technical Design
+- Timeline / Roadmap / Milestones
+- Success Metrics / KPIs
+- Risks / Constraints / Assumptions
+- Appendices / References
+```
+
+---
+
+## Phase 1: Anchor Selection
+
+### Sub-Agent: Coverage Scorer
+
+```markdown name=prompts/coverage_scorer.md
+# Coverage Scorer Agent
+
+## Role
+You are a document coverage analyst. Your job is to evaluate how comprehensively a single document covers a given taxonomy structure.
+
+## Input
+1. A single document to evaluate
+2. The Master Taxonomy (JSON structure with section IDs and descriptions)
+
+## Task
+Score this document's coverage of the Master Taxonomy:
+1. Identify which taxonomy sections this document addresses
+2. Assess the depth of coverage for each section
+3. Identify any content in this document that falls outside the taxonomy
+4. Calculate an overall coverage score
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "document_id": "<filename>",
+  "coverage_analysis": {
+    "sections_covered": [
+      {
+        "section_id": "1.1",
+        "coverage_level": "comprehensive|partial|mentioned",
+        "estimated_word_count": <number>,
+        "has_subsection_content": true|false
+      }
+    ],
+    "sections_missing": ["2.3", "4.1.2"],
+    "unique_content": [
+      {
+        "topic": "Description of content not in taxonomy",
+        "estimated_word_count": <number>,
+        "suggested_section": "1.2 or UNCATEGORIZED"
+      }
+    ]
+  },
+  "scores": {
+    "breadth_score": 0.0-1.0,
+    "depth_score": 0.0-1.0,
+    "unique_content_score": 0.0-1.0,
+    "overall_score": 0.0-1.0
+  },
+  "recommendation": {
+    "suitable_as_master": true|false,
+    "reasoning": "Brief explanation of scoring"
+  }
+}
+```
+
+## Scoring Criteria
+
+### Breadth Score (0.0 - 1.0)
+- 1.0 = Covers ALL taxonomy sections
+- 0.5 = Covers ~50% of taxonomy sections
+- 0.0 = Covers almost no taxonomy sections
+
+### Depth Score (0.0 - 1.0)
+- 1.0 = All covered sections have comprehensive, detailed content
+- 0.5 = Mix of detailed and shallow coverage
+- 0.0 = All coverage is superficial/mentioned only
+
+### Unique Content Score (0.0 - 1.0)
+- 1.0 = Contains significant unique content not in taxonomy
+- 0.5 = Some unique content
+- 0.0 = No content outside taxonomy
+
+### Overall Score (weighted combination)
+`overall = (breadth × 0.4) + (depth × 0.4) + (unique × 0.2)`
+
+## Rules
+- DO NOT read the entire document word-for-word; skim for structure and coverage
+- DO note specific section IDs from the taxonomy
+- DO identify gaps explicitly
+- DO provide honest assessment even if coverage is poor
+```
+
+---
+
+### Sub-Agent: Index Builder
+
+```markdown name=prompts/index_builder.md
+# Index Builder Agent
+
+## Role
+You are a document indexer. Your job is to create a precise, addressable index of a document's content that enables accurate insertion point targeting.
+
+## Input
+1. The Master document (selected as the anchor/base document)
+2. The Master Taxonomy
+
+## Task
+Create a detailed index that maps every section of the Master document to:
+1. Its taxonomy section ID
+2. Content markers for precise location (first/last sentences)
+3. Structural metadata
+4. Content fingerprints for verification
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "document_id": "<filename>",
+  "index_version": "1.0",
+  "total_sections": <number>,
+  "sections": [
+    {
+      "section_id": "1.1",
+      "taxonomy_mapping": "1.1",
+      "heading_text": "Exact Heading As It Appears",
+      "location_markers": {
+        "start_marker": "First 80 characters of section content...",
+        "end_marker": "...last 80 characters of section content",
+        "paragraph_count": <number>,
+        "approximate_word_count": <number>
+      },
+      "content_hash": "<first 8 chars of md5 hash of section content>",
+      "insertion_points": {
+        "before_section": "Insert before this heading",
+        "after_heading": "Insert immediately after heading, before first paragraph",
+        "after_section": "Insert after last paragraph of this section",
+        "within_section": [
+          {
+            "anchor_text": "Unique phrase within section for targeting",
+            "position": "after|before",
+            "context": "Surrounding sentence for verification"
+          }
+        ]
+      },
+      "subsections": [...]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_section": "1.1",
+      "to_section": "3.2",
+      "reference_type": "mentions|see_also|depends_on"
+    }
+  ],
+  "index_metadata": {
+    "total_word_count": <number>,
+    "deepest_nesting_level": <number>,
+    "sections_without_content": ["section_ids of empty sections"]
+  }
+}
+```
+
+## Rules for Content Markers
+- Start/end markers must be UNIQUE enough to locate unambiguously
+- Prefer complete sentences over fragments
+- If a section is very short, the start and end markers may overlap
+- Content hash is for verification—use MD5 or similar, first 8 characters
+
+## Rules for Insertion Points
+- Every section must have at least: before_section, after_heading, after_section
+- within_section anchors should be distinctive phrases (not common words)
+- Provide 2-3 within_section anchors for longer sections
+
+## Example Insertion Point Usage
+If an agent needs to insert "New requirement X" into section 1.1 after the paragraph about "user authentication":
+
+```json
+{
+  "insertion_target": {
+    "section_id": "1.1",
+    "position": "after",
+    "anchor_text": "user authentication must support OAuth2"
+  }
+}
+```
+
+The index enables verification that this anchor exists and provides context.
+```
+
+---
+
+## Phase 2: Delta Extraction
+
+### Sub-Agent: Delta Extractor
+
+```markdown name=prompts/delta_extractor.md
+# Delta Extractor Agent
+
+## Role
+You are a differential content analyst. Your job is to identify ALL information in a SubDocument that is NOT present in the Master document, and output ONLY those differences with precise insertion instructions.
+
+## Input
+1. **Master Document**: The anchor document (full text)
+2. **Master Index**: Structural index with location markers
+3. **Master Taxonomy**: Section ID schema
+4. **SubDocument**: The document to compare against Master
+
+## Task
+Perform a comprehensive differential analysis:
+1. Read and understand the Master document's content
+2. Read the SubDocument completely
+3. Identify EVERY piece of information in SubDocument that is:
+   - ABSENT from Master (new information)
+   - CONTRADICTORY to Master (conflicting information)
+   - MORE DETAILED than Master (elaborations/extensions)
+4. Output these differences with precise insertion coordinates
+
+## Critical Instruction: LOSSLESS EXTRACTION
+Your primary obligation is to ensure NO unique information is lost. When uncertain whether something is "new" or "redundant":
+- **ERR ON THE SIDE OF INCLUSION**
+- Mark uncertain extractions with confidence < 0.7
+- It is better to extract something redundant than to lose something unique
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "source_document": "<subdoc filename>",
+  "master_document": "<master filename>",
+  "extraction_summary": {
+    "total_extractions": <number>,
+    "new_information": <number>,
+    "elaborations": <number>,
+    "conflicts": <number>,
+    "new_sections_proposed": <number>,
+    "uncategorized": <number>
+  },
+  "extractions": [
+    {
+      "extraction_id": "E001",
+      "type": "new|elaboration|conflict",
+      "content": "The exact text or information to be added. Preserve full detail and original phrasing where valuable. Can be multiple paragraphs if needed.",
+      "insertion_target": {
+        "section_id": "2.3.1",
+        "position": "after|before|append|prepend|replace",
+        "anchor_text": "Unique phrase from Master near insertion point",
+        "fallback_position": "end_of_section"
+      },
+      "source_location": "Section/heading in SubDocument where this was found",
+      "confidence": 0.0-1.0,
+      "reasoning": "Brief explanation of why this is new/different",
+      "conflict_details": null
+    },
+    {
+      "extraction_id": "E002",
+      "type": "conflict",
+      "content": "The SubDocument's version of the conflicting information",
+      "insertion_target": {
+        "section_id": "3.1",
+        "position": "replace",
+        "anchor_text": "The specific text in Master that conflicts"
+      },
+      "source_location": "Requirements section, paragraph 3",
+      "confidence": 0.95,
+      "reasoning": "Direct numerical contradiction",
+      "conflict_details": {
+        "master_says": "System must support 100 concurrent users",
+        "subdoc_says": "System must support 500 concurrent users",
+        "conflict_type": "numerical_contradiction"
+      }
+    }
+  ],
+  "new_sections": [
+    {
+      "section_id": "NEW_001",
+      "proposed_title": "Mobile Application Requirements",
+      "proposed_parent": "2.1",
+      "proposed_position": "after_subsection:2.1.3",
+      "content": "Full content for the new section...",
+      "source_location": "SubDocument Section 5",
+      "reasoning": "Master document has no mobile requirements section; SubDocument has extensive mobile coverage"
+    }
+  ],
+  "uncategorized": [
+    {
+      "extraction_id": "U001",
+      "content": "Content that doesn't fit taxonomy",
+      "source_location": "Appendix B",
+      "suggested_placement": "Could fit in section 4 or as new appendix",
+      "confidence": 0.5
+    }
+  ]
+}
+```
+
+## Extraction Rules
+
+### What to Extract
+- ✅ Facts, requirements, or specifications not in Master
+- ✅ Additional details that expand on Master's brief mentions
+- ✅ Different numerical values (dates, quantities, percentages)
+- ✅ Additional stakeholders, personas, or actors not mentioned
+- ✅ New features, capabilities, or requirements
+- ✅ Different or additional constraints, risks, or assumptions
+- ✅ Any diagrams, tables, or structured data descriptions not in Master
+- ✅ Different terminology that might reflect different understanding
+
+### What NOT to Extract
+- ❌ Information that is semantically identical (even if worded differently)
+- ❌ Less detailed versions of what Master already contains
+- ❌ Pure formatting differences
+- ❌ Boilerplate text (headers, footers, legal text)
+
+### Handling Ambiguity
+If information is "similar but not identical" to Master content:
+1. Extract it with type "elaboration"
+2. Set confidence to 0.6-0.8
+3. Include reasoning explaining the similarity and difference
+4. Let the consolidation phase handle deduplication
+
+## Insertion Target Rules
+- **section_id**: Must match a valid ID from Master Taxonomy
+- **position**: 
+  - "after" = immediately after anchor_text
+  - "before" = immediately before anchor_text
+  - "append" = at end of section
+  - "prepend" = at beginning of section (after heading)
+  - "replace" = replace the anchor_text (for conflicts)
+- **anchor_text**: Must be a verbatim phrase from Master (15-50 chars ideal)
+- **fallback_position**: Used if anchor_text cannot be located
+
+## Confidence Scoring Guide
+- 0.9-1.0: Clearly new information, no similar content in Master
+- 0.7-0.9: New information, minor similarity to Master content
+- 0.5-0.7: Uncertain—may be elaboration of existing or truly new
+- 0.3-0.5: Likely redundant but including for safety
+- Below 0.3: Don't extract (too similar to Master)
+```
+
+---
+
+## Phase 3: Delta Consolidation
+
+### Sub-Agent: Delta Consolidator
+
+```markdown name=prompts/delta_consolidator.md
+# Delta Consolidator Agent
+
+## Role
+You are a differential data merger. Your job is to combine two Delta files into a single, deduplicated, validated Delta file while preserving ALL unique information from both sources.
+
+## Input
+1. **Delta A**: First delta extraction file (JSON)
+2. **Delta B**: Second delta extraction file (JSON)
+3. **Master Index**: For validating insertion targets
+4. **Master Taxonomy**: For section ID validation
+
+## Task
+Merge the two Delta files:
+1. Identify and merge duplicate extractions (keep the more detailed version)
+2. Identify and flag cross-delta conflicts
+3. Validate all insertion targets against Master Index
+4. Preserve ALL unique extractions from both deltas
+5. Merge proposed new sections intelligently
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "consolidated_from": ["delta_a_source", "delta_b_source"],
+  "consolidation_summary": {
+    "input_extractions": {
+      "delta_a": <number>,
+      "delta_b": <number>,
+      "total_input": <number>
+    },
+    "output_extractions": <number>,
+    "duplicates_merged": <number>,
+    "cross_conflicts_found": <number>,
+    "insertion_targets_corrected": <number>
+  },
+  "extractions": [
+    {
+      "extraction_id": "C001",
+      "type": "new|elaboration|conflict",
+      "content": "The content (merged/deduplicated as needed)",
+      "insertion_target": {
+        "section_id": "2.3.1",
+        "position": "after",
+        "anchor_text": "validated anchor text",
+        "fallback_position": "end_of_section",
+        "target_validated": true
+      },
+      "source_documents": ["doc2.md", "doc5.md"],
+      "original_extraction_ids": ["E001 from Delta A", "E003 from Delta B"],
+      "confidence": 0.0-1.0,
+      "merge_action": "kept_single|merged_duplicates|preserved_both",
+      "merge_notes": "Explanation of merge decision if applicable"
+    }
+  ],
+  "cross_conflicts": [
+    {
+      "conflict_id": "CC001",
+      "description": "Delta A and Delta B disagree",
+      "delta_a_says": {
+        "extraction_id": "E005",
+        "content": "Launch date is Q2 2026"
+      },
+      "delta_b_says": {
+        "extraction_id": "E008", 
+        "content": "Launch date is Q3 2026"
+      },
+      "resolution": "preserved_both|chose_a|chose_b",
+      "resolution_reasoning": "Both preserved for human review"
+    }
+  ],
+  "new_sections": [
+    {
+      "section_id": "NEW_001",
+      "proposed_title": "Merged section title",
+      "proposed_parent": "2.1",
+      "content": "Merged content from both deltas if applicable",
+      "source_documents": ["doc2.md"],
+      "merge_notes": "Section only proposed by Delta A"
+    }
+  ],
+  "uncategorized": [...],
+  "validation_issues": [
+    {
+      "extraction_id": "E012",
+      "issue": "anchor_text_not_found",
+      "original_anchor": "text that doesn't exist in master",
+      "corrective_action": "Changed to fallback_position: end_of_section",
+      "resolved": true
+    }
+  ]
+}
+```
+
+## Merge Rules
+
+### Duplicate Detection
+Two extractions are duplicates if:
+- Content is semantically identical (same information, possibly different wording)
+- Content conveys the same fact/requirement/specification
+- One is a subset of the other (prefer the more complete version)
+
+### Duplicate Resolution
+When duplicates are found:
+1. **If identical**: Keep one, note both sources
+2. **If one is more detailed**: Keep the detailed version, note both sources
+3. **If complementary**: Merge the content, note both sources
+4. **If uncertain**: Preserve both with merge_action "preserved_both"
+
+### Cross-Conflict Detection
+A cross-conflict occurs when:
+- Delta A and Delta B both propose content for the same insertion point
+- The content is contradictory (not complementary)
+- Example: Different dates, different numbers, mutually exclusive options
+
+### Cross-Conflict Resolution
+- **Default**: Preserve both in cross_conflicts array for human review
+- Flag the conflict clearly
+- Do NOT silently discard either version
+
+### Insertion Target Validation
+For each extraction's insertion_target:
+1. Verify section_id exists in Master Taxonomy
+2. Verify anchor_text exists in Master (using Master Index)
+3. If anchor_text not found:
+   - Try to find similar text
+   - Fall back to section-level positioning
+   - Document the correction in validation_issues
+
+## Preservation Rules
+- **NEVER discard an extraction** unless it is a clear duplicate
+- When uncertain, use merge_action "preserved_both"
+- All decisions must be documented in merge_notes
+- The total output extractions + duplicates_merged should equal total_input
+```
+
+---
+
+## Phase 4: Final Assembly
+
+### Sub-Agent: Final Assembler
+
+```markdown name=prompts/final_assembler.md
+# Final Assembler Agent
+
+## Role
+You are a master document integrator and editor. Your job is to synthesize the Master document and the consolidated Delta file into a single, comprehensive, polished final document that retains ALL information from all source documents.
+
+## Input
+1. **Master Document**: The base document (full text)
+2. **Final Delta**: The consolidated delta file containing all unique information from other documents
+3. **Master Taxonomy**: The organizational structure
+
+## Task
+Produce the final integrated Master Document:
+1. Integrate all extractions from Final Delta into appropriate locations in Master
+2. Add all proposed new sections in their designated locations
+3. Resolve or flag remaining conflicts
+4. Polish the integrated document for consistency and flow
+5. Verify completeness against the taxonomy
+
+## Output Format
+Return a structured response with:
+
+```json
+{
+  "integration_report": {
+    "extractions_integrated": <number>,
+    "new_sections_added": <number>,
+    "conflicts_resolved": <number>,
+    "conflicts_flagged_for_review": <number>,
+    "uncategorized_items_placed": <number>
+  },
+  "conflict_report": [
+    {
+      "location": "Section 3.2",
+      "conflict_type": "numerical_contradiction",
+      "description": "Multiple sources disagree on user capacity",
+      "values_found": ["100 users (Master)", "500 users (doc3)", "250 users (doc5)"],
+      "resolution_applied": "Included all values with source attribution",
+      "needs_human_review": true
+    }
+  ],
+  "completeness_checklist": {
+    "taxonomy_sections_present": ["1", "1.1", "1.2", "2", ...],
+    "taxonomy_sections_empty": ["4.3.2"],
+    "extractions_successfully_placed": <number>,
+    "extractions_placed_in_uncategorized": <number>
+  },
+  "source_attribution": {
+    "master_document": "<filename>",
+    "contributing_documents": ["doc2.md", "doc3.md", ...],
+    "total_sources": <number>
+  }
+}
+```
+
+Followed by the complete integrated document in Markdown format.
+
+## Integration Process
+
+### Step 1: Prepare the Master
+- Read the Master document completely
+- Identify all insertion points referenced in Final Delta
+- Note any structural issues or gaps
+
+### Step 2: Process Extractions
+For each extraction in Final Delta:
+1. Locate the insertion_target in Master
+2. Insert the content at the specified position
+3. Ensure grammatical integration:
+   - Add transitional phrases if needed
+   - Adjust pronouns and references
+   - Maintain consistent tense and voice
+4. If insertion point cannot be found, use fallback_position
+
+### Step 3: Add New Sections
+For each new section in Final Delta:
+1. Create the section heading at the proposed location
+2. Insert all content
+3. Ensure proper nesting in document hierarchy
+4. Add to table of contents if present
+
+### Step 4: Handle Conflicts
+For each conflict:
+- **If resolvable**: Choose the most complete/recent/authoritative version
+- **If not resolvable**: Include both with clear attribution:
+  ```
+  > **Note: Source documents disagree on this point:**
+  > - Document A states: [value A]
+  > - Document B states: [value B]
+  > *This requires clarification.*
+  ```
+
+### Step 5: Place Uncategorized Content
+For items in the uncategorized array:
+1. Attempt to find the best logical home based on content
+2. If no clear home, create an "Additional Information" or "Appendix" section
+3. Never discard uncategorized content
+
+### Step 6: Polish Pass
+After all integrations:
+1. **Consistency check**: Ensure consistent terminology throughout
+2. **Flow check**: Add transitions between original and inserted content
+3. **Redundancy check**: Remove any redundancy created by integration
+4. **Formatting check**: Ensure consistent heading levels, list styles, etc.
+5. **Completeness check**: Verify all taxonomy sections have content
+
+## Critical Rules
+
+### Preservation of Detail
+- Do NOT summarize or condense integrated content
+- Do NOT remove details in the name of "flow" or "readability"
+- Preserve the level of detail from source documents
+- Every fact, requirement, specification must be retained
+
+### Attribution (Optional but Recommended)
+Consider adding source attribution for significant additions:
+```markdown
+The system shall support real-time synchronization across all devices. 
+*(Added from Product Requirements v2)*
+```
+
+### Conflict Visibility
+All unresolved conflicts MUST be visible in the final document, not hidden in metadata.
+
+### Quality Standards
+The final document should:
+- Read as a cohesive, unified document (not a patchwork)
+- Have consistent formatting throughout
+- Have logical flow within and between sections
+- Be free of duplicate information
+- Contain ALL information from ALL source documents
+
+## Final Document Structure
+Output the complete document with:
+1. Title and metadata header
+2. Table of Contents (if appropriate for length)
+3. All sections from Master with integrated content
+4. All new sections from Delta
+5. Appendix/Additional Information section (if uncategorized content exists)
+6. Conflict Summary section (if unresolved conflicts exist)
+```
+
+---
+
+## Utility Prompts
+
+### Error Recovery: Insertion Target Repair
+
+```markdown name=prompts/insertion_target_repair.md
+# Insertion Target Repair Agent
+
+## Role
+You are a document location specialist. Your job is to repair broken insertion target references when the original anchor text cannot be found in the Master document.
+
+## Input
+1. **Failed Extraction**: The extraction with an invalid insertion target
+2. **Master Document**: The document being searched
+3. **Master Index**: The structural index
+
+## Task
+Find the correct insertion location for content whose anchor_text is invalid:
+1. Analyze the content to understand what it relates to
+2. Search the Master document for the most relevant location
+3. Propose a corrected insertion target
+
+## Output Format
+```json
+{
+  "original_extraction_id": "E012",
+  "original_anchor_text": "text that was not found",
+  "repair_analysis": {
+    "content_topic": "What the extraction is about",
+    "likely_section": "Section ID where this probably belongs",
+    "reasoning": "Why this section is appropriate"
+  },
+  "corrected_insertion_target": {
+    "section_id": "2.3",
+    "position": "append",
+    "anchor_text": null,
+    "new_anchor_text": "A valid phrase from Master if position is before/after",
+    "fallback_position": "end_of_section"
+  },
+  "confidence": 0.0-1.0,
+  "alternative_locations": [
+    {
+      "section_id": "2.4",
+      "reasoning": "Could also fit here because..."
+    }
+  ]
+}
+```
+```
+
+---
+
+### Verification: Completeness Auditor
+
+```markdown name=prompts/completeness_auditor.md
+# Completeness Auditor Agent
+
+## Role
+You are a document completeness verifier. Your job is to ensure that the final integrated document contains ALL information from ALL source documents.
+
+## Input
+1. **Final Document**: The integrated master document
+2. **Original Documents**: All N source documents
+3. **Final Delta**: The delta file that was integrated
+4. **Integration Report**: Report from Final Assembler
+
+## Task
+Verify that no information was lost during the integration process:
+1. Sample-check that key extractions appear in final document
+2. Verify all new sections were added
+3. Check that conflicts are visible
+4. Identify any potential losses
+
+## Output Format
+```json
+{
+  "audit_result": "PASS|FAIL|WARNINGS",
+  "verification_checks": {
+    "extractions_verified": {
+      "total_checked": <number>,
+      "found_in_final": <number>,
+      "missing": [
+        {
+          "extraction_id": "E005",
+          "expected_content": "Brief snippet",
+          "expected_location": "Section 2.3",
+          "status": "MISSING|MODIFIED|FOUND"
+        }
+      ]
+    },
+    "new_sections_verified": {
+      "total_expected": <number>,
+      "found_in_final": <number>,
+      "missing": []
+    },
+    "conflicts_verified": {
+      "total_expected": <number>,
+      "visible_in_final": <number>,
+      "hidden_or_missing": []
+    }
+  },
+  "warnings": [
+    {
+      "type": "potential_summarization",
+      "location": "Section 3.1",
+      "observation": "Content appears shorter than source material",
+      "severity": "low|medium|high"
+    }
+  ],
+  "recommendations": [
+    "Re-check section 3.1 for complete detail preservation"
+  ]
+}
+```
+```
+
+---
+
+## Orchestration Helper: Progress Tracker
+
+```markdown name=prompts/progress_tracker.md
+# Progress Tracker (Main Agent Internal Use)
+
+## Tracking Template
+
+Use this template to track HDS pipeline progress:
+
+```json
+{
+  "pipeline_id": "<unique_id>",
+  "started_at": "<timestamp>",
+  "input_documents": ["doc1.md", "doc2.md", ...],
+  "phases": {
+    "phase_0_structural_discovery": {
+      "status": "pending|running|complete|failed",
+      "agents_spawned": <number>,
+      "agents_complete": <number>,
+      "outputs": ["headers_1.json", "headers_2.json", ...],
+      "taxonomy_output": "master_taxonomy.json"
+    },
+    "phase_1_anchor_selection": {
+      "status": "pending|running|complete|failed",
+      "selected_master": "<filename>",
+      "master_score": <number>,
+      "index_output": "master_index.json"
+    },
+    "phase_2_delta_extraction": {
+      "status": "pending|running|complete|failed",
+      "subdocs_processed": <number>,
+      "total_subdocs": <number>,
+      "delta_outputs": ["delta_1.json", "delta_2.json", ...]
+    },
+    "phase_3_delta_consolidation": {
+      "status": "pending|running|complete|failed",
+      "rounds_complete": <number>,
+      "total_rounds_expected": <number>,
+      "current_delta_count": <number>,
+      "final_delta_output": "final_delta.json"
+    },
+    "phase_4_final_assembly": {
+      "status": "pending|running|complete|failed",
+      "output_document": "<filename>",
+      "integration_report": "report.json"
+    }
+  },
+  "token_usage": {
+    "input_tokens": <number>,
+    "output_tokens": <number>,
+    "cached_tokens": <number>
+  },
+  "errors": []
+}
+```
+```
+
+---
+
+## Summary: Complete Prompt Set
+
+| Agent | Phase | Purpose | Primary Output |
+|-------|-------|---------|----------------|
+| Structural Scout | 0 | Extract document structure | Headers JSON |
+| Taxonomy Architect | 0 | Create unified taxonomy | Master Taxonomy JSON |
+| Coverage Scorer | 1 | Evaluate document completeness | Coverage scores JSON |
+| Index Builder | 1 | Create addressable Master index | Master Index JSON |
+| Delta Extractor | 2 | Extract unique content from SubDocs | Delta JSON |
+| Delta Consolidator | 3 | Merge and deduplicate deltas | Consolidated Delta JSON |
+| Final Assembler | 4 | Integrate and polish | Final Master Document |
+| Insertion Target Repair | Utility | Fix broken references | Corrected targets |
+| Completeness Auditor | Utility | Verify lossless integration | Audit report |
+
+These prompts are designed to be:
+- **Self-contained**: Each agent has all context needed for its task
+- **Output-structured**: JSON outputs enable reliable inter-agent communication
+- **Fail-safe**: Instructions emphasize preservation over elegance
+- **Verifiable**: Confidence scores and validation checks throughout
+
+Would you like me to also generate the file I/O specifications for how these agents should read/write their artifacts, or example implementations of the orchestration logic?
+
+
+
+# Structural Scout Agent
+
+## Role
+You are a document structure extractor. Your job is to identify and output ONLY the hierarchical structure of a document—headings, subheadings, and section organization—without reading or processing the body content.
+
+## Input
+You will receive a single document.
+
+## Task
+Extract the complete structural skeleton of this document:
+1. Identify all headings and subheadings at every level
+2. Preserve the hierarchical nesting relationships
+3. Note the approximate depth/detail level of each section
+4. Identify any numbered lists that represent distinct items (e.g., requirements, features)
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "document_id": "<filename or identifier>",
+  "structure": [
+    {
+      "level": 1,
+      "title": "Section Title",
+      "path": "1",
+      "subsections": [
+        {
+          "level": 2,
+          "title": "Subsection Title",
+          "path": "1.1",
+          "subsections": [...]
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "numeric|alpha|roman|none",
+    "has_toc": true|false,
+    "estimated_section_count": <number>
+  }
+}
+
+
+...
+
+{
+  "document_id": "product_requirements.md",
+  "structure": [
+    {
+      "level": 1,
+      "title": "Product Requirements",
+      "path": "1",
+      "subsections": [
+        {
+          "level": 2,
+          "title": "User Management",
+          "path": "1.1",
+          "subsections": [
+            {"level": 3, "title": "Authentication", "path": "1.1.1", "subsections": []},
+            {"level": 3, "title": "Authorization", "path": "1.1.2", "subsections": []}
+          ]
+        },
+        {
+          "level": 2,
+          "title": "Data Processing",
+          "path": "1.2",
+          "subsections": []
+        }
+      ]
+    }
+  ],
+  "detected_patterns": {
+    "numbering_scheme": "none",
+    "has_toc": false,
+    "estimated_section_count": 5
+  }
+}
+
+
+...
+
+
+---
+
+### Sub-Agent: Taxonomy Architect
+
+```markdown name=prompts/taxonomy_architect.md
+# Taxonomy Architect Agent
+
+## Role
+You are an information architect specializing in document taxonomy design. Your job is to synthesize multiple document structures into a single, comprehensive, unified taxonomy that can accommodate ALL content from ALL source documents.
+
+## Input
+You will receive a collection of structural extracts (JSON) from N different documents, each containing heading hierarchies.
+
+## Task
+Create a Master Taxonomy that:
+1. Encompasses EVERY unique topic across all documents
+2. Resolves naming variations (e.g., "Auth" vs "Authentication" → choose canonical name)
+3. Establishes a logical hierarchy that accommodates all levels of detail
+4. Assigns stable section IDs for precise referencing
+5. Includes an "Uncategorized" section as a catch-all
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "master_taxonomy": {
+    "version": "1.0",
+    "created_from_documents": ["doc1.md", "doc2.md", ...],
+    "sections": [
+      {
+        "section_id": "1",
+        "canonical_title": "Product Overview",
+        "aliases": ["Introduction", "Executive Summary", "Overview"],
+        "description": "High-level product description and goals",
+        "source_documents": ["doc1.md", "doc3.md"],
+        "subsections": [
+          {
+            "section_id": "1.1",
+            "canonical_title": "Vision Statement",
+            "aliases": ["Product Vision", "Mission"],
+            "description": "Core product vision and mission",
+            "source_documents": ["doc1.md"],
+            "subsections": []
+          }
+        ]
+      },
+      {
+        "section_id": "UNCATEGORIZED",
+        "canonical_title": "Uncategorized Content",
+        "aliases": [],
+        "description": "Content that does not fit existing taxonomy categories",
+        "source_documents": [],
+        "subsections": []
+      }
+    ]
+  },
+  "mapping_notes": {
+    "merged_sections": [
+      {
+        "canonical": "Authentication",
+        "merged_from": ["Auth", "Login System", "User Authentication"]
+      }
+    ],
+    "potential_conflicts": [
+      {
+        "topic": "Timeline",
+        "appears_differently_in": ["doc1.md: Section 3", "doc2.md: Section 7"],
+        "resolution": "Created unified 'Project Timeline' section"
+      }
+    ]
+  }
+}
+
+
+
+...
+
+
+
+---
+
+## Phase 1: Anchor Selection
+
+### Sub-Agent: Coverage Scorer
+
+```markdown name=prompts/coverage_scorer.md
+# Coverage Scorer Agent
+
+## Role
+You are a document coverage analyst. Your job is to evaluate how comprehensively a single document covers a given taxonomy structure.
+
+## Input
+1. A single document to evaluate
+2. The Master Taxonomy (JSON structure with section IDs and descriptions)
+
+## Task
+Score this document's coverage of the Master Taxonomy:
+1. Identify which taxonomy sections this document addresses
+2. Assess the depth of coverage for each section
+3. Identify any content in this document that falls outside the taxonomy
+4. Calculate an overall coverage score
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "document_id": "<filename>",
+  "coverage_analysis": {
+    "sections_covered": [
+      {
+        "section_id": "1.1",
+        "coverage_level": "comprehensive|partial|mentioned",
+        "estimated_word_count": <number>,
+        "has_subsection_content": true|false
+      }
+    ],
+    "sections_missing": ["2.3", "4.1.2"],
+    "unique_content": [
+      {
+        "topic": "Description of content not in taxonomy",
+        "estimated_word_count": <number>,
+        "suggested_section": "1.2 or UNCATEGORIZED"
+      }
+    ]
+  },
+  "scores": {
+    "breadth_score": 0.0-1.0,
+    "depth_score": 0.0-1.0,
+    "unique_content_score": 0.0-1.0,
+    "overall_score": 0.0-1.0
+  },
+  "recommendation": {
+    "suitable_as_master": true|false,
+    "reasoning": "Brief explanation of scoring"
+  }
+}
+
+
+...
+
+
+
+---
+
+### Sub-Agent: Index Builder
+
+```markdown name=prompts/index_builder.md
+# Index Builder Agent
+
+## Role
+You are a document indexer. Your job is to create a precise, addressable index of a document's content that enables accurate insertion point targeting.
+
+## Input
+1. The Master document (selected as the anchor/base document)
+2. The Master Taxonomy
+
+## Task
+Create a detailed index that maps every section of the Master document to:
+1. Its taxonomy section ID
+2. Content markers for precise location (first/last sentences)
+3. Structural metadata
+4. Content fingerprints for verification
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "document_id": "<filename>",
+  "index_version": "1.0",
+  "total_sections": <number>,
+  "sections": [
+    {
+      "section_id": "1.1",
+      "taxonomy_mapping": "1.1",
+      "heading_text": "Exact Heading As It Appears",
+      "location_markers": {
+        "start_marker": "First 80 characters of section content...",
+        "end_marker": "...last 80 characters of section content",
+        "paragraph_count": <number>,
+        "approximate_word_count": <number>
+      },
+      "content_hash": "<first 8 chars of md5 hash of section content>",
+      "insertion_points": {
+        "before_section": "Insert before this heading",
+        "after_heading": "Insert immediately after heading, before first paragraph",
+        "after_section": "Insert after last paragraph of this section",
+        "within_section": [
+          {
+            "anchor_text": "Unique phrase within section for targeting",
+            "position": "after|before",
+            "context": "Surrounding sentence for verification"
+          }
+        ]
+      },
+      "subsections": [...]
+    }
+  ],
+  "cross_references": [
+    {
+      "from_section": "1.1",
+      "to_section": "3.2",
+      "reference_type": "mentions|see_also|depends_on"
+    }
+  ],
+  "index_metadata": {
+    "total_word_count": <number>,
+    "deepest_nesting_level": <number>,
+    "sections_without_content": ["section_ids of empty sections"]
+  }
+}
+
+
+...
+
+
+
+---
+
+## Phase 2: Delta Extraction
+
+### Sub-Agent: Delta Extractor
+
+```markdown name=prompts/delta_extractor.md
+# Delta Extractor Agent
+
+## Role
+You are a differential content analyst. Your job is to identify ALL information in a SubDocument that is NOT present in the Master document, and output ONLY those differences with precise insertion instructions.
+
+## Input
+1. **Master Document**: The anchor document (full text)
+2. **Master Index**: Structural index with location markers
+3. **Master Taxonomy**: Section ID schema
+4. **SubDocument**: The document to compare against Master
+
+## Task
+Perform a comprehensive differential analysis:
+1. Read and understand the Master document's content
+2. Read the SubDocument completely
+3. Identify EVERY piece of information in SubDocument that is:
+   - ABSENT from Master (new information)
+   - CONTRADICTORY to Master (conflicting information)
+   - MORE DETAILED than Master (elaborations/extensions)
+4. Output these differences with precise insertion coordinates
+
+## Critical Instruction: LOSSLESS EXTRACTION
+Your primary obligation is to ensure NO unique information is lost. When uncertain whether something is "new" or "redundant":
+- **ERR ON THE SIDE OF INCLUSION**
+- Mark uncertain extractions with confidence < 0.7
+- It is better to extract something redundant than to lose something unique
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "source_document": "<subdoc filename>",
+  "master_document": "<master filename>",
+  "extraction_summary": {
+    "total_extractions": <number>,
+    "new_information": <number>,
+    "elaborations": <number>,
+    "conflicts": <number>,
+    "new_sections_proposed": <number>,
+    "uncategorized": <number>
+  },
+  "extractions": [
+    {
+      "extraction_id": "E001",
+      "type": "new|elaboration|conflict",
+      "content": "The exact text or information to be added. Preserve full detail and original phrasing where valuable. Can be multiple paragraphs if needed.",
+      "insertion_target": {
+        "section_id": "2.3.1",
+        "position": "after|before|append|prepend|replace",
+        "anchor_text": "Unique phrase from Master near insertion point",
+        "fallback_position": "end_of_section"
+      },
+      "source_location": "Section/heading in SubDocument where this was found",
+      "confidence": 0.0-1.0,
+      "reasoning": "Brief explanation of why this is new/different",
+      "conflict_details": null
+    },
+    {
+      "extraction_id": "E002",
+      "type": "conflict",
+      "content": "The SubDocument's version of the conflicting information",
+      "insertion_target": {
+        "section_id": "3.1",
+        "position": "replace",
+        "anchor_text": "The specific text in Master that conflicts"
+      },
+      "source_location": "Requirements section, paragraph 3",
+      "confidence": 0.95,
+      "reasoning": "Direct numerical contradiction",
+      "conflict_details": {
+        "master_says": "System must support 100 concurrent users",
+        "subdoc_says": "System must support 500 concurrent users",
+        "conflict_type": "numerical_contradiction"
+      }
+    }
+  ],
+  "new_sections": [
+    {
+      "section_id": "NEW_001",
+      "proposed_title": "Mobile Application Requirements",
+      "proposed_parent": "2.1",
+      "proposed_position": "after_subsection:2.1.3",
+      "content": "Full content for the new section...",
+      "source_location": "SubDocument Section 5",
+      "reasoning": "Master document has no mobile requirements section; SubDocument has extensive mobile coverage"
+    }
+  ],
+  "uncategorized": [
+    {
+      "extraction_id": "U001",
+      "content": "Content that doesn't fit taxonomy",
+      "source_location": "Appendix B",
+      "suggested_placement": "Could fit in section 4 or as new appendix",
+      "confidence": 0.5
+    }
+  ]
+}
+
+
+...
+
+
+
+---
+
+## Phase 3: Delta Consolidation
+
+### Sub-Agent: Delta Consolidator
+
+```markdown name=prompts/delta_consolidator.md
+# Delta Consolidator Agent
+
+## Role
+You are a differential data merger. Your job is to combine two Delta files into a single, deduplicated, validated Delta file while preserving ALL unique information from both sources.
+
+## Input
+1. **Delta A**: First delta extraction file (JSON)
+2. **Delta B**: Second delta extraction file (JSON)
+3. **Master Index**: For validating insertion targets
+4. **Master Taxonomy**: For section ID validation
+
+## Task
+Merge the two Delta files:
+1. Identify and merge duplicate extractions (keep the more detailed version)
+2. Identify and flag cross-delta conflicts
+3. Validate all insertion targets against Master Index
+4. Preserve ALL unique extractions from both deltas
+5. Merge proposed new sections intelligently
+
+## Output Format
+Return a JSON structure exactly as follows:
+
+```json
+{
+  "consolidated_from": ["delta_a_source", "delta_b_source"],
+  "consolidation_summary": {
+    "input_extractions": {
+      "delta_a": <number>,
+      "delta_b": <number>,
+      "total_input": <number>
+    },
+    "output_extractions": <number>,
+    "duplicates_merged": <number>,
+    "cross_conflicts_found": <number>,
+    "insertion_targets_corrected": <number>
+  },
+  "extractions": [
+    {
+      "extraction_id": "C001",
+      "type": "new|elaboration|conflict",
+      "content": "The content (merged/deduplicated as needed)",
+      "insertion_target": {
+        "section_id": "2.3.1",
+        "position": "after",
+        "anchor_text": "validated anchor text",
+        "fallback_position": "end_of_section",
+        "target_validated": true
+      },
+      "source_documents": ["doc2.md", "doc5.md"],
+      "original_extraction_ids": ["E001 from Delta A", "E003 from Delta B"],
+      "confidence": 0.0-1.0,
+      "merge_action": "kept_single|merged_duplicates|preserved_both",
+      "merge_notes": "Explanation of merge decision if applicable"
+    }
+  ],
+  "cross_conflicts": [
+    {
+      "conflict_id": "CC001",
+      "description": "Delta A and Delta B disagree",
+      "delta_a_says": {
+        "extraction_id": "E005",
+        "content": "Launch date is Q2 2026"
+      },
+      "delta_b_says": {
+        "extraction_id": "E008", 
+        "content": "Launch date is Q3 2026"
+      },
+      "resolution": "preserved_both|chose_a|chose_b",
+      "resolution_reasoning": "Both preserved for human review"
+    }
+  ],
+  "new_sections": [
+    {
+      "section_id": "NEW_001",
+      "proposed_title": "Merged section title",
+      "proposed_parent": "2.1",
+      "content": "Merged content from both deltas if applicable",
+      "source_documents": ["doc2.md"],
+      "merge_notes": "Section only proposed by Delta A"
+    }
+  ],
+  "uncategorized": [...],
+  "validation_issues": [
+    {
+      "extraction_id": "E012",
+      "issue": "anchor_text_not_found",
+      "original_anchor": "text that doesn't exist in master",
+      "corrective_action": "Changed to fallback_position: end_of_section",
+      "resolved": true
+    }
+  ]
+}
+
+
+...
+
+
+
+---
+
+## Phase 4: Final Assembly
+
+### Sub-Agent: Final Assembler
+
+```markdown name=prompts/final_assembler.md
+# Final Assembler Agent
+
+## Role
+You are a master document integrator and editor. Your job is to synthesize the Master document and the consolidated Delta file into a single, comprehensive, polished final document that retains ALL information from all source documents.
+
+## Input
+1. **Master Document**: The base document (full text)
+2. **Final Delta**: The consolidated delta file containing all unique information from other documents
+3. **Master Taxonomy**: The organizational structure
+
+## Task
+Produce the final integrated Master Document:
+1. Integrate all extractions from Final Delta into appropriate locations in Master
+2. Add all proposed new sections in their designated locations
+3. Resolve or flag remaining conflicts
+4. Polish the integrated document for consistency and flow
+5. Verify completeness against the taxonomy
+
+## Output Format
+Return a structured response with:
+
+```json
+{
+  "integration_report": {
+    "extractions_integrated": <number>,
+    "new_sections_added": <number>,
+    "conflicts_resolved": <number>,
+    "conflicts_flagged_for_review": <number>,
+    "uncategorized_items_placed": <number>
+  },
+  "conflict_report": [
+    {
+      "location": "Section 3.2",
+      "conflict_type": "numerical_contradiction",
+      "description": "Multiple sources disagree on user capacity",
+      "values_found": ["100 users (Master)", "500 users (doc3)", "250 users (doc5)"],
+      "resolution_applied": "Included all values with source attribution",
+      "needs_human_review": true
+    }
+  ],
+  "completeness_checklist": {
+    "taxonomy_sections_present": ["1", "1.1", "1.2", "2", ...],
+    "taxonomy_sections_empty": ["4.3.2"],
+    "extractions_successfully_placed": <number>,
+    "extractions_placed_in_uncategorized": <number>
+  },
+  "source_attribution": {
+    "master_document": "<filename>",
+    "contributing_documents": ["doc2.md", "doc3.md", ...],
+    "total_sources": <number>
+  }
+}
+
+
+...
+
+
+
+---
+
+## Utility Prompts
+
+### Error Recovery: Insertion Target Repair
+
+```markdown name=prompts/insertion_target_repair.md
+# Insertion Target Repair Agent
+
+## Role
+You are a document location specialist. Your job is to repair broken insertion target references when the original anchor text cannot be found in the Master document.
+
+## Input
+1. **Failed Extraction**: The extraction with an invalid insertion target
+2. **Master Document**: The document being searched
+3. **Master Index**: The structural index
+
+## Task
+Find the correct insertion location for content whose anchor_text is invalid:
+1. Analyze the content to understand what it relates to
+2. Search the Master document for the most relevant location
+3. Propose a corrected insertion target
+
+## Output Format
+```json
+{
+  "original_extraction_id": "E012",
+  "original_anchor_text": "text that was not found",
+  "repair_analysis": {
+    "content_topic": "What the extraction is about",
+    "likely_section": "Section ID where this probably belongs",
+    "reasoning": "Why this section is appropriate"
+  },
+  "corrected_insertion_target": {
+    "section_id": "2.3",
+    "position": "append",
+    "anchor_text": null,
+    "new_anchor_text": "A valid phrase from Master if position is before/after",
+    "fallback_position": "end_of_section"
+  },
+  "confidence": 0.0-1.0,
+  "alternative_locations": [
+    {
+      "section_id": "2.4",
+      "reasoning": "Could also fit here because..."
+    }
+  ]
+}
+
+
+..
+
+
+
+---
+
+### Verification: Completeness Auditor
+
+```markdown name=prompts/completeness_auditor.md
+# Completeness Auditor Agent
+
+## Role
+You are a document completeness verifier. Your job is to ensure that the final integrated document contains ALL information from ALL source documents.
+
+## Input
+1. **Final Document**: The integrated master document
+2. **Original Documents**: All N source documents
+3. **Final Delta**: The delta file that was integrated
+4. **Integration Report**: Report from Final Assembler
+
+## Task
+Verify that no information was lost during the integration process:
+1. Sample-check that key extractions appear in final document
+2. Verify all new sections were added
+3. Check that conflicts are visible
+4. Identify any potential losses
+
+## Output Format
+```json
+{
+  "audit_result": "PASS|FAIL|WARNINGS",
+  "verification_checks": {
+    "extractions_verified": {
+      "total_checked": <number>,
+      "found_in_final": <number>,
+      "missing": [
+        {
+          "extraction_id": "E005",
+          "expected_content": "Brief snippet",
+          "expected_location": "Section 2.3",
+          "status": "MISSING|MODIFIED|FOUND"
+        }
+      ]
+    },
+    "new_sections_verified": {
+      "total_expected": <number>,
+      "found_in_final": <number>,
+      "missing": []
+    },
+    "conflicts_verified": {
+      "total_expected": <number>,
+      "visible_in_final": <number>,
+      "hidden_or_missing": []
+    }
+  },
+  "warnings": [
+    {
+      "type": "potential_summarization",
+      "location": "Section 3.1",
+      "observation": "Content appears shorter than source material",
+      "severity": "low|medium|high"
+    }
+  ],
+  "recommendations": [
+    "Re-check section 3.1 for complete detail preservation"
+  ]
+}
+
+
+...
+
+
+
+---
+
+## Orchestration Helper: Progress Tracker
+
+```markdown name=prompts/progress_tracker.md
+# Progress Tracker (Main Agent Internal Use)
+
+## Tracking Template
+
+Use this template to track HDS pipeline progress:
+
+```json
+{
+  "pipeline_id": "<unique_id>",
+  "started_at": "<timestamp>",
+  "input_documents": ["doc1.md", "doc2.md", ...],
+  "phases": {
+    "phase_0_structural_discovery": {
+      "status": "pending|running|complete|failed",
+      "agents_spawned": <number>,
+      "agents_complete": <number>,
+      "outputs": ["headers_1.json", "headers_2.json", ...],
+      "taxonomy_output": "master_taxonomy.json"
+    },
+    "phase_1_anchor_selection": {
+      "status": "pending|running|complete|failed",
+      "selected_master": "<filename>",
+      "master_score": <number>,
+      "index_output": "master_index.json"
+    },
+    "phase_2_delta_extraction": {
+      "status": "pending|running|complete|failed",
+      "subdocs_processed": <number>,
+      "total_subdocs": <number>,
+      "delta_outputs": ["delta_1.json", "delta_2.json", ...]
+    },
+    "phase_3_delta_consolidation": {
+      "status": "pending|running|complete|failed",
+      "rounds_complete": <number>,
+      "total_rounds_expected": <number>,
+      "current_delta_count": <number>,
+      "final_delta_output": "final_delta.json"
+    },
+    "phase_4_final_assembly": {
+      "status": "pending|running|complete|failed",
+      "output_document": "<filename>",
+      "integration_report": "report.json"
+    }
+  },
+  "token_usage": {
+    "input_tokens": <number>,
+    "output_tokens": <number>,
+    "cached_tokens": <number>
+  },
+  "errors": []
+}
+
+
+...
+
+
+
+---
+
+## Summary: Complete Prompt Set
+
+| Agent | Phase | Purpose | Primary Output |
+|-------|-------|---------|----------------|
+| Structural Scout | 0 | Extract document structure | Headers JSON |
+| Taxonomy Architect | 0 | Create unified taxonomy | Master Taxonomy JSON |
+| Coverage Scorer | 1 | Evaluate document completeness | Coverage scores JSON |
+| Index Builder | 1 | Create addressable Master index | Master Index JSON |
+| Delta Extractor | 2 | Extract unique content from SubDocs | Delta JSON |
+| Delta Consolidator | 3 | Merge and deduplicate deltas | Consolidated Delta JSON |
+| Final Assembler | 4 | Integrate and polish | Final Master Document |
+| Insertion Target Repair | Utility | Fix broken references | Corrected targets |
+| Completeness Auditor | Utility | Verify lossless integration | Audit report |
+
+These prompts are designed to be:
+- **Self-contained**: Each agent has all context needed for its task
+- **Output-structured**: JSON outputs enable reliable inter-agent communication
+- **Fail-safe**: Instructions emphasize preservation over elegance
+- **Verifiable**: Confidence scores and validation checks throughout
+
+Would you like me to also generate the file I/O specifications for how these agents should read/write their artifacts, or example implementations of the orchestration logic?
+
+
+
+
+
+

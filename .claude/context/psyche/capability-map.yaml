@@ -79,6 +79,12 @@ skills:
     replaces: memory MCP (shadow), lotus-wisdom MCP
     file: .claude/skills/knowledge-ops/SKILL.md
 
+  - id: skill.pulse-ops
+    model: haiku
+    when: "Task management — create/list/update/close tasks in shared Pulse backend"
+    tools: [mcp__jarvis-pulse]
+    file: .claude/skills/pulse-ops/SKILL.md
+
   - id: skill.deck-ops
     model: sonnet
     when: "Create slide deck presentations"

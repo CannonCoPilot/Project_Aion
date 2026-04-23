@@ -7,6 +7,11 @@ CREATE DATABASE n8n;
 -- RAG pipeline metadata
 CREATE DATABASE rag;
 
+-- Pulse task management (AIFred-Pro Operations Archon)
+CREATE DATABASE pulse;
+CREATE USER pulse WITH PASSWORD 'MSvfm3BjI9BujVD01K2ctFOJ';
+GRANT ALL PRIVILEGES ON DATABASE pulse TO pulse;
+
 -- Enable extensions in jarvis DB
 \c jarvis;
 CREATE EXTENSION IF NOT EXISTS vector;       -- pgvector for embeddings

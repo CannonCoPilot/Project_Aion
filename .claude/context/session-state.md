@@ -8,7 +8,7 @@
 
 ## Current Work Status
 
-**Status**: **PHASE 3 COMPLETE** (27/27 DoD) — Ready for Phase 4: Narrative Engine
+**Status**: **WORKSPACE REORGANIZATION** — Dual-archon model established
 **Version**: v5.11.0
 **Branch**: Project_Aion
 **Last Commit**: (pending this session) [Jarvis repo]
@@ -17,6 +17,32 @@
 **DwarfCron Last Pushed**: (pending)
 **Active fortress**: Girderpriced — COLLAPSED Y256 Winter. New embark needed for Phase 4 live testing.
 **Play Session**: Girderpriced complete — observed full lifecycle Y250-Y256, 206 snapshots, 0 citizens
+---
+
+## What Was Accomplished (2026-04-21, Session 50 -- Workspace Reorganization)
+
+### Dual-Archon Workspace Reorganization — COMPLETE
+- **Archive cleanup**: Moved 12 retired items (AIfred baseline, Jarvis2, claude-code-docs, ClaudeCode, gptr-mcp, lite-workspace, 6 aion-hello-console-*) to `Archive/`
+- **AIFred-Pro-Dev**: Cloned from `github.com/davidmoneil/AIFred-Pro`, created `nate-dev` branch
+- **Jarvis-Dev**: Cloned from Jarvis repo, created `dev` branch (pending CannonCoPilot/Jarvis repo creation)
+- **Shared_Projects integration**: Created `Status/nate/focus-areas.md` and `projects-summary.md`
+- **CLAUDE.md updated**: Added Operations Archon section (one-way awareness), Shared Workspace section, Development Spaces section, updated filesystem policy
+- **MEMORY.md updated**: New workspace layout, priority hierarchy, Shared_Projects protocol
+- **One-way awareness**: Jarvis locked into AIFred-Pro's Pulse task system; AIFred-Pro NOT modified for Jarvis
+
+### Workspace Layout (final)
+```
+/Users/nathanielcannon/Claude/
+├── AIFred-Pro/          # MASTER: Operations Archon (production, read-only for Jarvis)
+├── AIFred-Pro-Dev/      # DEV: Collaborative with David (nate-dev branch)
+├── Jarvis/              # MASTER: Project Aion Archon (production)
+├── Jarvis-Dev/          # DEV: Jarvis development (dev branch)
+├── Projects/            # Product code (DwarfCron, familysearch_hw)
+├── Shared_Projects/     # Synology Drive sync — ProjectIntel with David
+├── GitRepos/            # Read-only reference repos
+└── Archive/             # Retired items
+```
+
 ---
 
 ## What Was Accomplished (2026-03-23, Session 47 -- Phase 3 COMPLETE)
@@ -383,21 +409,26 @@ Previous session histories have been archived. For full details, see:
 
 ## Current Priorities
 
-### PRIMARY: Phase 4 — Narrative Engine (NEXT)
+### P1: AIFred-Pro Dev — Collaborative Development (TOP PRIORITY)
+- Development workspace: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/` (nate-dev branch)
+- Collaborative with David O'Neil via Shared_Projects/ProjectIntel
+- Longest planned timeline, widest scope
+- All tasks managed via Pulse (`project:aifred-pro-dev`)
+- **Immediate**: Reply to David's check-in, review AIFred-Pro codebase, identify first feature work
 
-**Phase 3**: COMPLETE (27/27 DoD, 2026-03-23). See `projects/chronicler/reports/phase-3-completion-report.md`.
-**Phase 4 PRD**: `projects/chronicler/reports/phases/phase-4-*.md` (to be reviewed)
+### P2: Jarvis / Project Aion — Master Archon
+- Continue self-improvement, autonomic components
+- Push pending commits (Jarvis Project_Aion, DwarfCron Dev)
+- Create CannonCoPilot/Jarvis GitHub repo for Jarvis-Dev
 
-**Pre-Phase 4 tasks**:
-- Push DwarfCron Dev branch (7 commits since last push)
-- Push Jarvis Project_Aion branch
-- New fortress embark for Phase 4 live testing
-- Review Phase 4 PRD and plan Stage 4.1
+### P3: Chronicler Phase 4 — Narrative Engine (PAUSED)
+- **Phase 3**: COMPLETE (27/27 DoD, 2026-03-23)
+- Phase 4 paused pending P1 ramp-up
+- Pre-Phase 4 tasks when resumed: new fortress embark, review Phase 4 PRD
 
-### SECONDARY: Infrastructure Maintenance
+### BACKGROUND: Infrastructure Maintenance
 - EVO-2026-02-004: Computed state over maintained state pattern (LOW)
 - REFL-022: Auto-capture self-corrections (LOW)
-- Batch embeddings rebuilding (5.8K of ~14K, background)
 
 ---
 
@@ -408,7 +439,8 @@ Previous session histories have been archived. For full details, see:
 **MCPs**: 7 active
 **JICM threshold**: 300K tokens; native autocompact: 50% (500K backstop)
 **VM SSH**: DF-Windows at 192.168.64.3, key ~/.ssh/df-vm
+**Workspace**: 8 directories (2 masters, 2 dev, 1 projects, 1 shared, 1 reference, 1 archive)
 
 ---
 
-*Session state updated 2026-03-23 -- Phase 3 COMPLETE (27/27 DoD). Next: Phase 4 Narrative Engine.*
+*Session state updated 2026-04-21 -- Workspace reorganized. Dual-archon model. AIFred-Pro-Dev is P1.*
