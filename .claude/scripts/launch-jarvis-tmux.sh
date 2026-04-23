@@ -236,7 +236,8 @@ preflight_services() {
     local infra_dir="$PROJECT_DIR/infrastructure"
     if [[ -f "$infra_dir/docker-compose.yml" ]]; then
         local running_count
-        running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || echo 0)
+        running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || true)
+        running_count=${running_count:-0}
         if [[ "$running_count" -ge 5 ]]; then
             echo -e "  ${GREEN}✓${NC} Docker Compose stack ($running_count containers)"
         else
@@ -245,7 +246,8 @@ preflight_services() {
             # Wait up to 30s for containers
             local waited=0
             while [[ $waited -lt 30 ]]; do
-                running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || echo 0)
+                running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || true)
+                running_count=${running_count:-0}
                 if [[ "$running_count" -ge 5 ]]; then
                     break
                 fi
@@ -285,6 +287,13 @@ preflight_services() {
     else
         echo -e "  ${YELLOW}✗${NC} LiteLLM Proxy — not running, will start in tmux window"
         LITELLM_STARTED_BY_PREFLIGHT=true
+    fi
+
+    # 6. Pulse API (AIfred-Pro Operations Archon)
+    if curl -sf --max-time 2 http://localhost:8700/api/v1/health >/dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Pulse API (AIfred-Pro, port 8700)"
+    else
+        echo -e "  ${YELLOW}!${NC} Pulse API — not running (start: bash ~/Claude/AIFred-Pro/pulse/start-pulse.sh --background)"
     fi
 
     if [[ $failures -gt 0 ]]; then

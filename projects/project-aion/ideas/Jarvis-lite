@@ -1,0 +1,193 @@
+Jarvis-dev, I'd like you to take over the project I started with Jarvis --lite.  We are working on building a data dashboard to showcase for a Data Science AI/ML interviewee exercise.
+  The point is that we want to build out a fully scoped dashboard and analysis control center based ont he data set that we will be giving to job candidates. This project will serve as a
+  high-water mark against which to judge candidate work, and so it must exceedprofessional and scientific standarts in terms of rigor in data quality, vizualiation, exploration, and
+  analysis AND showcase multiple examples of highly effective clustering and segmentation analysis yielding interesting and statistically signigicant results.  The code is at
+  /Users/nathanielcannon/Claude/Projects/familysearch_hw and I want to keep the existing dashboard as a sort of Phase 0 demo, but clone it and have a working/experimental version to do
+  build outs and redesigns.  The data set is '/Users/nathanielcannon/Claude/Projects/familysearch_hw/Data Scientist 2 mock analysis data.csv 1.gz' and the exercise instructions are
+  '/Users/nathanielcannon/Claude/Projects/familysearch_hw/Data Scientist 2 Mock Analysis Exercise.pdf'.  Dashboard/Control Center needs to fulfill ALL of the excersize requirements as an
+  exploration tool, analytical , results notebook, and project protfolio.  It needs to be visually "on brand" for FamilySearch, and could take aesthetics from FamilySearch, Ancestry.com, or
+  LDS.org and any other high profile academic peer-reviewed outlets like Nature, Science, Cell, or Ameri. Soc. Human Genet. A summary of the requirements are as follows
+
+  - analyze a dataset of newly created user accounts (all created within the past year)
+  - develop a machine-learning segmentation model that groups users based on their early behaviors, demographics, and contribution patterns (and essentially ANY raw or transformed or
+  composite parameters found in the data set)
+  - demonstrate how you think, how you frame ambiguous analytical problems, how you engineer meaningful features, and how you communicate insights to non-technical stakeholders
+  - uncover distinct user segments and interpret what makes the groups meaningfully different from each other
+  - [Pasted text #1 +6 lines]
+  - Facilitate an interactive [Pasted text #2 +5 lines]
+  - Allow user to build a variety of machine-learning models to identify meaningful user segments... with explanations of strengths, weaknesses and applicability of approaches
+  - A dynamically generated report page that will [Pasted text #3 +6 lines]
+  - Has tools to help the user highlight and clarify their reasoning and interpretation
+  - Has tools to help the user highlight and clarify their algorithmic optimization methods
+  - Helps to translate findings into clear, business-oriented insights and present the findings
+  - [Pasted text #4 +5 lines]
+  - Can be customized to present to highly technical audience, senior business leaders, or non-technical stakeholders... "keep it concise and interpretable"
+
+
+  Also, you need to highlight this quote and create an "About" page where we'll leave my personal info, github repo and other stuff: ""We have the duty of formulating, of summarizing, and
+  of communicating our
+  conclusions, in intelligible form, in recognition of the right of other free minds
+  to utilize them in making their own decisions." R.A. Fisher"
+
+
+  Time to begin making some concrete decsions about how to analyze this data.  The dashboard is sufficiently useful so as to help me explore and review distributions, identify quality and bias issues, and manually exclude subsets of the data prior to running clustering and segmentation analysis.  The following notes need to be addressed leading up to determining best-fit models for this data.
+  - What impact would time since account creation have on the strength or value of a gien account as a datapoint in the sample?  For instance, is it a generally good assumption to believe that the more recent the account is, the fewer overall observation points it has, and therefore the weaker or noisier the signal from that account may be?  What is a best practice approach to address this?
+  - Similar to the previous question, would it advantageous to somehow convert the data into longitudinal form, such that each account becomes a timeline of operational events across which we could identify trend in terms of changes in user behavior over time (since account creation) and then use these patterns as a basis for clustering?
+  - Similarly, age x use trend would seem like a goldmine of info to look at, but it depends on whether we can get full longitudinal value out of the data as it exists
+  - Column drop-down of Country says there are 215 unique values and 0% missing... is there a way to take advantage of this granularity?  Could we intelligently bin into statistically determined classes that are better than "geographical region?  Mightn't other hidden factor prevail like state of development of a country, which data could be pulled in from outside sources and appended? Can or should we drop "unknown" country records? 
+  - Huge question that arises from the last question... what are some of the best open source freely available data that could be merged into this data, like economic indicators, LDS statistics like number of temples in a country, things like that?  I need you to perform an extensive exploration of economics journals for papers that investigate the correlations between indicators of development and religiosity with online consumer behavior.
+  - What should we do about keeping, dropping, or interpolating values for records or columns which have a high degree of missingness?
+
+  You will review, reflect on, explore, and report back on all of the above issues raised.  If you think there are other issues that have not been raised here which are of importance to data exploration and prparation for mothodologically sound clutering and segmentation analysis, then raise those issues yourself and subject them to the same reviwe process.  The primary objective at this juncture is to establish a sound methodology in accordance with all best-practice procedures to handle missingness and other quality and bias, and to generate statistically significant and easily interpreable models for clustering and sg=egmentation analysis of these data.  Do you have any questions before you proceed?
+
+
+
+
+Since we sill be creating engineered features (aka derived variables) and also joining additional data through enrichment, and also because we will want to create parquet tables from subsampling, and also want to speed up data retrieval, should we build a database first? Put down your thoughts on a plan for this in a section 0 about data structure and engineering in the doc Projects/familysearch_hw/docs/methodology-report.md
+
+Methods Notes:
+
+Next I will ask a series of questions to go through the Projects/familysearch_hw/docs/methodology-report.md doc and make some minor adjustments.  Once done we will then move on to writing the full Methodology pipeline/roadmap.  First question:
+
+"Data Infrastructure: Database-First Architecture" at Data Flow Diagram"
++ Based on the this section it would appear that we should probably re-organize the methods steps to put all of the data restructuring and enrichment work towards the beginning on the project pipeline.  How should we organize the final methodology pipeline to accomodate a full database build as early in the process as possible?
+
++ Binning at 66+ is a customary decision, to obscure data related to the elderly and add a layer of identity protection.  For our purposes though, internal use dictates that we maintain binning by ten-year gaps so long as the number of individual accounts within a ten-year span bin does not decrease to a trivially small number.
+
++ Seciton 1 "Tenure Bias: Account Age and Signal Quality"
+Make note that treatment of tenure bias needs to be included in the MEthods Pipeline doc.
+Revise to include log(tenure) weighting
+All other recommendations are sound.
+
++ Section 2 Longitudinal Conversion Feasibility
+Since "Do NOT attempt time-series clustering" what kind of modelling or clustering can be done on the pseudo-long data?
+
++ Section 3 Age x Engagement Interaction
+Can you refresh the statistics in this section of Projects/familysearch_hw/docs/methodology-report.md
+
+
++ For "4. Country Variable: Exploiting 215-Country Granularity" for:
+- High-engagement, high-LDS (US, Mexico, Brazil, Chile, Peru, Argentina, Philippines)
+- Moderate-engagement, low-LDS (UK, Germany, France, Australia, Canada)
+- Low-engagement, high-development (Netherlands, Japan, South Korea)
+- Low-engagement, developing (Egypt, India, Nigeria)
+- Micro-countries (combine all <100-user countries into one bin)
+Consider splitting US into UT/ID and Other for better granularity, putting 'Other' into moderate/high engagement low-LDS
+
+Make note in the methods report that "LDS presence — join LDS temple/membership data per country" is contingent on being able to access and gather that data, and to see Phase 5
+
+"Drop Province/City — 97% "Unknown", confirmed unusable." See also "6. Missingness Strategy" at Province/City (97%+ Unknown):"
+Can you actually do a re-analysis of the City and Province data int he 250k parquet? The data dashboard says that these fields are at 0% missing.
+
+This feels like a gotcha, or easter egg that they want to see.  Who is there ans what use can we make of it?  Can we do a head-to--head if two cities are "known"
+
++ For "5. External Data Enrichment" can you run a quick validation of data availability fromt he listed sources? Are there APIs that let us query datasets?  Would we be scraping tables from web pages or using wget and ad hoc reformatting?  What is the plan for each of the data sources listed under "Recommended Datasets"?
+
++ "6. Missingness Strategy"
+Going back to the Country, Area, Province and other geographical data columns... can you run an analytical comparison of presence/absence of data in those columns specifically in order to look for correlation and corroboration of data among fields?  What if for example many records have 'unknown' Province but then have 'Utah' for their region or area, etc?  To what degree could these columns compliment one another?  Could we engineer a 'geo_location' feature that collapses down "best granulatiry" information across those columns into one or two more useable columns?
+
++ "7.3 Dominant Inactive Segment"
+In light of "Activity null block (10.2%)" Option A of section "6. Missingness Strategy", is it still neccessary subset out and mask the inactive segment?  Are these different issues altogether?
+It does get to the heart of an important question: might it be worthwhile to further segment the high-frequency users?
+Is there anything meaningful in the 1 login or 2 login cluster demographics?  Do the 1 login users execute any action, is there a dominant one?
+
+
+
+
+Next will create a new doc based off of Projects/familysearch_hw/docs/methodology-report.md which will be the Main Methodology Roadmap.  This doc is different from any Dashboard/Control Center roadmap because the product is the data handling and analysis with deliverable reports.  Once completed we can then revisit the Dashboard and refine it until we can use it to recreate the methodological workflow.  
+
+
+
+Good points for methods:
+
+COUNTRY (categorical, 215 values)
+Distribution: Extreme long tail. Top 5 = 57.9% (US 26.2%, Brazil 20.7%, Mexico 4.7%, Philippines 3.2%, Argentina 3.1%). 122 countries have <100 users. 49 countries have <10 users. Bottom 107 countries cover 0.72%.
+Quality: 0% null. 87 "Unknown" values (0.03%).
+Analytical significance: Engagement varies significantly by country (Mexico 4.99 avg logins vs Philippines 2.37). Geography is a proxy for LDS presence, economic development, and digital infrastructure.
+*** Derived features: country_engagement_cluster (data-driven behavioral bins), external enrichment (GDP, HDI, LDS temples). ***
+
+
+USER_AREA_NAME (categorical, 26 values)
+Distribution: LDS organizational areas (not geographic regions). "United States" 25.2%, "Brazil Area" 20.7%, "Europe Central Area" 15.2%.
+Analytical significance: This is an LDS administrative geography — reveals FamilySearch's organizational structure. More granular than WORLD_REGION (26 vs 7 values) and directly maps to LDS operational units.
+*** Derived features: Could create area_engagement_mean (mean engagement per area, then join back to individual users). ***
+*** Action: Consider as a stratification variable. Potentially more useful than WORLD_REGION for capturing LDS-specific geographic effects. ***
+
+"Single-browse visitor"
+How many of them are actually just late-year data captures?  What is the expected time-to-contribution based on mutli-login accounts, and is the mean time since creation for single-browse visitor accounts greater than that expected value?
+
+
+Kick-off:
+Alright Jarvis, great work polishing up and revising the methods report and the methods pipeline document.  I now have a clearer picture of the big questions and hypothesis-driven analysis
+ that we will use to guide the methods pipeline towards a helpful and informative conclusion to present to the hiring committee for review of the exercise's value as a candidate-search tool.
+  First I need to define a few terms: Velocity will be the measure of time between milestones (first login, first tree edit, first record, etc); Volume will be the rate of contributions as
+in the number of user account edits made over a fixed period of time; Sequencing will describe the variety of completed milestone contributions and the order in which they are done;
+Persistance will describe the survival curve of user activity, essentially a measure of long-term activity with steadily increasing cumulative contribution.  Persistance will be our
+Classifier variable, meaning that we want to perform supervised classification on the data to determine what other variables in the data can be combined into a successful discriminator
+function, classifying non-traiing set user accounts as Persistant or Transience based on the discriminant function.  We will hypothesize that Velocity, Sequencing, and Volume will be
+parameters that are highly loaded by the discriminant function.  We then will want to perform unsupervised clustering on additional training data sets to evaluate the structure of the data
+in relation to the discriminator variables.  We will then compare the pattern of Persistance vs Transience among the clusters to assess whether the prediction holds that Persistance of
+contribution of users is classifiable by Velocity, Sequencing, and Volume.  If we find that other parameters in the data such as country_cluster, age, socioeconomic factors, and so on
+actually contribute a greater predictive signal in the classification/clustering of user Persistance then we might conclude that certain factors greater than the patterns of user engagement
+are driving user Persistance.  The broader metaphysical question that underlies our hypothesis' assumptions is the question "should we expect that people of different cultures, ages,
+genders, education or wealth will differ greatly between themselves in matters of what captivates and holds their attention and motivation?  In other words, do we or do we not all like the
+same stories, and is our engagement with story of our family histories more greatly influenced by our circumstances or by how we approach that same engagement?
+Most, and probably all of the considerations for data processing set out in the Methods Report and the Methods Pipeline documents will be necessary to implement at some stage of the
+methodological pipeline needed to address this main question.  But the Methods Pipeline document will require a significant rewrite.  I would like for you to generate a Hypothesis
+Exploration Pipeline document that includes everything that needs to be done, from data QC all the way through to tertiary analyses and concluding assessments.  Save this as a new doc, and
+it will serve as the roadmap for us to follow to work through each stage of the complete methods of this project.
+Jarvis, do you have any questions before you begin?
+
+
+
+
+Update the hypothesis pipeline document with a Data Density Assessment section documenting these tiers. Then produce a report complete with diagrams, graphs and breakkdowns of the missingness/zeroness problems in the data. The bottom line really is this: what slices of the data are effectively unusable, and what subset of the data is left to perform our classification/clustering analyses?  In the report I also want statistics on whether certain global regions or countries disproportionately contribute missingness and zeroness to the dataset.
+Then revise the construct definitions acknowledging the 3-activity limitation.  This plus a revised Tier C/D as the target analytical population (~42%, not 47%) can be written together into a more accurate and comprehansive scoping of what the Sequencing construct can and cannot capture given this sparsity.
+
+
+
+Now I need a powerpoint or pdf formatted slide deck document to provide an executive summary of findings and overview of methods.  I would like the through-line concept to be that volume, velocity and sequencing during the initial 90 day engagement stage are the best predictors of user persistance during the first year of account activity.  Compared to socio-economic, demographic, and regional factors these user behavior patterns explain a much higher total proportion (in terms of combined variance explained by behavioral factor loads versus demographic/enrichment loadings) of user persistence. However, global development and socio-economic indices do explain a significant proportion, and in fact turn out to be the mot naturally segmented subsets of the data.  Within these global development tiers the relationship between behavioral patterns and user persistance is quite stronly linear, except that it appears to be weaker and non-linear, with an early plateau for Tier 1 users. (Provide an explanation of what the Tiers are based on). Lower-tier segment users appear to have a stronger and more linearly increasing response to a 90-day behavioral engagement pattern, but the lack of total "power contributors" among those tiers may also indicate an underserved demographic or an untapped potential that could benefit from a more structured and comprehensive introduction and guide to FamilySearch "power" use patterns of Volume, Sequence, and Velocity.
+I want you to scan the assessment report documents for every phase, exploration stage, and segmentation post hoc analysis to pull out any details that help to support, visualize, clarify, and connect these ideas and conclusions.  I am especially in favor of including the following figures: 
+Projects/familysearch_hw/outputs/data-density/fig1_column_density.png, 
+Projects/familysearch_hw/outputs/data-density/fig3_density_funnel.png, 
+Projects/familysearch_hw/outputs/exploratory/fig_biplot.png, 
+Projects/familysearch_hw/outputs/exploratory/fig_pca_loadings_pc1.png, 
+Projects/familysearch_hw/outputs/exploratory/fig_pca_loadings_pc2.png, 
+Projects/familysearch_hw/outputs/exploratory/fig_pca_loadings_pc3.png, 
+Projects/familysearch_hw/outputs/exploratory_b/fig_biplot.png, 
+Projects/familysearch_hw/outputs/exploratory_b/fig_pca_full_country.png, 
+Projects/familysearch_hw/outputs/exploratory_b/fig_pca_loadings_pc1.png, 
+Projects/familysearch_hw/outputs/exploratory_b/fig_pca_loadings_pc2.png, 
+Projects/familysearch_hw/outputs/exploratory_b/fig_pca_loadings_pc3.png, 
+Projects/familysearch_hw/outputs/phase2/fig_persistence_c_dist.png, 
+Projects/familysearch_hw/outputs/phase3/fig_enrichment_coverage.png, 
+Projects/familysearch_hw/outputs/phase3/fig_gdp_hdi_lds.png, 
+Projects/familysearch_hw/outputs/phase3/fig_source_coverage.png,
+Projects/familysearch_hw/outputs/phase4/fig_population_funnel.png,
+Projects/familysearch_hw/outputs/phase5/fig_block_auc_comparison.png,
+Projects/familysearch_hw/outputs/phase5b/fig_block_auc_comparison.png,
+Projects/familysearch_hw/outputs/phase6/fig_pca_clusters.png,
+Projects/familysearch_hw/outputs/phase6/fig_pca_persistence.png,
+Projects/familysearch_hw/outputs/phase6b/fig_pca_clusters.png,
+Projects/familysearch_hw/outputs/phase6b/fig_pca_persistence.png,
+Projects/familysearch_hw/outputs/phase6b/fig_radar_profiles.png,
+Projects/familysearch_hw/outputs/segmentation/fig_gradient_by_tier.png
+Caption the figures in slides with explanations of the data shown.  Title slides with the main take-home message of the figure.  Tie together the take home message of each slide in sequence with the others in order to build towards the narrative and conclusions summarized above.  do you have any questions before you begin?
+
+Dashboard
++ The landing page/Home should show a summary of the database, rather than data set, and give a template user profile
+
++ General: Need to be able to specify sample size manually through the Dashboard, or provide smaller/log-based increments
+
++ Binning at 66+ is a customary decision, to obscure data related to the elderly and add a layer of identity protection.  For our purposes though, internal use dictates that we maintain binning by ten-year gaps so long as the number of individual accounts within a ten-year span bin does not decrease to a trivially small number.
+
+
+
+
+
+
+
+
+
+
+

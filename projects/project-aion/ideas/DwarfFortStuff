@@ -1,0 +1,1038 @@
+DwarfFortStuff
+I'm noticing a few regressions on the details that you are workign with.  You're also about to hit a JCIM context reset, so you're going to loose a lot of this too. We are not on a VM,
+  we are accessing a Windows PC running on my local network.  User: Nathaniel Pass: DwarfF0rtress  I am able to log in and out with no problem.  The PC name is 'HomeServer' running
+  Windows 10 Pro. Remote Desktop is enabled, but I do not have this Mac Studio set up to connect yet.  From the HomeServer machine I can see the 'Jarvis' Mac Studio, but not connect with
+  my credentials, if that's relevant.  The HomeServer IP is 192.168.4.194. Save this information. Dwarf Fortress 53.10 is running, with DFhack 53.10-r1 running. The dfhack command prompt
+  window is open.  We should add the command 'show' tot he dfhack init so that the dfhack command prompt autolaunches with dfhack. 'enable RemoteFortressReader' returns "Cannot enable
+  plugin: RemoteFortressReader'. 'ls' does not show RemoteFortressReader as a plugin command. We can access everything we need without RemoteFortressReader via Lua scripts which can agges
+  dfhack.global (I might not have that exactly right) and Lua scripting is the officially supported approach for community modders to access in-game data, affect game states, and so on.
+  You may also note that Dwarf Therapist (DwarfFortressLogger git repo) can also access a very detailed level of data. DFhack is certainly able to open up access to this depth of data
+  and more, with the right approach. Let's regroup, establish some ground truth information in MEMORY and plan douments, begin the process of remote file transfer and command execution to
+  the Windows machine 'HomeServer' and then reassess our approach to workign around the limitations we have without the RemoteFortressReader plugin available anymore.
+
+~~
+
+ Excellent work, as always Jarvis. This is very informative and also promising! I have a few questions in follow up, and then I'd like to plan out a plan to implement as many gap closure
+  fixes as are currently feasible.
+  - It's almost certainly the case that the additional information you've found about data sources and structures would superceed this, but there is also a game-log file which is a
+  running append-only log file that adds streaming outputs from the on-screen alerts.  It is at "C:\Program Files (x86)\Steam\steamapps\common\Dwarf Fortress\gamelog.txt" and might
+  include some useful detals about how events play out within-fort, like injuries, hauntings, and things like that.
+  - A more general question I have is whether the current (or planned with the above fixes) structure and exposure of game data is designed in such a way as to allow the LLM to
+  appropriately discover data describing events, historical figures, and etc which span the Legends XML side and the live in-game memory side.  Say for example "The War of Swords" is
+  recorded in Legends data, and there is also in-game world event data tracked in-memory, how structurally "distant" from each other are these two clusters of data that both describe the
+  same continuous event in its "pre-game" and its "in-game" progress?
+  - Possibly one of the greates challeges we might face will be designing a sufficient data capture and linking system to allow the LLM to reconstruct details of events as seen through
+  the eyes of the units in-game. For example if "Urist was horrified after seeing a dead body" based on 'personality.emotions vector' data, what corroborating data exists that can add
+  details such as "whose dead body?" and how would such data be easily discoverable? An LLM could plausibly draw inferences based on indirect or circumstantial data (e.g. a known recent
+  death, location of a corpse "item", and time and location of the "horrifying" experience) but I sense that connecting the dots between such otherwise isolated datapoints might be
+  difficult for an LLM without some very specific prompting which basically amouts to 'a piori' knowledge on the player's part. This is a rather open ended question, but given what you
+  now know about the available types of datapoints, and how they are organized, and how they are tracked in time, is there any way you can think of either to restructure the data model to
+  bring contextually related data into closer proximity, or to restructure the Chronicler's system prompts so it has a stronger intuitive grasp on what kinds of important or merely
+  interesting or curious details it can find to fill out the color and verisimilutude of the stories, without hallucinations and fabrications?
+  - A basic mechanistic question I have about the level of detail tracked by in-game memory is related to locations of figures and events within a fortress map space. Does the game 'care'
+  about knowing that 'Urist McDwarf' is in 'the Tavern' as opposed to in 'his room' when he became 'euphoric from inebriation' as opposed to began 'retching'? Recovering this level of
+  detail would be amazing if it exists.
+  Overall I'm quite happy with your critical gap analysis. Lets execute an end-to-end implementation of as many fixes as you are able to design. Then after these have been filled,
+  bug-tested, and validated we'll circle back and reanalyze data gappiness.  Before jumping into implementation, please record everything you've outlined from your gap analysis, going
+  into as much detail as you can to make a record of findings and proposed solutions. This will act as a guide for what will likely be a multi-phase process of expansion and refinement of
+  these systems.
+
+~~
+  An idea for data-slimming: Limit the search space or create a copy of a subset of the database taht eliminates information of things that pertain specifically to other regions than the one in which the fortress is located, other civilizations than the one the civilization belongs to, and specific details about individuals outside the civlization/relations/groups of the denizens present within the fort.  Probably masking parts of the database would be best because then in theory these masks could be dynamically updated as the database grows, as migrants arrive, as squads conduct raids on outside sites. This way the LLM has less data to search through, it can be instructed to be more thorough in its sequential searches through the unmasked database spaces, and with dynamic changes to the masking the LLM's available knowledge would grow somewhat organically based on in-game within-fortress conditions.
+
+
+~~~~
+Priority issues:
+- Units and Historical Figures have essential differences, but they should be thought of as the same, ontologically, from the user's perspective.  We should be able to show pretty much all of the same data that is shown in a Historical Figure entry: biography, relationships, memberships, positions held.  Although their data may be strcutured a little differently, the UI ought to make HFs and Units seem basically liek the same type of database object.
+- HF display: Age is not being calculated. Shown as "Alive"  I don't know if we want to actually calculate and recalculate Age for all of the historical figures
+- In the civilization tab, when viewing a civilization's data, the 'Variants' column should only display the gender variant that pertains to the unit of that row. There should be another column added for Site, so it doesn't just look like a list of "Baron" and "Names". Rename Variant as Title, so it would have like "Queen", "Baroness" etc. For non-noble positions, put the 'Position' into the renaed 'Variant' so that "Diplomat" would be liek a title being listed. These don't have gender variants, so no extra tracking there. Add a new derived column that further groups 'Position' into 'Noble', Administrator, or Military.
+- Need to handle search so that accented matches unaccented letters: ó=o
+- The left side Units/Civs/Entities list should scroll within its own pane, and should have sort and filter options.
+- In it's current version, the Chronicler tabs appear to show ALL entities for browsing and seraching.  Not sure if there was supposed to be a first-try Knowledge Horizon filter on rows yet. 
+- When Load Members is clicked, the table that is populated should have column sorting and filtering. It also doesn't load all members.  Nees to load all (up to a much higher cutoff like 1000) and needs sorting and filtering on top of that.
+- UI needs its own BACK and FORWARD button because the browser doesn't handle these nested navigations as pages.
+- Clicking "View Graph" from Vabok opens an empty graph.  "This unit was born after the legends export — no graph data available" <- Hm. Needs the same lavel of detailed data gathered for in-game units as for HF's.
+- Civilizations are not loading sites correctly.  They all appear as 0 sites, so there are some row links that aren't getting created, or are getting dropped maybe?
+- Grom Geography tab, within a site the notables listed as having 'Occupation'
+Notable Inhabitants (25)
+ast lancedlearning DWARF / Occupation
+aweme portalrivers ELF / Occupation
+ducim flankedgalleys DWARF / Occupation
+enure hoaryback ELF / Occupation
+- "Recent Events" Type is uninformative, should populate more columns for richer info
+- Graph view should allow toggle of node types and edge types to display
+- Civilization left panel list -> Hide "Civs" which are 'bird_man', 'ant_man' etc AND which have 0 members.
+- Current fort site government does not show up in Site Govt list "The Even Lens"
+- The 'Civilization' Types lited in the Civilization tab dropdown are actually hierarchically related, so there should be navigable hierarchy views somewhere that lets the user navigate from civ to site to guild or militia, and so on.
+- The detail pane that provides info on selected entity nodes, for units and HFs at least, the data in there still shows encoded details like:
+lover: hf-4881
+former spouse: hf-10041
+former spouse: hf-10901
+spouse: hf-10901
+child: hf-22326
+mother: hf-22326
+member: the moist arches
+former member: the searing turquoise
+(Depending on the view these data sometimes populate and sometimes dont, like above)
+- Graph details pane for Sakzul plankunions shows lots of mothers?
+- Edges should get hover bubbles too
+- The graphs should default to a unit/HF-centric paradigm: units/HFs are the nodes, edges are their relationships, colors of nodes vary depending on the pallet type that the user selets from an interactive Key/Legend - can color by sociographics (site of residence, guilds, religions ,etc) or by Unit properties (vampire, werewolf etc) or by position (noble, admin, military, commoner)
+The best generalization of the most critical issues I am finding all stem from there being too much of a fundamentally different and distinct handling of pre-game Legends data, and in-game data.  We need an extensive and comprehensive exploration of the fields from both sides of the data sources to ensure that everything is mapped between them one to one (I think probably one to one), then implementation and a report back on 'missing' links, ie fields in either data group that don't match at all to anything in the other data group.  Also stem from the lack of intuitively revealing relationships between entity hierarchy.
+- Graphs should have rendering paradigm presets (family tree, social network, group-based network [like what orgs go inside of what orgs?], Hierarchy and rankings Within a site or group - who is under who?)
+
+Do a deep and careful review of the ways in which columns and tables are related to one another from the perspective of the user who wants to uncover relationships among and between units/HFs primarily of different types like shared groups or family connections, and second to that be able to see organizational structure within groups, relationships and hierarchy between groups. Create for yourself a mental map of who you would want those core paradigm approaches to be visualized, and then refactor and expand the current graph rendering tools to faithfully generate the kinds of views and viewing options that you would want to have.
+
+
+~~~~~
+Let me add some contextual info 
+  │  #  │  Layer  │                    Gap                    │                                Root Cause                                │    Severity    │
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G1  │ Data    │ 20/20 fortress dwarves have no HF record  │ HF IDs 36468-36487 beyond legends export max (35333)                     │ GAP            │ -> The "starting" units have no HF records.  Their unit information coud be used to populate "synthetic" HF records.  Their Unit records will continue to be the records where all new data is recorded.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G2  │ Data    │ Cerol death not detected                  │ Watcher doesn't check is_alive transitions or death_id in flags          │ GAP            │ -> We should add a table to the database that tracks the presence of units/historical figures who are in or have been in the local in-game running fortress.  In case a unit dies and then simply falls off the radar of the LLM because there's no known death record, the database should have that person as having previously been a denizen of the Fortress, so that if and when there is a question about in-game major events the LLM understands to examine and interpret all data related to the units/HFs who show up in that "Live at/Lived at/Visited/Attacked/Skulked/etc etc etc" list.  This might also be the better table for keeping the Narrative Value Scores.  It can serve as a gateway table for the LLM to establish the "who" for its scope of database searching in a lot of cases, since most of the time the user will want to ask about actual in-game characters.  This could maybe be thought of as the center or the root node of the Knowledge Horizon graph.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G3  │ Data    │ 0 dead dingo/raven                        │ Same death detection gap                                                 │ GAP            │ -> Units are currenty ALL creatures in the live in-game fort.  We need to add a layer that separates 'people' and 'animals' - not as simple as 'human' v 'monster' either.  The creature files within Dwarf Fortress have tags inside them which indicate whether a creature is SENTIENT.  Sentient Units should be one type, handles in a unified way, and are the ones many o whom map to Historical Figures from the XMLs.  Non-sentient creatures are never historical figures, and are always just thinkgs like wild animals, non-sentient monsters, pack animals, livestock.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G4  │ Data    │ 0 game reports                            │ Bridge doesn't extract announcements from DF                             │ GAP            │ -> Definitely need to access and export ALL game announcements.  This was supposed to be a core part of the design, which I sense you might be drifting away from.  Ensure that you ALWAYS resort to deep-searches of the Dwarf Fortress-related Grafiti memories, the existing git repos of the Dwarf Fortress tools we've cloned locally.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G5  │ Data    │ Bard "Ducin" vs "Ducim" typo              │ Ground truth name was wrong — DB has "Ducim" which matches the game      │ FALSE POSITIVE │ -> Ground truth name was right.  You incorrectly parsed the name from the screenshot because 'n' and 'm' look very similar.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G6  │ Query   │ Storyteller can't find Vabok in HF table  │ Name search only queries historical_figures, not units                   │ GAP            │ -> So, right, we talked about how these need to be seamlessly interconnected.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G7  │ Context │ Bard query returns 0 bard-related context │ "bards" not a category route; name search doesn't reach units            │ GAP            │ -> Major gap right?  So, analyze all of the in game data structures and figure out what's missing in order to be able to query very deep-level details about all in-game entient units.
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤
+  │ G8  │ API     │ Chronicler says "no record" for Vabok     │ Cascading from G1+G6 — no HF record AND storyteller doesn't search units │ GAP            │ -> Should resolve with G1/G6 fixes
+  ├─────┼─────────┼───────────────────────────────────────────┼──────────────────────────────────────────────────────────────────────────┼────────────────┤ 
+  │ G9  │ Cross   │ 20 unresolvable HF references             │ Same as G1 — fortress dwarves' hist_fig_ids point to non-existent HFs    │ GAP            │ -> I noticed a lot of data is being returned with IDs only.  We need to make sure that IDs ALWAYS point to or are part of a record for HFs and/or Units, and that the personal name of the individual is returned.
+
+  Basic questions of my own:
+____
+You
+Who are the dwarves of Likotkin?
+
+Chronicler
+In the annals of Thadar En, the name **Likotkin** is not one that graces the ancient records with grandeur or renown. It is a name spoken in hushed tones, a place of quiet significance in the tapestry of the world, yet one whose inhabitants remain, for the most part, obscured from the chronicler’s gaze. The records do not speak of a great people or a legendary lineage from Likotkin, yet the living inhabitants of the fortress bear witness to the presence of dwarves who call this place home.
+
+Among them, we find a handful of figures whose names are etched into the present, if not the past. **Aban Ibeshbomrek**, a dwarf of standard status, is marked by emotions of 106(0), 97(0), 151(0)—a curious and perhaps unspoken tension in his soul. His demeanor is not one of overt distress, but of quiet contemplation, as if he carries the weight of unseen burdens.
+
+Then there is **Ast Dodókùst**, whose emotions hover at 188(0), 189(0), 188(0)—a state of high stress and emotional turmoil. His presence is one of unrest, perhaps stirred by recent events or the pressures of daily life in the fortress. His name is not one of the legends, but his spirit is one of the living echoes of the world.
+
+**Athel Lathonkosoth**, with emotions of 106(0), 151(0), 240(0), carries a deep sense of sorrow, as if mourning something long past. His soul is heavy, and his gaze is often distant, as though he dwells in the memories of a time that is not his own.
+
+Others, such as **Deduk Arelzon**, **Dîshmab Logemmeng**, and **Doren Bomrekmâtzang**, are known for their roles in the fortress—miners, bards, and laborers, each contributing to the rhythm of daily life. Their emotions, though not always of great magnitude, are marked by the subtle shifts of a world in flux.
+
+Still, the name **Likotkin** remains elusive, not because its people are forgotten, but because their stories have yet to be told. They are the silent ones, the ones who toil in the shadows of history, their lives unfolding in the present, their fates not yet written into the annals of legend. And so, the Chronicler speaks not of their past, but of their now—of the dwarves of Likotkin, who walk the stone paths of their world, their hearts beating with the unspoken truths of the living.
+
+
+____
+You
+Who is the leader of the settlement of Likotkin? Tell me about their experiences founding the fortress.
+
+Chronicler
+**The leader of the settlement of Likotkin is , the dwarf female born in year 40, who passed away in year 107, slain by Suton Gravegristle the Tentacle of Hollows.** 
+
+Zefon Leadermined was a figure of formidable will and unwavering resolve, her name etched into the annals of Thadar En as both a builder and a bane to the forces of entropy. Born to Risen Boltprides and Sigun Princesscopper, her lineage was steeped in the traditions of the dwarven race, and her early years were marked by an insatiable curiosity for the subterranean mysteries that lay beneath the surface of the world. It was in this spirit of exploration and ambition that she first set her sights on the unclaimed lands where Likotkin would one day rise.
+
+Zefon's journey to Likotkin began in the year 58, when she was but a young dwarf of seventeen. She was then engaged in a high-fantasy job at Netmountains, a region known for its treacherous terrain and the ever-present threat of hostile creatures. It was here that she first encountered the concept of leadership not as a title, but as a responsibility. She led her fellow dwarves with a quiet authority, her decisions always guided by a deep sense of duty and an unshakable belief in the potential of the land.
+
+By the year 68, Zefon had already begun to make her mark on the world. She had settled at Grippedwheels, a place of strategic importance, and it was here that she first conceived of the idea of establishing a permanent settlement. Her vision was clear: a place of safety, prosperity, and cultural flourishing, where dwarves could live free from the encroaching darkness that threatened their way of life.
+
+Her efforts culminated in the year 72, when she set her sights on the region of Brassbrush. Here, she established the first permanent structures of Likotkin, her hands guiding the construction of tunnels, forges, and dwellings. She was not merely a builder, but a visionary, her mind ever attuned to the needs of her people and the challenges of the world around her. She brought with her a cadre of skilled dwarves, many of whom had joined her cause out of admiration for her strength and wisdom.
+
+As the years passed, Zefon's influence spread, and she became a central figure in the political landscape of Thadar En. She was a member of the Avalanche of Bristling, a powerful entity that governed the dwarven factions, and her leadership was sought after by many. Yet, despite her growing power and renown, Zefon remained grounded in her purpose: to ensure the survival and prosperity of her people.
+
+Her life was not without its trials. In the year 85, she joined an entity known as the Mechanical Leaders, a coalition of dwarven factions that sought to harness the power of machinery and industry. This decision marked a turning point in her life, as she began to explore new frontiers of technology and engineering, further solidifying her place as a pioneer of the age.
+
+However, her greatest challenge came in the year 107, when her life was cut short. While she was in the region of Cloisterchambers, she was slain by Suton Gravegristle, a monstrous creature of the Hollows. The cause of her death was struck, a brutal end to a life that had been filled with purpose and passion.
+
+Though Zefon Leadermined is no longer among the living, her legacy endures in the fortress of Likotkin, where her vision lives on. Her name is spoken with reverence, her deeds remembered in the songs of the dwarves, and her spirit woven into the very fabric of the settlement she founded. She is a testament to the power of determination, a reminder that even in the darkest of times, there is always a light to be found.
+
+[The model appears to have chosen a unit based on name similarity 'leader of Likotkin' pulls up 'Zefon Leadermined' but this HF never seems to have lived in Likotkin, is not longer living, and the current Expedition Manager (a leader position) of Likotkin is Vabok Solonotin.  This seems to fall somewhere between hallucination and gaps in data retrieval.]
+
+
+So the question really is, do we have a strong enough architectural plan to continue simply moving forward with testing and debugging, or do we need to reassess the data capture, structures, and inferential patterns for the model to follow?  We also need to significantly strengthen your own operational instructions Jarvis, so that you refer to the embedded and clones codebases of all of the Dwarf Fortress related code and documentation that you have at your disposal. Review all of the DF-related plan docs, review all of the DF-adjacent repos, deeply plan based on the core user requirements, reanalyze current work on data gathering, setup of chronicler infrastructure, and Jarvis' own methodologies of reseraching and referenceing existing codebases and documentation for guidance and idea generation.  Rewrite a significantly improved, more detailed, use-case oriented product requirements doc and development plan for the Chronicler, which includes all of the functionalities of Dwarf Therapist, Legends Browser (legacy), Legends Viewer Next, AI game-bot systems, and Mod Merger Systems, all built to leverage native Dwarf Fortress code and DFhack code.  Also, reassess the utility of using the local Windows HomeServer versus the UTM Win 11 VM for running our testing system for in-game data gathering and validation.  We must place a very high priority on access for you Jarvis, to fully automate and execute commands, file transfers launch scripts, monitor server processes, and tunnel into live game data.  If either the local HomeServer or the UTM VM provides greater latitude for Jarvis to remote control operations in the Windows testing environment, then that is the one we should prefer.  Also, STRONGLY bear in mind that the end goal of all of this is a deliverable app that runs on Windows, alongside Dwarf Fortress and DFhack, which handles everything from setting up and running databases to the local LLM models to the Chronicler interface. Execute a deep research and planning session to deeply analyze and assess current trajectory, revise and deepen deveopment plans, and provide the user with a detailed overview of findings and recommendations.
+
+
+~~~~~~~~~~~
+Review the following items of feedback on the results of oyur research synthesis:
+1. DwarfFortressLogger - Dwarf Therapist
+I don't see any research on the Dwarf Therapist repo.  DT has a rich and fast memory reader that pulls virtually everything about the current state of all units in-game who are considered part of the fortress citizenry (including long-term non-citizen residents and livestock/pets).  This might serve as the best current example of fast memory polling, or at least serve as a baseline for comparing scope and speed.
+
+2. "## 2. Event Type Taxonomy — The Canonical Reference
+**Recommendation**: Chronicler should target all 144 event types from df-structures as the schema definition, with narrative templates for the 132 types that LegendsBrowser2 handles, and graceful fallback (raw field dump) for the remaining 12."
+What's up with the 12? Does df-structures not have documentation on what these are? Let's get them sorted and included in the schema.
+
+3 Important idea: The schema needs to be turned into an annotated schema, which would be kept in the system prompt of the Chronicler LLM and form a main part of its operational understanding of how to pull relevant data from the databases in response to a user query.
+
+4. "**Recommendation**: Add `importance_score` columns to Chronicler's CDM tables for `historical_figures`, `sites`, `artifacts`. Compute on ingestion using df-narrator's formulas. Use for LLM context selection — when the narrative engine needs to summarize a world, retrieve the top-N entities by score." Very good idea, but also add to it filtering by region, by civ, and by site.  Let the db be masked first, and then select top-N for broad-based generation of Tales, without ending up just grabbing "important" figures from all over the place who might potentially have little to do with each other.
+
+5. "The research confirms Chronicler's `chronicler-bridge.lua` approach is architecturally correct. Three independent codebases (df-ai, myDFHackScripts, weblegends) use the same fundamental patterns" Good, but, there are mods and I think other tool features buried among these repos which ALSO scrape and/or enhance the in-game logs.  The combat log in particular, has rich data details. Adventure mode data would be epecially rich in narrative detail from these logs.  Since other tools can modify these, this indicates that there is accessibility from game memory.  See: https://steamcommunity.com/sharedfiles/filedetails/?id=2905960813&searchtext=log, https://steamcommunity.com/sharedfiles/filedetails/?id=3503790064&searchtext=log and https://steamcommunity.com/sharedfiles/filedetails/?id=2898589374&searchtext=log might be informative because it runs scripts that watch for announcements and then play audible alerts, and https://steamcommunity.com/sharedfiles/filedetails/?id=2901143132&searchtext=announcement finds and modifies the text/icons of the announcement stream in-game, and https://steamcommunity.com/sharedfiles/filedetails/?id=3472724128&searchtext=announcement finds and filters the announcements shown in-game.  So, let's add announcement scraping to part of Chronicler's data gathering systems.
+
+6. ## 9. Mod Management — Scope Assessment
+Chronicler WILL and MUST include mod management features. At a minimum it must be able to compare two mods for conflicts, compare mods against the vanilla game files for conflict and dependencies, combine two mods into a saved mod bundle, and then allow for that mod bundle to be compared to any one other mod to find conflicts, and then manage the mod load ordering via DFhack.  The MVP would allow the user to combine mods together, one by one, minimizing or eliminating conflicts to create a working mod bundle.  The end goal Maximum Viable Product would do the same, but automate the process, and analyze large sets of mods all at once, providing recommendations for which mods to bundle together, what conflict exists and how they would be resolved, and saving out mod bundles and managing mod load order.
+
+7. ### Tier 4 — Stretch / Deferred
+I really LIKE everything in the deferred tier.  Plan for all of these features!!!
+
+8. "Family tree visualization"
+There is a great idea included in the report about tracking "who bit who", love it. Also of course family genealogy graphs would be awesome.  Also lines of royal succession would be great. Also graphs of master/apprentice relationships would be so cool.
+
+9. PROCESS Optimization and Reinforement:
+What are the 'master' documents now? What are the former, partial, out-dated, incomplete documants and can we archive them. What are the current up-to-date subsidiary documents that are phase or tier specific, and that belong alongside the 'master' documents? How can we update CLAUDE.md and/or current-plans.md to keep these guidance documents in context for Jarvis?  How can we ensure strict and detailed updates to progress? Make a second copy of the roadmap? And how can we expand on the level of details for each stage of development work? Create a PRD and a Roadmap for each section as we begin each, and use those docs for task tracking? And do we have a Project Space & Practices document for keeping everything consistently organized and clean, and can we put that into CLAUDE.md or current-plans.md?
+
+After all of the above have been addressed then review, revise the Resarch Synthesis document.  Then use the Research Synthesis document to revise the Product Requirement Document, and then use those two to revise the Roadmap Document, and then use all three to cross-validate each other and polish them up.  Then create a PRD and Roadmap document for each Phase from the main Roadmap Document. Take care not to skip or skimp on any of the Phase-specific Roadmaps and PRDs.  The depth of detail applied to the Pase-specific PRDs and Roadmaps will directly impact the actual development and implementation work, and so must not be subpar in any way.  Final deliverables include the Project-level PRD, Roadmap, and Reserach Synthesis plus an individual Phase-specific PRD and Roadmap for every phase outlined in the Project-level Roadmap.  
+
+Work continuously, iteratively, autonomously, solving your own problems and answering your own questions until these deliverables are completed.
+
+~~~~~~
+
+
+SEPARATE:
+Let's talk specifically about setting up the UTM Win11 VM so that Jarvis has full autonomous control over: file transfers (for editing code and 'pushing' to the VM), script execution, in-game control (critical need for the AI game-player), injecting DFhack commands through the console terminal.
+
+
+~~~~~
+Problem: Drift, Slippage, Scope-chopping
+As we delve deeper into both the underlying architechture as well as the top-level product design, our Chronicler project is developing towards becoming a powerful multi-use application suite that will enhance the Dwarf Fortress playing experience greatly.  At the same time, as the scope of the project develops into its mature state, establishing a fully complete and also finely detailed roadmap is proving to be VERY difficult.  There are major sections of MUST INCLUDE requirements that still have not even made it into the PRD.  I'm also noticing that everytime you enter into Plan Mode you end up writing out a plan doc to "Jarvis/.claude/plans" and these plans are simply accumulating, and then being disregarded over time.  The result of these and other "moving target" approaches to planning and implementation are now beginning to cause scope-chopping, slippage and loss of important project features and phases, and drift within project requirements.  The following instructions will gather back together all of our dissapating project aims under a set of canonical project planning documents, with a systematized development pattern to keep us on track, making forward progress on all feature design and implementation.
+
+-Dev Environment Reference Document
+Write a single reference document that details everything about the set up with the UTM VM, Dwarf Fortress, DFhack, and all associated architecture to facilitate remote management of the VM for testing, data gathering, and game-running.
+
+-Planning History Document
+Gather all of the planning document content together into a single, revised, comprehensive document.  This is the planning history document.  Put it into "Jarvis/projects/chronicler/reports".
+
+You must review all of the Chronicler project docs found in "Jarvis/projects/chronicler/designs", "Jarvis/projects/chronicler/plans/archive", "Jarvis/.claude/plans", "Jarvis/.claude/logs/jicm/archive", "Jarvis/projects/chronicler/reports/research", "Jarvis/projects/chronicler/reports", and any other revealed by quick search for Dwarf Fortress relevant content in the Jarvis project space or in the "Projects/DwarfCron" project space.  Collate and consolidate ALL information from all of these documents into a single planning history document.  Move every planning document that is related to Dwarf Fortress into "Jarvis/projects/chronicler/plans/archive".  Next, synthesize these ENTIRELY, every single one, gathering EVERY POSSILBE product feature, requirement, or functionality. Perform this in iterative rounds; dispatch one agent for every TWO documents to compare and consolidate information, and putput to a temporary consolidation file.  Then next round repeat, by assigning one agent each to two temporary consolidation documents.  Iterate until consolidated down to a single compilation document.  Review the document, revise for clarity, formatting, and completeness.  The end product is the Planning History Document.
+
+-Research Synthesis Document
+Redo the research synthesis, using the three-part approach below. Once those are completed, review and revise, and place the research synthesis document into "Jarvis/projects/chronicler/reports". Use the planning history document as a contextual touchstone for content, formatting, and completeness. A main use of this document is to gether together a comprehensive set of features together with examples of existing solutions or relevant reference information from the available resources.
+	Part One - Repo Resarch: Research each repo found in "GitRepos/" with the exception of "GitRepos/claude-code-docs".  Add https://github.com/Nexus-Mods/Nexus-Mod-Manager to the repos to clone locally and research.  Launch one agent per repo.  Use Opus as the model for each research agent.  The main purpose of each agent is to identify and all features, thinking of features as discrete requirements that COULD be added to the Chronicler App of the DwarfCron project. Each feature must be described in terms of User quality of life and in terms of code implementation.  Each agent will write a highly detailed and comprehensive report on its own repository. 
+
+	Part Two - Feature research: the Chronicler can be conceptually divided into 6 related Main Components: World History & Demographics Visualizer, Database Explorer Tools, AI Dwarf Fortress Storyteller, AI Dwarf Fortress Player, Dwarf Fortress Mod Manager, Dwarf Fortress Labor Manager (like Dwarf Therapist) and each one of these has its own detailed set of features.  All of this also sits on top of a complex data ETL system and databasing system, and a live in-game interaction system.  Dispatch one reasearcher Opus agent for each of the above 6 Main Components, plus the databasing and Common Data Model system, plus the data ETL systems (Legends XMLs and in-game momory [which includes during worldgen, during adventure mode play, and during fortress mode play.]) Each researcher agent will pull any relevant content from the newly created planning history document and each repository report, reorganizing virtually everything from Part One and more, into a Component-oriented view of the reserach findings. 
+
+	Part Three - Research Synthesis: Review and revise all of the contents gathered, synthesizing all research finding into a comprehensive, organized, highly detailed resource and reference document. Once this third step is finished this final product is the Research Synthesis Document.
+
+-Product Requirement Document
+Now that planning history and research synthesis has been completed, collect together all product features that we have discussed at any point in the planning history.  Gather together every feature from the various repositories that have been researched. Note: we do NOT need a comprehensive list of features from DFhack, but we DO need a complete reference guide to all DFhack functions, scripts and other tools that can be leveraged to architect the internals of the Chronicler App.
+
+-Skill Review Document
+Scan through "Jarvis/.claude/skills" and make a brief reference document for each and every Skill and pattern that is of particular relevance for this project.
+
+-Full Project Roadmap Document
+This document is a highly detailed and full scope end-to-end outline of the entire development process.  It must cover all of the stages within each phase of development, for all of the Main components AND for all of the data extraction, databasing and CDM, LLM architecture, backend and front end frameworks that support the Main components. 
+
+-Phase-level PRD/Roadmap Documents
+Each and every designated project phase from the Main Project Roadmap document needs its own highly detailed, comprehensive standalone PRD/Roadmap document. That is, a Phase 1 PRD/Roadmap, all the way through Phase N PRD/Roadmap, with no presumed upper limit on the number of project developmet phases needed to complete all product requirements.  Each individual Phase PRD/Roadmap document must reflect a significant increase of detail over the already comprehensively detailed Main Roadmap.  dispatch separate Opus coding agents to each write one of the project phase documents.  After they are all complete, review and revise for completeness and consistency of format and planning strategy.
+
+-Process Documents [CLAUDE.md, MEMORY.md, and current-plan docs]
+Review and revise the CLAUDE.md, MEMORY.md and current-plan documentation system in light of all of the completed aformentioned updated project planning documents.  Craft these Claude documents in a way that Jarvis will be kept on task, will keep the full project scope in sight, will focus on the completion of stages and phases in an orderly and linear manner, and will not deviate nor short-cut towards premature "completion." Include the Skill review document as a reference. These documents together constitute the process documents that help Jarvis to maintain systematic, repeated, organized, forward-moving development patterns and strategies. 
+
+
+**Your task at this time is to systematically and iteratively complete each of the above documents, fully reviewed, revised, cross-correlated, and polished, including the: Dev Environment Reference Document, Planning History Document, Research Synthesis Document, Product Requirement Document, Skill Review Document, Full Project Roadmap Document, Phase-level PRD/Roadmap Documents,     Note that only the User may choose to defer or remove any requirements or phases of development.  Your default shoudl be, "when in doubt, put it in."**
+
+
+The following are additional notes and errata that are for your information:
+-DwarfFortressLogger - Dwarf Therapist
+I don't see any research on the Dwarf Therapist repo.  DT has a rich and fast memory reader that pulls virtually everything about the current state of all units in-game who are considered part of the fortress citizenry (including long-term non-citizen residents and livestock/pets).  This might serve as the best current example of fast memory polling, or at least serve as a baseline for comparing scope and speed.
+
+-Mod Management — Scope Assessment
+Chronicler WILL and MUST include mod management features. At a minimum it must be able to:
+	-compare two mods for conflicts
+	-compare mods against the vanilla game files for conflict and dependencies
+	-combine two mods into a saved mod bundle
+	-allow for that mod bundle to be compared to any one other mod to find conflicts
+	-manage the mod load ordering via DFhack.  
+The MVP would allow the user to combine mods together, one by one, minimizing or eliminating conflicts to create a working mod bundle. Resaerch https://github.com/Nexus-Mods/Nexus-Mod-Manager
+
+"Family tree visualization"
+There is a great idea included in the report about tracking "who bit who", love it. Also of course family genealogy graphs would be awesome.  Also lines of royal succession would be great. Also graphs of master/apprentice relationships would be so cool.
+
+The schema needs to be turned into an annotated schema, which would be kept in the system prompt of the Chronicler LLM and form a main part of its operational understanding of how to pull relevant data from the databases in response to a user query.
+
+The idea that the XML files are "just a snapshot" is short-sighted low-level thinking.  Even though they are flat files they contain longitudinal data of events that occur at the world level all the way down to the individual level.  The XML documents are sufficient to reconstruct entire linear histories at any scale, whether it be the history of civilization expansion or the history of a single fisherdwarf's life.  A system that leverages sophisticated and creative approaches for extracting and relating datapoints is able to reconstruct virtually any historical scenario, demographic trend, geopolitical conflict, or personal moment of a denizen's life.
+
+...
+
+
+The following is a comprehensive review of DoD items from Phase 1 & 2 plus some additional observations that raise issues to be resolved.  Exhaustively review and resolve all of the above.  Complete and end-to-end implementation of all solutions to resolve all of these issues.  Work independently and autonomously end-to-end.  Resolve any uncertainties that you have on your own.  Make note of any challenges that arose while working, but do not leave any item unfinished.  You may report questions and uncertainties to the User only at the end of all work being completed.  You are given full creative and technical control to resolve all issues major and minor according to your best reasoning.  Perform all possible automation tests.  Remember that you also have the ability to directly navigate to browser pages, including at localhost, you have web scrape and screenshot capabilities.  You have Playwright and other MCP and Skill tools at your full disposal.  You have my (the User's) explicit permission to use anything available to you in executing your own implementation, testing and validation of fixes, to find and resolve any regressions, and perform final polish and documentation of the current updated state of Phases 1 & 2.
+
+~~~~~~~~~
+Phase 1 Notes:
+Give me a brief overview of the embeddings workflow. When is it triggered? What raw data from the database is pased through embedding?  And where do embeddings get used downsgtream? Do we need new embeddings with any new world data ingestion?  And, for live streaming in-game data, how do we do the embedding?
+
+Variations of hf_id are found in many of the tables.  Does our schema represent a full understanding of the relationships between hf_id-type ids among the tables?  Are there other fields like these, which are shared among multiple tables, and which would help enrich the connectivity between the entities in the database?
+
+Do we need to generate a new code-to-name dictionary for things like races and other encoded values, with the creation of every new world?  Reading in the game raws as part of database building might make for a best practice.  Hold for later version improvements
+
+"rescore -> Recompute importance scores for all entities in a world."  Are ALL entities given importance scores?  Talk me through the pro and con of scoring more than just historical figures
+
+"Arguments FOR scoring entities" OK, I agree with this but only up to a point.  I think that high importance scores ought to expose entities to the LLM when crafting narratives, but only in so far as it helps provide a "commoner's view" of the world at large, to be used as background context from which to draw upon as needed.  I disagree that a large civilization is "more narratively significant than a nomadic group of 3 goblins that formed in year 247 and disbanded in year 248."  You don't know what happened to those three goblins.  Why did they dispabd after just one year?  See my point?  "More is not better."  This makes me realize that we actually need to reflect on how to refine the narrative scoring system so that it upweights certain kinds of events to make them more visible and more likely to be included in AI narratives, and not merely weight based on cumulative event count.  For now lets reframe the narrative score of entities as a marker only for the LLM's prompting guidelines to get it to construct a kind of behind the scenes dungeon master kind of general world knowledge, but not as a way to cause it to diverge from the User's narrative requests.  It can also be used as a metric to help users explore the world in the browser app.  so I'm in favor of creating this.
+
+"Search result ranking" Yes, but there are more search result issues to take care of.  Mark this for later work.
+"Explorer UI prioritization" Yes, but let's mark this for later work.
+
+"Not all entity types benefit equally" True.  We will later want to integrate better sorting and filtering anyway, and I thunk we will be able to mitigate the categorical biases that would be introduced.
+
+"Score civilizations and religions. Skip the rest for now." Nah.  My request is to score all entities, and that means creating a novel scoring system tailored to the activity and event patterns of every entity type.  Let's do that now whule we are thinking about it.  Revise "Stage 1.3: Post-Parse Processing Pipeline" and other relevant sections of roadmap and PRD docs and then rebuild unique scoring systems for each entity type and run some validation tests on the updated system.
+
+
+~~~~~~~~~
+Some scoreing decisions:
+Simple decisions
+"Regions" -> Do simpler. Only score evil, haunted, joyous, etc regions. Prominence scores are proportional to region size, as in P=size x evilness-to-goodness factor.  Salience is inversely proportional to region size, as in S=(evil-to-good factor)/size.  Easy peazy.
+"Rivers" -> OK, just make salience based on whether it is in an evil or good biome, and make prominence proportional to how long the river is, let's say P=sq(length). 
+"Landmasses" -> Landmasses themselves aren't really prominent or salient. Don't score.
+"Identities" -> nah we don't want to spoil secret identities.  In fact, we should make a note for the later narrative building phase that we need to find a workaround to prevent secret identity reveals.
+
+Complex decisions
+For geographical features in with a given region (peaks, rivers, biome, every general detail like name, location, and type of a region feature or geography feature should just be a given part of common knowledge for any unit based on relative unit location to the region cotaining those features, plus some radius. Units that are in a region should automatically inherit knowledge of all placenames in the region, and knowledge of all high-prominence event-collections and HFs in the region.   Like: IF unit IN region THEN region_info_detailed, AND IF unit NEAR region THEN region_info_basics, AND IF unit NEAR feature THEN feature_info_detailed. But note that this is all entirely to do with the Knowledge Horizon feature, so bottom line is we still need to keep prominence and salience scores certain geographical features, but we also need a flag that indicates RELATIVE TO A UNIT whether or not that UNIT should be assumed to have common knowledge of regional features.  We'll figure out how to add them to plausible common Knowledge Horizon sets for the LLM during a later phase.  This is entirely for making a note about later coomponents of the Knowledge Horizon and how to include basic regional encyclopedic "knowability" for the LLM to evaluate details to include or exclude.
+
+"World Constructions" -> If something is in the region and has 'Mysterious" in the name then it should have high salience, but also people shouldn't plausibly know a lot about it, or their information should be inaccurate 
+(again, this is Knowledge Horizon considerations here). But to reiterate, if Prominence is about helping the LLM establish a common knowledge base relative to a question being asked, then should it just assume knowledge of mundane constructions and sites (aka give them all a fixed moderate prominence score).  If salience is about helping the LLM find things of note, then give all 'unusual' constructions and sites a fixed moderate salience score.  We could probably just do this by category frequency.  What type of site is it? Mysterious Lair?  Oh, low prominence high salience.  Castle with high count of events and HFs? OK, high prominence low-mid salience.  I have trouble thinking of world construction types that would really benefit from this system though.  It's mostly sites, which are going to also have this component of prominence and saliance based on events and people at the site.  Still, I like the idea of taking the core salience and prominence functions for sites, and then increasing or decreasing saliance and prominence based on whether the site is like a "commonly known" location like a castle or a mountainhome, or an "uncommonly known" location like a monatery or cave.  It think doing this by site and construction category would be good.  As far as the world constructions I believe there are tunnels, fortifications, roads, and bridges.  I would say make it simple. fortifications are high prominence and saliece, because I think they are rare in game, and sound like they'd be well known and thought of as interesting.  Tunnels and roads get basically just low salience unless they are in an evil or good region so they get a salience bump, and they should have prominence that is proportional to their length.  Like, the King's Road everyone knows.
+
+Uncertain Decisions
+"Art Forms" -> Your proposal is pretty close to what I would like.  1. Salience and prominence both should be multiplied by a quality factor, but more aggressively for salience than for prominence, like [1/(1-quality) x salience] which would give a non-linear boost to really high quality art that is also unusual, and a lowish scalar multiplier like [(quality x 0.3) x prominence] which would make quality a factor, but not end up overwhelming the core signal of prominence score itself.  2. Prominence would have to be calculated based on number of HFs who know the artwork. Is that hard to do? 3. Salience, to really be narratively interesting would need to be calculated based on something other than widespread familiarity.  Can something about the descriptions be used, like total number of adjectives, length of the written work, or other objective measurements of the actual features of the artwork itself?
+
+General Issues
+- Salience is easier said than done: "has a bizarre founding myth" "a legendary battle" "rare knowledge" all of these imply some additional method of scoring "coolness" making this a bit of a circular system.  In a game like Dwarf Fortress where everything is a little bizarre, nothing is. So... within any of the existing features, descriptors, characteristics, or other aspects of a "thing" in the game, how are we going to measure the "weirdness" of it?  This might the actual most difficult question of all.
+- Prominence is also a little bit tricky: "only 3,125 HFs (6.5%) have 21+ events, and only 79 entities (1.6%) have 100+ events" betrays a kind of thinking such that no matter what kind of event happens in an HF's life, it all counts towards prominence. As a future note lets consider later on that scaling HF life-events by some factor like (1/global.freq)xbase_value of the event type when scoring up HF or entity prominence.  For now let's just go with P=sum(events) HOWEVER we do need to check for duplicate event records, which may be due to table joins or something else not working properly.  I saw a lot of those earlier on when reviewing Phase 2 work.
+
+"Written Work prominence = number of copies in world (but we established each row IS unique — no copy tracking in CDM)" - Are we sure?  Once a player begins a game of Dwarf Fortress "copies" of written works (scrolls, books, codices) begin to show up in merchant caravans.  I would assume that these copies exist in some count+location sort of record.  Can you find anything in the XML files that looks anything like that?
+
+All art Traditions exist as 1 of 3 form_types (dance, musical, poetic)
+There are 22 Written Content Forms (poem, genealogy, star chart, play, choreography)
+Any Tradition of any form_type can have Written Content of any of the 22 Forms
+All written works are one of these Forms
+Of the 22 Forms, Poem, Musical Composition, Choreography are all typically mostly from a Named Tradition
+We can conclude that an Art Tradition is like a Genre, and a Tradition Type is like the artistic essence of a Genre
+We can conclude that the works within a Genre do not always take the same Form of the essence of the genre.
+Thus Type and Form are not the same.
+But because Forms of works within a Tradition are more frequently of a Form that matches the Form Type, we can say that Type and Form are correlated.
+
+Answer:
+ Now I see the full picture. The artifact parser at line 414 sets details to None — it's NOT capturing the <writing> tag. The written_content parser does capture form_id and author_roll in
+  details, but there's no link FROM artifacts TO written works.
+
+  Here's the complete answer to your questions, sir:
+
+  ---
+  Art Tradition as Written Item?
+
+  No. An art tradition (e.g., "The Aquamarine Tulip") exists only in art_forms. It is NOT a written content row. It has a single creator HF (tracked via dance form created / musical form
+  created / poetic form created events), but it's a conceptual tradition — a genre — not a physical or literary work itself.
+
+  Your Rules — Accuracy Check
+
+  Rule: All traditions are 1 of 3 form_types (dance, musical, poetic)
+  Verdict: Correct
+  ────────────────────────────────────────
+  Rule: There are 22 Written Content Forms
+  Verdict: Correct
+  ────────────────────────────────────────
+  Rule: Any Tradition of any form_type can have Written Content of any Form
+  Verdict: Partially wrong — dance traditions yield 7 forms (poem, musical composition, choreography, short story, novel, letter, play); musical yields only 2 (poem, musical composition);
+    poetic yields only 1 (poem)
+  ────────────────────────────────────────
+  Rule: All written works are one of these Forms
+  Verdict: Correct
+  ────────────────────────────────────────
+  Rule: Poem, Musical Composition, Choreography are mostly from Named Traditions
+  Verdict: Correct for poem (90% from traditions), partially for musical comp (48%), and partially for choreography (26%)
+  ────────────────────────────────────────
+  Rule: Tradition ≈ Genre, Tradition Type ≈ artistic essence
+  Verdict: Good analogy
+  ────────────────────────────────────────
+  Rule: Works within a Genre don't always match the essence Form
+  Verdict: Correct — dance traditions produce poems more than choreography
+  ────────────────────────────────────────
+  Rule: Type and Form are correlated but not identical
+  Verdict: Correct
+
+  On Copies — You Were Right
+
+  You were absolutely correct to push back. The legends data does track physical copies:
+
+  1. 7,418 artifacts have a <writing> tag linking them to a written_content ID — these are the physical scrolls, books, and codices
+  2. 349 artifact copied events track when an artifact is copied from one site/structure to another (source_site → dest_site)
+  3. The most-copied artifacts have ~3 copy events each
+  4. 299 distinct artifacts have been copied at least once
+
+  However, our parser has a gap: it's NOT capturing the <writing> tag from artifact XML. The artifact parser (line 414 of xml_parser.py) sets details = None, discarding the writing link. This
+   means we can't currently join artifacts → written_contents.
+
+  ★ Insight ─────────────────────────────────────
+  The DF copy model works like real medieval manuscript transmission:
+  - A written work is composed (37,486 unique compositions)
+  - Some get inscribed onto physical artifacts (7,418 scrolls/books/codices)
+  - Those artifacts get copied between libraries at different sites (349 copy events)
+  - The <writing> tag on artifacts is the link: artifact.writing → written_content.id
+  - Copy count = how many artifact copied events reference artifacts linked to that written work
+
+  For scoring purposes, this gives us a real "cultural spread" signal — a work that's been copied across 3 cities is more prominent than one that sits in a single library. But first we need
+  to fix the parser to capture the <writing> tag.
+  ─────────────────────────────────────────────────
+
+  Shall I fix the artifact parser to capture the <writing> tag, and then we can design the art scoring system with copy count as a prominence signal?
+  
+Hold off on the artifcat parser fix.  First let's formalize the artwork scoring system into a document so we can return to it at the end of all of this will full contextual detail and create the mechanics of the code.  S
+  Initial design idea:
+  1. The Written Work (that is the actual artwork) increases in Prominence with the number of copies that exist in the world.
+  2. The HF who is the author of a Tradition increases in Prominence proportional to the number or works of art created in that Tradition (and given an "Auteur" flag)
+  3. The HF who is the author of a Work of Art increases in Prominence proportional to the number of copies that exist in the world (and given an "Author" flag)
+  4. The Written Work (that is the actual artwork) increases in Salience proportional to the Quality x #Style descriptors.
+
+  Slight modification, for the Copy Number portion:
+  A written work is composed (37,486 unique compositions)
+  - Some get inscribed onto physical artifacts (7,418 scrolls/books/codices)
+  - Those artifacts get copied between libraries at different sites (349 copy events)
+  So Once for becoming a composition, Twice for getting inscribed into a physical artifact, Third, Fourth, Fifth+ for being copied between site libraries. So up to 5 Copy_Num Points.
+  Authors of a work get X copy_num points for the total existing copies of each of their original works.
+  Auteurs get x/10 points based on how many UNIQUE works there are within the Tradition that they created.
+
+
+~~~~~~~~
+Phase 2 Notes:
+"## 1. Explorer Main Page
+1. Click **Explorer** in the navigation bar
+2. Verify the 6 tabs are present: **People**, **Civilizations**, **Geography**, **Schema**, **Data**, **Graph**
+3. Click through each tab — data grids should load with sortable columns and pagination"
+There are no default data grids that load when selecting tabs.
+
+"## 2. Historical Figure Detail Page (Most Complex)
+1. In the **People** tab, click any historical figure name (or go directly to `/explorer/hf/1`)" -> There are no historical figures that populate a default list, and the instructions to "go directly to `/explorer/hf/1`" are not clear.  Who or what is '/explorer/hf/1' and where is it found/searched?  After navigating to 
+'http://localhost:8080/explorer/hf/1' I could follow the next validation checks. See /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 4.26.03 PM.png' for screenshot of the UI
+
+"Showing first 50 of 68 events. Load all" -> When selected at bottom of Events list does not load more rows, returns view to the Overview tab.
+
+"Header with name, race, birth/death years" -> Present in the "search page view" version but not present in the full 4 Tab View version.  Review these two different views and merge them, clean up the visual organization, and have ths be the default view to see fro both the search results page and if opening the HF page in its own view. The 'Header' is: "Explorer›Explorer›People›stobux waterrags the oar of dens" and Explorer>Explorer>People links all return view to the landing page. So that's poorly designed and not much use.
+
+
+"Tabs for different sections (relationships, positions, skills, etc.)" -> Tabs exist for Overview (seems fine for a first draft wireframe) Relationships (checking with hf=0 correctly populated) 
+Is Career dynamically re-designed depending on what kinds of career elements exist for an HF?  Beast Attack list includes weird titles, certainly the raw labels, like "Unknown Event Collection #289") Events (see screenshot '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 4.32.59 PM.png' : the font is TINY and there is too much unused space in every tab view) These Unknown events listed coul dbe fixed by using the Event Type instead of Name, I think.
+
+
+  - The 4 tabs view described above does not appear when selecting an individual from the search results.  Instead it is like a less complete version of that view. The view shown on the
+  right side of the page should be the full contents of the diret HF# address. Alao, dd a button to open the full-page formatted view of the current HF.
+  viewed from the search page into a new tab.
+  - Overview:Factions&Groups tile should be a table, with faction name, type, site, and civilization
+  - Relationships tab should plot a graph of the main individual plus those listed in the relationships tile, including edges between those individuals.
+  - Career:Kills shuold be a table with Year, Name, Race, Site, Civilization, Cause and the table shuold have a filter slider to filter by year.
+  - The "full" view at http://localhost:5001/explorer/hf/1172 doesn't have a link to view graph.
+  - "Showing first 50 of 242 events. Load all" -> When selected at bottom of Events list does not load more rows, returns view to the Overview tab, and then going back to Events tab the
+  full list is shown, now with no way of collapsing.
+  "Header with name, race, birth/death years" -> Present in the "search page view" version but not present in the full 4 Tab View version.  Review these two different views and merge them,
+  clean up the visual organization, and have ths be the default view to see fro both the search results page and if opening the HF page in its own view. 
+  The 'Breadcrumb' in the individual HF page view is just placeholder stuff: "Explorer›Explorer›People›stobux waterrags the oar of dens" and Explorer>Explorer>People links all return view to the landing page. Redesign how the breadcrumbs should work in the context of the data structures and create and implement this new version.
+  - I've noticed we still have "importance" scores showing.  I think that Prominence and Salience have supereeded that system.  Review all integration points of the "importance" score,
+  replace with Prominence (e.g. default search result sorting and so on). And include Prominence and Salience in the detailed view of any HF, Entity, and etc.
+  - I can search on a name and the correct HF appears in the left-side panel list, however selecting the Race filter buttons above does not filter the results, it resets the search
+  results. These should dynamically filter the current results and not reset for a new search.  These buttons should also be on/off and not either/or so that the serach can be restricted to
+  or the results filtered on as namy of these Race groups as wanted.
+
+  "Family" in the Overview tab, and also the listed relationships in the "Relationships" tab seem to be missing Father, Mother, Husband, Wife and ONLY have child.  The graph in the
+  Relationships tab should actually be two graphs, 1) A Family Pedigree (with sliders for N generations into the past and N generations of descendants) and 2) a 'Career' relationships flow
+  chart that shows master->apprentice relationships.  The network graph shown in the "View Graph" page of all different kinds of connections isn't needed in this tab.  So 3) the network graph vizualization in the "View Graph" page of all of the types of connections is to be shown in the Graph tab.  That graph should have a legend for color coded nodes and color coded edges.  The nodes and edges also should be toggled from view using
+  the legends as selectable on/off toggles.
+
+  - The search results should also have an All/Alive/Dead toggle right above the text bar "Filter results..."
+  - All of these settings should be preserved across searches.  There should be a reset filters button somewhere.
+
+────────
+
+
+"Cross-linked entity names (clickable links to other entities)" and Popup on Hover is working nicely here -> see '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 4.35.56 PM.png'
+
+"Prev/Next navigation buttons in the header" -> Does not retrace the recent cached views of the user, instead simply cycles through HF_id and tab views in order.  This should be the "minor" page navigation button to cycle back and forth between recent views, whereas the user expectation is that the Browser forward and backward buttons would jump the user back or forward to the most recent "logical landing" page like the most recently viewed HF/entity Overview page or something like that.
+
+"Breadcrumb showing Explorer > Historical Figure > [Name]" -> Can't find this
+
+"**Perspective rendering**: Event descriptions should use perspective-aware pronouns when referring to the viewed figure (e.g., "he" or "she" instead of repeating the name)" -> Always seems to use "they"
+
+"**DF Calendar**: Dates should display in DF format (e.g., "1st Granite, Year 5")" -> Dates are rendered like 'Y44 Slate 15' in the Events tab table.  Overview tab does render better "Born: the 1st of Granite, Year 20" but also only has "Died: Year 131" so might be using partial dates.
+
+Looking at the Civilizations tab -> screenshot '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 6.01.46 PM.png'
+
+Fileter by doesn't bring up filtered list on '' search.  Down arrow in the "Filter by name" box.  See '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 6.07.33 PM.png'
+
+Sitegovernment race assignments might have errors: see this Mysterious Lair of monsters that is assigned as Dwarf.  '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 6.10.18 PM.png'
+
+
+Site governments with no sites -> see '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 6.05.17 PM.png'  Would be more helpful if the historical ownership of sites was shown.  Is it possible that site governments can be formed and never have a site ownership at all in their history?  Another Site government with no sites listed: '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 7.57.40 PM.png'
+
+An abbot of a Religion entity listed twice in the leadership table, with ? for dates.  See: '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 8.00.06 PM.png'  Confirmed this happens at other sites.  It's possibly an issue where HFs are being picked up from the pre-embark and the post-embark XML files but then not being merged/deduplicated properly.  Or possibly from in-game memory scanned data?
+
+Site events read like "anir foldquill became settled in here" and "begu dentblushes became visiting in here" and "canar sculptsink composed a written work at here" which is pretty clunky, but we can keep this as is if it's the raw data, but it might be preferable to massage these strings a little to convert them into sentences like "Anir Foldquill settled here" and "begu dentblushes visited" and "canar sculptsink composed a written work".
+
+
+Sitegovernment defined position renders as ?/Lord on different tabs see '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 8.14.07 PM.png' '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 8.14.13 PM.png'
+
+Event search returns no events.  See '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 8.10.33 PM.png'
+
+d.43 -> Not sure what this code is.  See screenshot at '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 5.15.40 PM.png'
+
+Diety and Megabeast: Dwarf fortress might be using some confusing labels and categories under the hood.  There is an in-game difference between Deities and Megabeasts, although both might be labelled as 'Deity' in extracted world data. see: '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 5.04.37 PM.png' for an example of Megabeasts/Titans called Diety, but whch would be better labelled as Titan or Megabeast.  Need to evaluate the data state to see if this is resolvable.
+
+Special creatures like Titans, Night Creatures and others get Race=Type_## which in-game makes them have a unique race for mechanical purposes, but for queries and for display porposes we might want a clean_race field which transforms by removing trailing numbers and replaces underscores with spaces, and trims flanking whitespace, and capitalizes the first letter and lowcases the rest.  Either we do this sort of thing with a derived field or we do it with a string transformer function that cleans up the raw data for human readability in the HF and unit sheets.
+
+Art forms have no description or details see '/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/experiments/Screenshot 2026-02-26 at 8.39.41 PM.png'
+
+"4. Site Detail Page" -> seems ok
+
+"5. Artifact Detail Page" -> artifact 1 has ? for Name Material and Type is blank.  There is a "current holder" listed which seems correct.  I cannot find an artifact that does not have ? or blank for details.
+
+"6. Region Detail Page" -> Event details use "?" instead of generic location terms or the full region name for example "moyira healermothers the spy of touching became settled in ?"  And the end of the events list which defaults at 50 rows has the text "Showing first 50 of 94 events." with no active link to expand to full view, or dropdown to change number of rows shown, or next/prev arrows to browser the rest of the table.
+
+"7. Structure Detail Page" -> Structures do appear in the database schema tab, note that structires with Site ID 301 do not seem to match at all to the Site ID numbered 301 and that the site names are not active links and the Owning Entity is only an ID also with no link.  Also no details data.  Probably there is a problem with linking keys.
+
+"8. Written Content Detail Page" -> Has details but is missing description of works.
+
+"9. Event Collection Detail Page" -> Beast attacks, Ceremonies, etc look mostly OK.  Cannot find any Wars by manual exploration and there is no filtering option.  The Database view shows hte schema and data for collections revealing that these are merely tables of IDs, making it hard to manually verify anything, and making it hard for the explorer views to show anything of substance.
+
+"10. Secondary Entity Pages" -> PRetty sparse, not much to check yet.  Can't validate coords by eye. Will do more validation in subsequent stages. "connected sites" not present for Rivers.  Constructions: confirmed roads but no connected sites, bridges, tunnels but no connected sites. art_form has type and name but no details or description.  Identities have links for real names, no popups.
+
+"11. Years and Events Browser" -> Chronology look alright.  This view helps reveal a lot of HFs with no known nmes.  See HF #40050.  Prev/Next buttons for table work.  Some event descriptions are not well hyperlinked like "palath tourdesk joined the noble fellowship as position" of year 219, links for HF and Entity but only generic term 'position' with no link.  A "Filter by" which is in essence a simple text search of rows would be awesome, because this should essentially be what the LLM would want to do too.  Filter by 'muthkat' or 'nithim' or 'councils of merging' and poof, you've got a year-view of everything that an HF did, or happened at/in an Entity or Site.
+
+Some other minor buggy-looking things: hf_preach does it not have links to HF id or location or entity? There are "? devoured by ?" which ay or may not have real values that weren't ingested.  Some rows just have "trade" or "agreement formed" with no HF or entity information. See year 219 for examples.
+Y219 Granite 1
+add hf entity link
+muthkat gearpanted joined the doctrines of power as position
+Y219 Granite 1
+change hf state
+muthkat gearpanted became settled in snarlingshelter
+Y219 Granite 1
+add hf entity link
+nepe pastprison joined the fellowship of ruling as position
+Y219 Granite 1
+change hf state
+nepe pastprison became settled in anvilcandies
+Y219 Granite 1
+hf preach
+hf preach
+Y219 Granite 1
+add hf entity link
+nithim boardtaxed joined the councils of merging as enemy
+Y219 Granite 1
+add hf entity link
+nithim boardtaxed joined the gleeful realms as enemy
+Y219 Granite 1
+creature devoured
+? devoured ?
+Y219 Granite 1
+creature devoured
+? devoured ?
+Y219 Granite 1
+creature devoured
+? devoured ?
+Y219 Granite 1
+hf simple battle event
+nithim boardtaxed fought uthret candyscoops
+Y219 Granite 1
+hf simple battle event
+nithim boardtaxed fought uthret candyscoops
+
+The "Event Types" tab is a great tabulation of categories, but none of these has a popup or a cross link to open a list of events of type X
+
+"12. Global Search" -> Global search bar does have autocomplete suggestions, but it does not execute a search or bring up a search results page.  Autocomplete results are capped at 50ish, and arrow key navigation of list does not go beyond that.  The Global Search would be useful if it brought up a search results page where results were displayed by Table, in multiple tiles, dachboard-like.
+
+"13. Hover Popovers" Present and working on many page views.  There could be more of these added across more page view types.
+
+"14. URL Hash Tab Persistence" works
+
+"15. JSONB Field Inventory" -> Yes, brings up popover dialog box with raw details json text shown.  JSONB data is extremely valuable for cross-linking events, entities, identities, HFs, and so on.  I cannot verify that "distinct JSONB keys are listed for that column."
+
+"16. Row Detail Overlay" -> working, links out to detail page.
+
+"17. Data Export" -> csv and json work
+
+"18. Cross-Linking Verification" -> works generally.  could use greater density of hyperlinks across various views and tables.  JSONB data may have different structures table by table, but within table it may be able to be expanded into derived columns, adding extensive hyperlinking capacity to many records across many tables that is not currently operable.
+
+The big questions: Did we get pre-embark and post-embark data and did it merge/deduplicate records or just stack records creating null or empty values?  If we did pull the pre and post embark XML data, then why is there no data on fortress denizens?  The post-embark xml files should have the newly created denizen HF ids, and this would be found by a diff on the list og HF ids from pre and post embark.  Did we get Lagends and Legend plus data and did it merge/deduplicate records or just stack records creating null or empty values?  When in the roadmap will be be building in the in-game streaming data, and do we know the schema, is it 100% complete with respect to every variable that can be pulled out, and is everything mapped to the coresponding field/table from the XML-based schema?  When this data is pulled will it be able to merge records of the discovred denizens from the XML pre/post diff to the live in-game memory map data?  Same question, but for thos HFs who already exist in the pre-embark XML legends data, and then later appear in the in-game fortress and thus become classified as denizens/visitors and etc and so we MUST add data to the database that represents their experiences while at the fort, and also make sure that this data is linked to the already existing legends data version of their records?
+
+Exhaustively review and resolve all of the above.  Complete and end-to-end implementation of all solutions to resolve all of these issues.  Work independently and autonomously end-to-end.  Resolve any uncertainties that you have on your own.  Make note of any challenges that arose while working, but do not leave any item unfinished.  You may report questions and uncertainties to the User only at the end of all work being completed.  You are given full creative and technical control to resolve all issues major and minor according to your best reasoning.  Perform all possible automation tests.  Remember that you also have the ability to directly navigate to browser pages, including at localhost, you have web scrape and screenshot capabilities.  You have Playwright and other MCP and Skill tools at your full disposal.  You have my (the User's) explicit permission to use anything available to you in executing your own implementation, testing and validation of fixes, to find and resolve any regressions, and perform final polish and documentation of the current updated state of Phases 1 & 2.
+
+
+Fix the artifact parser to capture the <writing> tag, and then we can design the art scoring system with copy count as a prominence signal?
+
+
+
+UI-Based validation and refactoring;
+A few Site page fixes
+Site:Owner
+In the summary tile, change Owner to Government, so that "Owner: the nourishing league" is "government: the nourishing league"
+
+Site:Structures
+In the Structures tab, change row header from Owner to a better term that would encompass tomb assignments, guild association, religious supervision.
+
+Scan through database and XML files to see if we can surface ownership, sponsorship, management, or oversight associations of individual structures with particular groups.
+http://localhost:8080/explorer/site/621?world_id=1#tab=structures
+
+
+
+Great!  Now we're going to work on some difficult systems for enforcing strict conceptual consistency between the in-line overview page in the Civilizations tab of the Explorer and the
+  Full Page view of a site and the Full Page view of the Site Government.  Our first case study will be 'the brave kingdom' -> 'the nourishing league' -> 'pocketdumplings'.  Now, this
+  hierarchical lineage needs to have display-level consistency, which we will achieve by defining and applying conceptual rule-sets, and we will use this to also clarify labelling and
+  language on the pages' UIs.  At the Civ-level we can see in the Civilization tab of the Explorer that the in-line overview page shows this:
+
+  Site Govt    Site    Structures    Pop. ↓    Ruler
+  the nourishing league    pocketdumplings town    💰 💰 ⛓ ⛓ ⚒ ⚒ ⚒ ⚒ ⚒ ⚒ 🏨 🏨 🏨 🏨 🏨 🏨 🏰 🏪 ⛪ ⚰ ⚰ ⚰ 🗼 🗼    383    sas feedstraws baron
+
+  This means that we have some value called 'Pop.' equal to 383.
+
+  Next, in the Site Government Full Page view (http://localhost:8080/explorer/entity/1525?world_id=1#tab=members) we see that
+  Leaders (107) Sites (1) Members (383) Positions (16) Wars (0)
+  which strongly suggests that 'Pop.' and 'Members' on these two different pages are counts derived from the same algorithm.
+  We can further see that in the 'Members' tab this includes both living and dead individuals, both current and former members.
+  Moreover we can see that in the Overview tile:
+  [Pasted text #7 +4 lines]
+  so that there is another population counting algorithm which yields 101 individuals.  We could suspect that this is a total of individuals who are both currently alive and currenly
+  members of this site government.  In other words, this number, we could hazard a guess, corresponds to the count of actual residents living at the 1 Site which is under the governance of
+  'the nourishing league'.
+  Moving to the Full Page view of the Site 'pocketdumplings' (http://localhost:8080/explorer/site/621?world_id=1#tab=residents) we can see that the 'Residents' tab indicates (61) total
+  individuals in residence.  Yet, not only is this count not obviously congruent with either of the previous counts, but moreover, the table of said 'Residents' clearly includes both Alive
+  and Dead individuals, and so the actual count (following this method) of individuals living in residence is much less than 61.
+  In addition to this there are the mysterious 'Link' tags which might possibly provide some indication of the individual's relationship to the site or site government beyond simple
+  membership.
+  We need a thorough and conclusive review of the disparity between the different algorithms leading the these various population counts, including how any database operations may have
+  caused any apparent disparity not truly found in the raw data.
+  We also need to establish an informed, ontologically consistent use of terminology for referring to the various ways of counting individuals of a group.  We recognize that depending on
+  the definitions of terms like 'resident' 'population' 'member' and depending on how these terms relate to the Site and the Site Government in their own ways that there are multiple
+  'correct' ways of counting assignment of individuals to a group.  I personally favor defining 'Resident' as any individual who is currently alive and whose current home base designation
+  is that Site. I favor defining 'Population' as the total count of sentient creatures present at a Site at a given time (for our purposes here assumed to be the timepoint at which the XML
+  data has been exported; the latest point in time of the XML data itself).  This counts all sentient visitors, attackers, and residents (in the case of residents, they are counted whether
+  or not they are currently present.) Lastly, I would lean toward defining 'Members' as individuals having belonged to a group organization such as a site government.  Membership can be
+  counted as historic (including all current living members, living former members, deceased members, and deceased former members) or counted as operational (living current members only).
+  Your task is to examine how these conceptual definitions hold up under theoretical and empirical scrutiny.  You must determine, based on the datamodels of the XML files (legends/legends
+  plus) and the data model of the database, and based on the ETL/DB operations performed on the data, how to best refine parsing, transformation, and ingestion of the data and correctly
+  define and consistently implement the conceptually appropriate algorithm for tabulating individuals within these various types of population-related groupings.
+  Once this has all been ironed out, we need to revisit the UI presentation of these summary data consistent with what the user's assumed expectations are when viewing a given page,
+  interpreting certain terms, and interacting with sorting/filtering/searching operations within a dynamic Chronicler UI.
+
+
+Ideas & Questions:
+Break down for me in full detail where these numbers come from, how they are calculated, what database operations get done on the data these counts are derived from:
+From Explorer page view of the fly of groups: http://localhost:8080/explorer
+the fly of groups 	Goblin | 2,644 pop | 35 sites
+Race Goblin 	Sites 35 	Population 603
+
+From: http://localhost:8080/explorer/entity/991?world_id=1#tab=members
+the fly of groups 	Overview 	Race Goblin 	Sites 35 	Population 603
+Sites (33) Members (2765)
+Members - Alive (442) 
+
+Question: Based on the following explanation of Civilization Entity-level population does this Civilization Entiry-level population number include ALL unnamed individuals both alive and dead?  Or is it the number of only alive individuals in the Civilization Entity?
+"2.1 DF Native Census (entity_populations)
+Source: <entity_population> elements in legends_plus.xml
+Meaning: The game engine's own census, broken down by race per civilization
+Scope: Counts ALL sentient beings including unnamed NPCs (fortress workers, soldiers, etc.)
+World total: 1,663,758 across 810 civilizations
+Top example: "the fly of groups" (civilization): 37,880 population
+This is the only count that includes unnamed NPCs. It is the closest to a "true" world population. However:
+
+It is only available at the civilization level, not per site or per site government
+It counts by race, so individual-level deduplication is not possible
+It is a snapshot from the legends export moment, not a dynamic count"
+
+
+
+Review this set of related requests and revise everything into an organized plan, let me review and then I will give the goahead for execution:
+Update Jarvis/projects/chronicler/reports/population-analysis-report.md with the above additional summary explanations
+Are Ocupations linked to stuctures ,sites or both? For example what is a Tavern Keeper or doctor?  What about Merchants and Performers who have no site, or for whom their occupation may change site linkage frequently?
+ occupation         │ 632   │ 631        │ 98           │ Shown with Occupation filter chip. Represents HFs working at a site (scholars, performers, mercenaries)
+Tell me about these guys.  What is a home structure to an animal_man?
+	   OLM_MAN              home structure       total=  54 alive=  32
+       REPTILE_MAN          home structure       total=  50 alive=  24
+       CAVE_FISH_MAN        home structure       total=  47 alive=  19
+       AMPHIBIAN_MAN        home structure       total=  36 alive=  18
+Make the breakdown in "Appendix: Raw Data Snapshot" more detailed, with categorical and descriptive breakdowns of all of the categories already shown?  I need to better understand the composition of these subsets in terms of who these individuals are, where they live, what race they are and as always I need those summaries broken down for Alive only, and All.  
+Clarify within your planning documents and reports that we are going to consider "membership" (hf_entity_links + hf_site_links) as what would commonly be referred to as "residents" at any level of Geographical Dwelling (goegraphical dwellings are non-inclusive semi-hierarchical: Civ>Site>Cave>Lair.  I think I have persisted in a misunderstanding of my own, so I have redesigned a more straigtforward categorization: Population is the total count of living in a Civ, Residents is the total number of HFs within a Civ or at a Site, Citizens is the total number of HFs with within a Civ, Site Gov, or Site
+Review our work on this, review the logic and aims of the development of demographic exploration tools, and refactor the tabulation algorithms to be in line these aims.
+Add a tab in the Site Government and Site views for Ne'er-do-wells like the ones below:
+enemy        │ 26,434 │ 2,169    │ 1,918        │ Not tabulated in Members or Population. Not fetched by fetch_civilization_members (which filters IN ('member', 'former member')).   │
+  ├──────────────┼────────┼──────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ former       │ 3,886  │ 3,770    │ 335          │ Not tabulated. Same exclusion.                                                                                                      │
+  │ prisoner     │        │          │              │                                                                                                                                     │
+  ├──────────────┼────────┼──────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ criminal     │ 1,147  │ 653      │ 214          │ Not tabulated. Same exclusion.                                                                                                      │
+  ├──────────────┼────────┼──────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ prisoner     │ 302    │ 302      │ 91           │ Not tabulated. Same exclusion.                                                                                                      │
+  ├──────────────┼────────┼──────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ former slave │ 27     │ 26       │ 7            │ Not tabulated. Same exclusion.                                                                                                      │
+  ├──────────────┼────────┼──────────┼──────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ slave        │ 8      │ 8        │ 3            │ Not tabulated. Same exclusion.
+Design and implement a new tab within the Statistics tab for the interactive visual exploration of demography and population statistics for Entities, from Civ-wide "Population" to "Residents" and "Citizens" across all types of geographical, political, religious, professional, and other types of groups and places to which an HF can be assigned.  Create histograms, bar charts, venn diagrams and time series graphs.  I need especially to have a graph that can plot the change in count of living HFs with membership assignment to any given entity.  so this would need to be able to select HFs on entity membership, tabulate living-present status for each HF (counting an HF as a Resident if Living && Present) at yearly intervals, thus essentially converting the data from the XML or existing records in the DB structure into time-series residency growth data and charts.
+
+
+
+
+
+
+I'll start by reviewing the repository structure and existing documents to understand the current state of the project before crafting the comprehensive prompt.Now I have a thorough understanding of the **Chronicler** project within the `CannonCoPilot/DwarfCron` repository. Here is your rewritten, organized prompt — structured as a **review-and-validation checklist** that instructs the model to audit completeness, generate reports, and surface gaps before you give the go-ahead for execution.
+
+---
+
+## 📋 Chronicler Demographic Exploration — Consolidated Review & Validation Prompt
+
+> **Instruction to Jarvis:** Jarvis you are reviewing the following organized plan of work items for the **Chronicler** project in `CannonCoPilot/DwarfCron`. For each item, **audit whether it has been fully completed**, referencing existing code, reports, templates, and database schema in the repository. Produce a **Completion Status Report** for each item (✅ Done, 🟡 Partial, ❌ Not Started), with evidence from the codebase. Where documentation or validation reports are expected, confirm they exist and are up to date. Where work is incomplete, describe specifically what remains. At the end, produce a **Validation Summary** and a **Recommended Execution Order** for any outstanding items.
+
+---
+[[[There is a lot that got review but little implemented from the last large set of multiple additional phases to read full DoD completion.  Let's go through them one at a time. Review and fully validate the following.  let me know if you find anything that looks inconsistent or incomplete.]]]
+
+### Phase 1 — Documentation & Terminology Alignment
+
+#### 1.1 Update Population Analysis Report
+**File:** `projects/chronicler/reports/population-analysis-report.md` (or equivalent in `docs/`)  
+**Task:** Update this report with expanded summary explanations covering:
+- Definitions of the revised demographic terminology (see §1.2 below)
+- Narrative descriptions of each `hf_entity_links.link_type` category and its meaning
+- Summary of excluded-but-present link types (enemy, former, criminal, prisoner, former slave, slave) and why they are not counted in "Members" or "Population"
+- Appendix data enrichment (see §2.2)
+
+**Review:** Confirm the file exists, contains the above sections, and reflects the current schema and link-type semantics in `hf_entity_links` and `hf_site_links`.
+
+[[[
+- "The top sites by SG membership have ZERO site links. The site links are concentrated in towns and fortresses lower down the list. Let me show the sites that DO have site links and compare." -> can you verify whether any of these SG members in the top SGs with 0 site-links are already being counted as site members or SG memers somewhere else?
+- For counting Citizens at a site we should exclude Lair linked HFs and exclude 'Giant animals (home structure)'.  However for Lair-linked Animal-people, trolls, Megabeasts and semi-Megabeasts, and Civilized races they shoul be counted in that site Resident count. Alyas count 'seat of power' individuals as Residents and as Citizens of that site.
+- I think as a rather solid rule anything that is "GIANT_[ANIMAL]" is a non-sentient animal, although important for historical events we don't need to count them.  The one possible confounder I can think of is if there are any "GIANT_[ANIMAL]_MAN" creatures. These would be sentient and should get counted as 'Residents' in their own lairs or caves or what have you.
+- What sentient creatures would this exclude from being counted as a Resident of the site at which it is found?
+  ]]]
+
+[[[
+Using DISPOSITION is the major insight here.  Incorporate the disposition as part of your filitering to simplify the processes as appropriate.
+ "A single SG owns many sites, but we can't tell which members live at which site." SG ownership of more than one site will be a rare edge case we need to handle.  Are we completely sure that there is NO field or tag in the XML files that reports the site location of an HF, as opposed to only the SG membership of an HF?  Maybe we just missed a parse?
+"Q1: Are top-SG members with 0 site-links counted elsewhere?""
+  Looking at http://localhost:8080/explorer/entity/2597?world_id=1#tab=members this SG of 'the silvery mirrors' is reporting 19 'Members' but lists none in the members tab. And at http://localhost:8080/explorer/entity/2098?world_id=1#tab=sites for 'the silvery mirrors' the Pop for 'the ace silvers' SG/'quietcopper' site is reported as 0.  So, no those 275 do not appear to be getting counted in the populations of each of those sites.  Maybe the 275 members are being repeatedly counted when generating the total count of members for the SG 'the silvery mirrors'?  There is possibly a problem being introduced because this is a situation of a site government which is the DIRECT SG of 39 sites (all of which are currently having issues with their Citizen/Resident counts and which show pop of 0) and ALSO is the SG over 64 other SGs which are each in turn the SG of a single Site.  Many of these also show pop 0.  We need to refactor the code for counting Citizens and Residents based on the filtering suggestions explained above and in "Q3: What would be excluded from Resident counts?" ensuring that "EXCLUDED from Residents" and "KEPT as Residents" are enforced as describe in these tables.  If we can EXCLUDE JABBERER, HUNGRY_HEAD, and VORACIOUS_CAVE_CRAWLER that would be ideal.  But these edgecases are not worth upending an otherwise perfectly working system.
+  Implement all changes needed to resolve this issue, so that instead of "Pop" in the civ, SG, ans site pages, Citizens of the Civilization, Site Governments, and Sites are reported each in their respective full-view and in-line Explorer page.  For Civilizations ALSO report the total living census Population using 'entity_populations'.  So, full page views and in-line explorer views of Civilizations will report the Population (entity_populations value) and Residents (sum total of everyone living at the sites of that Civilization).  The Civ views will have the same kinds of "Sites" table as current, only replace the column "Pop" with "Residents" which will be the Resident count for each of the Sites listed in the Civilization.  The full page views and in-line explorer views of Site Governments will include "Citizens" instead of "Population" in the Overview tile.  The Sites tab table "Sites" will replace the column "Pop" with "Residents". The full page views of individual Sites needs its own overview tile added, but I think that the rest of the Site page tabs look like they are rendering what we need.  Review all form sof hte Civ, Site gov and Site pages for consistency in layout.  Ensure that they all display with the updated calculations of Population, Citizens, and Residents as required.
+
+  
+
+Here is some data to hep us review the onconsistencies that remain in counting residens and citizens of Sites and Site Governments.
+Civilization: the fly of groups
+http://localhost:8080/explorer/entity/991?world_id=1#tab=sites
+Sites table: 
+Site Govt	Site	Structures	Residents ↓	Ruler
+the hatred of symmetries	cloistermanor fortress	⛓ ⚒ ⚒ ⚒ 🏨 🏨 🏪 ⛪ ⚰	15	—
+
+Site Government: the hatred of symmetries
+http://localhost:8080/explorer/entity/3344?world_id=1#tab=members
+Overview tile: Citizens 14
+Member Table: Members (19 shown) [including former members]
+Name ↑	Race	Position	Profession	Membership	Citizen	Status
+aban cobaltwine	Dwarf		Tracking	Former Member	No	alive
+amost channeleddoor	Dwarf		Tracking	Former Member	No	alive
+asen oiledworked	Dwarf		Dance	Former Member	No	alive
+asno spinemonstrous	Goblin		Make Music	Former Member	No	alive
+asob raglistened	Dwarf		Judging Intent	Former Member	No	alive
+azstrog terrorclasp	Goblin		Glassmaker	Former Member	No	alive
+bosa murderticks	Goblin		Fish	Former Member	No	alive
+dakost ironhandle	Dwarf		Dance	Former Member	No	alive
+doren wheelsluck	Dwarf		Tracking	Member	Yes	alive
+mato leanseduced	Goblin		Dissect Vermin	Member	Yes	alive
+meng orbsstabbed	Dwarf		Make Music	Former Member	No	alive
+mestthos metalkeepers	Dwarf		Critical Thinking	Former Member	No	alive
+olngo lesserdungeon	Goblin		Tracking	Former Member	No	alive
+olngo sinfuluttered	Goblin		Metalcraft	Member	Yes	alive
+olon problemcities	Dwarf	Administrator	Comedy	Member	Yes	alive
+stasost drilljackal	Goblin		Surgery	Former Member	No	alive
+stasost heldwitch	Goblin		Wood Burning	Former Member	No	alive
+stasost seducedwilt	Goblin		Diagnose	Member	Yes	alive
+strodno hatredgrips	Goblin		Mining	Former Member	No	alive
+
+Site: cloistermanor
+http://localhost:8080/explorer/site/705?world_id=1#tab=residents
+Overview row: Residents 15
+Residents (15 shown) [including Former Residents]
+Name	Race	Link	Citizen	Profession	Position	Status
+asno spinemonstrous	Goblin	Former Resident	No	Make Music	Chief Medical Dwarf	Alive
+asob raglistened	Dwarf	Former Resident	No	Judging Intent	Sacred Flag	Alive
+azstrog terrorclasp	Goblin	Former Resident	No	Glassmaker		Alive
+dakost ironhandle	Dwarf	Former Resident	No	Dance		Alive
+meng orbsstabbed	Dwarf	Former Resident	No	Make Music	Militia Commander	Alive
+stasost drilljackal	Goblin	Former Resident	No	Surgery	Administrator	Alive
+strodno hatredgrips	Goblin	Former Resident	No	Mining	Sacred Phantom	Alive
+utes poisonplan	Goblin	Former Resident	No	Cook	Sacred Phantom	Alive
+xuspgas worrythief	Goblin	Former Resident	No	Knowledge Acquisition	Sacred Flag	Alive
+mato leanseduced	Goblin	Occupation	Yes	Dissect Vermin		Alive
+olon problemcities	Dwarf	Position_holder	Yes	Comedy	Administrator	Alive
+doren wheelsluck	Dwarf	Resident	Yes	Tracking	Sacred Flag	Alive
+olngo sinfuluttered	Goblin	Resident	Yes	Metalcraft		Alive
+stasost seducedwilt	Goblin	Resident	Yes	Diagnose	Exalted Ace	Alive
+amxu bendjackals	Goblin	Whereabouts	No	Tracking		Alive
+
+Note from these data we can see that the Civ page vie says there are 15 Residents at cloistermanor.  This means there should be 15 Living/Currently Present people there.
+We can also see that the Site Government page claims 14 citizens, but then only shows 5 current SG members who are alive.  Who are the other 9 citizens if this is correct?
+Note: alter the site government page Overview tile to show Members instead of Citizens, and default to count Alive-Current.
+We can also see that the Site page claims 15 Residents, but then only shows 6 when filtering for Current-Alive.  The count jumps to 15 if we include Former Residents.
+What is a former Resident anyway?  There is no such thing as a 'Resident' tag.  Is the code inferring 'former residency' if someone is a foemr member fo a site government?
+Note as well that there are discrepanncies between the 'Position' columns of the Site Government and Site pages, especially with respect to whomever is designated as 'Administrator'.
+
+Therefore, we can deduce that these counts cannot be correct because they are not in agreement.  You are to do a deep scan of the raw XML data for every one of the individuals listed in these two tables.  Provide a master summary table with all of the tags, categorizations, and eveything else you can find about each and every one of these individuals.  Let's use the full set of all of their details to craete a ground truth scenario that we can build against to make further improvements.
+
+To help me with validation and  debugging, add to the Site page's Residents tab/table 'Residents' the following columns: Member ('member' 'former member' tags), Citizen (provide tag that flagged them to be conted as a Citizen), Resident (provide tag that flags them to be counted as a Resident).
+]]]
+
+[[[
+First a question: is there truly a "Resident" tag in the XML data?  I can't remember if that's something that we generate based on a set of other tags or if we found a clearly labelled condition that sets a person apart as a resident.
+
+Tasks
+Site Government Page "Notable Outsiders" tag and Site Page "Ne'er-do-wells" Tab:
+
+For Site Government pages:
+For the "Notable Outsiders" tag we will want to investigate "sekel greenblows" to see whether this is a person who is merely found at Pocketdumplings at the moment (like a visiting bard or merchant).  Such individuals should be marked as Member-no, Citizen-no, Resident=no, Visitor=yes.  This means adding a column for 'visitor' and creating a reliable criteria for designating a person as a visitor as when they are present but have no home_structure or site_link nor SG membership.  A wrinkle would include that sometimes a bard or monster slayer etc might have petitioned for citizenship, at which point I believe they would then be listed as a member of the site government as is appropriate.
+
+Similarly, research 'stral mergedwaves' to see if this further illuminates the logical division between Citizen (SQ members who live at the site in question), Resident (non-SG members who live at the site in question), Visitors (who are all people present with no membershp, citizenship, site_link, local position or etc), and Ne'er-do-wells (who might be Residents or not, but who are enemies, criminals, and so on.  See below for more on this category)
+
+Individuals like 'gasom peekedchurch' 'abo evenedtreaty' 'mebas twistedclustered' shouldn't be listed as Site Government members.
+Add a "Known Non-Citizens at Site" section showing HFs who have home_structure or resident-type links to the SG's site but no membership in the SG plus some other tag which would indicate that they are a criminal, a spy, a mauraduer or sieger, a bandit, or an enemy is some other way. Gasom and others would appear in this tab, and no longer appear in the Residents tab, and would display context like "Warlord of The Fated Councils, weretortoise, home structure in The Worthy Honey"
+
+
+  For Site Pages (like site 621 / Pocketdumplings)
+
+  - Residents: Currently we show hf_site_links with link_type = 'resident' (185 HFs)
+  - Home Structure dwellers (45) are a subset that could be shown separately or merged
+  - Key question: Should home_structure count as a Resident? In DF semantics, yes — having a home structure means you live there. But it's a different signal than the generic resident tag
+  - We could show a breakdown: "185 Residents (including 45 with home structures, 11 with seats of power)"
+
+  
+
+  I propose that we elevate the following to this stage of our validation work on Phase 2 review and completion:
+
+  "Phase 4 — Ne'er-do-wells Tab (Excluded Link Types)
+
+#### 4.1 Add "Ne'er-do-wells" Tab to Site Government and Site Views
+**Task:** Design and implement a new tab in both the **Site detail** (`site_detail.html`) and **Entity detail / Site Government** (`entity_detail.html`) views that surfaces HFs with the following `hf_entity_links.link_type` values:
+
+| Link Type | Total | Unique HFs | Alive |
+|-----------|-------|-----------|-------|
+| enemy | 26,434 | 2,169 | 1,918 |
+| former (prisoner) | 3,886 | 3,770 | 335 |
+| criminal | 1,147 | 653 | 214 |
+| prisoner | 302 | 302 | 91 |
+| former slave | 27 | 26 | 7 |
+| slave | 8 | 8 | 3 |
+
+**Requirements:**
+- Tab label: "Ne'er-do-wells" (or similar thematic name)
+- Table columns: Name (linked), Race, Link Type, Status (alive/dead)
+- Filter chips or sub-tabs for each link type category
+- These are explicitly **not** included in "Members" or "Population" counts (as defined in §1.2)
+- Backend: New query endpoint or extension to existing `civilizations.py` / `detail_pages.py` routes that fetches HFs with these link types
+
+**Review:** Confirm the tab exists in both templates, the backend route serves the data, and the counts are excluded from all Population/Residents/Citizens tallies."
+
+
+For Enriching Individual HF Pages
+
+  Gasom's page could show:
+  - Residency: "Resident of Pocketdumplings (home structure: The Worthy Honey)"
+  - Political Status: "Not a citizen — leads outcast group 'The Fated Councils' based at this site"
+  - Notable: "Known to the site government as ageless since Y217"
+
+
+Review all of these request and proposals.  Form an improved revised version, which is checked for consistency with your discoveries so far.  Gather additional findings and provide me with a revised plan for implementing your proposed enhancements plus my additional requested enhamncements, all in a cohesive and consistent framework that will improve the organization and informativeness of the Site Government Page, Site Page, and individual HF pages.
+
+]]]
+
+
+
+
+
+
+
+
+#### 1.2 Standardize Demographic Terminology Across All Planning Documents
+**Task:** All planning documents, reports, code comments, and UI labels must consistently use this revised categorization:
+
+| Term | Definition |
+|------|-----------|
+| **Population** | Total count of **living** Historical Figures (HFs) with membership assignment to a Civilization. |
+| **Residents** | Total number of HFs linked (via `hf_entity_links` + `hf_site_links`) to a Civilization **or** a Site. This is the closest analog to "who lives here." |
+| **Citizens** | Total number of HFs with membership links to a Civilization, a Site Government entity, **or** a Site directly. |
+
+**Geographical Dwelling Hierarchy** (non-inclusive, semi-hierarchical):  
+`Civilization > Site > Cave > Lair`
+
+**Review:** Search all `.md` files in `docs/`, all Python docstrings in `chronicler/api/routes/`, and all HTML templates in `chronicler/api/templates/` for inconsistent usage of "members," "residents," "population," or "citizens." Report any terminology drift.
+
+---
+
+### Phase 2 — Data Model Understanding & Occupation Analysis
+
+#### 2.1 Occupation Link Analysis
+**Context:** The `occupation` link type appears in `hf_entity_links` (632 total, 631 unique HFs, 98 alive). It represents HFs working at a site (scholars, performers, mercenaries) and is currently shown with an "Occupation" filter chip in the People browser.
+
+**Questions to answer and document:**
+1. **Are occupations linked to structures, sites, or both?** For example:
+   - A *Tavern Keeper* or *Doctor* — are these linked to a specific structure (e.g., a tavern, hospital) within a site?
+   - *Merchants* and *Performers* who have no fixed site, or whose occupation may change site linkage frequently — how are these represented in `hf_site_links` and `hf_entity_links`?
+2. **Animal-person "home structure" linkages:** Explain what a "home structure" means for the following animal-person races and document their demographic profile:
+
+   | Race | Total | Alive |
+   |------|-------|-------|
+   | OLM_MAN | 54 | 32 |
+   | REPTILE_MAN | 50 | 24 |
+   | CAVE_FISH_MAN | 47 | 19 |
+   | AMPHIBIAN_MAN | 36 | 18 |
+
+   For each: What structure types do they inhabit? What sites are these structures in? What is the relationship between `hf_site_links.link_type = 'home structure'` and the site/structure tables?
+
+**Review:** Confirm that findings are documented in the population analysis report or a dedicated analysis note. Verify that the occupation filter chip in the People tab (`chronicler/api/routes/people.py` → `browse_people`) correctly queries this data.
+
+#### 2.2 Expand "Appendix: Raw Data Snapshot" with Categorical Breakdowns
+**Task:** The existing raw data snapshot appendix (in the population analysis report) needs significantly more detail. For **every** link-type/category already shown, add:
+- **Categorical breakdown:** By race, by entity type, by site type, by link subtype
+- **Descriptive breakdown:** Who are these individuals? Where do they live? What race are they?
+- **Dual summary columns:** Every breakdown must be shown for:
+  - **Alive only** (HFs where `death_year IS NULL`)
+  - **All** (living + dead)
+
+**Review:** Confirm the appendix exists, contains the dual Alive/All breakdowns, and covers all link types present in `hf_entity_links` and `hf_site_links`.
+
+---
+
+### Phase 3 — Tabulation Algorithm Refactoring
+
+#### 3.1 Audit and Refactor Demographic Tabulation Logic
+**Task:** Review **all** code that computes member counts, population counts, or resident counts across the application. Ensure every algorithm aligns with the revised terminology from §1.2. Key files to audit:
+- `chronicler/api/routes/civilizations.py` — `list_members()`, member count queries
+- `chronicler/api/routes/geography.py` — `linked_hf_count` in site listings
+- `chronicler/api/routes/detail_pages.py` — entity detail, site detail, structure detail page data
+- `chronicler/api/templates/entity_detail.html` — "Members" tab and count
+- `chronicler/api/templates/site_detail.html` — "Residents" tab and count
+- `chronicler/api/templates/structure_detail.html` — "Membership" section
+- `chronicler/ingest/post_parse.py` — Step 10 resident inference logic
+- `chronicler/denizens.py` — fortress denizen status tracking
+
+**Specific refactoring goals:**
+- `fetch_civilization_members` (or equivalent query) currently filters `IN ('member', 'former member')`. This must be reviewed against the new Population/Residents/Citizens definitions.
+- Ensure "Residents" counts use the union of `hf_entity_links` + `hf_site_links` for the relevant entity/site.
+- Ensure "Population" counts filter to `death_year IS NULL` (living only).
+- Ensure "Citizens" counts include HFs linked to the Civ entity, Site Government entities, or Sites directly.
+
+**Review:** For each file, confirm the query logic matches §1.2 definitions. Produce a diff summary of any changes needed or already made.
+
+---
+
+### Phase 4 — Ne'er-do-wells Tab (Excluded Link Types)
+
+#### 4.1 Add "Ne'er-do-wells" Tab to Site Government and Site Views
+**Task:** Design and implement a new tab in both the **Site detail** (`site_detail.html`) and **Entity detail / Site Government** (`entity_detail.html`) views that surfaces HFs with the following `hf_entity_links.link_type` values:
+
+| Link Type | Total | Unique HFs | Alive |
+|-----------|-------|-----------|-------|
+| enemy | 26,434 | 2,169 | 1,918 |
+| former (prisoner) | 3,886 | 3,770 | 335 |
+| criminal | 1,147 | 653 | 214 |
+| prisoner | 302 | 302 | 91 |
+| former slave | 27 | 26 | 7 |
+| slave | 8 | 8 | 3 |
+
+**Requirements:**
+- Tab label: "Ne'er-do-wells" (or similar thematic name)
+- Table columns: Name (linked), Race, Link Type, Status (alive/dead)
+- Filter chips or sub-tabs for each link type category
+- These are explicitly **not** included in "Members" or "Population" counts (as defined in §1.2)
+- Backend: New query endpoint or extension to existing `civilizations.py` / `detail_pages.py` routes that fetches HFs with these link types
+
+**Review:** Confirm the tab exists in both templates, the backend route serves the data, and the counts are excluded from all Population/Residents/Citizens tallies.
+
+---
+
+### Phase 5 — Demographics Statistics Dashboard
+
+#### 5.1 Design Interactive Demographics & Population Statistics Tab
+**Task:** Create a new **"Demographics"** sub-tab within the existing **Statistics** section of the Chronicler explorer. This tab provides interactive visual exploration of demography and population statistics across all entity types.
+
+**Visualization requirements:**
+1. **Histograms** — Distribution of HFs by race, by entity type, by alive/dead status
+2. **Bar charts** — Comparative counts across civilizations, site governments, religions, performance troupes, guilds, and other entity types
+3. **Venn diagrams** — Overlap between Population, Residents, and Citizens for a selected civilization
+4. **Time-series graphs** (critical feature) — Plot the change in count of living HFs with membership assignment to any given entity over time:
+   - **Selection:** User selects an entity (civ, site gov, religion, etc.)
+   - **Data derivation:** For each year in the world's history, compute: *How many HFs were both Living AND Present (had an active membership link) for that entity at that point in time?*
+   - **Algorithm:** For each HF with a membership link to the selected entity, determine their living-present status at yearly intervals using birth_year, death_year, and link start/end dates. Count an HF as a "Resident" if `Living && Present` for that year.
+   - **Output:** Time-series line chart showing residency growth/decline over centuries
+   - This effectively converts the XML-derived event/link data into **time-series residency growth data**
+
+5. **Scope coverage:** The dashboard must support exploration at all levels of geographical, political, religious, professional, and organizational grouping:
+   - Civilizations (civ-wide Population)
+   - Sites (site-level Residents)
+   - Site Governments
+   - Religious entities
+   - Performance troupes / guilds
+   - Military entities
+   - Any other entity type present in the `entities` table
+
+**Technical approach:**
+- Backend: New API route(s) in `chronicler/api/routes/` (e.g., `demographics.py`) with endpoints for aggregated counts, time-series data, and cross-tabulations
+- Frontend: New template or JavaScript module with Chart.js / D3.js / Plotly visualizations
+- Database: May require new materialized views or pre-computed summary tables for performance on large worlds (48K+ HFs, 436K+ events)
+
+**Review:** Confirm whether any of this infrastructure exists. Check for existing statistics pages, chart libraries in use, or API endpoints that return aggregate demographic data. Report what exists vs. what needs to be built from scratch.
+
+---
+
+### Deliverables Checklist
+
+For each item, the model should report:
+
+| # | Item | Status | Evidence | Gaps / Next Steps |
+|---|------|--------|----------|-------------------|
+| 1.1 | Population Analysis Report updated | ? | File path + content check | |
+| 1.2 | Terminology standardized | ? | Search across docs, code, templates | |
+| 2.1 | Occupation & animal-person analysis | ? | Documentation exists? | |
+| 2.2 | Appendix expanded with breakdowns | ? | Dual Alive/All columns present? | |
+| 3.1 | Tabulation algorithms refactored | ? | Query logic matches §1.2? | |
+| 4.1 | Ne'er-do-wells tab implemented | ? | Template tab + backend route? | |
+| 5.1 | Demographics Statistics dashboard | ? | Any infrastructure exists? | |
+
+
+
+
+
+
+
+~~~~~~~~~
+Add by-age gender violin plots to Demographics tab
+
+
+~~~~~~~~~~~~~~~~~~~~~~~
+---- chronicler DB Checks ----
+user: jarvis
+pass: OSDbeydP6TOBGoJUym6rTBfULKJYqqPE
+
+cd /Users/nathanielcannon/Claude/Projects/DwarfCron
+source .venv/bin/activate
+
+chronicler validate-phase1 --world-id 2
+
+PREPEND: "psql -h localhost -U jarvis -d chronicler -c"
+
+psql -d chronicler -c "SELECT indexname, indexdef FROM pg_indexes WHERE tablename = 'historical_figures' AND indexdef ILIKE '%gin%';"
+
+psql -d chronicler -c "SELECT id, name, coord_1, coord_2 FROM landmasses WHERE world_id = 2 LIMIT 5;"
+psql -d chronicler -c "SELECT id, name, height, is_volcano FROM mountain_peaks WHERE world_id = 2 LIMIT 5;"
+
+psql -d chronicler -c "SELECT form_type, COUNT(*) FROM art_forms WHERE world_id = 2 GROUP BY form_type;"
+psql -d chronicler -c "SELECT race, SUM(count) AS total FROM entity_populations WHERE world_id = 2 GROUP BY race ORDER BY total DESC LIMIT 10;"
+
+**How to manually verify dual-file merge**: Compare a specific HF across both files:
+psql -d chronicler -c "
+  SELECT name, skills != '[]'::jsonb AS has_skills,
+         kills != '{}'::jsonb AS has_kills,
+         whereabouts IS NOT NULL AS has_whereabouts
+  FROM historical_figures
+  WHERE world_id = 2 AND name ILIKE '%urist%'
+  LIMIT 5;
+"
+
+
+
+~~~~~~~~~~~~~~~~~~
+Future Dev Notes:
+There are just way too many poems, dances, and on and on and on.  How can this get trimmed down?  Can Legends data be rewritten?  Can in-game memory somehow lead to accessing and trimming back the surplus of certain features?  What about Lua scripting? Can we create scripts which limit artistic creation to only HFs with skill levels over threshold in certain categories?
+
+Ooooooohhhhhhhhhhh!  I can just do this dynamically to units that appear IN the fortress live, in-game.  No need to worry about the whole wide world out there, just mod the in-game memory to drop knowledge from people's profiles if they have skill scores that are too low, and drop knowledge of artistic works whose own importance scores are too low. Just have to make sure that whole entire performance troupes aren't completely wiped of all music, poetry and dance.  Maybe have a way to detect "best" and keep one, and drop any under threshold.  That would always keep the 'best' of whatever even if mediocre, and also keep all over a cutoff, in which case the best is already over the cutoff.  I think this would work.
+
+Forms of artworks should be a graphic in the browser
+
+
+

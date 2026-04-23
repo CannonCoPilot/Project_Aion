@@ -4317,3 +4317,350 @@ The reference biplot tiers (sil=0.298, CV=0.195) segment along PC2 *only* — th
 Our winning solutions flip this: they segment along a *combined* behavioral+discriminant axis that captures the persistence gradient directly. The visual "fan" structure in Solution B's scatter matches the comet-tail structure from the original phase6b PCA but with the LDA axis rotating it so the persistence gradient becomes a cluster boundary rather than a within-cluster gradient.
 
 **The FA k=6 radar is especially revealing**: C5 (purple, Heavy Loggers) has the distinctive spike on Logins(90d) — these are users who log in ~20x per 90 days but with moderate breadth. They're the "daily checkers." C3 (green, 100% persist, near-zero activation speed) is the "Slow Starters" — they took a long time to activate but once engaged, they never leave. This is a genuinely novel segment not visible in the original k=6 phase6b clustering.
+
+### 2026-03-28 [9ba4329a40fb]
+
+This session was effectively a JICM restore → immediate /end-session. The uncommitted changes in Jarvis are carryover from Session 47 (Phase 3 completion). No new work was performed this session.
+
+### 2026-03-29 [bb0bf9aa52d9]
+
+**AIfred v3.0.0 represents a major architectural pivot**: The hook consolidation pattern (N hooks → 2 dispatchers + shared lib) is the most portable improvement. AIfred's headless automation framework (cron → Claude CLI) is a parallel evolution to Jarvis's Aion Quartet (tmux → signal files) — same problem, fundamentally different solutions. Testing infrastructure is the biggest gap AIfred now has that Jarvis doesn't.
+
+### 2026-03-29 [b6aa4adff127]
+
+**AIfred and Jarvis are complementary, not competing.** AIfred's strength is *breadth* — always-on, stateless, cost-gated infrastructure tending across 15+ projects. Jarvis's strength is *depth* — persistent context, memory hierarchy, project-specific expertise through multi-hour coding sessions. The Nexus orchestration bus (dispatcher + Pulse + personas) is the natural glue that connects them. The biggest architectural insight is that **Pulse's label-driven task lifecycle** could become the shared language all Archons use to coordinate — each Archon reads from and writes to the same task queue, with labels encoding ownership, risk, and routing.
+
+### 2026-03-29 [3ff8b8e018db]
+
+**All systems green.** The cooperative Archon infrastructure is operational. Jarvis and AIfred can create tasks that are mutually visible through the shared Pulse backend. The label convention (`agent:jarvis` vs `agent:aifred`) naturally partitions ownership while maintaining full cross-visibility. The ready queue correctly filters to only `auto:ready` tasks — AIfred's test task appears because it has `auto:ready + risk:safe`, while Jarvis's doesn't because it lacks automation labels. This is exactly how the Nexus pipeline is designed to work.
+
+### 2026-03-29 [10db0c287cd1]
+
+**The closing line of the brainstorm captures the core differentiator**: "This is a personal AI operating system, not a chatbot." Project Aion's multi-Archon model is unique because it combines persistent identity (Jarvis has personality and memory across sessions), shared infrastructure (Pulse task bus, knowledge graph), self-improvement (AC-05/06/07 reflection/evolution/R&D), and human-centered design (family task boards alongside code deployments) — all self-hosted on a single Mac Studio.
+
+### 2026-03-29 [5857d8074de1]
+
+**42 pages of strategic documentation produced in a single session.** The technical manual (30 pages) covers every operational component across both Archons — from JICM's 0.06-second bash compression replacement to AIfred's 24 persona tier system. The brainstorm (12 pages) lays out the complete multi-Archon vision including Loom content generation, family task boards, Herald communication Archon, and the principle that "Pulse is the nervous system" of the entire federation. Both documents serve as the architectural foundation for Project Aion v2.0.
+
+### 2026-03-31 [07fd735c625a]
+
+The agentic storyteller implementation uses a **non-streaming** LLM call for tool rounds (`collect_with_tools`) but the final narrative response still streams to the client. This is the right trade-off: during SQL exploration rounds, we need the complete response to check for tool calls before executing SQL. Only the final narrative answer needs streaming for good UX. The `stream=False` approach also avoids the complexity of incrementally assembling tool call arguments from deltas.
+
+The `_mock_pool()` helper demonstrates a common asyncpg testing pattern — `pool.acquire()` returns an async context manager, not a simple coroutine, so `AsyncMock()` alone doesn't work. The `@asynccontextmanager` wrapper is the clean solution.
+
+### 2026-03-31 [5165a103ddcd]
+
+**Two critical findings from the research**: (1) Crater Lake boat tours close permanently after September 14, 2025 for renovation until 2029 — your May 2026 trip will miss them entirely, so budget that time for hiking instead. (2) Ecola State Park (Cannon Beach) has been closed since December 2025 due to a landslide — verify reopening status before your trip at stateparks.oregon.gov. Both are noted prominently in the brochure.
+
+### 2026-04-01 [fc0bed38fd95]
+
+**The source confirms several things we suspected and reveals much we didn't know.** Claude Code runs on **Bun** (not Node.js), uses **Ink** (React for CLI) for its terminal UI, and has a feature-flag system gating unreleased capabilities including **Proactive mode** (autonomous behavior), **KAIROS** (unknown codename), **Dream** (background processing while "idle"), **Teleport** (session transfer between machines), **Swarm** (multi-agent coordination), and **Buddy** (pair programming). The system prompt is dynamically assembled with a priority system, not static. The compaction service in `src/services/compact/` is the native autocompact that interacts with our JICM watcher. Most interesting for Jarvis: `src/services/extractMemories/` reveals how auto-memory extraction works internally.
+
+### 2026-04-02 [3bafbfbe6e1f]
+
+The `grep -c` command counts matching lines, but when piped with `|| echo 0`, the subshell can produce a multi-line result: `grep -c` outputs its count, AND the `|| echo 0` fallback fires because the pipeline's exit code comes from the last command. When Docker isn't running, `docker compose ps --format json 2>/dev/null` fails, `grep -c` gets empty input and outputs `0` (exit 1 for zero matches), THEN `|| echo 0` appends another `0` — resulting in `"0\n0"`. Bash's `[[ "0\n0" -ge 5 ]]` chokes on the embedded newline.
+
+### 2026-04-03 [4c54fb44feaf]
+
+Stage 4.6 integrates the Phase 3 narrative data layer (13K arcs, 473K scored events) into a chapter planner that maps arc types to chapter archetypes. Key design: the `CHAPTER_ARCHETYPES` dict maps chapter types to arc types and positional hints (start/early/middle/late/end), dividing the world's time span into zones. Chapters with no matching arcs are pruned (except founding/epilogue). The style presets define 6 narrative voices — from Tolkien-esque epic to Pratchettian dark comedy — that shape the LLM's system prompt.
+
+### 2026-04-03 [63cf83749e8c]
+
+**Phase 4 stages 4.4-4.8 are all code-complete.** The implementation adds 2,511 lines across 12 files, creating three major subsystems:
+
+1. **AI Generators** (`ai_generators.py`) — cache-first pattern with TTL-based expiration. Each generator follows the same flow: check cache → gather DB stats → build prompt → call LLM → cache result. The `narrative_cache` table uses `ON CONFLICT DO UPDATE` for atomic upserts.
+
+2. **Saga Generator** (`saga_generator.py`) — the crown jewel. Maps narrative arcs to chapter archetypes via a `CHAPTER_ARCHETYPES` dict, then generates per-chapter context from scored events + population stats + active wars. Six style presets shape the LLM's voice from Tolkien to Pratchett.
+
+3. **Quality Evaluation** (`quality.py`) — validates generated narratives against CDM data. The `FactualAccuracyChecker` loads all known entity names into a per-world cache and validates year references against the world's event range. Composite scoring weights accuracy (40%), length (20%), specificity (20%), structure (20%).
+
+### 2026-04-03 [55556e28308d]
+
+This is fundamentally an **architecture synthesis** problem, not a build-from-scratch problem. The key risk is creating a "Frankenstein" — an agglomeration of 20+ projects bolted together. The approach must be: (1) define the target architecture first, (2) map each source project's features onto that architecture, (3) select the best implementation for each layer, (4) build integration glue only where needed. The user explicitly called this out: "full synthesis... not merely creating an agglomeration."
+
+### 2026-04-03 [0344484d445a]
+
+The research reveals a critical finding: **no reviewed project comes close to Jarvis's autonomic infrastructure** (JICM, Wiggum Loop, Ulfhedthnar, self-improvement cycles). The existing Jarvis "Mind" is the most architecturally unique asset. What Jarvis lacks — and what the open source ecosystem provides — is the **surface area**: UI layers, multi-channel communication, provider-agnostic model routing, and inter-agent messaging. The rebuild is less "replace everything" and more "elevate the Mind above Claude Code and give it new eyes, hands, and voices."
+
+Key architectural choice emerging: **Tauri** (Rust + webview) over Electron. The Claude Agent Teams UI uses Electron (200MB overhead), but Tauri gives us a 5MB native app with Rust backend that can directly manage Docker, file I/O, and LLM processes — exactly what the Infrastructure Layer needs. Cross-platform (Mac + Windows) is native.
+
+### 2026-04-10 [c2ad929720c7]
+
+The JICM checkpoint was minimal this time — no JSONL transcript was found, so only session-state.md and the force-loaded files survived. This is the "soft restart" weakness documented in self-knowledge: nuance lost across /clear boundaries. The uncommitted git diff is the best forensic trail.
+
+### 2026-04-10 [e1167d12eee0]
+
+**Current infrastructure state**: Pulse is running as a bare Python process (PID 11985), not containerized. The Jarvis Docker stack (PostgreSQL, Qdrant, Neo4j, Redis, n8n) is up and healthy. AIfred-Pro's own docker-compose wants to spin up a *separate* `aifred-postgres` container — but in Session 49, we wired Pulse to use `jarvis-postgres` directly instead. This is an important architectural choice: shared DB infrastructure vs. isolated stacks.
+
+### 2026-04-10 [97d3ac58e10f]
+
+The bootstrap is idempotent — it detected that `.env`, Pulse, the setup plan (4 tasks), gitignore entries, and the dispatcher cron were all already configured. The only soft failure was the welcome task endpoint, which our custom Pulse API doesn't implement (it was built lean for Jarvis integration, not full AIfred feature parity).
+
+### 2026-04-10 [0accd94a1db2]
+
+AIfred's "hard gate" is a soft contract — it's CLAUDE.md text that tells Claude to check infrastructure and work setup tasks before anything else. It relies entirely on Claude reading and obeying those instructions. Unlike Jarvis's hook-enforced AC-01 startup protocol, there's no mechanism to force compliance. Whether Claude follows it depends on the model's instruction-following and whether the user's first prompt triggers setup behavior or something else entirely.
+
+### 2026-04-13 [bd555517a3b0]
+
+The dev-session-instructions.md has already been loaded via the session-start hook (visible in the system reminder). No additional read needed — it's fully in context.
+
+### 2026-04-13 [03e5e85202e4]
+
+**Key constraint here**: You need bidirectional sync to specific local folders that Jarvis and AIfred can read/write to, with changes propagating to the NAS. This rules out simple mount-based approaches (which have latency/reliability issues for active development) and favors file-sync solutions.
+
+### 2026-04-13 [704817778946]
+
+The core challenge here is epistemological, not just methodological: AI-enhanced workflows don't just do the same thing faster — they often reframe the analytical question itself. Traditional metagenomics asks "what's there and what can it do?" using reference-dependent classification. AI approaches can ask "what latent structure exists in this data that predicts emergent phenotypic behavior?" — a fundamentally different question. The grant metrics need to capture both the efficiency gains AND this qualitative shift in analytical framing.
+
+### 2026-04-13 [6df0c9849ccd]
+
+A crucial finding from the research: the Koblinsky/Koblitz et al. paper is actually **Koblitz et al. (2025)** in *Communications Biology* — "Predicting bacterial phenotypic traits from genomic sequences using machine learning." It trains Random Forest classifiers on protein family inventories from BacDive-curated strains to predict 8 physiological traits (79-98% accuracy), generating ~55,000 new predictions. This is the exemplar AI-enhanced workflow the grant proposal should center on, but the comparison framework needs to go well beyond what that single paper demonstrates.
+
+### 2026-04-13 [f06570ca5715]
+
+**Critical grant intelligence**: The DOE GENESIS Mission (DE-FOA-0003612) has a Phase I deadline of **April 28, 2026** — 15 days from now. $293M total, Phase I is $500K-$750K for 9 months. Biotechnology is one of 9 explicit topic areas. The review criterion weights "Scientific/Technical Merit and Impact" first. The OPAL project (LBNL) was funded on a "foundational model" framing, and its successful language was "weeks to hours" for time-to-discovery. The January 2026 ASCR-BER Workshop Report is the review panel roadmap and must be read before submission.
+
+### 2026-04-16 [a42ddfb7b2cb]
+
+The most strategically important element of this framework is the **three-level advantage taxonomy** (throughput → quality → capability expansion). Review panels for DOE AI grants have seen plenty of "our ML model gets 5% better accuracy" proposals. What differentiates a competitive proposal is the Level 3 argument: **AI enables analyses that are structurally impossible with traditional methods**. The Dark Matter Illumination Rate and Hypothesis Novelty Yield metrics are designed specifically to quantify this capability expansion — they measure things that have a denominator of zero in the traditional pipeline. That's what makes them "creative and insightful" in the FOA's language.
+
+### 2026-04-16 [1ec046c626a2]
+
+**Critical alignment issues identified:**
+1. The original document's metrics (DMIR, PPF, CBGI, etc.) were designed for environmental metagenomics broadly — but IMAGINE-AI is specifically about **genotype-to-phenotype prediction** in pure cultures → consortia, with nitrogen fixation as the use case. The metrics need to be reframed around this specific pipeline.
+2. The FOA explicitly says: *"Decision Gate Metrics (~0.5 page): DOE encourages the development of metrics to identify AI advantage. One such metric could include scaling behavior."* And for Phase II: *"Performance Metrics (4 pages): Provide statistically defensible performance comparisons to non-AI baselines while also describing how to characterize uncertainty, robustness, and reproducibility."*
+3. Jeff's feedback that Section 4 "comes out of nowhere" means the comparative framework must flow directly from the IMAGINE-AI workflow, not from abstract metagenomics literature. The framework should be the *how we measure* complement to the proposal's *what we do*.
+4. The proposal already has decision gate metrics (F1 ≥5pp, RMSE ≥10%, scaling behavior, AI efficiency = X_Human/X_AI). The new document should enhance and extend these, not replace them.
+
+### 2026-04-17 [c124c84696b0]
+
+**What changed from v1 to v2 — and why:**
+
+The original document had 7 metrics designed for abstract environmental metagenomics (DMIR, PPF, DTI, CFS, CBGI, CER, HNY). The new version replaces these with 7 metrics specifically tuned to IMAGINE-AI's actual workflow and the FOA's explicit language:
+
+1. **PAA** (Predictive Accuracy Advantage) — retains the proposal's existing F1/RMSE decision gates but formalizes them as the "Level 2" baseline
+2. **SE** (Scaling Exponent) — directly addresses the FOA's signature interest in "scaling behavior"; measures whether AI learns *faster per datum* than traditional methods
+3. **PFE** (Prediction Frontier Expansion) — replaces the old DMIR/PPF; measures organisms where *only* AI can predict phenotype
+4. **IDR** (Interaction Discovery Rate) — directly addresses Jeff's "connecting the dots" feedback; measures multi-gene and species-species interaction patterns invisible to linear models
+5. **UCI** (Uncertainty Calibration Index) — addresses FOA requirement for "uncertainty, robustness, reproducibility"; critical for DBTL experiment targeting
+6. **WEQ** (Workflow Efficiency Quotient) — extends the proposal's "AI efficiency metric" into a 2D speed×accuracy measure; the "John Henry" metric
+7. **CES** (Consortia Emergence Score) — entirely new; measures whether AI captures *emergent team effects* that additive models cannot — the scientific heart of IMAGINE-AI
+
+Key structural changes: Sections 2-3 of the original (conceptual framework, paradigm shift) are condensed into Section 1. Sections 4-5 (comparative testing, metrics) are now the document's center of gravity. The "pie in the sky" content (Phase 2 scenarios, budget guidance, timeline) is removed. Everything is now grounded in IMAGINE-AI's specific methods, data sources, and decision gates.
+
+### 2026-04-17 [5714d02a7c84]
+
+**Key changes in v3:**
+
+**"Capability expansion" → "Latent pattern discovery"** — reframed as "connecting dots across genomic, transcriptomic, and metabolic data that human-directed analyses cannot detect at scale." This captures Jeff's feedback precisely.
+
+**The "Comps" approach replaces the John Henry design.** Instead of racing humans against AI (statistically underpowered, operationally wasteful), we identify 15–25 published pre-AI genotype-to-phenotype studies with public data, reproduce them through IMAGINE-AI, and compare against the published results. Each paper is an independent replicate with its own baseline. AI agents run *both* arms — no grad students locked in rooms. This is more defensible to reviewers, requires zero additional personnel budget, and produces 15–25 independent effect sizes rather than one noisy comparison.
+
+**13 metrics, phased:**
+- **Phase 1 (7)**: PAA, SE, PFE, IDR, UCI, WEQ, CES — all evaluable within 9 months using public data + existing PI datasets
+- **Phase 2 (6)**: DMIR, CFS, CBGI, DTI, CER, HNY — require larger datasets, cross-biome testing, or full DBTL experimental throughput
+
+**Organization follows the Drafting Narrative** — Background → Objectives Alignment → Methods (Comparative Testing) → Metrics → Decision Gates → Data Sources and Models → References.
+
+**Roughly half the length** of v2 (~2,800 words vs ~5,500).
+
+### 2026-04-17 [4d28478a62c7]
+
+This is the LLNL Centrifuge database paper Jeff mentioned. Its relevance to IMAGINE-AI is specific and valuable: it addresses the **reference database quality problem** that underpins taxonomic classification accuracy. The key finding — that database contamination and version asynchrony between NCBI nt and taxonomy databases cause spurious classifications — directly supports the argument that AI-enhanced pipelines need high-quality reference inputs. Notably, Co-PIs Pett-Ridge, Blazewicz, and Kimbrel are from LLNL, making this a natural team connection. The paper is most relevant to the "structural ceiling" argument (reference gap) and to the Data Harmonization section, not to functional annotation (which it doesn't address).
+
+### 2026-04-17 [3ced621eb145]
+
+The Martí et al. paper is **not** directly about functional annotation — it's purely taxonomic classification infrastructure. Its relevance to IMAGINE-AI is as an upstream quality control layer: accurate taxonomic assignment is prerequisite to reliable genotype-to-phenotype modeling, because misclassified organisms get wrong genome annotations propagated downstream. The paper's finding that standard NCBI databases introduce spurious classifications (false *Plasmodium* in mouse studies) is a concrete example of how "garbage in" undermines the entire analytical chain. Having the database developers on the IMAGINE-AI team is a genuine competitive advantage worth highlighting to reviewers.
+
+For functional annotation specifically, the relevant references remain Pavlopoulos et al. (2023) on functional dark matter and Wang et al. (2024) AnnoPRO — the Martí database improves *who is there*, not *what they can do*.
+
+### 2026-04-17 [95e9d4156e68]
+
+**Key conceptual corrections the user is flagging:**
+
+1. **The "comps" aren't about re-running old pipelines** — they're about running the *same data* through IMAGINE-AI and comparing *result quality* against published outcomes. We never touch the original analysis code.
+
+2. **Speed can't be measured against publications** — papers don't report person-months. We need a different approach: either (a) measure IMAGINE-AI's absolute throughput and report it standalone, or (b) have AI agents estimate the analytical complexity of each comparable study using standardized task-decomposition, producing an estimated human-effort figure validated against known benchmarks from researcher productivity surveys.
+
+3. **Every "capability expansion" metric has a false-positive problem** — PFE, DMIR, and IDR all claim AI finds things traditional methods miss, but "finding more" could just mean "hallucinating more." Each needs a built-in validation mechanism where a subset of AI-unique predictions is experimentally confirmed. The confirmation rate IS the false positive control.
+
+4. **UCI ground truth**: The held-out BacDive/µGrowthDB test organisms with known phenotypes serve as calibration truth. We know their actual phenotypes, so we can check whether "80% confident" predictions are right 80% of the time.
+
+5. **The document's purpose is co-PI resource material**, not a persuasive essay. Strip rhetoric, maximize pullable language and concrete ideas.
+
+### 2026-04-17 [648386f0e64b]
+
+**Key changes in v4:**
+
+- **Reciprocal Confirmation Protocol** is now the unified validation framework (Section 5). The A/B/C categorization (Confirmed / Unconfirmable / Refuted) replaces ad-hoc "experimental validation" for every metric that claims AI finds things traditional methods miss. This solves the false-positive concern for PFE, DMIR, IDR, and HNY simultaneously.
+
+- **"Ablation" → "Component Contribution Analysis"** (Section 7).
+
+- **WEQ redesigned**: Instead of estimating person-months (not in publications), we measure AI wall-clock time as an absolute metric and compare against data-deposition-to-publication calendar time (recoverable from public timestamps).
+
+- **SE clarified**: Both AI and traditional models are trained on the *same* bootstrapped subsets at each size — it's a direct comparison, not against an arbitrary benchmark.
+
+- **DTI redesigned**: Now per GPU-hour (measurable) instead of per "effort" (unmeasurable). Novel findings filtered through Reciprocal Confirmation.
+
+- **Five Dimensions and Paradigm Shift sections restored** from v2, condensed and rewritten without DOE justification language.
+
+- **20 comparable studies included** with full table, organized by module type, with pipeline modularity analysis.
+
+- **Rhetoric stripped**: No "this fits DOE expectations" language. No "Why Not Human-vs-AI Trial" section. Written as co-PI resource material.
+
+### 2026-04-17 [d3bbab723a1e]
+
+**Key findings from the PI publication search:**
+
+1. **6 multi-PI collaborative papers already exist** — the team has extensive prior collaboration, particularly the LLNL/PNNL/WVU nexus (Greenlon et al. 2022 *mSystems* is a 4-PI paper; Blazewicz et al. 2023 *ISME J* spans 3 PIs).
+
+2. **8 strong benchmarking candidates from the team's own work** — papers with public data, quantitative per-taxon phenotype measurements, and genome-linked traits. These are ideal "comps" because the team already knows the data intimately.
+
+3. **Morrissey has 4 directly relevant G2P papers** — including "Genomic traits predict CUE" (2024 *Env. Micro.*) which is essentially a proof-of-concept for IMAGINE-AI's core premise.
+
+4. **Kimbrel has 3 nitrogen fixation papers** — biofertilizer SynCom genomics, diazotroph community responses, and PGP trait spectrum characterization.
+
+5. **Choudhary's cross-property transfer learning** (2021 *Nat. Commun.*) directly solves IMAGINE-AI's small-dataset problem — pre-train on abundant phenotypes, fine-tune on scarce ones like N₂ fixation rates.
+
+6. **Romero and Choudhary have zero biology publications** — their contributions are methodological (AI/ML architecture, HPC). This is fine for the proposal but worth noting.
+
+7. **No team papers use BacDive or µGrowthDB directly** — the team's phenotype data comes from qSIP (isotope probing), not curated databases. This actually strengthens the proposal: IMAGINE-AI bridges the gap between curated database predictions and in situ isotope-validated measurements.
+
+### 2026-04-17 [5e646fb7befa]
+
+**Three strategically important findings for the proposal:**
+
+1. **The team has already published the proof-of-concept** for IMAGINE-AI's core claim. Morrissey et al. 2024 (*Environ. Microbiol.*) literally predicts CUE from genomic traits. Blazewicz et al. 2025 (*PNAS*) validates CUB growth rate against the gold standard (¹⁸O-SIP). These aren't aspirational — they're published preliminary results that reviewers can verify.
+
+2. **The "comps" reference set should include the team's own prior papers.** The 8 benchmarking candidates from PI publications can serve as internal comps — IMAGINE-AI should be able to reproduce and improve on the team's own best published results. This is honest, testable, and compelling: "We built models that beat our own best previous work."
+
+3. **Choudhary's cross-property transfer learning paper** (2021 *Nat. Commun.*) is the methodological key to the small-dataset problem. Pre-training on abundant phenotypes (growth rate, Gram stain) and fine-tuning on scarce phenotypes (N₂ fixation rates) is exactly the strategy that makes IMAGINE-AI feasible with available training data. This should be cited prominently in the AI Models section of the narrative.
+
+### 2026-04-17 [130c6c72923f]
+
+**How PI publications were integrated — the logic:**
+
+**Into the "comps" benchmarking table (Section 4, new "Team-Internal Benchmarks" subsection):**
+- Morrissey 2024 (*Environ. Microbiol.*) — CUE from genomic traits → can IMAGINE-AI's GNNs beat linear models?
+- Campbell & Morrissey 2022 — substrate assimilation → can IMAGINE-AI predict beyond phylogenetic signal alone?
+- Schwartz & Blazewicz 2022 — life history from genome features → can learned embeddings beat hand-selected features?
+- Greenlon et al. 2022 — qSIP+MAGs across N/P → can IMAGINE-AI predict nutrient-specific growth responses?
+- Kimbrel 2025 — biofertilizer colonization → can IMAGINE-AI predict SynCom success from interaction features?
+
+These are the most credible possible benchmarks: "we improved on our own best published work."
+
+**Into Section 2 (Five Dimensions) as supporting evidence:**
+- Campbell & Morrissey + Morrissey 2023 → D2 (interaction modeling, phylogenetic signal is nonlinear)
+- Blazewicz et al. 2023 ISME J + Wilhelm & Hofmockel 2022 → D5 (emergent community behavior)
+
+**Into Section 9 (Data Sources and Models):**
+- Choudhary's transfer learning, AtomGPT, ALIGNN → AI Models subsection
+- Team qSIP datasets (Greenlon, Maillard, Pett-Ridge CUE, Blazewicz global biomes) → Team-Generated Data subsection
+- MISIP standard → data quality
+
+**References reorganized into 5 categories** (46 total): External Benchmarks (18), Team Publications (15), AI/ML Architecture (3), Data Infrastructure (3), Conceptual (7). This structure makes it easy for co-PIs to find and pull relevant citations for specific narrative sections.
+
+### 2026-04-17 [6873457cd00d]
+
+**What changed v4 → v5:**
+
+**Modules trimmed to ~5 studies each**, prioritizing PI papers and highest-cited:
+- Module A: 5 studies (2 team, 3 external — Koblitz, MICROPHERRET, Li)
+- Module B: 5 studies (2 team, 3 external — Phydon, gRodon, Osburn)
+- Module C: expanded to 5 studies (3 team, 2 external — Gralka, MetaPathPredict). Morrissey 2024 CUE prediction is now in Module C where it belongs conceptually — it's a trait-based mechanistic G2P study, not a categorical classifier.
+
+**Team papers integrated into modules** with a note explaining why internal benchmarks matter: "demonstrating improvement over one's own best results eliminates concerns that AI advantage reflects dataset or methodology artifacts."
+
+**Component Contribution Analysis** → stub explaining value, recommended for Phase 2.
+
+**Experimental Validation** → scoped to only what's in the Draft Narrative (microplate growth assays, metabolic fingerprinting, DBTL Month 9).
+
+**Data Sources** → trimmed to only content NOT already in the Draft Narrative (Centrifuge databases, cross-property transfer learning, MISIP standard, benchmarking set).
+
+**Metrics shortened to 2–3 lines each**, with annotations noting which are already in the Draft Narrative ("*Already in Draft Narrative as Objective A1*") versus genuinely new ("*New metric*").
+
+**Total: ~2,200 words** (down from ~4,500 in v4, ~7,000 in v2). References: 31 (down from 46).
+
+### 2026-04-17 [2daa0522ec9c]
+
+**The honest question the user is asking**: If Koblitz et al. (2025) already achieved F1 0.89–0.97 using Random Forest on Pfam features, and Random Forest IS machine learning... what exactly is "AI" adding beyond what's already been done with ML? Where does the IMAGINE-AI framework go beyond "better ML" into genuinely novel analytical territory?
+
+This is not a rhetorical question — it has a precise answer, and getting it right is the difference between a competitive proposal and a "we'll just use fancier models" proposal.
+
+### 2026-04-17 [1b0035792c8c]
+
+**The core conceptual advance in this version is Section 3: "What AI Mechanistically Does That Traditional Methods Cannot."**
+
+This section addresses the honest question head-on. It identifies five mechanisms — not "AI is smarter" hand-waving, but specific, testable capabilities:
+
+1. **Learned representations** (ESM embeddings see the 40–60% of proteins invisible to Pfam-based models)
+2. **Implicit combinatorial interaction search** (GNNs search ~200M possible pairwise interactions where GLMM can only test a handful)
+3. **Adaptive methodological decision-making** (agentic workflows make runtime analytical choices that static pipelines cannot)
+4. **Semantic reasoning** (LLMs extract features from unstructured text that numerical methods cannot access)
+5. **Cross-property transfer** (pre-train on abundant phenotypes, fine-tune on scarce — impossible with independent-model ML)
+
+Each mechanism maps to a specific Category in the Reciprocal Confirmation framework, explaining *why* AI finds things traditional methods miss.
+
+**The bidirectional Reciprocal Confirmation** is the other major addition. The framework now handles:
+- **Forward**: AI discovers → traditional confirms (A), can't test (B), or refutes (C)
+- **Reverse**: AI rejects traditional finding → independent evidence confirms rejection (D1), is inconclusive (D2), or overrules AI (D3)
+
+This adds **False Positive Detection Rate (FPDR)** as a new Phase 1 metric, and makes the framework symmetric. AI doesn't just find new things — it also identifies where traditional methods were wrong, via confound detection, multi-representation consistency checking, and calibrated uncertainty disagreement.
+
+The statistical safeguards are explicit: pre-specified disagreement criteria, independent adjudication (not self-evaluation), and full transparency of the A:B:C:D1:D2:D3 distribution as a result in itself.
+
+### 2026-04-20 [f08531bfbcb1]
+
+This is a known JICM weakness (documented in `self-knowledge/weaknesses.md`): compression prioritizes the primary project context (Chronicler/Phase 3) and can lose detail about secondary work streams. The scratchpad note survived because it's force-loaded, but the actual paper list didn't make it across the /clear boundary.
+
+### 2026-04-20 [69a2d61782a0]
+
+The Narrative is ~2,200 words of dense grant prose. The Metrics doc (v5.1) contains several frameworks the Narrative either lacks entirely (Reciprocal Confirmation Protocol, 5 Dimensions of AI Advantage) or handles less precisely (decision gate metrics). The key editorial challenge is inserting the *essential* material without bloating a document that's likely page-limited.
+
+### 2026-04-20 [9e660685b471]
+
+The most dangerous hallucinations in this list are the **team publications** (Morrissey, Campbell, Schwartz, Greenlon, Wilhelm, Blazewicz) — these are papers supposedly authored by the grant PIs themselves. If any PI sees a fabricated citation attributed to them, credibility is destroyed instantly. These must be the highest priority to fix.
+
+### 2026-04-21 [15697b59e46b]
+
+This is a multi-source research + document generation task. I'll use the research-ops skill for web sourcing and doc-ops for PDF creation. The key challenge is extracting actionable, specific data (costs, tool lists, glue types) rather than generic advice.
+
+### 2026-04-21 [95738d83d186]
+
+The three agents produced complementary data with minimal overlap:
+- **Trade sources** delivered cost breakdowns, the panelizing technique (Wood Floor Business), and the nailing blank jig (This Old House)
+- **YouTube/community** delivered real-world project timelines, MS polymer vs urethane consensus, and the 6-pass sanding protocol
+- **Technical data** delivered pattern geometry formulas, Janka/stability tables, ASTM testing methods, and failure mode analysis
+This is exactly how parallel research should work — each agent covered different facets of the same domain.
+
+### 2026-04-21 [df0e37885af6]
+
+**Key architectural decisions in this reorganization:**
+
+1. **One-way awareness is intentional asymmetry.** Jarvis adapts to AIFred-Pro's Pulse/Nexus systems without requiring AIFred-Pro to know about Jarvis. This means David can evolve AIFred-Pro freely, and Jarvis simply consumes the APIs. If AIFred-Pro changes its task schema, Jarvis adapts — not the other way around. This is the same pattern as a client adapting to a server's API.
+
+2. **Production/Dev separation prevents "rebuilding the plane while flying."** AIFred-Pro and Jarvis are treated as immutable at runtime. All experimentation happens in the Dev spaces. Promotion is explicit (pull from GitHub → production). This is the same pattern as staging/production environments.
+
+3. **The Shared_Projects integration via session lifecycle hooks** means collaboration happens automatically. Jarvis checks David's updates at session start and writes debriefs at session end — no manual step required. David's liaison persona auto-answers questions hourly. The collaboration is file-based today but designed to be forward-compatible with a future MCP bridge.
+
+### 2026-04-21 [2b2a2fbba8b5]
+
+**What I'm checking**: Synology Drive Client is a desktop app that syncs folders between a Synology NAS and your Mac, similar to Dropbox or Google Drive. It runs as a background process and keeps local folders in sync with NAS-side folders. If it's not installed, the `Shared_Projects/` folder would be static — a one-time copy, not a live sync.
+
+### 2026-04-22 [c24a31b0c9e2]
+
+**Why keep `Project_Aion` as the local branch name**: The local branch is `Project_Aion` but tracks `origin/main` on CannonCoPilot/Jarvis. This means `git push` sends `Project_Aion → main` on GitHub. We could rename the local branch to `main` for symmetry, but that would require updating CLAUDE.md, all hooks, the watcher, and every reference in the codebase. Keeping `Project_Aion` locally while mapping to `main` remotely is the lowest-disruption approach.
+
+### 2026-04-22 [bdac47f7617e]
+
+**The four-space git topology now has clean separation of concerns:**
+
+1. **Production spaces pull, Dev spaces push.** AIFred-Pro only pulls from David's main — it's a read-only mirror. Jarvis pushes to its own CannonCoPilot repo. Dev spaces are where the actual work flows.
+
+2. **Two PATs, two purposes.** The `aifred_token` (classic PAT) authenticates against both David's repos and CannonCoPilot's repos. The fine-grained PAT on CannonCoPilot/Alfred is legacy from the exploratory work — still functional but the repo is now just a historical archive.
+
+3. **Note on the private repo.** CannonCoPilot/Jarvis is currently **private** because GitHub's push protection on public repos blocked the push (secrets in inherited AIfred baseline history). This can be made public later if desired, but would require either history rewriting or allowing those legacy secrets.
+
+### 2026-04-22 [7342d651c130]
+
+**Why 2,017 files survived the reset**: `git reset --hard` only affects **tracked** files — it resets them to the target commit's state. **Untracked** files (anything not in git's index) are left untouched. The exploratory work generated thousands of untracked artifacts (logs, agent output, data files) that `git clean` will remove. The `.env` file is also untracked (gitignored) but contains real credentials — we'll want to preserve or regenerate that during setup.

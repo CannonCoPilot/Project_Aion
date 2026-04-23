@@ -174,3 +174,10 @@ Commit these changes, and also make note that Project Archon, insofar as it invo
   should name Project_Archon
 
 
+# Need idle-hands to address this:
+⏺ Skill(pdf)
+  ⎿  Successfully loaded skill · claude-sonnet-4-6
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  API Error: Rate limit reached
+
