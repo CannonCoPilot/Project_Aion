@@ -4872,3 +4872,11 @@ Note from T8: The `.compression-in-progress` guard persists after the prep scrip
 ### 2026-04-25 [4bbd56baae31]
 
 The combined JICM + meditate-session refurbishment touched 39 files with a net reduction of **4,915 lines** (-5,743 / +828). This is the "computed state over maintained state" principle in action — we removed dead infrastructure that was being maintained but never executed, replaced aspirational documentation with what actually works, and consolidated three overlapping documents (command, spec, pattern) into focused versions that each serve a distinct purpose without duplication.
+
+### 2026-04-25 [42994d64386a]
+
+The meditation command now embodies a genuine philosophical shift: Phase 3 (Reflect) is where errors are analyzed with root cause tracing and prevention patterns are created — this is the "dreaming" function where the brain consolidates mistakes into learning. Phase 4 (Consolidate) reviews ALL memory systems end-to-end, including a usage audit that surfaces when memory systems aren't being consulted — this prevents the common failure mode where infrastructure exists but isn't wired into the actual workflow. The context-window metrics in Phase 9 / JICM prep create a standardized JSONL format that enables direct comparison of efficiency across sessions, and will feed into Pulse UI visualizations.
+
+### 2026-04-25 [f5ff07ef99ba]
+
+The cross-project commit check (Phase 7c of `/meditate-session`) just proved its value in real-time — we caught 12 uncommitted files in AIFred-Pro-Dev that represented a full feature's worth of work. Without this check, that work would have sat uncommitted across session boundaries, invisible to David and vulnerable to loss.
