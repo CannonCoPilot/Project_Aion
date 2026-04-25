@@ -17,7 +17,7 @@
 ## Command Categories
 
 ### Session Management
-- `setup.md`, `end-session.md`, `checkpoint.md`
+- `setup.md`, `meditate-session.md`
 
 ### Self-Improvement
 - `reflect.md`, `evolve.md`, `research.md`, `maintain.md`
@@ -25,9 +25,13 @@
 ### Validation
 - `tooling-health.md`, `design-review.md`, `validate-selection.md`
 
-### Context & Testing
+### Context Management (JICM v7)
 - `jicm.md` — Manual JICM cycle (preserve + compress + prepare for /clear)
-- `dev-test.md`, `context-analyze.md`, `smart-compact.md`, `context-budget.md`
+- `intelligent-compress.md` — Silent JICM compression (called by watcher)
+- `context-analyze.md`, `context-budget.md`
+
+### Testing
+- `dev-test.md`
 
 ### Dev Session
 - `export-dev.md` — Export W5:Jarvis-dev chat to timestamped file

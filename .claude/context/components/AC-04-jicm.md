@@ -1,481 +1,177 @@
 # AC-04 JICM — Autonomic Component Specification
 
 **Component ID**: AC-04
-**Version**: 5.6.2
+**Version**: 7.3.0
 **Status**: active
-**Created**: 2026-01-16
-**Last Modified**: 2026-02-06
-**PR**: JICM v5.6.2 — Event-Driven State Machine with Dual-Mechanism Resume
+**Last Modified**: 2026-04-24
 
 ---
 
 ## 1. Identity
 
 ### Purpose
-Jarvis Intelligent Context Management (JICM) monitors the context window via an external watcher process, triggers AI-powered compression before lockout, and orchestrates seamless work resumption across /clear boundaries using a two-mechanism resume system. JICM triggers **continuation**, not session completion.
-
-### Scope
-| Dimension | Applies |
-|-----------|---------|
-| Jarvis Codebase | Yes |
-| Active Project | Yes |
-| All Sessions | Yes |
-
-**Special Scope Note**: JICM applies to ALL agents and session types. The watcher runs externally in tmux and monitors any Claude Code session in the target pane.
-
-### Tier Classification
-- [x] **Tier 1**: Active Work (user-facing, direct task contribution)
-- [ ] **Tier 2**: Self-Improvement (Jarvis-only, background operation)
+Jarvis Intelligent Context Management (JICM) monitors context via an external watcher, triggers fast bash-based compression before lockout, and orchestrates seamless work resumption across /clear boundaries. JICM triggers **continuation**, not session completion.
 
 ### Design Principles
-
-1. **Continuation, Not Exit**: Context exhaustion triggers work CONTINUATION, not session end
-2. **Event-Driven State Machine**: States transition on signal files, not polling heuristics
-3. **Two-Mechanism Resume**: Hook injection (Mechanism 1) + idle-hands keystroke injection (Mechanism 2) for reliability
-4. **Single Threshold**: One trigger point (55%) with emergency fallback (73%), not tiered warnings
-5. **Lockout Awareness**: All thresholds respect the ~78.5% hard ceiling imposed by Claude Code internals
+1. **Continuation, Not Exit**: Context exhaustion triggers work CONTINUATION
+2. **Stop-and-Wait**: Watcher halts Claude, compresses, clears, resumes
+3. **Hook-Only Resume**: SessionStart hook injects context; no keystroke injection needed
+4. **Absolute Token Threshold**: Trigger on token count (300K default), not percentage
+5. **Two-Tier Compression**: Fast bash extraction (Tier 1) + optional local LLM enrichment (Tier 2)
 
 ---
 
-## 2. Triggers
+## 2. Architecture
 
-### Activation Conditions
-| Trigger Type | Condition | Priority |
-|--------------|-----------|----------|
-| **Threshold-Based** | Context usage >= 55% | high (COMPRESS) |
-| **Threshold-Based** | Context usage >= 73% | critical (EMERGENCY COMPACT) |
-| **Failsafe** | "Context limit reached" in TUI | critical (AUTO-CLEAR) |
-| **Failsafe** | "Conversation too long" in TUI | critical (AUTO-CLEAR) |
-
-### Trigger Implementation
+### State Machine
 ```
-Event-driven state machine (v5.6.2):
-
-  States: monitoring <-> compression_triggered <-> cleared
-
-  monitoring:
-    - jarvis-watcher.sh parses tmux pane statusline for token count + percentage
-    - Polls every 30s (POLL_INTERVAL)
-    - At 55%: transition to compression_triggered
-
-  compression_triggered:
-    - Wait for Claude idle (spinner detection, max 30s)
-    - Send /intelligent-compress via tmux send-keys
-    - Wait for .compression-done.signal (max 300s timeout)
-    - Send /clear via tmux send-keys
-    - Transition to cleared
-
-  cleared:
-    - session-start.sh hook fires (Mechanism 1: additionalContext injection)
-    - Hook creates .idle-hands-active flag (mode: jicm_resume)
-    - Watcher detects flag, sends resume prompt via keystrokes (Mechanism 2)
-    - Transition back to monitoring
+WATCHING → HALTING → COMPRESSING → CLEARING → RESTORING → WATCHING
 ```
 
-### Suppression Conditions
-| Condition | Behavior |
-|-----------|----------|
-| `--threshold N` flag on watcher | Override 55% default |
-| `.compression-in-progress` exists | Skip duplicate compression |
-| `.clear-sent.signal` exists | Skip duplicate /clear |
-| Watcher process not running | No automated JICM (manual /clear required) |
+### Component Inventory
+| Artifact | Path | Role |
+|----------|------|------|
+| Watcher | `.claude/scripts/jicm-watcher.sh` | Main monitoring loop (tmux W1) |
+| Prep script | `.claude/scripts/jicm-prep-context.sh` | Two-tier context extraction |
+| Shared config | `.claude/scripts/jicm-config.sh` | Centralized JICM paths |
+| Session-start hook | `.claude/hooks/session-start.sh` | Context injection on /clear |
+| `/jicm` command | `.claude/commands/jicm.md` | Manual JICM cycle (user-facing) |
+| `/intelligent-compress` | `.claude/commands/intelligent-compress.md` | Silent compression (watcher calls) |
+
+### Signal Files
+| File | Purpose | Created By | Consumed By |
+|------|---------|------------|-------------|
+| `.compressed-context-ready.md` | Compressed context checkpoint | Prep script | session-start.sh hook |
+| `.compression-done.signal` | Prep script completion marker | Prep script | Watcher |
+| `.compression-in-progress` | Guard against double compression | /intelligent-compress | session-start.sh |
+| `.jicm-state` | Watcher state (tokens, pct, burn rate, ETA) | Watcher | Ennoia, hooks |
+| `.jicm-last-compression.json` | Compression metadata (timing, method, sizes) | Prep script | Watcher (post-cycle log) |
+| `.jicm-exit-mode.signal` | Suppress JICM during /end-session | end-session command | Watcher |
+| `.jicm-sleep.signal` | Ulfhedthnar suppresses threshold checks | ulfhedthnar hook | Watcher |
+
+All signal files live in `.claude/context/` and are gitignored.
 
 ---
 
-## 3. Inputs
+## 3. Triggers
 
-### Required Inputs
-| Input | Source | Format | Purpose |
-|-------|--------|--------|---------|
-| Token count + percentage | tmux pane statusline | Text (parsed) | Context usage monitoring |
-| Pane content (last 5 lines) | tmux capture-pane | Text | Idle/busy detection, lockout detection |
-
-### Optional Inputs
-| Input | Source | Default | Purpose |
-|-------|--------|---------|---------|
-| `--threshold N` | Watcher CLI flag | 55 | Override JICM trigger percentage |
-| `.jicm-config` | Signal file | Generated | Dynamic config (threshold markers) |
-| Session state | `session-state.md` | None | Work context for compression agent |
-
-### Context Requirements
-
-- [x] tmux session with Claude Code running in target pane
-- [x] Statusline visible in pane (token count and percentage)
-- [x] Write access to `.claude/context/` for signal files
-- [ ] session-state.md (used by compression agent if available)
+| Trigger | Condition | Action |
+|---------|-----------|--------|
+| Token threshold | Tokens >= 300K (configurable via `--token-threshold`) | Full JICM cycle |
+| Emergency compact | Context >= 73% | Emergency `/compact` (bypass JICM) |
+| Failsafe | "Context limit reached" in TUI | Auto `/clear` |
+| Manual | User types `/jicm` or `/intelligent-compress` | Full JICM cycle |
+| Idle checkpoint | 30s of Claude idle | Refresh `.compressed-context-ready.md` |
 
 ---
 
-## 4. Outputs
+## 4. Compression Pipeline
 
-### Primary Outputs
-| Output | Destination | Format | Consumers |
-|--------|-------------|--------|-----------|
-| Compressed context | `.claude/context/.compressed-context-ready.md` | Markdown | session-start.sh hook (AC-01) |
-| Watcher log | `.claude/logs/jarvis-watcher.log` | Text | Debug, monitoring |
-| Signal files | `.claude/context/` | Flag files | Inter-component coordination |
-| Context estimate | `.claude/logs/context-estimate.json` | JSON | AC-02 queries |
+### Two-Tier System (`jicm-prep-context.sh`)
 
-### Side Effects
-| Effect | Description | Reversible |
-|--------|-------------|------------|
-| /intelligent-compress sent | Spawns compression agent in Claude | No (consumes tokens) |
-| /clear sent | Clears Claude conversation | No (conversation lost, context preserved in compressed file) |
-| Resume prompt injected | Keystroke injection via tmux | N/A (just text input) |
-| Signal files created/removed | Coordination state changes | Yes (delete files) |
+**Tier 1 — Bash Extraction (~1s)**:
+1. Find best JSONL transcript (JICM-HALT marker → message count → newest)
+2. Extract recent user + assistant messages from JSONL
+3. Extract TodoWrite tasks from JSONL `.todos` array
+4. Read session-state.md, scratchpad, active plan, git state
+5. Write structured checkpoint to `.compressed-context-ready.md`
 
-### State Changes
-| State | Location | Change Type |
-|-------|----------|-------------|
-| Compressed context | `.claude/context/.compressed-context-ready.md` | create/update |
-| Compression signal | `.claude/context/.compression-done.signal` | create/remove |
-| Compression guard | `.claude/context/.compression-in-progress` | create/remove |
-| JICM state (v6) | `.claude/context/.jicm-state` | create/update |
-| JICM watcher PID (v6) | `.claude/context/.jicm-watcher.pid` | create/update |
-| Compression guard | `.claude/context/.compression-in-progress` | create/remove |
-| Compression signal | `.claude/context/.compression-done.signal` | create/remove |
+**Tier 2 — LLM Enrichment (~5-20s, optional)**:
+1. Feed condensed Tier 1 data to local LLM (qwen3:8b via Ollama direct)
+2. LLM produces structured checkpoint: Current Task, Progress, Critical Context, Key Paths, Next Step
+3. Prepend LLM narrative to Tier 1 raw data
+4. Falls back to Tier 1 if LLM unavailable or fails
+
+**Post-Compression Validation**:
+- Dynamically checks checkpoint against COMPLETE items in current-plans.md
+- Logs self-correction if LLM hallucinates completed work as active
+
+**Metadata Output** (`.jicm-last-compression.json`):
+- Timestamp, duration, method, LLM model, JSONL file, output size, staleness
 
 ---
 
-## 5. Dependencies
-
-### System Dependencies
-| Dependency | Type | Failure Behavior |
-|------------|------|------------------|
-| tmux | hard | Watcher cannot run without tmux session |
-| bash 3.2+ | hard | macOS default; watcher is a bash script |
-| jq | soft | Used for JSON parsing; fallback to grep |
-| session-start.sh hook | hard | Mechanism 1 (additionalContext injection) fails without it |
-
-### MCP Dependencies
-| MCP Server | Tools Used | Required |
-|------------|------------|----------|
-| None | -- | JICM runs externally to Claude; no MCP access |
-
-**Note**: JICM runs as an external bash process in tmux. It communicates with Claude Code exclusively via tmux keystrokes and signal files. It has no access to MCPs.
-
-### File Dependencies
-| File | Purpose | Create if Missing |
-|------|---------|-------------------|
-| `.claude/scripts/jarvis-watcher.sh` | Main monitoring loop | No (fatal) |
-| `.claude/hooks/session-start.sh` | Context injection hook | No (fatal for resume) |
-| `.claude/agents/compression-agent.md` | AI compression prompt | No (compression fails) |
-| `.claude/hooks/jicm-continuation-verifier.js` | Cascade reinforcement | No (degraded resume) |
-| `.claude/scripts/launch-jarvis-tmux.sh` | tmux session launcher | No (manual setup) |
-| `.claude/context/.compressed-context-ready.md` | Compressed context | Yes (created by compression agent) |
-
----
-
-## 6. Consumers
-
-### Downstream Systems
-| Consumer | Relationship | Data Consumed |
-|----------|--------------|---------------|
-| AC-01 Self-Launch | reads | `.compressed-context-ready.md` (via session-start.sh hook) |
-| AC-02 Wiggum Loop | queries | Context usage percentage, resume state |
-| AC-09 Session Completion | reads | Compression event count, context statistics |
-| All AC components | depends | Session continuity across /clear boundaries |
-
-### User Visibility
-| Aspect | Visible to User |
-|--------|-----------------|
-| Watcher heartbeat | Yes (log file, periodic marker) |
-| Compression trigger | Yes (/intelligent-compress appears in Claude) |
-| /clear execution | Yes (conversation clears) |
-| Resume prompt | Yes (appears as user input after clear) |
-| Error conditions | Yes (watcher log, tmux output) |
-
-### Integration Points
+## 5. Resume Flow
 
 ```
-                    jarvis-watcher.sh (tmux window 1)
-                           |
-                    monitors pane 0
-                           |
-              ┌────────────┼─────────────────────────┐
-              |            |                          |
-         At 55%:     At 73%:                    Failsafe:
-   /intelligent-     Emergency              "Context limit
-      compress        /compact               reached" detected
-              |            |                          |
-              v            v                          v
-    ┌──────────────────────────────────────────────────┐
-    |         Compression Agent (spawned)                |
-    |  Writes: .compressed-context-ready.md              |
-    |  Writes: .compression-done.signal                  |
-    └──────────────────────┬───────────────────────────┘
-                           |
-                    Watcher sends /clear
-                           |
-                           v
-    ┌──────────────────────────────────────────────────┐
-    |  Mechanism 1: session-start.sh hook fires          |
-    |  - Reads .compressed-context-ready.md              |
-    |  - Injects via additionalContext                   |
-    |  - Creates .idle-hands-active (mode: jicm_resume)  |
-    └──────────────────────┬───────────────────────────┘
-                           |
-                           v
-    ┌──────────────────────────────────────────────────┐
-    |  Mechanism 2: Watcher idle-hands monitor            |
-    |  - Detects .idle-hands-active flag                  |
-    |  - Waits for Claude idle                            |
-    |  - Sends resume prompt via tmux keystrokes          |
-    |  - Claude resumes work from compressed context      |
-    └──────────────────────────────────────────────────┘
+1. Watcher sends /clear via tmux
+2. /clear triggers session-start.sh hook (source=clear)
+3. Hook detects .jicm-state with state=CLEARING
+4. Hook reads .compressed-context-ready.md
+5. Hook injects content as additionalContext
+6. Claude receives compressed context immediately
+7. Watcher detects Claude active → transitions to WATCHING
+```
+
+No keystroke injection, no idle-hands monitoring, no continuation verifier.
+
+---
+
+## 6. Token Awareness
+
+### Burn Rate Tracking
+The watcher computes tokens consumed per minute from consecutive readings and estimates minutes until threshold:
+
+| Field in `.jicm-state` | Description |
+|------------------------|-------------|
+| `burn_rate_tpm` | Tokens per minute (current rate) |
+| `threshold_eta_mins` | Estimated minutes until compression triggers |
+| `context_tokens` | Current token count from TUI status line |
+| `token_threshold` | Configured trigger point (default 300K) |
+
+### Threshold Architecture
+```
+0                    300K              ~785K        1M
+|──────────────────────|──────────────────|──────────|
+      Normal            JICM             LOCKOUT    WINDOW
+      Operation         Trigger          CEILING    SIZE
+
+JICM trigger:     300,000 tokens (configurable via --token-threshold)
+Native compact:   CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70 (backup)
+Emergency:        73% of window
+Lockout ceiling:  ~78.5% ((window - output_reserve - compact_buffer) / window)
 ```
 
 ---
 
-## 7. Gates
+## 7. Shared Configuration
 
-### Approval Checkpoints
-| Gate ID | Trigger | Risk Level | Auto-Approve |
-|---------|---------|------------|--------------|
-| G-01 | Send /intelligent-compress | Low | Yes (non-destructive) |
-| G-02 | Send /clear | Medium | Yes (after compression confirmed) |
-| G-03 | Inject resume prompt | Low | Yes (text input only) |
-
-### Risk Classification
-| Action Type | Risk Level | Gate Requirement |
-|-------------|------------|------------------|
-| Token monitoring | Low | None |
-| Idle detection | Low | None |
-| Send /intelligent-compress | Low | Auto-approve |
-| Wait for compression | Low | None (passive) |
-| Send /clear | Medium | Auto after .compression-done.signal |
-| Resume keystroke injection | Low | Auto-approve |
-| Emergency /compact | Medium | Auto (last resort before lockout) |
-
-### Gate Implementation
-```
-The critical gate is ensuring compression completes before /clear.
-Watcher waits for .compression-done.signal with 300s timeout.
-If timeout expires, watcher sends /clear anyway (data loss risk accepted
-over lockout risk). Emergency /compact at 73% bypasses compression
-entirely when approaching lockout ceiling.
-```
+`jicm-config.sh` is sourced by all three JICM scripts (watcher, prep, session-start). Defines paths with fallback defaults so each script still works if the config is missing.
 
 ---
 
-## 8. Metrics
+## 8. Commands (Post-Consolidation)
 
-### Performance Metrics
-| Metric | Unit | Target | Alert Threshold |
-|--------|------|--------|-----------------|
-| Compression time | seconds | < 120 | > 300 (timeout) |
-| Resume latency | seconds | < 30 | > 60 |
-| Liftover accuracy | % | > 90% | < 70% |
-| Lockout events | count | 0 | > 0 |
+| Command | Type | Purpose |
+|---------|------|---------|
+| `/jicm` | Custom (kept) | Manual JICM cycle — user-facing with verify step |
+| `/intelligent-compress` | Custom (kept) | Silent compression — called by watcher |
+| `/compact` | Native CC | Claude Code's built-in compaction |
+| `/clear` | Native CC | Clear conversation (triggers SessionStart hook) |
 
-### Component-Specific Metrics
-| Metric | Description | Measurement |
-|--------|-------------|-------------|
-| `context_level` | Current usage percentage | float |
-| `compression_events` | Times compression triggered | integer |
-| `clear_events` | Times /clear sent | integer |
-| `resume_success` | Work resumed after clear | boolean |
-| `emergency_compact` | Emergency /compact triggered (73%+) | integer |
-| `lockout_detected` | Claude lockout ceiling hit | integer |
-| `compression_timeout` | Compression exceeded 300s | integer |
-| `idle_wait_timeout` | Claude did not become idle in time | integer |
-
-### Storage
-| Metric Type | Storage Location | Retention |
-|-------------|------------------|-----------|
-| Per-poll | `.claude/logs/jarvis-watcher.log` | Session |
-| Per-session | `.claude/logs/context-estimate.json` | Session |
-
-### Emission Format
-```
-Watcher log entries (text, not JSONL):
-  [HH:MM:SS] Context: 55% (110000/200000 tokens) — JICM TRIGGERED
-  [HH:MM:SS] Compression done signal detected
-  [HH:MM:SS] Sent /clear — transitioning to cleared state
-  [HH:MM:SS] Resume prompt injected — returning to monitoring
-```
+**Removed** (v7.3.0): `/checkpoint`, `/context-checkpoint`, `/smart-compact`, `/smart-checkpoint`, `/context-loss`
 
 ---
 
 ## 9. Failure Modes
 
-### Known Failure Scenarios
-| Failure | Cause | Detection | Recovery |
-|---------|-------|-----------|----------|
-| Compression timeout | Agent takes >300s | Timer expiry | Send /clear anyway (accept context loss) |
-| tmux session loss | tmux killed/detached | Watcher exit | Restart via launch-jarvis-tmux.sh |
-| Lockout ceiling breach | Thresholds set too high | "Context limit reached" in TUI | Emergency /clear (bypasses compression) |
-| Stale pane buffer | Old token counts in scroll history | Data inconsistency heuristic | Restrict parsing to last 3 lines of pane |
-| Double compression | Race between poll cycles | `.compression-in-progress` guard | Skip if guard file exists |
-| Keystroke injection during generation | Claude busy when watcher sends input | `is_claude_busy()` check | `wait_for_idle_brief(30)` polls before sending |
-| Multi-line string corruption | tmux send-keys -l with newlines | Garbled TUI input | All -l strings must be single-line |
-| bash 3.2 set -e exit | Subshell non-zero return in assignment | Unexpected watcher exit | All functions return 0; use output strings for status |
+| Failure | Detection | Recovery |
+|---------|-----------|----------|
+| Compression timeout | Timer expiry | Send /clear anyway (Tier 1 fallback) |
+| LLM unavailable | Health check fail | Keep Tier 1 output |
+| tmux session loss | Watcher exit | Restart via launch-jarvis-tmux.sh |
+| Double compression | `.compression-in-progress` guard | Skip if guard exists |
+| Stale pane buffer | Restrict parsing to last 5 lines | Avoids scroll history |
+| LLM hallucination | Post-compression validation | Log self-correction |
 
 ### Graceful Degradation
-| Degradation Level | Trigger | Behavior |
-|-------------------|---------|----------|
-| Full | All systems operational | Full monitoring + compression + resume |
-| Partial | Compression agent fails | Emergency /compact, then /clear |
-| Partial | Hook injection fails | Idle-hands mechanism still sends resume prompt |
-| Partial | Watcher not running | Manual /intelligent-compress + /clear required |
-| Minimal | tmux unavailable | No automated JICM; user must manage context manually |
-
-### Error Reporting
-| Error Type | Notification | Log Location |
-|------------|--------------|--------------|
-| Warning | Watcher log only | `.claude/logs/jarvis-watcher.log` |
-| Threshold hit | Watcher log + TUI action | `.claude/logs/jarvis-watcher.log` |
-| Critical | Watcher log + emergency action | `.claude/logs/jarvis-watcher.log` |
-
-### Rollback Procedures
-1. Kill watcher: `kill $(cat .claude/context/.watcher-pid)`
-2. Remove signal files: `rm -f .claude/context/.compression-* .claude/context/.clear-sent.signal .claude/context/.idle-hands-active .claude/context/.continuation-injected.signal`
-3. Adjust thresholds: Edit `.claude/context/.jicm-config` or restart watcher with `--threshold N`
-4. Compressed context is preserved in `.compressed-context-ready.md` across clears
+| Level | Condition | Behavior |
+|-------|-----------|----------|
+| Full | All systems operational | LLM-enriched checkpoint + hook resume |
+| Partial | LLM unavailable | Tier 1 bash checkpoint + hook resume |
+| Partial | Watcher not running | Manual `/jicm` + `/clear` required |
+| Minimal | tmux unavailable | No automated JICM; manual context management |
 
 ---
 
-## Implementation Notes
-
-### Component Inventory (JICM v5.6.2)
-| Artifact | Path | Role |
-|----------|------|------|
-| Watcher | `.claude/scripts/jarvis-watcher.sh` | Main monitoring loop (tmux window 1) |
-| Session-start hook | `.claude/hooks/session-start.sh` | Mechanism 1: additionalContext injection on clear/startup/resume |
-| Compression agent | `.claude/agents/compression-agent.md` | AI-powered context compression (spawned by /intelligent-compress) |
-| Continuation verifier | `.claude/hooks/jicm-continuation-verifier.js` | Cascade reinforcement on UserPromptSubmit |
-| Launcher | `.claude/scripts/launch-jarvis-tmux.sh` | Creates tmux session with Claude + watcher |
-| Compress command | `.claude/commands/intelligent-compress.md` | Claude-side /intelligent-compress handler |
-| Context management skill | `.claude/skills/context-management/SKILL.md` | User-facing context guidance |
-| Component spec | `.claude/context/components/AC-04-jicm.md` | This file |
-
-### Signal Files (v6.1 Protocol)
-| Signal File | Purpose | Created By | Consumed By |
-|-------------|---------|------------|-------------|
-| `.compressed-context-ready.md` | Compressed context for restoration | Compression agent | session-start.sh hook |
-| `.compression-done.signal` | Compression agent completion marker | Compression agent | Watcher |
-| `.jicm-state` | v6 state (state, pct, tokens, threshold) | JICM watcher | Ennoia, Virgil, hooks |
-| `.jicm-watcher.pid` | v6 watcher process tracking | JICM watcher | signal-helper, stop-watcher |
-| `.jicm-sleep.signal` | Ulfhedthnar suppresses JICM threshold checks | ulfhedthnar-detector.js | JICM watcher |
-| `.compression-in-progress` | Guard against double compression | /intelligent-compress skill | session-start |
-| `.compression-done.signal` | Compression agent completion marker | Compression agent | JICM watcher |
-
-All signal files live in `.claude/context/` and are gitignored.
-
-### Threshold Architecture
-```
-0%                    55%        70%       73%      78.5%    100%
-|──────────────────────|──────────|──────────|─────────|──────|
-      Normal            JICM     Native      Emergency  LOCKOUT
-      Operation        Trigger   Auto-       Compact   CEILING
-                                 Compact
-                                 (env var)
-
-JICM trigger:        55%  (configurable via --threshold)
-Native auto-compact: 70%  (CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70)
-JICM ceiling:        72%  (EMERGENCY_PCT - 1; JICM cycle preempted above this)
-Emergency compact:   73%  (LOCKOUT_PCT - 5; preempts JICM in watcher main loop)
-Lockout ceiling:    ~78.5% ((200K - 15K - 28K) / 200K)
-
-Where:
-  200K = context window size
-  15K  = CLAUDE_CODE_MAX_OUTPUT_TOKENS (output reserve)
-  28K  = internal compact buffer (required by Claude Code to perform compaction)
-```
-
-### Environment Variables
-Set by `.claude/scripts/claude-code-env.sh` (sourced from shell profile):
-- `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70` -- Native auto-compact trigger (backup to JICM)
-- `CLAUDE_CODE_MAX_OUTPUT_TOKENS=15000` -- Output reserve (affects lockout ceiling)
-
-### Two-Mechanism Resume System
-
-**Mechanism 1 -- Hook additionalContext Injection**:
-When /clear fires, Claude Code triggers the `session-start.sh` hook. The hook detects that `.compressed-context-ready.md` exists, reads its contents, and injects them as `additionalContext` in the hook response JSON. This gives Claude the compressed context immediately upon session restart. The hook also creates `.idle-hands-active` with mode `jicm_resume`.
-
-**Mechanism 2 -- Idle-Hands Keystroke Injection**:
-The watcher detects the `.idle-hands-active` flag and enters idle-hands monitoring mode. It waits for Claude to become idle (no spinner), then sends a resume prompt via `tmux send-keys`. This prompt instructs Claude to continue the previous work using the compressed context it received via Mechanism 1. Two modes exist:
-- `jicm_resume`: Resume after JICM compression cycle
-- `session_start`: Initial session startup prompt
-
-### JICM Compression Flow (Full Cycle)
-
-```
-1. Watcher polls tmux pane, parses statusline
-   └── Extracts: token count, percentage, spinner state
-
-2. At 55%: JICM triggered
-   ├── wait_for_idle_brief(30)  -- don't interrupt active generation
-   ├── Create .compression-in-progress guard
-   └── Send "/intelligent-compress" via tmux send-keys
-
-3. Claude spawns compression agent
-   ├── Agent reads conversation context
-   ├── Agent writes .compressed-context-ready.md
-   └── Agent writes .compression-done.signal
-
-4. Watcher detects .compression-done.signal
-   ├── Remove .compression-in-progress
-   ├── Create .clear-sent.signal (dedup)
-   └── Send "/clear" via tmux send-keys
-
-5. /clear triggers session-start.sh hook (Mechanism 1)
-   ├── Hook reads .compressed-context-ready.md
-   ├── Hook injects as additionalContext
-   ├── Hook creates .idle-hands-active (mode: jicm_resume)
-   └── Hook creates .continuation-injected.signal
-
-6. Watcher detects .idle-hands-active (Mechanism 2)
-   ├── wait_for_idle_brief(30)
-   ├── Send resume prompt via tmux send-keys -l (single-line)
-   ├── Send C-m to submit
-   └── Remove .idle-hands-active, .clear-sent.signal
-
-7. Claude resumes work from compressed context
-   └── Watcher returns to monitoring state
-```
-
-### tmux Constraints (bash 3.2 / macOS)
-
-- All `tmux send-keys -l` strings MUST be single-line (multi-line corrupts input buffer)
-- Functions called via `$(...)` must always `return 0` (bash 3.2 `set -e` compatibility)
-- Pane content parsing restricted to last 3 lines (`tail -3`) to avoid stale scroll history
-- `is_claude_busy()` checks for spinner characters in last 5 lines before sending keystrokes
-- `wait_for_idle_brief(N)` polls every 2s, max N seconds, sends anyway after timeout
-
-### Design Decisions Log
-| Date | Decision | Rationale |
-|------|----------|-----------|
-| 2026-01-16 | Continuation, not exit | Work should persist across compression |
-| 2026-01-21 | Single threshold (was 80%) | Simplify; one trigger point is sufficient |
-| 2026-01-21 | Opus model for compression | Higher quality context preservation |
-| 2026-01-21 | Idle detection before trigger | Don't interrupt Claude mid-response |
-| 2026-02-05 | Lower threshold to 65% | 80% was above lockout ceiling (~78.5%) |
-| 2026-02-13 | Lower threshold to 55% | Experiment 2: JICM 100% failure at ≥74% context; 55% gives 19-point safety margin |
-| 2026-02-13 | Document 72% JICM ceiling | Emergency handler (73%) preempts JICM cycle in watcher main loop; confirmed by 13 emergency events / 0 JICM cycles in Exp 2 |
-| 2026-02-05 | Emergency compact at 73% | Last resort, 5% below lockout |
-| 2026-02-05 | bash 3.2 return 0 pattern | Functions must return 0 for macOS compatibility |
-| 2026-02-05 | Restrict pane parsing to tail -3 | Avoid stale token counts from scroll history |
-| 2026-02-06 | Single-line send-keys -l | Multi-line strings corrupt tmux input buffer |
-| 2026-02-06 | Two-mechanism resume | Hook injection alone insufficient; keystroke injection ensures continuation |
-| 2026-02-06 | wait_for_idle before send | Keystrokes during active generation are lost |
-
----
-
-## Validation Checklist
-
-Before marking this component as "active":
-
-- [x] All 9 specification sections completed
-- [x] Triggers tested (55% threshold, emergency 73%, lockout failsafe)
-- [x] Inputs/outputs validated (tmux pane parsing, signal file protocol)
-- [x] Dependencies verified (tmux, bash 3.2+, hook registration)
-- [x] Gates implemented (compression-before-clear, idle-before-send)
-- [x] Failure modes tested (compression timeout, lockout breach, stale buffer)
-- [x] Integration with consumers verified (AC-01 hook resume, AC-02 context queries)
-- [x] Documentation updated (component spec reflects v5.6.2 reality)
-- [ ] Metrics emission formalized (currently log-based, not structured JSONL)
-
----
-
-*AC-04 JICM v5.6.2 — Event-Driven State Machine with Dual-Mechanism Resume*
+*AC-04 JICM v7.3.0 — Two-Tier Compression with Token-Aware Monitoring*

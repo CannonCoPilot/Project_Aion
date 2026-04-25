@@ -12,14 +12,14 @@
 - `mcp-enable.sh`, `mcp-disable.sh`, `mcp-status.sh`
 - `suggest-mcps.sh` — Keyword-to-MCP mapping
 
+### JICM (Context Management)
+- `jicm-config.sh` — Shared path configuration (sourced by watcher, prep, hook)
+- `jicm-watcher.sh` — JICM v7.3.0 context watcher (token-aware, two-tier compression)
+- `jicm-prep-context.sh` — Two-tier context preparation (Tier 1 bash + Tier 2 LLM)
+
 ### Signal-Based Automation
 - `signal-helper.sh` — Signal utility functions
-- `jicm-watcher.sh` — JICM v6.1 context watcher (stop-and-wait architecture)
 - `jarvis-watcher.sh` — Legacy v5 watcher (command signal execution only)
-
-### Context Management
-- `context-checkpoint.sh` — Save context state
-- `restore-context.sh` — Restore from checkpoint
 
 ### Benchmarking & Scoring
 - `benchmark-runner.js` — Execute benchmarks

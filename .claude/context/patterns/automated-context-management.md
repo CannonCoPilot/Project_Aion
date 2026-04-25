@@ -251,7 +251,7 @@ fi
 
 | File | Purpose | Created By | Consumed By |
 |------|---------|------------|-------------|
-| `.soft-restart-checkpoint.md` | Work state, next steps | PreCompact / context-checkpoint | SessionStart |
+| `.compressed-context-ready.md` | Work state, next steps | jicm-prep-context.sh / /jicm | SessionStart |
 | `.preservation-manifest.json` | AI compression priorities (v3) | precompact-analyzer.js | context-compressor agent |
 | `.auto-clear-signal` | Trigger for watcher | PreCompact / autonomous-commands skill | Watcher |
 | `.command-signal` | Command execution signal | autonomous-commands skill | jarvis-watcher.sh |
@@ -295,7 +295,7 @@ fi
 ### Scenario 2: Manual Checkpoint
 
 ```
-1. [USER] Runs /context-checkpoint
+1. [USER] Runs /jicm
 2. [AUTO] Claude creates checkpoint, disables MCPs
 3. [AUTO] Stop hook detects checkpoint, blocks
 4. [AUTO] Stop hook tells Claude to signal /clear via autonomous-commands skill
@@ -357,7 +357,7 @@ fi
 
 ### Test 2: Manual Context Checkpoint
 
-- [ ] Run `/context-checkpoint`
+- [ ] Run `/jicm`
 - [ ] Checkpoint file created
 - [ ] MCPs disabled (check with `.claude/scripts/list-mcp-status.sh`)
 - [ ] Watcher detects signal, sends /clear
@@ -424,8 +424,8 @@ jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.cla
 
 ```bash
 # Check checkpoint file exists
-ls -la .claude/context/.soft-restart-checkpoint.md
-cat .claude/context/.soft-restart-checkpoint.md
+ls -la .claude/context/.compressed-context-ready.md
+cat .claude/context/.compressed-context-ready.md
 
 # Check SessionStart hook logs
 cat .claude/logs/session-start-diagnostic.log
@@ -497,7 +497,7 @@ cat .claude/logs/session-start-diagnostic.log
 
 - `.claude/context/patterns/context-budget-management.md` — MCP tier strategy
 - `.claude/reports/mcp-workflow-test-findings.md` — Initial test results
-- `.claude/reports/context-checkpoint-test-procedure.md` — Test procedure
+- `.claude/reports/jicm-test-procedure.md` — Test procedure
 
 ---
 

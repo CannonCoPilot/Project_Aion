@@ -4664,3 +4664,211 @@ This is exactly how parallel research should work — each agent covered differe
 ### 2026-04-22 [7342d651c130]
 
 **Why 2,017 files survived the reset**: `git reset --hard` only affects **tracked** files — it resets them to the target commit's state. **Untracked** files (anything not in git's index) are left untouched. The exploratory work generated thousands of untracked artifacts (logs, agent output, data files) that `git clean` will remove. The `.env` file is also untracked (gitignored) but contains real credentials — we'll want to preserve or regenerate that during setup.
+
+### 2026-04-23 [3170e2885a7a]
+
+**Architecture analysis structure**: Breaking a ~1,245-file codebase analysis into 5 domain-focused reports + 1 master overview follows the "progressive disclosure" pattern — each report stands alone for its domain, while the overview provides cross-cutting findings (blockers, compatibility, integration points). This mirrors how Chronicler's phase documentation was organized: one canonical document per concern, linked from a master index.
+
+**JICM resilience lesson**: This session demonstrated why "write to disk early" matters. Reports 01-04 survived the JICM clear because they were written immediately. Report 05's analysis data was lost and had to be re-gathered. The 4-minute re-analysis cost was modest, but for larger investigations, intermediate checkpointing is essential.
+
+### 2026-04-23 [40cb4249ca77]
+
+**Research agent fabrication is a serious risk.** When Explore/deep-research agents examine a codebase, they sometimes confabulate file contents rather than reporting "not found." The defense is **direct verification** — reading actual files and checking `ls`/`grep` before committing claims to reports. This session found:
+- Express → actually Fastify, React 18 → actually 19, `.aifred.yaml`="3 lines" → actually 1120 lines
+- "Registries" directory → doesn't exist, "setup-phases bash scripts" → actually markdown docs
+- The scratchpad itself had wrong corrections (claiming 7 personas when there are 24)
+
+**Key takeaway**: Any claim from a research agent about file contents must be verified by direct `Read` or `Bash` before being committed to documentation.
+
+### 2026-04-24 [0935ad1fcb47]
+
+**Final tally**: ~100+ errors corrected across all 9 reports. Every report was rewritten except Report 03 (which only needed 3 fixes — it was the only report originally built from accurate Explore agent data about package.json and file counts).
+
+**The meta-lesson**: Agent-generated analysis of codebases produces plausible-sounding but deeply wrong content. The fabrication follows a pattern: correct high-level structure (e.g., "there's a Pulse API") with fabricated implementation details (wrong framework, wrong endpoints, wrong file names, fabricated subfiles). The only reliable verification method is **direct file reads against every factual claim** — counting grep results, reading actual imports, checking file existence. No intermediate verification layer (agent-generated "corrections") can be trusted.
+
+### 2026-04-24 [eaa6a04cf9a8]
+
+**Skill design choices worth noting:**
+1. **Model tier: haiku** — ProjectIntel operations are read/write/edit of markdown files with template-following. No complex reasoning needed. This keeps the skill lightweight when routed by the capability map.
+2. **Investigation workflows** — the skill isn't just CRUD. It includes multi-step investigation patterns (understanding David's work, understanding a shared project, reviewing collaboration history). This matches the user's request for "investigation" capability.
+3. **Read-only discipline** — auto-generated files are clearly marked. Editing `_latest.md` or `projects-summary.md` would get overwritten on David's next session exit, causing silent data loss.
+
+### 2026-04-24 [45cf8834742d]
+
+**Key finding from the research**: AIFred-Pro already has substantial metrics infrastructure — `context-usage-tracker.js` (tool-level token estimation), `metrics-collector.js` (subagent token capture via `<usage>` tags), `session-tracker.js` (lifecycle events), and a `metrics-query.ts` CLI tool. The dashboard has a full NexusOps analytics page with CostDashboard, PerformanceChart, and StageMetricsPanel. However, **none of this tracks actual Claude.ai API session/token usage** — it's all internal estimation. This is the greenfield opportunity: real API-level awareness surfaced to the OverviewPage.
+
+### 2026-04-24 [7c17f6b94953]
+
+**Debrief as strategic communication**: This debrief serves a dual purpose — it informs David about what we've done, but more importantly it *signals intent*. By describing the usage metrics feature in detail (what exists, what's missing, what we plan to build), we're effectively proposing the feature to David before writing code. If the liaison persona picks this up, David will see our plan and can redirect us before we invest implementation time. This is the ProjectIntel Q&A loop working at the debrief level — debriefs aren't just retrospectives, they're planning documents read by both humans and AI.
+
+### 2026-04-24 [f1fcf4573812]
+
+The error message says **"denied by your permission settings"** — this is different from a user-interactive denial. This means there's an explicit deny rule in Claude Code's `settings.json` or the `.claude/settings.json` that blocks access to this specific directory path. This can happen if the directory was created recently and somehow landed in a deny pattern, or if there's a glob deny rule that matches it.
+
+### 2026-04-24 [747bb5fbf8e2]
+
+**The claude.ai usage page reveals the exact data model we need to replicate:**
+- **Current session**: 69% used, resets in 2hr 14min — this is the 5h rolling window. The `anthropic-ratelimit-unified-5h-utilization` header maps directly to this.
+- **Weekly limits**: "All models" (12%), "Sonnet only" (7%), "Claude Design" (0%) — separate weekly quotas per model tier, resetting Saturday 6:00 AM.
+- **Plan**: Max (5x) — confirms the Max plan with 5x multiplier.
+- **Additional features**: Daily included routine runs (0/15) — a separate quota for scheduled routines.
+- **Extra usage**: $83.18 spent (104% of $80 monthly limit), $53.25 current balance, auto-reload off. This is the overage/credit system separate from the plan limits.
+
+Key architectural takeaway: there are **four independent quota dimensions** — session (5h rolling), weekly per-model, daily routine runs, and monthly overage spend. Our dashboard needs meters for all four.
+
+### 2026-04-24 [b6a06b6660e8]
+
+**The 69% session / 2h 14m reset timing is the most actionable data point.** This is what the Nexus dispatcher should gate on — when the 5h window is >80% consumed, defer P4-P5 tasks until reset. The weekly per-model quotas are interesting because they suggest AIFred-Pro could optimize model selection: when Sonnet quota is getting tight but Opus is plentiful, route suitable tasks to Opus (or vice versa). The monthly overage at 104% means you're already past the soft cap — extra usage is drawing from the $53.25 balance.
+
+### 2026-04-24 [6650fb67e685]
+
+**The distinction matters architecturally**: Token counts (input/output per request) are *accounting data* — useful for cost attribution and historical analysis. But rate-limit headers (`anthropic-ratelimit-unified-5h-utilization`, `tokens-remaining`, reset times) are *operational state* — they tell you whether you can dispatch the next task right now. You can't derive the latter from the former because Anthropic's internal accounting includes factors we can't see (other sessions, plan-level calculations, cache exemptions). The proxy captures what Anthropic actually thinks your budget is.
+
+### 2026-04-24 [ca4a157f668b]
+
+**Three findings that directly impact proxy design:**
+
+1. **Timestamp format divergence** — The unified/Max headers (Family 4) use Unix epoch integers while all other families use RFC 3339 strings. A naive parser that assumes one format will break on the other. This is the kind of bug that only surfaces in production.
+
+2. **`cache_read_input_tokens` don't count toward ITPM rate limits** — This means AIFred-Pro's heavy system-prompt-reuse pattern (CLAUDE.md, psyche files, patterns) is essentially "free" from a rate-limit perspective. The budget calculator should track billable vs. total tokens separately.
+
+3. **`representative-claim` tells you which window is governing** — When this is `"five_hour"`, the 5h rolling window is the binding constraint. When it's `"seven_day"`, the weekly limit is tighter. The Nexus dispatcher should gate on whichever claim is representative, not always assume 5h.
+
+### 2026-04-24 [58d2399efd26]
+
+**The data reveals something interesting**: 232M cache-read tokens across 16 Jarvis sessions — that's the CLAUDE.md, psyche files, patterns, and other force-loaded context being cached and reused across turns. At $1.50/MTok cache-read rate for Opus, that's ~$348 in cache reads alone. But remember — cache reads don't count toward ITPM rate limits. This confirms the design decision to track billable vs. total tokens separately. The 15 `<synthetic>` records are from JSONL entries without a model field (file-history-snapshots that were incorrectly matched as assistant turns — a minor parser edge case to clean up later).
+
+### 2026-04-24 [cd765f542cf5]
+
+**The 4 failures reveal real issues:**
+1. **Epoch test** — I used `1745452800` assuming April 2026 but it's actually April 2025. Test assertion wrong, not code.
+2. **SSE parsing** — `message_start` wraps usage inside a `message` key (`{"message":{"usage":{...}}}`), but the proxy scans for top-level `"usage"`. The `input_tokens` from `message_start` isn't being captured — only `message_delta`'s `output_tokens` is. This is a **real bug in the proxy** — it needs to handle the nested `message_start` format.
+3. **JSONL session_id** — The parser uses `filepath.stem` (temp filename) as session_id, not the `sessionId` from the record body. Should use the record's `sessionId` field when available.
+
+### 2026-04-24 [8cf8a4203c8b]
+
+**Phase 2 Usage Endpoints — Validation Summary**
+
+All 8 endpoints validated against live data (1,436 backfilled records from JSONL):
+- **`/budget`** — Rate-limit snapshot + monthly spend ($393.23 this month)
+- **`/burn-rate`** — Sliding window token velocity (0 now since no recent proxy traffic)
+- **`/current`** — Active session stats
+- **`/daily`** — Per-day rollup with session + model counts
+- **`/weekly`** — Per-week rollup
+- **`/monthly`** — Per-month rollup with model breakdown (Opus 4.6 dominant)
+- **`/sessions`** — Session list with durations and costs (16 sessions from backfill)
+- **`/ingest`** — Programmatic record injection
+
+**Bugs caught and fixed**: Missing `Decimal` import, SQL interval arithmetic error in burn-rate, ambiguous column reference in monthly lateral join.
+
+### 2026-04-24 [8ede146003b4]
+
+**Phase 2 Test Suite Architecture**
+
+The test suite uses **integration testing against the live container** rather than mocking the database. This is the right choice here because:
+1. The endpoints are thin SQL wrappers — the SQL IS the logic, and SQL bugs (like the ambiguous column we caught) only manifest against a real database
+2. The backfilled data provides a realistic dataset (1,436 records, 16 sessions, 3 months)
+3. Cross-endpoint consistency tests (daily sums ≈ weekly totals, budget ≈ monthly current) catch aggregation drift
+
+The `TestConsistency` class is particularly valuable — it validates that different time-window aggregations produce compatible results, which catches bugs like off-by-one in date boundaries.
+
+Total test count: **55 (Phase 1) + 41 (Phase 2) = 96 tests** for the usage tracking system.
+
+### 2026-04-24 [19b1fde7fbee]
+
+**Anthropic Session ≠ Claude Code Session**
+
+The Anthropic API enforces a **5-hour rolling token window** tracked via `unified-5h-*` headers. This window has a fixed token budget that refills on a sliding basis — when you hit the limit, you get 429'd until the window rolls. The `unified-7d-*` headers track a separate weekly quota. The `representative_claim` header tells you which window is currently the binding constraint.
+
+A **Claude Code session** (`session_id`) is just a conversation UUID — it starts when you open Claude Code and ends when you close it. It has no relation to Anthropic's quota windows. Multiple Claude Code sessions can run within one Anthropic window, and one Claude Code session can span multiple Anthropic window resets.
+
+The old implementation conflated these concepts. The refactored implementation treats them as completely independent: the Usage page tracks exclusively the Anthropic window state from the API headers.
+
+### 2026-04-24 [83af199f3852]
+
+**Why the proxy has no data — the architecture explained**
+
+The reverse proxy is a **pass-through interceptor**, not a passive listener. It sits at `localhost:9800` and does:
+```
+Claude Code → http://localhost:9800/v1/messages → proxy captures headers → https://api.anthropic.com/v1/messages
+```
+
+For this to work, the **client** (Claude Code) must be told to send traffic to the proxy instead of directly to Anthropic. This is done via the `ANTHROPIC_BASE_URL` environment variable. 
+
+**The gap**: This env var is set in `launch-jarvis-tmux.sh` line 444, but it's injected into the `env` command that spawns Claude Code inside tmux window 0. The **current session** (this conversation) was started before the proxy existed, or was started outside the launch script, so `ANTHROPIC_BASE_URL` is not set in its process environment. Every API call from this session goes directly to `api.anthropic.com`, completely bypassing the proxy.
+
+**This is not an AIFred-specific limitation** — the proxy is generic. Any Claude Code instance with `ANTHROPIC_BASE_URL=http://localhost:9800` will route through it, whether it's Jarvis, AIFred, or a standalone session. The proxy doesn't care who the caller is.
+
+### 2026-04-24 [29ca4575e633]
+
+The back-calculation idea is elegant: if Anthropic returns `X tokens used = Y% of session limit`, then `total_limit = X / (Y/100)`. Storing this per-session-window creates an empirical dataset to observe how Anthropic dynamically adjusts limits — a question no public documentation answers definitively.
+
+### 2026-04-24 [ffb32455ee8b]
+
+The system already captures the two numbers needed for back-calculation on every request: `unified_5h_utilization` (the denominator as a fraction) and the per-request token counts from the response body (the numerator, accumulated). The back-calculation is literally `session_limit = cumulative_tokens / utilization` — but the scientific challenge is that we don't know which token counting formula Anthropic uses (raw input+output? weighted by cache type? cost-weighted?). The right approach is to store multiple estimates simultaneously and find the one with lowest variance per window.
+
+### 2026-04-24 [18fe59eb41d7]
+
+The heatmap is the most valuable visualization here. If Anthropic throttles session limits during peak US business hours (e.g., 9am–5pm Mon–Fri), the heatmap will show it as a blue band. That's immediately actionable: schedule heavy Chronicler processing or Nexus batch jobs during off-peak windows. This is why empirical data beats documentation for rate-limit understanding.
+
+### 2026-04-24 [3bef3364e8ff]
+
+The most common silent failure in a proxy-intercept architecture: `ANTHROPIC_BASE_URL` isn't set in the environment that's actually sending API calls, so traffic goes straight to Anthropic and bypasses the proxy entirely — all while the proxy shows as "healthy." The data pipeline appears intact but the DB never receives rows.
+
+### 2026-04-24 [dccf37e76f29]
+
+The asymmetry was easy to miss: `CLAUDE_ENV` (W0) and `CLAUDE_ENV_DEV` (W5) are defined ~100 lines apart in the script. When the proxy feature was added to `CLAUDE_ENV`, `CLAUDE_ENV_DEV` was simply never updated to match. A silent gap — both sessions appeared to work fine, but W5's API calls had no coverage.
+
+### 2026-04-24 [08b774a1cc67]
+
+**Key discovery**: Anthropic's `unified-5h-utilization` header only has **2 decimal places** of precision (0.54, not 0.543210). The design doc assumed high precision — our actual data shows coarse 1% steps. This matters hugely for the differential budget estimation approach because each 0.01 step could represent wildly different token counts.
+
+### 2026-04-24 [8848212603b7]
+
+**All 7 improvements implemented in a single session:**
+- 5 new Pulse API endpoints (~270 lines of Python)
+- 5 new React panels (~350 lines of TSX) + updated page layout
+- 5 new React Query hooks + 9 TypeScript interfaces
+- 5 new dashboard proxy routes
+- 30 new integration tests (all passing)
+- 2h cron heartbeat active for overnight data collection
+
+**The budget estimation formula reveals a nuance**: with 99.97% cache hit ratio, Anthropic's utilization is mostly counting output tokens and cache writes, not cached reads. This means the "budget" Anthropic enforces is weighted — output tokens are far more expensive toward the quota. The overnight heartbeat data will help confirm this as we accumulate more windows.
+
+### 2026-04-24 [0b57f195befd]
+
+The `bd` "binary" inside the running container is literally a **25-byte shell script**: `#!/bin/sh\necho "bd stub"`. It's a placeholder — not a real binary at all. The Dockerfile `COPY bd /usr/local/bin/bd` fails because the file doesn't exist in the `dashboard/` build context directory, not because some complex binary is missing from David's pipeline. The fix is trivial: create the stub file.
+
+### 2026-04-24 [a33dc9f664df]
+
+**Three visualization layers for temporal trend detection**: The Session Token Allotment panel now provides complementary views that work together as data accumulates:
+
+1. **Chronological bar chart** — shows budget magnitude per window in order, colored by day-of-week. Good for spotting sudden changes.
+2. **Trend line** — connects the dots chronologically. When you have weeks of data, this reveals whether Anthropic's allotments are stable, increasing, or decreasing over time.
+3. **Hour-of-day scatter** — plots budget vs. hour (0-23), colored by day. This is the key chart for answering "does Anthropic give more budget at 3am vs 3pm?" — each dot is a window, positioned by when it started. Clusters of high dots at certain hours would reveal temporal variation.
+
+With only 2 windows right now, these charts are sparse. As the 2-hour cron accumulates data over days and weeks, the patterns will emerge.
+
+### 2026-04-24 [502c0b5496b5]
+
+**The Memento analogy is perfect.** The current JICM system is like Guy Pearce waking up with tattoos that say "don't trust Teddy" but the Polaroid photos were taken three weeks ago and the map has yesterday's route, not today's. The tools exist — notebook, map, notecards — but they're not synchronized with the actual present moment, and the waking-up protocol doesn't reliably read them all.
+
+### 2026-04-24 [e78a22989621]
+
+**One character caused total amnesia.** The `sed 's/^-//'` was stripping the leading dash from the path slug. Claude Code's project directory convention uses a leading dash (`-Users-...`), but the prep script stripped it, causing every JSONL lookup to fail silently. The fallback path produced a 9-line stub. This has been broken since the script was written (2026-02-16), meaning ~2 months of JICM cycles have been running with effectively no context preservation beyond the scratchpad.
+
+### 2026-04-24 [67007269062f]
+
+**The running code works. The documentation lies about how it works.** That's the single most dangerous finding. AC-04-jicm.md (474 lines, the canonical component spec) describes v5.6.2 — a system where an AI agent is spawned via `/intelligent-compress` to compress context. The actual system is v7.1 — a bash script called directly by the watcher. Anyone (including future-Jarvis after a /clear) consulting the spec would be completely misled about how their own context management works.
+
+### 2026-04-24 [f3c515d50087]
+
+**Phase 2 Summary**: Net removal of **3,900+ lines** of dead/redundant code across 24 files. The JICM system went from 7 context management commands to 2 (`/jicm` + `/intelligent-compress`), deleted 3 deprecated agents, removed the unused continuation verifier hook, and simplified the session-start hook by removing legacy checkpoint paths, stale AIfred checks, and session directory creation. A shared `jicm-config.sh` centralizes all JICM paths for the three main scripts (watcher, prep, session-start).
+
+### 2026-04-25 [f1d749943f1d]
+
+Note from T8: The `.compression-in-progress` guard persists after the prep script runs. This is correct by design — the guard lifecycle is managed by the caller (the `/intelligent-compress` command or the watcher's `do_compress()` function), not by the prep script itself. The session-start hook also cleans up stale guards on startup as a safety net.
+
+### 2026-04-25 [4bbd56baae31]
+
+The combined JICM + meditate-session refurbishment touched 39 files with a net reduction of **4,915 lines** (-5,743 / +828). This is the "computed state over maintained state" principle in action — we removed dead infrastructure that was being maintained but never executed, replaced aspirational documentation with what actually works, and consolidated three overlapping documents (command, spec, pattern) into focused versions that each serve a distinct purpose without duplication.

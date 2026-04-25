@@ -121,7 +121,7 @@ This is distinct from Claude Code's auto-compression, which can lose important c
 │  │  | File Contents   | 18,000  | 9.0%       |                    │  │
 │  │  | **Total**       | 145,000 | 72.5%      |                    │  │
 │  │                                                                 │  │
-│  │  **Recommendation**: Consider /checkpoint                       │  │
+│  │  **Recommendation**: Consider /jicm                       │  │
 │  └───────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
@@ -211,7 +211,7 @@ However, this breakdown is **ephemeral** - it renders as a UI overlay and does n
 │     └── Wiggum Loop state (if active)                               │
 │                                                                      │
 │  3. GENERATE CHECKPOINT                                              │
-│     ├── Create .checkpoint.md with essential state                  │
+│     ├── Create .compressed-context-ready.md with essential state                  │
 │     └── (Optionally) Archive full context to archives/              │
 │                                                                      │
 │  4. PREPARE FOR CONTINUATION                                         │
@@ -301,7 +301,7 @@ None currently.
 ### Checkpoint Location
 
 ```
-.claude/context/.checkpoint.md      ← Active checkpoint (detected by AC-01)
+.claude/context/.compressed-context-ready.md      ← Active checkpoint (detected by AC-01)
 .claude/archives/
   └── checkpoint-2026-01-16-143000.md  ← Archived checkpoints
 ```
@@ -542,7 +542,7 @@ If automated recovery fails:
 If you see this, automated context management failed.
 
 ### Steps:
-1. Check `.claude/context/.checkpoint.md` for saved state
+1. Check `.claude/context/.compressed-context-ready.md` for saved state
 2. If no checkpoint, check `.claude/context/session-state.md`
 3. Review recent git commits for context
 4. Ask user: "What were we working on?"
@@ -631,14 +631,14 @@ HEALTHY ──── CAUTION ──── WARNING ──── CRITICAL ──�
 
 ### Recommendations
 
-- Consider running /checkpoint to save state
-- Disable non-essential MCPs with: /context-checkpoint
+- Consider running /jicm to save state
+- Disable non-essential MCPs with: /jicm
 - Current Tier 2 MCPs: github, context7 (6 tools)
 
 ### Quick Actions
 
-- `/checkpoint` — Save current state
-- `/context-checkpoint` — Full checkpoint workflow
+- `/jicm` — Save current state
+- `/jicm` — Full checkpoint workflow
 - `disable-mcps.sh github context7` — Manual MCP disable
 ```
 
@@ -720,7 +720,7 @@ cat .claude/logs/context-estimate.json | jq .
 .claude/scripts/list-mcp-status.sh
 
 # Manual checkpoint test
-cat .claude/context/.checkpoint.md
+cat .claude/context/.compressed-context-ready.md
 
 # Verify metrics
 cat .claude/metrics/AC-04-jicm.jsonl | tail -5

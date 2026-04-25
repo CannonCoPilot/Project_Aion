@@ -1411,7 +1411,7 @@ return {
 │  • Purpose: Enable user/Claude to find relevant command          │
 │                                                                  │
 │  Example in /help:                                               │
-│  /checkpoint — Save session state for MCP restart                │
+│  /jicm — Save session state for MCP restart                │
 └─────────────────────────────────────────────────────────────────┘
                               ▼
                      (User or Claude invokes /command)
@@ -1448,7 +1448,7 @@ Commands could link to detailed resources loaded only during execution:
 ```
 ## Workflow
 1. Read session state
-2. For detailed checkpoint format, see @.claude/context/patterns/checkpoint-format.md
+2. For detailed checkpoint format, see @.claude/context/patterns/jicm-format.md
 3. Write checkpoint file
 ```
 
@@ -1850,7 +1850,7 @@ allowed-tools: Read, Write, Edit, Bash(git:*)  # Restrict tools
 
 | Command | Purpose | When to Use |
 |---------|---------|-------------|
-| `/checkpoint` | Save session state for restart | Before MCP enable, context critical |
+| `/jicm` | Save session state for restart | Before MCP enable, context critical |
 | `/end-session` | Clean exit with commit | Session complete |
 | `/context-budget` | Analyze context usage | Check token status |
 | `/tooling-health` | Validate all tooling | Post-installation, debugging |
@@ -1867,7 +1867,7 @@ allowed-tools: Read, Write, Edit, Bash(git:*)  # Restrict tools
 | **Token Cost** | Full file on invoke | Progressive disclosure | Output only |
 | **Control** | User/Claude explicit | Claude reasoning | Claude explicit |
 | **Best For** | Multi-step procedures | Procedural expertise | System automation |
-| **Examples** | /checkpoint, /end-session | docx, browser-automation | bump-version, disable-mcps |
+| **Examples** | /jicm, /end-session | docx, browser-automation | bump-version, disable-mcps |
 
 **Selection Guidance**:
 ```
@@ -1914,7 +1914,7 @@ Local Tooling Task
 ┌─────────────────────────────────────────────────────────────────┐
 │ Q4: Is it a SESSION LIFECYCLE operation?                        │
 │     → YES: Use COMMANDS (inject full instructions)              │
-│     Examples: /checkpoint, /end-session, /context-budget        │
+│     Examples: /jicm, /end-session, /context-budget        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

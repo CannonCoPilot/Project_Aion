@@ -57,7 +57,7 @@ Execute → Check → Review → Drift Check → Context Check → Continue/Comp
 | AC-06 | Self-Evolution | Idle time | `commands/evolve.md` |
 | AC-07 | R&D Cycles | Research | `commands/research.md` |
 | AC-08 | Maintenance | Health checks | `commands/maintain.md` |
-| AC-09 | Session Completion | Session end | `commands/end-session.md` |
+| AC-09 | Session Meditation | `/meditate-session` | `commands/meditate-session.md` |
 
 ### Ulfhedthnar (AC-10) — Hidden Neuros Override (dormant)
 

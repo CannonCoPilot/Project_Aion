@@ -559,7 +559,7 @@ Research Task Received
                       └── Context headroom < 50%?
                           └── gptresearcher_deep_research directly
                               • Avoid agent overhead
-                              • OR: /checkpoint first, then agent
+                              • OR: /jicm first, then agent
 ```
 
 ### Context-Aware Research Selection
@@ -586,7 +586,7 @@ Pre-Research Checklist:
 2. If percentage > 50%:
    - Quick research: Proceed directly
    - Deep research: Consider agent delegation
-   - Comprehensive: /checkpoint first OR use agent
+   - Comprehensive: /jicm first OR use agent
 3. If Tier 2 MCPs needed but disabled:
    - Run: .claude/scripts/enable-mcps.sh perplexity brave-search
    - Run: /clear to load MCPs
@@ -726,7 +726,7 @@ Session Start with Research Planned:
 
 Mid-Session Research Need:
 1. Check if needed MCP is enabled: .claude/scripts/list-mcp-status.sh
-2. If disabled: /checkpoint → enable → /clear → resume
+2. If disabled: /jicm → enable → /clear → resume
 3. If enabled: Use directly
 
 Post-Research MCP Cleanup:
@@ -837,11 +837,9 @@ cat .claude/logs/jicm-triggers.log
 
 | Trigger | Mechanism | When | User Action |
 |---------|-----------|------|-------------|
-| **Manual** | `/checkpoint` command | User decides | /checkpoint → /clear |
-| **Manual** | `/smart-compact` command | User decides | /smart-compact → /clear |
-| **Auto Warning** | context-accumulator.js | 50% threshold | None (warning only) |
-| **Auto Checkpoint** | context-accumulator.js | 75% threshold | None (auto-clear via watcher) |
-| **Auto Compact** | Claude Code built-in | ~100% actual | Context summarized (lossy) |
+| **Manual** | `/jicm` command | User decides | /jicm (compress + clear + resume) |
+| **Auto** | jicm-watcher.sh | 300K token threshold | None (auto compress + clear) |
+| **Auto Compact** | Claude Code built-in | ~70% threshold | Context summarized (lossy) |
 
 ### Agent-Specific Context Tracking
 

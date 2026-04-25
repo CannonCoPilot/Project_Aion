@@ -31,6 +31,12 @@ skills:
     tools: ["Bash(curl wttr.in)"]
     file: .claude/skills/weather/SKILL.md
 
+  - id: skill.time-check
+    model: haiku
+    when: "Current date/time, elapsed time calculations, time-of-day awareness"
+    tools: ["Bash(date)"]
+    file: .claude/skills/time-check/SKILL.md
+
   # x-ops routers (consolidations)
   - id: skill.doc-ops
     model: sonnet
@@ -85,6 +91,13 @@ skills:
     tools: [mcp__jarvis-pulse]
     file: .claude/skills/pulse-ops/SKILL.md
 
+  - id: skill.projectintel-ops
+    model: haiku
+    version: 1.1.0
+    when: "Shared collaboration with David O'Neil — debriefs, questions, status, investigation, Loom, ProjectIntel"
+    tools: [Read, Write, Edit, Glob, Grep]
+    file: .claude/skills/projectintel-ops/SKILL.md
+
   - id: skill.deck-ops
     model: sonnet
     when: "Create slide deck presentations"
@@ -101,10 +114,7 @@ agents:
   - {id: agent.code-tester, model: sonnet, when: "Run tests, Playwright flows, screenshots", file: .claude/agents/code-tester.md}
   - {id: agent.docker-deployer, model: sonnet, when: "Deploy/configure Docker services w/ health verification", file: .claude/agents/docker-deployer.md}
   - {id: agent.service-troubleshooter, model: sonnet, when: "Diagnose infra/service issues w/ RCA", file: .claude/agents/service-troubleshooter.md}
-  - {id: agent.compression-agent, model: haiku, when: "JICM v5 compression", file: .claude/agents/compression-agent.md}
-  - {id: agent.context-compressor, model: haiku, when: "Compress conversation context", file: .claude/agents/context-compressor.md}
   - {id: agent.memory-bank-synchronizer, model: sonnet, when: "Sync docs with code changes", file: .claude/agents/memory-bank-synchronizer.md}
-  - {id: agent.jicm-agent, model: haiku, when: "Autonomous JICM monitoring", file: .claude/agents/jicm-agent.md}
 
 patterns:
   - {id: pattern.agent-selection, when: "Choosing tools/skills/agents", file: .claude/context/patterns/agent-selection-pattern.md}
@@ -119,9 +129,9 @@ patterns:
   - {id: pattern.parallelization, when: "Parallel vs sequential decisions", file: .claude/context/patterns/parallelization-strategy.md}
 
 workflows:
-  - {id: flow.jicm-compression, when: "Context near threshold", file: .claude/commands/intelligent-compress.md}
-  - {id: flow.end-session, when: "Clean exit w/ documentation", file: .claude/commands/end-session.md}
-  - {id: flow.checkpoint, when: "Save state before /clear", file: .claude/commands/checkpoint.md}
+  - {id: flow.jicm-compression, when: "Context near threshold — manual trigger", file: .claude/commands/intelligent-compress.md}
+  - {id: flow.meditate-session, when: "Session meditation — reflect, consolidate, preserve, rest", file: .claude/commands/meditate-session.md}
+  - {id: flow.jicm-manual, when: "Manual JICM cycle — preserve + clear", file: .claude/commands/jicm.md}
   - {id: flow.setup, when: "Initial project configuration", file: .claude/commands/setup.md}
 
 components:
@@ -133,7 +143,7 @@ components:
   - {id: ac.06-self-evolution, signal: "/evolve, idle time", file: .claude/context/components/AC-06-self-evolution.md}
   - {id: ac.07-research, signal: "/research", file: .claude/context/components/AC-07-rd-cycles.md}
   - {id: ac.08-maintenance, signal: "/maintain, quarterly", file: .claude/context/components/AC-08-maintenance.md}
-  - {id: ac.09-session-completion, signal: "/end-session", file: .claude/context/components/AC-09-session-completion.md}
+  - {id: ac.09-session-completion, signal: "/meditate-session", file: .claude/context/components/AC-09-session-completion.md}
 
   - id: ac.10-ulfhedthnar
     signal: "Defeat signals >= threshold, /unleash"

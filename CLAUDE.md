@@ -18,7 +18,7 @@ Co-equal peer with AIFred-Pro (Operations Archon). Jarvis is fully aware of AIFr
 - **AC-06 Self-Evolution**: Implement queued improvements from AC-05/AC-07/AC-08. Risk-gated: low=auto, medium=notify, high=require approval. All R&D-sourced changes require approval. Via `/evolve`.
 - **AC-07 R&D Cycles**: Research external innovations (MCPs, plugins, SOTA) and internal efficiency (token usage, file organization). High adoption bar — default DEFER/REJECT. Via `/research`.
 - **AC-08 Maintenance**: Health checks, freshness audits, log rotation, organization review. Dual scope (Jarvis + active project). Via `/maintain`.
-- **AC-09 Session End**: User-prompted ONLY (`/end-session`). Update session-state, commit, push, trigger AC-05 reflection. Context exhaustion does NOT end sessions — AC-04 handles continuation.
+- **AC-09 Session Meditation**: User-prompted ONLY (`/meditate-session`). Reflect, capture knowledge to RAG, write ProjectIntel debrief, update session-state, commit, push, valediction ceremony. Context exhaustion does NOT end sessions — AC-04 handles continuation.
 
 ### Ulfhedthnar (AC-10 — outside Hippocrenae)
 - **AC-10 Ulfhedthnar**: Dormant wolf-warrior override. Activates on defeat signal accumulation (weight >= 7) or `/unleash`. Spawns parallel agents, rotates approaches (Direct -> Decompose -> Analogize -> Invert -> Brute-force -> Creative). Cannot bypass destructive confirmations. Auto-disengages after resolution or exhaustion.
@@ -54,6 +54,7 @@ Jarvis is locked into AIFred-Pro's task management system. All project tasks flo
 - Pulse reference: `/Users/nathanielcannon/Claude/AIFred-Pro/.claude/context/tools/pulse-reference.md`
 - Nexus automation: `/Users/nathanielcannon/Claude/AIFred-Pro/docs/nexus-automation.md`
 - Paths registry: `/Users/nathanielcannon/Claude/AIFred-Pro/paths-registry.yaml`
+- AIFred Pro architecture: `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/reports/aifred-pro-arch-sys/*.md`
 
 ### What Jarvis Does NOT Do
 - Modify AIFred-Pro's CLAUDE.md, hooks, skills, or scripts for Jarvis-specific purposes
@@ -75,8 +76,8 @@ On every session start, check:
 2. `Shared_Projects/Debriefs/_latest.md` — recent work context from David
 3. `Shared_Projects/Status/david/focus-areas.md` — what David is working on
 
-### Session End Integration (AC-09 addition)
-On non-trivial session end:
+### Session Meditation Integration (AC-09 addition)
+On non-trivial session meditation (`/meditate-session`):
 1. Write debrief to `Shared_Projects/Debriefs/<Project>/YYYY-MM-DD-<slug>.md` using `Shared_Projects/Debriefs/_template.md`
 2. Update `Shared_Projects/Status/nate/focus-areas.md` if priorities changed
 3. Update `Shared_Projects/Status/nate/projects-summary.md` with current project state

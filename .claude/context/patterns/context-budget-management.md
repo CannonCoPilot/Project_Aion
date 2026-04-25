@@ -73,7 +73,7 @@ MCPs that agents can dynamically **load, use, and unload** based on task require
 
 **Agent Loading Protocol**:
 1. Agent evaluates task requirements during planning
-2. Agent requests MCP load if needed (via `/checkpoint` if not available)
+2. Agent requests MCP load if needed (via `/jicm` if not available)
 3. Agent performs work with MCP
 4. **Evaluation point**: After subtask completion, check if MCP still needed
 5. If not needed, agent signals MCP can be unloaded
@@ -206,7 +206,7 @@ Current size: 5.2K tokens (acceptable but improvable)
 
 - [x] Update session-start hook to check planned work type from session-state.md
 - [x] Add MCP loading suggestions based on work type
-- [x] Update `/checkpoint` command to preserve MCP loading state
+- [x] Update `/jicm` command to preserve MCP loading state
 - [x] Add budget warnings to session-start
 - [x] Document MCP enable/disable instructions for tier transitions
 
@@ -295,7 +295,7 @@ Tier 3 MCPs should NOT be manually enabled. They are invoked by specific command
 
 1. **Auto-Trigger (PreCompact Hook)**:
    - When context approaches threshold, PreCompact hook fires automatically
-   - Creates checkpoint file at `.soft-restart-checkpoint.md`
+   - Creates checkpoint file at `.compressed-context-ready.md`
    - Disables Tier 2 MCPs (github, context7, sequential-thinking)
    - Shows message: "Type /clear to continue"
 
@@ -311,7 +311,7 @@ Tier 3 MCPs should NOT be manually enabled. They are invoked by specific command
 **Manual Trigger Option**:
 If you want to checkpoint before PreCompact triggers:
 ```
-/context-checkpoint → /clear → [auto-resume]
+/jicm → /clear → [auto-resume]
 ```
 
 **Key Discoveries (2026-01-07)**:
@@ -325,7 +325,7 @@ If you want to checkpoint before PreCompact triggers:
 
 If context exceeds 100% and autocompaction triggers:
 
-1. Run `/context-checkpoint` immediately
+1. Run `/jicm` immediately
 2. Approve MCP reduction recommendations
 3. Run `/exit-session` (commits state)
 4. Run `/clear`
