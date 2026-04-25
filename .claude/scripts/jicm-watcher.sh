@@ -1,18 +1,18 @@
 #!/bin/bash
 # ============================================================================
-# JICM v7.1.1 WATCHER — Absolute Token Threshold + Script-Based Context Preparation
+# JICM v7.3.0 WATCHER — Token-Aware Monitoring + Two-Tier Compression
 # ============================================================================
 #
-# A simple, precise, responsive, accurate, stable context monitoring and
-# compression system. When context reaches threshold, Jarvis STOPS, a fast
-# bash script prepares context from JSONL transcript, /clear is sent, and
-# Jarvis resumes from prepared context.
+# Context monitoring and compression system. When context reaches threshold,
+# Jarvis STOPS, a fast bash script prepares context (Tier 1 + optional LLM
+# enrichment via Tier 2), /clear is sent, and Jarvis resumes from prepared
+# context via SessionStart hook injection.
 #
 # State Machine: WATCHING → HALTING → COMPRESSING → CLEARING → RESTORING → WATCHING
 #
-# v7: Replaced LLM compression agent (~210s) with jicm-prep-context.sh (~0.06s)
-# Design: .claude/context/designs/jicm-v6-design.md (architecture)
-# Analysis: .claude/context/designs/jicm-v6-critical-analysis.md
+# v7.3: Shared jicm-config.sh, burn rate tracking, compression metadata,
+#        consolidated commands (/jicm + /intelligent-compress only)
+# Spec:  .claude/context/components/AC-04-jicm.md
 #
 # Usage:
 #   .claude/scripts/jicm-watcher.sh [--token-threshold N] [--threshold PCT] [--interval SEC]
@@ -29,24 +29,30 @@ trap 'echo "[ERR] Line $LINENO (exit $?)" >&2' ERR
 # =============================================================================
 
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
-TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
-TMUX_SESSION="${TMUX_SESSION:-jarvis}"
+
+# Source shared JICM config (defines all paths)
+JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
+if [[ -f "$JICM_CONFIG" ]]; then
+    source "$JICM_CONFIG"
+fi
+
+TMUX_BIN="${JICM_TMUX_BIN:-$HOME/bin/tmux}"
+TMUX_SESSION="${JICM_TMUX_SESSION:-jarvis}"
 TMUX_TARGET="${TMUX_SESSION}:0"
 
-# Paths
-LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-watcher.log"
-STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state"
-COMPRESSED_FILE="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
-COMPRESSION_SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
-SLEEP_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-sleep.signal"
-EXIT_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal"
-ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
+# Paths (from shared config with fallbacks)
+LOG_FILE="${JICM_LOG_FILE:-$PROJECT_DIR/.claude/logs/jicm-watcher.log}"
+STATE_FILE="${JICM_STATE_FILE:-$PROJECT_DIR/.claude/context/.jicm-state}"
+COMPRESSED_FILE="${JICM_COMPRESSED_FILE:-$PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
+COMPRESSION_SIGNAL="${JICM_COMPRESSION_SIGNAL:-$PROJECT_DIR/.claude/context/.compression-done.signal}"
+SLEEP_SIGNAL="${JICM_SLEEP_SIGNAL:-$PROJECT_DIR/.claude/context/.jicm-sleep.signal}"
+EXIT_SIGNAL="${JICM_EXIT_SIGNAL:-$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal}"
+ARCHIVE_DIR="${JICM_ARCHIVE_DIR:-$PROJECT_DIR/.claude/logs/jicm/archive}"
 EXPORTS_DIR="$PROJECT_DIR/.claude/exports"
 
-# Thresholds and timing
-# Primary trigger: absolute token count (decoupled from window size)
+# Thresholds and timing (from shared config with fallbacks)
 JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-300000}
-POLL_INTERVAL=${POLL_INTERVAL:-5}
+POLL_INTERVAL=${JICM_POLL_INTERVAL:-5}
 HALT_TIMEOUT=60
 COMPRESS_TIMEOUT=300
 CLEAR_TIMEOUT=60
@@ -105,6 +111,12 @@ LAST_PCT=0
 LAST_TOKENS=0
 
 LAST_CYCLE_SUMMARY=""
+
+# Token burn rate tracking (simple delta between readings)
+PREV_TOKENS=0
+PREV_TOKEN_TIME=0
+TOKEN_BURN_RATE=0
+THRESHOLD_ETA_MINS=0
 
 # TUI geometry (populated by query_terminal_size)
 TERM_ROWS=0
@@ -231,6 +243,30 @@ log() {
 # STATE FILE (unified — replaces 8+ signal files from v5)
 # =============================================================================
 
+update_burn_rate() {
+    local now_tokens="${1:-0}"
+    local now_time
+    now_time=$(date +%s)
+
+    if [[ $PREV_TOKENS -gt 0 ]] && [[ $PREV_TOKEN_TIME -gt 0 ]] && [[ $now_tokens -gt $PREV_TOKENS ]]; then
+        local delta_tokens=$(( now_tokens - PREV_TOKENS ))
+        local delta_time=$(( now_time - PREV_TOKEN_TIME ))
+        if [[ $delta_time -gt 0 ]]; then
+            TOKEN_BURN_RATE=$(( delta_tokens * 60 / delta_time ))
+            local remaining=$(( JICM_TOKEN_THRESHOLD - now_tokens ))
+            if [[ $TOKEN_BURN_RATE -gt 0 ]] && [[ $remaining -gt 0 ]]; then
+                THRESHOLD_ETA_MINS=$(( remaining / TOKEN_BURN_RATE ))
+            else
+                THRESHOLD_ETA_MINS=0
+            fi
+        fi
+    fi
+
+    PREV_TOKENS=$now_tokens
+    PREV_TOKEN_TIME=$now_time
+    return 0
+}
+
 write_state() {
     local sleeping="false"
     [[ -f "$SLEEP_SIGNAL" ]] && sleeping="true"
@@ -240,14 +276,14 @@ timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")
 context_pct: ${LAST_PCT:-0}
 context_tokens: ${LAST_TOKENS:-0}
 token_threshold: $JICM_TOKEN_THRESHOLD
+burn_rate_tpm: $TOKEN_BURN_RATE
+threshold_eta_mins: $THRESHOLD_ETA_MINS
 compressions: $COMPRESSION_COUNT
 errors: $ERROR_COUNT
 pid: $$
-version: 7.2.0
+version: 7.3.0
 sleeping: $sleeping
 EOF
-
-    # .watcher-status compat write REMOVED (v6.1) — all consumers migrated to .jicm-state
 }
 
 # =============================================================================
@@ -1377,6 +1413,9 @@ main() {
             LAST_PCT="$pct"
             LAST_TOKENS="$tokens"
 
+            # Update burn rate (tokens/minute) and ETA
+            update_burn_rate "$tokens"
+
             poll_count=$((poll_count + 1))
 
             # Periodic log rotation (every 100 polls)
@@ -1531,6 +1570,20 @@ main() {
 
             if [[ "$status" == "active" ]]; then
                 log JICM "Jarvis is active — JICM cycle complete!"
+                # Log compression metadata if available
+                local meta_file="${JICM_METADATA_FILE:-$PROJECT_DIR/.claude/context/.jicm-last-compression.json}"
+                if [[ -f "$meta_file" ]]; then
+                    local comp_method comp_duration comp_lines
+                    comp_method=$(jq -r '.method // "unknown"' "$meta_file" 2>/dev/null || echo "unknown")
+                    comp_duration=$(jq -r '.duration_seconds // 0' "$meta_file" 2>/dev/null || echo "0")
+                    comp_lines=$(jq -r '.output_lines // 0' "$meta_file" 2>/dev/null || echo "0")
+                    log JICM "Compression: ${comp_method}, ${comp_duration}s, ${comp_lines} lines"
+                fi
+                # Reset burn rate after context clear (tokens reset to near-zero)
+                PREV_TOKENS=0
+                PREV_TOKEN_TIME=0
+                TOKEN_BURN_RATE=0
+                THRESHOLD_ETA_MINS=0
                 emit_cycle_metrics "success"
                 archive_compressed_context
                 transition_to "WATCHING"

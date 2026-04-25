@@ -17,7 +17,7 @@ Reusable implementation patterns organized by category. Consult before implement
 | Tool/agent selection | [selection-intelligence-guide](selection-intelligence-guide.md) | **ALWAYS** |
 | Context management | [jicm-pattern](jicm-pattern.md) | **ALWAYS** |
 | Session start | [startup-protocol](startup-protocol.md) | **ALWAYS** |
-| Session end | [session-exit](../workflows/session-exit.md) | **ALWAYS** |
+| Session meditation | [session-completion-pattern](session-completion-pattern.md) | **ALWAYS** |
 
 ---
 

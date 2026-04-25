@@ -436,12 +436,17 @@ else
     JARVIS_SESSION_TYPE="resume"
 fi
 
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0"
+# Usage proxy: route Anthropic API through local proxy for telemetry capture
+# Proxy captures rate-limit headers + token usage per request → PostgreSQL
+# See: projects/aifred-usage-tracking/anthropic-api-headers-reference.md
+USAGE_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
+
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
-# W0: effort medium — balanced cost/quality for project work
-CLAUDE_BASE="claude --dangerously-skip-permissions --effort medium --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+# W0: effort high, bypass permissions, full Opus 1M context, exclude dynamic system prompts
+CLAUDE_BASE="claude --permission-mode bypassPermissions --effort high --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --continue --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
@@ -531,7 +536,7 @@ if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
     JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
-    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5"
+    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
     DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
     # Session file rotation — archive if > 5MB to prevent unbounded growth
     DEV_SESSION_MAX_BYTES=5242880  # 5MB

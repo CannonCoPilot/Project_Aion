@@ -22,6 +22,13 @@
 # Read input from stdin (JSON)
 INPUT=$(cat)
 
+# Source shared JICM config (defines all paths)
+PROJECT_DIR="$CLAUDE_PROJECT_DIR"
+JICM_CONFIG="$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-config.sh"
+if [[ -f "$JICM_CONFIG" ]]; then
+    source "$JICM_CONFIG"
+fi
+
 # Parse source from input
 SOURCE=$(echo "$INPUT" | jq -r '.source // "unknown"')
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
@@ -60,7 +67,7 @@ fi
 # ============== STALE SIGNAL CLEANUP (MAINT-004 failsafe) ==============
 # If .jicm-exit-mode.signal exists at session start, a prior end-session was
 # interrupted. Remove it so JICM isn't permanently suppressed.
-STALE_EXIT_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-exit-mode.signal"
+STALE_EXIT_SIGNAL="${JICM_EXIT_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-exit-mode.signal}"
 if [[ -f "$STALE_EXIT_SIGNAL" ]]; then
     rm -f "$STALE_EXIT_SIGNAL"
     echo "$TIMESTAMP | SessionStart | CLEANUP: Removed stale .jicm-exit-mode.signal from interrupted exit" >> "$LOG_DIR/session-start-diagnostic.log"
@@ -132,7 +139,7 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
     fi
 
     # Clear compression-in-progress flag if exists (skill still writes this)
-    COMPRESSION_FLAG="$CLAUDE_PROJECT_DIR/.claude/context/.compression-in-progress"
+    COMPRESSION_FLAG="${JICM_COMPRESSION_GUARD:-$CLAUDE_PROJECT_DIR/.claude/context/.compression-in-progress}"
     if [[ -f "$COMPRESSION_FLAG" ]]; then
         rm -f "$COMPRESSION_FLAG"
         echo "$TIMESTAMP | SessionStart | JICM: Cleared compression-in-progress flag" >> "$LOG_DIR/session-start-diagnostic.log"
@@ -142,8 +149,7 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
     rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-guard-passed" 2>/dev/null
     rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-ceremony-done" 2>/dev/null
 
-    # Clean up stale idle-hands state from previous sessions
-    rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.idle-hands-active.W"* 2>/dev/null
+    # v5 idle-hands cleanup removed (v7 refurbishment) — nothing creates these files anymore
 fi
 
 # ============================================================================
@@ -172,27 +178,9 @@ MCP_SUGGESTION=""
 
 # ============== PHASE B ENHANCEMENTS (evo-2026-01-018, evo-2026-01-019) ==============
 
-# --- AIfred Baseline Sync Check (evo-2026-01-018) ---
+# --- AIfred Baseline Sync Check ---
+# Removed (v7 refurbishment): ~/Claude/AIfred archived. AIFred-Pro is read-only production.
 AIFRED_SYNC_STATUS=""
-AIFRED_REPO="$HOME/Claude/AIfred"
-if [[ -d "$AIFRED_REPO/.git" ]] && [[ "$SOURCE" == "startup" ]]; then
-    # Fetch upstream changes (silent, non-blocking)
-    cd "$AIFRED_REPO" 2>/dev/null
-    if git fetch --quiet 2>/dev/null; then
-        # Check if behind origin
-        LOCAL_HEAD=$(git rev-parse HEAD 2>/dev/null)
-        REMOTE_HEAD=$(git rev-parse origin/main 2>/dev/null || git rev-parse origin/master 2>/dev/null)
-        BEHIND_COUNT=$(git rev-list --count HEAD..origin/main 2>/dev/null || git rev-list --count HEAD..origin/master 2>/dev/null || echo "0")
-
-        if [[ "$BEHIND_COUNT" -gt 0 ]]; then
-            AIFRED_SYNC_STATUS="AIfred baseline is $BEHIND_COUNT commits behind origin. Run /sync-aifred-baseline to review changes."
-            echo "$TIMESTAMP | SessionStart | AIfred behind by $BEHIND_COUNT commits" >> "$LOG_DIR/session-start-diagnostic.log"
-        else
-            echo "$TIMESTAMP | SessionStart | AIfred baseline up-to-date" >> "$LOG_DIR/session-start-diagnostic.log"
-        fi
-    fi
-    cd "$CLAUDE_PROJECT_DIR" 2>/dev/null
-fi
 
 # --- Claude Code Docs Sync (B.1 integration) ---
 CLAUDE_DOCS_REPO="$HOME/Claude/GitRepos/claude-code-docs"
@@ -206,19 +194,12 @@ if [[ -d "$CLAUDE_DOCS_REPO/.git" ]] && [[ "$SOURCE" == "startup" ]]; then
     cd "$CLAUDE_PROJECT_DIR" 2>/dev/null
 fi
 
-# --- JICM Session Memory Directory (B.4 Phase 2) ---
+# --- JICM Session ID (v7 simplified) ---
+# Session dirs removed (v7 refurbishment) — only write session ID for hooks that read it
 if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
     JICM_SESSION_ID=$(date +"%Y%m%d-%H%M%S")
-    JICM_SESSION_DIR="$CLAUDE_PROJECT_DIR/.claude/context/jicm/sessions/$JICM_SESSION_ID"
-    mkdir -p "$JICM_SESSION_DIR"
-    # Write session metadata
-    printf 'session_id: "%s"\nstarted: "%s"\nsource: "%s"\n' \
-        "$JICM_SESSION_ID" "$TIMESTAMP" "$SOURCE" > "$JICM_SESSION_DIR/working-memory.yaml"
-    printf 'session_id: "%s"\ndecisions: []\n' "$JICM_SESSION_ID" > "$JICM_SESSION_DIR/decisions.yaml"
-    printf 'session_id: "%s"\nobservations: []\n' "$JICM_SESSION_ID" > "$JICM_SESSION_DIR/observations.yaml"
-    # Track current session ID for other hooks
     echo "$JICM_SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/jicm/.current-session-id"
-    echo "$TIMESTAMP | SessionStart | JICM session dir: $JICM_SESSION_ID" >> "$LOG_DIR/session-start-diagnostic.log"
+    echo "$TIMESTAMP | SessionStart | JICM session ID: $JICM_SESSION_ID" >> "$LOG_DIR/session-start-diagnostic.log"
 fi
 
 # --- Environment Validation (evo-2026-01-019) ---
@@ -375,8 +356,8 @@ $(head -30 "$f")
 # The watcher handles all state transitions; this hook just injects context.
 # Detection: .jicm-state exists with state=clearing or state=restoring
 # v7: Prep script replaces LLM agent. CLAUDE.md/capability-map auto-loaded.
-V6_STATE_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-state"
-V6_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md"
+V6_STATE_FILE="${JICM_STATE_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-state}"
+V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
 
 if [[ "$SOURCE" == "clear" ]] && [[ -f "$V6_STATE_FILE" ]]; then
     V6_STATE=$(grep '^state:' "$V6_STATE_FILE" 2>/dev/null | head -1 | awk '{print $2}')
@@ -438,67 +419,12 @@ fi
 # v5 used two-mechanism resume: hook injection + idle-hands keystroke monitor.
 # v6 uses single .jicm-state file + stop-and-wait architecture (above).
 
-# ============== CHECKPOINT HANDLING (Legacy/Fallback) ==============
-CHECKPOINT_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.soft-restart-checkpoint.md"
-
-if [[ -f "$CHECKPOINT_FILE" ]]; then
-    # Checkpoint exists - load and AUTO-RESUME after context compression/clear
-    CHECKPOINT_CONTENT=$(cat "$CHECKPOINT_FILE")
-
-    # JICM Investigation Q10: Include actual session-state content for robust liftover
-    SESSION_WORK=""
-    if [[ -f "$SESSION_STATE_FILE" ]]; then
-        # Extract current work section
-        SESSION_WORK=$(sed -n '/## Current Work/,/^## /p' "$SESSION_STATE_FILE" 2>/dev/null | head -20)
-    fi
-
-    NEXT_PRIORITY=""
-    if [[ -f "$PRIORITIES_FILE" ]]; then
-        # Extract first priority
-        NEXT_PRIORITY=$(grep -A 2 "^\s*-\s*\[" "$PRIORITIES_FILE" 2>/dev/null | head -3)
-    fi
-
-    MESSAGE="CONTEXT RESTORED ($SOURCE)$ENV_STATUS"
-    CONTEXT="CONTEXT RESTART PROTOCOL:
-You are Jarvis. The context has been compressed or cleared and is now being restored.
-
-Current datetime: $LOCAL_DATE at $LOCAL_TIME
-
-Your response should:
-1. Briefly acknowledge the context restoration (e.g., \"Context restored, sir.\")
-2. State the current date and time
-3. Say: \"One moment while I review the previous session work...\"
-4. Then silently read the checkpoint content above
-5. After review, summarize what was in progress and continue the work
-
-DO NOT generate a full greeting. This is a continuation, not a fresh start.
-
-=== ACTUAL SESSION STATE (for robust liftover) ===
-${SESSION_WORK:-No session work found}
-
-=== NEXT PRIORITY ===
-${NEXT_PRIORITY:-Check session-state.md Current Priorities}
-
-=== MANDATORY ACTION ===
-You MUST immediately resume the work described above. Do NOT just summarize - actually continue the task."
-
-    # Write state file
-    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"auto_continue\": true, \"restart_type\": \"checkpoint\"}" > "$STATE_DIR/AC-01-launch.json"
-
-    jq -n \
-      --arg msg "$MESSAGE" \
-      --arg ctx "$CONTEXT" \
-      '{
-        "systemMessage": $msg,
-        "hookSpecificOutput": {
-          "hookEventName": "SessionStart",
-          "additionalContext": $ctx
-        }
-      }'
-
-elif [[ "$SOURCE" == "clear" ]]; then
+# ============== CLEAR WITHOUT JICM (safety fallback) ==============
+# Legacy .soft-restart-checkpoint.md handling removed (v7 refurbishment).
+# Nothing creates that file anymore. Only .compressed-context-ready.md matters.
+if [[ "$SOURCE" == "clear" ]]; then
     # Clear without JICM — run prep script to create backup context
-    PREP_SCRIPT="$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
+    PREP_SCRIPT="${JICM_PREP_SCRIPT:-$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-prep-context.sh}"
     if [[ -x "$PREP_SCRIPT" ]]; then
         bash "$PREP_SCRIPT" 2>>"$LOG_DIR/session-start-diagnostic.log" || true
         echo "$TIMESTAMP | SessionStart | /clear safety: ran jicm-prep-context.sh" >> "$LOG_DIR/session-start-diagnostic.log"

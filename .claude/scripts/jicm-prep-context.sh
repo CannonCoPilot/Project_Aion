@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# jicm-prep-context.sh — JICM v7 Rich Context Preparation
+# jicm-prep-context.sh — JICM v7.3.0 Two-Tier Context Preparation
 # ============================================================================
 #
 # Two-tier checkpoint system:
@@ -30,14 +30,24 @@ set -eu
 # pipelines which close pipes early, causing SIGPIPE (exit 141) on the
 # upstream command. This is normal pipe behavior, not an error.
 
+PREP_START_TIME=$(date +%s)
+
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
-PROJECT_SLUG=$(echo "$PROJECT_DIR" | tr '/' '-' | sed 's/^-//')
-PROJECTS_DIR="$HOME/.claude/projects/${PROJECT_SLUG}"
-OUTPUT="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
-SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
-ACTIVE_PLAN_FILE="$PROJECT_DIR/.claude/context/.active-plan"
-SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
-SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"
+
+# Source shared JICM config (defines all paths)
+JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
+if [[ -f "$JICM_CONFIG" ]]; then
+    source "$JICM_CONFIG"
+fi
+
+# Map shared config vars to local names (backward compat)
+PROJECT_SLUG="${JICM_PROJECT_SLUG:-$(echo "$PROJECT_DIR" | tr '/' '-')}"
+PROJECTS_DIR="${JICM_PROJECTS_DIR:-$HOME/.claude/projects/${PROJECT_SLUG}}"
+OUTPUT="${JICM_COMPRESSED_FILE:-$PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
+SIGNAL="${JICM_COMPRESSION_SIGNAL:-$PROJECT_DIR/.claude/context/.compression-done.signal}"
+ACTIVE_PLAN_FILE="${JICM_ACTIVE_PLAN:-$PROJECT_DIR/.claude/context/.active-plan}"
+SESSION_STATE="${JICM_SESSION_STATE:-$PROJECT_DIR/.claude/context/session-state.md}"
+SCRATCHPAD="${JICM_SCRATCHPAD:-$PROJECT_DIR/.claude/context/.scratchpad.md}"
 
 # Configuration (defaults — can be overridden via .prep-override file)
 JSONL_TAIL_LINES=5000    # Scan last N JSONL entries for user messages
@@ -49,7 +59,7 @@ JSONL_PATH=""             # Override JSONL path (for experiments)
 LLM_SUMMARIZE=true        # Enable local LLM narrative pass (Tier 2)
 LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13s overhead)
 LLM_MODEL="qwen3:8b"
-LLM_TIMEOUT=20            # Max seconds for LLM call
+LLM_TIMEOUT=45            # Max seconds for LLM call (32B models need ~28s cold load)
 LLM_MAX_TOKENS=2000       # Output token cap (was 400 — caused truncation)
 
 # ============================================================================
@@ -155,8 +165,14 @@ find_best_jsonl() {
         echo "JSONL selected via message count (${best_count} msgs, <10min): $(basename "$best")" >&2
         echo "$best"
     else
-        # Last resort: newest file (no recency filter)
-        ls -t "$dir"/*.jsonl 2>/dev/null | head -1
+        # Last resort: newest file (no recency filter) — warn about staleness
+        local fallback
+        fallback=$(ls -t "$dir"/*.jsonl 2>/dev/null | head -1)
+        if [[ -n "$fallback" ]]; then
+            local fb_age=$(( $(date +%s) - $(stat -f %m "$fallback" 2>/dev/null || echo 0) ))
+            echo "WARN: No recent JSONL (<10min). Using newest file (${fb_age}s old): $(basename "$fallback")" >&2
+            echo "$fallback"
+        fi
     fi
 }
 
@@ -525,6 +541,8 @@ except FileNotFoundError:
 
 system_prompt = SYSTEM_PROMPT.replace("{project_dir}", project_dir)
 
+import tempfile
+
 payload = json.dumps({
     "model": model,
     "messages": [
@@ -536,13 +554,21 @@ payload = json.dumps({
     "options": {"num_predict": max_tokens}
 })
 
-result = subprocess.run(
-    ["curl", "-sf", "--max-time", timeout,
-     endpoint,
-     "-H", "Content-Type: application/json",
-     "-d", payload],
-    capture_output=True, text=True
-)
+# Write payload to temp file to avoid command-line argument size limits
+payload_file = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
+payload_file.write(payload)
+payload_file.close()
+
+try:
+    result = subprocess.run(
+        ["curl", "-sf", "--max-time", timeout,
+         endpoint,
+         "-H", "Content-Type: application/json",
+         "-d", "@" + payload_file.name],
+        capture_output=True, text=True
+    )
+finally:
+    os.unlink(payload_file.name)
 
 if result.returncode == 0 and result.stdout:
     try:
@@ -552,12 +578,10 @@ if result.returncode == 0 and result.stdout:
         sys.exit(1)
 else:
     sys.exit(1)
-' 2>/dev/null)
+' 2>/dev/null) || true
         rm -f "$LLM_INPUT_FILE"
 
-        LLM_EXIT=$?
-
-        if [[ $LLM_EXIT -eq 0 ]] && [[ -n "$LLM_RESPONSE" ]] && [[ ${#LLM_RESPONSE} -gt 100 ]]; then
+        if [[ -n "$LLM_RESPONSE" ]] && [[ ${#LLM_RESPONSE} -gt 100 ]]; then
             # Prepend LLM narrative, keep Tier 1 as raw appendix
             {
                 echo "# JICM v7 Context Checkpoint"
@@ -576,7 +600,7 @@ else:
             NARRATIVE_LINES=$(echo "$LLM_RESPONSE" | wc -l | tr -d ' ')
             echo "LLM enrichment applied (${NARRATIVE_LINES} lines)" >&2
         else
-            echo "LLM response insufficient (exit=$LLM_EXIT len=${#LLM_RESPONSE:-0}) — keeping Tier 1" >&2
+            echo "LLM response insufficient (len=${#LLM_RESPONSE}) — keeping Tier 1" >&2
         fi
     else
         echo "LiteLLM unavailable — keeping Tier 1 output" >&2
@@ -586,33 +610,111 @@ fi
 # ============================================================================
 # Step 4b: Validate checkpoint — detect LLM hallucination (REFL-022)
 # ============================================================================
-# Compare checkpoint's "Current Task" against current-plans.md Active section.
-# If the LLM inferred a stale or wrong task, log a self-correction.
+# Dynamically extract COMPLETE items from current-plans.md and check if
+# the LLM checkpoint references any of them as active work.
 
 SELF_CORRECTIONS="$PROJECT_DIR/.claude/context/psyche/self-knowledge/self-corrections.md"
 CURRENT_PLANS="$PROJECT_DIR/.claude/context/current-plans.md"
 
 if [[ -f "$OUTPUT" ]] && [[ -f "$CURRENT_PLANS" ]]; then
-    # Extract "Current Task" line from checkpoint (case-insensitive)
     CHECKPOINT_TASK=$(grep -i 'current task\|currently working\|in progress' "$OUTPUT" | head -1 | sed 's/^[#*: -]*//' | tr -d '\n' || true)
 
     if [[ -n "$CHECKPOINT_TASK" ]] && [[ ${#CHECKPOINT_TASK} -gt 10 ]]; then
-        # Check if checkpoint references something marked COMPLETE in current-plans
-        STALE_MATCH=$(echo "$CHECKPOINT_TASK" | grep -iE 'Stage 3\.[0-3]|CDM Schema Fixes|CDM Expansion|Worldgen Monitoring|Knowledge Horizon' || true)
-        if [[ -n "$STALE_MATCH" ]]; then
-            echo "# $(date -u +%Y-%m-%dT%H:%M:%SZ) | judgment | JICM checkpoint inferred stale task: '${CHECKPOINT_TASK:0:100}' — stages 3.0-3.3 are COMPLETE per current-plans.md | Should derive current task from recent conversation only | Lesson: LLM enrichment continues to hallucinate completed tasks as active" >> "$SELF_CORRECTIONS"
-            echo "WARN: Checkpoint task validation detected stale reference — logged to self-corrections.md" >&2
+        # Build dynamic pattern from COMPLETE items in current-plans.md
+        COMPLETE_NAMES=$(grep -i 'COMPLETE' "$CURRENT_PLANS" 2>/dev/null \
+            | grep -oE '\| [^|]+ \|' \
+            | sed 's/[|*]//g; s/^ *//; s/ *$//' \
+            | grep -v '^$' \
+            | head -20 \
+            | tr '\n' '|' \
+            | sed 's/|$//' || true)
+
+        if [[ -n "$COMPLETE_NAMES" ]]; then
+            STALE_MATCH=$(echo "$CHECKPOINT_TASK" | grep -iE "$COMPLETE_NAMES" || true)
+            if [[ -n "$STALE_MATCH" ]]; then
+                echo "# $(date -u +%Y-%m-%dT%H:%M:%SZ) | judgment | JICM checkpoint inferred stale task: '${CHECKPOINT_TASK:0:100}' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only" >> "$SELF_CORRECTIONS"
+                echo "WARN: Checkpoint references completed work — logged to self-corrections.md" >&2
+            fi
         fi
     fi
 fi
 
 # ============================================================================
-# Step 5: Write completion signal
+# Step 5: Validate output
+# ============================================================================
+
+OUTPUT_LINES=$(wc -l < "$OUTPUT" | tr -d ' ')
+OUTPUT_BYTES=$(wc -c < "$OUTPUT" | tr -d ' ')
+
+if [[ $OUTPUT_LINES -lt 5 ]]; then
+    echo "WARN: Checkpoint suspiciously small (${OUTPUT_LINES} lines) — may indicate extraction failure" >&2
+fi
+
+# ============================================================================
+# Step 6: Write completion signal + metadata
 # ============================================================================
 
 echo "$(date +%s)" > "$SIGNAL"
 
-# Report output size
-OUTPUT_LINES=$(wc -l < "$OUTPUT" | tr -d ' ')
-OUTPUT_BYTES=$(wc -c < "$OUTPUT" | tr -d ' ')
-echo "Context prepared: ${OUTPUT_LINES} lines, ${OUTPUT_BYTES} bytes" >&2
+PREP_END_TIME=$(date +%s)
+PREP_DURATION=$(( PREP_END_TIME - PREP_START_TIME ))
+
+METADATA_FILE="$PROJECT_DIR/.claude/context/.jicm-last-compression.json"
+JSONL_BASENAME=""
+JSONL_SIZE=0
+if [[ -n "$JSONL" ]] && [[ -f "$JSONL" ]]; then
+    JSONL_BASENAME=$(basename "$JSONL")
+    JSONL_SIZE=$(wc -c < "$JSONL" | tr -d ' ')
+fi
+
+# Determine method used
+COMP_METHOD="tier1-only"
+if [[ "$LLM_SUMMARIZE" == "true" ]]; then
+    LLM_RESPONSE="${LLM_RESPONSE:-}"
+    if [[ "${LLM_AVAILABLE:-false}" == "true" ]] && [[ ${#LLM_RESPONSE} -gt 100 ]]; then
+        COMP_METHOD="llm-enriched"
+    else
+        COMP_METHOD="tier1-llm-fallback"
+    fi
+fi
+
+cat > "$METADATA_FILE" <<METADATA_EOF
+{
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "duration_seconds": $PREP_DURATION,
+  "method": "$COMP_METHOD",
+  "llm_model": "$LLM_MODEL",
+  "jsonl_file": "$JSONL_BASENAME",
+  "jsonl_bytes": $JSONL_SIZE,
+  "output_lines": $OUTPUT_LINES,
+  "output_bytes": $OUTPUT_BYTES,
+  "user_msg_count": $USER_MSG_COUNT,
+  "session_state_stale_minutes": ${STALE_MINS:-0}
+}
+METADATA_EOF
+
+# ============================================================================
+# Step 7: Emit context-window metrics (JSONL append)
+# ============================================================================
+# Each compression marks the end of a context window. Emit metrics for
+# cross-window comparison, /meditate-session review, and Pulse UI visualization.
+
+METRICS_FILE="$PROJECT_DIR/.claude/logs/context-window-metrics.jsonl"
+JICM_STATE_FILE="${JICM_STATE:-$PROJECT_DIR/.claude/context/.jicm-state}"
+
+# Read current token count and burn rate from watcher state
+CW_TOKENS=0
+CW_BURN_RATE=0
+if [[ -f "$JICM_STATE_FILE" ]]; then
+    CW_TOKENS=$(grep -oE 'context_tokens=[0-9]+' "$JICM_STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2 || echo 0)
+    CW_BURN_RATE=$(grep -oE 'burn_rate_tpm=[0-9.]+' "$JICM_STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2 || echo 0)
+fi
+
+# Count files modified in this window (uncommitted changes)
+CW_FILES_MODIFIED=$(git -C "$PROJECT_DIR" diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+CW_FILES_STAGED=$(git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
+
+mkdir -p "$(dirname "$METRICS_FILE")"
+echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"trigger\":\"jicm-compression\",\"tokens\":${CW_TOKENS:-0},\"burn_rate_tpm\":${CW_BURN_RATE:-0},\"compression_method\":\"$COMP_METHOD\",\"compression_duration_s\":$PREP_DURATION,\"checkpoint_lines\":$OUTPUT_LINES,\"checkpoint_bytes\":$OUTPUT_BYTES,\"files_modified\":$CW_FILES_MODIFIED,\"files_staged\":$CW_FILES_STAGED,\"stale_minutes\":${STALE_MINS:-0}}" >> "$METRICS_FILE"
+
+echo "Context prepared: ${OUTPUT_LINES} lines, ${OUTPUT_BYTES} bytes, ${PREP_DURATION}s (${COMP_METHOD})" >&2

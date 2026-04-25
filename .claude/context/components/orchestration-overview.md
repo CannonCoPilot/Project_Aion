@@ -11,7 +11,7 @@ Session lifecycle:
 - AC-02 Wiggum Loop (default active work mode)
 - Triggers during work: AC-03 (milestone review), AC-04 (JICM), AC-05 (reflection)
 - Background/scheduled: AC-06 (evolution), AC-07 (R&D), AC-08 (maintenance)
-- AC-09 Session Completion (user `/end-session`)
+- AC-09 Session Meditation (user `/meditate-session`)
 
 ## Flow descriptions
 AC-01:
@@ -50,9 +50,9 @@ AC-08 Maintenance:
 - Trigger: scheduled, explicit, detected issues
 - health checks (MCPs/hooks/configs), audit organization, clean stale data, write report.
 
-AC-09 Session completion:
-- Trigger: user `/end-session`
-- update `session-state.md`, commit work, update `current-priorities.md`, trigger AC-05 final reflection.
+AC-09 Session meditation:
+- Trigger: user `/meditate-session`
+- reflect + capture knowledge to RAG, write ProjectIntel debrief, update `session-state.md`, commit work, update `current-priorities.md`, valediction ceremony.
 
 Dependencies table (summary):
 - AC-01→AC-02
