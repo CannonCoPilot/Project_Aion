@@ -1,6 +1,9 @@
 # LiteLLM Proxy Configuration — Jarvis Infrastructure
 # Unified OpenAI-compatible API routing to Ollama local models
 # Serves on http://localhost:4000/v1/...
+#
+# Trimmed to qwen3:32b only to prevent health-check probes from
+# cycling unused models into GPU memory (was consuming 89 GB VRAM).
 
 model_list:
   - model_name: qwen3-32b
@@ -8,8 +11,6 @@ model_list:
       model: ollama/qwen3:32b
       api_base: http://localhost:11434
 
-  # No-think variant for structured output tasks (Graphiti, JSON extraction)
-  # Passes think:false to suppress Qwen3 reasoning mode
   - model_name: qwen3-32b-nothink
     litellm_params:
       model: ollama/qwen3:32b
@@ -17,42 +18,45 @@ model_list:
       extra_body:
         think: false
 
-  - model_name: qwen3-8b
-    litellm_params:
-      model: ollama/qwen3:8b
-      api_base: http://localhost:11434
+  # --- Models below commented out to reduce VRAM pressure ---
+  # Uncomment as needed; they load on first request and unload after 5min idle.
 
-  - model_name: qwen3-8b-nothink
-    litellm_params:
-      model: ollama/qwen3:8b
-      api_base: http://localhost:11434
-      extra_body:
-        think: false
+  # - model_name: qwen3-8b
+  #   litellm_params:
+  #     model: ollama/qwen3:8b
+  #     api_base: http://localhost:11434
 
-  - model_name: qwen3-fast
-    litellm_params:
-      model: ollama/qwen3:0.6b
-      api_base: http://localhost:11434
+  # - model_name: qwen3-8b-nothink
+  #   litellm_params:
+  #     model: ollama/qwen3:8b
+  #     api_base: http://localhost:11434
+  #     extra_body:
+  #       think: false
 
-  - model_name: qwen3-vl
-    litellm_params:
-      model: ollama/qwen3-vl:8b
-      api_base: http://localhost:11434
+  # - model_name: qwen3-fast
+  #   litellm_params:
+  #     model: ollama/qwen3:0.6b
+  #     api_base: http://localhost:11434
 
-  - model_name: qwen3-coder
-    litellm_params:
-      model: ollama/qwen3-coder
-      api_base: http://localhost:11434
+  # - model_name: qwen3-vl
+  #   litellm_params:
+  #     model: ollama/qwen3-vl:8b
+  #     api_base: http://localhost:11434
 
-  - model_name: embedding
-    litellm_params:
-      model: ollama/qwen3-embedding:4b
-      api_base: http://localhost:11434
+  # - model_name: qwen3-coder
+  #   litellm_params:
+  #     model: ollama/qwen3-coder
+  #     api_base: http://localhost:11434
 
-  - model_name: nomic-embed
-    litellm_params:
-      model: ollama/nomic-embed-text
-      api_base: http://localhost:11434
+  # - model_name: embedding
+  #   litellm_params:
+  #     model: ollama/qwen3-embedding:4b
+  #     api_base: http://localhost:11434
+
+  # - model_name: nomic-embed
+  #   litellm_params:
+  #     model: ollama/nomic-embed-text
+  #     api_base: http://localhost:11434
 
   # Cloud fallback — uncomment when needed
   # - model_name: claude-opus
@@ -65,7 +69,7 @@ model_list:
   #     api_key: os.environ/ANTHROPIC_API_KEY
 
 general_settings:
-  drop_params: true  # Drop unsupported params (e.g., encoding_format for Ollama)
+  drop_params: true
 
 router_settings:
   routing_strategy: simple-shuffle
