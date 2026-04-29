@@ -4880,3 +4880,272 @@ The meditation command now embodies a genuine philosophical shift: Phase 3 (Refl
 ### 2026-04-25 [f5ff07ef99ba]
 
 The cross-project commit check (Phase 7c of `/meditate-session`) just proved its value in real-time — we caught 12 uncommitted files in AIFred-Pro-Dev that represented a full feature's worth of work. Without this check, that work would have sat uncommitted across session boundaries, invisible to David and vulnerable to loss.
+
+### 2026-04-25 [f4ab8741e99b]
+
+The dashboard architecture is a multi-stage Docker build (Node 20 Alpine): frontend React build -> server TypeScript compile -> production image serving static assets + API proxy. The server acts as a BFF (Backend For Frontend), proxying usage requests to Pulse and serving Nexus job data from SQLite databases mounted as volumes. This is a clean separation — the dashboard never talks to Anthropic directly; it only consumes pre-aggregated data from Pulse endpoints.
+
+### 2026-04-25 [2ece436569c4]
+
+This session demonstrates the value of non-destructive, unintrusive fixes. Most dashboard issues fell into three categories: (1) text/label corrections that are safe to change immediately, (2) visual bugs caused by layout overflow or missing optimistic updates, and (3) environmental issues (no Nexus dispatcher in dev) that needed better messaging rather than code fixes. The distinction between "bug" and "expected behavior in the wrong environment" is crucial for prioritization.
+
+### 2026-04-25 [abea6797a0ec]
+
+**`agent:` label analysis**: In the label taxonomy, `agent:*` is classified as **metadata** (line 57) — it has zero pipeline effect. Only `agent:human` has functional meaning: it triggers the `human-only-routing` skip rule in `routing.yaml` and is a blocking criterion in the task-investigator persona prompt. No pre_check, no executor, no scorer checks for `agent:jarvis` or `agent:claude`. The label is safe.
+
+**However**, there IS a labeling issue on the 3 research tickets that would block them.
+
+### 2026-04-25 [66092aab6402]
+
+The JICM cycle compressed context and cleared — this is a continuation, not a new session. The pipeline test was set up to monitor the Pulse-Nexus Kanban flow. Since no dispatcher is running in dev, the 12 tickets serve as baseline diagnostic data for a pipeline rebuild. The key finding remains: **all Nexus infrastructure (dispatcher, event-watcher, watchdog) points to production paths** — dev needs its own pipeline plumbing.
+
+### 2026-04-25 [6360db5fa637]
+
+**First dispatch cycle results:**
+- **context-maintenance**: SUCCESS — completed in 55s, $0.29, 97% cache hit rate
+- **health-summary**: Hit max_turns (10) — $0.37, needs tuning
+- **task-score** (manual trigger): Scored 8/12 tickets with `auto:candidate` before hitting max_turns (20), $0.52
+- **Dashboard delivery**: HTTP 000 — expected, no webhook endpoint in dev dashboard
+
+The infrastructure is functional. Jobs are executing, scoring tasks, and persisting state. The `max_turns` limits may need bumping since the CLAUDE.md context consumes many turns during startup.
+
+### 2026-04-25 [58045e2fadfd]
+
+**Why separate agents instead of reconfiguring the existing ones?** The production and dev Nexus need to run simultaneously — they poll different Pulse instances (`:8700` vs `:8800`), execute against different codebases, and have independent state. Sharing agents would mean only one environment could be active at a time. The `com.aion.nexus-dev-*` naming convention keeps them distinct and independently controllable via `launchctl load/unload`.
+
+**Alternative considered**: Running the dispatcher via crontab would also work (and is how the Telegram callback handler runs). But launchd offers `StartInterval` precision, automatic restart, and structured logging — which is why David moved the production Nexus from cron to launchd in the first place.
+
+### 2026-04-25 [6f679c3c437c]
+
+The HTTP 000 code means "connection refused" — `curl` couldn't even connect. The relay (`msg-relay.sh`) is trying to deliver to a dashboard webhook URL that's either unconfigured or points to a non-existent endpoint. In production, the dashboard server has a `/api/notifications/webhook` route that receives these. The dev dashboard container doesn't expose this endpoint (or the relay is hardcoded to a wrong port). This is cosmetic — notifications get recorded in the SQLite message bus regardless; delivery just fails silently.
+
+### 2026-04-25 [459de680beec]
+
+The task-score job is actually working correctly — it scored all 12 tickets. The 8 that got `auto:candidate` are tasks the pipeline thinks it can handle autonomously. The 4 that got `waiting:human` instead are all `[VERIFY]` tasks involving visual UI checks (text visibility, toggle switches, sidebar collapse, tile display) — things a headless Claude session can't verify by looking at a browser. The scorer correctly identified these as needing human eyes.
+
+This is exactly the kind of intelligent routing the pipeline is designed to do — `auto:candidate` means "pipeline can handle this," while `waiting:human` means "a person needs to check this."
+
+### 2026-04-25 [4f1d89dee90d]
+
+**Root cause found**: The Pulse API silently ignores the `created_after` query parameter — it's not implemented. The event-watcher sends `GET /tasks?created_after=<cursor>` but always gets back ALL 15 tasks. So every 2-minute cycle, it thinks there are 15 "new" tasks and re-triggers task-score.
+
+This is a design gap in the API. The event-watcher was written assuming this filter exists. Production may have the same bug but it's masked because tasks are created less frequently.
+
+### 2026-04-25 [2726ecd60e63]
+
+The pipeline is intentionally slow and sequential — each job runs independently on its own schedule with its own budget. A ticket takes 2-3 cycles minimum to go from creation to execution (score → investigate → execute). This is by design: it prevents runaway execution by giving multiple review points. The daily scheduling means a ticket created today might not execute until tomorrow — unless the event-watcher triggers reactive scoring, which we saw happen.
+
+### 2026-04-25 [00f807946219]
+
+The bottleneck is between task-score and task-investigator. The scoring job adds `auto:candidate` but never adds `stage:route` — so scored tickets sit in limbo, invisible to the investigator. The investigator only ran on `AION-613f6a3c` because the force-run bypassed its pre_check and it found that one ticket to evaluate. In the normal flow, these 7 tickets would never progress.
+
+This is likely a gap in the task-score workflow — it should add `stage:route` after scoring, or the event-watcher should add it when it detects newly scored tasks.
+
+### 2026-04-25 [917bf5f56bfc]
+
+The workflows and pre_checks are using two different label systems that were never aligned:
+
+| Job | Workflow looks for | Pre_check gates on |
+|-----|
+
+### 2026-04-25 [59271c18e430]
+
+**Why 20 turns isn't enough**: Each headless Claude session in AIFred-Pro-Dev loads a substantial CLAUDE.md context (~66K tokens of cache creation). The session's "turns" include every tool call — reading config files, querying the Pulse API, evaluating tasks. With 20 turns, roughly 10-12 get consumed by context setup and discovery, leaving only 8-10 for actual work. Bumping to 40 turns gives the investigator room to query tasks, check file paths, evaluate 5 candidates, and write its report. The budget bump to $3.00 accommodates the additional turns.
+
+### 2026-04-25 [437f652cb4b0]
+
+**Why is an 8B model using 30 GB?** The model weights are only 6.1 GB on disk, but the KV cache for a 262K context window adds ~24 GB. The context window size is the dominant memory cost, not the model size. By comparison, qwen3:32b at 40K context uses 26 GB (20 GB weights + 6 GB KV cache). If you ever need qwen3-vl:8b, loading it with a smaller context (`num_ctx 8192`) would use ~8 GB instead of 30 GB.
+
+### 2026-04-25 [e32714731ee9]
+
+**Root cause: LiteLLM health checks keep cycling models into memory.**
+
+LiteLLM (PID 40010) is configured with 9 model routes all pointing to Ollama. Its router performs periodic health probes against each configured model. When Ollama receives a probe for an unloaded model, it loads it into GPU memory and starts the 5-minute keep_alive timer. With 9 models and staggered probes, models never get 5 uninterrupted minutes of silence — they cycle in and out.
+
+Currently loaded: `qwen3:32b` (26 GB) + `qwen3-coder` (33 GB) + `qwen3-vl:8b` (30 GB) = **89 GB of unified memory**. These are different models than 20 minutes ago (`qwen3:0.6b` was swapped for `qwen3-coder`), confirming the cycling pattern.
+
+### 2026-04-25 [43fffdf194ea]
+
+This is a **specification-implementation gap**. The routing-rules.yaml is an excellent specification for a sophisticated pipeline, but the actual execution layer (workflow .md files + registry pre_checks) implements a much simpler 2-label flow that shortcuts past all the stages. The fix isn't to patch individual labels — it's to decide: do you want the full 6-stage pipeline from routing-rules.yaml, or the simplified 2-label flow? Then align everything to one design.
+
+The full pipeline gives: proper stage tracking, capability-based executor routing, review gates, fast-track shortcuts, and dispatch blocker checks. The simplified flow gives: speed — fewer LLM invocations per ticket, lower cost, faster throughput.
+
+### 2026-04-25 [18eafed16ebf]
+
+**Pipeline v Status — the root confusion**: The current system tracks task state on two independent axes (Pulse status and stage labels), and neither the Kanban board nor the task list page bridges them. Most pipeline activity is invisible because (a) the board defaults to Status view where pipeline-moving tasks all show as "open/backlog", and (b) label mutations happen in background JSONL logs that no UI reads. The redesign collapses these into one pipeline axis and surfaces the mutation log as an activity timeline.
+
+**Turn limits vs throughput**: The investigator processes ~1 ticket per 40-turn cycle because CLAUDE.md context alone consumes ~15-20 turns. Doubling to 200 turns should yield 5-8 tickets/cycle — a 5-8x throughput improvement with zero architectural change.
+
+### 2026-04-25 [d10a26ecb562]
+
+**Label Mutex Violation**: The label-ops library defines mutex groups (e.g., `auto:ready` and `auto:candidate` can't coexist; `waiting:human` and `auto:candidate` are in the same blocker mutex group). But the investigator is adding `waiting:human` without removing `auto:candidate`, and routing `pipeline:approved` tasks to review. This means either the investigator's LLM prompt isn't following routing rules, or it's calling pulse directly instead of through `label_transition()` which enforces mutex.
+
+### 2026-04-25 [2de5b828e478]
+
+**Capability-based routing in action**: The executor correctly refused to process `type:research` tickets — they belong to the `task-research` job per `routing-rules.yaml`. The `skip_if_any` list for `task-executor` explicitly excludes `type:research`. Those 3 INVESTIGATE tickets need either a `task-research` job in the registry (currently not defined for dev) or manual removal of the `type:research` label if they're actually code investigations, not research tasks.
+
+### 2026-04-25 [b3de3cfe4c5b]
+
+**routing-rules.yaml is aspirational, not descriptive**: The biggest finding across both review passes is that `routing-rules.yaml` describes a pipeline architecture that doesn't match what actually runs. The event-watcher doesn't stamp stages or route. The EVALUATE stage has no job. The ROUTE stage's job operates on different criteria. 4 of 5 specialized executors don't exist. The v2 redesign must be built on the *running* system (3 registry jobs + 2 simple launchd agents), not the aspirational routing-rules spec. This distinction between "what's designed" and "what's running" is critical for any future implementation work.
+
+### 2026-04-25 [1a895c772521]
+
+**Key discovery from code audit**: The Pulse server has a clean, atomic `TRANSITIONS` dict (`pulse/app.py`) with 6 scenarios (approve, modify, pause, claim, complete, executor-fail). These server-side transitions are the most reliable pipeline mechanism — they atomically update labels + status in one database write. The client-side `label-ops.sh` adds mutex enforcement and audit logging on top. The v2 design should build on these server transitions rather than inventing new ones, since they're already battle-tested and atomic.
+
+**The "ACTIVE" state already exists**: `TRANSITIONS["claim"]` sets `stage:execute` + `status:in_progress`. The executor's `label_transition("claim-for-execute")` calls this. The proposed "ACTIVE" state just needs the dashboard to render `stage:execute` tasks differently — no new infrastructure needed.
+
+### 2026-04-25 [fff1ca5bbf30]
+
+**The columns exist in code but are deliberately hidden.** `visibleColumns` filters out `completed` (stage view) and `done` (status view) when `showClosed === false`. The "Show Closed" toggle (line 558-563) enables them, but it's off by default. This is why you can't see completed tickets on the board — the feature exists but is gated behind a toggle that most users never discover.
+
+### 2026-04-25 [745574751f2b]
+
+**Pipeline v2.1 design choices worth highlighting:**
+
+1. **Event-driven via label state machine** — Instead of 3 independent cron jobs (task-score every 20m, task-investigator every 20m, task-executor every 20m), one event-watcher polls label states every 30s and triggers the right service immediately. A ticket goes from created to executing in ~1 minute instead of 0-60 minutes.
+
+2. **Context chaining via `claude -r <session-id> -p "prompt"`** — Claude Code confirmed: `-r` (resume) and `-p` (prompt) combine. The Orchestrate service can pre-assign session IDs via `--session-id UUID`, then daisy-chain them. For a batch of 5 related dashboard fixes, CLAUDE.md and project context load ONCE, saving ~60-80 turns of redundant context reading.
+
+3. **Local models for pipeline management** — Evaluate, Orchestrate, and Review all call Ollama direct at `localhost:11434` (~0.25s latency, zero cost). Only Execute uses Claude. The pipeline management overhead drops from ~$1-3/cycle to effectively $0.
+
+### 2026-04-26 [a6b4641fc137]
+
+**Triage of the 8 review findings:**
+- **Issue #2 is a false positive** — my earlier research agent confirmed `claude -r <session-id> -p "prompt"` works (documented in Claude Code CLI). The review agent was wrong here.
+- **Issue #1 (race condition) is real** and needs a fix.
+- **Issue #4 (Pulse metadata) is real** — Pulse has no arbitrary metadata field.
+- **Issues #3, #5-8 need cleanup** but are straightforward.
+
+### 2026-04-26 [da4b45a9ea89]
+
+**Critical review results — 8 issues found, all resolved:**
+
+1. **Race condition (CRITICAL → FIXED)**: Added atomic conditional label updates as the locking mechanism. Event-watcher sets `staging:staged` atomically with precondition `staging:no`. If 409 Conflict → skip. The label mutation IS the lock.
+
+2. **`claude -r` doesn't exist (CRITICAL → FALSE POSITIVE)**: Research confirmed `claude -r <session-id> -p "prompt"` works. The review agent was incorrect.
+
+3. **Polling/webhook inconsistency (MEDIUM → FIXED)**: Updated design principle #2 and all event-watcher references to consistently describe webhook-driven with 60s fallback.
+
+4. **Missing Pulse metadata (MEDIUM → FALSE POSITIVE)**: Pulse already has `metadata JSONB DEFAULT '{}'` at line 70 of `app.py`. Chain data, session IDs, and compressed summaries store here with zero schema changes.
+
+5. **Dead `pipeline:approved` reference (MEDIUM → NO ACTION NEEDED)**: Only appears in Parts 1-2, 6-8 (current-state analysis and historical snapshots). Correct and intentional.
+
+6. **Model aliasing confusion (LOW → FIXED)**: Clarified that Evaluate/Orchestrate/Review call Ollama HTTP API directly (`localhost:11434/api/generate`), not through claude CLI. Model aliasing only matters for Execute (which uses `claude -p`).
+
+7. **Missing `<context-summary>` (LOW → FIXED)**: Added edge case handling: if epilogue absent (early failure), skip compressed context; next task uses resume mode or fresh session.
+
+8. **Phase dependency on `-r` (LOW → RESOLVED)**: `-r` is confirmed valid, so Phase 8 dependencies hold.
+
+### 2026-04-26 [e85fe1ab962c]
+
+**Duplicate JSON keys cause undefined parser behavior.** Your Jarvis `settings.json` has TWO `"permissions"` keys at the same level — one at position 7177 (restrictive, read-only commands) and one at position 10217 (your bypass config with AIFred-Pro-Dev access). JSON spec says duplicate keys are undefined behavior — some parsers take the first, some take the last. Python's parser takes the last (your intended config), but Claude Code's parser likely takes the **first** (the restrictive one), which has no `Edit`, `Write`, or `Bash(*)` permissions and no `defaultMode`.
+
+### 2026-04-26 [4b6564595b24]
+
+The old 70+ individual `Bash(git status:*)`, `Bash(ls:*)`, etc. entries were redundant — `Bash(*)` covers all of them, and `bypassPermissions` mode means even `Bash(*)` is redundant (bypass allows everything not denied). The `allow` list now serves as documentation of explicitly intended permissions if you ever switch back to `askFirst` mode.
+
+### 2026-04-26 [77fff7545406]
+
+Claude Code CLI flags `--continue` and `--resume <UUID>` are **mutually exclusive session selectors**. `--continue` means "pick the most recent JSONL in this project." `--resume UUID` means "resume this exact session." When both are present, one silently wins — and the deterministic UUID logic becomes a no-op.
+
+### 2026-04-26 [d29764f922fd]
+
+**Why `--continue` + `--resume` broke silently**: Claude Code CLI flags for session selection (`--continue`, `--resume <id>`, `--session-id <id>`) are each a different strategy for picking which conversation to load. When multiple are passed, one wins based on internal precedence — there's no error or warning. The deterministic UUID `17612316` hadn't been touched since April 13 because `--continue` was always winning.
+
+**Why deterministic UUIDs don't work with JICM**: Each `/clear` starts a new Claude Code session with a fresh UUID. The deterministic UUID becomes "the session from the first launch" and falls further behind with every JICM cycle. `--continue` (most recent session) is the correct strategy for a system that regularly creates new sessions.
+
+**Edge case to watch**: `--continue` picks the most recent JSONL in the project directory. If W5 Jarvis-dev is the last thing modified before a tmux restart, `--continue` could pick it instead of the W0 session. In practice this is unlikely since W0 is the primary interaction window.
+
+### 2026-04-26 [95552a337b71]
+
+**The two-layer defense**: Initial launch uses `find_latest_w0_session()` (exclude W5, `--resume` the result). The restart loop within a running W0 uses `--continue` safely — because W0's JSONL was the last one modified when Claude exited, so `--continue` naturally picks it. The W5 contamination vector only exists at cold-start when you don't know which window was last active.
+
+**Why not inline the function in the tmux wrapper**: The `W0_WRAPPER` string executes inside the tmux window's shell, which doesn't have access to functions defined in the launcher script. Bash's `export -f` could solve this, but it's fragile across shell types (zsh doesn't support it). Using `--continue` for the restart loop sidesteps this entirely.
+
+**Extensibility**: If more deterministic windows are added in the future, just add their UUIDs to the exclusion check in `find_latest_w0_session()`. The function iterates by modification time, so adding more exclusions is O(1) per excluded UUID.
+
+### 2026-04-26 [4cab4fb7d723]
+
+The working directory persistence between Bash calls is why `git -C <path>` is critical for multi-repo sessions — explicit path overrides shell CWD without chaining `cd`.
+
+### 2026-04-26 [75e2360eed15]
+
+**What the checkpoint captured from Session 52:**
+
+The LLM enrichment (qwen3:8b) correctly identified the main work thread — AIFred-Pro-Dev pipeline redesign — but its "Progress" section got confused: it logged the JICM compression steps themselves as the "progress items" (check flag, create flag, run prep script) rather than the actual session work. This is the hallucination pattern that the post-compression validator was built to catch.
+
+The **raw Tier 1 data** (lines 37-232) is more useful — it preserves the actual conversation, including your 6 design decisions on webhooks/chaining/limits/models/clean DB/concurrency, the settings.json duplicate-key fix, and the pipeline redesign document at `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/context/designs/pipeline-redesign-v2.md`.
+
+### 2026-04-26 [a78b7d1f511c]
+
+The working tree changes represent the "evolutionary" tuning done during live pipeline testing — uncapped limits, faster polling intervals, label standardization. These are preparatory for the v2.2 redesign but are independently valuable as they fix the pipeline's immediate operational issues.
+
+### 2026-04-26 [5adb20530a32]
+
+The commit sequence tells a clear story: first stabilize the dashboard UI (`898b93f`), then tune the pipeline based on live testing (`a2b4af3`), then formalize the full redesign plan (`4db5224`). This ordering means each commit is independently deployable — David can pull any prefix of the history and have a working system.
+
+### 2026-04-26 [c1778a516c9c]
+
+**Settings merge semantics**: Claude Code uses shallow object merge for `settings.local.json` over `settings.json`. When `settings.local.json` defines `"permissions": {"allow": [...]}`, it replaces the entire `permissions` object — not just the `allow` key within it. This silently drops `defaultMode`, `deny`, and `additionalDirectories` from the base settings.
+
+### 2026-04-26 [97ae83ad8703]
+
+**Root cause**: `settings.local.json` is where Claude Code persists your "Always allow" clicks. Each click adds a narrow permission rule to the `permissions.allow` array. But because the file defines a `permissions` object without `defaultMode`, it shadows the broader `bypassPermissions` setting from `settings.json` — creating a paradox where clicking "Allow" actually perpetuates more prompts by overriding the bypass.
+
+**Key takeaway**: Any `settings.local.json` that has a `permissions` block MUST carry `"defaultMode": "bypassPermissions"` to avoid silently downgrading the project's permission mode.
+
+### 2026-04-26 [f4fa216786cc]
+
+`git log origin/branch..HEAD` returning empty output means **all local commits are already pushed** — a quick way to distinguish "ahead of remote" from "up to date" without parsing `git status -sb` branch headers.
+
+### 2026-04-26 [94a780a84b3f]
+
+The NVM path fix in executor.py resolved the "claude not found" issue. The event-watcher's retry mechanism (re-claiming on each poll cycle) actually worked as a built-in resilience pattern — once the fix was deployed, all tickets picked up automatically on the next cycle. The full pipeline is now: webhook → Stage (qwen3:32b) → Evaluate (qwen3:32b) → Orchestrate (qwen3:32b) → Execute (claude -p sonnet) → Review, all event-driven with 60s polling fallback.
+
+### 2026-04-26 [1f095690a625]
+
+This is a critical finding for the pipeline design: the qwen3:32b Evaluate service failed its primary safety role. The design doc explicitly states "Would it wipe a database... If yes → blocked:yes." But the 32B model's safety sweep labeled a database wipe as safe. This validates the need for stronger safety checks — either hard-coded keyword blockers for destructive operations (DROP, DELETE, force push, rm -rf) or a smaller, faster blocklist check before the LLM evaluation.
+
+### 2026-04-27 [864688a1a9b6]
+
+**Two-layer destructive detection**: The original pattern matching missed "Drop pulse_dev database" because the database name sits between the keyword and target. The fix adds a second check: if ANY destructive keyword (drop, wipe, nuke...) AND any destructive target (database, schema, table...) appear anywhere in the text, it's flagged. This catches "drop the pulse_dev database", "nuke all tables", etc. The exact-phrase patterns still run first for precision, the keyword+target check is a safety net.
+
+### 2026-04-27 [cc0ed680f895]
+
+**Maximal Pulse enforcement architecture**: The 9 changes form three concentric layers of protection. **Layer 1 (schema)**: `PIPELINE_DIMENSIONS` and helpers define what's valid. **Layer 2 (enforcement)**: auto-init on creation, uniqueness on label-add, preconditions on transitions. **Layer 3 (observability)**: integrity endpoint, deprecation warnings, webhook retry, PATCH webhook firing. Each layer reduces the blast radius of bugs in the layer above it — even if a service has a bug, Pulse catches invalid state at the API boundary.
+
+### 2026-04-29 [44e3e44f276f]
+
+**EW-1 Fix — Time-gated watchdog**: The core problem was a race: the event-watcher claims a task (`active:claiming`), launches the executor as a subprocess, then on the very next poll cycle (or webhook), the watchdog sees `active:claiming` and resets it before the executor can transition to `active:running`. Now the watchdog checks `updated_at` — only tasks stuck longer than `STUCK_TIMEOUT_SECONDS` (300s = 5 min) get reset. This gives the executor ample time to start while still catching genuine stuck states.
+
+### 2026-04-29 [1165abc46b05]
+
+**Event-watcher as "thin driver"**: With Pulse now enforcing dimension integrity and transition guards, the event-watcher's role has properly narrowed. The watchdog is now belt-and-suspenders (catches genuine stuck states after 5 minutes) rather than compensating for a permissive store. The metrics counter gives operational visibility that was completely missing — after 10 poll cycles, you can see exactly how many triggers fired per service type, how many claims conflicted, and how many chain-ordering blocks occurred.
+
+### 2026-04-29 [fb956cde07e7]
+
+**Permission resolution in Claude Code** has three layers: user (`~/.claude/settings.json`), project (`settings.json`), and local (`settings.local.json`). The rule is: `deny` from ANY layer always wins. `allow` from any layer permits. `defaultMode: bypassPermissions` should allow everything not denied. The critical finding here is that while `bypassPermissions` is set at multiple levels, the **user-level settings have overly broad deny patterns** that could be intercepting operations — and the user-level allow list is missing Edit/Write/Bash(*), which could matter if there's a resolution subtlety.
+
+### 2026-04-29 [5d2a4b87e7c1]
+
+**Claude Code permission resolution model**: Three layers cascade — **User** (`~/.claude/settings.json`), **Project** (`<project>/.claude/settings.json`), and **Local** (`<project>/.claude/settings.local.json`). The key rules: (1) `deny` from ANY layer always wins; (2) `defaultMode: bypassPermissions` allows everything not denied; (3) `additionalDirectories` extends the working directory scope. When launching from Jarvis, the Jarvis project settings are the active project layer, but operations targeting files in `additionalDirectories` are still subject to deny rules from ALL layers. Critically, the **AIFred-Pro-Dev project settings are NOT loaded** when you launch from Jarvis — only its files become accessible via `additionalDirectories`. But the bash-safety-guard hook runs on every tool call and has its own workspace boundary logic.
+
+### 2026-04-29 [e1d687d232aa]
+
+**Key change**: The deny list now correctly protects two read-only locations: (1) the archived AIfred baseline at `Archive/AIfred/`, and (2) the **production** AIFred-Pro at `/Claude/AIFred-Pro/` (which CLAUDE.md says is read-only for Jarvis — one-way awareness). The **dev** workspace at `/Claude/AIFred-Pro-Dev/` is NOT denied, giving full write access there. This matches the workspace policy exactly.
+
+### 2026-04-29 [0311a3c19321]
+
+**Critical distinction**: `--permission-mode bypassPermissions` and `--dangerously-skip-permissions` are **different flags with different behaviors**:
+- `--permission-mode bypassPermissions` — Sets the permission mode to bypass, but **still respects deny rules** from settings.json. This is the "configured bypass" — it trusts the allow/deny lists.
+- `--dangerously-skip-permissions` — **Bypasses ALL permission checks entirely**, including deny rules. This is the nuclear option — no gates whatsoever, recommended only for sandboxed environments.
+
+W0 (main Jarvis) uses `--permission-mode bypassPermissions`, which still respects deny rules. W5 (Jarvis-dev) and Lite mode use `--dangerously-skip-permissions`, which ignores everything. This means **W0 can still be gated by deny rules**, while W5 cannot.
+
+### 2026-04-29 [97a3549b736f]
+
+RAG only has Session 51 ingested — Session 52's work (pipeline test, two new commits) isn't in the knowledge base yet. This is normal: RAG ingestion happens during `/meditate-session`, which wasn't run after the evening work block.
+
+### 2026-04-29 [7d7ad4d15293]
+
+**Session state management pattern**: The old `session-state.md` was 527 lines — nearly half the force-loaded context budget spent on historical Chronicler sessions (Sessions 32-47) that haven't been active since March. By trimming to only pipeline v2 work, the file dropped to ~130 lines. This directly reduces the token cost of every JICM compression and session restore, since all three files (session-state, scratchpad, compressed-context) are force-loaded via `@` imports in CLAUDE.md.
