@@ -45,10 +45,29 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
 # Derive Claude project directory slug from PROJECT_DIR (e.g. /Users/foo/Claude/Jarvis → -Users-foo-Claude-Jarvis)
 CLAUDE_PROJECT_SLUG="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
 
-# Deterministic session UUIDs — each window resumes its own conversation by default
-# W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL
+# Deterministic session UUIDs — pinned per-window for --fresh mode and exclusion filtering
+# W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL (used only for --fresh)
 JARVIS_W0_SESSION_ID="17612316-37f1-5cec-b456-6a79f7735a9f"
 JARVIS_W0_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_W0_SESSION_ID}.jsonl"
+# W5: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
+JARVIS_W5_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
+
+# Find the most recent W0 session by excluding known non-W0 deterministic UUIDs.
+# JICM /clear creates new session UUIDs, so we can't pin W0 to one UUID.
+# Instead, we pick the most recent JSONL that isn't W5's session.
+find_latest_w0_session() {
+    local exclude_uuid="$JARVIS_W5_SESSION_ID"
+    local f uuid
+    for f in $(ls -t "$JARVIS_PROJECTS_DIR"/*.jsonl 2>/dev/null); do
+        uuid=$(basename "$f" .jsonl)
+        if [[ "$uuid" != "$exclude_uuid" ]]; then
+            echo "$uuid"
+            return 0
+        fi
+    done
+    return 1
+}
 
 # JICM v6 watcher (v5 removed in v6.1)
 WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
@@ -409,14 +428,12 @@ fi
 
 echo -e "  ${CYAN}Project:${NC} $PROJECT_DIR"
 echo -e "  ${CYAN}Session:${NC} $SESSION_NAME"
-echo -e "  ${CYAN}W0 UUID:${NC} $JARVIS_W0_SESSION_ID"
 if [[ "$FRESH_MODE" == "true" ]]; then
-    echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session pinned to UUID)"
-elif [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
-    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} (restoring previous session)"
+    echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session pinned to $JARVIS_W0_SESSION_ID)"
 else
-    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}NEW${NC} (first session, pinned to UUID)"
+    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} (most recent non-W5 session)"
 fi
+echo -e "  ${CYAN}W5 UUID:${NC} $JARVIS_W5_SESSION_ID (excluded from W0 lookup)"
 echo -e "  ${CYAN}Watcher:${NC} $([ "$WATCHER_ENABLED" = true ] && echo "${GREEN}ENABLED${NC}" || echo "${YELLOW}DISABLED${NC}")"
 echo ""
 echo "Starting Jarvis..."
@@ -446,7 +463,7 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_A
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
 # W0: effort high, bypass permissions, full Opus 1M context, exclude dynamic system prompts
-CLAUDE_BASE="claude --permission-mode bypassPermissions --effort high --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --continue --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --permission-mode bypassPermissions --effort high --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
@@ -463,6 +480,9 @@ if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
 fi
 
 # Determine W0 first-run command based on mode
+# NOTE: --continue and --resume/--session-id are mutually exclusive CLI flags.
+# JICM /clear creates new session UUIDs, so we can't pin W0 to a deterministic UUID.
+# Default mode finds the most recent non-W5 session and --resume's it explicitly.
 if [[ "$FRESH_MODE" == "true" ]]; then
     # Fresh: archive existing session and start new with pinned UUID
     if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
@@ -473,16 +493,20 @@ if [[ "$FRESH_MODE" == "true" ]]; then
     fi
     CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
 else
-    # Default: resume existing session or create new pinned session
-    if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
-        CLAUDE_FIRST="$CLAUDE_BASE --resume $JARVIS_W0_SESSION_ID"
+    # Default: resume most recent W0 session (excludes W5 Jarvis-dev)
+    LATEST_W0=$(find_latest_w0_session)
+    if [[ -n "$LATEST_W0" ]]; then
+        echo -e "  ${CYAN}Resuming W0 session:${NC} $LATEST_W0"
+        CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
     else
+        echo -e "  ${CYAN}No prior W0 session found — creating new${NC}"
         CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
     fi
 fi
 
-# Restart loop: always --resume (session was created on first run)
-CLAUDE_RESUME="$CLAUDE_BASE --resume $JARVIS_W0_SESSION_ID"
+# Restart loop: --continue is safe here because W0's JSONL was the most recently
+# modified file (it just exited). W5 contamination only affects initial launch.
+CLAUDE_RESUME="$CLAUDE_BASE --continue"
 W0_WRAPPER="export $CLAUDE_ENV && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
 "$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" "$W0_WRAPPER"

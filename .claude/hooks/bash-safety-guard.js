@@ -262,8 +262,16 @@ async function checkBranchProtection(command) {
 // WORKSPACE GUARD — Patterns & Functions
 // ============================================================
 
-const AIFRED_BASELINE = (process.env.HOME + '/Claude/AIfred');
+const AIFRED_BASELINE = (process.env.HOME + '/Claude/Archive/AIfred');
+const AIFRED_PRO_PRODUCTION = (process.env.HOME + '/Claude/AIFred-Pro');
 const JARVIS_WORKSPACE = (process.env.HOME + '/Claude/Jarvis');
+const AUTHORIZED_WORKSPACES = [
+  process.env.HOME + '/Claude/Jarvis',
+  process.env.HOME + '/Claude/Jarvis-Dev',
+  process.env.HOME + '/Claude/AIFred-Pro-Dev',
+  process.env.HOME + '/Claude/Projects',
+  process.env.HOME + '/Claude/Shared_Projects',
+];
 
 const FORBIDDEN_PATHS = [
   '/', '/etc', '/usr', '/bin', '/sbin', '/var', '/System', '/Library', '/Applications',
@@ -273,7 +281,8 @@ const FORBIDDEN_PATHS = [
 
 function isBaselinePath(targetPath) {
   if (!targetPath) return false;
-  return path.resolve(targetPath).startsWith(AIFRED_BASELINE);
+  const resolved = path.resolve(targetPath);
+  return resolved.startsWith(AIFRED_BASELINE) || resolved.startsWith(AIFRED_PRO_PRODUCTION);
 }
 
 function isForbiddenPath(targetPath) {
@@ -291,7 +300,8 @@ function isForbiddenPath(targetPath) {
 
 function isJarvisWorkspace(targetPath) {
   if (!targetPath) return false;
-  return path.resolve(targetPath).startsWith(JARVIS_WORKSPACE);
+  const resolved = path.resolve(targetPath);
+  return AUTHORIZED_WORKSPACES.some(ws => resolved.startsWith(ws));
 }
 
 function extractWritePath(tool, parameters) {
@@ -310,6 +320,7 @@ function extractWritePath(tool, parameters) {
       if (m && m[1]) return m[1];
     }
     if (command.includes(AIFRED_BASELINE)) return AIFRED_BASELINE;
+    if (command.includes(AIFRED_PRO_PRODUCTION) && !command.includes(AIFRED_PRO_PRODUCTION + '-Dev')) return AIFRED_PRO_PRODUCTION;
   }
   return null;
 }
