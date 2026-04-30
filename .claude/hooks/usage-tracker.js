@@ -242,7 +242,7 @@ async function handler(context) {
     // Silent failure — tracking should never block workflow
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -264,14 +264,14 @@ if (require.main === module) {
     try {
       context = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     } catch {
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
       return;
     }
     try {
       const result = await handler(context);
       console.log(JSON.stringify(result));
     } catch {
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

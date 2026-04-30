@@ -382,7 +382,7 @@ function handleUserPrompt(hookData) {
     updateAC10State('deactivated');
     emitTelemetry('disengage', { trigger: 'user_command', reason: 'manual' });
     return {
-      proceed: true,
+      continue: true,
       additionalContext: '[AC-10] Ulfhedthnar stands down. Returning to Hippocrenae harmony.'
     };
   }
@@ -407,7 +407,7 @@ function handleUserPrompt(hookData) {
     writeJicmSleepSignal();
     emitTelemetry('unleash_auto', { trigger: 'user_text' });
     return {
-      proceed: true,
+      continue: true,
       additionalContext: [
         '[AC-10] Ulfhedthnar UNLEASHED. Wolf-warrior protocols engaged.',
         'Load the ulfhedthnar skill via: Skill("ulfhedthnar")',
@@ -419,7 +419,7 @@ function handleUserPrompt(hookData) {
   // If already active, provide status
   if (state.active) {
     return {
-      proceed: true,
+      continue: true,
       hookSpecificOutput: {
         hookEventName: 'UserPromptSubmit',
         ulfhedthnarActive: true,
@@ -477,7 +477,7 @@ function handleUserPrompt(hookData) {
         suppressed: true,
         reason: 'jicm_mid_cycle'
       });
-      return { proceed: true };
+      return { continue: true };
     }
 
     emitTelemetry('barrier_detected', {
@@ -499,7 +499,7 @@ function handleUserPrompt(hookData) {
       .join('\n');
 
     return {
-      proceed: true,
+      continue: true,
       additionalContext: [
         '',
         '\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501',
@@ -525,7 +525,7 @@ function handleUserPrompt(hookData) {
     };
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 function handleSubagentStop(hookData) {
@@ -560,7 +560,7 @@ function handleSubagentStop(hookData) {
   }
 
   writeSignals(state);
-  return { proceed: true };
+  return { continue: true };
 }
 
 /**
@@ -573,7 +573,7 @@ function handlePostToolUse(hookData) {
 
   // Only process if there's meaningful output
   if (!toolOutput || toolOutput.length < 10) {
-    return { proceed: true };
+    return { continue: true };
   }
 
   // Check for Bash command failures (non-zero exit, error patterns)
@@ -611,7 +611,7 @@ function handlePostToolUse(hookData) {
   }
 
   writeSignals(state);
-  return { proceed: true };
+  return { continue: true };
 }
 
 // ─── Main Entry Point ───────────────────────────────────────
@@ -668,7 +668,7 @@ if (require.main === module) {
       const result = main(hookData);
       console.log(JSON.stringify(result));
     } catch {
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

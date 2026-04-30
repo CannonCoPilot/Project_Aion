@@ -212,20 +212,20 @@ async function handler(context) {
     const { isCommit, repoPath } = isCommitCommand(tool, parameters);
 
     if (!isCommit) {
-      return { proceed: true };
+      return { continue: true };
     }
 
     // Check if commit was successful (look for common error patterns)
     const resultStr = JSON.stringify(result || {});
     if (resultStr.includes('error') || resultStr.includes('failed') || resultStr.includes('nothing to commit')) {
-      return { proceed: true }; // Don't track failed commits
+      return { continue: true }; // Don't track failed commits
     }
 
     try {
       // Get commit details
       const commitDetails = await getLastCommitDetails(repoPath);
       if (!commitDetails) {
-        return { proceed: true };
+        return { continue: true };
       }
 
       // Identify the project
@@ -288,7 +288,7 @@ async function handler(context) {
     console.error(`[cross-project-commit-tracker] Error: ${err.message}`);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -314,7 +314,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[cross-project-commit-tracker] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

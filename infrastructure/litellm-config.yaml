@@ -26,12 +26,12 @@ model_list:
   #     model: ollama/qwen3:8b
   #     api_base: http://localhost:11434
 
-  # - model_name: qwen3-8b-nothink
-  #   litellm_params:
-  #     model: ollama/qwen3:8b
-  #     api_base: http://localhost:11434
-  #     extra_body:
-  #       think: false
+  - model_name: qwen3-8b-nothink
+    litellm_params:
+      model: ollama/qwen3:8b
+      api_base: http://localhost:11434
+      extra_body:
+        think: false
 
   # - model_name: qwen3-fast
   #   litellm_params:

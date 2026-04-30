@@ -165,7 +165,7 @@ async function handler(context) {
     // NOTE: JICM logic removed - subagent context is isolated from main session
     // Context accumulator in main session handles JICM, not subagent hooks
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -191,7 +191,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[subagent-stop] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

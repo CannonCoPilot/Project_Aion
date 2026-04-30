@@ -73,7 +73,7 @@ async function handleHook(context) {
     // console.error(`[session-tracker] Failed to log: ${err.message}`);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 /**
@@ -92,7 +92,7 @@ async function main() {
     context = JSON.parse(input);
   } catch (err) {
     // If we can't parse input, just allow to proceed
-    console.log(JSON.stringify({ proceed: true }));
+    console.log(JSON.stringify({ continue: true }));
     return;
   }
 
@@ -102,5 +102,5 @@ async function main() {
 
 main().catch(err => {
   // Silent failure - don't disrupt workflow
-  console.log(JSON.stringify({ proceed: true }));
+  console.log(JSON.stringify({ continue: true }));
 });

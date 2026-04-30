@@ -26,13 +26,12 @@ const GATE_PATTERNS = [
   {
     name: 'AIfred baseline operation',
     patterns: [
+      // Anchor on the literal "baseline" or specific paths.
+      // Bare "aifred" is too broad — collides with AIFred-Pro-Dev (active development workspace).
       /aifred.*baseline/i,
-      /push.*aifred/i,
-      /commit.*aifred/i,
-      /edit.*aifred/i,
-      /modify.*aifred/i,
-      /change.*aifred/i,
-      /\/Users\/nathanielcannon\/Claude\/AIfred/i,
+      /baseline.*aifred/i,
+      /\/Users\/nathanielcannon\/Claude\/Archive\/AIfred\b/,
+      /\/Users\/nathanielcannon\/Claude\/AIFred-Pro\b(?!-Dev)/,
     ],
     reminder: `<permission-gate name="aifred-baseline">
 POLICY-CROSSING OPERATION: AIfred Baseline

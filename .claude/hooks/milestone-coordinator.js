@@ -92,7 +92,7 @@ function parsePlanningTracker(projectDir) {
 
 function enforceDocs(context) {
   const { user_prompt } = context;
-  if (!user_prompt) return { proceed: true };
+  if (!user_prompt) return { continue: true };
 
   const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   let milestoneDetected = false;
@@ -112,7 +112,7 @@ function enforceDocs(context) {
       const fmt = (arr) => arr.length > 0 ? arr.map(d => `- ${d.path}${d.purpose ? ' — ' + d.purpose : ''}`).join('\n') : '- (none)';
 
       return {
-        proceed: true,
+        continue: true,
         additionalContext: `
 --- MILESTONE DOCUMENTATION GATE TRIGGERED ---
 Before marking complete, verify updates to:
@@ -133,7 +133,7 @@ Source: .claude/planning-tracker.yaml
         const content = fs.readFileSync(sessionStatePath, 'utf8');
         if (/milestone|M\d|aifred.*integration/i.test(content)) {
           return {
-            proceed: true,
+            continue: true,
             additionalContext: `
 --- END-SESSION: Milestone work detected. Verify planning-tracker.yaml docs are updated. ---`
           };
@@ -142,7 +142,7 @@ Source: .claude/planning-tracker.yaml
     }
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // ============================================================
@@ -185,10 +185,10 @@ async function loadJsonFile(filePath, defaults) {
 
 async function detectMilestone(context) {
   const { tool, tool_input } = context;
-  if (tool !== 'TodoWrite') return { proceed: true };
+  if (tool !== 'TodoWrite') return { continue: true };
 
   if (process.env.JARVIS_DISABLE_AC03 === 'true' || process.env.JARVIS_QUICK_MODE === 'true') {
-    return { proceed: true };
+    return { continue: true };
   }
 
   try {
@@ -232,7 +232,7 @@ async function detectMilestone(context) {
       );
 
       return {
-        proceed: true,
+        continue: true,
         hookSpecificOutput: {
           hookEventName: 'PostToolUse',
           milestoneDetected: true,
@@ -251,7 +251,7 @@ async function detectMilestone(context) {
     console.error(`[milestone-coordinator/detector] Error: ${err.message}`);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // ============================================================
@@ -267,7 +267,7 @@ async function handler(context) {
   if (context.user_prompt !== undefined) {
     return enforceDocs(context);
   }
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export
@@ -287,14 +287,14 @@ if (require.main === module) {
     try {
       context = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     } catch {
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
       return;
     }
     try {
       const result = await handler(context);
       console.log(JSON.stringify(result));
     } catch {
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

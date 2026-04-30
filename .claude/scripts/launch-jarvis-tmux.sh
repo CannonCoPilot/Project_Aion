@@ -140,7 +140,7 @@ if [[ "$LITE_MODE" == "true" ]]; then
 
     # Claude command — no deterministic UUID, no resume, dangerously-skip-permissions
     LITE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_LITE=true"
-    LITE_CLAUDE="claude --dangerously-skip-permissions --effort medium --verbose"
+    LITE_CLAUDE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort medium --verbose"
 
     # Wrapper: run Claude, clean up JSONL on exit so --continue can't find it
     LITE_WRAPPER="export $LITE_ENV && $LITE_CLAUDE; echo ''; echo 'Lite session ended. Cleaning up...'; rm -f ${LITE_PROJECTS_DIR}/*.jsonl 2>/dev/null; echo 'Session data removed. Press Enter to close, or run claude for another session.'; read; $LITE_CLAUDE"
@@ -362,9 +362,9 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
             fi
             DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Jarvis core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
             if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
-                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
             else
-                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
             fi
             DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
             "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
@@ -463,7 +463,10 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_A
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
 # W0: effort high, bypass permissions, full Opus 1M context, exclude dynamic system prompts
-CLAUDE_BASE="claude --permission-mode bypassPermissions --effort high --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+# Permission bypass: two complementary flags
+#   --dangerously-skip-permissions: skips workspace trust dialog + enables bypass
+#   --permission-mode bypassPermissions: explicitly sets session permission mode
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
@@ -579,9 +582,9 @@ if [[ "$DEV_MODE" == "true" ]]; then
     # W5 system prompt overlay — deprioritizes DwarfCron context, focuses on Jarvis core
     DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Jarvis core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
-        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
     else
-        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
     fi
     # Preload dev instructions file into context on launch
     DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"

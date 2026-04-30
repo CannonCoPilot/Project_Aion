@@ -23,7 +23,7 @@ function main() {
 
     // Only act on Write to MEMORY.md (auto-memory or manual updates)
     if (toolName !== 'Write') {
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
       return;
     }
 
@@ -39,7 +39,7 @@ function main() {
       if (fs.existsSync(filePath)) {
         fs.copyFileSync(filePath, MEMORY_DEST);
         console.log(JSON.stringify({
-          proceed: true,
+          continue: true,
           hookSpecificOutput: {
             hookEventName: 'PostToolUse',
             action: 'memory-mirrored',
@@ -51,10 +51,10 @@ function main() {
       }
     }
 
-    console.log(JSON.stringify({ proceed: true }));
+    console.log(JSON.stringify({ continue: true }));
   } catch (err) {
     // Never block tool execution
-    console.log(JSON.stringify({ proceed: true }));
+    console.log(JSON.stringify({ continue: true }));
   }
 }
 

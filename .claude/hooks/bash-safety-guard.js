@@ -15,7 +15,7 @@
  *   ^(Read|Write|Edit)$ → credential + workspace checks only
  *
  * Execution order: fast regex checks first, async git checks later.
- * Short-circuits on first { proceed: false } result.
+ * Short-circuits on first { continue: false } result.
  *
  * Created: 2026-02-09 (B.3 Hook Consolidation, Merge 1)
  * Source hooks: credential-guard.js, branch-protection.js, amend-validator.js,
@@ -129,7 +129,7 @@ function checkCredentials(tool, parameters) {
     console.error('\n[bash-safety-guard/credentials] BLOCKED: Credential file access');
     console.error(`  File: ${filePath}`);
     console.error('  Reason: This file type may contain sensitive credentials\n');
-    return { proceed: false, message: `Blocked: Cannot access credential file ${path.basename(filePath)}` };
+    return { continue: false, reason: `Blocked: Cannot access credential file ${path.basename(filePath)}` };
   }
 
   if (isWarnCredentialPath(filePath)) {
@@ -180,7 +180,7 @@ function checkDangerousOps(command) {
       console.error(`  Pattern: ${name}`);
       console.error(`  Reason: ${message}`);
       console.error(`  Command: ${command.length > 80 ? command.substring(0, 80) + '...' : command}\n`);
-      return { proceed: false, message: `Blocked: ${message}` };
+      return { continue: false, reason: `Blocked: ${message}` };
     }
   }
 
@@ -243,7 +243,7 @@ async function checkBranchProtection(command) {
       console.error(`  Action: ${action}`);
       console.error(`  Branch: ${targetBranch || currentBranch}`);
       console.error(`  Protected branches: ${PROTECTED_BRANCHES.join(', ')}\n`);
-      return { proceed: false, message: `Blocked: ${action} on protected branch ${targetBranch || currentBranch}` };
+      return { continue: false, reason: `Blocked: ${action} on protected branch ${targetBranch || currentBranch}` };
     }
 
     if (affectsProtected) {
@@ -282,7 +282,8 @@ const FORBIDDEN_PATHS = [
 function isBaselinePath(targetPath) {
   if (!targetPath) return false;
   const resolved = path.resolve(targetPath);
-  return resolved.startsWith(AIFRED_BASELINE) || resolved.startsWith(AIFRED_PRO_PRODUCTION);
+  return (resolved === AIFRED_BASELINE || resolved.startsWith(AIFRED_BASELINE + '/'))
+      || (resolved === AIFRED_PRO_PRODUCTION || resolved.startsWith(AIFRED_PRO_PRODUCTION + '/'));
 }
 
 function isForbiddenPath(targetPath) {
@@ -336,13 +337,13 @@ function checkWorkspaceBounds(tool, parameters) {
     console.error('\n[bash-safety-guard/workspace] BLOCKED — AIfred Baseline Modification');
     console.error(`  Path: ${targetPath}`);
     console.error('  The AIfred baseline repository is READ-ONLY.\n');
-    return { proceed: false, message: `Blocked: AIfred baseline is read-only` };
+    return { continue: false, reason: `Blocked: AIfred baseline is read-only` };
   }
 
   if (isForbiddenPath(targetPath)) {
     console.error('\n[bash-safety-guard/workspace] BLOCKED — Forbidden System Path');
     console.error(`  Path: ${targetPath}\n`);
-    return { proceed: false, message: `Blocked: Forbidden system path ${targetPath}` };
+    return { continue: false, reason: `Blocked: Forbidden system path ${targetPath}` };
   }
 
   if ((tool === 'Write' || tool === 'Edit') && !isJarvisWorkspace(targetPath)) {
@@ -394,7 +395,7 @@ async function checkAmendSafety(command) {
     console.error('\n[bash-safety-guard/amend] BLOCKED — Amending another author\'s commit');
     console.error(`  Author: ${headInfo.authorName} <${headInfo.authorEmail}>`);
     console.error(`  Subject: ${headInfo.subject?.substring(0, 50)}...\n`);
-    return { proceed: false, message: 'Cannot amend commit by different author' };
+    return { continue: false, reason: 'Cannot amend commit by different author' };
   }
 
   const isPushed = await isCommitPushed(headInfo.hash);
@@ -407,7 +408,7 @@ async function checkAmendSafety(command) {
       if (ahead === 0) {
         console.error('\n[bash-safety-guard/amend] BLOCKED — Commit already synced to remote');
         console.error('  Amending would require force push. Create a new commit instead.\n');
-        return { proceed: false, message: 'Cannot amend commit that exists on remote' };
+        return { continue: false, reason: 'Cannot amend commit that exists on remote' };
       }
       console.error('[bash-safety-guard/amend] Warning: Branch ahead of remote — amend may be okay');
     } catch {
@@ -474,7 +475,7 @@ function checkSecrets(command) {
       console.error(`  File: ${f.file}  Type: ${f.type}  Preview: ${f.preview}`);
     }
     console.error('\n  Remove secrets, add to .gitignore, or use environment variables.\n');
-    return { proceed: false, message: `Blocked: ${findings.length} potential secret(s) in staged files` };
+    return { continue: false, reason: `Blocked: ${findings.length} potential secret(s) in staged files` };
   }
 
   return null;
@@ -528,7 +529,7 @@ async function handler(context) {
     console.error(`[bash-safety-guard] Error: ${err.message} — proceeding with caution`);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -551,7 +552,7 @@ if (require.main === module) {
       context = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     } catch (err) {
       console.error(`[bash-safety-guard] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
       return;
     }
 
@@ -560,7 +561,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[bash-safety-guard] Handler error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

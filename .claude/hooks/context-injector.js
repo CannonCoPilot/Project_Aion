@@ -175,18 +175,18 @@ async function handler(context) {
 
     // If no injections, just proceed
     if (injections.length === 0) {
-      return { proceed: true };
+      return { continue: true };
     }
 
     // Return with additionalContext
     return {
-      proceed: true,
+      continue: true,
       additionalContext: injections.join('\n')
     };
 
   } catch (error) {
     // Fail-open on error
-    return { proceed: true };
+    return { continue: true };
   }
 }
 
@@ -213,7 +213,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       // Silent fail - don't pollute output
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }
