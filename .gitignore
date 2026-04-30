@@ -143,6 +143,9 @@ projects/myDFHackScripts/
 projects/weblegends/
 projects/claude-code-docs/
 
+# Token compression metrics (JSONL can be large; archive contains gzipped data)
+.claude/metrics/
+
 # Embedded git repos (infrastructure tools with their own .git)
 infrastructure/qwen3-embeddings-mlx/
 

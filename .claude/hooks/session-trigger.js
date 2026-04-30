@@ -100,7 +100,7 @@ async function handler(context) {
 
   // Skip if no user prompt
   if (!user_prompt) {
-    return { proceed: true };
+    return { continue: true };
   }
 
   const prompt = user_prompt.trim();
@@ -115,7 +115,7 @@ async function handler(context) {
   }
 
   if (!shouldTrigger) {
-    return { proceed: true };
+    return { continue: true };
   }
 
   // Get session status and priorities
@@ -147,7 +147,7 @@ Reference: .claude/context/patterns/startup-protocol.md
 ---`;
 
   return {
-    proceed: true,
+    continue: true,
     additionalContext
   };
 }
@@ -175,7 +175,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[session-trigger] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

@@ -385,7 +385,7 @@ async function handler(context) {
 
   // Check exclusions (prevent loops)
   if (shouldExclude(tool, parameters)) {
-    return { proceed: true };
+    return { continue: true };
   }
 
   try {
@@ -422,7 +422,7 @@ async function handler(context) {
 
     // Below warning threshold - continue silently
     if (percentage < WARNING_THRESHOLD) {
-      return { proceed: true };
+      return { continue: true };
     }
 
     // Warning threshold (50-64%) - show caution
@@ -439,14 +439,14 @@ async function handler(context) {
           actual_tokens: estimate.actualTokens || null
         });
       }
-      return { proceed: true };
+      return { continue: true };
     }
 
     // Verify threshold (65%+) - check for compaction
     if (percentage >= VERIFY_THRESHOLD) {
       // Check if already handling compaction
       if (await isCompactionInProgress()) {
-        return { proceed: true }; // Already handling
+        return { continue: true }; // Already handling
       }
 
       // Set flag to prevent loops
@@ -481,7 +481,7 @@ async function handler(context) {
     console.error(`[context-accumulator] Error: ${err.message}`);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -509,7 +509,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[context-accumulator] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

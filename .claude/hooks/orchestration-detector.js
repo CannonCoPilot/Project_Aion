@@ -485,7 +485,7 @@ async function handler(context) {
   const { prompt } = context;
 
     if (!prompt || prompt.length < 10) {
-      return { proceed: true };
+      return { continue: true };
     }
 
     try {
@@ -496,7 +496,7 @@ async function handler(context) {
           console.log('[orchestration-detector] Resume intent detected, active: ' + fileName);
 
           return {
-            proceed: true,
+            continue: true,
             hookSpecificOutput: {
               hookEventName: 'UserPromptSubmit',
               orchestrationResume: true,
@@ -513,7 +513,7 @@ async function handler(context) {
       const result = calculateComplexityScore(prompt);
 
       if (result.shouldSkip) {
-        return { proceed: true };
+        return { continue: true };
       }
 
       // JARVIS: Detect skills and MCP tiers
@@ -583,7 +583,7 @@ async function handler(context) {
 
       if (additionalContext && additionalContext.trim()) {
         return {
-          proceed: true,
+          continue: true,
           hookSpecificOutput: {
             hookEventName: 'UserPromptSubmit',
             orchestrationDetected: result.score >= SUGGEST_THRESHOLD,
@@ -601,7 +601,7 @@ async function handler(context) {
     console.error('[orchestration-detector] Error: ' + err.message);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -627,7 +627,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[orchestration-detector] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

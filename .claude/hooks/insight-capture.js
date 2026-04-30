@@ -32,7 +32,7 @@ process.stdin.on("end", async () => {
     // Silent failure — don't break session exit
   }
   // Stop hooks must output JSON
-  console.log(JSON.stringify({ proceed: true }));
+  console.log(JSON.stringify({ continue: true }));
 });
 
 async function captureInsights() {

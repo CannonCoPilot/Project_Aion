@@ -121,7 +121,7 @@ async function handler(context) {
   const { user_prompt } = context;
 
   if (!user_prompt) {
-    return { proceed: true };
+    return { continue: true };
   }
 
   const detection = detectCorrection(user_prompt);
@@ -151,7 +151,7 @@ async function handler(context) {
     }
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -178,7 +178,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[self-correction-capture] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

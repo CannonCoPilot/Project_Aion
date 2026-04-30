@@ -97,7 +97,7 @@ async function handleUserPrompt(context) {
 
   if (!loopStatus) {
     // No active loop
-    return { proceed: true };
+    return { continue: true };
   }
 
   // Loop is active - provide status in hook output
@@ -118,7 +118,7 @@ async function handleUserPrompt(context) {
   });
 
   return {
-    proceed: true,
+    continue: true,
     hookSpecificOutput: {
       hookEventName: 'UserPromptSubmit',
       ac02Active: true,
@@ -145,7 +145,7 @@ async function handler(context) {
     console.error(`[wiggum-loop-tracker] Error: ${err.message}`);
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -169,7 +169,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[wiggum-loop-tracker] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

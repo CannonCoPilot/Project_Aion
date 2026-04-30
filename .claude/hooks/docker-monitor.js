@@ -13,7 +13,7 @@
  * current-state checks only.
  *
  * Registered: PostToolUse, matcher: ^Bash$
- * Always returns { proceed: true } (monitoring only, never blocks).
+ * Always returns { continue: true } (monitoring only, never blocks).
  *
  * Created: 2026-02-09 (B.3 Hook Consolidation, Merge 2)
  * Source hooks: docker-health-monitor.js, docker-restart-loop-detector.js,
@@ -186,10 +186,10 @@ async function handler(context) {
   const { tool, tool_input } = context;
   const parameters = tool_input || context.parameters || {};
 
-  if (tool !== 'Bash') return { proceed: true };
+  if (tool !== 'Bash') return { continue: true };
 
   const command = parameters?.command || '';
-  if (!command.includes('docker')) return { proceed: true };
+  if (!command.includes('docker')) return { continue: true };
 
   try {
     // Run checks in parallel where possible
@@ -197,7 +197,7 @@ async function handler(context) {
 
     if (containers === null) {
       // Docker not available — skip silently
-      return { proceed: true };
+      return { continue: true };
     }
 
     // Check 1: Health status (uses shared container state)
@@ -212,7 +212,7 @@ async function handler(context) {
     // Silent failure — don't interrupt workflow
   }
 
-  return { proceed: true };
+  return { continue: true };
 }
 
 // Export for require() usage
@@ -235,7 +235,7 @@ if (require.main === module) {
       context = JSON.parse(Buffer.concat(chunks).toString('utf8'));
     } catch (err) {
       console.error(`[docker-monitor] Parse error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
       return;
     }
 
@@ -244,7 +244,7 @@ if (require.main === module) {
       console.log(JSON.stringify(result));
     } catch (err) {
       console.error(`[docker-monitor] Handler error: ${err.message}`);
-      console.log(JSON.stringify({ proceed: true }));
+      console.log(JSON.stringify({ continue: true }));
     }
   });
 }

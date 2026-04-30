@@ -61,6 +61,8 @@ LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13
 LLM_MODEL="qwen3:8b"
 LLM_TIMEOUT=45            # Max seconds for LLM call (32B models need ~28s cold load)
 LLM_MAX_TOKENS=2000       # Output token cap (was 400 — caused truncation)
+NLP_COMPRESS=true         # Enable NLP pre-compression before LLM enrichment
+NLP_COMPRESS_MODE="standard"  # standard | aggressive | minimal
 
 # ============================================================================
 # Override support (for experiments / treatment variations)
@@ -84,6 +86,8 @@ if [[ -f "$OVERRIDE_FILE" ]]; then
             LLM_MODEL)          LLM_MODEL="$value" ;;
             LLM_TIMEOUT)        LLM_TIMEOUT="$value" ;;
             LLM_MAX_TOKENS)     LLM_MAX_TOKENS="$value" ;;
+            NLP_COMPRESS)       NLP_COMPRESS="$value" ;;
+            NLP_COMPRESS_MODE)  NLP_COMPRESS_MODE="$value" ;;
         esac
     done < "$OVERRIDE_FILE"
     echo "Override applied: msgs=$USER_MSG_COUNT trunc=$MSG_TRUNCATE_CHARS plan=$INCLUDE_PLAN asst=$INCLUDE_ASSISTANT llm=$LLM_SUMMARIZE" >&2
@@ -393,6 +397,48 @@ fi
 } > "$OUTPUT"
 
 # ============================================================================
+# Step 3b: NLP pre-compression (reduces LLM input tokens)
+# ============================================================================
+# Run compress-input.py in standard mode on the Tier 1 output to reduce
+# token count before feeding to the LLM. Falls back gracefully if unavailable.
+
+NLP_META_FILE="$PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
+NLP_SCRIPT="$PROJECT_DIR/.claude/scripts/compress-input.py"
+NLP_APPLIED=false
+NLP_TOKENS_BEFORE=0
+NLP_TOKENS_AFTER=0
+NLP_RATIO=1.0
+
+if [[ "$NLP_COMPRESS" == "true" ]] && [[ -f "$NLP_SCRIPT" ]]; then
+    TIER1_BYTES=$(wc -c < "$OUTPUT" | tr -d ' ')
+    NLP_TOKENS_BEFORE=$(( TIER1_BYTES / 4 ))
+
+    NLP_COMPRESSED=$(python3 "$NLP_SCRIPT" \
+        --mode "$NLP_COMPRESS_MODE" \
+        --input "$OUTPUT" \
+        --meta-output "$NLP_META_FILE" 2>/dev/null) || NLP_COMPRESSED=""
+
+    if [[ -n "$NLP_COMPRESSED" ]] && [[ ${#NLP_COMPRESSED} -gt 100 ]]; then
+        echo "$NLP_COMPRESSED" > "$OUTPUT"
+        NLP_APPLIED=true
+        NLP_TOKENS_AFTER=$(wc -c < "$OUTPUT" | tr -d ' ')
+        NLP_TOKENS_AFTER=$(( NLP_TOKENS_AFTER / 4 ))
+        if [[ $NLP_TOKENS_BEFORE -gt 0 ]]; then
+            NLP_RATIO=$(echo "scale=2; $NLP_TOKENS_AFTER / $NLP_TOKENS_BEFORE" | bc 2>/dev/null || echo "1.0")
+        fi
+        echo "NLP compression applied (${NLP_COMPRESS_MODE}): ${NLP_TOKENS_BEFORE} → ${NLP_TOKENS_AFTER} tokens (ratio=${NLP_RATIO})" >&2
+    else
+        echo "NLP compression skipped or failed — using raw Tier 1 output" >&2
+    fi
+else
+    if [[ "$NLP_COMPRESS" != "true" ]]; then
+        echo "NLP compression disabled (NLP_COMPRESS=false)" >&2
+    elif [[ ! -f "$NLP_SCRIPT" ]]; then
+        echo "NLP compression script not found: $NLP_SCRIPT" >&2
+    fi
+fi
+
+# ============================================================================
 # Step 4: Tier 2 — Local LLM narrative summarization
 # ============================================================================
 # Feed Tier 1 extraction to qwen3-8b-nothink for a rich narrative checkpoint.
@@ -689,7 +735,12 @@ cat > "$METADATA_FILE" <<METADATA_EOF
   "output_lines": $OUTPUT_LINES,
   "output_bytes": $OUTPUT_BYTES,
   "user_msg_count": $USER_MSG_COUNT,
-  "session_state_stale_minutes": ${STALE_MINS:-0}
+  "session_state_stale_minutes": ${STALE_MINS:-0},
+  "nlp_compression_applied": $NLP_APPLIED,
+  "nlp_tokens_before": $NLP_TOKENS_BEFORE,
+  "nlp_tokens_after": $NLP_TOKENS_AFTER,
+  "nlp_compression_ratio": $NLP_RATIO,
+  "nlp_mode": "$NLP_COMPRESS_MODE"
 }
 METADATA_EOF
 

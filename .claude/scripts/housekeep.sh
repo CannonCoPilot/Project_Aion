@@ -8,7 +8,7 @@
 #   - Safe for auto-triggering during idle or "Carry On" mode
 #   - ~2K tokens context cost when invoked via command
 #
-# Usage: housekeep.sh [--phase <1-7>] [--dry-run] [--quiet]
+# Usage: housekeep.sh [--phase <1-8>] [--dry-run] [--quiet]
 #
 # v1.0 — F.3 Aion Quartet wiring
 
@@ -434,6 +434,106 @@ phase_state_freshness() {
 }
 
 # ============================================================================
+# Phase 8: Metrics Rotation
+# Rotate session-metrics.jsonl when >1MB or >30 days old; update daily-summary
+# ============================================================================
+phase_metrics_rotation() {
+    if ! should_run 8; then return; fi
+    phase_header 8 "Metrics Rotation"
+
+    local metrics_dir="$PROJECT_DIR/.claude/metrics/token-compression"
+    local metrics_file="$metrics_dir/session-metrics.jsonl"
+    local summary_file="$metrics_dir/daily-summary.json"
+    local archive_dir="$metrics_dir/archive"
+
+    # Ensure directories exist
+    if [[ ! -d "$archive_dir" ]]; then
+        if [[ "$DRY_RUN" != "true" ]]; then
+            mkdir -p "$archive_dir"
+        fi
+    fi
+
+    if [[ ! -f "$metrics_file" ]]; then
+        phase_result ".......... no metrics file"
+        return
+    fi
+
+    local size_bytes
+    size_bytes=$(stat -f %z "$metrics_file" 2>/dev/null || echo 0)
+    local age_seconds
+    age_seconds=$(file_age_seconds "$metrics_file")
+    local size_mb=$(( size_bytes / 1048576 ))
+    local age_days=$(( age_seconds / 86400 ))
+
+    # Rotation thresholds: >1MB or >30 days old
+    local needs_rotation=false
+    local rotation_reason=""
+    if [[ "$size_bytes" -gt 1048576 ]]; then
+        needs_rotation=true
+        rotation_reason="size=${size_mb}MB"
+    elif [[ "$age_days" -ge 30 ]]; then
+        needs_rotation=true
+        rotation_reason="age=${age_days}d"
+    fi
+
+    if [[ "$needs_rotation" == "false" ]]; then
+        local size_kb=$(( size_bytes / 1024 ))
+        phase_result "$(printf '.......... ok (%dKB, %dd old)' "$size_kb" "$age_days")"
+        return
+    fi
+
+    # Build archive filename: session-metrics-YYYY-MM-DD.jsonl.gz
+    local today
+    today=$(date +%Y-%m-%d)
+    local archive_name="session-metrics-${today}.jsonl.gz"
+    local archive_path="$archive_dir/$archive_name"
+
+    # Count lines before rotation
+    local line_count=0
+    if [[ -f "$metrics_file" ]]; then
+        line_count=$(wc -l < "$metrics_file" | tr -d ' ')
+    fi
+
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "  [dry-run] would rotate: session-metrics.jsonl → archive/${archive_name} (${line_count} lines, reason: ${rotation_reason})"
+        phase_result "$(printf '.......... would rotate (%s)' "$rotation_reason")"
+        return
+    fi
+
+    # Compress and archive
+    if gzip -c "$metrics_file" > "$archive_path" 2>/dev/null; then
+        # Clear the primary file (don't delete — keep file for appending)
+        > "$metrics_file"
+        CLEANED=$((CLEANED + 1))
+
+        # Update daily-summary.json if it exists
+        if [[ -f "$summary_file" ]]; then
+            local ts
+            ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            # Use python3 to update JSON safely (avoids jq dependency)
+            python3 -c "
+import json, sys
+with open('$summary_file', 'r') as f:
+    data = json.load(f)
+data['last_updated'] = '$ts'
+data['total_sessions_logged'] = data.get('total_sessions_logged', 0) + 1
+data['total_lines_archived'] = data.get('total_lines_archived', 0) + $line_count
+rotations = data.get('rotations', [])
+rotations.append({'date': '$today', 'archive': '$archive_name', 'lines': $line_count, 'reason': '$rotation_reason'})
+data['rotations'] = rotations[-30:]  # keep last 30 rotation records
+with open('$summary_file', 'w') as f:
+    json.dump(data, f, indent=2)
+" 2>/dev/null || true
+        fi
+
+        phase_result "$(printf '.......... rotated → %s (%d lines)' "$archive_name" "$line_count")"
+    else
+        phase_result "$(printf '.......... rotation failed (gzip error)')"
+        ERRORS=$((ERRORS + 1))
+    fi
+}
+
+# ============================================================================
 # Runner — Output formatting
 # ============================================================================
 print_header() {
@@ -466,8 +566,8 @@ print_footer() {
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --phase)
-            if [[ -z "${2:-}" || ! "$2" =~ ^[1-7]$ ]]; then
-                echo "Error: --phase requires a value between 1 and 7" >&2
+            if [[ -z "${2:-}" || ! "$2" =~ ^[1-8]$ ]]; then
+                echo "Error: --phase requires a value between 1 and 8" >&2
                 exit 1
             fi
             PHASE_FILTER="$2"
@@ -482,7 +582,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --help|-h)
-            echo "Usage: housekeep.sh [--phase <1-7>] [--dry-run] [--quiet]"
+            echo "Usage: housekeep.sh [--phase <1-8>] [--dry-run] [--quiet]"
             echo ""
             echo "Phases:"
             echo "  1  JICM Reset       — Clear stale JICM signal files"
@@ -492,9 +592,10 @@ while [[ $# -gt 0 ]]; do
             echo "  5  Git Hygiene      — Quick git health check"
             echo "  6  Index Sync       — Count skills/agents/commands"
             echo "  7  State Freshness  — Flag stale AC state files"
+            echo "  8  Metrics Rotation — Rotate compression metrics (>1MB or >30d)"
             echo ""
             echo "Options:"
-            echo "  --phase N    Run only phase N (1-7)"
+            echo "  --phase N    Run only phase N (1-8)"
             echo "  --dry-run    Show what would be done, no changes"
             echo "  --quiet      Single summary line output"
             echo "  --help       Show this help"
@@ -520,5 +621,6 @@ phase_core_validation
 phase_git_hygiene
 phase_index_sync
 phase_state_freshness
+phase_metrics_rotation
 
 print_footer
