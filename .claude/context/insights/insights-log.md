@@ -5702,3 +5702,51 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 - **Tracking has two halves, not one**: `branch.<name>.merge` configures what `git pull` consumes; the *push refspec* is independently governed by `push.default`. Setting upstream to `origin/main` makes pulls right but leaves pushes ambiguous when local and remote names differ.
 - **The right configuration for this topology**: when local branch X needs to push to remote branch Y (different names), set `push.default=upstream` (push to the configured upstream branch), or always push with explicit `X:Y` refspec. Bare `git push` with `push.default=simple` requires the names to match, so it falls back to same-name push.
 - **Recovery is non-destructive here**: `origin/Project_Aion` is a duplicate of work already in our local branch — nothing is lost by deleting it. The repair sequence is fast-forward `main` to the new commit, then delete the unwanted remote branch.
+
+### 2026-05-01 [6fbe47ce0359]
+
+- **One-shot in launchd is achieved via self-cleanup, not a built-in flag**: launchd's `StartCalendarInterval` recurs whenever the date matches (May 14 every year, by default). For a true single-fire, the script unloads and deletes its own plist on completion. The script stays in the repo for reuse; only the plist (host-specific) is ephemeral.
+- **Why `RunAtLoad: false` matters here**: when we `launchctl load -w` the plist tonight, we don't want it to fire immediately — we want it to wait until 2026-05-14 09:00 MDT. Without that key explicitly false, launchd's behavior is implementation-defined.
+
+### 2026-05-01 [d69d3000e93b]
+
+- **The two-PAT injection mechanism worked transparently**: the credential.helper override fed the GitHub PAT to AIFred-Pro's HTTPS push without baking it into `.git/config`. That's the intended pattern from MEMORY.md — the token never persists to disk; it lives only in the lifetime of one `git push` invocation.
+- **AIFred-Pro-Dev has THREE remotes that matter**: `origin` = davidmoneil/AIFred-Pro (collaborate with David), `my-fork` = CannonCoPilot/AIFred-Pro (historical archive), `prod-local` = the local production AIfred-Pro. Pushing to `origin/nate-dev` is the canonical promote-to-David path; the others stay quiet.
+
+### 2026-05-01 [9898f5ce8dfb]
+
+- **Phase 1.4 is fundamentally a *partition + measure* problem**: the population is all Jarvis session JSONLs in `~/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/`; the partition cut-line is the commit timestamp of `75c9d97` (Jeeves-Brief deployment); the metric is median `output_tokens` per turn + cache `hit_rate`. The 93.6% scratchpad number is a *global* baseline across all sessions, not specifically pre-deploy, so we need a tighter comparison.
+- **The current session is post-deploy by definition**: we're operating under Jeeves-Brief now. Including it in the post-deploy sample is honest as long as we exclude turns inflated by JICM context restoration (the resume burst is not representative of steady-state).
+
+### 2026-05-01 [25df24bca02e]
+
+- **Sample-size honesty matters here**: the guide expects "3 ordinary sessions post-edit" — we have ~2-3 sessions in the post-deploy window, and one of them (this session) is heavily migration-focused, not "ordinary". The Phase 1.4 result will be a *preliminary signal*, not a definitive comparison. We log it that way and let the next two ordinary sessions decide whether to proceed to Phase 2.
+- **`hit_rate` per-turn vs aggregate**: the extractor computes per-turn `hit_rate = cache_read / (cache_read + eph_5m + eph_1h + input_tokens)`. Averaging that across turns weights small turns equal to large turns. The honest aggregate is **token-weighted**: `Σ cache_read / Σ (cache_read + eph_5m + eph_1h + input_tokens)`. I'll compute both; they diverge meaningfully on long sessions.
+- **Why median output_tokens, not mean**: mean is dragged by long thinking-block responses (planning, deep analysis); median measures the typical interactive turn, which is the population the Jeeves-Brief directive actually shapes.
+
+### 2026-05-01 [09dd13a10dd4]
+
+- **The median output_tokens comparison is contaminated by population mismatch**: pre-deploy median is 25 tokens because the corpus contains thousands of tool-call-only or empty-text turns mixed with substantive prose turns. Post-deploy median 2,147 is high because both post-deploy sessions are heavy commit/migration work. These populations aren't comparable as-is — a "20-34% reduction" comparison needs matched populations (substantive prose turns only).
+- **Hit rate result is clean and within tolerance**: 89.74% post-deploy vs 93.59% pre-deploy = **3.85pp drop, within the ±5pp band** required by §2.4. That's a PASS on the cache-stability criterion. The dip is consistent with the predicted cache-prefix invalidation from inserting Jeeves-Brief at the top of CLAUDE.md (baseline doc §3 explicitly warned about this).
+- **eph_1h adoption improved (100% vs 84.6%)** — every post-deploy turn carried the 1h-TTL ephemeral marker. That's better than baseline.
+
+### 2026-05-01 [358c96c0bd1d]
+
+- **The output_tokens criterion is INCONCLUSIVE, not failed**: at every threshold, post-deploy medians are *higher* than pre-deploy. But this is population-driven — both post-deploy sessions are atypical (one is the migration session, one is this Phase 1.4 analysis with verbose insights). The guide expected "3 ordinary sessions" and we have 2 atypical ones. The honest report says "insufficient sample to evaluate output_tokens reduction; collect 3 ordinary sessions before concluding."
+- **The pre-deploy output_tokens distribution is heavily bimodal**: 56% of turns are 1-49 tokens (likely tool-call-only or bookkeeping), only 6.2% are >1000. The 25-token median reveals that "median output_tokens" as a metric is dominated by no-text turns. Future Phase 1.4 reruns should filter on text-bearing turns to make the brevity comparison meaningful.
+
+### 2026-05-01 [f87c4925c186]
+
+- **The §3.3 criteria are not all equally robust**: the hit-rate criterion is population-invariant (a percentage of cache hit per token, regardless of what content was generated), so it produces a clean signal even with 2 atypical sessions. The output_tokens criterion is population-sensitive (raw token counts), so it requires matched content profiles to be interpretable. Future testing protocols should explicitly note which criteria are robust to small-N atypical samples.
+- **Cache invalidation behavior matched prediction exactly**: baseline doc §3 warned "Phase 1.1 deployment risk: inserting Jeeves-Brief at top of `Jarvis/CLAUDE.md` invalidates the cached prefix on first deploy. Hit rate will dip until cache rebuilds (typically one to two turns into next session). Acceptable; but the post-deploy window must be measured to confirm no sustained regression beyond the §2.4 ±5pp band." Observed: -3.85pp dip, within band, eph_1h adoption rose to 100%. The prediction was tight.
+
+### 2026-05-01 [d24c813d906e]
+
+- **The bimodal distribution is the real lesson here**: a "median across all turns" metric works for content-stable populations but breaks down when the mix shifts. Future register/brevity tests should default to filtering on text-bearing turns and ideally stratify by intent class. Phase 0.3 extractor v2 is the right durable fix.
+- **The criterion's "20-34% reduction" target was a workload-mix-dependent number**, even though the guide presented it as a universal target. A maintenance session full of analysis prose can't show the same percent reduction as a debugging session full of status updates, even with identical register compliance. That asymmetry should be documented in the rerun protocol.
+
+### 2026-05-01 [eae34ce6d5b3]
+
+- **The doc needs to do two jobs simultaneously**: (1) be procedurally specific enough that a Phase 1.4 rerun *next month* can follow it without re-deriving methodology, and (2) be general enough that future register/compression interventions (Alfred-Brief on AIFred-Pro, CoD validation, JICM compression, pipeline COMPRESSION_MODE) can apply the same framework. The trick is parameterizing the "intervention" while fixing the measurement protocol.
+- **Pre-registration matters for credibility**: per-class effect predictions need to be *written down before the post-deploy data is collected*, not retrofitted to whatever the data shows. Otherwise we're just data-dredging until something passes. The doc should include a pre-registration template that gets filled in *at deploy time*, before the post-deploy window opens.
+- **Right home for this**: alongside the existing token-compression-{guide,roadmap}.md in `projects/project-aion/reports/` — same audience, same project, easy to find together. Naming: `token-compression-experimental-design.md` to clearly distinguish from the implementation guide (procedural) and roadmap (strategic).
