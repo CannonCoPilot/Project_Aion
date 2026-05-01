@@ -1,0 +1,142 @@
+# Token Compression Strategy Configuration
+#
+# Defines the routing matrix: consumption phase x compression level -> strategy.
+# Also defines strategy->script mappings and quality thresholds.
+#
+# Compression levels (from SKILL.md):
+#   none   — no compression; raw prompts and full context
+#   light  — observation masking / lightweight transforms
+#   medium — JICM checkpoint-based compression with LLM enrichment
+#   heavy  — aggressive compaction; minimal context essentials only
+#
+# Phases (detected by detect-phase.sh / TC-07):
+#   startup           — session init, world generation context loading
+#   reasoning         — internal chain-of-thought or planning steps
+#   tool_output       — large tool call responses being processed
+#   session_state     — session notes, state files, checkpoint writes
+#   user_response     — final assistant messages visible to the user
+#   input_preprocessing — JICM pre-processing of incoming inputs
+#   unknown           — phase could not be determined; conservative defaults
+#
+# Version: 1.0.0
+
+version: "1.0.0"
+
+# ---------------------------------------------------------------------------
+# Phase -> Strategy routing matrix
+#
+# Each cell specifies which strategy to invoke for a (phase, level) pair.
+# Strategy "passthrough" means no transformation is applied.
+# ---------------------------------------------------------------------------
+
+routing:
+  startup:
+    none:   passthrough
+    light:  passthrough
+    medium: passthrough
+    heavy:  caveman_micro
+
+  reasoning:
+    none:   passthrough
+    light:  cod
+    medium: cod
+    heavy:  cod
+
+  tool_output:
+    none:   passthrough
+    light:  caveman_micro
+    medium: caveman_micro
+    heavy:  caveman_micro
+
+  session_state:
+    none:   passthrough
+    light:  signal_format
+    medium: signal_format
+    heavy:  signal_format
+
+  user_response:
+    none:   passthrough
+    light:  passthrough
+    medium: jeeves_filter
+    heavy:  jeeves_filter
+
+  input_preprocessing:
+    none:   passthrough
+    light:  compress_input
+    medium: compress_input
+    heavy:  compress_input
+
+  unknown:
+    none:   passthrough
+    light:  passthrough
+    medium: passthrough
+    heavy:  passthrough
+
+# ---------------------------------------------------------------------------
+# Strategy definitions
+#
+# Each entry maps a strategy name to its implementation script.
+# type: "shell" (sh/bash), "python", or "builtin"
+# ---------------------------------------------------------------------------
+
+strategies:
+  passthrough:
+    description: "No compression — input copied to output unchanged"
+    script: null
+    type: builtin
+
+  cod:
+    description: "Chain of Draft — prepends CoD instruction block (TC-10)"
+    script: scripts/apply-cod.sh
+    type: shell
+
+  caveman_micro:
+    description: "Caveman Micro Prompt — general output token reduction (TC-09)"
+    script: scripts/apply-caveman-micro.sh
+    type: shell
+
+  signal_format:
+    description: "Signal notation transform for session notes/state files (TC-11)"
+    script: scripts/signal-format.sh
+    type: shell
+
+  jeeves_filter:
+    description: "Jeeves register output filter for user-facing responses (TC-13)"
+    script: scripts/jeeves-filter.sh
+    type: shell
+
+  compress_input:
+    description: "Caveman NLP backend for JICM input preprocessing (TC-12)"
+    script: scripts/compress-input.py
+    type: python
+
+# ---------------------------------------------------------------------------
+# Quality validation
+# ---------------------------------------------------------------------------
+
+validation:
+  enabled: true
+  script: scripts/validate-quality.py
+  # Minimum quality score (0.0 - 1.0) before output is considered valid
+  min_score: 0.70
+  # Fail the route if quality falls below min_score (vs warn-only)
+  fail_on_low_quality: false
+
+# ---------------------------------------------------------------------------
+# Metrics logging
+# ---------------------------------------------------------------------------
+
+metrics:
+  log_path: logs/metrics.log
+  format: jsonl
+  include_token_estimates: true
+  token_estimate_chars_per_token: 4
+
+# ---------------------------------------------------------------------------
+# Phase detection defaults
+# ---------------------------------------------------------------------------
+
+phase_detection:
+  script: scripts/detect-phase.sh
+  fallback_phase: unknown
+  confidence_threshold: 0.60
