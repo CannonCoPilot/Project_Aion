@@ -1,0 +1,138 @@
+# Pre-Registration — Phase 1.5 Alfred-Brief
+#
+# FIRST CLEAN PRE-REGISTERED RUN in this benchmark family.
+# Filed BEFORE post-deploy data accumulates: at filing time the AIFred-Pro-Dev
+# corpus contains 3,488 turns across 133 sessions, ALL pre-deploy
+# (ts < 2026-05-01T03:28:35Z). Zero post-deploy turns exist yet, so this
+# pre-registration is methodologically clean (not retroactive).
+#
+# Companion to projects/project-aion/reports/token-compression-experimental-design.md §8.
+
+# === IDENTITY ===
+
+intervention_id: phase-1-5-alfred-brief
+
+deploy_commit: c31b2bd
+# Full hash: c31b2bd4005ba5208cc911214538fc016386596f
+
+deploy_timestamp: 2026-05-01T03:28:35Z
+
+deploy_repo: davidmoneil/AIFred-Pro
+# Branch: nate-dev. The directive lives in AIFred-Pro-Dev/.claude/CLAUDE.md.
+# Analysis artifacts (this yaml, the run report, telemetry CSVs) live in
+# Jarvis per token-compression experimental-design §13.2 lineage convention.
+
+baseline_lineage: []
+# First intervention against the AIFred-Pro-Dev corpus. Jeeves-Brief is on a
+# different repo (Jarvis) and a different corpus (Jarvis JSONLs); it is NOT
+# part of this lineage.
+
+# === HYPOTHESIS ===
+#
+# Magnitudes mirror Jeeves-Brief pre-registration (per local-agent-schedule.md
+# Item 1, now Item 2 after Phase 0.4 promotion). Justification: the directive
+# is structurally analogous (drop pleasantries, hedging, restated context;
+# pattern: observation→implication→next action). Differences ("Master Nathaniel"
+# vs "sir", confirmatory valedictions) are register-style, not brevity-magnitude.
+# The expected reductions should therefore track Jeeves-Brief unless the
+# AIFred-Pro-Dev corpus's substantially different intent-class composition
+# (interactive 57.14% vs Jarvis 26.83%) reveals a different effect profile.
+
+hypothesis:
+  per_class_median_reduction:
+    tool_only:
+      expected: 0
+      tolerance: 0
+      reason: "no prose; brevity directives cannot affect tool-only turns"
+
+    brief:
+      expected: -25
+      tolerance: 10
+      reason: "filler-cutting most visible on short turns where filler dominates the token budget"
+
+    interactive:
+      expected: -20
+      tolerance: 10
+      reason: "filler-cutting effective on conversational answers; AIFred-Pro-Dev corpus is 57% interactive so this class drives most of the effect signal"
+
+    analysis:
+      expected: -10
+      tolerance: 8
+      reason: "less filler proportionally; long-form prose is mostly substantive content"
+
+    code_dump:
+      expected: -2
+      tolerance: 5
+      reason: "code is mechanical; only header/comment text can shorten"
+
+    structured:
+      expected: -5
+      tolerance: 6
+      reason: "tables and lists are mechanical; only header prose around them can shorten"
+
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: -2
+      tolerance: 5
+      # Standard ±5pp band per design doc §10.2. Directive landed in CLAUDE.md
+      # which is force-loaded — cache prefix invalidation expected on first
+      # post-deploy session, recovery thereafter.
+
+    eph_1h_adoption:
+      expected: 90
+      tolerance: 15
+      # Jarvis Phase 1.1 saw 100% post-deploy; conservative band.
+
+  register:
+    violations_per_100_blocks:
+      expected: 0
+      tolerance: 1
+      # Standard target. Phase 0.4 quote-aware filter is now active in
+      # extractor v2, so this evaluation should be clean of meta-mention
+      # false positives that Phase 1.1's first run hit.
+
+# === SAMPLE TARGETS ===
+
+sample_targets:
+  ordinary_sessions: 3
+  # "Ordinary" per §7.3 means class composition within ±tolerance of the
+  # AIFred-Pro-Dev pre-deploy reference (NOT the Jarvis reference). See
+  # baseline-aifred-2026-05-01.md for the bands.
+
+  total_substantive_turns: 300
+
+  collection_window_days: 14
+  # First eligibility check at deploy_timestamp + 14 days = 2026-05-15T03:28:35Z.
+  # Already coincides with the existing launchd reminder window for Phase 1.1.
+
+# === ORDINARINESS BANDS (corpus-specific) ===
+#
+# AIFred-Pro-Dev pre-deploy class shares (n=3,488 turns / 133 sessions, source:
+# .claude/metrics/token-compression/cache-telemetry-aifred-v2-20260501.csv):
+#
+#   tool_only    3.38%
+#   brief       13.65%
+#   interactive 57.14%
+#   analysis    24.40%
+#   code_dump    0.32%
+#   structured   1.12%
+#
+# A post-deploy session is "ordinary" if its per-class shares fall within
+# ±10pp of these reference values for the four common classes (tool_only,
+# brief, interactive, analysis) and within ±2pp for the rare classes
+# (code_dump, structured). Sessions outside any band are "atypical" and
+# accumulate in their own bucket without counting toward sample_targets.
+
+# === GATE TO NEXT PHASE ===
+
+gate_to_next_phase:
+  description: "Phase 1.5 FULL_PASS unblocks Phase 2 (CoD validation) for AIFred-Pro-Dev"
+  required_classes: [brief, interactive, analysis]
+
+# === OUTCOME (filled in after run completes) ===
+
+outcome:
+  status: PENDING
+  result_report: .claude/metrics/token-compression/phase-1-5-alfred-brief-result-YYYY-MM-DD.md
+  closed_at: null
+  reason: null
