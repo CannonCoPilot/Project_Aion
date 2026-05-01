@@ -1,0 +1,549 @@
+## Objective
+Stabilize and improve the Pulse/AIFred task pipeline, task board UX, orchestration quality, observability, and validation workflow so the system can be reliably tested using the smaller, repeatable benchmark focused on **Mark 1 / Luke 4** task decomposition and execution. For each of the items listed below:
+1. Investigate whether fixes have been implemented and validated
+2. Uncover and assess any gaps
+3. Plan and implement gap fixes
+4. Review code and address any surfaced issues
+5. Implement validation testing
+6. Move to the next item in the list and repeat until completed.
+
+---
+
+# 1. Immediate Bug Triage and Validation
+
+## 1.1 Verify and re-test previously claimed fixes
+Confirm implementation and working behavior of all previously reported fixes. Do not assume they are complete just because they were reported as fixed.
+
+### Items to verify
+- Executor type coercion fix for `expected_output` list handling
+- Crash recovery gap fix around `build_prompt()` being outside `try/except`
+- Failure routing fix so failed executions do not incorrectly move to review
+- `v2-execute-fail` transition exists and is correctly wired
+- Glow behavior during:
+  - staging evaluation
+  - evaluated → queued orchestration
+  - queued → execution preparation
+  - active execution
+  - completed review
+- `.stage.json`, `.eval.json`, `.review.json`, `.orch.json` sidecar detection is actually functioning
+- Kanban glow set includes orchestrating tasks
+- Dependency chain visualization is implemented and accurate
+- Chain badge does not appear for standalone tasks
+- Blocked banner only counts tasks blocked for **human review**
+- Blocked banner click-through navigates correctly with blocked filter applied
+- `blocked:no` tasks are not shown as blocked
+- Webhook networking fix is still active and not regressing
+- Pipeline is truly operating event-first with polling as fallback, not effectively poll-primary
+
+### Required output
+For each item above, produce:
+- status: `verified`, `broken`, or `partially working`
+- evidence
+- file(s) involved
+- next fix if needed
+
+---
+
+# 2. Fix Task Board / UX Accuracy Problems
+
+## 2.1 Blocked-state overreporting
+Investigate why everything at `http://localhost:8701/tasks` appears blocked and why every ticket shows a “Task dependency” warning icon.
+
+### Goals
+- Ensure only truly blocked tasks show blocked styling/icons
+- Distinguish between:
+  - blocked by dependency
+  - blocked pending human review
+  - blocked by execution failure
+  - blocked by missing prerequisites
+- Ensure dependency icon appears only when real unresolved dependencies exist
+
+## 2.2 Dependency visibility
+Clicking the `deps` icon should reveal actual dependency information.
+
+### Implement
+- Dependency graph/pane in task details
+- Full dependency chain
+- Parent/child relationships
+- Related sibling tasks where relevant
+- State badge for each dependency in the chain
+
+## 2.3 Parent/child and execution order visibility
+The board and task details should show:
+- parent task
+- child tasks
+- whether a child is active, completed, blocked, or pending
+- recommended/actual execution order
+- shared project grouping
+
+## 2.4 False-positive completion safeguards
+Investigate cases like `AION-4fed98d9` appearing done while the broader project is still mid-implementation.
+
+### Goals
+- Prevent hallucinated or weakly verified completions
+- Add stronger completion review before a task is marked done
+- If false-positive completion is detected, route back appropriately:
+  - staging
+  - blocked
+  - re-review
+  - re-execution
+
+---
+
+# 3. Improve Live Task Telemetry and Observability
+
+## 3.1 Add live telemetry to task cards/details
+No task currently exposes enough live runtime status.
+
+### Add telemetry for each running/evaluating task
+- whether `qwen` launched
+- whether `claude -p` launched
+- current pipeline state
+- elapsed runtime
+- current token usage if available
+- number of turns/messages executed
+- current model and effort level
+- whether session was inherited from a parent/prior task
+- whether context/cache was inherited
+- size of inherited cache/context if measurable
+- whether local LLM calls occurred
+- whether review/evaluation is running
+
+## 3.2 Add task activity history
+Every state transition or significant processing step should append to an activity log visible in task details.
+
+### Include entries for
+- staging
+- evaluation
+- orchestration
+- queueing
+- execution launch
+- review start/end
+- retries
+- dependency resolution changes
+- webhook-triggered transitions
+- poll-triggered transitions
+- session fork/resume usage
+- script-based vs LLM-based actions
+
+## 3.3 Research and surface deeper transparency
+Investigate what can realistically be surfaced in real time for:
+- `claude -p` sessions
+- local LLM calls
+- token count
+- message thread
+- model name
+- effort level
+- thinking visibility, if safely/actually accessible
+- context inheritance confirmation
+- cache inheritance confirmation
+
+### Required output
+Separate:
+- what is available now
+- what can be added with modest work
+- what is not realistically available or should not be surfaced
+
+## 3.4 Standardize logging for diagnostics
+Create or improve a unified logging approach so all pipeline services and tasks write structured logs suitable for:
+- debugging
+- telemetry
+- postmortems
+- user transparency
+
+### Logging should capture
+- activities
+- warnings
+- errors
+- prompts/step metadata where appropriate
+- state transitions
+- file path decisions
+- dependency decisions
+- session inheritance decisions
+- review findings
+
+---
+
+# 4. Pipeline Architecture Review and Corrections
+
+## 4.1 Review architectural soundness
+Evaluate whether the pipeline is fundamentally sound across:
+- decomposition
+- chaining
+- dependency blocking
+- atomic claims
+- session cache inheritance
+- task review quality
+- event handling
+- operational observability
+
+### Produce
+- what is architecturally sound already
+- what is fragile
+- what is broken
+- recommended improvements by priority
+
+## 4.2 Determine correct decomposition stage
+Answer and validate:
+- when should master tasks be decomposed?
+- when should parent tasks stop being executable work items and instead become orchestration-only or verify-only?
+- why was `GS_MASTER` apparently run as a full task instead of being decomposed?
+- at what stage should decomposition happen and be enforced?
+
+## 4.3 Implement orchestration-only / verify-only parent behavior
+Master/parent tasks should not blindly re-execute all work after child tasks complete.
+
+### Goals
+- parent/master tasks become:
+  - orchestration-only, or
+  - verify-only
+- avoid rerunning already completed child work
+- prevent orphan outputs
+- eliminate redundant master re-execution
+
+## 4.4 Ensure dependency chaining is meaningful
+Validate that orchestrator-generated child tasks:
+- follow an appropriate dependency chain
+- inherit required context/session correctly
+- are not over-scoped
+- decompose the work into coherent units
+
+---
+
+# 5. Fix Known Pipeline Weaknesses
+
+## 5.1 Reviewer too lenient
+Reviewer failed to catch:
+- wrong file paths
+- failure to read source texts
+- weak or hallucinated completion
+- structurally incorrect outputs
+
+### Fix
+Tighten review criteria without causing infinite review cycling.
+
+### Add checks for
+- required source files actually read
+- output paths correct
+- expected deliverables present
+- work grounded in provided inputs
+- parent/child task consistency
+
+## 5.2 Stage output path enforcement
+Stage service should not emit or approve hallucinated or unvalidated paths.
+
+### Fix
+- Validate structured output paths before passing them downstream
+- Anchor output paths to project base directory
+- Prefer task description authoritative paths over stage-generated guesses
+- Prevent writing into repo/project root when task specifies subdirectory targets
+
+## 5.3 Input file provisioning validation
+Why did evaluator/reviewer fail to catch missing or unused source files?
+
+### Fix
+- Detect whether required inputs were actually accessed
+- Reject outputs that claim completion without using mandatory provided inputs
+
+## 5.4 Watcher webhook self-registration
+Fix startup registration so watcher does not re-register `localhost` incorrectly.
+
+### Implement
+- `WEBHOOK_CALLBACK_HOST` env var
+- default to `host.docker.internal` where appropriate
+- verify no regression on restart
+
+## 5.5 Watcher log buffering
+Operational logs need to flush in real time.
+
+### Implement
+- `PYTHONUNBUFFERED=1`
+- separate Flask access logs from pipeline operational logs
+- verify heartbeats and stage launches appear immediately
+
+---
+
+# 6. Event-Driven vs Polling Behavior
+
+## 6.1 Investigate why polling appears primary
+Even though the system is described as event-driven, observed behavior suggests poll-first operation.
+
+### Determine
+- why webhooks arrive after poll processing
+- whether webhook registration, network path, or timing is delaying them
+- whether current poll interval masks webhook benefits
+
+## 6.2 Reconfigure for webhook-primary processing
+Goal: event-driven should be the main latency path, with polling as safety net.
+
+### Requirements
+- preserve race-condition safety
+- preserve loop safety
+- avoid duplicate transitions
+- maintain recovery path if webhook delivery fails
+
+### Evaluate changes such as
+- lengthening poll interval
+- dedup logic improvements
+- transition locking/claiming protections
+- webhook latency instrumentation
+
+---
+
+# 7. Pulse API / Integration Review
+
+## 7.1 Investigate Pulse API route mismatch/documentation issues
+Reports indicate agents are trying incorrect endpoints like `/tasks` and then improvising.
+
+### Determine
+- actual Pulse API route structure
+- whether documentation is outdated or incomplete
+- whether clients/Jarvis/pipeline components are using incorrect assumptions
+- whether workaround behavior is masking integration errors
+
+## 7.2 Resolve and document correct API usage
+Produce/update documentation for:
+- task listing
+- task details
+- active pipeline status
+- dependency data
+- live telemetry endpoint(s)
+- webhook endpoints
+- expected response formats
+
+---
+
+# 8. Structural Validation Test Failures
+
+## 8.1 Review failing GitHub Actions runs
+Investigate and explain the failures from:
+
+- `https://github.com/davidmoneil/AIFred-Pro/actions/runs/25147230304/job/73709641061`
+- `https://github.com/davidmoneil/AIFred-Pro/actions/runs/25147230304`
+
+### Goals
+- identify exact failing tests
+- explain root cause clearly
+- implement fixes
+- confirm passing status on re-run
+
+---
+
+# 9. Benchmark / Test Scope Simplification
+
+## 9.1 Replace current overly token-heavy benchmark
+Current task tests are too expensive and noisy.
+
+### Create a smaller repeatable benchmark
+Use a simpler benchmark centered on:
+- one skill or constrained workflow
+- likely candidate: doc-ops style task
+- focus domain: merging parallel chapters of the gospels
+- specifically **Mark 1 and Luke 4**
+
+## 9.2 Reduce task scope
+Replace broad, out-of-scope tickets with a tighter benchmark.
+
+### New approach
+- create a single master ticket focused only on the Mark 1 / Luke 4 work
+- let orchestration decompose it
+- observe whether decomposition is correct
+- observe dependency chain correctness
+- observe context/session inheritance
+- observe review quality
+
+---
+
+# 10. Task Set Revision
+
+## 10.1 Revise existing tickets
+Current tasks are too broad.
+
+### Update task set so it focuses only on
+- parallelizing Mark 1 and Luke 4
+- decomposition behavior
+- dependency handling
+- output correctness
+- review correctness
+- observability
+
+## 10.2 Submit one well-structured master ticket
+The ticket should contain all necessary steps and let the orchestrator break it apart.
+
+### Purpose
+Test whether:
+- decomposition works
+- child tasks are configured appropriately
+- dependency order is sensible
+- orchestration remains faithful to the original objective
+
+---
+
+# 11. Design Doc and Report Reconciliation
+
+## 11.1 Review design docs for unfinished or deferred work
+Review:
+- `AIFred-Pro-Dev/.claude/context/designs/pipeline-redesign-v2.md`
+- `AIFred-Pro-Dev/.claude/context/designs/pipeline-v2-technical-reference.md`
+
+### Find
+- open features
+- unfinished items
+- blocked items
+- deferred items
+- improvements not yet implemented
+
+## 11.2 Check compatibility with current Pulse codebase
+For each item found:
+- determine whether it still fits the actual codebase
+- revise if needed
+- implement where appropriate
+- integrate/polish
+
+## 11.3 Pull in recommendations from analysis report
+Review:
+- `Jarvis/projects/project-aion/reports/gospel-test-pipeline-analysis.md`
+
+Catalog all recommended fixes and merge them into this plan.
+
+### Must include these known findings
+- master re-execution waste
+- subtask file location waste
+- source texts never read
+- reviewer missed objective errors
+- all prioritized improvements from the report
+
+---
+
+# 12. Session Forking / Resume / Inheritance Validation
+
+## 12.1 Validate `--fork-session` and `--resume <UUID>`
+Determine whether these actually work correctly in pipeline execution.
+
+### Verify
+- when session fork is used
+- whether resumed session is the intended one
+- whether newly forked session IDs are passed to dependent tasks/children
+- whether session inheritance occurs only when appropriate
+
+## 12.2 Add telemetry for inheritance verification
+Add measurable indicators showing:
+- parent session ID
+- child session ID
+- inherited context presence
+- inherited cache presence
+- inheritance size/summary if possible
+
+---
+
+# 13. Personas, Skills, and Task Execution Strategy
+
+## 13.1 Review persona assignment
+Determine whether `librarian` is the right persona for tasks like `GS_MASTER`.
+
+### Answer
+- what personas are available/custom-prepared for these test tasks?
+- which persona should be used for staging, execution, review, decomposition?
+- are persona assignments helping or hurting results?
+
+## 13.2 Review AIFred-Pro-Dev skills/plugins for task execution
+Determine what skills/plugins should actually be used for these benchmark tasks and whether missing skills need implementation.
+
+---
+
+# 14. Review Quality and Redundancy
+
+## 14.1 Clarify what the Reviewer is doing
+Document exactly how the Reviewer verifies completion quality.
+
+### Answer
+- what evidence does it inspect?
+- what standards does it apply?
+- how does it decide pass/fail/retry?
+- why did it miss file path and input provisioning errors?
+
+## 14.2 Add useful redundancy to review
+Determine whether additional validation layers are needed, such as:
+- script-based structural checks before LLM review
+- required artifact existence checks
+- source-read verification
+- output-path verification
+- child-output aggregation checks
+
+---
+
+# 15. Transparency and Export Preservation
+
+## 15.1 Preserve full execution history
+Investigate how to fully preserve history/content of executed tasks and pipeline processes for diagnostics and transparency.
+
+### Explore
+- end-of-task export step
+- enforced `/export`-like behavior
+- prompt/result archival
+- session summary snapshots
+- transition summaries
+- artifact manifests
+
+## 15.2 Determine what can be shown to users safely and usefully
+Balance:
+- transparency
+- privacy/security
+- storage cost
+- usability
+
+---
+
+# 16. Final Cleanup and Operational Hygiene
+
+## 16.1 After fixes are confirmed
+- check for unnecessary shells
+- stop stale monitors
+- stop unneeded background processes
+
+## 16.2 Confirm system health
+Before ending work, confirm:
+- pipeline services healthy
+- watcher healthy
+- webhook config correct
+- no stray runners/processes
+- board reflects real state
+
+---
+
+# Suggested Execution Order
+
+1. **Verify previous fixes**
+2. **Investigate blocked-state and glow regressions**
+3. **Fix watcher/webhook/logging issues**
+4. **Fix reviewer leniency and stage path enforcement**
+5. **Review Pulse API mismatches/documentation**
+6. **Review failing GitHub Actions validation tests**
+7. **Implement telemetry/activity history**
+8. **Implement orchestration-only/verify-only parent behavior**
+9. **Validate session inheritance/fork-resume behavior**
+10. **Simplify benchmark and revise test tickets**
+11. **Reconcile design docs and analysis report**
+12. **Do final cleanup and process shutdown**
+
+---
+
+# Success Criteria
+
+Work is complete when all of the following are true:
+
+- Board no longer mislabels tasks as blocked
+- Dependency indicators are accurate and inspectable
+- Glow reliably reflects active processing stages
+- Event-driven transitions are primary, with polling as fallback
+- Watcher/webhook configuration is durable across restarts
+- Reviewer catches objective path/input/output failures
+- Stage output paths are validated and anchored correctly
+- Parent/master tasks no longer redundantly re-execute completed child work
+- Live telemetry/activity history is visible or clearly scoped/documented
+- Pulse API usage is corrected and documented
+- Structural validation tests pass on GitHub Actions
+- Benchmark task set is simplified to a small, repeatable gospel test
+- Session inheritance/fork-resume behavior is verifiable
+- Logging supports postmortems and user transparency
+- Unneeded shells/monitors/processes are shut down
