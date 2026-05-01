@@ -1,0 +1,163 @@
+# Pre-Registration — Phase 1.2 Pipeline Executor "Be brief" Epilogue
+#
+# METHODOLOGICAL NOTE: post-hoc.
+# The deploy at AIFred-Pro-Dev `f15f6a2` (2026-05-01T03:29:07Z) predates
+# this pre-registration by approximately one day. Predictions below are
+# magnitude-mirrored from Phase 1.5 (Alfred-Brief), which itself draws
+# on cc-compression-bench's measured 34% output reduction at parity
+# quality for the literal "Be brief." directive (n=120, judged Sonnet 4.6).
+# Predictions are recoverable from the directive's known mechanism but
+# were not written before post-deploy data accumulated.
+#
+# Honest interpretation: like Phase 1.1, this run validates protocol
+# mechanics on real data, not a clean per-class effect signal. The first
+# clean pre-registration in the AIFred-Pro-Dev pipeline-telemetry family
+# will be the next pipeline intervention deployed AFTER the pipeline-
+# telemetry extractor (Phase 0.5 backlog) ships.
+#
+# Companion to projects/project-aion/reports/token-compression-experimental-design.md §8.
+
+# === IDENTITY ===
+
+intervention_id: phase-1-2-pipeline-executor-brief
+
+deploy_commit: f15f6a2
+# Full hash: f15f6a2 — feat(pipeline): brief epilogue on executor + reviewer prompts (token-compression Phase 1.2-1.3)
+
+deploy_timestamp: 2026-05-01T03:29:07Z
+
+deploy_repo: davidmoneil/AIFred-Pro
+# Branch: nate-dev. Phase 1.2 (executor.py) and Phase 1.3 (reviewer.py)
+# share the same deploy commit; they are filed as separate pre-regs because
+# they affect different services and may exhibit different per-class effects.
+
+baseline_lineage: []
+# First-time intervention against AIFred-Pro-Dev pipeline executor.
+
+# === HYPOTHESIS ===
+#
+# Magnitudes mirror Phase 1.5 (Alfred-Brief), which targets the same
+# literal "Be brief."-style directive. The executor's output mix is
+# different from a Claude Code session — code-heavy, with file-change
+# summaries — so per-class effects may shift. Per-class structure is
+# retained for cross-intervention comparability.
+
+hypothesis:
+  per_class_median_reduction:
+    tool_only:
+      expected: 0
+      tolerance: 0
+      reason: "no prose; no effect possible"
+
+    brief:
+      expected: -25
+      tolerance: 10
+      reason: "filler-cutting most visible on short executor status outputs"
+
+    interactive:
+      expected: -20
+      tolerance: 10
+      reason: "executor narration of file changes is the primary effect target"
+
+    analysis:
+      expected: -10
+      tolerance: 8
+      reason: "long completion summaries have less filler proportionally"
+
+    code_dump:
+      expected: -2
+      tolerance: 5
+      reason: "code is mechanical; only header/comment text can shorten"
+
+    structured:
+      expected: -5
+      tolerance: 6
+      reason: "tables/lists mechanical; only header prose around them shortens"
+
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: -2
+      tolerance: 5
+      # The directive lands in the executor's prompt template, not the system
+      # prompt. Cache impact may differ from Jarvis Phase 1.1 (which landed
+      # in CLAUDE.md). Conservative ±5pp band retained.
+
+    eph_1h_adoption:
+      expected: 50
+      tolerance: 25
+      # Pipeline executor calls `claude -p` with controlled cache_control.
+      # Adoption rate is whatever the pipeline plumbing currently sets;
+      # widely-toleranced band reflects unknown current state.
+
+  register:
+    violations_per_100_blocks:
+      expected: 0
+      tolerance: 1
+
+# === SAMPLE TARGETS ===
+
+sample_targets:
+  ordinary_sessions: 3
+  # "Ordinary" for pipeline runs needs definition once the pipeline-telemetry
+  # extractor (Phase 0.5) ships. Provisional definition: a Pulse task whose
+  # executor invocation completes successfully (no force-close) and whose
+  # output_tokens distribution is within ±2σ of the pre-deploy median.
+
+  total_substantive_turns: 300
+  # In pipeline terminology: 300 successful executor invocations.
+
+  collection_window_days: 14
+
+# === STAGE 1 — INTERIM SAFETY CHECK (deploy + 48h) ===
+
+interim_check:
+  earliest_run: 2026-05-03T03:29:07Z
+  axes:
+    cache_hit_rate_dip_pp:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+    eph_1h_adoption_min_pct:
+      threshold: 30
+      action_on_breach: STAGE_1_HALT
+      reason: "lower bar than Phase 1.1/1.5 — pipeline cache plumbing is less mature"
+    register_violations_per_100_blocks_max:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+  axes_NOT_evaluated:
+    - per_class_median_reduction
+  verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
+  unblocks_on_clear:
+    - Phase 4 pipeline COMPRESSION_MODE plumbing (orthogonal: env-var routing infra)
+
+# === GATE TO NEXT PHASE ===
+
+gate_to_next_phase:
+  description: |
+    Two-stage gating per design doc §10.4.
+    Stage 2 sign-off (deploy+14d) on Phase 1.2 Stage-2 + Phase 1.3 Stage-2 +
+    pipeline-telemetry extractor (Phase 0.5) is the formal gate for Phase 4
+    (pipeline COMPRESSION_MODE) promotion.
+  required_classes: [brief, interactive, analysis]
+  required_stage: 2
+
+# === DEPENDENCIES ===
+
+dependencies:
+  pipeline_telemetry_extractor:
+    status: BACKLOG
+    backlog_id: phase-0-5-pipeline-telemetry-extractor
+    reason: |
+      Phase 1.2 / 1.3 evaluation requires per-task telemetry from Pulse,
+      not Claude Code session JSONLs. The current
+      cache-telemetry-extractor-v2.py does not consume Pulse task
+      metadata. Until Phase 0.5 ships, both Stage-1 and Stage-2 evaluations
+      are deferred. The pre-registration is filed now to lock predictions;
+      analysis runs when the extractor lands.
+
+# === OUTCOME ===
+
+outcome:
+  status: PENDING
+  result_report: .claude/metrics/token-compression/phase-1-2-pipeline-executor-brief-result-YYYY-MM-DD.md
+  closed_at: null
+  reason: null

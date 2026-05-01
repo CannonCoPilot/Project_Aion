@@ -376,6 +376,76 @@ Each intervention sits at a specific position in the roadmap. Promotion gates:
 
 A FAIL at any gate stops downstream promotion until resolved.
 
+### 10.4 Two-Stage Gating (interim safety check + formal sign-off)
+
+A 14-day collection window is statistically sound but creates an unacceptable
+dev-velocity stall when downstream work is on **orthogonal token streams**
+(per §4.7 stacking rules: Phase 2 CoD touches `thinking_tokens`, Phase 3 JICM
+compression touches checkpoint files, Phase 5 dashboard touches frontend code).
+None of those depend on Phase 1.x's `output_tokens` brevity verdict.
+
+To resolve the conflict between **methodological purity of the pre-registration**
+and **velocity on orthogonal work**, every Phase 1.x intervention now uses a
+two-stage gate:
+
+#### Stage 1 — Interim Safety Check (deploy + 48 hours)
+
+A non-promotion smoke test. Purpose: catch obviously broken deploys (cache
+collapse, register spike, runaway behavior) within 2 days, so orthogonal-
+stream work can proceed without 14-day blocking.
+
+| Axis | Stage-1 threshold | Action on breach |
+|---|---|---|
+| Cache hit rate vs pre-deploy | within ±5pp (token-weighted, all post-deploy turns regardless of class) | HALT downstream work; investigate prefix change |
+| eph_1h adoption | ≥ 50% (lower bar than Stage 2; only catches catastrophic regression) | Investigate cache_control behavior |
+| Register violations per 100 blocks | ≤ 5 (this is the §11 rollback trigger; Stage 1 just enforces it earlier) | Revise directive text or revert |
+| Per-class brevity | NOT EVALUATED at Stage 1 — per-class minimums (§7.2) almost never met in 48h | (deferred to Stage 2) |
+
+**Stage-1 verdict states**:
+- `STAGE_1_CLEAR` — no breach; orthogonal-stream work may proceed
+- `STAGE_1_HALT` — breach; halt downstream work and investigate; downstream
+  remains halted until either Stage 1 re-clears (after a fix or a directive
+  revision) or Stage 2 closes
+
+**Stage 1 is NOT a promotion gate.** Phase 2 (or any other directly-gated
+phase per §10.3) cannot be promoted on Stage-1 clearance alone — Stage-2
+sign-off is still required for the gated promotion.
+
+#### Stage 2 — Formal Sign-off (deploy + 14 days)
+
+Unchanged from §7.2 / §8 / §10.1-10.3. The full pre-registration evaluation:
+sample-sufficiency check, per-class brevity verdicts, cache + register at
+the formal thresholds. THIS is the Phase-promotion gate.
+
+#### Rollback semantics across stages
+
+If Stage 2 produces a FAIL or REGISTER_REGRESSION verdict and the deploy is
+reverted, work that proceeded in parallel under Stage-1 clearance **remains
+valid IF and only IF** the parallel work is on an orthogonal token stream.
+Per §4.7:
+
+| Parallel work | Orthogonal to Phase 1.x output_tokens? | Survives Phase 1.x rollback? |
+|---|---|---|
+| Phase 2 CoD seed prompt | Yes — touches `thinking_tokens` only | Yes |
+| Phase 3 JICM compression | Yes — touches checkpoint files at session-start replay time | Yes |
+| Phase 4 pipeline COMPRESSION_MODE plumbing | Yes — env-var routing infrastructure, not directive content | Yes |
+| Phase 5 dashboard | Yes — frontend visualization, no token-stream interaction | Yes |
+| A second register/brevity directive on the same Archon | **No** — same stream | No — must roll back |
+
+Document parallel work's independence rationale in its own pre-registration's
+`baseline_lineage` block: explicitly note "Phase 1.x interim-cleared but
+not Stage-2-signed-off; this work is orthogonal per §10.4 / §4.7 stacking
+Rule N". This makes the dependency explicit and audit-traceable.
+
+#### Why two-stage doesn't compromise the pre-registration
+
+Pre-registration's value is committing to predictions before seeing post-
+deploy data. Stage 1 evaluates only **regression catch** axes (cache,
+register), not the **effect** axes (per-class brevity). Effect predictions
+cannot be hindsight-calibrated against Stage 1 because Stage 1 doesn't
+evaluate them. Stage 2's per-class verdict is unchanged from the original
+gate and remains pre-registered.
+
 ---
 
 ## §11 Rollback Triggers
@@ -520,6 +590,7 @@ Stored at `.claude/metrics/token-compression/templates/pre-registration-template
 | 2026-05-01 | §7.3 ordinariness placeholders replaced with measured values | First v2 baseline run produced actual class shares; placeholders for `interactive` (~17% → 27.01%) and `code_dump` (~9% → 0.61%) were materially off |
 | 2026-05-01 | Phase 0.4 backlog item added: quote-aware register filter | First register evaluation surfaced false positives on meta-mentions of register patterns inside double-quoted illustrative examples in methodology prose |
 | 2026-05-01 | Phase 0.4 SHIPPED: `strip_quoted_for_register()` added to extractor v2; `count_register_violations()` now strips fenced code, inline backticks, ASCII double quotes, and smart double quotes before pattern matching. Validated on Jarvis corpus: row count and class shares unchanged; register-violation total dropped 636 → 608 (28 fewer raw hits across 70 additional turns) | Closes the manual-review burden surfaced by the Phase 1.1 rerun. Single quotes (apostrophes) and blockquotes intentionally preserved to avoid cascading false negatives. Targeted check: session `94c8971e` turn 182 dropped from 2 to 0 violations (both meta-mentions inside illustrative quotations) |
+| 2026-05-01 | §10.4 Two-Stage Gating added: Stage 1 (deploy+48h) is an interim safety check for cache + register only; Stage 2 (deploy+14d) is the formal pre-reg sign-off and the Phase-promotion gate. Stage 1 unblocks orthogonal-stream work (CoD, JICM compression, dashboard) per §4.7 stacking rules. Pre-registration's effect predictions remain frozen — Stage 1 evaluates only regression-catch axes, not effect axes | Resolves the methodological-purity-vs-velocity conflict identified during Phase 1.5 setup: the 14-day window blocks downstream work on different token streams unnecessarily. Two-stage gating preserves the integrity of the per-class brevity sign-off while letting orthogonal phases proceed |
 
 ---
 

@@ -217,15 +217,17 @@ Per design doc §10.2:
 
 ## §8 Decision and Next Action
 
-**Decision**: HOLD. Do NOT promote to Phase 2.
+**Decision**: HOLD on Phase-2 promotion (Stage-2 still gates that). Do NOT promote to Phase 2.
 
 **Rationale**: The protocol surfaced exactly what should be surfaced — the post-deploy sample is currently inadequate to evaluate brevity effects. Cache stability and register both indicate the directive is operationally healthy. Sample-window remains open.
 
+**Two-stage gating note (added 2026-05-01)**: Per design doc §10.4, this run is effectively a Stage-1 + early-Stage-2 hybrid done on day-of-deploy. Cache stability passes the Stage-1 ±5pp regression-catch axis (Δ -1.93pp); register passes Stage-1 after manual review and unconditionally after Phase 0.4 ships (post-fix re-scan in §6). Per-class brevity is the Stage-2 axis and remains PARTIAL pending sample. Orthogonal-stream work (Phase 2 CoD groundwork, Phase 3 JICM compression) is unblocked by the Stage-1 verdict.
+
 **Next steps**:
 1. Continue normal work; resist the temptation to engineer a "test session" — that would bias the sample. Authentic ordinary sessions are required.
-2. When the launchd reminder fires (2026-05-03 09:00 MDT) or the remote routine fires (2026-05-04T03:00:00Z), check post-deploy session count: re-run extractor v2, recount ordinary sessions, decide whether to extend window or run final analysis.
-3. If 3 ordinary sessions accumulate within 14 days, run final Phase 1.4 analysis under this same protocol. If not, push the window by 7-14 days and check again.
-4. Address Phase 0.4 backlog item before next register evaluation: extractor v2 needs quote-aware filtering to avoid the false-positive class identified in §6.
+2. **Stage-1 formal interim check** at deploy + 48h (2026-05-03T03:27:28Z): re-evaluate cache + register on whatever post-deploy data exists; emit STAGE_1_CLEAR / HALT / DEFERRED verdict. See `local-agent-schedule.md` Item 1.
+3. **Stage-2 sample-sufficiency check** at deploy + 14d (2026-05-15T03:27:28Z): per `local-agent-schedule.md` Item 4. If `ordinary_sessions ≥ 3`, run Stage-2 final analysis (Item 5). If not, push window by 7-14 days; do NOT relax ordinariness.
+4. ~~Address Phase 0.4 backlog item before next register evaluation~~ — DONE 2026-05-01 (commit `43adc5d`); see §6 Post-Phase-0.4 re-scan subsection.
 
 **Files updated**:
 - `.claude/metrics/token-compression/pre-registration-phase-1-1-jeeves-brief.yaml` → `outcome.status: INCOMPLETE`, reason and closed_at filled in

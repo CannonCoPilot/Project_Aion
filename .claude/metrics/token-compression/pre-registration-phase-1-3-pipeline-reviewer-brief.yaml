@@ -1,0 +1,131 @@
+# Pre-Registration — Phase 1.3 Pipeline Reviewer "Be brief"
+#
+# METHODOLOGICAL NOTE: post-hoc, same circumstances as Phase 1.2.
+# The deploy at AIFred-Pro-Dev `f15f6a2` predates this pre-registration.
+# Predictions below are magnitude-mirrored from Phase 1.5 / 1.2.
+#
+# Phase 1.2 (executor) and Phase 1.3 (reviewer) share the same deploy
+# commit but affect different services. They are filed as separate
+# pre-regs to permit independent verdicts; per-class effects may differ
+# materially because the reviewer's output profile (verdict + reasoning)
+# is structurally different from the executor's (file changes + summary).
+
+# === IDENTITY ===
+
+intervention_id: phase-1-3-pipeline-reviewer-brief
+
+deploy_commit: f15f6a2
+deploy_timestamp: 2026-05-01T03:29:07Z
+deploy_repo: davidmoneil/AIFred-Pro
+
+baseline_lineage: []
+# First-time intervention against AIFred-Pro-Dev pipeline reviewer.
+
+# === HYPOTHESIS ===
+#
+# The reviewer's output is short verdict + reasoning. Mostly `brief` and
+# `interactive` class. "Be brief." should hit the same 25-30% range as
+# elsewhere; per-class predictions track Phase 1.2.
+
+hypothesis:
+  per_class_median_reduction:
+    tool_only:
+      expected: 0
+      tolerance: 0
+      reason: "reviewer rarely emits tool-only outputs"
+
+    brief:
+      expected: -25
+      tolerance: 10
+      reason: "verdict-only outputs (PASS/FAIL with one-line reason) are dominant in this class; filler-cutting most visible"
+
+    interactive:
+      expected: -20
+      tolerance: 10
+      reason: "extended reasoning for ambiguous reviews — primary effect target"
+
+    analysis:
+      expected: -10
+      tolerance: 8
+      reason: "long deliberative reviews — less filler proportionally"
+
+    code_dump:
+      expected: -2
+      tolerance: 5
+      reason: "reviewer rarely produces code dumps"
+
+    structured:
+      expected: -5
+      tolerance: 6
+      reason: "review checklists and tables — header prose around them shortens"
+
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: -2
+      tolerance: 5
+
+    eph_1h_adoption:
+      expected: 50
+      tolerance: 25
+
+  register:
+    violations_per_100_blocks:
+      expected: 0
+      tolerance: 1
+
+# === SAMPLE TARGETS ===
+
+sample_targets:
+  ordinary_sessions: 3
+  total_substantive_turns: 300
+  collection_window_days: 14
+
+# === STAGE 1 — INTERIM SAFETY CHECK (deploy + 48h) ===
+
+interim_check:
+  earliest_run: 2026-05-03T03:29:07Z
+  axes:
+    cache_hit_rate_dip_pp:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+    eph_1h_adoption_min_pct:
+      threshold: 30
+      action_on_breach: STAGE_1_HALT
+    register_violations_per_100_blocks_max:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+  axes_NOT_evaluated:
+    - per_class_median_reduction
+  verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
+  unblocks_on_clear:
+    - Phase 4 pipeline COMPRESSION_MODE plumbing (orthogonal: env-var routing infra)
+
+# === GATE TO NEXT PHASE ===
+
+gate_to_next_phase:
+  description: |
+    Two-stage gating per design doc §10.4.
+    Stage 2 sign-off (deploy+14d) on Phase 1.2 + Phase 1.3 + pipeline-
+    telemetry extractor (Phase 0.5) is the formal gate for Phase 4
+    promotion.
+  required_classes: [brief, interactive, analysis]
+  required_stage: 2
+
+# === DEPENDENCIES ===
+
+dependencies:
+  pipeline_telemetry_extractor:
+    status: BACKLOG
+    backlog_id: phase-0-5-pipeline-telemetry-extractor
+    reason: |
+      Same constraint as Phase 1.2 — pipeline telemetry lives in Pulse
+      task metadata, not Claude Code session JSONLs. Stage-1 and Stage-2
+      evaluations defer until the extractor ships.
+
+# === OUTCOME ===
+
+outcome:
+  status: PENDING
+  result_report: .claude/metrics/token-compression/phase-1-3-pipeline-reviewer-brief-result-YYYY-MM-DD.md
+  closed_at: null
+  reason: null
