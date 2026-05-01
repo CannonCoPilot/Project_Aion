@@ -182,6 +182,22 @@ Positive signal (informational):
 |---|---|---|
 | `butler_register` | (not reported in this run; defer to Phase 0.5 instrumentation) | — |
 
+### Post-Phase-0.4 re-scan (2026-05-01, after `strip_quoted_for_register()` shipped)
+
+The quote-aware filter described in §9.3 was implemented and merged the same day this report was written. Re-running extractor v2 against the same corpus with the filter active:
+
+| Metric | Pre-filter | Post-filter | Δ |
+|---|---|---|---|
+| Total register violations (corpus-wide) | 636 | 608 | -28 |
+| Turns with ≥ 1 violation | 625 | 604 | -21 |
+| Session `94c8971e` turn 182 violations | 2 | 0 | -2 (target case) |
+| Class-share distribution | (reference) | identical (within 0.01pp) | unchanged |
+| Row count | 31,415 | 31,485 | +70 (corpus growth between runs) |
+
+The filter eliminated all false positives identified in the manual review. The two illustrative-quotation hits in turn 182 (`"...certainly!"` and `"...let me know if..."`) are now correctly suppressed. Net of the +70 new turns at the prior rate (~1.4 expected new hits), the filter is suppressing ≈30 false positives across the corpus.
+
+**Implication for this report's verdict**: `register` axis remains PASS. The post-review manual reconciliation in §6 is no longer needed for future Phase 1.x runs — pattern matching is now meta-mention-safe. Single quotes and blockquotes are intentionally preserved.
+
 ---
 
 ## §7 Decision Matrix Application

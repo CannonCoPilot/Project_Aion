@@ -13,7 +13,7 @@ routines) is NOT mirrored here; those have their own canonical configs.
 with `earliest_run ≤ now` and `status: PENDING`); manual review during
 `/maintain` and `/reflect` cycles.
 
-**Updated**: 2026-05-01T15:30:00Z
+**Updated**: 2026-05-01T16:30:00Z
 
 ---
 
@@ -23,10 +23,10 @@ Sorted by earliest_run.
 
 | earliest_run (UTC) | local time | action | status |
 |---|---|---|---|
-| **now** | — | Phase 0.4 — quote-aware register filter for extractor v2 | READY |
-| **now** | — | Phase 1.5 — Alfred-Brief first clean pre-registered run | READY |
+| **now** | — | Phase 1.5 — Alfred-Brief first clean pre-registered run | IN-FLIGHT |
 | 2026-05-15T15:00:00Z | 2026-05-15 09:00 MDT | Phase 1.1 — sample-sufficiency check | PENDING |
 | event-bound | — | Phase 1.1 — final analysis (gated on 3 ordinary post-deploy sessions) | BLOCKED |
+| 2026-05-01T16:30:00Z | 2026-05-01 10:30 MDT | Phase 0.4 — quote-aware register filter | DONE |
 
 Status legend:
 - `READY` — earliest_run has passed; no blocking prerequisites; can start now
@@ -44,50 +44,7 @@ no memory of when it was created.
 
 ---
 
-### Item 1 — Phase 0.4: quote-aware register filter for extractor v2
-
-**Status**: READY
-**Earliest run**: now (no time gate)
-**Trigger**: any time before the next register evaluation
-**Owner**: Jarvis (local session)
-**Prerequisites**: none
-
-**Why**: First register evaluation under the new experimental-design protocol
-(see `.claude/metrics/token-compression/phase-1-1-jeeves-brief-result-2026-05-01.md`
-§9.3) surfaced false positives where the assistant *talks about* register
-patterns inside double-quoted illustrative examples. Until this filter
-ships, every register evaluation needs manual review of all hits, which
-defeats the protocol's automation.
-
-**What to do**:
-1. Edit `.claude/skills/token-compression/scripts/cache-telemetry-extractor-v2.py`
-   `analyze_text()` and `count_register_violations()`.
-2. Strip from text before pattern-matching:
-   - Fenced code blocks (already done).
-   - Double-quoted strings: `re.sub(r'"[^"]*"', '', text)` (with handling
-     for backslash-escaped quotes and multiline edge cases).
-   - Backtick spans: `re.sub(r'`[^`]*`', '', text)`.
-   - Optionally: lines matching `^\s*\|.*\|\s*$` (already part of table
-     detection — already excluded from prose).
-3. Re-run `cache-telemetry-extractor-v2.py` against the
-   2026-05-01 corpus with `--emit-class-distribution` to verify class
-   shares haven't drifted (expected: identical class shares; only
-   `register_violations` column should change).
-4. Re-run §6 of `phase-1-1-jeeves-brief-result-2026-05-01.md` register
-   scan with the fixed extractor; expected: 0 / 99 violations after fix.
-5. Commit and push. Update design doc §14 changelog.
-
-**Outputs**:
-- Updated extractor v2 script.
-- Updated `phase-1-1-jeeves-brief-result-2026-05-01.md` §6 with post-fix
-  numbers.
-- Optional: `phase-0-4-fix-validation.md` documenting before/after.
-
-**Effort estimate**: 1-2 hours including re-validation.
-
----
-
-### Item 2 — Phase 1.5: Alfred-Brief first clean pre-registered run
+### Item 1 — Phase 1.5: Alfred-Brief first clean pre-registered run
 
 **Status**: READY
 **Earliest run**: now (deploy already exists; pre-registration must be
@@ -143,7 +100,7 @@ sample collection; 1-2 hours for run report.
 
 ---
 
-### Item 3 — Phase 1.1 sample-sufficiency check
+### Item 2 — Phase 1.1 sample-sufficiency check
 
 **Status**: PENDING
 **Earliest run**: 2026-05-15T15:00:00Z (2026-05-15 09:00 MDT)
@@ -197,7 +154,7 @@ replaces this item; both are upstream nudges.
 
 ---
 
-### Item 4 — Phase 1.1 final analysis (event-bound)
+### Item 3 — Phase 1.1 final analysis (event-bound)
 
 **Status**: BLOCKED
 **Earliest run**: when 3 ordinary post-deploy sessions exist
@@ -210,7 +167,7 @@ BLOCKED to READY when the condition is met
 - Phase 0.4 quote-aware register filter (Item 1) **shipped** — otherwise
   the register evaluation will require manual review again
 
-**Why**: This is the actual Phase 1.1 final-decision step. Item 3 detects
+**Why**: This is the actual Phase 1.1 final-decision step. Item 2 detects
 when prerequisites are satisfied; this item is the run itself.
 
 **What to do**: same procedure as Phase 1.1 rerun on 2026-05-01, but with
@@ -229,11 +186,12 @@ and per-class brevity should all yield definitive PASS / FAIL verdicts.
 
 ## §3 Completed items
 
-(Empty — this is v1 of the doc. Items move here from §2 when they reach
-DONE status. Move ordering: most-recent-first.)
+Items move here from §2 when they reach DONE status. Move ordering:
+most-recent-first.
 
 | Completed | Item | Result | Linked report |
 |---|---|---|---|
+| 2026-05-01T16:30:00Z | Phase 0.4 — quote-aware register filter for extractor v2 | DONE; corpus-wide register violations 636 → 608; targeted false-positive case (94c8971e turn 182) 2 → 0; class shares unchanged | `.claude/metrics/token-compression/phase-1-1-jeeves-brief-result-2026-05-01.md` §6 (Post-Phase-0.4 re-scan); design doc §14.3 changelog |
 
 ---
 

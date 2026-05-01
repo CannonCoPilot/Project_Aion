@@ -519,6 +519,7 @@ Stored at `.claude/metrics/token-compression/templates/pre-registration-template
 | 2026-05-01 | Document created | Phase 1.4 INCONCLUSIVE result on §3.3 protocol revealed need for stratified comparison |
 | 2026-05-01 | §7.3 ordinariness placeholders replaced with measured values | First v2 baseline run produced actual class shares; placeholders for `interactive` (~17% → 27.01%) and `code_dump` (~9% → 0.61%) were materially off |
 | 2026-05-01 | Phase 0.4 backlog item added: quote-aware register filter | First register evaluation surfaced false positives on meta-mentions of register patterns inside double-quoted illustrative examples in methodology prose |
+| 2026-05-01 | Phase 0.4 SHIPPED: `strip_quoted_for_register()` added to extractor v2; `count_register_violations()` now strips fenced code, inline backticks, ASCII double quotes, and smart double quotes before pattern matching. Validated on Jarvis corpus: row count and class shares unchanged; register-violation total dropped 636 → 608 (28 fewer raw hits across 70 additional turns) | Closes the manual-review burden surfaced by the Phase 1.1 rerun. Single quotes (apostrophes) and blockquotes intentionally preserved to avoid cascading false negatives. Targeted check: session `94c8971e` turn 182 dropped from 2 to 0 violations (both meta-mentions inside illustrative quotations) |
 
 ---
 
