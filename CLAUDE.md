@@ -275,6 +275,12 @@ Claude Code's Edit tool has a hardcoded safety check that prompts for ANY file u
 - **Push**: `git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev push origin nate-dev`
 - **Sync upstream**: `git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev pull origin main` then merge into nate-dev
 
+#### Reviewing David's `nexus-sync-2026-04`
+David maintains an experimental refactor branch on `davidmoneil/AIFred-Pro:nexus-sync-2026-04`. Three-layer review mechanism:
+1. **Layer 1 — Passive (launchd, every 6h)**: `com.aion.david-nexus-sync-fetch` fetches the branch and writes a recent-commits summary to `Shared_Projects/Status/david/nexus-sync-2026-04-recent.md`. AC-01 surfaces it on session start.
+2. **Layer 2 — Deep review (slash command)**: `/sync-aifred-pro-dev` classifies new commits ADOPT/ADAPT/REJECT/DEFER, writes report to `projects/project-aion/evolution/aifred-pro-integration/sync-reports/`, updates `paths-registry.yaml:aifred_pro_dev.nexus_sync.last_reviewed_commit`.
+3. **Layer 3 — Optional Pulse digest**: Weekly RemoteTrigger routine, only enabled if Layers 1+2 prove insufficient.
+
 ### PAT injection (all repos)
 ```
 PAT=$(yq -r '.github.aifred_token' .claude/secrets/credentials.yaml | head -1 | tr -d '[:space:]')
