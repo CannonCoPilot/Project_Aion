@@ -55,6 +55,25 @@ FENCED_CODE_RE = re.compile(r"^```")
 TABLE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
 BULLET_RE = re.compile(r"^\s*[-*]\s")
 
+# Phase 0.4: strip fenced code, inline code, and double-quoted spans before
+# register-pattern matching. Single quotes (apostrophes) and blockquotes are
+# intentionally preserved to avoid cascading false negatives in normal prose.
+QUOTE_STRIPPERS = [
+    (re.compile(r"```.*?```", re.DOTALL), " "),
+    (re.compile(r"`[^`]+`"), " "),
+    (re.compile(r'"[^"]*"'), " "),
+    (re.compile(r"“[^”]*”"), " "),
+]
+
+
+def strip_quoted_for_register(text):
+    """Remove fenced/inline code and quoted spans so register-pattern
+    matching does not fire on meta-mentions of banned phrases inside
+    illustrative quotations."""
+    for pat, repl in QUOTE_STRIPPERS:
+        text = pat.sub(repl, text)
+    return text
+
 
 def load_register_patterns(path):
     """Load banned patterns from yaml; fall back to defaults."""
@@ -109,7 +128,8 @@ def analyze_text(text):
 
 
 def count_register_violations(text, patterns):
-    return sum(1 for p in patterns if p.search(text))
+    stripped = strip_quoted_for_register(text)
+    return sum(1 for p in patterns if p.search(stripped))
 
 
 def classify(output_tokens, tool_use_count, code_lines, prose_lines,
