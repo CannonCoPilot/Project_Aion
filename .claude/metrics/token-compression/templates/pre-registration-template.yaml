@@ -1,0 +1,166 @@
+# Pre-Registration Template — Token-Compression Intervention
+#
+# Companion to projects/project-aion/reports/token-compression-experimental-design.md §8.
+#
+# Usage:
+#   1. Copy this file to:
+#        .claude/metrics/token-compression/pre-registration-<intervention_id>.yaml
+#   2. Fill in EVERY field below before the deploy commit lands.
+#   3. Commit and push the filled-in yaml as part of the deploy commit (or
+#      immediately after) — the prediction must be git-locked before the
+#      post-deploy window opens, otherwise the result is not pre-registered.
+#   4. Do NOT modify predictions after deploy. If predictions were wrong,
+#      record the actual outcome in the run report and learn from the
+#      mis-calibration; do not retrofit predictions.
+#
+# Why this matters: §8.2 of the design doc — pre-registration prevents
+# hindsight calibration ("we expected 12% all along") and class
+# cherry-picking (looking at six classes, claiming success on the two
+# that pass, ignoring the four that didn't).
+
+# === IDENTITY ===
+
+intervention_id: TEMPLATE-REPLACE-ME
+# Format: phase-N-N-<short-name>, e.g.
+#   phase-1-1-jeeves-brief
+#   phase-1-5-alfred-brief
+#   phase-2-cod
+#   phase-3-jicm-compression
+#   phase-4-pipeline-compression-mode
+
+deploy_commit: TEMPLATE-REPLACE-ME
+# Full or short commit hash where the intervention lands.
+# Filled in at the moment of deploy push.
+
+deploy_timestamp: TEMPLATE-REPLACE-ME
+# ISO-8601 UTC timestamp of the deploy push (second precision).
+# Use: git log -1 --format=%cI <deploy_commit>
+# Example: 2026-05-01T03:27:28Z
+
+deploy_repo: TEMPLATE-REPLACE-ME
+# Where the intervention lives. One of:
+#   CannonCoPilot/Jarvis            (Jarvis interventions)
+#   davidmoneil/AIFred-Pro          (AIFred-Pro interventions, nate-dev branch)
+#   CannonCoPilot/Jarvis-Dev        (dev-only interventions)
+
+baseline_lineage: []
+# Empty list if this is a first-time intervention.
+# Otherwise list ALL prior interventions whose effects are baked into the
+# pre-deploy state. Order matters — most recent last.
+# Example for a CoD validation that follows Jeeves-Brief and Alfred-Brief:
+# baseline_lineage:
+#   - phase-1-1-jeeves-brief
+#   - phase-1-5-alfred-brief
+
+# === HYPOTHESIS ===
+
+hypothesis:
+  # Per-class predicted median output_tokens reduction.
+  # Each entry: expected (percent change, negative = reduction),
+  #             tolerance (acceptable absolute deviation in percentage points),
+  #             reason (one sentence justifying the prediction).
+  # All six classes must be present; use expected: 0 for classes where the
+  # intervention is not expected to have an effect.
+  per_class_median_reduction:
+    tool_only:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      reason: TEMPLATE-REPLACE-ME
+
+    brief:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      reason: TEMPLATE-REPLACE-ME
+
+    interactive:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      reason: TEMPLATE-REPLACE-ME
+
+    analysis:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      reason: TEMPLATE-REPLACE-ME
+
+    code_dump:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      reason: TEMPLATE-REPLACE-ME
+
+    structured:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      reason: TEMPLATE-REPLACE-ME
+
+  # Cache stability prediction.
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      # Negative = dip; tolerance is absolute pp deviation allowed.
+      # Standard ±5pp band per design doc §10.2 unless intervention
+      # specifically affects cache prefix.
+
+    eph_1h_adoption:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      # Percentage of post-deploy turns expected to carry the 1h-TTL marker.
+
+  # Register prediction.
+  register:
+    violations_per_100_blocks:
+      expected: TEMPLATE-INT
+      tolerance: TEMPLATE-INT
+      # Standard target is 0 violations per 100 substantive blocks.
+      # Tolerance ≥ 1 means "occasional false-positive permitted".
+
+# === SAMPLE TARGETS ===
+
+sample_targets:
+  ordinary_sessions: 3
+  # Minimum count of sessions classified as "ordinary" per §7.3.
+  # Atypical sessions accumulate in their own buckets and don't count
+  # toward this target.
+
+  total_substantive_turns: 300
+  # Across all post-deploy ordinary sessions; "substantive" = output_tokens >= 50.
+  # Tightened minimums per intent class are listed in design doc §7.2;
+  # this is the headline aggregate.
+
+  collection_window_days: 14
+  # Calendar days between deploy and first eligibility check. The launchd
+  # reminder (created at deploy time) fires at deploy_timestamp + this many
+  # days. If the window closes with insufficient samples, push the reminder
+  # by another 7-14 days; do NOT close the run.
+
+# === GATE TO NEXT PHASE ===
+
+gate_to_next_phase:
+  description: TEMPLATE-REPLACE-ME
+  # One sentence: which downstream phase is gated on this intervention's
+  # FULL PASS. Per design doc §10.3:
+  #   Phase 1.1 gates Phase 2 (CoD on Jarvis)
+  #   Phase 1.5 gates Phase 2 (CoD on AIFred-Pro)
+  #   Phase 1.2-1.4 gates Phase 4 (pipeline COMPRESSION_MODE)
+  #   Phase 2 gates Phase 3 (JICM compression)
+  #   Phase 3 gates Phase 5 (dashboard router)
+
+  required_classes: [brief, interactive, analysis]
+  # Which classes MUST PASS (not just PASS-WEAK) for promotion.
+  # Default set works for most register/brevity interventions.
+  # CoD-class interventions might require [analysis] only.
+
+# === OUTCOME (filled in after run completes) ===
+
+outcome:
+  status: PENDING
+  # One of: PENDING, FULL_PASS, PROVISIONAL_PASS, FAIL, INCOMPLETE,
+  #         CACHE_REGRESSION, REGISTER_REGRESSION, ROLLED_BACK
+  result_report: TEMPLATE-REPLACE-ME
+  # Path to the run report once it exists, e.g.
+  # .claude/metrics/token-compression/<intervention_id>-result-<YYYY-MM-DD>.md
+  closed_at: TEMPLATE-REPLACE-ME
+  # ISO-8601 UTC timestamp; set when status moves out of PENDING.
+  reason: TEMPLATE-REPLACE-ME
+  # Free-text summary of why the run closed at this status.
+  # Required for FAIL, CACHE_REGRESSION, REGISTER_REGRESSION, ROLLED_BACK.

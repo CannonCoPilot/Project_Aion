@@ -1,0 +1,92 @@
+# Register Markers — Versioned Pattern Set for Token-Compression Benchmarking
+#
+# Companion to projects/project-aion/reports/token-compression-experimental-design.md §6.
+# Consumed by .claude/skills/token-compression/scripts/cache-telemetry-extractor-v2.py
+# (--register-markers flag) and any future register-evaluation tool.
+#
+# Versioning protocol: any addition or removal here invalidates direct comparison
+# to prior runs that used the older pattern set. Document changes in the design
+# doc §14 methodology changelog.
+#
+# Pattern format: Python regex, applied with re.IGNORECASE.
+#
+# Schema:
+#   ai_assistant_patois  — banned phrases of generic AI-assistant register
+#   trailing_offers      — banned phrases that pad responses with offers of help
+#   excessive_hedging    — banned phrases that soften assertions unnecessarily
+#   butler_register      — preferred (positive-signal) patterns; reported but not pass/fail
+#   overrides            — per-intervention pattern adjustments (loaded from
+#                          register-markers-<intervention_id>.yaml; not present here)
+
+version: 1.0
+last_updated: 2026-05-01
+last_updated_reason: "Initial pattern set extracted from Phase 1.4 spot-check"
+
+# === BANNED PATTERNS (any hit = violation) ===
+
+ai_assistant_patois:
+  - "\\bsure!?\\b"
+  - "\\bhappy to help\\b"
+  - "\\bof course!?\\b"
+  - "\\bI'?ll just\\b"
+  - "\\bcertainly,?\\b"
+  - "\\bgladly\\b"
+  - "\\bdefinitely!?\\b"
+  - "\\bgreat!?\\b"
+  - "\\babsolutely!?\\b"
+  - "\\bI'?d be happy\\b"
+  - "\\bperfect!?\\b"
+  - "\\bawesome!?\\b"
+  - "\\bno problem!?\\b"
+  - "\\bmy pleasure\\b"
+  - "\\bglad to\\b"
+
+trailing_offers:
+  - "\\blet me know if\\b"
+  - "\\blet me know when\\b"
+  - "\\bjust let me\\b"
+  - "\\bfeel free to\\b"
+  - "\\bdon'?t hesitate\\b"
+  - "\\bjust ask\\b"
+  - "\\bI'?m here to help\\b"
+  - "\\bif you have any (questions|concerns)\\b"
+
+excessive_hedging:
+  - "\\bI think (maybe|perhaps|possibly)\\b"
+  - "\\bit might be that\\b"
+  - "\\bI'?m not (entirely|totally|completely) sure\\b"
+  - "\\bif I'?m being honest\\b"
+  - "\\bto be (honest|fair|frank)\\b"
+  - "\\bjust to be (clear|safe|sure)\\b"
+  # Note: "I think" alone is NOT banned — it's a normal claim-marker.
+  # Only the qualified-with-uncertainty forms are banned.
+
+# === PREFERRED PATTERNS (positive signal; reported but not pass/fail) ===
+
+butler_register:
+  # Jarvis (Jeeves-Brief) register markers — formal English butler
+  - "\\bsir[,.\\s]"
+  - "\\bvery good\\b"
+  - "\\bquite so\\b"
+  - "\\bone moment\\b"
+  - "\\bif I may\\b"
+  - "\\bas you wish\\b"
+  - "\\bunderstood\\b"
+  - "\\bnoted\\b"
+
+# === EVALUATION NOTES ===
+#
+# When extending these patterns:
+#  1. Run cache-telemetry-extractor-v2.py against the existing baseline corpus
+#     to verify no false-positive cascade. If hit rate jumps suddenly with a
+#     new pattern, the pattern is too aggressive.
+#  2. Manually review 10 random hits per new pattern to confirm they are
+#     genuine register violations, not legitimate uses (e.g., "feel free" in
+#     a quoted user message).
+#  3. Document the addition with reasoning in the design doc §14 changelog.
+#
+# Per-intervention overrides should go in register-markers-<intervention_id>.yaml,
+# not here. Examples:
+#   register-markers-phase-1-1-jeeves-brief.yaml  — adds "sir" weighting
+#   register-markers-phase-1-5-alfred-brief.yaml  — replaces "sir" with
+#                                                   "Master Nathaniel"
