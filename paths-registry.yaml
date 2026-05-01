@@ -5,8 +5,8 @@
 # Adopted by Jarvis (Project Aion) - see roadmap.md for evolution
 #
 
-version: "2.0.0"
-last_updated: "2026-01-13"
+version: "2.1.0"
+last_updated: "2026-04-30"
 created_by: "Jarvis (originally AIfred /setup)"
 
 # =============================================================================
@@ -111,16 +111,32 @@ jarvis:
 # =============================================================================
 
 aifred_baseline:
-  path: "/Users/nathanielcannon/Claude/AIfred"
+  path: "/Users/nathanielcannon/Claude/Archive/AIfred"
   branch: "main"
   status: "read-only"
-  current_commit: "2ea4e8b"
-  last_checked: "2026-01-09"
+  current_commit: "a4088af"
+  last_checked: "2026-04-30"
   last_synced_commit: "2ea4e8b"  # Major sync: 14 ADOPT + 7 ADAPT including JICM
   last_sync_date: "2026-01-09"
   sync_command: "/sync-aifred-baseline"
   port_log: ".claude/context/upstream/port-log.md"
-  notes: "Upstream reference only - never edit directly. Use /sync-aifred-baseline to check for updates."
+  notes: "Upstream reference only — relocated to Archive/ on 2026-03-28. Never edit directly."
+
+# =============================================================================
+# AIFRED-PRO-DEV (Collaborative dev workspace with David O'Neil)
+# =============================================================================
+
+aifred_pro_dev:
+  path: "/Users/nathanielcannon/Claude/AIFred-Pro-Dev"
+  branch: "nate-dev"
+  origin_remote: "davidmoneil/AIFred-Pro"
+  status: "read-write"
+  nexus_sync:
+    branch: "nexus-sync-2026-04"
+    last_reviewed_commit: "ee9b155"
+    last_reviewed_date: "2026-04-30"
+    review_command: "/sync-aifred-pro-dev"
+    notes: "David's experimental Nexus refactor branch. Daily fetch + summary via launchd job com.aion.david-nexus-sync-fetch (Stage C)."
 
 # =============================================================================
 # DISCOVERED REPOSITORIES
@@ -128,8 +144,8 @@ aifred_baseline:
 # Found during setup - can be registered as projects
 
 discovered_repos:
-  - path: "/Users/nathanielcannon/Claude/AIfred"
-    status: "unregistered"
+  - path: "/Users/nathanielcannon/Claude/Archive/AIfred"
+    status: "archived-baseline"
   - path: "/Users/nathanielcannon/Claude/ClaudeCode"
     status: "unregistered"
   - path: "/Users/nathanielcannon/Documents/claude-flow"

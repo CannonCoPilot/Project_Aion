@@ -23,15 +23,11 @@ For returning users, Jarvis automatically loads session state and resumes.
 ## Git Workflow (CRITICAL)
 
 ### Jarvis Repository (this repo)
-- **Remote**: `https://github.com/davidmoneil/AIfred.git`
-- **Branch**: `Project_Aion` (ALL development)
-- **NEVER push to `main`** -- main is read-only AIfred baseline at `2ea4e8b`
-- Push pattern:
-  ```bash
-  PAT=$(yq -r '.github.aifred_token' .claude/secrets/credentials.yaml | head -1 | tr -d '[:space:]')
-  git remote set-url origin "https://CannonCoPilot:${PAT}@github.com/davidmoneil/AIfred.git"
-  git push origin Project_Aion
-  ```
+- **Origin**: `git@github.com:CannonCoPilot/Jarvis.git` (SSH, no embedded PAT)
+- **Upstream**: `git@github.com:davidmoneil/AIfred.git` (read-only AIfred baseline at `a4088af`)
+- **Local branch**: `Project_Aion` → tracks `origin/main` on CannonCoPilot/Jarvis
+- **Push**: `git push origin Project_Aion:main` (or simply `git push` once tracking is set)
+- **Note**: `davidmoneil/AIfred:Project_Aion` (at `7d0e9f5`) is **deprecated** as a push target — kept only as a pre-migration historical fossil.
 
 ### DwarfCron / Chronicler Repository
 - **Remote**: `https://github.com/CannonCoPilot/DwarfCron.git`
