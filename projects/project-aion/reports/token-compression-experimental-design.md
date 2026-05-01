@@ -243,14 +243,14 @@ A post-deploy session counts as "ordinary" only if its class composition is with
 
 | Class | Baseline share | Ordinariness band (±) |
 |---|---|---|
-| `tool_only` | ~25% | ±10pp |
-| `brief` | ~31% | ±10pp |
-| `interactive` | ~17% | ±8pp |
-| `analysis` | ~12% | ±6pp |
-| `code_dump` | ~9% | ±5pp |
-| `structured` | ~6% | ±5pp |
+| `tool_only` | 23.24% | ±10pp |
+| `brief` | 34.79% | ±10pp |
+| `interactive` | 27.01% | ±8pp |
+| `analysis` | 12.73% | ±6pp |
+| `code_dump` | 0.61% | ±5pp |
+| `structured` | 1.61% | ±5pp |
 
-(Numbers above are placeholders pending Phase 0.3 extractor v2 baseline tagging. Replace with measured values from the v2 baseline run.)
+Measured values from extractor v2 baseline run on 2026-05-01 against the 31,058-turn / 177-session pre-deploy corpus. See `phase-1-1-jeeves-brief-result-2026-05-01.md` §3 for source data and §9.2 for note on placeholder revisions.
 
 Sessions outside the band are tagged as `atypical_<class>` (e.g., `atypical_analysis` for migration/telemetry-heavy sessions). They contribute to per-class comparisons but are excluded from the headline aggregate.
 
@@ -517,6 +517,8 @@ Stored at `.claude/metrics/token-compression/templates/pre-registration-template
 | Date | Change | Reason |
 |---|---|---|
 | 2026-05-01 | Document created | Phase 1.4 INCONCLUSIVE result on §3.3 protocol revealed need for stratified comparison |
+| 2026-05-01 | §7.3 ordinariness placeholders replaced with measured values | First v2 baseline run produced actual class shares; placeholders for `interactive` (~17% → 27.01%) and `code_dump` (~9% → 0.61%) were materially off |
+| 2026-05-01 | Phase 0.4 backlog item added: quote-aware register filter | First register evaluation surfaced false positives on meta-mentions of register patterns inside double-quoted illustrative examples in methodology prose |
 
 ---
 
