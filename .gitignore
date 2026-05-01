@@ -86,6 +86,9 @@ paths-registry.yaml
 # Scheduled-task lock (runtime)
 .claude/scheduled_tasks.lock
 
+# Headless Claude run logs (runtime)
+.claude/logs/headless/
+
 # OS files
 .DS_Store
 Thumbs.db
