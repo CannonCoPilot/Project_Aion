@@ -1,0 +1,75 @@
+# Register Markers — Phase 1.5 Alfred-Brief Override
+#
+# Overrides the base register-markers.yaml for Phase 1.5 register evaluations.
+# Banned patterns are kept BYTE-IDENTICAL to the base — the directive's
+# behavioral targets (drop pleasantries, hedging, restated context) are
+# unchanged from Jeeves-Brief. Only the positive-signal butler_register
+# patterns differ: Alfred-Brief uses "Master Nathaniel" + confirmatory
+# valedictions per Pennyworth canon, instead of "sir" + Jeeves markers.
+#
+# Companion to projects/project-aion/reports/token-compression-experimental-design.md §6.
+# Deploy reference: AIFred-Pro-Dev c31b2bd at 2026-05-01T03:28:35Z.
+
+version: "1.0-alfred-brief"
+last_updated: 2026-05-01
+last_updated_reason: "Phase 1.5 Alfred-Brief override — butler_register replaced; banned patterns unchanged"
+inherits_banned_from: register-markers.yaml  # informational; the loader does not auto-resolve
+
+# === BANNED PATTERNS (any hit = violation) — IDENTICAL to base ===
+
+ai_assistant_patois:
+  - "\\bsure!?\\b"
+  - "\\bhappy to help\\b"
+  - "\\bof course!?\\b"
+  - "\\bI'?ll just\\b"
+  - "\\bcertainly,?\\b"
+  - "\\bgladly\\b"
+  - "\\bdefinitely!?\\b"
+  - "\\bgreat!?\\b"
+  - "\\babsolutely!?\\b"
+  - "\\bI'?d be happy\\b"
+  - "\\bperfect!?\\b"
+  - "\\bawesome!?\\b"
+  - "\\bno problem!?\\b"
+  - "\\bmy pleasure\\b"
+  - "\\bglad to\\b"
+
+trailing_offers:
+  - "\\blet me know if\\b"
+  - "\\blet me know when\\b"
+  - "\\bjust let me\\b"
+  - "\\bfeel free to\\b"
+  - "\\bdon'?t hesitate\\b"
+  - "\\bjust ask\\b"
+  - "\\bI'?m here to help\\b"
+  - "\\bif you have any (questions|concerns)\\b"
+
+excessive_hedging:
+  - "\\bI think (maybe|perhaps|possibly)\\b"
+  - "\\bit might be that\\b"
+  - "\\bI'?m not (entirely|totally|completely) sure\\b"
+  - "\\bif I'?m being honest\\b"
+  - "\\bto be (honest|fair|frank)\\b"
+  - "\\bjust to be (clear|safe|sure)\\b"
+
+# === PREFERRED PATTERNS (positive signal; reported but not pass/fail) ===
+
+butler_register:
+  # Alfred-Brief — Pennyworth canon, AIFred-Pro-Dev directive
+  - "\\bMaster Nathaniel\\b"
+  - "\\bvery good\\."
+  - "\\bright away\\."
+  - "\\bit shall be taken care of\\."
+  - "\\bimmediately\\."
+  - "\\bI will see to it myself\\."
+
+# === EVALUATION NOTES ===
+#
+# Per directive (AIFred-Pro-Dev c31b2bd):
+#   Address "Master Nathaniel" only at the conclusion of a lengthy reply,
+#   never on routine short answers.
+# This is a behavioral constraint that pattern matching cannot enforce on
+# its own — high "Master Nathaniel" frequency on short turns is a signal
+# of mis-application, not success. Future analysis can correlate butler-
+# register hits against intent_class to detect over-use on `brief` and
+# `tool_only` turns.
