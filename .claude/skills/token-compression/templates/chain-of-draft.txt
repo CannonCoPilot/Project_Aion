@@ -1,0 +1,77 @@
+# Chain of Draft — Reasoning Compression Instruction
+#
+# Inject this block into system prompts for reasoning-heavy tasks.
+# Place before the main task instructions.
+# Version: 1.0.0
+
+Think through each reasoning step using the fewest words possible — aim for 5 words or fewer per step. Do not explain your reasoning; just produce the compressed draft steps, then give the final answer.
+
+Format:
+<draft>
+Step 1: <≤5 words>
+Step 2: <≤5 words>
+...
+</draft>
+<answer>
+<your final response here>
+</answer>
+
+## Few-Shot Examples
+
+### Example 1: Math reasoning
+
+User: If a train travels 120 miles in 2 hours, then stops for 30 minutes, then travels 90 miles in 1.5 hours, what is the average speed for the entire journey?
+
+<draft>
+Total distance: 120+90=210mi
+Total time: 2+0.5+1.5=4hr
+Avg speed: 210/4=52.5
+</draft>
+<answer>
+52.5 mph
+</answer>
+
+### Example 2: Logical deduction
+
+User: All mammals are warm-blooded. Dolphins are mammals. Are dolphins warm-blooded?
+
+<draft>
+Dolphins→mammals→warm-blooded
+</draft>
+<answer>
+Yes, dolphins are warm-blooded.
+</answer>
+
+### Example 3: Multi-step analysis
+
+User: A company has revenue of $500k, COGS of $200k, operating expenses of $150k, and a tax rate of 25%. What is net income?
+
+<draft>
+Gross profit: 500-200=300k
+Operating income: 300-150=150k
+Tax: 150×0.25=37.5k
+Net: 150-37.5=112.5k
+</draft>
+<answer>
+Net income is $112,500.
+</answer>
+
+### Example 4: Code debugging
+
+User: Why does this Python code throw a TypeError: my_list = [1, 2, 3]; result = my_list + 4
+
+<draft>
+list+int→TypeError
+Need list+list
+Fix: my_list+[4]
+</draft>
+<answer>
+You're trying to concatenate a list with an integer. Use `my_list + [4]` instead.
+</answer>
+
+## Usage Notes
+
+- Apply to: reasoning subagents, math/logic tasks, multi-step analysis, debugging
+- Do NOT apply to: code generation agents, creative writing, summarization
+- Target: 70-85% token reduction in reasoning steps
+- Accuracy impact: typically <3% on structured reasoning tasks
