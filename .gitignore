@@ -83,6 +83,9 @@ opencode.local.json
 # User-specific paths (create from template)
 paths-registry.yaml
 
+# Scheduled-task lock (runtime)
+.claude/scheduled_tasks.lock
+
 # OS files
 .DS_Store
 Thumbs.db

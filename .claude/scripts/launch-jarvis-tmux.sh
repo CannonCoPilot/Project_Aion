@@ -315,6 +315,15 @@ preflight_services() {
         echo -e "  ${YELLOW}!${NC} Pulse API — not running (start: bash ~/Claude/AIFred-Pro/pulse/start-pulse.sh --background)"
     fi
 
+    # 7. Pipeline Watcher (Pulse-Nexus Pipeline — Docker container or process)
+    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^aifred-dev-pipeline$'; then
+        echo -e "  ${GREEN}✓${NC} Pipeline Watcher (Docker: aifred-dev-pipeline)"
+    elif pgrep -f 'pipeline-watcher.py' >/dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Pipeline Watcher (process: pipeline-watcher.py)"
+    else
+        echo -e "  ${YELLOW}!${NC} Pipeline Watcher — not running"
+    fi
+
     if [[ $failures -gt 0 ]]; then
         echo -e "${RED}Pre-flight: $failures critical service(s) failed. Continuing anyway...${NC}"
     else
@@ -410,7 +419,6 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         done
         [[ $WAITED -ge 10 ]] && echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting"
     fi
-
     if [[ "$ITERM2_MODE" == "true" ]]; then
         echo "Attaching with iTerm2 integration..."
         exec "$TMUX_BIN" -CC attach-session -t "$SESSION_NAME"
