@@ -861,9 +861,18 @@ Milestone reviews and Wiggum Loop work together:
 ├─────────────────────────────────────────────────────────────┤
 │  AT Milestone Boundary: AC-03 Review (macro-gate)          │
 │    STOP → Technical Review → Progress Review → Decision    │
+├─────────────────────────────────────────────────────────────┤
+│  POST-Milestone (if change has measurable behavioral       │
+│  effect): two-stage-validation-gating                      │
+│    Stage 1 (regression-catch, hours-48h, halt-only)        │
+│    Stage 2 (formal sign-off, days-14d, promotion gate)     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
+### Composition with two-stage validation gating
+
+Milestone review is point-in-time inspection of the deploy artifact. Two-stage validation gating is windowed observation of the deploy *behavior*. For changes with measurable behavioral effect, both gates apply: the milestone review at merge, then Stage 1 within 48h to catch regressions, then Stage 2 for the formal effect verdict. See [two-stage-validation-gating](two-stage-validation-gating.md) for the full protocol.
+
 ---
 
-*Milestone Review Pattern v1.3.0 — Jarvis Phase 6 PR-12.3 (Validated PRD-V3 2026-01-20, Completion Documentation MANDATORY 2026-01-23)*
+*Milestone Review Pattern v1.3.1 — Jarvis Phase 6 PR-12.3 (Validated PRD-V3 2026-01-20, Completion Documentation MANDATORY 2026-01-23, two-stage gate composition added 2026-05-01)*

@@ -7,11 +7,12 @@ Tree (key):
 - `session-state.md` current work status (update frequently)
 - `current-priorities.md` active task queue
 - `configuration-summary.md`
-- dirs: `patterns/` (51), `standards/`, `workflows/`, `designs/`, `components/` (AC specs), `integrations/`, `reference/`, `psyche/`, `troubleshooting/`, `lessons/`, `guides/`, `research/`, `systems/`, `infrastructure/`, `plans/`, `archive/`.
+- dirs: `patterns/` (52), `standards/`, `workflows/`, `designs/`, `components/` (AC specs), `integrations/`, `reference/`, `psyche/`, `troubleshooting/`, `lessons/`, `guides/`, `research/`, `systems/`, `infrastructure/`, `plans/`, `archive/`.
 
 patterns/:
-- 51 patterns; categories: Mandatory (wiggum-loop/startup-protocol/jicm/selection-intelligence-guide), Selection (agent-selection/tool-selection-intelligence/mcp-loading-strategy), Self-Improvement (reflection/evolution/rd/maintenance), Development (branching/milestone-review/project-reporting), Infrastructure (service-lifecycle/docker-operations/mcp-design-patterns).
+- 52 patterns; categories: Mandatory (wiggum-loop/startup-protocol/jicm/selection-intelligence-guide), Selection (agent-selection/tool-selection-intelligence/mcp-loading-strategy), Self-Improvement (reflection/evolution/rd/maintenance), Development (branching/milestone-review/project-reporting), Infrastructure (service-lifecycle/docker-operations/mcp-design-patterns), Validation (tdd-enforcement-pattern, two-stage-validation-gating).
 - Index: `patterns/_index.md`; strictness: ALWAYS > Recommended > Optional.
+- Notable: `two-stage-validation-gating` (v1.0.0, 2026-05-01) — universal Jarvis pattern for any dev change with measurable behavioral effect. Stage 1 = regression-catch (hours-48h, halt only); Stage 2 = formal pre-reg sign-off (days-14d, the promotion gate). Generalized from token-compression-experimental-design.md §10.4 per User directive.
 
 standards/: includes readme-standard, severity-status-system, model-selection.
 
