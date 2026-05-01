@@ -1,0 +1,107 @@
+# Pre-Registration — phase-1-1-jeeves-brief
+#
+# IMPORTANT METHODOLOGICAL NOTE:
+#
+# This pre-registration was filed POST-HOC on 2026-05-01 ~10:00Z, applying
+# the experimental-design protocol (which itself was created on 2026-05-01
+# ~05:30Z, also post-deploy) to the historical Phase 1.1 deploy from
+# 2026-05-01T03:27:28Z.
+#
+# Pre-registration normally requires predictions to be filed BEFORE post-deploy
+# data exists. That is impossible here because the protocol did not exist when
+# the deploy happened. The predictions below are taken VERBATIM from the
+# experimental-design doc §8.1 example block, which itself was written from
+# first-principles reasoning about Jeeves-Brief's design intent — they are
+# recoverable from the directive's text but were not written before the post-
+# deploy data was collected.
+#
+# Honest interpretation: this run validates the protocol's mechanics on real
+# data, but does NOT establish a clean per-class effect signal for Phase 1.1.
+# The first clean pre-registration in this benchmark family will be Phase 1.5
+# (Alfred-Brief) or the rerun of Phase 1.1 once 3+ ordinary post-deploy
+# sessions accumulate.
+
+# === IDENTITY ===
+
+intervention_id: phase-1-1-jeeves-brief
+deploy_commit: 75c9d97
+deploy_timestamp: 2026-05-01T03:27:28Z
+deploy_repo: CannonCoPilot/Jarvis
+baseline_lineage: []  # first-time intervention
+
+# === HYPOTHESIS (taken verbatim from design doc §8.1 example) ===
+
+hypothesis:
+  per_class_median_reduction:
+    tool_only:
+      expected: 0
+      tolerance: 0
+      reason: "no prose; no effect possible"
+    brief:
+      expected: -25
+      tolerance: 10
+      reason: "filler-cutting most visible here"
+    interactive:
+      expected: -20
+      tolerance: 10
+      reason: "filler-cutting effective on conversational answers"
+    analysis:
+      expected: -10
+      tolerance: 8
+      reason: "less filler proportionally; effect smaller"
+    code_dump:
+      expected: -2
+      tolerance: 5
+      reason: "code length is mechanical; minimal effect"
+    structured:
+      expected: -5
+      tolerance: 6
+      reason: "tables/lists are mechanical; small effect via header prose"
+
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: -2
+      tolerance: 5
+    eph_1h_adoption:
+      expected: 90
+      tolerance: 15
+
+  register:
+    violations_per_100_blocks:
+      expected: 0
+      tolerance: 1
+
+# === SAMPLE TARGETS ===
+
+sample_targets:
+  ordinary_sessions: 3
+  total_substantive_turns: 300
+  collection_window_days: 14
+
+# === GATE TO NEXT PHASE ===
+
+gate_to_next_phase:
+  description: "Phase 2 (CoD validation on Jarvis) opens when all classes are PASS or PASS-WEAK"
+  required_classes: [brief, interactive, analysis]
+
+# === OUTCOME ===
+
+outcome:
+  status: INCOMPLETE
+  result_report: .claude/metrics/token-compression/phase-1-1-jeeves-brief-result-2026-05-01.md
+  closed_at: 2026-05-01T15:00:00Z
+  reason: |
+    Three post-deploy sessions exist but ALL are atypical per §7.3
+    ordinariness criterion (heavy-analysis prose; class shares far outside
+    tolerance bands on multiple classes). Zero ordinary post-deploy turns
+    available, so per-class brevity verdicts are PARTIAL across the board.
+    Cache stability passed (Δ -1.93pp, within ±5pp). Register flagged FAIL
+    on raw count (2/99 = 2.02 per 100) but manual review confirms both hits
+    are FALSE POSITIVES — quoted illustrative examples of bad register in
+    methodology prose, not actual register violations. Effective register
+    verdict after manual review: PASS.
+
+    Sample-collection window remains open. Launchd reminder fires
+    2026-05-03 09:00 MDT; remote routine fires 2026-05-04T03:00:00Z. Both
+    will trigger sample-sufficiency check; promotion to Phase 2 stays gated
+    until 3 ordinary sessions accumulate.

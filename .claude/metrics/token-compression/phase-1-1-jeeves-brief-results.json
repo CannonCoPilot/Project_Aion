@@ -1,0 +1,127 @@
+{
+  "intervention_id": "phase-1-1-jeeves-brief",
+  "deploy_commit": "75c9d97",
+  "deploy_timestamp": "2026-05-01T03:27:28Z",
+  "cutoff": "2026-05-01T03:27:28+00:00",
+  "n_pre_total": 31058,
+  "n_post_total": 357,
+  "n_post_ordinary": 0,
+  "n_pre_sessions": 177,
+  "n_post_sessions": 3,
+  "ordinary_sessions": [],
+  "atypical_sessions": [
+    {
+      "sid": "1215e706-eaef-4924-884c-c8c56641d7e3",
+      "atypical_in": [
+        "tool_only",
+        "brief",
+        "interactive",
+        "analysis"
+      ]
+    },
+    {
+      "sid": "94c8971e-47f1-4a2c-a40c-527f1eeb87df",
+      "atypical_in": [
+        "tool_only",
+        "brief",
+        "analysis"
+      ]
+    },
+    {
+      "sid": "5f418261-15c6-414a-9b8b-1751e1855643",
+      "atypical_in": [
+        "tool_only",
+        "brief",
+        "interactive",
+        "analysis"
+      ]
+    }
+  ],
+  "pre_class_shares": {
+    "tool_only": 23.237169167364286,
+    "brief": 34.79296799536351,
+    "interactive": 27.00753429068195,
+    "analysis": 12.734239165432419,
+    "code_dump": 0.6149784274583038,
+    "structured": 1.61311095369953
+  },
+  "cache": {
+    "hr_pre": 93.58788864049976,
+    "hr_post": 91.65613436454011,
+    "delta_pp": -1.9317542759596407,
+    "mhr_pre": 88.71637770333872,
+    "mhr_post": 91.48653827939096,
+    "adopt_pre": 84.63197887822783,
+    "adopt_post": 100.0,
+    "verdict": "PASS"
+  },
+  "register": {
+    "violations": 2,
+    "blocks": 99,
+    "rate_per_100": 2.0202020202020203,
+    "verdict": "FAIL"
+  },
+  "per_class": {
+    "tool_only": {
+      "n_pre": 7217,
+      "n_post": 0,
+      "med_pre": 1,
+      "med_post": 0,
+      "delta_pct": -100.0,
+      "verdict": "PARTIAL",
+      "predicted": 0,
+      "tolerance": 0
+    },
+    "brief": {
+      "n_pre": 10806,
+      "n_post": 0,
+      "med_pre": 8.0,
+      "med_post": 0,
+      "delta_pct": -100.0,
+      "verdict": "PARTIAL",
+      "predicted": -25,
+      "tolerance": 10
+    },
+    "interactive": {
+      "n_pre": 8388,
+      "n_post": 0,
+      "med_pre": 212.0,
+      "med_post": 0,
+      "delta_pct": -100.0,
+      "verdict": "PARTIAL",
+      "predicted": -20,
+      "tolerance": 10
+    },
+    "analysis": {
+      "n_pre": 3955,
+      "n_post": 0,
+      "med_pre": 883,
+      "med_post": 0,
+      "delta_pct": -100.0,
+      "verdict": "PARTIAL",
+      "predicted": -10,
+      "tolerance": 8
+    },
+    "code_dump": {
+      "n_pre": 191,
+      "n_post": 0,
+      "med_pre": 1,
+      "med_post": 0,
+      "delta_pct": -100.0,
+      "verdict": "PARTIAL",
+      "predicted": -2,
+      "tolerance": 5
+    },
+    "structured": {
+      "n_pre": 501,
+      "n_post": 0,
+      "med_pre": 470,
+      "med_post": 0,
+      "delta_pct": -100.0,
+      "verdict": "PARTIAL",
+      "predicted": -5,
+      "tolerance": 6
+    }
+  },
+  "overall": "INCOMPLETE"
+}
