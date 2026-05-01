@@ -273,6 +273,8 @@ Compression layer: Pass 1 (system level, always-on).
 
 ### 3.3 Test protocol
 
+> **DEPRECATED 2026-05-01**: this protocol's median-output_tokens criterion produced an INCONCLUSIVE result on the Phase 1.4 run because pre/post buckets had mismatched content distributions. New runs follow `token-compression-experimental-design.md` (intent-class-stratified protocol with pre-registered per-class predictions). Kept here for historical record; do not use for new runs.
+
 | Step | Action | Pass criterion |
 |---|---|---|
 | 1 | Capture 3 baseline sessions before edit (use Phase 0 telemetry if recent) | Median output_tokens recorded |
