@@ -2,8 +2,8 @@
 
 Reusable implementation patterns organized by category. Consult before implementing significant tasks.
 
-**Last Updated**: 2026-02-08 (Cross-reference audit)
-**Total Patterns**: 51
+**Last Updated**: 2026-05-01 (two-stage-validation-gating added)
+**Total Patterns**: 52
 **Audit Report**: `.claude/reports/pattern-cross-reference-audit-2026-02-08.md`
 
 ---
@@ -166,13 +166,14 @@ Patterns for managing plugins and skills.
 
 ## Testing & Validation
 
-Patterns for testing and setup validation.
+Patterns for testing, validation, and evidence-based promotion gating.
 
 | Pattern | Purpose | When to Use |
 |---------|---------|-------------|
 | [setup-validation](setup-validation.md) | Validate setup completeness | After setup changes |
 | [autonomic-testing-framework](autonomic-testing-framework.md) | Test autonomic components | AC development |
 | [tdd-enforcement-pattern](tdd-enforcement-pattern.md) | Proof-of-work TDD (test before impl) | Code changes, bug fixes, refactors |
+| [two-stage-validation-gating](two-stage-validation-gating.md) | Stage 1 (regression-catch) + Stage 2 (formal sign-off) for changes with measurable behavioral effect | Any dev change with output / perf / register / stability impact |
 
 ---
 

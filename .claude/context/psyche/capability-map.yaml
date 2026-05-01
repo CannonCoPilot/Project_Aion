@@ -1,5 +1,5 @@
 version: 3
-updated: 2026-02-10
+updated: 2026-05-01
 
 # Model tier ref: opus=complex/arch, sonnet=implementation/review/testing, haiku=data/status/formatting.
 
@@ -127,6 +127,7 @@ patterns:
   - {id: pattern.context-budget, when: "Token budgets/MCP tiers/context optimization", file: .claude/context/patterns/context-budget-management.md}
   - {id: pattern.observation-masking, when: "Large tool outputs (80%+ tokens)", file: .claude/context/patterns/observation-masking-pattern.md}
   - {id: pattern.parallelization, when: "Parallel vs sequential decisions", file: .claude/context/patterns/parallelization-strategy.md}
+  - {id: pattern.two-stage-gating, when: "Dev change with measurable behavioral effect — Stage 1 regression-catch + Stage 2 formal sign-off", file: .claude/context/patterns/two-stage-validation-gating.md}
 
 workflows:
   - {id: flow.jicm-compression, when: "Context near threshold — manual trigger", file: .claude/commands/intelligent-compress.md}

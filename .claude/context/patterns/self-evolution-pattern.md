@@ -19,7 +19,8 @@ Self-Evolution is the pattern by which Jarvis safely implements improvements to 
 3. Passes through risk-based approval gates
 4. Is implemented in an isolated branch
 5. Is validated before merge
-6. Can be rolled back if needed
+6. Is gated post-merge per [two-stage-validation-gating](two-stage-validation-gating.md) when the change has measurable behavioral effect (Stage 1 regression-catch + Stage 2 formal sign-off)
+7. Can be rolled back if needed (Stage-1 HALT or Stage-2 FAIL)
 
 ---
 
