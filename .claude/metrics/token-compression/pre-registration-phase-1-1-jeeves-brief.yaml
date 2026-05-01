@@ -78,11 +78,46 @@ sample_targets:
   total_substantive_turns: 300
   collection_window_days: 14
 
-# === GATE TO NEXT PHASE ===
+# === STAGE 1 — INTERIM SAFETY CHECK (deploy + 48h) ===
+#
+# Per design doc §10.4. Stage 1 is NOT a Phase-2 promotion gate — it only
+# unblocks orthogonal-stream work (Phase 2 CoD, Phase 3 JICM compression,
+# Phase 5 dashboard). Phase 2 promotion still requires Stage 2 sign-off.
+
+interim_check:
+  earliest_run: 2026-05-03T03:27:28Z   # deploy_timestamp + 48h
+  axes:
+    cache_hit_rate_dip_pp:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+      reason: "regression catch only — same band as Stage 2"
+    eph_1h_adoption_min_pct:
+      threshold: 50
+      action_on_breach: STAGE_1_HALT
+      reason: "lower bar than Stage 2 (90±15); only catches catastrophic regression"
+    register_violations_per_100_blocks_max:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+      reason: "matches §11 rollback trigger; Stage 1 enforces it earlier"
+  axes_NOT_evaluated:
+    - per_class_median_reduction
+  verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
+  unblocks_on_clear:
+    - Phase 2 CoD (orthogonal: thinking_tokens stream, §4.7 Rule 1)
+    - Phase 3 JICM compression (orthogonal: checkpoint files at session-start)
+    - Phase 5 dashboard (orthogonal: frontend visualization)
+
+# === GATE TO NEXT PHASE (Stage 2 formal sign-off) ===
 
 gate_to_next_phase:
-  description: "Phase 2 (CoD validation on Jarvis) opens when all classes are PASS or PASS-WEAK"
+  description: |
+    Two-stage gating per design doc §10.4.
+    Stage 1 (deploy+48h): interim safety check; clears orthogonal-stream work.
+    Stage 2 (deploy+14d): formal pre-reg sign-off; THIS gates Phase 2 promotion.
+    Phase 2 (CoD validation on Jarvis) opens only when all required classes are
+    PASS or PASS-WEAK at Stage 2.
   required_classes: [brief, interactive, analysis]
+  required_stage: 2
 
 # === OUTCOME ===
 

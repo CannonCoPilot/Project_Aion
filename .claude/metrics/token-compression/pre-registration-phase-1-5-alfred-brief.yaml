@@ -102,8 +102,41 @@ sample_targets:
   total_substantive_turns: 300
 
   collection_window_days: 14
-  # First eligibility check at deploy_timestamp + 14 days = 2026-05-15T03:28:35Z.
-  # Already coincides with the existing launchd reminder window for Phase 1.1.
+  # Formal Stage-2 sign-off at deploy_timestamp + 14 days = 2026-05-15T03:28:35Z.
+
+# === STAGE 1 — INTERIM SAFETY CHECK (deploy + 48h) ===
+#
+# Per design doc §10.4. Stage 1 is NOT a Phase-2 promotion gate — it only
+# unblocks orthogonal-stream work. Phase 2 promotion still requires Stage 2.
+
+interim_check:
+  earliest_run: 2026-05-03T03:28:35Z   # deploy_timestamp + 48h
+  axes:
+    cache_hit_rate_dip_pp:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+      reason: "regression catch only — same band as Stage 2"
+    eph_1h_adoption_min_pct:
+      threshold: 50
+      action_on_breach: STAGE_1_HALT
+      reason: "lower bar than Stage 2 (90±15); only catches catastrophic regression"
+    register_violations_per_100_blocks_max:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+      reason: "matches §11 rollback trigger; Stage 1 enforces it earlier"
+  axes_NOT_evaluated:
+    - per_class_median_reduction
+  verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
+  unblocks_on_clear:
+    - Phase 2 CoD on AIFred-Pro-Dev (orthogonal: thinking_tokens stream, §4.7 Rule 1)
+    - Phase 3 JICM compression on Jarvis (orthogonal: checkpoint files)
+    - Phase 5 dashboard wiring (orthogonal: frontend visualization)
+  notes: |
+    AIFred-Pro-Dev session arrival rate is unknown for the 48h window; if
+    the post-deploy bucket has < 20 turns at the interim check, Stage 1
+    closes as STAGE_1_DEFERRED (insufficient data for the cache + register
+    smoke test) rather than CLEAR or HALT — orthogonal-stream work proceeds
+    only on best-effort understanding of the prior pattern.
 
 # === ORDINARINESS BANDS (corpus-specific) ===
 #
@@ -126,8 +159,13 @@ sample_targets:
 # === GATE TO NEXT PHASE ===
 
 gate_to_next_phase:
-  description: "Phase 1.5 FULL_PASS unblocks Phase 2 (CoD validation) for AIFred-Pro-Dev"
+  description: |
+    Two-stage gating per design doc §10.4.
+    Stage 1 (deploy+48h): interim safety check; clears orthogonal-stream work.
+    Stage 2 (deploy+14d): formal pre-reg sign-off; THIS gates Phase 2 promotion.
+    Phase 1.5 Stage-2 FULL_PASS unblocks Phase 2 (CoD validation) for AIFred-Pro-Dev.
   required_classes: [brief, interactive, analysis]
+  required_stage: 2
 
 # === OUTCOME (filled in after run completes) ===
 
