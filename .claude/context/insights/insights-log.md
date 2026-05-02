@@ -5786,3 +5786,70 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 - **Phase 0.4 needs careful scoping on what to strip**: double-quoted strings yes (the actual false-positive cause), backticks yes (inline code is mechanical), single-quoted strings NO (apostrophes in normal English would cause cascading false negatives — `it's`, `don't`). Smart quotes (curly quotes U+201C/U+201D) yes — same semantics as ASCII double quotes. Markdown blockquotes deferred — they're a separate concern with different tradeoffs (sometimes echoing user content, sometimes attribution).
 - **Phase 1.5 setup has hidden dependencies on baseline knowledge**: AIFred-Pro-Dev's session corpus has a different content profile than Jarvis's (more pipeline-development work, different tool mix), so its class shares will differ from Jarvis's measured baseline. Calibrating predictions and ordinariness bands requires running extractor v2 against the AIFred-Pro-Dev pre-deploy corpus *first*, then filing pre-registration with workspace-specific values.
 - **The pre-registration deploy timestamp will be the deciding cutoff**: Alfred-Brief lives at `c31b2bd`; need its commit timestamp via `%cI` to define the pre/post boundary. Multiple commits land near each other (c31b2bd, f15f6a2) — `c31b2bd` per scratchpad is the Alfred-Brief deploy itself; the others are subsequent Be-Brief epilogue work in the pipeline executor that's actually Phase 1.2-1.4 territory, not 1.5.
+
+### 2026-05-01 [c289c118820c]
+
+Phase 1.5 is methodologically novel in this benchmark family: the pre-registration was filed at exactly 0 post-deploy turns, with predictions visible in commit `5046897` *before* the first post-deploy AIFred-Pro-Dev session lands. That's the cleanest possible state for a pre-registered experiment — no opportunity for hindsight calibration. Phase 1.1's protocol-rerun couldn't claim that because the protocol postdated the deploy.
+
+### 2026-05-01 [04ebfb2ba3f0]
+
+Two phases are unblocked right now (Phase 1.2/1.3 measurement and Phase 3 JICM compression), and one is gated by the Phase 1.5 sample window. The roadmap's chronological order is Phase 2 next, but Phase 2 is hard-blocked on Phase 1.x sign-off — you'd be waiting 14 days. So "next phase" really means "next *unblocked* phase", which is a different question from "next phase in the document order."
+
+### 2026-05-01 [af7829c25c86]
+
+**The pattern doesn't apply to itself**: This work is pure documentation — no deploy, no measurable behavioral effect, no axis to gate on. Per §3, the pattern correctly exempts its own creation. The first real test will be applying it to a future Phase 1.x intervention or AC-06 evolution proposal.
+**Discovery surfaces follow the Selection Intelligence chain**: The pattern is reachable via four traversal paths — `patterns/_index` (humans browsing), `capability-map.yaml` (manifest router for tool selection), `nous-map.md` (Psyche topology), and the in-text cross-references from `milestone-review-pattern` and `self-evolution-pattern` (composed-with patterns). This redundancy is intentional — different agents/sessions arrive via different routes.
+**The 5×-Stage-1 floor for Stage 2 is the load-bearing rule**: Without it, teams would compress Stage 2 to "barely longer than Stage 1" and lose edge-case coverage. With it, Stage 2 is structurally guaranteed to test more than Stage-1 sampling could, regardless of the absolute timescale.
+
+### 2026-05-01 [10002543e501]
+
+**No post-deploy data exists yet**: The Phase 1.2/1.3 deploy at f15f6a2 (2026-05-01 03:29Z) has produced **zero** v2-executor or v2-reviewer runs — the latest pipeline execution is from 2026-04-30 18:53Z. Stage 1 cannot be evaluated until pipeline traffic resumes regardless of whether the extractor exists.
+**Claude telemetry isn't captured for pipeline runs**: Among 212 v2-executor/v2-reviewer files, 0 are `.json` (Claude `--output-format json` sidecars). Only 3 `.json` files exist total in the executions dir, and they're for non-pipeline jobs (task-investigator, task-score, health-summary). Cache-hit-rate, eph_1h adoption, and exact `output_tokens` from Claude API are simply not in the data.
+**Local Ollama is the actual backend for many pipeline runs**: The `live-AION-*.jsonl` files show qwen3:32b token streams. Pipeline executor sometimes routes to Ollama, sometimes to Claude — and Ollama has no caching concept, so Phase 1.2/1.3's cache-stability axis only applies to the Claude-backend subset.
+
+### 2026-05-01 [7c6faaa09252]
+
+Hook ordering matters in v8. By placing `jicm-gate.sh` FIRST in the 10-hook UserPromptSubmit chain, a hard-threshold `decision: "block"` short-circuits all 9 downstream hooks — saving cycles when the user has already lost the prompt anyway. If the gate were last, `permission-gate.js`, `wiggum-loop-tracker.js`, etc., would all run their analysis on a doomed prompt. The Claude Code source processes UPS hooks in array order and respects the first `decision: "block"`. So order is a correctness lever, not just an optimization.
+
+### 2026-05-01 [171f290cdc85]
+
+The UI-TARS-1.5 result is the most interesting datapoint in this batch: a 7B open-weight model surpassing two frontier API models on a standardized GUI grounding benchmark. The implication for Jarvis is that the "computer-use agent" capability — which I currently lack and would otherwise need to wire to a hosted Claude or OpenAI endpoint — is now achievable locally at ~5GB VRAM. That collapses a network-dependent capability into a self-contained one, which is exactly the architectural move JICM v8 also makes (eliminate external dependencies for portability). Two independent evolution vectors converging on the same principle: **observability + capability should live where the work happens**.
+
+### 2026-05-01 [b0ae7b941196]
+
+The pattern across the first two reports is consistent: **don't replace, augment**. Vision report says swap nothing (we had no VLM), add UI-TARS / MonkeyOCR / Depth Pro. Embeddings report says keep the 4B, add a reranker + a code-specific parallel collection. Both reports implicitly respect a principle that's worth naming for the synthesis doc: a local model suite isn't picked from a leaderboard — it's *layered onto an existing stack* where re-indexing, re-training, and re-tuning costs gate the upgrade decision. The MTEB +0.6 result for 8B is exactly the kind of marginal-gain trap Jarvis's two-stage validation gating pattern was designed to catch.
+
+### 2026-05-01 [eb6205787431]
+
+Inside the language agent's transcript you can see the failure mode clearly: it reasoned through a contradiction ("can I use Write on .claude/?... I'll attempt it... constraint is just a prompt for first use"), then concluded with "File written to..." without showing an actual Write tool call. The other four agents wrote successfully — the difference appears to be that they decided up-front to write and just did, while this one talked itself into a false confidence loop. Lesson for future agent prompts: ask for explicit file-existence verification (`ls -la <path>` after write) at the end of the run. Verification baked into the prompt would have surfaced the failure inside the agent's run instead of leaving it for me to catch.
+
+### 2026-05-02 [e271375ae49d]
+
+- The JICM v7 stop-and-wait cycle just restored from `.compressed-context-ready.md` via the SessionStart hook — no keystroke injection, just `additionalContext` injection. The v8 prototype awaiting validation in Jarvis-Dev would replace this with proactive UserPromptSubmit gating (soft 30%/hard 65%), but v7 remains the production cycle until Stage-1 clears.
+- The scratchpad's "v1.1 deferred" claim is consistent: 10 category reports exist on disk (6 v1.0 inputs + 5 v1.1 expansion); the v1.0 design doc at 30,941 bytes synthesized from pre-HALT subset only.
+- All four uncommitted artifacts are untouched since 2026-05-01; resume is true continuation, not divergence.
+
+### 2026-05-02 [6721496f7dc8]
+
+- Phase 0.5 mirrors Phase 0.3's structure: a corpus extractor producing per-turn JSON suitable for cache/register/brevity analysis. Difference is corpus source — Phase 0.3 reads JSONL chat transcripts; Phase 0.5 reads the AIFred-Pro pipeline logs (executor, reviewer, stager, evaluator, orchestrator emit structured `pipeline:*` events).
+- The two-stage gating pattern dictates that 0.5's output must support both Stage-1 axes (cache, register) and Stage-2 axes (per-class brevity by intent — e.g., decompose vs. execute vs. review). Designing the schema correctly now avoids a re-extract later.
+
+### 2026-05-02 [81f3bd06bb10]
+
+- The pre-reg explicitly defines "ordinary" for pipeline runs as "a Pulse task whose executor invocation completes successfully (no force-close) and whose output_tokens distribution is within ±2σ of the pre-deploy median." That definition can be encoded directly into the extractor's filter logic — no need for a separate ordinariness step.
+- Because Phase 1.2 (executor) and Phase 1.3 (reviewer) share the same deploy commit but emit through different services, the extractor must distinguish service identity in its rows. Without that, post-hoc separation would require log re-parsing.
+
+### 2026-05-02 [f523ece4cf62]
+
+- The v7→v8 shift is the same pattern as web scraping → REST API: stop parsing the rendered surface, start consuming the structured signal that already exists upstream. The watcher's complexity was almost entirely compensation for relying on the rendered surface.
+- Three of v7's most fragile features (60-line pane regex, ESC-trigger idle detection, scroll-back contamination guard) all dissolve once you're reading the runtime payload directly. You don't fix them — they cease to exist.
+
+### 2026-05-02 [e9990927d4dd]
+
+- The reason I drafted the runbook with a User-action constraint is anchoring on the v8 prototype being "in Jarvis-Dev, separate workspace." But "separate workspace" doesn't mean "out of reach" — it means "different `$CLAUDE_PROJECT_DIR`." A child `claude` process launched with `cd /Users/nathanielcannon/Claude/Jarvis-Dev` will read Jarvis-Dev's `settings.json` and fire Jarvis-Dev's hooks, which is exactly the test isolation we want.
+- This realization affects more than the JICM v8 runbook: any prototype-validation work for `.claude/`-layer changes (hooks, skills, slash commands, settings) can be tested by Jarvis from Jarvis. The `dev-ops` skill was built for this and has been underused.
+
+### 2026-05-02 [a362ff586de7]
+
+- The architectural fact: anything that submits text to a TUI process must write to that process's input file descriptor. Claude Code's hook system runs *inside* the same process — it can shape what the model sees, but it cannot reach the input fd of its own host. This is not a Claude Code limitation; it is the standard isolation between a process and its own controlling terminal. The user's analysis is fundamentally correct.
+- v7's send-keys mechanism is therefore not a workaround — it is the only architectural class of solution that exists. tmux is one *instance* of that class; it is not the only one.
