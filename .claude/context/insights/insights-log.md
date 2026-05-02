@@ -5853,3 +5853,30 @@ Inside the language agent's transcript you can see the failure mode clearly: it 
 
 - The architectural fact: anything that submits text to a TUI process must write to that process's input file descriptor. Claude Code's hook system runs *inside* the same process — it can shape what the model sees, but it cannot reach the input fd of its own host. This is not a Claude Code limitation; it is the standard isolation between a process and its own controlling terminal. The user's analysis is fundamentally correct.
 - v7's send-keys mechanism is therefore not a workaround — it is the only architectural class of solution that exists. tmux is one *instance* of that class; it is not the only one.
+
+### 2026-05-02 [0a09bda51470]
+
+- The two-document split mirrors a software-engineering principle: design docs answer "why and what"; implementation plans answer "how and when." Keeping them separate prevents the design from drifting into task-tracking and the plan from drifting into rationale-justification — each becomes hard to maintain when load-bearing in both ways.
+- The roadmap's §6 cross-version invariants table is the most operationally important section. It's the regression-test specification for any future change: if a proposed v8.x feature would break any row in that table, the proposal is rejected without further review. This is how the autonomy invariant becomes self-enforcing rather than something I have to remember.
+
+### 2026-05-02 [d8eb4169e5c1]
+
+- Phase 0.5 is the **single highest-leverage unblock** in the current state: it converts two BLOCKED phases (1.2, 1.3) into RUNNABLE under the experimental-design protocol, which in turn produces the first clean pre-registration in the AIFred-Pro pipeline-telemetry family. Every other actionable phase has a dependency or a time-window constraint that 0.5 does not.
+- The JICM v7.9 work I just specified produces `.jicm-state-hook.json` with `cache_read_input_tokens` and `cache_creation_input_tokens` per-prompt. Once v7.9 ships, Phase 0.2's cache-telemetry capture can read this file directly instead of (or alongside) JSONL spelunking. The two workstreams converge — neither blocks the other, but v7.9 provides a cleaner data source for cache analysis post-Stage-1.
+- Phase 1.1 Stage-1 interim fires on a launchd timer tomorrow morning (2026-05-03 09:00 MDT). That's automated — no action required from us today to make it run. We will see the result tomorrow regardless of what we do today.
+
+### 2026-05-02 [a3bc26287e9d]
+
+- The proposed sequence has a useful property: each transition is a *substrate change*, not a context-switch. 0.5 builds the missing data extractor; v7.9 builds the missing observability surface; the 0.2 refactor connects them; CoD then exploits the cleaned-up data foundation. Each phase delivers a foundation the next phase consumes — minimal wasted effort, maximum compounding return.
+- The whole arc is 4 phases × roughly 1 substrate per phase. That's the same pattern as good database migrations: schema-only first, then fill, then read, then optimize. This is the right shape.
+
+### 2026-05-02 [df3daca19afb]
+
+- The Pulse `tasks` table is the right grain for the extractor: every pipeline-touched task is a row with all five services' telemetry in a single JSONB blob. No log-spelunking needed for the structured fields. The text-content fields (for intent_class + register) live in either external log files (executor) or other JSONB keys (review_output, evaluate_output, stage_output).
+- The structural mismatch with the chat-corpus extractor is that pipeline data is *task-keyed*, not turn-keyed. One task = one execution lifecycle = potentially 5 service rows. The chat extractor's "session_id, turn_n" coordinates become "task_id, service" coordinates here.
+- Discovered architectural fact during the probe: executor routes between `ollama` and `claude-cli` engines, but in current dev DB *all 8 closed tasks with telemetry used Ollama*. The Claude-CLI route exists but isn't exercised under current workload — meaning Phase 1.2's cache-stability axes are aspirational against the actual data we'll have in 14 days.
+
+### 2026-05-02 [79624c9faad6]
+
+- The diagnosis-vs-fix distinction matters: my proposed "Option A — let cache columns be NULL for Ollama rows" is a *coping strategy* for a measurement gap. Your proposal — "fix the test-ticket pool so we always have routing mix" — eliminates the gap entirely. Both can coexist (NULL handling stays as a robustness property; mixed routing eliminates the situation where it actually fires). My option A was the duct tape; yours is the structural repair.
+- The two fixes operate at independent layers: schema robustness (extractor NULL handling) and data diversity (ticket routing mix). Doing both leaves us safe whether future test fixtures drift back to monolithic routing or stay mixed.
