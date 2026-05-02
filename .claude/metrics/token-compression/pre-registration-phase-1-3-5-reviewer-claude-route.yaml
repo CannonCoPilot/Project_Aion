@@ -1,0 +1,222 @@
+# Pre-Registration — Phase 1.3.5 Reviewer Claude-CLI Route
+#
+# This intervention is structurally different from Phase 1.1-1.5: it adds a
+# new EXECUTION ROUTE rather than a prompt directive. The default routing is
+# unchanged (Ollama qwen3:32b), so existing tasks see no behavior delta.
+# Effects are observable only on tasks that opt-in via
+# metadata.review_engine == "claude-cli" (or REVIEW_ENGINE env var).
+#
+# Filed PRIOR to first opt-in production traffic. The Claude-CLI route is
+# additive code; Stage 1 is trivial to clear because the default path is
+# untouched. Stage 2 evaluates the *opt-in* turns once they accumulate.
+
+# === IDENTITY ===
+
+intervention_id: phase-1-3-5-reviewer-claude-route
+
+deploy_commit: af73a46
+deploy_timestamp: 2026-05-02T23:04:12Z
+deploy_repo: davidmoneil/AIFred-Pro
+
+baseline_lineage:
+  - phase-1-1-jeeves-brief
+  - phase-1-5-alfred-brief
+  - phase-1-2-pipeline-executor-brief
+  - phase-1-3-pipeline-reviewer-brief
+
+# === HYPOTHESIS ===
+#
+# The reviewer's output is short verdict JSON + reasoning prose. Per-class
+# brevity is expected to track Phase 1.3 (since the prompt is unchanged
+# — same "Be brief" + /no_think). The novel measurement enabled by this
+# route is cache_stability on the reviewer's turns: pre-route, the reviewer
+# was Ollama-only and cache metrics were N/A. Post-route (on opt-in turns),
+# Anthropic's prompt cache becomes observable, including the cost dimension.
+
+hypothesis:
+  per_class_median_reduction:
+    tool_only:
+      expected: 0
+      tolerance: 0
+      reason: "reviewer rarely emits tool-only outputs; prompt unchanged from Phase 1.3"
+
+    brief:
+      expected: -25
+      tolerance: 12
+      reason: "verdict-only outputs (PASS/FAIL with one-line reason) — Phase 1.3 effect carries through, modest variance widening due to Claude vs Qwen prose differences"
+
+    interactive:
+      expected: -20
+      tolerance: 12
+      reason: "extended reasoning for ambiguous reviews — primary effect target, mirroring Phase 1.3"
+
+    analysis:
+      expected: -10
+      tolerance: 8
+      reason: "long deliberative reviews — less filler proportionally"
+
+    code_dump:
+      expected: -2
+      tolerance: 5
+      reason: "reviewer rarely produces code dumps"
+
+    structured:
+      expected: -5
+      tolerance: 6
+      reason: "review checklists and tables — header prose around them shortens"
+
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: 0
+      tolerance: 5
+      # Reviewer prompt is structurally stable across turns within a session
+      # (REVIEW_PROMPT.format() varies by task content but the bulk of the
+      # prefix is invariant). Initial cache miss expected; subsequent turns
+      # within the same session should hit warm cache. Aggregate hit_rate
+      # across opt-in turns expected near baseline.
+
+    eph_1h_adoption:
+      expected: 50
+      tolerance: 25
+      # Reviewer turns are launched fresh per task (no -r/--fork-session in
+      # this MVP route), so 1h-TTL adoption is contingent on the session
+      # backing the Claude CLI being warm enough — uncertain pre-data.
+
+  register:
+    violations_per_100_blocks:
+      expected: 0
+      tolerance: 1
+      # "Be brief" + Claude Sonnet 4.6 is well-trained on the same register
+      # discipline as the executor route — register pass-through expected.
+
+  # === NEW DIMENSION: COST (Phase 1.3.5 specific) ===
+  #
+  # Cost was N/A in Phases 1.1-1.5 because all interventions were
+  # prompt-only changes, not engine swaps. Phase 1.3.5 introduces a
+  # billable code path. Stage 2 verdict explicitly tracks cost-per-task.
+
+  cost_per_review_usd:
+    expected: 0.005
+    tolerance: 0.010
+    # Order-of-magnitude estimate: ~5K-input + ~200-output tokens per
+    # review × Claude Sonnet 4.6 pricing. Tolerance is wide because
+    # cache hit rate and review length both affect cost materially.
+
+# === SAMPLE TARGETS ===
+#
+# Sample sufficiency requires opt-in traffic. Default routing keeps zero
+# Claude-CLI reviews unless explicitly requested via metadata or env var.
+# Sample window will likely run longer than Phase 1.1-1.5 because most
+# production traffic stays on Ollama by design.
+
+sample_targets:
+  ordinary_sessions: 3
+  total_substantive_turns: 100
+  # Lower than Phase 1.1-1.5's 300-turn target because reviewer turns are
+  # 1-per-task (vs. multi-turn per session in chat-corpus). 100 reviewer
+  # turns = ~100 distinct reviewed tasks on the opt-in route.
+  collection_window_days: 14
+
+# === STAGE 1 — INTERIM SAFETY CHECK (deploy + 48h) ===
+
+interim_check:
+  earliest_run: 2026-05-04T23:04:12Z
+  axes:
+    cache_hit_rate_dip_pp:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+    eph_1h_adoption_min_pct:
+      threshold: 25
+      action_on_breach: STAGE_1_DEFERRED
+      # Lower than Phase 1.1's 30 because reviewer route is still warming up;
+      # DEFERRED rather than HALT because adoption is workload-dependent.
+    register_violations_per_100_blocks_max:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+    default_route_regression:
+      threshold: 0
+      action_on_breach: STAGE_1_HALT
+      description: |
+        Any Ollama-route review that fails differently than baseline behavior.
+        This catches refactor-introduced bugs in the unchanged code path.
+        Verified via diff of review_output JSON shape on a smoke test.
+  axes_NOT_evaluated:
+    - per_class_median_reduction
+    - cost_per_review_usd
+  verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
+  unblocks_on_clear:
+    - Phase 4 pipeline COMPRESSION_MODE plumbing (orthogonal: env-var routing infra; reviewer Claude-route can be opt-in tested without committing to Phase 4 promotion)
+    - Phase 5 dashboard router decisions can begin design work (orthogonal: dashboard wiring is independent of which engine routes the reviewer)
+
+# === STAGE 2 — FORMAL SIGN-OFF (deploy + 14d) ===
+
+stage_2_check:
+  earliest_run: 2026-05-16T23:04:12Z
+  axes:
+    - per_class_median_reduction
+    - cache_stability.hit_rate_dip_pp
+    - cache_stability.eph_1h_adoption
+    - register.violations_per_100_blocks
+    - cost_per_review_usd
+  verdict_states:
+    - STAGE_2_PASS
+    - STAGE_2_PARTIAL
+    - STAGE_2_FAIL
+    - STAGE_2_REGRESSION_CATCH
+  required_for_pass:
+    - All required_classes (brief, interactive, analysis) within tolerance
+    - cache_stability.hit_rate_dip_pp within ±5pp
+    - register.violations_per_100_blocks ≤ 1
+    - cost_per_review_usd within tolerance OR explicit User acceptance of higher cost
+
+# === GATE TO NEXT PHASE ===
+
+gate_to_next_phase:
+  description: |
+    Two-stage gating per design doc §10.4 and pattern
+    .claude/context/patterns/two-stage-validation-gating.md.
+
+    This intervention does NOT directly gate any downstream phase; it is
+    additive infrastructure that enables future phase work:
+      - Phase 4 (pipeline COMPRESSION_MODE) can use either route and is
+        not gated on this Stage 2.
+      - Future Phase 1.x interventions targeting the reviewer specifically
+        will benefit from cache observability on the Claude-CLI path, but
+        are not blocked by Phase 1.3.5 sign-off.
+
+    Stage 2 PASS unlocks: defaulting the reviewer to Claude-CLI for
+    metric-bearing experiments (current default remains Ollama; opt-in
+    only). FAIL or PARTIAL: route remains opt-in indefinitely.
+  required_classes: [brief, interactive, analysis]
+  required_stage: 2
+
+# === DEPENDENCIES ===
+
+dependencies:
+  pipeline_telemetry_extractor:
+    status: SHIPPED
+    location: .claude/skills/token-compression/scripts/pipeline-telemetry-extractor.py
+    reason: |
+      Phase 0.5 extractor (24-col CSV, engine-aware NULL handling) ships
+      alongside this pre-registration in the same commit family. Stage-1
+      and Stage-2 evaluations parse the extractor's CSV output filtered
+      to service=review and engine=claude-cli rows.
+    invocation: |
+      python3 .claude/skills/token-compression/scripts/pipeline-telemetry-extractor.py \
+        --source dev --since 2026-05-02T23:04:12Z --emit-class-distribution \
+        --out .claude/metrics/token-compression/pipeline-telemetry-stage-1-3-5.csv
+
+  smoke_test_default_route:
+    status: REQUIRED
+    description: |
+      Before Stage 1 verdict, run at least one Ollama-route review against
+      a fresh task and confirm review_telemetry shape is unchanged from
+      pre-deploy baseline. This is the regression-catch axis.
+
+# === OUTCOME ===
+
+outcome:
+  status: PENDING
+  result_report: .claude/metrics/token-compression/phase-1-3-5-reviewer-claude-route-result-YYYY-MM-DD.md
+  closed_at: null
+  reason: null
