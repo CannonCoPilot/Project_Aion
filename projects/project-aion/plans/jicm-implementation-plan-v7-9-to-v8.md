@@ -55,14 +55,18 @@ The single invariant from the roadmap §1 — full autonomy — is verified at e
 
 **Tasks**:
 1. Build `jicm-state-update.sh` — atomic update helper for `.jicm-state-hook.json` using temp file + rename. Avoids torn writes when watcher reads concurrently.
-2. Build `jicm-gate.sh` (UserPromptSubmit hook):
-    - Read `context_window` + `cost` + `rate_limits` + `model` + `session_id` from stdin JSON.
-    - Compute burn_rate_tpm by comparing against last-state's tokens / ts.
-    - Compute soft/hard ETA minutes.
-    - Determine threshold state: `none`, `soft`, `hard`.
-    - Atomically update `.jicm-state-hook.json` (all 18 fields per roadmap §4.4).
+2. Build `jicm-gate.sh` (UserPromptSubmit hook) — sensing source is JSONL parsing per baseline doc §3:
+    - Read `session_id`, `transcript_path`, `cwd`, `permission_mode` from stdin JSON.
+    - Parse `transcript_path` JSONL — `tail -n 200 "$TRANSCRIPT" | jq -s 'last(.[] | select(.type=="assistant") | .message.usage)'` — to extract latest assistant `usage` object.
+    - Compute `current_context_tokens = .input_tokens + .cache_read_input_tokens + .cache_creation_input_tokens` (canonical formula, verified §3 of baseline doc).
+    - Compute `burn_rate_tpm` by comparing against last-state's tokens/ts (delta tokens × 60 / delta sec).
+    - Compute `soft_eta_min`, `hard_eta_min` in tokens (NOT percentages — per User encoding directive).
+    - Determine threshold state: `none`, `soft`, `hard` — compared as token integers against `JICM_SOFT_TOKENS` / `JICM_HARD_TOKENS` env vars.
+    - Atomically update `.jicm-state-hook.json` via `jicm-state-update.sh` helper (token counts primary; percentages computed for display only).
     - If threshold is `soft` or `hard`: set `pending_action: HALT_AFTER_RESPONSE`.
-    - Exit 0 with empty stdout (no `additionalContext`, no `decision: "block"` — actuation is the watcher's job).
+    - Exit 0 with empty `additionalContext`. NO `decision: "block"` — actuation is the watcher's job.
+    - `cost` and `rate_limits` are NOT available in hook stdin; leave as null in state file (display-only fields, not actuator-trigger inputs). Future enhancement may populate from ccusage cache (see baseline doc §8 follow-up items).
+    - Window size: read `message.model` from latest JSONL turn; map via lookup table (`opus-4-7[1m]→1000000`, `opus-4-7→200000`, `sonnet-4-6→200000`, `haiku-4-5→200000`); fallback to 1000000.
 3. Build `jicm-stop.sh` (Stop hook):
     - Read `.jicm-state-hook.json`.
     - If `pending_action == "HALT_AFTER_RESPONSE"`: write `.jicm-clear-now.signal` with `{threshold_type, tokens, pct, ts}`.

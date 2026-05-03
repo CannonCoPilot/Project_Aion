@@ -71,9 +71,11 @@ This roadmap covers **v7.3 → v7.9 → v8.0** in detail. v8.1 and v8.2 are list
 - Pane scroll-back contamination workaround (restrict to last 5 lines).
 
 **Replaced by**:
-- `UserPromptSubmit` hook reading `context_window` JSON from stdin (structured, authoritative, current).
-- Burn rate computed inside the hook by comparing successive `total_input_tokens` readings written to `.jicm-state-hook.json`.
+- `UserPromptSubmit` hook reading `transcript_path` from stdin, parsing the JSONL transcript's most recent assistant `message.usage` object, and computing `current_context_tokens = input_tokens + cache_read_input_tokens + cache_creation_input_tokens` (structured, authoritative, within ~3-4% of TUI value as a conservative lower bound).
+- Burn rate computed inside the hook by comparing successive `current_context_tokens` readings written to `.jicm-state-hook.json`.
 - Pending-action flagging via `.jicm-state-hook.json.pending_action` consumed by `Stop` hook (which fires after Claude finishes a turn — the natural idle moment).
+
+> **CORRECTION 2026-05-02 (Phase 7.9.0 audit)**: The original §4.1 draft specified the UPS hook reading `context_window` JSON from stdin. **That field is not present in any Claude Code hook event's stdin payload** — verified empirically (`.jicm-stdin-debug.json`) and via official docs (`code.claude.com/docs/en/hooks.md`). The original source citations to `StatusLine.tsx:90` and `statuslineSetup.ts:54` describe the **statusLine command** payload contract, NOT the UPS hook contract — those are different events with different schemas. **JSONL transcript parsing is the corrected canonical sensing source**, verified within ~3.6% of v7 capture-pane reading and approved per User this session. See `.claude/metrics/jicm/v7-9-baseline-2026-05-02.md` §2-3 for the full evidence trail. **Encoding directive**: token counts strictly preferred over percentages — thresholds, ETAs, and state-file primary fields all carry exact token integers; percentages are display-derived only.
 
 ### 4.2 Signal protocol (FORMALIZED)
 
