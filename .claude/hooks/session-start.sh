@@ -411,6 +411,12 @@ Resume: Parse the compressed context above, check the active plan referenced in 
             }
           }'
 
+        # Phase 7.9.1 (v7.9) — signal slim watcher that resume injection succeeded.
+        # Watcher (Phase 7.9.3) polls .jicm-resume-complete.signal to advance the actuator chain.
+        # Production (v7.3 watcher) ignores this signal; harmless additive code, forward-compatible.
+        RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
+        echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$V6_COMPRESSED" 2>/dev/null | tr -d ' '),\"source\":\"clear-v7\"}" > "$RESUME_SIGNAL" 2>/dev/null || true
+
         exit 0
     fi
 fi

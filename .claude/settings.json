@@ -6,6 +6,11 @@
   "plansDirectory": ".claude/plans",
   "mcpToolSearch": "auto:15",
 
+  "statusLine": {
+    "type": "command",
+    "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/jarvis-statusline-v8.sh"
+  },
+
   "hooks": {
     "Setup": [
       {
@@ -40,11 +45,24 @@
           {
             "type": "command",
             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-compact.sh"
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/jicm-precompact.sh"
           }
         ]
       }
     ],
     "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/jicm-stop.sh"
+          }
+        ]
+      },
       {
         "matcher": "",
         "hooks": [
@@ -115,6 +133,10 @@
       {
         "matcher": "",
         "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/jicm-gate.sh"
+          },
           {
             "type": "command",
             "command": "bash $CLAUDE_PROJECT_DIR/.claude/hooks/pre-clear-context-prep.sh"
