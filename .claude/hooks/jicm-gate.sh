@@ -19,6 +19,16 @@
 # DOES NOT actuate. State write only. Watcher (slim) does actuation after
 # Stop hook writes .jicm-clear-now.signal.
 #
+# PHASE 0.2 REFACTOR (2026-05-03): state-hook now carries cache_creation
+# breakdown so token-compression metrics (eph_1h adoption, cache hit rate)
+# can read directly from .jicm-state-hook.json without re-parsing JSONL.
+#   cache_creation_tokens     — flat scalar (sum, all ephemerals combined)
+#   cache_creation_5m_tokens  — usage.cache_creation.ephemeral_5m_input_tokens
+#   cache_creation_1h_tokens  — usage.cache_creation.ephemeral_1h_input_tokens
+#   cache_hit_rate            — cache_read / (cache_read + cache_creation + input)
+# Canonical formulas shared with cache-telemetry-extractor-v2.py per
+# .claude/context/reference/jicm-token-formulas.md.
+#
 # ENCODING: token counts strictly preferred over percentages (User directive
 # 2026-05-02). Thresholds, ETAs, and primary state fields are token integers;
 # percentages are computed for display only.
@@ -70,11 +80,18 @@ TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
 [[ "$TRANSCRIPT" == "null" ]] && TRANSCRIPT=""
 
 # ─── Parse JSONL for latest assistant usage (CANONICAL SOURCE) ──────────────
+# Phase 0.2 refactor: extract ephemeral cache breakdown so .jicm-state-hook.json
+# carries the data token-compression Phase 1.x metrics need (eph_1h adoption,
+# cache hit rate). See .claude/context/reference/jicm-token-formulas.md for the
+# canonical formulas shared between this hook and cache-telemetry-extractor-v2.py.
 TOKENS=0
 INPUT_T=0
 CACHE_R=0
 CACHE_C=0
+CACHE_5M=0
+CACHE_1H=0
 OUTPUT_T=0
+HIT_RATE="0.0000"
 MODEL=""
 
 if [[ -f "$TRANSCRIPT" ]]; then
@@ -84,12 +101,22 @@ if [[ -f "$TRANSCRIPT" ]]; then
         INPUT_T=$(echo "$USAGE" | jq -r '.input_tokens // 0' 2>/dev/null)
         CACHE_R=$(echo "$USAGE" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null)
         CACHE_C=$(echo "$USAGE" | jq -r '.cache_creation_input_tokens // 0' 2>/dev/null)
+        CACHE_5M=$(echo "$USAGE" | jq -r '.cache_creation.ephemeral_5m_input_tokens // 0' 2>/dev/null)
+        CACHE_1H=$(echo "$USAGE" | jq -r '.cache_creation.ephemeral_1h_input_tokens // 0' 2>/dev/null)
         OUTPUT_T=$(echo "$USAGE" | jq -r '.output_tokens // 0' 2>/dev/null)
         [[ "$INPUT_T" == "null" || -z "$INPUT_T" ]] && INPUT_T=0
         [[ "$CACHE_R" == "null" || -z "$CACHE_R" ]] && CACHE_R=0
         [[ "$CACHE_C" == "null" || -z "$CACHE_C" ]] && CACHE_C=0
+        [[ "$CACHE_5M" == "null" || -z "$CACHE_5M" ]] && CACHE_5M=0
+        [[ "$CACHE_1H" == "null" || -z "$CACHE_1H" ]] && CACHE_1H=0
         [[ "$OUTPUT_T" == "null" || -z "$OUTPUT_T" ]] && OUTPUT_T=0
         TOKENS=$((INPUT_T + CACHE_R + CACHE_C))
+        # Cache hit rate: cache_read / (cache_read + cache_creation_total + input_tokens)
+        # awk used because bash integer arithmetic truncates; 4-decimal-place precision.
+        DENOM=$((CACHE_R + CACHE_C + INPUT_T))
+        if [[ "$DENOM" -gt 0 ]]; then
+            HIT_RATE=$(awk -v r="$CACHE_R" -v d="$DENOM" 'BEGIN { printf "%.4f", r/d }')
+        fi
     fi
     # Latest assistant message's model id
     MODEL=$(tail -n 200 "$TRANSCRIPT" 2>/dev/null | jq -rs 'last(.[] | select(.type=="assistant") | .message.model)' 2>/dev/null)
@@ -164,6 +191,9 @@ if [[ -x "$STATE_UPDATE" ]]; then
   "input_tokens": $INPUT_T,
   "cache_read_tokens": $CACHE_R,
   "cache_creation_tokens": $CACHE_C,
+  "cache_creation_5m_tokens": $CACHE_5M,
+  "cache_creation_1h_tokens": $CACHE_1H,
+  "cache_hit_rate": $HIT_RATE,
   "output_tokens_last": $OUTPUT_T,
   "context_window_size": $WINDOW,
   "soft_threshold_tokens": $JICM_SOFT_TOKENS,
