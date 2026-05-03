@@ -5992,3 +5992,31 @@ Tools like `htop` and `top` solve flicker with three combined techniques: (1) th
 ### 2026-05-03 [8378a12e35e4]
 
 Threshold values follow a write-once / read-many cascade: `jicm-config.sh` is the canonical source, the gate hook reads it once per UPS event and writes the active values into `.jicm-state-hook.json`, and downstream consumers (HUD, statusline, watcher diagnostics) all read from that JSON snapshot. This means the file is the **observed reality** of JICM at any moment, not the script defaults. If you ever need to test new thresholds without a code change, you can either set `JICM_SOFT_TOKENS=...` / `JICM_HARD_TOKENS=...` env vars (gate hook honors them via `${VAR:-default}`) or patch state-hook directly like I just did. That same indirection is why the running HUD didn't reflect the new defaults until state-hook was refreshed.
+
+### 2026-05-03 [78d0c89c6441]
+
+A real session is the only way to see the full v9 statusline because it depends on stdin JSON from Claude Code itself — the demo gallery uses synthetic state, but several v9 features (real `Δburn rate`, `S:` and `H:` ETAs, `api:%` time-ratio, `cache:%` hit rate, `📖` output-style indicator, the project-arrow-counter) are all populated from live session data. Notice how a brand-new W8 session already shows `Δ5.8K/m` and `H:9m` — Claude Code computes burn rate from the session-start delta even on the first prompt, and the v9 hard-ETA panel already projects that this session would hit the new 300K hard threshold in roughly 9 minutes at the current rate. That's the new threshold doing its job: aggressive enough to keep sessions tight.
+
+### 2026-05-03 [9dc8bbf678b1]
+
+Looking at the commit history above, this branch has been quietly accumulating unpushed work across several sessions — `e3fdc6d` (two-stage gating pattern), `a7343b1` (roadmap docs), `bf912f4` (Phase 0.5), `28daad7` (insights), and the three v7.9 deployment commits. That's a common drift pattern in autonomous workflows: each session creates a logical commit but the push step gets deprioritized because nothing forces it. The push at the end of this turn will collapse the deferred-push backlog plus today's five new commits in one batch.
+
+### 2026-05-03 [913970ac6528]
+
+Look at the push manifest carefully — the 13 commits span four roughly independent workstreams (JICM v7.9 deployment, Project Aion patterns, token-compression Phase 0/2, statusline + HUD UI), all merged into a single linear history because they were done sequentially in this branch. That linearity matters: each commit at push time had a green working tree, which means any commit in the range is a valid checkout point if you ever need to bisect. Bundling related changes into focused commits (`chore(jicm)`, `feat(jicm)`, `feat(token-compression)`, `docs(psyche)`, `chore`) — rather than one mega-commit — preserves that bisectability while still keeping push frequency low. This is the Conventional Commits payoff in practice.
+
+### 2026-05-03 [a3f7a85e60de]
+
+This /clear → resume pair is the first JICM cycle to fire under the new 250k/300k thresholds — earlier than it would have under the old 300k/650k defaults. Notice the working-tree drift: `.scratchpad.md` and the insights pair both show modified again, because the post-cycle infrastructure (jicm-prep-context.sh, insight-capture hook) regenerated their contents during compression. That's not stale state — it's the system working correctly. The infrastructure files self-update across each JICM boundary, and the next chore commit absorbs them naturally. Today's work survived the boundary cleanly: HEAD is still at ea2b9ac, all 13 commits remain pushed, W7 HUD and W8 v9 statusline are both still running, new thresholds are still in `.jicm-state-hook.json`.
+
+### 2026-05-03 [5633026f0ddf]
+
+You're chaining JICM cycles in close succession (16:30Z → 16:35Z → now). Under the new aggressive thresholds, each cycle is cheaper to absorb because the compression input is smaller — the prep script processed less context, the LLM enrichment ran on a smaller payload, and the resume gets a tighter checkpoint. The earlier 300k/650k regime would have made these chained cycles much more expensive.
+
+### 2026-05-03 [45e15014a53f]
+
+Four back-to-back JICM cycles with no intervening directive is an unusual workload signature, but the chain itself validates the new 250k/300k thresholds: each cycle's prep+restore completes silently, the v9 statusline reads new thresholds correctly, and the resume signal fires on schedule. The earlier chain today (14:50→15:10) followed the same shape, suggesting deliberate context-window staging before a substantive directive — not stress-testing. Operational confidence toward 7.9.6c shim removal continues to accumulate (this resume lands cycle ≈#6 since the slim-watcher cutover at 04:46Z, all clean).
+
+### 2026-05-03 [4d6bff118443]
+
+The smoke-test design is itself worth noting: it covers the cartesian product of (default behavior preserved) × (each new flag works) × (each error path produces an actionable message). Test 3's "fewshot not authored yet → use --variant single-line" hint is the kind of error message that earns its keep — it tells future-Jarvis what to do next instead of just reporting failure. For a script that will be invoked by another script (the upcoming cod-inject.sh hook), error-message clarity translates directly into log-readability when something goes wrong in production.
