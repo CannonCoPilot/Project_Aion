@@ -82,19 +82,19 @@ EFFORT=$(echo "$INPUT" | jq -r '.effort.level // ""' 2>/dev/null)
 ACTION="WATCHING"
 BURN_RATE_TPM=0
 HARD_ETA_MIN=0
-SOFT_TOKENS=300000
-HARD_TOKENS=650000
+SOFT_TOKENS=250000
+HARD_TOKENS=300000
 if [[ -f "$STATE_FILE" ]]; then
     ACTION=$(jq -r '.action // "WATCHING"' "$STATE_FILE" 2>/dev/null)
     BURN_RATE_TPM=$(jq -r '.burn_rate_tpm // 0' "$STATE_FILE" 2>/dev/null)
     HARD_ETA_MIN=$(jq -r '.hard_eta_min // 0' "$STATE_FILE" 2>/dev/null)
-    SOFT_TOKENS=$(jq -r '.soft_threshold_tokens // 300000' "$STATE_FILE" 2>/dev/null)
-    HARD_TOKENS=$(jq -r '.hard_threshold_tokens // 650000' "$STATE_FILE" 2>/dev/null)
+    SOFT_TOKENS=$(jq -r '.soft_threshold_tokens // 250000' "$STATE_FILE" 2>/dev/null)
+    HARD_TOKENS=$(jq -r '.hard_threshold_tokens // 300000' "$STATE_FILE" 2>/dev/null)
     [[ "$ACTION" == "null" ]] && ACTION="WATCHING"
     [[ "$BURN_RATE_TPM" == "null" ]] && BURN_RATE_TPM=0
     [[ "$HARD_ETA_MIN" == "null" ]] && HARD_ETA_MIN=0
-    [[ "$SOFT_TOKENS" == "null" ]] && SOFT_TOKENS=300000
-    [[ "$HARD_TOKENS" == "null" ]] && HARD_TOKENS=650000
+    [[ "$SOFT_TOKENS" == "null" ]] && SOFT_TOKENS=250000
+    [[ "$HARD_TOKENS" == "null" ]] && HARD_TOKENS=300000
 fi
 # Derive pct ticks for the bar (display-only)
 if [[ "$WINDOW" -gt 0 ]]; then
