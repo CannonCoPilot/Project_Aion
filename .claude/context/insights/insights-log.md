@@ -5880,3 +5880,115 @@ Inside the language agent's transcript you can see the failure mode clearly: it 
 
 - The diagnosis-vs-fix distinction matters: my proposed "Option A — let cache columns be NULL for Ollama rows" is a *coping strategy* for a measurement gap. Your proposal — "fix the test-ticket pool so we always have routing mix" — eliminates the gap entirely. Both can coexist (NULL handling stays as a robustness property; mixed routing eliminates the situation where it actually fires). My option A was the duct tape; yours is the structural repair.
 - The two fixes operate at independent layers: schema robustness (extractor NULL handling) and data diversity (ticket routing mix). Doing both leaves us safe whether future test fixtures drift back to monolithic routing or stay mixed.
+
+### 2026-05-02 [7caab250f84b]
+
+The architectural pivot from prototype to v7.9: in the prototype `jicm-gate.sh`, the hook itself runs prep synchronously and returns `decision: "block"` asking the user to type `/clear`. That breaks the autonomy invariant — Claude Code's hook return path cannot inject `/clear` into the parent TUI. The v7.9 spec splits this: `jicm-gate.sh` only updates state and flags `pending_action`; `jicm-stop.sh` reads state after the response completes and writes `.jicm-clear-now.signal`; the *watcher* (an external process) reads that signal and does the actual `/clear` injection via `tmux send-keys`. This decoupling preserves autonomy and makes the actuator pluggable for v8.0 PTY backends.
+
+### 2026-05-02 [39ca5c21fc9f]
+
+This is exactly what Phase 7.9.0's purpose is — to surface load-bearing assumptions before they propagate through downstream phases. If the audit discovered this in Phase 7.9.3 (slim watcher rewrite) instead, we'd have built the watcher around a non-existent signal. The hook-event/statusLine distinction matters: statusLine renders on a tight cadence and DOES receive context_window data; UserPromptSubmit fires once per prompt with a much smaller payload. The v7.9 architecture may need to route token sensing through statusLine (write to state file) rather than UserPromptSubmit.
+
+### 2026-05-02 [70003e888129]
+
+The statusLine script confirms it: it reads `context_window.total_input_tokens`, `context_window_size`, `used_percentage`, `cache_read_input_tokens`, `cache_creation_input_tokens`, `total_cost_usd`, `rate_limits` — all from stdin. So **statusLine IS the canonical context-window data source** in Claude Code, and UserPromptSubmit hooks are not. The v7.9 plan's sensing-layer architecture is wrong; the right pivot is to have statusLine write `.jicm-state-statusline.json` on every render, with hooks/watcher reading from it.
+
+### 2026-05-03 [ba32f5494d0c]
+
+The Pulse usage dashboard gets its data from `claude --output-format stream-json` API responses captured by Pulse-Nexus services (executor, reviewer) and persisted to Pulse metadata — that's the "wire format" path. For Jarvis (where we ARE the Claude Code TUI, not running claude-cli as a subprocess), the equivalent canonical source is the JSONL transcript at `transcript_path`, which every hook receives in stdin. Each assistant message in the JSONL carries a structured `usage` object: `{input_tokens, output_tokens, cache_read_input_tokens, cache_creation_input_tokens}`. Same data Anthropic uses for billing — authoritative, structured, sub-second freshness. This is what `ccusage` parses.
+
+### 2026-05-03 [b60a67676d9a]
+
+The Phase 7.9.3 rewrite illustrates the **separation of sensing from actuation**. The legacy v7.1 watcher (1559 lines) was a giant polling loop that did both — capture the pane, parse the rendered status line, decide thresholds, drive the cycle. The v7.9 watcher (171 lines) drops sensing entirely: the UPS hook reads JSONL transcripts (authoritative, structured), writes state, and the Stop hook drops a signal file. The watcher just polls one signal and runs an actuator chain. This decomposition lets Phase 7.9.5's harness test the two halves independently — T1/T2/T3 hit the hook layer, T4 hits the watcher actuator with a synthetic signal. When responsibilities are coupled, you can only test the system end-to-end. When decomposed, every layer gets its own targeted regression-catch.
+
+### 2026-05-03 [45667bc58148]
+
+The harness operates in the **same `jarvis` tmux session you're in right now**. Each test creates a throwaway window named `jicm-tN-<pid>` (e.g., `jarvis:jicm-t1-12345`), spawns `claude --dangerously-skip-permissions` inside, sends a prompt, captures evidence, then kills the window. Auto-cleanup via the harness's per-test `kill-window` calls. This works because tmux can introspect and modify itself from any pane — the harness is just another script running in your shell. If the harness crashes mid-cycle, you'll see leftover `jicm-tN-*` windows; clean them up with `tmux kill-window -t jarvis:<name>`.
+
+### 2026-05-03 [361bc8ce4b0d]
+
+Running synchronously (single Bash call, 10-min timeout) is the right move here — T1-T5 take ~3-5 min total, well within the ceiling, and a foreground call gives me complete output to inspect. Background mode would only matter if I needed to do parallel work during the run, which I don't. The streaming `tee` output + final verdict file gives the User a persistent record even if my context were cleared mid-run.
+
+### 2026-05-03 [e78dfa90b848]
+
+The fix preserves the canonical-formula architecture rather than working around it. The gate hook is correct: tokens are extracted from the LAST `type:"assistant"` usage block, which is a backward-looking signal by design. The bug was in the test harness's assumption that a fresh session contains assistant data — it never does until at least one round-trip completes. The warmup prompt simply primes the past-tense signal that the formula relies on, so the second prompt's gate-hook invocation sees real data. No semantic change to the v7.9 implementation — only the test scaffolding was wrong.
+
+### 2026-05-03 [1c01522ef8e3]
+
+Root cause: Jarvis-Dev's CLAUDE.md triggers AC-01 autonomic behavior on the first prompt — Claude reads `session-state.md`, runs `git log`, `git status`, etc., before answering "Hi". Claude Code's TUI **queues** subsequent input that arrives during a turn, only firing UserPromptSubmit when the turn fully ends. My harness's `wait_for_assistant_turn` returns on the FIRST `select(.type=="assistant")` match — which fires on Claude's very first tool_use call (not turn completion). The test prompt then lands in the queue and never produces a separate UPS, so the gate hook stays at the warmup's `tokens=0` reading. T1/T2 happened to pass on a faster AC-01 run; T3 just hit a slower one — the bug was always there, racing.
+
+### 2026-05-03 [e75afc862f56]
+
+The command-handler running in W4 (PID 78611) provides a clean injection path: write `.claude/context/.command-signal` as JSON `{"command":"/clear","args":"","source":"manual-jicm"}`, the handler picks it up within 3s and `tmux send-keys` to W0 — that's how *I* (running in W0) can trigger /clear without the same-pane self-injection problem (typing into the buffer mid-response is the classic broken pattern from MEMORY.md). `/clear` is on the handler's whitelist. This is exactly the watcher's normal injection mechanism, just hand-driven.
+
+### 2026-05-03 [b76c38e51d60]
+
+This is a deliberate v7.9 design choice: hooks read env vars with hardcoded fallbacks rather than sourcing a shared config. The reason — UserPromptSubmit hooks fire from Claude Code's process, which may not have the project shell environment set up. Self-containment makes them robust to cold-start and sandboxed environments. The `jicm-config.sh` is only for long-running scripts (watcher, prep) that have proper shell context.
+
+### 2026-05-03 [8a4159631d52]
+
+The hook chain ordering matters: `jicm-gate.sh` runs FIRST in UPS, before `pre-clear-context-prep.sh`. This is intentional — the gate writes `.jicm-state-hook.json` first (sensing), then prep reads from it later. If we'd put gate AFTER prep, prep would read stale state. Hooks within a single matcher group run sequentially top-to-bottom; first hook in chain = first to fire.
+
+### 2026-05-03 [4a9fe0034d05]
+
+The Jarvis-Dev → Jarvis production handoff is unidirectional for **artifacts** but bidirectional for **planning docs**. If Jarvis-Dev's active-plan still shows "GATED on User-driven Stage-1 harness", a future Jarvis-Dev session would think 7.9.6 hasn't shipped yet and might re-attempt the deploy. Keeping planning docs in sync prevents drift between the two workspaces.
+
+### 2026-05-03 [fbe3ecb35140]
+
+The deploy crossed three failure surfaces that Stage-1 couldn't have caught: (1) JSON validity of the patched settings.json (verified via jq -e), (2) bash syntactic correctness of the patched session-start.sh (verified via bash -n), and (3) workspace-pair consistency (Jarvis-Dev planning docs mirroring production status). These three are the kind of issues that silently break things in the next session if missed — production-side static checks catch (1) and (2); the Jarvis-Dev mirror prevents drift on (3).
+
+### 2026-05-03 [6c763b27bb7b]
+
+The decision to gitignore `.active-plan` is deliberate — it's a *pointer* to the currently-implementing plan, mutated frequently within a session. Tracking it in git would create constant churn without historical value (the plan files in `.claude/plans/` ARE tracked; the pointer to which one is active is ephemeral). This matches the pattern of "track artifacts, not bookmarks."
+
+### 2026-05-03 [ecdd816dd440]
+
+The two state files (`.jicm-state` and `.jicm-state-hook.json`) are deliberately disjoint — each serves a different consumer. The v7.3 watcher needs YAML-ish key=value text for grep parsing; the v7.9 statusline needs structured JSON for jq queries. Different formats reflect different read patterns. Stage-2 will surface whether divergence between them ever creates confusion (it shouldn't — sensors are independent observers, not authoritative state).
+
+### 2026-05-03 [9f2dd1e890c6]
+
+That 98.86% cache hit rate is the kind of metric the User couldn't see before this refactor — it was buried in JSONL never read mid-session. Now it's in `.jicm-state-hook.json` per UPS, available to statusline, dashboards, and any future telemetry tap. **You can't optimize what you can't measure**: this refactor turned cache health from an after-the-fact analysis artifact into a live operational signal.
+
+### 2026-05-03 [b7d3acf94ace]
+
+This trajectory landed *three* architectural improvements whose preconditions cascaded — 7.9.6a established the sensing layer, 7.9.6b cut over to the slim actuator, and Phase 0.2 refactor extracted the canonical formula because the sensing layer was now the natural anchor. None of these would have been clean if executed independently. **Sequencing was load-bearing**: each shipped phase made the next phase's design space smaller and clearer.
+
+### 2026-05-03 [c338184b5d19]
+
+The JICM v7 LLM-enrichment pass has a known lag characteristic — qwen3:8b produces the structured "Current Task / Progress / Next Step" header by reading a snapshot of session-state.md, but the scratchpad's freshest entries can postdate that read. When force-loaded scratchpad and the LLM checkpoint disagree on what just shipped, the scratchpad wins because it survives /clear via @-import in CLAUDE.md while the LLM pass sees only what existed at compression time. This is exactly the case where Phase 0.2 refactor and Phase 7.9.6c notation diverge between the two sources.
+
+### 2026-05-03 [65891e08ead3]
+
+There's a useful asymmetry here. The slim v7.9 watcher's signal-driven actuation chain is *robust to* Claude refusing the HALT — the cycle proceeds anyway because the watcher writes `.jicm-clear-now.signal`, the command-handler picks it up, /clear fires, and session-start.sh restores from the prep-script-generated checkpoint. The only thing lost in a refusal is *Claude's voluntary scratchpad write* preserving in-flight working memory. So the failure mode is bounded to "lose a few turns of notes," not "break the cycle." That bound is exactly because we designed the actuation layer to not depend on Claude's compliance — a property worth preserving in v8.x.
+
+### 2026-05-03 [f507b8273a20]
+
+The choice to put the canonical signal list in `jarvis-identity.md` rather than in a new pattern file is deliberate. Patterns describe *behaviors* the model executes; identity describes *what is real about the operating environment*. A future Claude classifying a signal as injection is making an ontological mistake (treating real infrastructure as fictional), not a procedural mistake (following the wrong pattern). Identity is the right ontological anchor — and it's force-loaded by virtue of being `@`-imported in CLAUDE.md, so it's available at exactly the moment the classification decision happens (UPS hook → context assembly → first model token), not a tier-2 lookup the defensive heuristic can short-circuit before consulting.
+
+### 2026-05-03 [6d3bf19be687]
+
+The HUD's live rendering is genuinely interesting evidence right now — your session is sitting at 40% context (406.5K tokens) with action=SOFT_NUDGE. That means the v7.9 gate hook detected the threshold crossing and updated `.jicm-state-hook.json` accordingly. The slim watcher is monitoring `.jicm-clear-now.signal` but Stop hook hasn't written it (because we're still mid-turn — the signal would be written *after* the assistant response if `pending_action` were `HALT_AFTER_RESPONSE`). So you can see the state machine in flight, mid-trajectory, with the soft-warning fired and the hard gate not yet armed. The HUD is showing live evidence that the v7.9 sensing layer is working exactly as designed.
+
+### 2026-05-03 [ceb0c6305bd8]
+
+This cycle is significant beyond the immediate resume: it's the **second clean v7.9 cycle in production** (the first was the ~05:00Z natural HALT documented in the scratchpad). Per the 7.9.6c readiness criterion ("a few clean v7.9 cycles validate operational confidence"), we're incrementally building toward retiring the back-compat shim. The chain that worked end-to-end here: jicm-stop hook wrote `.jicm-clear-now.signal` → slim watcher PID 74731 picked it up → prep script generated `.compressed-context-ready.md` (14:49:29Z) → /clear injected → session-start.sh hook restored context → resume signal fired → RESUME prompt arrived. Every link in the actuation chain we just shipped worked. And separately — the operational-signals memory work I did at the start of this trajectory paid off here: the JICM-HALT and JICM-RESUME signals were complied with cleanly per the documented protocol, no false-positive refusals. Two architectural improvements quietly validating each other in the same cycle.
+
+### 2026-05-03 [73ea58d9ef39]
+
+The architecture doc raises three open questions for User decision before Phase 2.4 wiring: (1) prefix-tag vs frontmatter for task-type signaling, (2) subagent prepend strategy (per-agent edit vs central builder), (3) default opt-in vs opt-out for the hook. The doc deliberately frames these as *User decisions*, not Jarvis-default choices, because they shape the experimental scope and rollback semantics — same posture used for JICM v7.9 deployment decisions earlier in this trajectory.
+
+The hook design mirrors `jicm-gate.sh` structure (sensing-only, no decision:block) — that's deliberate symmetry: both are UPS hooks emitting `additionalContext`, both fail-safe to "no behavior change" if the predicate doesn't match.
+
+### 2026-05-03 [0b31e3d9a20b]
+
+This cycle's pattern is emblematic of two-stage gating discipline: file the pre-registration FIRST, write the experimental design FIRST, *then* deploy. The Phase 2 pre-reg is the first clean pre-deploy artifact in this benchmark family — every prior pre-reg in the token-compression series (1.1, 1.2, 1.3, 1.3.5, 1.5) was filed post-hoc. Methodological novelty matters: a pre-deploy pre-reg means the hypothesis predictions are testable without the temptation of hindsight calibration that the Phase 1.1 file's first 22 lines explicitly disclose.
+
+The taxonomy + architecture pairing also embodies the "code-before-prompts" pattern (`patterns/code-before-prompts-pattern.md`) — *deterministic structure first* (5 named task types with explicit reasoning shapes), *prompt content second* (the few-shot library that Task 2.2 will populate). The few-shots become the easy part once the structural decisions are locked in; the structural decisions are what require human-grade judgement.
+
+### 2026-05-03 [48a072db974e]
+
+Tools like `htop` and `top` solve flicker with three combined techniques: (1) the **alternate screen buffer** (`\033[?1049h`/`\033[?1049l`) — gives the TUI a clean isolated canvas and restores the user's terminal exactly on exit; (2) **cursor-home repositioning** (`\033[H`) instead of full clear — overwrites in place so each character cell is updated, never blanked; (3) `\033[J` (erase from cursor down) **only at the bottom** of the new frame to wipe leftover rows from any prior larger frame. The `\033[2J` (full erase) is the wrong tool here because each frame already produces consistent line widths — there's no need to blank what's about to be overwritten anyway.
+
+### 2026-05-03 [8378a12e35e4]
+
+Threshold values follow a write-once / read-many cascade: `jicm-config.sh` is the canonical source, the gate hook reads it once per UPS event and writes the active values into `.jicm-state-hook.json`, and downstream consumers (HUD, statusline, watcher diagnostics) all read from that JSON snapshot. This means the file is the **observed reality** of JICM at any moment, not the script defaults. If you ever need to test new thresholds without a code change, you can either set `JICM_SOFT_TOKENS=...` / `JICM_HARD_TOKENS=...` env vars (gate hook honors them via `${VAR:-default}`) or patch state-hook directly like I just did. That same indirection is why the running HUD didn't reflect the new defaults until state-hook was refreshed.

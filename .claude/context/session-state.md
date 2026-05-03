@@ -8,14 +8,29 @@
 
 ## Current Work Status
 
-**Status**: **GIT TOPOLOGY MIGRATION COMPLETE (2026-04-30). Token-compression Phase 1 (1.1, 1.2-1.3, 1.5) deployed and pushed. Phase 5 dashboard scaffolded (uncommitted in AIFred-Pro-Dev) → being committed now. Next after cleanup: Phase 0.2 cache telemetry capture + Phase 2 CoD validation + Phase 3 JICM compression**
+**Status**: **JICM v7.9 PHASES 7.9.0–7.9.5 COMPLETE (Stage-1 5/5 PASS in Jarvis-Dev, 2026-05-03 02:00Z). Phase 7.9.6 production deploy STAGED but BLOCKED on watcher↔session-start.sh integration question (recorded in scratchpad ~02:30Z entry). Manual JICM trigger initiated 2026-05-03 ~03:25Z — production watcher mid-cooldown after cycle #26.**
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → tracks origin/main on CannonCoPilot/Jarvis (push.default=upstream)
-**Last Commit (Jarvis)**: d63421b (feat(topology): jarvis git migration Stages B-D)
-**Last Pushed (Jarvis)**: 2026-04-30 22:35 UTC (origin/main on CannonCoPilot/Jarvis)
+**Last Commit (Jarvis)**: 7b725fe (docs(jicm): v7.9 baseline + roadmap/plan corrections + scratchpad notes)
+**Last Pushed (Jarvis)**: 2026-05-02 22:35 UTC (origin/main on CannonCoPilot/Jarvis)
+**Last Commit (Jarvis-Dev)**: 67b9b9a (feat(jicm): v7.9 hook layer + backend abstraction + slim watcher + status line + Stage-1 harness — predates this session's harness fix v1+v2)
+**Jarvis-Dev uncommitted**: harness fix v1 + fix v2 (warmup-prompt + wait_for_idle for AC-01 queueing race) — `.claude/scripts/dev/jicm-v7-9-stage-1-harness.sh` (458 lines, syntax OK, Stage-1 5/5 PASS)
 **AIFred-Pro-Dev Branch**: nate-dev (origin: davidmoneil/AIFred-Pro)
-**AIFred-Pro-Dev HEAD**: f15f6a2 (Phase 1.2-1.3 brief epilogue) — Phase 5 scaffolding uncommitted, push pending
-**Prior recent commits on nate-dev**: c31b2bd (Phase 1.5 Alfred-Brief), 77145a9 (pipeline fixes + telemetry), c0a0319 (Ollama executor routing), 5569e6c (Claude CLI telemetry), a1b648a (Project Creator)
+**AIFred-Pro-Dev HEAD**: af73a46 (feat(reviewer): Claude-CLI route — token-compression Phase 1.3.5)
+
+## Phase 7.9 Summary (where we left off)
+
+| Phase | Status | Notes |
+|---|---|---|
+| 7.9.0 baseline + Stop-hook probe | DONE | `.claude/metrics/jicm/v7-9-baseline-2026-05-02.md` |
+| 7.9.1 hook layer | DONE | jicm-gate.sh + jicm-stop.sh + jicm-precompact.sh + jicm-state-update.sh + session-start.sh patch (Jarvis-Dev) |
+| 7.9.2 injection-backend interface | DONE | jicm-inject.sh dispatcher + tmux backend (4/4 PASS) + pty placeholder |
+| 7.9.3 slim watcher | DONE | 1559→171 lines, ≤8KB target met (6726B) |
+| 7.9.4 status line v7.9 | DONE | jarvis-statusline-v8.sh with token-primary thresholds |
+| 7.9.5 Stage-1 harness | DONE | 5/5 PASS after fix v1 (warmup) + fix v2 (wait_for_idle for AC-01 queueing) |
+| 7.9.6 production deploy + Stage-2 14d | BLOCKED | watcher↔session-start.sh integration question (scratchpad ~02:30Z) |
+
+**Phase 7.9.6 next-session resume**: re-verify whether `jicm-prep-context.sh` writes `.jicm-state` — that determines whether full-swap (Approach A) is safe vs. conservative incremental hooks-only (Approach B) is needed. Recommendation in scratchpad: Approach B if `.jicm-state` not written by prep script.
 
 ---
 
