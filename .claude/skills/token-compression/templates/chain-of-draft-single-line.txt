@@ -1,0 +1,18 @@
+# Chain of Draft — Single-Line Variant (arxiv-verbatim seed)
+#
+# Source: DSPy article (verbatim from arxiv 2502.18600 paper recommendation)
+# https://arxiv.org/abs/2502.18600 — "Chain of Draft: Thinking Faster by Writing Less"
+#
+# Use this variant for Phase 2.1 single-line CoD validation BEFORE
+# investing in few-shot authoring (Phase 2.2). The roadmap §3 instructs
+# few-shot library work to begin only if this seed misses the
+# ≥50% thinking-token reduction / ≥0.95 quality gate.
+#
+# Token cost: ~25 tokens (vs ~480 for chain-of-draft.txt with format spec + 4 examples)
+# Apply via: apply-cod.sh --template templates/chain-of-draft-single-line.txt <target>
+#
+# DO NOT MODIFY the seed line below — it is the verbatim arxiv-paper-recommended
+# seed prompt. Any rewording invalidates source-grounding.
+# Version: 1.0.0
+
+Think step by step, but only keep a minimum draft for each thinking step, with 5 words at most.

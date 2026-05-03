@@ -1,0 +1,249 @@
+# Pre-Registration — phase-2-cod
+#
+# METHODOLOGICAL NOTE:
+#
+# This pre-registration is filed PRE-DEPLOY (2026-05-03), departing from the
+# post-hoc convention used for Phase 1.1 / 1.2 / 1.3 / 1.5. The filing
+# precedes:
+#   - any single-line CoD validation against Jarvis tasks (Task 2.1)
+#   - any few-shot library authoring (Task 2.2)
+#   - any apply-cod.sh runtime wiring (Task 2.4)
+#   - any benchmark run (Task 2.5)
+#
+# This is the FIRST CLEAN pre-deploy pre-registration in the token-compression
+# benchmark family. It establishes a methodologically sound baseline for the
+# CoD intervention before any sample data exists.
+#
+# Phase 2 is downstream of Phase 1.1 per roadmap §4.7 stacking rules:
+#   - Phase 1.1 (Jeeves-Brief) affects output_tokens (post-thinking)
+#   - Phase 2 (CoD) affects thinking_tokens (pre-output)
+# These are orthogonal token streams; Phase 2 deployment does NOT require
+# Phase 1.1 Stage-2 PASS. However, Task 2.5 BENCHMARKING is gated on Phase
+# 1.1 Stage-2 PASS (currently scheduled 2026-05-15) so that the per-class
+# brevity baseline is known when interpreting CoD results.
+
+# === IDENTITY ===
+
+intervention_id: phase-2-cod
+deploy_commit: TBD                         # set at apply-cod.sh runtime wiring (Task 2.4)
+deploy_timestamp: TBD                      # set at runtime wiring time
+deploy_repo: CannonCoPilot/Jarvis          # CoD applies to Jarvis main session
+baseline_lineage:
+  - phase-1-1-jeeves-brief                 # output_token brevity baseline (orthogonal stream)
+
+# === HYPOTHESIS ===
+#
+# arxiv 2502.18600 reports "matches or surpasses CoT in accuracy while using
+# as little as only 7.6% of the tokens" — i.e., 92.4% thinking-token
+# reduction on math/symbolic/commonsense benchmarks. Roadmap §3 Phase 2
+# halves this expectation to ≥50% to allow for Jarvis-task-mismatch
+# (the paper measured GSM8k-style problems; Jarvis tasks are code review,
+# planning, diagnosis — different reasoning shape).
+
+hypothesis:
+  per_task_type_thinking_reduction:
+    code_review:
+      expected: -55          # percent reduction in thinking_tokens vs baseline
+      tolerance: 15
+      reason: "structured reasoning with checklist character; CoD's compressed-step format fits well"
+    bug_diagnosis:
+      expected: -50
+      tolerance: 15
+      reason: "hypothesis-test pattern; draft steps map naturally to candidate causes"
+    planning:
+      expected: -45
+      tolerance: 15
+      reason: "tree-of-options character; CoD compresses deliberation but option enumeration still needs space"
+    research:
+      expected: -35
+      tolerance: 15
+      reason: "synthesis-heavy; CoD risks losing nuance across multi-source evidence"
+    session_mgmt:
+      expected: -40
+      tolerance: 15
+      reason: "state-update reasoning; relatively mechanical so smaller compression headroom"
+
+  cache_stability:
+    hit_rate_dip_pp:
+      expected: -2
+      tolerance: 5
+      reason: "CoD affects thinking-stream, not system-prompt prefix; cache impact should be minimal"
+    eph_1h_adoption:
+      expected: 95
+      tolerance: 10
+      reason: "Phase 1.1 Stage-1 confirmed eph_1h adoption holds at 100%; CoD should not regress this"
+
+  register:
+    violations_per_100_blocks:
+      expected: 0
+      tolerance: 2
+      reason: "NEW failure mode unique to CoD: stray <draft>/<answer> XML tags leaking from format spec into user-facing output. Track separately from Jeeves-Brief register markers."
+    leak_marker_pattern: '<draft>|</draft>|<answer>|</answer>|^Step \d+: '
+
+  default_route_regression:
+    skip_rule_compliance:
+      expected: 100
+      tolerance: 0
+      reason: "tasks matching skip rules (arithmetic, code generation, creative writing, tool-use heavy per roadmap §4.6) MUST show zero CoD application. Any leak indicates routing bug."
+
+  quality:
+    rubric_score_min:
+      expected: 0.95
+      tolerance: 0.03
+      reason: "roadmap §3 Phase 2 milestone gate; matches cc-compression-bench n=120 baseline (0.985)"
+
+# === SAMPLE TARGETS ===
+
+sample_targets:
+  reasoning_sessions_per_task_type: 5
+  total_reasoning_sessions: 25            # 5 × 5 task types
+  total_substantive_thinking_turns: 100   # ~4 thinking-eligible turns per session
+  collection_window_days: 14
+  baseline_session_selection: |
+    Pick 5 prior Jarvis sessions per task type where:
+      - extended thinking was used (output_tokens > 800; visible thinking blocks)
+      - task type is unambiguous (manual classification)
+      - no Phase 1.1 / Phase 1.5 directives active (clean baseline)
+    Capture per-turn baseline via:
+      python3 .claude/skills/token-compression/scripts/cache-telemetry-extractor.py \
+        ~/.claude/projects/<project-id>/<session-id>.jsonl
+    Extend extractor to capture usage.thinking_tokens if absent (same JSONL location).
+
+# === STAGE 1 — INTERIM SAFETY CHECK (deploy + 48h) ===
+#
+# Per design doc §10.4 and patterns/two-stage-validation-gating.md.
+# Effort class: per-prompt telemetry. Stage 1 window: PT48H (per-prompt
+# class baseline; CoD applies per-reasoning-eligible-turn, not per-deploy).
+# Stage 1 is regression-catch ONLY — it does NOT promote to Phase 3 / 4 / 5
+# benchmarking work.
+
+interim_check:
+  effort_class: per_prompt_telemetry
+  earliest_run: TBD                       # deploy_timestamp + PT48H
+  axes:
+    cache_hit_rate_dip_pp:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+      reason: "regression catch only — same band as Stage 2 hypothesis tolerance"
+    eph_1h_adoption_min_pct:
+      threshold: 80
+      action_on_breach: STAGE_1_HALT
+      reason: "lower bar than Stage 2 (95±10); only catches catastrophic regression"
+    register_violations_per_100_blocks_max:
+      threshold: 5
+      action_on_breach: STAGE_1_HALT
+      reason: "matches roadmap §6 rollback trigger; specifically counts <draft>/<answer> XML leaks into user-visible output"
+    skip_rule_compliance_min_pct:
+      threshold: 100
+      action_on_breach: STAGE_1_HALT
+      reason: "any CoD leak into arithmetic/code-gen/creative/tool-use prompts is a routing bug (paper measures -4% on math when CoD is misapplied); zero tolerance"
+  axes_NOT_evaluated:
+    - per_task_type_thinking_reduction
+    - quality.rubric_score
+  verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
+  unblocks_on_clear:
+    - Phase 3.2 Signal notation (orthogonal: machine-section state files)
+    - Phase 4.1 COMPRESSION_MODE env var (orthogonal: AIFred-Pro-Dev pipeline)
+
+# === GATE TO NEXT PHASE (Stage 2 formal sign-off) ===
+
+gate_to_next_phase:
+  description: |
+    Two-stage gating per design doc §10.4 and patterns/two-stage-validation-gating.md.
+    Stage 1 (deploy+48h): interim safety check; clears orthogonal-stream work.
+    Stage 2 (deploy+14d): formal pre-reg sign-off; THIS gates Phase 4 and 6
+    promotion (CoD propagation to AIFred-Pro-Dev pipeline executor; CoD
+    propagation to subagent dispatch).
+
+    Stage-2 ≥ 5× Stage-1 window (P14D / PT48H = 7×) per pattern §5.
+
+  effort_class: per_prompt_telemetry
+  earliest_run: TBD                       # deploy_timestamp + P14D
+  required_classes: [code_review, planning]    # highest-leverage task types in Jarvis daily work
+  required_stage: 2
+  passing_criteria:
+    per_task_type_thinking_reduction:
+      min_pass_count: 3                   # at least 3 of 5 task types meet -50% threshold
+      threshold_pct: -50
+    quality_rubric:
+      min_score: 0.95
+      eval_method: cc-compression-bench rubric methodology (n≥10 prompts/task type)
+    register:
+      max_violations_per_100_blocks: 2
+    default_route_regression:
+      max_leak_count: 0                   # zero arithmetic/code-gen/creative tasks with CoD applied
+
+  blocks_on_fail:
+    - Phase 4.x (AIFred-Pro-Dev pipeline CoD integration)
+    - Phase 6.1 (compression strategy router)
+
+# === SKIP RULES (encoded; must be enforced at runtime injection layer) ===
+#
+# Per roadmap §4.6 decision tree and implementation guide §6.5.
+# Any CoD application to a prompt matching these rules is a routing bug.
+
+skip_rules:
+  - rule_id: arithmetic_numeric
+    reason: "arxiv paper measures -4% accuracy on math when CoD applied without few-shot"
+    detection_heuristic: "prompt contains pure-math signals (digit-heavy, equations, percentage calculations)"
+  - rule_id: code_generation
+    reason: "interferes with structured output formatting; thinking trace adds noise"
+    detection_heuristic: "prompt requests new code (not analysis); prompt contains 'write a function', 'implement', 'generate code'"
+  - rule_id: creative_writing
+    reason: "narrative coherence requires expanded reasoning; CoD truncates"
+    detection_heuristic: "prompt requests prose, story, narrative, dialogue, fiction"
+  - rule_id: tool_use_heavy
+    reason: "rationale IS the tool selection; compressing it removes the deliberation"
+    detection_heuristic: "expected response is sequence of tool calls with minimal user-facing prose"
+
+# === ROLLBACK ===
+
+rollback:
+  triggers:
+    - any axis breach at Stage 1 → STAGE_1_HALT
+    - register violations_per_100_blocks > 5 sustained 24h
+    - quality rubric score < 0.90 on any task type
+    - skip_rule_compliance < 100% (zero tolerance)
+  procedure:
+    - "Remove CoD wiring from runtime entry point (per Task 2.4 design)"
+    - "OR add --no-cod default-off flag to opt-in scripts (per implementation guide §6.6)"
+    - "Pre-registration outcome: STAGE_1_HALT or STAGE_2_FAIL with rollback_at timestamp"
+  parallel_work_survival:
+    - "Phase 3.2 Signal notation: SURVIVES (orthogonal: machine-section state files; different file/time stream per §4.7 Rule 1)"
+    - "Phase 4.x AIFred-Pro-Dev pipeline: BLOCKED if not yet deployed; ROLLED BACK with Phase 2 if deployed (same-stream dependency)"
+
+# === OUTCOME ===
+
+outcome:
+  status: PRE_DEPLOY
+  result_report: TBD                      # set when Stage-1 verdict drafted
+  closed_at: null
+  reason: |
+    Filed pre-deploy 2026-05-03. Awaiting Tasks 2.1-2.4 prep work to complete,
+    then runtime wiring deployment, then 48h Stage-1 window, then 14d Stage-2
+    window. Earliest Stage-2 verdict: deploy_timestamp + P14D.
+
+# === CROSS-REFERENCES ===
+
+cross_references:
+  roadmap: projects/project-aion/reports/token-compression-roadmap.md  # §3 Phase 2, §4.5 CoD
+  implementation_guide: projects/project-aion/reports/token-compression-implementation-guide.md  # §6
+  experimental_design: projects/project-aion/reports/token-compression-experimental-design.md  # §10.4 two-stage gating
+  pattern: .claude/context/patterns/two-stage-validation-gating.md
+  upstream_pre_reg: .claude/metrics/token-compression/pre-registration-phase-1-1-jeeves-brief.yaml
+  source_paper: https://arxiv.org/abs/2502.18600
+
+# === PROVENANCE ===
+
+provenance:
+  filed_by: Jarvis
+  filed_at: 2026-05-03                    # date of filing (no specific time; pre-deploy)
+  filing_basis: "first-principles design from roadmap §3 Phase 2 + arxiv 2502.18600 + DSPy article"
+  honest_disclosure: |
+    Hypothesis numbers are derived from first-principles reasoning combined with
+    paper-level claims, NOT from prior CoD experiments on Jarvis-style tasks.
+    The arxiv paper measures GSM8k (-92.4%); Jarvis tasks are reasoning-shaped
+    differently, so the -50% target is conservative-by-half. Per-task-type
+    expectations are bracketed by structure-fit reasoning (code_review:
+    structured = best fit; research: synthesis = worst fit) without empirical
+    backing. Stage 2 outcome will validate or invalidate these brackets.
