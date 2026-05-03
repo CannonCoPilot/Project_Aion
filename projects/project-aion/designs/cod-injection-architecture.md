@@ -250,6 +250,12 @@ JARVIS_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SKILL_ROOT="${JARVIS_ROOT}/skills/token-compression"
 INPUT="$(cat)"
 
+# Emergency kill switch (per §8 Q3 decision)
+if [ "${JICM_COD_DISABLED:-0}" = "1" ]; then
+    jq -n '{}'
+    exit 0
+fi
+
 # Extract the user prompt
 PROMPT="$(echo "${INPUT}" | jq -r '.prompt // empty')"
 
@@ -379,7 +385,8 @@ Per pre-registration `gate_to_next_phase.passing_criteria`:
 | 2.4.a | Author cod-inject.sh hook (UPS) | TODO | Stage-1 deploy |
 | 2.4.b | Register hook in settings.json | TODO | Stage-1 deploy |
 | 2.4.c | Extend cache-telemetry-extractor for thinking_tokens | TODO | Stage-2 verdict |
-| 2.5 | Benchmark CoD vs baseline (n≥25 sessions) | TODO | Phase 4 promotion |
+| 2.4-bis | Subagent CoD via central agent-prompt-builder (own pre-reg delta) | DEFERRED (gated on Stage-1 CLEAR for main-session) | Subagent benchmark (separate from 2.5) |
+| 2.5 | Benchmark CoD vs baseline (n≥25 sessions, main-session only) | TODO | Phase 4 promotion |
 
 Tasks 2.5 and Stage-2 verdict are **GATED on Phase 1.1 Stage-2 PASS**
 (currently scheduled 2026-05-15 per active-plan).
@@ -398,18 +405,84 @@ that must rollback, not the *static template/script library*.
 
 ---
 
-## §8. Open questions for User
+## §8. Decisions (User-confirmed 2026-05-03)
 
-1. **Prefix-tag vs frontmatter**: §3.3.1 vs §3.3.2 — preference? Frontmatter
-   is more verbose but plays nicely with command frontmatter. Prefix-tag is
-   shorter and survives one-line invocations.
-2. **Subagent prepend pattern**: Option II requires modifying either
-   `agents/*.md` (12 files) or a central agent-prompt-builder. Latter
-   doesn't yet exist; build it now or defer subagent CoD to Phase 4?
-3. **Default opt-in / opt-out**: should the hook be active by default
-   (compression always-on for tagged prompts) or opt-in (`JICM_COD_ENABLED=1`
-   required)? Opt-out is more conservative for Stage-1.
+The three open questions in v1.0.0 were closed by User at the post-JICM-resume
+turn on 2026-05-03. The decisions below are now **frozen** as the Phase 2.4
+design contract; deviations require new pre-registration.
+
+### Q1 — Tag format: **prefix-tag** `[task: <type>]`
+
+Selected over frontmatter (§3.3.1 over §3.3.2).
+
+Reasoning:
+- Aligns with existing `[CHANNEL]` operational-signal convention
+  (`[JICM-HALT]`, `[JICM-RESUME]`, `[SESSION-START]`); user is already trained
+  on this shape
+- Lower interactive-use friction (one prefix line vs three lines of YAML)
+- Simpler anchored regex parser (`^\[task: ([a-z_-]+)\]`); fewer failure modes
+- Namespace-safe: the `task:` key inside the bracket distinguishes from
+  channel-only signals
+- Extensibility: future multi-field metadata still works inline
+  (`[task: code-review][prio: high]`)
+
+### Q2 — Subagent CoD: **defer post Stage-1** (Phase 2.4-bis)
+
+Phase 2.4 ships ONLY Option I (UPS hook for main-session reasoning).
+Subagent CoD becomes Phase 2.4-bis, gated on STAGE_1_CLEAR for main-session.
+
+Reasoning:
+- **Stream isolation for Stage-1 verdict**: deploying both Option I and
+  Option II simultaneously contaminates the regression signal — a HALT cannot
+  be attributed to a specific stream
+- **Pre-registration alignment**: `sample_targets.reasoning_sessions_per_task_type`
+  describes main-session reasoning; subagent dispatch isn't in that frame
+- **Risk geometry**: subagent dispatch is dominated by `deep-research`, which
+  maps to LOW-fit `research` task type (-35% target, "synthesis collapse"
+  risk per taxonomy). Highest-risk class deserves its own pre-registration
+- **Independent rollback**: separate deploys = separate rollbacks. Subagent
+  regression can be reverted without disturbing main-session
+
+When Phase 2.4-bis ships, it will use a **central agent-prompt-builder**
+(not per-agent edits to 12 files). Rationale: rollback is one-line in builder
+vs 12 reverts; agent #13 inherits CoD automatically; subagent dispatch is
+already centralized at the Agent tool layer.
+
+### Q3 — Default opt-in by tag; emergency kill switch via `JICM_COD_DISABLED=1`
+
+The prefix tag IS the opt-in mechanism; without a tag the hook does nothing.
+The env var sketched in §3.4 / §7 (`JICM_COD_DISABLED=1`) is the **emergency
+kill switch**, not a steady-state gate. The Q3-question's `JICM_COD_ENABLED=1`
+framing is **rejected**; the canonical name is `JICM_COD_DISABLED` throughout.
+
+Reasoning:
+- **Stage-1 sample-sufficiency dominates**: a 14d × ~1-2 reasoning prompts/day
+  window cannot afford friction-added gates without risking
+  STAGE_1_DEFERRED → indefinite stall
+- **Conservatism is already upstream**: the tag requirement is itself the
+  opt-in; the hook is sensing-only without it
+- **Reversibility parity**: both designs roll back via `settings.json` hook
+  removal; the env var doesn't add reversibility, only friction
+- **Mental-model simplicity**: "tag → CoD applies" is one rule. Adding a
+  hidden env-var requirement creates discoverability traps during Stage-1
+  iteration
+- The env var's legitimate use is per-shell emergency disable
+  (e.g., `JICM_COD_DISABLED=1 claude` to spawn a clean session) without
+  touching `settings.json`
+
+### Structural property of the frozen design
+
+Every layer is **fail-closed** without imposing friction on the happy path:
+- Hook absent → no CoD
+- Tag absent → no CoD
+- Skip-rule match → no CoD (Layer-1 enforcement, exit 3)
+- Template not found → no CoD
+- `JICM_COD_DISABLED=1` → no CoD
+
+The single intentional act (typing the tag) flips ON. Mirrors the JICM v7.9
+sensing-only hook pattern (no `decision: block` until a hard threshold) —
+fail-closed-by-default with single explicit opt-in.
 
 ---
 
-*CoD Injection Architecture v1.0.0 — 2026-05-03*
+*CoD Injection Architecture v1.1.0 — 2026-05-03 (decisions frozen)*

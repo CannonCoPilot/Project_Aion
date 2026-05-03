@@ -7,19 +7,30 @@
 # Usage: apply-cod.sh [OPTIONS] <target-prompt-file>
 #
 # Options:
-#   --template <path>   Path to CoD template (default: templates/chain-of-draft.txt)
-#   --dry-run           Print result without modifying target file
-#   --force             Overwrite even if CoD marker already present
-#   --log <path>        Metrics log path (default: metrics/log.json)
-#   --task-id <id>      Task ID for metrics log (optional)
-#   --help              Show this help and exit
+#   --template <path>     Path to CoD template (default: templates/chain-of-draft.txt)
+#                         Explicitly setting this overrides --task-type / --variant resolution.
+#   --task-type <type>    Task type for template resolution (Phase 2.3, see
+#                         cod-task-type-taxonomy.md). One of:
+#                         code-review | bug-diagnosis | planning | research | session-mgmt.
+#                         Skip-rule task types (arithmetic | code-generation |
+#                         creative-writing | tool-use-heavy) are rejected with exit 3.
+#   --variant <variant>   Template variant when --task-type is set (default: fewshot).
+#                         single-line  → templates/chain-of-draft-single-line.txt (arxiv-verbatim)
+#                         full         → templates/chain-of-draft.txt (paraphrased + 4 generic few-shots)
+#                         fewshot      → prompts/cod-examples/<task-type>.md (per-task-type, Task 2.2)
+#   --dry-run             Print result without modifying target file
+#   --force               Overwrite even if CoD marker already present
+#   --log <path>          Metrics log path (default: metrics/log.json)
+#   --task-id <id>        Task ID for metrics log (optional)
+#   --help                Show this help and exit
 #
 # Exit codes:
 #   0  success
 #   1  argument / file error
 #   2  already applied (use --force to override)
+#   3  skip-rule violation (task-type in skip set per pre-registration-phase-2-cod.yaml)
 #
-# Version: 1.0.0
+# Version: 1.1.0
 
 set -e
 
@@ -27,6 +38,9 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SKILL_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 TEMPLATE="${SKILL_ROOT}/templates/chain-of-draft.txt"
+TEMPLATE_OVERRIDE=0
+TASK_TYPE=""
+VARIANT=""
 LOG_PATH="${SKILL_ROOT}/metrics/log.json"
 DRY_RUN=0
 FORCE=0
@@ -39,7 +53,9 @@ TARGET=""
 
 while [ $# -gt 0 ]; do
     case "$1" in
-        --template)  TEMPLATE="$2"; shift 2 ;;
+        --template)  TEMPLATE="$2"; TEMPLATE_OVERRIDE=1; shift 2 ;;
+        --task-type) TASK_TYPE="$2"; shift 2 ;;
+        --variant)   VARIANT="$2"; shift 2 ;;
         --dry-run)   DRY_RUN=1; shift ;;
         --force)     FORCE=1; shift ;;
         --log)       LOG_PATH="$2"; shift 2 ;;
@@ -60,8 +76,56 @@ if [ -z "${TARGET}" ]; then
     exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# Skip-rule enforcement (Layer 1, mandatory)
+# Per pre-registration-phase-2-cod.yaml#skip_rules and architecture §2.3.
+# ---------------------------------------------------------------------------
+
+if [ -n "${TASK_TYPE}" ]; then
+    case "${TASK_TYPE}" in
+        arithmetic|code-generation|creative-writing|tool-use-heavy)
+            echo "[apply-cod] ERROR: task-type '${TASK_TYPE}' is in the skip-rule set;" >&2
+            echo "[apply-cod]        CoD must not be applied (paper measures -4% on math when misapplied)." >&2
+            echo "[apply-cod]        See pre-registration-phase-2-cod.yaml#skip_rules for full rationale." >&2
+            exit 3 ;;
+        code-review|bug-diagnosis|planning|research|session-mgmt)
+            : ;;  # known-good task type
+        *)
+            echo "[apply-cod] WARNING: task-type '${TASK_TYPE}' is not in the canonical 5-type" >&2
+            echo "[apply-cod]          taxonomy (code-review|bug-diagnosis|planning|research|session-mgmt)." >&2
+            echo "[apply-cod]          Proceeding, but Stage-1 telemetry may show this as 'unknown_type'." >&2 ;;
+    esac
+fi
+
+# ---------------------------------------------------------------------------
+# Template resolution by task-type + variant (architecture §2.2)
+# Only fires when --task-type is set AND --template was NOT explicitly given.
+# ---------------------------------------------------------------------------
+
+if [ -n "${TASK_TYPE}" ] && [ "${TEMPLATE_OVERRIDE}" -eq 0 ]; then
+    case "${VARIANT:-fewshot}" in
+        single-line)
+            TEMPLATE="${SKILL_ROOT}/templates/chain-of-draft-single-line.txt" ;;
+        full)
+            TEMPLATE="${SKILL_ROOT}/templates/chain-of-draft.txt" ;;
+        fewshot)
+            TEMPLATE="${SKILL_ROOT}/prompts/cod-examples/${TASK_TYPE}.md" ;;
+        *)
+            echo "[apply-cod] ERROR: Unknown variant '${VARIANT}'." >&2
+            echo "[apply-cod]        Choose one of: single-line | full | fewshot" >&2
+            exit 1 ;;
+    esac
+fi
+
 if [ ! -f "${TEMPLATE}" ]; then
     echo "[apply-cod] ERROR: Template not found: ${TEMPLATE}" >&2
+    if [ -n "${TASK_TYPE}" ] && [ "${TEMPLATE_OVERRIDE}" -eq 0 ]; then
+        echo "[apply-cod]        Resolved from --task-type=${TASK_TYPE} --variant=${VARIANT:-fewshot}." >&2
+        if [ "${VARIANT:-fewshot}" = "fewshot" ]; then
+            echo "[apply-cod]        Phase 2.2 per-task-type fewshots are not yet authored." >&2
+            echo "[apply-cod]        Use --variant single-line for arxiv-verbatim seed instead." >&2
+        fi
+    fi
     exit 1
 fi
 
@@ -141,11 +205,13 @@ entry = {
     "target_file": "${TARGET}",
     "template_file": "${TEMPLATE}",
     "task_id": "${TASK_ID}" or None,
+    "task_type": "${TASK_TYPE}" or None,
+    "variant": "${VARIANT}" or None,
     "tokens_before": ${target_tokens_before},
     "tokens_after": ${target_tokens_after},
     "tokens_added": ${added_tokens},
     "template_tokens": ${template_tokens},
-    "version": "1.0.0"
+    "version": "1.1.0"
 }
 
 if os.path.exists(log_path) and os.path.getsize(log_path) > 0:
