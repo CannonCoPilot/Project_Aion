@@ -54,9 +54,9 @@ JICM_PROJECTS_DIR="$HOME/.claude/projects/${JICM_PROJECT_SLUG}"
 
 # --- Thresholds (token-primary per User encoding directive) -----------------
 # Token thresholds preferred over percentages; pct fields display-only.
-JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-300000}    # ~30% of 1M
-JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-650000}    # ~65% of 1M
-JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-300000}   # legacy v7.x alias
+JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-250000}    # ~25% of 1M
+JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-300000}    # ~30% of 1M
+JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-300000}   # legacy v7.x alias (= new hard)
 JICM_POLL_INTERVAL=${JICM_POLL_INTERVAL:-1}     # 1s in v7.9 (was 5s in v7.x)
 JICM_IDLE_GRACE_SEC=${JICM_IDLE_GRACE_SEC:-3}   # state-file mtime age = idle
 JICM_HALT_ACK_TIMEOUT=${JICM_HALT_ACK_TIMEOUT:-60}

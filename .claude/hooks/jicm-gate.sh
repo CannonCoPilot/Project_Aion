@@ -35,8 +35,8 @@
 #
 # ENV OVERRIDES:
 #   JICM_DISABLED=true        Skip the hook entirely (e.g., during /end-session)
-#   JICM_SOFT_TOKENS=300000   Soft threshold in TOKENS (default 300K = 30% of 1M)
-#   JICM_HARD_TOKENS=650000   Hard threshold in TOKENS (default 650K = 65% of 1M)
+#   JICM_SOFT_TOKENS=250000   Soft threshold in TOKENS (default 250K = 25% of 1M)
+#   JICM_HARD_TOKENS=300000   Hard threshold in TOKENS (default 300K = 30% of 1M)
 #   JICM_PROJECT_DIR=...      Override CLAUDE_PROJECT_DIR (rare)
 #
 # OUTPUT (always JSON to stdout, exit 0):
@@ -62,8 +62,8 @@ STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 STATE_UPDATE="$PROJECT_DIR/.claude/scripts/jicm-state-update.sh"
 
 # Default thresholds in TOKENS (User encoding directive: not percentages)
-JICM_SOFT_TOKENS="${JICM_SOFT_TOKENS:-300000}"   # 30% of 1M default
-JICM_HARD_TOKENS="${JICM_HARD_TOKENS:-650000}"   # 65% of 1M default
+JICM_SOFT_TOKENS="${JICM_SOFT_TOKENS:-250000}"   # 25% of 1M default
+JICM_HARD_TOKENS="${JICM_HARD_TOKENS:-300000}"   # 30% of 1M default
 
 mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$STATE_FILE")" 2>/dev/null
 

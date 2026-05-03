@@ -8,7 +8,7 @@
 
   "statusLine": {
     "type": "command",
-    "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/jarvis-statusline-v8.sh"
+    "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/jarvis-statusline-v9.sh"
   },
 
   "hooks": {
