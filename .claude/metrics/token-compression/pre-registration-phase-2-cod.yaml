@@ -25,7 +25,7 @@
 # === IDENTITY ===
 
 intervention_id: phase-2-cod
-deploy_commit: TBD                         # sealed in follow-up chore commit (deploy commit hash unknown until commit creation)
+deploy_commit: 2de41e5                     # cod-inject.sh hook + settings.json UPS registration (Project_Aion → origin/main on CannonCoPilot/Jarvis)
 deploy_timestamp: 2026-05-04T00:09:29Z     # cod-inject.sh registered in settings.json UPS chain at this UTC timestamp
 deploy_repo: CannonCoPilot/Jarvis          # CoD applies to Jarvis main session
 baseline_lineage:

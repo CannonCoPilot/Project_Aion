@@ -6020,3 +6020,25 @@ Four back-to-back JICM cycles with no intervening directive is an unusual worklo
 ### 2026-05-03 [4d6bff118443]
 
 The smoke-test design is itself worth noting: it covers the cartesian product of (default behavior preserved) × (each new flag works) × (each error path produces an actionable message). Test 3's "fewshot not authored yet → use --variant single-line" hint is the kind of error message that earns its keep — it tells future-Jarvis what to do next instead of just reporting failure. For a script that will be invoked by another script (the upcoming cod-inject.sh hook), error-message clarity translates directly into log-readability when something goes wrong in production.
+
+### 2026-05-03 [ff088864b46d]
+
+The 99-line architecture-doc change is mostly content (decisions + reasoning) rather than structure — the §8 rewrite alone is 70 lines because the reasoning is what makes the freeze defensible against future-Jarvis second-guessing. By contrast, the 84-line apply-cod.sh change is mostly executable logic with five trade-off-aware error messages. Both files now contain enough self-justifying context that a future session can audit "why was this designed this way" without re-deriving the chain of reasoning. This pays compounding dividends: every future CoD-related task can start from the frozen design rather than re-litigating Q1/Q2/Q3.
+
+### 2026-05-03 [9ec764f9a18f]
+
+Today's commit cadence (15 commits in the visible window) shows an unusual pattern for this codebase: most days produce 1-3 commits; today produced 15, all within roughly an 18-hour window. The shape is also distinctive — six `feat(jicm,*)` commits in the first half (the v7.9 cutover), four `feat(token-compression,*)` commits across the day, and two side-quest features (HUD, statusline-v9). This is consistent with a "punch-list resolution day" rather than steady iteration: a long-deferred backlog (JICM v7.9 was queued since 2026-05-02) collapsed in one push of focused effort. The commits cluster correctly around the User-approved 4-step sequence rather than scattering across opportunistic edits.
+
+### 2026-05-03 [c51acb60040c]
+
+The Jarvis ↔ Jarvis-Dev divergence pattern is noteworthy. Jarvis-Dev has 4 commits unpushed, but production has separate commits doing the equivalent work. This is intentional — `Jarvis-Dev` is the dev-then-promote staging area where work originates, gets validated (Stage-1 harness etc.), and then is independently committed to production with potentially modified shape (e.g., v7.9.6b production commit `2a559b5` includes the Approach C shim that was added during the cutover decision, while Jarvis-Dev's `746b6dd` captures the same shim from the dev side). Rather than merging branches, the workflow re-creates commits at promotion. This trades clean git topology for clean separation of concerns; the cost is that you now have to push both repos to keep history complete. Worth pushing `Jarvis-Dev` at the next chore boundary so the dev-side audit trail isn't lost if local is wiped.
+
+### 2026-05-03 [92afbd1939e9]
+
+The template files follow two conventions: `templates/*.txt` use shell-style `#` comments at the head as authoring documentation (which would bloat additionalContext if emitted), while `prompts/cod-examples/*.md` (when authored in Phase 2.2) will use `#` as **markdown headers in the body** — semantically meaningful structure. The hook needs to discriminate by file extension: strip the leading comment block from `.txt` files, emit `.md` files verbatim. This is a small awk filter — `BEGIN{h=1} h && (/^#/ || /^[[:space:]]*$/){next} {h=0; print}` — tracking a "still-in-header" flag that flips off on the first content line.
+
+### 2026-05-03 [b7559382f3ec]
+
+Two design decisions paid off in the test results:
+1. **Comment-stripping for `.txt` templates** — Test 2's additionalContext is exactly the 25-token arxiv seed, with 17 lines of header documentation removed. Without the awk filter, every CoD application would inject ~480 tokens of authoring metadata into the prompt prefix, polluting the cache and inflating the per-prompt token cost the Stage-1 verdict measures.
+2. **Strict prefix anchoring** (Tests 6 + 7) — frontmatter `---\ntask: ...\n---` and indented `  [task: ...]` are both rejected as untagged. Per architecture §8 Q1, only `^\[task: <type>\]` exactly matches. This is intentional: in a measurement experiment, the routing rule must be unambiguous so any ambiguous case is excluded from the sample rather than silently assigned a task type. Loose matching would create rare-case routing bugs that surface only in Stage-2 14d data, after the regression-catch window closes.
