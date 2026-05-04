@@ -28,22 +28,22 @@ absorbs: self-improvement, jarvis-status, validation
 
 ```
 What do you need?
-├── Self-improvement cycle → Read skills/self-improvement/SKILL.md
+├── Self-improvement cycle → Read skills/_disabled/self-improvement/SKILL.md
 │   AC-05 reflect → AC-08 maintain → AC-07 research → AC-06 evolve
 │   Reports: .claude/reports/{reflections,maintenance,research,evolutions}/
 │
-├── System status / health → Read skills/jarvis-status/SKILL.md
+├── System status / health → Read skills/_disabled/jarvis-status/SKILL.md
 │   Benchmark: node .claude/scripts/benchmark-runner.js --all --json
 │   Scoring:   node .claude/scripts/scoring-engine.js --session --json
 │   JICM:      jq '.context_window' ~/.claude/logs/statusline-input.json
 │
-├── Validation workflows → Read skills/validation/SKILL.md
+├── Validation workflows → Read skills/_disabled/validation/SKILL.md
 │   /tooling-health — MCPs, plugins, hooks, skills, subagents
 │   /health-report — Docker, Memory MCP, context freshness
 │   /validate-selection — 10 test cases, 80%+ target
 │   /design-review "task" — PARC (Prompt→Assess→Relate→Create)
 │
-└── MCP-specific validation → Read skills/mcp-validation/SKILL.md
+└── MCP-specific validation → Read skills/_disabled/mcp-validation/SKILL.md
 ```
 
 ## Risk Levels (AC-06 Evolution)

@@ -74,8 +74,9 @@
 # Agent sessions (transient)
 .claude/agents/sessions/*.md
 
-# MCP configuration (may contain paths)
+# MCP configuration (may contain paths/credentials)
 .mcp.json
+.mcp.json.*
 
 # OpenCode local settings
 opencode.local.json

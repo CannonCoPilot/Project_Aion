@@ -16,16 +16,16 @@ Document task?
 │   Create, edit, redline, extract text from Word documents
 │   Tools: pandoc, docx-js (create), OOXML (edit), tracked changes
 │
-├── Excel (.xlsx) → Read skills/xlsx/SKILL.md
+├── Excel (.xlsx) → Read skills/_disabled/xlsx/SKILL.md
 │   Spreadsheets with formulas, financial models, data analysis
 │   Tools: openpyxl, pandas, recalc.py (LibreOffice)
 │
-├── PDF (.pdf) → Read skills/pdf/SKILL.md
+├── PDF (.pdf) → Read skills/_disabled/pdf/SKILL.md
 │   Create, merge, split, extract, fill forms
 │   Tools: pypdf, pdfplumber, reportlab, qpdf
-│   Forms: Read skills/pdf/forms.md
+│   Forms: Read skills/_disabled/pdf/forms.md
 │
-├── PowerPoint (.pptx) → Read skills/pptx/SKILL.md
+├── PowerPoint (.pptx) → Read skills/_disabled/pptx/SKILL.md
 │   Create (html2pptx), edit (OOXML), template-based
 │   Tools: pptxgenjs, html2pptx.js, inventory.py, replace.py
 │

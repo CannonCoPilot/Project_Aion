@@ -27,24 +27,24 @@ absorbs: autonomous-commands, session-management, context-management, ralph-loop
 
 ```
 What do you need?
-├── Execute native slash command → Read skills/autonomous-commands/SKILL.md
+├── Execute native slash command → Read skills/_disabled/autonomous-commands/SKILL.md
 │   Signal-based: signal_compact, signal_rename, signal_resume, etc.
 │   Requires: tmux + watcher running (jarvis-watcher.sh for signals)
 │   Pattern: source signal-helper.sh && signal_<command> [args]
 │
-├── Session lifecycle → Read skills/session-management/SKILL.md
+├── Session lifecycle → Read skills/_disabled/session-management/SKILL.md
 │   Start (AC-01): greeting + load state + suggest action
 │   Checkpoint: /checkpoint → save state for MCP restart
 │   End (AC-09): /end-session → commit + push + notification
 │   Modes: continue (default) or --fresh
 │
-├── Context management (JICM) → Read skills/context-management/SKILL.md
+├── Context management (JICM) → Read skills/_disabled/context-management/SKILL.md
 │   Thresholds: 50% caution, 55% compress, 73% emergency, 78.5% lockout
 │   JICM Watcher: jicm-watcher.sh (v6 stop-and-wait, polls 5s)
 │   Agent: compression-agent (sonnet, background)
 │   Hook: precompact-analyzer.js
 │
-└── Iterative development → Read skills/ralph-loop/SKILL.md
+└── Iterative development → Read skills/_disabled/ralph-loop/SKILL.md
     Core: same prompt repeated, Claude sees previous work in files
     Start: /ralph-loop "prompt" --max-iterations 20
     Cancel: /cancel-ralph
