@@ -114,9 +114,20 @@ actuate_jicm_cycle() {
     log "cycle: idle confirmed (waited ${elapsed}s)"
 
     # 2. HALT injection (text + submit as separate ops per tmux constraint)
+    #    Defensive: clear-input first to prevent any stale buffer carrying over
+    #    from prior cycle / aborted prompt; verify after submit that HALT
+    #    actually landed in the conversation (not just the input field).
+    inject clear-input
+    sleep 0.3
     inject text "$HALT_PROMPT"
-    sleep 0.2
+    sleep 0.5
     inject submit
+    sleep 0.5
+    if ! wait_for_capture_pattern "JICM-HALT" 5; then
+        log "cycle: HALT not visible after submit — retrying submit once"
+        inject submit
+        sleep 1
+    fi
     log "cycle: HALT prompt sent"
 
     # 3. Wait for "Understood" acknowledgment
@@ -142,13 +153,22 @@ actuate_jicm_cycle() {
         log "cycle: prep timeout (${JICM_PREP_TIMEOUT}s) — proceeding with possibly stale checkpoint"
     fi
 
-    # 6. /clear injection (escape + literal + submit, all via inject backend)
+    # 6. /clear injection — defensive sequence to prevent HALT/clear concatenation:
+    #    a. escape: interrupt any in-flight assistant stream
+    #    b. clear-input: empty the input buffer (Ctrl+U) — critical, since ESC
+    #       does NOT clear input in Claude Code TUI; if HALT submit had failed
+    #       silently, HALT text still sits in the input field and /clear text
+    #       would append to it (the documented bug pattern).
+    #    c. text /clear + submit: now goes into a verified-empty input buffer.
     v73_shim_write_state CLEARING   # Approach C back-compat for session-start.sh JICM v7 branch
     inject escape
-    sleep 0.2
+    sleep 0.3
+    inject clear-input
+    sleep 0.3
     inject text "/clear"
-    sleep 0.2
+    sleep 0.3
     inject submit
+    sleep 0.5
     log "cycle: /clear sent (legacy state: CLEARING)"
 
     # 7. Wait for resume signal (session-start hook writes after restoration)
@@ -159,11 +179,14 @@ actuate_jicm_cycle() {
     fi
     sleep 1
 
-    # 8. RESUME injection
+    # 8. RESUME injection — same defensive pattern as HALT/clear
     v73_shim_write_state RESTORING   # Approach C back-compat: signal post-/clear restoration
+    inject clear-input
+    sleep 0.3
     inject text "$RESUME_PROMPT"
-    sleep 0.2
+    sleep 0.5
     inject submit
+    sleep 0.5
     log "cycle: RESUME prompt sent (legacy state: RESTORING)"
 
     # 9. Cleanup transient signals
@@ -173,8 +196,64 @@ actuate_jicm_cycle() {
     log "cycle: complete (legacy state: WATCHING)"
 }
 
+# --- Periodic state refresh (fixes HUD/Statusline staleness during long turns) ---
+# jicm-gate.sh writes .jicm-state-hook.json only on UserPromptSubmit. During a
+# long turn with heavy tool use, context grows but the displayed value stays at
+# turn-start. This function re-parses the JSONL transcript and patches just the
+# token-counter fields, so HUD + Statusline reflect mid-turn growth.
+# Cadence: every 5 polls (~5s with default interval) to bound jq cost.
+refresh_state_from_jsonl() {
+    [[ -f "$JICM_STATE_HOOK_FILE" ]] || return 0
+    local transcript window
+    transcript=$(jq -r '.transcript_path // empty' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+    [[ -n "$transcript" && -f "$transcript" ]] || return 0
+    window=$(jq -r '.context_window_size // 1000000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+
+    local usage input_t cache_r cache_c cache_5m cache_1h tokens used_pct now_iso now_epoch
+    usage=$(jq -c 'select(.type=="assistant") | .message.usage' "$transcript" 2>/dev/null | tail -1)
+    [[ -n "$usage" && "$usage" != "null" ]] || return 0
+
+    input_t=$(echo "$usage" | jq -r '.input_tokens // 0' 2>/dev/null)
+    cache_r=$(echo "$usage" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null)
+    cache_c=$(echo "$usage" | jq -r '.cache_creation_input_tokens // 0' 2>/dev/null)
+    cache_5m=$(echo "$usage" | jq -r '.cache_creation.ephemeral_5m_input_tokens // 0' 2>/dev/null)
+    cache_1h=$(echo "$usage" | jq -r '.cache_creation.ephemeral_1h_input_tokens // 0' 2>/dev/null)
+    tokens=$(( input_t + cache_r + cache_c ))
+    used_pct=$(( window > 0 ? (tokens * 100 / window) : 0 ))
+    now_iso=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    now_epoch=$(date +%s)
+
+    local tmpfile="${JICM_STATE_HOOK_FILE}.tmp.$$"
+    if jq --argjson tokens "$tokens" \
+          --argjson input "$input_t" \
+          --argjson cr "$cache_r" \
+          --argjson cc "$cache_c" \
+          --argjson c5m "$cache_5m" \
+          --argjson c1h "$cache_1h" \
+          --argjson upct "$used_pct" \
+          --arg ts "$now_iso" \
+          --argjson tse "$now_epoch" \
+          '.tokens = $tokens
+           | .input_tokens = $input
+           | .cache_read_tokens = $cr
+           | .cache_creation_tokens = $cc
+           | .cache_creation_5m_tokens = $c5m
+           | .cache_creation_1h_tokens = $c1h
+           | .used_percentage = $upct
+           | .ts = $ts
+           | .ts_epoch = $tse
+           | ._refreshed_by = "watcher_poll"' \
+          "$JICM_STATE_HOOK_FILE" > "$tmpfile" 2>/dev/null; then
+        mv "$tmpfile" "$JICM_STATE_HOOK_FILE"
+    else
+        rm -f "$tmpfile"
+    fi
+}
+
 # --- Main loop --------------------------------------------------------------
 log "main loop (poll ${JICM_POLL_INTERVAL}s, target $JICM_TMUX_TARGET, backend $JICM_INJECTION_BACKEND)"
+declare -i REFRESH_COUNTER=0
+REFRESH_EVERY=5   # poll-iterations between state-file refreshes
 while true; do
     if [[ -f "$JICM_EXIT_SIGNAL" ]] || [[ -f "$JICM_SLEEP_SIGNAL" ]]; then
         sleep "$JICM_POLL_INTERVAL"
@@ -182,6 +261,11 @@ while true; do
     fi
     if [[ -f "$JICM_CLEAR_SIGNAL" ]]; then
         actuate_jicm_cycle
+    fi
+    REFRESH_COUNTER=$(( REFRESH_COUNTER + 1 ))
+    if [[ "$REFRESH_COUNTER" -ge "$REFRESH_EVERY" ]]; then
+        refresh_state_from_jsonl
+        REFRESH_COUNTER=0
     fi
     sleep "$JICM_POLL_INTERVAL"
 done

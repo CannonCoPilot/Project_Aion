@@ -40,6 +40,14 @@ case "$ACTION" in
         "$TMUX_BIN" send-keys -t "$TARGET" Escape
         ;;
 
+    clear-input)
+        # Ctrl+U = kill-line-backward in most TUI input handlers (incl. Claude Code).
+        # Fixes the HALT/clear concatenation bug: when HALT-submit fails to register
+        # (e.g., during active stream), HALT text remains in input buffer. ESC only
+        # interrupts the stream, it does NOT clear the input field. This action does.
+        "$TMUX_BIN" send-keys -t "$TARGET" C-u
+        ;;
+
     text)
         TEXT="${1:-}"
         if [[ -z "$TEXT" ]]; then
@@ -73,7 +81,7 @@ case "$ACTION" in
         ;;
 
     *)
-        echo "Usage: $0 {escape | text <literal> | submit | capture [LINES]}" >&2
+        echo "Usage: $0 {escape | clear-input | text <literal> | submit | capture [LINES]}" >&2
         echo "  Target: $TARGET   (override via JICM_INJECTION_TARGET)" >&2
         exit 3
         ;;
