@@ -604,6 +604,22 @@ derive_jicm() {
     fi
     HK_SOFT_TOK=$(jq -r '.soft_threshold_tokens // 250000' <<<"$state_json" 2>/dev/null)
     HK_HARD_TOK=$(jq -r '.hard_threshold_tokens // 300000' <<<"$state_json" 2>/dev/null)
+
+    # Prefer Claude Code TUI's live context_window data over state-file snapshot.
+    # State file lags because jicm-gate.sh writes only on UserPromptSubmit; TUI's
+    # context_window in stdin is computed at render time and matches /context.
+    # Falls back to state file when in demo mode or stdin lacks context_window.
+    if ! demo_mode_active; then
+        local live_total=$(( ${INPUT_TURN:-0} + ${CACHE_READ:-0} + ${CACHE_CREATE:-0} ))
+        if [[ "$live_total" -gt 0 ]]; then
+            HK_TOKENS="$live_total"
+        fi
+        # USED_PCT comes from stdin as a number (may be float); display logic
+        # accepts string. Only override when stdin has a non-zero value.
+        if [[ -n "${USED_PCT:-}" ]] && [[ "${USED_PCT}" != "0" ]]; then
+            HK_USED_PCT="$USED_PCT"
+        fi
+    fi
     return 0
 }
 
