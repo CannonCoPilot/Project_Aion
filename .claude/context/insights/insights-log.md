@@ -6098,3 +6098,49 @@ Two methodological points worth noting from this near-cycle: **(1) Edit's Read-f
 ### 2026-05-04 [45fe57dec822]
 
 The two pushes carry distinct weight in the trajectory: the Jarvis push is administrative — internal evidence-base reports for our own reference, and David doesn't have read access to `CannonCoPilot/Jarvis` regardless. The AIFred-Pro-Dev push is the actual milestone-review handoff to David, the moment where 14+ days of stacked work changes hands for review. Worth deciding whether you want to give him a heads-up via Pulse or an explicit ProjectIntel `Questions/` ping before the push lands, or whether the Synology Drive debrief sync (already complete) is the appropriate handshake. Either way, the `pre-merge-baseline-2026-05-04` tag is already in place on origin as the rollback anchor if anything in the milestone needs reverting.
+
+### 2026-05-04 [7740b13b2f2f]
+
+The watcher is "running" (STAT=S, 0% CPU) but its log hasn't updated since 22:35:03Z yesterday — meaning it's blocked waiting somewhere in the actuation loop, NOT polling. The `refresh_state_from_jsonl()` function I added would be called from the main poll loop, but the watcher never reached the poll iteration after my SIGCONT — most likely because it was SIGSTOP'd mid-actuation-cycle rather than mid-poll, and on resume it's still inside the long-running cycle path. The HUD didn't pick up SIGCONT for related reasons. The gate hook also stopped firing at 04:34:01Z (the failed JICM cycle yesterday). All three are downstream of the JICM cycle that didn't complete cleanly — the same bug class my fixes target. The fixes will become live on the NEXT clean session start, not retroactively.
+
+### 2026-05-04 [aeb2132f34c9]
+
+The smoke-test re-run validates a useful systems principle: **pipeline behavior is consistent with master ticket clarity**. When the master spec is precise about scope, paths, and clean-state expectations, children execute correctly and verifier classifications match human intent. The pipeline is not "intelligent" enough to infer master scope — it faithfully executes what the YAML declares. This frames a practical operating habit: when a smoke test fails, the first hypothesis should be "is the master spec underdetermined?" before any pipeline code changes are considered. The v1→v2 delta (3 fixes, 0 code changes) is empirical evidence for this hypothesis ranking.
+
+### 2026-05-04 [91eb5b1b3773]
+
+**C2 and C3 validated live** in this very moment: the state file now reads `tokens: 323743, used_percentage: 32, _refreshed_by: "watcher_poll"` with `ts: 2026-05-04T19:56:07Z` (= seconds ago). The new `refresh_state_from_jsonl()` function fired on its first poll cycle after watcher launch and populated all the fields correctly. Token count jumped from 398K stale (yesterday) → 210K (manual gate-hook fire earlier) → 323K (live refresh now) — tracking JSONL accurately as the conversation continues. Note: `tokens=323K` exceeds `hard_threshold=300K`, but `action=WATCHING` because action is set by gate hook on UPS only; the refresh function correctly stays passive on action and only updates raw measurements. Your next message will fire the gate hook, set `action=HARD_HALT`, and trigger the FIRST live JICM cycle with the new defensive HALT/clear sequence — validating C1 in real-time.
+
+### 2026-05-04 [9898f84416b0]
+
+HUD is now running with the new code — 43 lines into a 45-row window (2-line margin), atomic frame rendering via DEC mode 2026, and the redundant footer-divider removed. You should see the next refresh as a clean in-place update with no scroll, no blink. The mode-2026 sequences are forward-compatible: terminals that don't support sync-output treat them as no-ops, so the fix degrades gracefully.
+
+### 2026-05-04 [57655ff887a7]
+
+David's work splits into three distinct streams that don't share a branch: (1) **Loom** (his RAG/retrieval research) on its own repo at `loom/main`; (2) **AIProjects** (his collaboration/lifecycle infrastructure) on its own repo; (3) **AIFred-Pro** with two branches — `main` (stable, what we sync from) and `nexus-sync-2026-04` (his experimental track, frozen since 2026-04-22). The `nexus-sync` branch is what we're being asked about, but his most active work over the past three weeks has actually been in Loom and AIProjects, not on nexus-sync. That context shapes the right priority recommendation, sir.
+
+### 2026-05-04 [5e08050dd0aa]
+
+**The bug is `inject escape` in the defensive sequence.** When Claude is idle (no stream), ESC in Claude Code TUI does **not** harmlessly do nothing — it triggers **"edit last prompt"** recall mode, which reloads the previous user prompt (HALT_PROMPT) into the input buffer for editing. Then `inject clear-input` (Ctrl+U) may not clear it (depending on cursor position in the recalled text), `inject text "/clear"` types `/clear` AT THE END of the recalled HALT_PROMPT, and `inject submit` fires Enter — submitting the concatenated text as a single new prompt. The escape was intended to interrupt in-flight streams, but `wait_for_idle` already verified there's no stream. **Escape is now actively harmful when Claude is idle.** The fix is to remove `inject escape` from the defensive sequence — wait_for_idle obsoletes its purpose.
+
+### 2026-05-04 [894fdfc4d8f4]
+
+The diagnostic chain across this session and the prior one tells a useful general lesson, sir: **wait_for_idle was necessary but not sufficient**. The first hypothesis (queue-operation race during streaming) was real and the fix reduced one failure mode. But the actual concatenation persisted because a second mechanism existed downstream — ESC triggers prompt recall in Claude Code TUI when idle, undoing the very state wait_for_idle worked to achieve. This is a classic "fix one thing, see the next one" pattern. The pre-existing comment at line 147 documented escape's purpose ("interrupt any in-flight assistant stream") with conviction, but the comment author hadn't tested ESC behavior in the *idle* state. The lesson: **defensive sequences should justify each step against the actual TUI behavior, not the assumed behavior** — and adjacent comments are a useful proxy for "this assumption was never tested." Worth a Jarvis pattern entry.
+
+### 2026-05-04 [50dbf7b92851]
+
+The C1 root cause is a useful general lesson: **TUI keystroke semantics depend on application state**. Claude Code's ESC key was harmless when streaming (interrupts in-flight output) but actively destructive when idle (recalls last prompt for editing). A defensive sequence that fires the same key in both states will silently corrupt one of them. Lesson for any future watcher injection logic: when you call `wait_for_idle`, you've already confirmed there is no stream — so any "stream-interrupt" prelude becomes obsolete-and-actively-harmful, not merely redundant.
+
+Second insight worth keeping: this validation depended on **a measurable boundary** (new JSONL filename). Without that artifact, "resume signal observed" alone could have been a false positive. JICM cycles should always leave a forensic fingerprint that distinguishes "actually cleared" from "appeared to clear." The session-id-in-JSONL-filename gives us that for free.
+
+### 2026-05-04 [67e4e08c5101]
+
+**The biggest single win was governance, not architecture.** The scratchpad alone accounted for 50% of the projected savings — and its own header rule said "Keep under 80 lines" the whole time. The rule was correct; it just wasn't enforced. The new `scratchpad-rotate.sh` PreCompact hook is the structural fix: it makes the size discipline self-maintaining instead of relying on Jarvis to remember each session.
+
+**The second insight is about cache-creation accounting.** When `current-plans.md` was @-imported twice in CLAUDE.md, the parser likely deduplicated — but the CONFUSION was free even when the tokens weren't. JICM-prep was independently embedding scratchpad content into compressed-context-ready.md while scratchpad was already force-loaded — that's true double-counting. Stage 1.5 saved ~2K tokens just by removing the duplication, and the savings will compound on every JICM cycle.
+
+### 2026-05-04 [ffa0b443b729]
+
+The numbers here look small compared to Stage 1's 37K-token scratchpad win, but Stage 4 has a non-token virtue: **decision-space narrowing**. Every active skill is a candidate the model has to consider during routing decisions. Pruning 18 unused skills doesn't just save tokens — it sharpens the manifest router's signal-to-noise ratio. When `selection-intelligence-guide.md` is consulted with 19 active skills instead of 37, the right tool is more obvious. The cognitive savings compound at every routing decision; the token savings are a one-time prefix.
+
+Second insight: **the absorbed-skill consolidations (autonom-ops, self-ops, mcp-ops) were already token-saving by design but never went the last mile** — the absorbed sub-skills (`autonomous-commands`, `session-management`, `mcp-builder`, etc.) were left in place "just in case." Stage 4 is largely about completing that consolidation by retiring the now-redundant absorbed-but-not-removed skills.

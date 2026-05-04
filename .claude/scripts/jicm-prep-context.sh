@@ -285,15 +285,9 @@ fi
     fi
     echo ""
 
-    # Current Priorities section (multi-line extraction)
-    if [[ -f "$SESSION_STATE" ]]; then
-        PRIORITIES=$(sed -n '/^## Current Priorities/,/^## [^C]/p' "$SESSION_STATE" 2>/dev/null \
-            | grep -v '^## [^C]' | head -40)
-        if [[ -n "$PRIORITIES" ]]; then
-            echo "$PRIORITIES"
-            echo ""
-        fi
-    fi
+    # NOTE: Current Priorities section omitted — session-state.md is force-loaded
+    # via CLAUDE.md @-import; duplicating it here would inflate cache_creation
+    # tokens at every JICM cycle. (See: 2026-05-04 context-budget audit.)
 
     # --- Git state ---
     echo "## Git State"
@@ -316,37 +310,8 @@ fi
     fi
     echo ""
 
-    # --- Active plans (from current-plans.md, falling back to .active-plan) ---
-    CURRENT_PLANS_FILE="$PROJECT_DIR/.claude/context/current-plans.md"
-    if [[ "$INCLUDE_PLAN" == "true" ]]; then
-        if [[ -f "$CURRENT_PLANS_FILE" ]]; then
-            echo "## Active Plans"
-            # Extract the Active section entries
-            sed -n '/^## Active/,/^## /p' "$CURRENT_PLANS_FILE" 2>/dev/null \
-                | grep -v '^## [^A]' | head -10
-            echo ""
-
-            # Include body of first active plan (title + context section)
-            FIRST_PLAN_REL=$(sed -n '/^## Active/,/^## /p' "$CURRENT_PLANS_FILE" 2>/dev/null \
-                | grep -oE '\([^)]+\.md\)' | head -1 | tr -d '()')
-            if [[ -n "$FIRST_PLAN_REL" ]]; then
-                FIRST_PLAN_FULL="$PROJECT_DIR/$FIRST_PLAN_REL"
-                if [[ -f "$FIRST_PLAN_FULL" ]]; then
-                    echo "### Plan Details"
-                    head -40 "$FIRST_PLAN_FULL" | sed -n '1,/^---$/p'
-                    echo ""
-                fi
-            fi
-        elif [[ -f "$ACTIVE_PLAN_FILE" ]]; then
-            # Fallback to single .active-plan tracker
-            plan_path=$(tr -d '[:space:]' < "$ACTIVE_PLAN_FILE")
-            if [[ -n "$plan_path" ]] && [[ -f "$plan_path" ]]; then
-                echo "## Active Plan"
-                head -40 "$plan_path" | sed -n '1,/^---$/p'
-                echo ""
-            fi
-        fi
-    fi
+    # NOTE: Active plans block omitted — both current-plans.md and .active-plan
+    # are force-loaded via CLAUDE.md @-imports. See 2026-05-04 audit for rationale.
 
     # --- Active tasks (from TodoWrite via JSONL) ---
     if [[ -n "$TODOS" ]]; then
@@ -355,15 +320,8 @@ fi
         echo ""
     fi
 
-    # --- Scratchpad (short-term working memory) ---
-    if [[ -f "$SCRATCHPAD" ]]; then
-        SCRATCH_CONTENT=$(sed -n '/^## Active Notes/,$ p' "$SCRATCHPAD" 2>/dev/null | tail -n +2 | head -60)
-        if [[ -n "$SCRATCH_CONTENT" ]] && [[ "$SCRATCH_CONTENT" != *"(empty"* ]]; then
-            echo "## Scratchpad (Short-Term Memory)"
-            echo "$SCRATCH_CONTENT"
-            echo ""
-        fi
-    fi
+    # NOTE: Scratchpad block omitted — .scratchpad.md is force-loaded via
+    # CLAUDE.md @-import. See 2026-05-04 audit for rationale.
 
     # --- Recent conversation ---
     echo "## Recent Conversation (last ${USER_MSG_COUNT} messages)"
