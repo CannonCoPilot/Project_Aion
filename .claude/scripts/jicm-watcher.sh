@@ -185,16 +185,20 @@ actuate_jicm_cycle() {
     #       failure mode (queue-operation visible in JSONL transcript). Polling
     #       JSONL until last assistant has terminal stop_reason guarantees the
     #       input buffer is in a state to accept slash commands.
-    #    a. escape: interrupt any residual stream (defense-in-depth)
-    #    b. clear-input: empty the input buffer (Ctrl+U) — handles the secondary
-    #       failure mode where HALT submit had failed silently and HALT text
-    #       still sits in the input field.
-    #    c. text /clear + submit: now goes into a verified-empty input buffer
-    #       AND the TUI is verified-idle so the slash command executes inline.
+    #    a. clear-input: empty the input buffer (Ctrl+U) — defense-in-depth in
+    #       case any residual text is in the input field. Should be a no-op when
+    #       wait_for_idle confirms idle (input field empty post-acknowledgment).
+    #    b. text /clear + submit: types into verified-empty input + idle TUI so
+    #       the slash command executes inline.
+    #    REMOVED: inject escape. ESC in Claude Code TUI does NOT harmlessly
+    #       interrupt when there's no stream — it triggers "edit last prompt"
+    #       recall mode, reloading HALT_PROMPT into the input buffer. Combined
+    #       with subsequent Ctrl+U (which behaves as delete-word in the recalled
+    #       state, not delete-line) and inject text "/clear", the result is the
+    #       documented concatenated prompt "[JICM-HALT] ... /clear /clear".
+    #       wait_for_idle obsoletes the original stream-interrupt purpose.
     wait_for_idle "$JICM_HALT_ACK_TIMEOUT"
     log "cycle: claude idle confirmed (pre /clear)"
-    inject escape
-    sleep 0.3
     inject clear-input
     sleep 0.3
     inject text "/clear"
