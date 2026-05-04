@@ -331,3 +331,91 @@ This run report is methodologically distinct from the Phase 1.3.5 verdict drafts
 ---
 
 *Run report final — completed 2026-05-04 22:06:18 MDT (04:06:18Z). All 7 tasks PASSED. Three architectural findings (§5.1-§5.4) documented for follow-up.*
+
+---
+
+## 9. Run #2 — YAML v2 Re-Run (2026-05-04 morning, post-JICM-fix)
+
+### 9.1 Trigger and intent
+
+Per User directive — verify the entire gospel-synopsis workflow runs problem-free at least once after applying both:
+- **YAML v2 path corrections**: §5.3 fix aligning all 6 step paths from `tests/gospel-synopsis/` → `output/gospel-synopsis/`; §5.4 master-scope clarification preventing redundant child-work re-creation; clean-state expectation paragraph preventing short-circuit on pre-existing artifacts.
+- **JICM watcher fixes**: HALT/clear concatenation defense (escape + clear-input + text + submit defensive sequence with post-submit verification) and state-file staleness (poll-driven `refresh_state_from_jsonl` running every 5 watcher iterations).
+
+Watcher PID 74731 + HUD PID 28966 deliberately SIGSTOP'd before the run to prevent JICM cycle interference with the active conversation. Production board cleared of pre-existing OPEN items (none — all 9 stale tasks from prior session had been closed before Run #1).
+
+### 9.2 Verdict — PASS
+
+**8 of 8 tasks closed cleanly. No stalls. No false-fails. No manual intervention.**
+
+| Metric | Run #1 (v1 YAML) | Run #2 (v2 YAML) | Delta |
+|---|---:|---:|---:|
+| Tasks shipped | 7 | 8 | +1 (added Run Summary task #6) |
+| Wall-clock | 26.1 min | 23.3 min | -2.8 min |
+| Total Claude-CLI cost | $2.58 | $1.76 | -$0.82 |
+| Total CPU duration | 19.5 min | 12.6 min | -6.9 min |
+| Total output tokens | 50,524 | 50,636 | +112 |
+| Cache hit rate | 94.3% | 93.5% | -0.8pp |
+| Validation false-fails | 1 (parallels.md) | 0 | -1 |
+| Master scope-leakage | YES (§5.4) | NO | resolved |
+
+### 9.3 Per-task telemetry (Run #2, this run only)
+
+```
+[CO] TASK_ID            COST       DURATION   IN     OUT     CACHE_R    CACHE_C   TITLE
+ 0   SETUP-b3d24927    $0.8168    383.1s     957    24,932  783,710    55,178   GS-MASTER (verifier-only this time)
+ 0   AION-4739453f     $0.1890     56.3s     700     3,661  104,337    27,275   Identify parallel scenes
+ 1   AION-1a1cb2b1     $0.0567     29.3s       5     1,288   85,258     3,151   Reference table
+ 2   AION-ac222dd4     $0.1471     79.7s       4     6,697   61,672     7,509   Detailed synopses
+ 3   AION-67d90b85     $0.1591     82.6s       5     5,598  120,634    10,389   Master document
+ 4   AION-62f74e43     $0.1536     48.3s       6     3,688  208,990     9,484   Word document
+ 5   AION-229e43c3     $0.1372     53.6s       6     3,163  237,481     4,923   Validation report
+ 6   AION-cbc2a8cc     $0.0976     22.3s       5     1,609  190,058     4,375   Run summary
+                       ──────    ───────   ─────  ───────  ────────   ───────
+TOTAL:                $1.7571    755.3s    1,688  50,636  1,792,140  122,284  (8 tasks, 12.6 min CPU)
+Cache hit rate: 93.53%
+Wall-clock: 14:27:09Z → 14:50:29Z = 23.3 min
+```
+
+### 9.4 Architectural improvements observed (validating §5 findings)
+
+**§5.3 short-circuit — RESOLVED**. The v1 run's child #1 ("Research parallels") executed against `tests/gospel-synopsis/sources/` and wrote nowhere matching the master's expected `output/gospel-synopsis/` deliverable paths. In Run #2, every child task targeted `output/gospel-synopsis/` directly. The reviewer's filesystem-existence check found all expected paths populated; no executor saw a pre-existing artifact and short-circuited as "already complete."
+
+**§5.4 master-scope leakage — RESOLVED**. In v1, the master task (after children completed) re-executed all 6 deliverable steps redundantly, doubling cost and time. In v2, the master ticket explicitly declared its post-decomposition scope: read each child's deliverable, confirm 8 expected files exist non-empty, spot-check verbatim KJV, write `run-summary.md`, and FAIL if any child output is missing. The master task did exactly that — no re-creation. Total master cost dropped from ~$1.20 (v1) to $0.82 (v2) for the verifier-only role.
+
+**Validation false-fail — RESOLVED**. v1's verifier reported a false `mark1-luke4-parallels.md` fail because it expected verbatim verses in a reference-only table. v2's verifier correctly classified it as **EXEMPT** with rationale: "contains only verse references (e.g. '1:12–13'), not verbatim scripture — correctly exempted". This came from the YAML v2 master ticket's explicit description of the parallels file as a navigation reference, not a content carrier. The verifier's `prior_context_summary.gotchas` field captured the key insight: "Special KJV characters (¶, ‹, ›) in source verses had to be stripped before string matching against file content" — applying this stripping for the 9 scripture-bearing files but skipping it (and the entire verbatim check) for parallels.md.
+
+### 9.5 New finding — pipeline anomaly: master `closed_at: None` despite `status: closed`
+
+While extracting telemetry, observed that `SETUP-b3d24927` (master) has `status: "closed"` but `closed_at: None`. Cause: the decomposed-parent-guard mechanism in `pipeline-watcher.py` (added per Section 16 of Observed-issues.txt) auto-closes parents when all children report done — but the auto-close path doesn't set `closed_at` (and likely also doesn't set `closed_reason`). The actual close path used by `_close_task()` in `_shared.py` does set both fields.
+
+**Severity**: low. Functional behavior is correct (board shows master closed, no orphan blocking). But analytics queries grouping by `closed_at` will miss decomposed-parent closures.
+
+**Recommended fix**: pipeline-watcher's decomposed-parent-guard close path should mirror `_close_task()` semantics exactly — set both `closed_at` and `closed_reason: "decomposed-parent-children-done"` for symmetry with the watchdog stuck-task force-close path.
+
+### 9.6 Phase 1.3.5 reviewer-route observations
+
+Same as Run #1: zero `metadata.review_engine: claude-cli` review invocations. All 7 reviewer dispatches in this run defaulted to Ollama. The opt-in mechanism is unblocked for Stage-1 verdict tomorrow but won't have run-2 sample data unless tagged fixtures are imported separately. **Default-route stability** axis is healthy — 7 successful Ollama review cycles with no errors.
+
+### 9.7 Combined verdict (Runs #1 + #2)
+
+The pipeline-v2 milestone is operationally healthy. Two consecutive smoke tests of equal complexity completed cleanly:
+- Run #1 (v1 YAML, 7 tasks, 26.1 min, $2.58, 1 false-fail, 1 scope-leak) — passed with documented architectural findings.
+- Run #2 (v2 YAML, 8 tasks, 23.3 min, $1.76, 0 false-fails, 0 scope-leaks) — passed cleanly with all v1 findings resolved by YAML adjustments alone (no pipeline code changes required).
+
+**Master ticket discipline matters**. The v1→v2 delta shows that the pipeline behavior is consistent with master ticket clarity — when the master spec is precise about scope, paths, and clean-state expectations, the children execute correctly and the verifier's classifications match human intent. The pipeline is not "intelligent" enough to infer master scope; it is faithfully executing what the YAML declares.
+
+### 9.8 JICM diagnostic state at run conclusion
+
+Watcher (PID 74731) and HUD (PID 28966) remain SIGSTOP'd through the smoke-test for conversation safety; STAT=T persisting on HUD even after retry SIGCONT (signal didn't deliver — needs kill+relaunch on next session restart). Watcher resumed after smoke-test (STAT=S) but its main loop appears stuck in the actuation-cycle path from yesterday's incomplete JICM cycle (last log timestamp 22:35:03 MDT yesterday), so the new poll-driven `refresh_state_from_jsonl` function hasn't fired in this session. State file last gate-hook write at 04:34:01Z (= the failed JICM cycle from yesterday); manual gate-hook invocation post-smoke-test confirmed correct token computation (398K stale → 210K current = current 1M-window post-summarization snapshot, matching JSONL `last_assistant.usage` exactly). The fixes shipped in commit `3e7f4f4` will become live on next clean session start; they cannot retroactively un-stick a process that's blocked in the actuation loop.
+
+### 9.9 Cross-references
+
+- Run #1 (v1) details: §1-§8 above
+- v2 YAML: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/test-suites/gospel-synopsis.yaml` (commit `b78551f` on `nate-dev`)
+- JICM fix commit: `3e7f4f4` on `Project_Aion` — `fix(jicm): HALT/clear concatenation + state-file staleness`
+- Pipeline-watcher: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py` (decomposed-parent-guard path needs `closed_at`/`closed_reason` symmetry per §9.5)
+
+---
+
+*Run #2 final — completed 2026-05-04 08:50:29 MDT (14:50:29Z). All 8 tasks PASSED. All v1 findings resolved by YAML adjustments. One new low-severity pipeline anomaly logged (§9.5 master closed_at: None).*
