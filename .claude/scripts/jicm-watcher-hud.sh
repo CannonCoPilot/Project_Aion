@@ -49,7 +49,7 @@ set -o pipefail
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────
 HUD_REFRESH="${HUD_REFRESH:-1}"
-HUD_LOG_TAIL="${HUD_LOG_TAIL:-12}"
+HUD_LOG_TAIL="${HUD_LOG_TAIL:-10}"
 HUD_MIN_COLS="${HUD_MIN_COLS:-100}"
 HUD_MIN_ROWS="${HUD_MIN_ROWS:-40}"
 HUD_VERSION="1.0.0"
@@ -556,11 +556,14 @@ load_all() {
 
 # Clear screen + cursor home
 # In live/interactive-demo loops we set HUD_IN_ALT_SCREEN=true and use cursor-home
-# only (no \033[2J) — overwrites in place to eliminate the flicker that a full
-# screen erase produces between frames. One-shot modes still get a full clear.
+# only (no \033[2J) plus synchronized-output (DEC mode 2026) so the entire
+# frame draws atomically — eliminates the mid-frame blank that produces
+# visible flicker on terminals that emit between writes. The 2026h/2026l
+# sequences are no-ops on terminals that don't support them (xterm minimal),
+# so this is forward-compatible. One-shot modes still get a full clear.
 clear_screen() {
     if [[ "${HUD_IN_ALT_SCREEN:-false}" == "true" ]]; then
-        printf '\033[H'
+        printf '\033[?2026h\033[H'
     else
         printf '\033[H\033[2J'
     fi
@@ -960,7 +963,6 @@ render_log_tail() {
 
 render_footer() {
     local width="$1"
-    section_hr "$width" ""
     local left=" Refresh ${HUD_REFRESH}s  |  Press q to quit  |  HUD v${HUD_VERSION}"
     local right="$JICM_LOG_FILE "
     local r_short
@@ -996,6 +998,11 @@ render_dashboard() {
     render_footer "$width"
     # Erase any rows below the new frame (handles shrinking content from prior frame).
     printf '\033[J'
+    # End synchronized-output (DEC mode 2026) — flush the atomic frame.
+    # Paired with begin in clear_screen; forms the htop-style render barrier.
+    if [[ "${HUD_IN_ALT_SCREEN:-false}" == "true" ]]; then
+        printf '\033[?2026l'
+    fi
     return 0
 }
 
