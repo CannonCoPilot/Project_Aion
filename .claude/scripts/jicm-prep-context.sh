@@ -751,14 +751,16 @@ METADATA_EOF
 # cross-window comparison, /meditate-session review, and Pulse UI visualization.
 
 METRICS_FILE="$PROJECT_DIR/.claude/logs/context-window-metrics.jsonl"
-JICM_STATE_FILE="${JICM_STATE:-$PROJECT_DIR/.claude/context/.jicm-state}"
+# v7.9.6c: read telemetry from .jicm-state-hook.json (canonical v7.9 state file).
+# Legacy .jicm-state was a v7.3 → v7.9 back-compat shim, removed at 7.9.6c.
+JICM_STATE_HOOK_FILE="${JICM_STATE_HOOK_FILE:-$PROJECT_DIR/.claude/context/.jicm-state-hook.json}"
 
 # Read current token count and burn rate from watcher state
 CW_TOKENS=0
 CW_BURN_RATE=0
-if [[ -f "$JICM_STATE_FILE" ]]; then
-    CW_TOKENS=$(grep -oE 'context_tokens=[0-9]+' "$JICM_STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2 || echo 0)
-    CW_BURN_RATE=$(grep -oE 'burn_rate_tpm=[0-9.]+' "$JICM_STATE_FILE" 2>/dev/null | head -1 | cut -d= -f2 || echo 0)
+if [[ -f "$JICM_STATE_HOOK_FILE" ]]; then
+    CW_TOKENS=$(jq -r '.tokens // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null || echo 0)
+    CW_BURN_RATE=$(jq -r '.burn_rate_tpm // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null || echo 0)
 fi
 
 # Count files modified in this window (uncommitted changes)
