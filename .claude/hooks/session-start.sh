@@ -13,7 +13,7 @@
 #
 # JICM v7 Integration:
 # - Context injection via additionalContext (hook → Claude)
-# - v7 watcher handles all state transitions via .jicm-state file
+# - v7.9 watcher handles all state transitions via .jicm-clear-now.signal + .jicm-resume-complete.signal
 # - v7 prep script replaces LLM compression agent (0.03s vs 210s)
 # - See: .claude/context/designs/jicm-v6-design.md
 #
@@ -124,7 +124,7 @@ if [[ -f "$PENDING_FILE" ]]; then
     echo "$TIMESTAMP | SessionStart | Cleaned up .clear-pending marker" >> "$LOG_DIR/session-start-diagnostic.log"
 fi
 
-    # v5 debounce REMOVED (v6.1) — v6 state machine handles clear dedup via .jicm-state
+    # v5 debounce REMOVED (v6.1) — v7.9 state machine handles clear dedup via .jicm-clear-now.signal
 
 # ============== JICM RESET (AC-04 Integration) ==============
 # context-estimate.json write REMOVED (Tier 3+ cleanup) — no production code reads it.
@@ -351,19 +351,19 @@ $(head -30 "$f")
     echo "$archive_context"
 }
 
-# ============== JICM v7 — STOP-AND-WAIT ARCHITECTURE ==============
-# JICM v7 uses a single .jicm-state file instead of multiple signal files.
+# ============== JICM v7.9 — STOP-AND-WAIT ARCHITECTURE ==============
+# JICM v7.9 uses native signal files (.jicm-clear-now.signal +
+# .jicm-resume-complete.signal); the .jicm-state shim was retired at 7.9.6c.
 # The watcher handles all state transitions; this hook just injects context.
-# Detection: .jicm-state exists with state=clearing or state=restoring
-# v7: Prep script replaces LLM agent. CLAUDE.md/capability-map auto-loaded.
-V6_STATE_FILE="${JICM_STATE_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-state}"
+# Detection: .jicm-clear-now.signal exists (watcher wrote it before /clear,
+# removes it during step-9 cleanup post-RESUME).
+JICM_CYCLE_SIGNAL="${JICM_CLEAR_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.signal}"
 V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
 
-if [[ "$SOURCE" == "clear" ]] && [[ -f "$V6_STATE_FILE" ]]; then
-    V6_STATE=$(grep '^state:' "$V6_STATE_FILE" 2>/dev/null | head -1 | awk '{print $2}')
-
-    if [[ "$V6_STATE" == "CLEARING" ]] || [[ "$V6_STATE" == "RESTORING" ]]; then
-        echo "$TIMESTAMP | SessionStart | JICM v7: Detected state=$V6_STATE" >> "$LOG_DIR/session-start-diagnostic.log"
+if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
+    V6_STATE="JICM_CYCLE_ACTIVE"
+    echo "$TIMESTAMP | SessionStart | JICM v7.9: Detected active cycle (signal present)" >> "$LOG_DIR/session-start-diagnostic.log"
+    if true; then
 
         V6_CONTEXT=""
         if [[ -f "$V6_COMPRESSED" ]]; then
@@ -423,7 +423,7 @@ fi
 
 # JICM v5 code path REMOVED (v6.1, 2026-02-11)
 # v5 used two-mechanism resume: hook injection + idle-hands keystroke monitor.
-# v6 uses single .jicm-state file + stop-and-wait architecture (above).
+# v7.9 uses .jicm-clear-now.signal + .jicm-resume-complete.signal + stop-and-wait architecture (above).
 
 # ============== CLEAR WITHOUT JICM (safety fallback) ==============
 # Legacy .soft-restart-checkpoint.md handling removed (v7 refurbishment).

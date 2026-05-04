@@ -89,20 +89,10 @@ wait_for_signal() {
 HALT_PROMPT="[JICM-HALT] Context approaching threshold. Save in-progress details to .claude/context/.scratchpad.md, acknowledge with the single word Understood, and stop work. Compression and /clear will follow."
 RESUME_PROMPT="[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md for current state and .claude/context/.scratchpad.md for transient working details. Resume work immediately. Do NOT greet."
 
-# --- Approach C back-compat shim (7.9.6b → removal at 7.9.6c) ---------------
-# Production session-start.sh JICM v7 branch gates on .jicm-state containing
-# `state: CLEARING` or `state: RESTORING`. The v7.9 native signal protocol
-# uses .jicm-clear-now.signal / .jicm-resume-complete.signal, but until
-# session-start.sh is re-gated (7.9.6c), we mirror the state transitions
-# into the legacy file so the existing hook chain continues to fire.
-# v79_shim: true field marks the file as shim-written, distinguishing from
-# pre-v7.9 watcher writes for downstream auditing.
-v73_shim_write_state() {
-    printf 'state: %s\ntimestamp: %s\nv79_shim: true\n' \
-        "$1" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$JICM_STATE_FILE"
-}
-
 # --- Cycle: idle → HALT → prep → /clear → resume → RESUME -------------------
+# 7.9.6c: Approach C back-compat shim (v73_shim_write_state) removed.
+# session-start.sh JICM v7 branch now gates on .jicm-clear-now.signal directly;
+# legacy .jicm-state file is no longer written or read.
 actuate_jicm_cycle() {
     log "cycle: start"
 
@@ -160,7 +150,6 @@ actuate_jicm_cycle() {
     #       silently, HALT text still sits in the input field and /clear text
     #       would append to it (the documented bug pattern).
     #    c. text /clear + submit: now goes into a verified-empty input buffer.
-    v73_shim_write_state CLEARING   # Approach C back-compat for session-start.sh JICM v7 branch
     inject escape
     sleep 0.3
     inject clear-input
@@ -169,7 +158,7 @@ actuate_jicm_cycle() {
     sleep 0.3
     inject submit
     sleep 0.5
-    log "cycle: /clear sent (legacy state: CLEARING)"
+    log "cycle: /clear sent"
 
     # 7. Wait for resume signal (session-start hook writes after restoration)
     if wait_for_signal "$JICM_RESUME_SIGNAL" "$JICM_RESUME_TIMEOUT"; then
@@ -180,20 +169,18 @@ actuate_jicm_cycle() {
     sleep 1
 
     # 8. RESUME injection — same defensive pattern as HALT/clear
-    v73_shim_write_state RESTORING   # Approach C back-compat: signal post-/clear restoration
     inject clear-input
     sleep 0.3
     inject text "$RESUME_PROMPT"
     sleep 0.5
     inject submit
     sleep 0.5
-    log "cycle: RESUME prompt sent (legacy state: RESTORING)"
+    log "cycle: RESUME prompt sent"
 
     # 9. Cleanup transient signals
     rm -f "$JICM_CLEAR_SIGNAL" "$JICM_COMPRESSION_SIGNAL" \
           "$JICM_COMPRESSION_GUARD" "$JICM_RESUME_SIGNAL"
-    v73_shim_write_state WATCHING    # Approach C back-compat: return to baseline state
-    log "cycle: complete (legacy state: WATCHING)"
+    log "cycle: complete"
 }
 
 # --- Periodic state refresh (fixes HUD/Statusline staleness during long turns) ---
