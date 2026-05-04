@@ -6042,3 +6042,55 @@ The template files follow two conventions: `templates/*.txt` use shell-style `#`
 Two design decisions paid off in the test results:
 1. **Comment-stripping for `.txt` templates** — Test 2's additionalContext is exactly the 25-token arxiv seed, with 17 lines of header documentation removed. Without the awk filter, every CoD application would inject ~480 tokens of authoring metadata into the prompt prefix, polluting the cache and inflating the per-prompt token cost the Stage-1 verdict measures.
 2. **Strict prefix anchoring** (Tests 6 + 7) — frontmatter `---\ntask: ...\n---` and indented `  [task: ...]` are both rejected as untagged. Per architecture §8 Q1, only `^\[task: <type>\]` exactly matches. This is intentional: in a measurement experiment, the routing rule must be unambiguous so any ambiguous case is excluded from the sample rather than silently assigned a task type. Loose matching would create rare-case routing bugs that surface only in Stage-2 14d data, after the regression-catch window closes.
+
+### 2026-05-04 [f22e41decf4b]
+
+Fewshots are 12-17× heavier than single-line. At Stage-1 frequency (1-2 tagged prompts/day), the cache impact is ~300-800 tokens/day of new cache misses — negligible against typical session prefixes (~250K tokens cached). Critically, `additionalContext` from UPS hooks is appended to **the user message**, not prepended to the system prompt, so the system-prompt cache is unaffected. The cache hit on subsequent turns within the same session benefits from Anthropic's 1h ephemeral cache (the new content gets cached on first turn and hits on subsequent). Stage-1's `cache_hit_rate_dip_pp ≤ 5` axis won't be tripped by template size at this rate.
+
+### 2026-05-04 [5ca9da2e863b]
+
+The dependency graph shaped the work in a way worth noting: **2.4.c was the bottleneck**, blocking 2.1.b (which needs the new columns) but not 2.2 (which is content-only). The cleanest serialization was 2.4.c → 2.1.b in series, with 2.2 in parallel-friendly position. In practice they ran sequentially because authoring depth varied by task; but had I delegated 2.2 to a subagent at the start of 2.4.c, that subagent could have completed before 2.1.b finished — the kind of trivial parallelism that's easy to miss. The bigger lesson: **dependency graph != schedule**; the schedule should exploit independence even when the graph doesn't force it.
+
+A second observation: the 2.4.c discovery (`usage.thinking_tokens` doesn't exist in the API) reframes the pre-registration's measurement methodology. The chars/4 approximation is methodologically equivalent for ratio comparisons, and the report makes this explicit so future Stage-2 verdict reviewers don't confuse the approximation with a precision claim. This is the kind of thing where being clear in the deliverable saves a misunderstanding three weeks later.
+
+### 2026-05-04 [62d40b47359d]
+
+This is a recurring pattern worth naming: the LLM-enriched compressed context (qwen3:8b) tends to retrieve the most-recent session-state.md priorities and present them as the current task, but session-state.md hasn't been refreshed since 2026-04-28 and lists pre-Phase-2 priorities as TOP. The scratchpad — which auto-updates per turn and survives `/clear` — is consistently more accurate. Per `psyche/self-knowledge/self-corrections.md` (2026-04-24 / 05-02 entries), this is a known mode: "JICM checkpoint inferred stale task — matches COMPLETE items in current-plans.md. Derive current task from recent conversation only." The scratchpad serves as ground truth precisely because it's force-loaded and turn-by-turn maintained, while the compressed-context can pull from older state files. Stage-2's outcome will likely surface this as a cause to add a **session-state-staleness check** to the prep script — if `session-state.md` hasn't changed in N hours, weight scratchpad more heavily in compression.
+
+### 2026-05-04 [f883296667ce]
+
+`.active-plan` being gitignored is the local-state-pointer pattern: the *plan file* in `.claude/plans/` is tracked, but the pointer to "which plan is active" is per-machine local. Same architectural rationale as the JICM `.jicm-state` family — pointers and runtime state stay local, content stays committed.
+
+### 2026-05-04 [09d703b04f77]
+
+The "21 behind nexus-sync-2026-04" finding from Agent B and the "0 new commits" finding from Agent C reconcile cleanly: nexus-sync has 21 *historical* David commits (from when the branch was created) that never merged to main and aren't in nate-dev — but no recent activity. This dramatically changes Phase 4: the merge isn't "catch up to a moving target," it's "evaluate 21 frozen commits for ADOPT/ADAPT/REJECT/DEFER and integrate selectively." Effort estimate roughly halves.
+
+### 2026-05-04 [f19c87fcf409]
+
+Critical topology observation: nexus-sync's 21 commits date 2026-04-09 to 2026-04-22, all PREDATING or contemporaneous with the merge-base `dfd40c5` (2026-04-22). This means David branched nexus-sync from main *before* doing the Nexus 4.0 rebrand work, then never merged most of it back. The Nexus rebrand IS partially in nate-dev (inherited from main at `dfd40c5`), but the hashes are different — main's path was a different sequence. So ADOPT/ADAPT decisions can't be made by hash equivalence; they require file-content comparison.
+
+### 2026-05-04 [5ff521da98a6]
+
+The 450-file diff broke down on inspection: ~250 of those files are *structural* divergence (different commit lineages reaching similar logical state — David's `a450f61` brought 200+ dashboard files in via one path, nate-dev inherited them via another), and only ~30-40 are *genuine* overlapping modifications that would conflict on merge. This distinction is what makes selective ADOPT viable for small commits and unviable for the wholesale merge — the 'true conflict surface' is much smaller than the headline number suggests, but it's concentrated in exactly the architecturally-charged files (executor.sh, ai-reviewer prompt, OrchestrationGraphView).
+
+### 2026-05-04 [abbced9a9755]
+
+The scratchpad anchor pattern preserved Phase 1-3 deliverables, all 5 outstanding questions, recommended REJECT-all scope, alternatives B1-B4, and the strong reasoning chain. Phase 4 can resume on ~30 seconds of context restore plus your scope decision.
+
+### 2026-05-04 [5e2395034bab]
+
+This is a small but instructive smoke-test methodology point: filesystem state from a prior PASS run is *not* equivalent to clean state. The reviewer's filesystem verification (`reviewer.py._verify_filesystem`) would still pass because expected files exist — but the executor's *work* would short-circuit, reducing the run from "full pipeline lifecycle exercise" to "filesystem consistency check." The two have different test coverage.
+
+The remediation pattern is the same one used for fresh database fixtures in unit testing: archive the prior state to a dated subdirectory rather than delete (preserves evidence of the prior PASS), then start the new run from genuinely clean state. Sources directory (`tests/gospel-synopsis/sources/`) contains the immutable input data — those files stay; everything generated gets archived.
+
+### 2026-05-04 [c9a4c17465ff]
+
+There is a substantive irony worth surfacing: the 9 stale tasks are *literally* the pathological state that the executive report's §7.2.F (**Watchdog stuck-task detection — MEDIUM PRIORITY, 6-12hr to restore**) calls out as a Pipeline v2 capability gap. AION-13dc7b96 hit max-retries, was marked `blocked:yes reason:max-retries`, and has been sitting that way for 4 days because no watchdog/escalation mechanism alerts a human or auto-routes to Diagnose. The 7 dependency-blocked descendants then sat blocked because their parent hit the retry wall and there's no recovery path.
+
+This is incidental but valuable evidence material: the stale tasks are themselves a real-world demonstration of the gap the rewiring map flags. If we proceed with Option 1, the executive report's §7.2.F can cite specific task IDs as concrete evidence rather than abstract conjecture. That makes the rewiring-need case stronger to David, not weaker.
+
+The methodological point: when documenting an architectural assessment, in-the-wild evidence of the gap you're flagging is more persuasive than reasoning about a hypothetical version of it. We have that evidence by accident; we should use it.
+
+### 2026-05-04 [84ac777052c6]
+
+Two methodological points worth noting from this near-cycle: **(1) Edit's Read-first safety check applies to in-conversation Reads, not force-loaded `@`-imports.** Force-loaded files appear in system context but the Edit tool requires an explicit Read tool invocation in the conversation before editing. Conservative for good reason — prevents accidental edits to files Claude has only seen as cached startup context. **(2) The HALT-RESUME signaling protocol works at the prompt layer independent of whether `/clear` actually fires.** The watcher (or User) can issue HALT to stage state, then RESUME to continue, without consuming an actual context-reset cycle. Useful pattern for "checkpoint-without-cost" — save progress, get a fresh-state-aware response, but keep the cache warm.
