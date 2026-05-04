@@ -351,6 +351,39 @@ load_state_hook() {
     HK_ACTION=$(jq -r '.action // "WATCHING"' <<<"$json" 2>/dev/null)
     HK_PENDING=$(jq -r '.pending_action // ""' <<<"$json" 2>/dev/null)
     HK_TRANSCRIPT=$(jq -r '.transcript_path // ""' <<<"$json" 2>/dev/null)
+    refresh_tokens_from_jsonl
+    return 0
+}
+
+# Refresh tokens from JSONL latest assistant entry. State file lags because
+# jicm-gate.sh writes only on UserPromptSubmit; tool-loops and assistant-only
+# turns don't update it. JSONL has usage on every assistant entry, so the
+# canonical sum (input + cache_read + cache_creation) tracks TUI more closely
+# than the state-file snapshot.
+# Streaming (tail -r | jq | head -n1) exits on first match for sub-10ms cost
+# even on multi-MB transcripts.
+refresh_tokens_from_jsonl() {
+    [[ -z "$HK_TRANSCRIPT" || ! -f "$HK_TRANSCRIPT" ]] && return 0
+    local usage_line
+    usage_line=$(tail -r "$HK_TRANSCRIPT" 2>/dev/null \
+        | jq -r 'select(.type=="assistant" and .message.usage != null) | "\(.message.usage.input_tokens // 0) \(.message.usage.cache_read_input_tokens // 0) \(.message.usage.cache_creation_input_tokens // 0)"' 2>/dev/null \
+        | head -n1)
+    [[ -z "$usage_line" ]] && return 0
+    local lt_in lt_cr lt_cc
+    read -r lt_in lt_cr lt_cc <<<"$usage_line"
+    [[ -z "$lt_in" ]] && return 0
+    local live_total=$(( lt_in + lt_cr + lt_cc ))
+    # Prefer live total when it exceeds state-file snapshot (state file is the
+    # last UPS snapshot; live JSONL reflects most recent assistant turn).
+    if [[ "$live_total" -gt "$HK_TOKENS" ]]; then
+        HK_TOKENS="$live_total"
+        HK_INPUT="$lt_in"
+        HK_CACHE_READ="$lt_cr"
+        HK_CACHE_CREATE="$lt_cc"
+        if [[ "$HK_WINDOW" -gt 0 ]]; then
+            HK_USED_PCT=$(( live_total * 100 / HK_WINDOW ))
+        fi
+    fi
     return 0
 }
 

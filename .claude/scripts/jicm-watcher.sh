@@ -85,6 +85,40 @@ wait_for_signal() {
     return 1
 }
 
+# --- Wait for Claude turn to terminate cleanly ------------------------------
+# Critical for HALT/clear concatenation prevention. tmux send-keys does NOT
+# distinguish Claude-busy from Claude-idle. When Claude is mid-stream, /clear
+# (or any text) arriving via send-keys gets ENQUEUED as a future text prompt
+# rather than executed as a slash command. Symptom in JSONL transcript:
+# `{type:"queue-operation", operation:"enqueue", content:"/clear"}` followed
+# later by a concatenated user prompt.
+#
+# Fix: poll JSONL transcript and only proceed when most recent assistant entry
+# has a TERMINAL stop_reason (end_turn / stop_sequence / max_tokens). Tool-use
+# entries are non-terminal (Claude is mid-tool-loop).
+wait_for_idle() {
+    local timeout="${1:-180}" elapsed=0
+    local transcript stop_reason
+    transcript=$(jq -r '.transcript_path // empty' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+    if [[ -z "$transcript" ]] || [[ ! -f "$transcript" ]]; then
+        log "wait_for_idle: no transcript path in state file — fallback sleep 3s"
+        sleep 3
+        return 0
+    fi
+    while [[ "$elapsed" -lt "$timeout" ]]; do
+        stop_reason=$(jq -s -r '[.[] | select(.type=="assistant" and .message.stop_reason != null) | .message.stop_reason] | last // empty' "$transcript" 2>/dev/null)
+        case "$stop_reason" in
+            end_turn|stop_sequence|max_tokens)
+                return 0
+                ;;
+        esac
+        sleep 1
+        elapsed=$(( elapsed + 1 ))
+    done
+    log "wait_for_idle: timeout (${timeout}s) — proceeding (last stop_reason='${stop_reason:-none}')"
+    return 1
+}
+
 # --- Canonical prompts (single-line per tmux constraint) --------------------
 HALT_PROMPT="[JICM-HALT] Context approaching threshold. Save in-progress details to .claude/context/.scratchpad.md, acknowledge with the single word Understood, and stop work. Compression and /clear will follow."
 RESUME_PROMPT="[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md for current state and .claude/context/.scratchpad.md for transient working details. Resume work immediately. Do NOT greet."
@@ -144,12 +178,21 @@ actuate_jicm_cycle() {
     fi
 
     # 6. /clear injection — defensive sequence to prevent HALT/clear concatenation:
-    #    a. escape: interrupt any in-flight assistant stream
-    #    b. clear-input: empty the input buffer (Ctrl+U) — critical, since ESC
-    #       does NOT clear input in Claude Code TUI; if HALT submit had failed
-    #       silently, HALT text still sits in the input field and /clear text
-    #       would append to it (the documented bug pattern).
-    #    c. text /clear + submit: now goes into a verified-empty input buffer.
+    #    PRE-STEP: wait_for_idle. tmux send-keys does NOT distinguish Claude-busy
+    #       from Claude-idle. If we inject /clear while Claude is still streaming
+    #       a response (or mid-tool-loop), the TUI ENQUEUES /clear as a text
+    #       prompt rather than executing it as a slash command — the documented
+    #       failure mode (queue-operation visible in JSONL transcript). Polling
+    #       JSONL until last assistant has terminal stop_reason guarantees the
+    #       input buffer is in a state to accept slash commands.
+    #    a. escape: interrupt any residual stream (defense-in-depth)
+    #    b. clear-input: empty the input buffer (Ctrl+U) — handles the secondary
+    #       failure mode where HALT submit had failed silently and HALT text
+    #       still sits in the input field.
+    #    c. text /clear + submit: now goes into a verified-empty input buffer
+    #       AND the TUI is verified-idle so the slash command executes inline.
+    wait_for_idle "$JICM_HALT_ACK_TIMEOUT"
+    log "cycle: claude idle confirmed (pre /clear)"
     inject escape
     sleep 0.3
     inject clear-input
@@ -168,7 +211,12 @@ actuate_jicm_cycle() {
     fi
     sleep 1
 
-    # 8. RESUME injection — same defensive pattern as HALT/clear
+    # 8. RESUME injection — same defensive pattern as HALT/clear, including
+    #    wait_for_idle to prevent RESUME being enqueued behind any active stream
+    #    in the post-/clear new session (e.g., session-start hook injection still
+    #    being processed).
+    wait_for_idle "$JICM_HALT_ACK_TIMEOUT"
+    log "cycle: claude idle confirmed (pre RESUME)"
     inject clear-input
     sleep 0.3
     inject text "$RESUME_PROMPT"
