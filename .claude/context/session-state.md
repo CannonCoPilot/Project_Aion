@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: P1.5 Pulse observability endpoints COMPLETE — closes nexus-sync supplant arc (R5.5→R6→P1.5).
-**Date**: 2026-05-04 (evening, post-/clear continuation)
+**Status**: P1 (A1+B1) Dashboard COMPLETE — supplant reader-side shipped + adapt-absorb-replace gap surfaced.
+**Date**: 2026-05-04 (evening, this session)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis
-**Last commit (Jarvis)**: f5dd54e (state + 4 supplant reports; P1.5 report + state pending commit)
-**Last commit (AIFred-Pro-Dev)**: 090f6ec (P1.5 endpoints; LOCAL only on nate-dev, not yet pushed)
+**Last commit (Jarvis)**: c3fc27e (P1.5 report + state); P1 report + updates pending commit
+**Last commit (AIFred-Pro-Dev)**: 042247b (P1.B1 DecisionsPage + storyline; PUSHED to nate-dev)
 
 ## Current Priorities
 
@@ -26,10 +26,12 @@
 - Debrief: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-04-nexus-sync-supplant-completion.md`
 - Validation: `Jarvis/projects/project-aion/reports/nexus-sync-supplant-r{1,2,6}-*.md`
 
-### P1: AIFred-Pro Dev — A1+B1 (UNBLOCKED by supplant)
-- A1: AI Reviewer persona dashboard instrumentation — persona prompts now in nate-dev
-- B1: David's `93f5320` decision-rationale prompt evolution — already lifted; can layer dashboard now
-- 1-2 sessions
+### P1 (COMPLETE 2026-05-04): AIFred-Pro Dev — A1 + B1-rich Dashboard
+- A1: /personas page wired up (stale container recreate + parseValue inline-comment fix). 32 personas surfaced cleanly. Commit f052778.
+- B1-rich: DecisionsPage with cross-table storyline view. First direct PostgreSQL in dashboard. 5 new endpoints + 440 LOC frontend page. Commit 042247b (+1206 LOC).
+- **Adapt-absorb-replace finding (per user directive)**: executor.py has ~30% observability parity vs executor.sh. 8/33 sites ported; missing all 10 inline operational decisions + _parse_and_emit_persona_decisions hook. Surfaced as new P1.6 workstream.
+- Real-flow evidence: executor.sh --job ollama-test → 5 rows in pulse_dev ($0.00 via qwen3:8b local).
+- Report: `projects/project-aion/reports/p1-dashboard-personas-decisions-2026-05-04.md`
 
 ### P1.5 (COMPLETE 2026-05-04 evening): Pulse API endpoints — observability dual-write LIVE
 - pulse/app.py: parse_iso_ts() helper + 3 POST endpoints (+122 LOC)
