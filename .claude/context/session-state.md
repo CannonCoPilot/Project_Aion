@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: P1 (A1+B1) Dashboard COMPLETE — supplant reader-side shipped + adapt-absorb-replace gap surfaced.
-**Date**: 2026-05-04 (evening, this session)
+**Status**: P1.6 + P1.6.x COMPLETE — executor.py port-completion + pipeline-watcher retry decisions PUSHED to davidmoneil/AIFred-Pro nate-dev. Live pipeline-watcher restart needed to activate new decisions.
+**Date**: 2026-05-05 (morning, this session)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis
-**Last commit (Jarvis)**: c3fc27e (P1.5 report + state); P1 report + updates pending commit
-**Last commit (AIFred-Pro-Dev)**: 042247b (P1.B1 DecisionsPage + storyline; PUSHED to nate-dev)
+**Last commit (Jarvis)**: 4753991 (P1 dashboard docs); P1.6 state updates pending commit
+**Last commit (AIFred-Pro-Dev)**: 4322469 (P1.6.x pipeline-watcher; PUSHED to nate-dev). Chain `5720cdc..4322469` shipped as fast-forward.
 
 ## Current Priorities
 
