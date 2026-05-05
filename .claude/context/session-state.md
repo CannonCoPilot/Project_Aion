@@ -5,34 +5,45 @@
 
 ---
 
-**Status**: Context-budget optimization (P0) COMPLETE — Stages 1-4 shipped, ready to commit.
+**Status**: Nexus-sync supplant onto nate-dev COMPLETE — R4-R7 shipped, pushed to davidmoneil/AIFred-Pro.
 **Date**: 2026-05-04
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis
 **Last commit (Jarvis)**: f8e3879 (C1 root-cause fix — inject-escape removal)
-**Last commit (AIFred-Pro-Dev)**: e8ccf64 (yamllint truthy fix on routing-rules-v2.yaml)
+**Last commit (AIFred-Pro-Dev)**: bb2d453 (Phase 5.1 observability schema migration; pushed to origin/nate-dev)
 
 ## Current Priorities
 
-### P0 (COMPLETE 2026-05-04): Context-Budget Optimization
-- Stages 1-3 (force-loaded reductions): 97K → 15K controllable tokens (-84%)
-- Stage 4 (cull to `_disabled/`): 21 skills + 6 agents disabled; 4 MCPs disabled (effective next session)
-- See `.scratchpad.md` for full ship summary
-- Next session post-/clear should observe ~115K total context (vs 190K pre-optimization)
+### P0 (COMPLETE 2026-05-04): Context-Budget Optimization + Nexus-Sync Supplant
+- **Context-Budget**: Stages 1-3 force-loaded reductions (97K→15K, -84%) + Stage 4 cull (21 skills + 6 agents + 4 MCPs disabled)
+- **Nexus-Sync Supplant**: 25 commits onto nate-dev (21 David + 4 ours):
+  - R4: baseline tag pushed (`pre-supplant-baseline-2026-05-04` @ e8ccf64)
+  - R5.1-R5.4: all 21 David commits cherry-picked (with line-by-line conflict resolution per R3-Q1)
+  - 2 our-authorship in-flight fixes: jobsdb→nexusdb completion (181a742), PROJECT_DIR tautology repair (78f5b49)
+  - R5.5: NEW `services/observability/` python package (audit/decision/cost loggers + thread_id) + wired into 6 pipeline-v2 services (1983dc0)
+  - R6: `pulse/migrations/0001-phase-5-1-observability-tables.sql` applied to pulse_dev; dual-write payloads validated against schema (bb2d453)
+  - R7: fast-forward + push to davidmoneil/AIFred-Pro nate-dev complete
+- Debrief: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-04-nexus-sync-supplant-completion.md`
+- Validation: `Jarvis/projects/project-aion/reports/nexus-sync-supplant-r{1,2,6}-*.md`
 
-### P1: AIFred-Pro Dev — A1+B1 bundled
-- Workspace: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/` (nate-dev)
-- A1: AI Reviewer persona dashboard instrumentation (David's 2026-04-25 ask)
-- B1: Adopt David's `93f5320` decision-rationale prompt evolution
+### P1: AIFred-Pro Dev — A1+B1 (UNBLOCKED by supplant)
+- A1: AI Reviewer persona dashboard instrumentation — persona prompts now in nate-dev
+- B1: David's `93f5320` decision-rationale prompt evolution — already lifted; can layer dashboard now
 - 1-2 sessions
+
+### P1.5: Pulse API endpoints for observability dual-write
+- pulse/app.py needs `POST /audit/events`, `/audit/decisions`, `/costs/events` (~30 LOC each)
+- Without these, python observability gracefully fails-quiet to swallowed-errors.jsonl
+- audit-ingest.py replays the spool once endpoints land
+- Small (~2-3 hr) but unblocks live observability
 
 ### P2: Jarvis — C1 Phase 4 intelligent scheduling
 - Pure-Jarvis usage-proxy work (budget gates, priority queue, Telegram)
 - 2-3 sessions
 
 ### P3: AIFred-Pro Dev — B2+B3 exploratory sweep
-- B2: David's `ea298c2` audit-ingest infrastructure
-- B3: David's `40290c4` orchestration graph viz concepts
+- B2: audit-ingest env adaptation + sidecar container for cron
+- B3: David's `40290c4` orchestration graph viz already lifted; build out dashboard layer
 - ~2-3 hr each
 
 ### Suspended: Chronicler Phase 4 — Narrative Engine
