@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: Nexus-sync supplant onto nate-dev COMPLETE — R4-R7 shipped, pushed to davidmoneil/AIFred-Pro.
-**Date**: 2026-05-04
+**Status**: P1.5 Pulse observability endpoints COMPLETE — closes nexus-sync supplant arc (R5.5→R6→P1.5).
+**Date**: 2026-05-04 (evening, post-/clear continuation)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis
-**Last commit (Jarvis)**: f8e3879 (C1 root-cause fix — inject-escape removal)
-**Last commit (AIFred-Pro-Dev)**: bb2d453 (Phase 5.1 observability schema migration; pushed to origin/nate-dev)
+**Last commit (Jarvis)**: f5dd54e (state + 4 supplant reports; P1.5 report + state pending commit)
+**Last commit (AIFred-Pro-Dev)**: 090f6ec (P1.5 endpoints; LOCAL only on nate-dev, not yet pushed)
 
 ## Current Priorities
 
@@ -31,11 +31,12 @@
 - B1: David's `93f5320` decision-rationale prompt evolution — already lifted; can layer dashboard now
 - 1-2 sessions
 
-### P1.5: Pulse API endpoints for observability dual-write
-- pulse/app.py needs `POST /audit/events`, `/audit/decisions`, `/costs/events` (~30 LOC each)
-- Without these, python observability gracefully fails-quiet to swallowed-errors.jsonl
-- audit-ingest.py replays the spool once endpoints land
-- Small (~2-3 hr) but unblocks live observability
+### P1.5 (COMPLETE 2026-05-04 evening): Pulse API endpoints — observability dual-write LIVE
+- pulse/app.py: parse_iso_ts() helper + 3 POST endpoints (+122 LOC)
+- aifred-pulse:latest rebuilt; aifred-dev-pulse recreated --no-deps
+- End-to-end validated: python log_audit() → pulse_dev row via API path → main spool → 0-byte swallowed-errors (no fail-quiet)
+- Commit AIFred-Pro-Dev `090f6ec` on nate-dev (LOCAL — push pending confirmation)
+- Report: `projects/project-aion/reports/p15-pulse-observability-endpoints-2026-05-04.md`
 
 ### P2: Jarvis — C1 Phase 4 intelligent scheduling
 - Pure-Jarvis usage-proxy work (budget gates, priority queue, Telegram)
