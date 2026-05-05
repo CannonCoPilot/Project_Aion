@@ -5,12 +5,18 @@
 
 ---
 
-**Status**: P1.6 + P1.6.x COMPLETE — executor.py port-completion + pipeline-watcher retry decisions PUSHED to davidmoneil/AIFred-Pro nate-dev. Live pipeline-watcher restart needed to activate new decisions.
-**Date**: 2026-05-05 (morning, this session)
+**Status**: P1.6 trilogy + M1 cleanup + Pulse/Nexus boundary audit COMPLETE — chain `042247b..002f02e` PUSHED to davidmoneil/AIFred-Pro nate-dev. Boundary audit surfaced new P1.B1.1 [Boundary] workstream (Pulse READ API). Live pipeline-watcher restart still needed to activate P1.6.x/y decisions in production.
+**Date**: 2026-05-05 (this session)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis
-**Last commit (Jarvis)**: 4753991 (P1 dashboard docs); P1.6 state updates pending commit
-**Last commit (AIFred-Pro-Dev)**: 4322469 (P1.6.x pipeline-watcher; PUSHED to nate-dev). Chain `5720cdc..4322469` shipped as fast-forward.
+**Last commit (Jarvis)**: 26d2283 (P1.6.y docs + audit lessons); current session adds boundary audit + active-plan tagging (pending commit)
+**Last commit (AIFred-Pro-Dev)**: 002f02e (M1 hygiene: lib/pulse-env.sh canonicalization; PUSHED to nate-dev). Chain `5720cdc..002f02e` shipped as fast-forward.
+
+## Pulse / Nexus boundary tagging (2026-05-05)
+Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:
+- **Pulse** = state-of-record service (FastAPI + Postgres on :8700/:8800; tasks, labels, transitions, events, triggers, observability tables)
+- **Nexus** = orchestration platform (dispatcher, executor, pipeline-v2 services, personas, dashboard, communication)
+- New workstream descriptions use `[Pulse]` / `[Nexus]` / `[Boundary]` / `[Boundary-violation]` prefixes
 
 ## Current Priorities
 
@@ -27,24 +33,38 @@
 - Validation: `Jarvis/projects/project-aion/reports/nexus-sync-supplant-r{1,2,6}-*.md`
 
 ### P1 (COMPLETE 2026-05-04): AIFred-Pro Dev — A1 + B1-rich Dashboard
-- A1: /personas page wired up (stale container recreate + parseValue inline-comment fix). 32 personas surfaced cleanly. Commit f052778.
-- B1-rich: DecisionsPage with cross-table storyline view. First direct PostgreSQL in dashboard. 5 new endpoints + 440 LOC frontend page. Commit 042247b (+1206 LOC).
-- **Adapt-absorb-replace finding (per user directive)**: executor.py has ~30% observability parity vs executor.sh. 8/33 sites ported; missing all 10 inline operational decisions + _parse_and_emit_persona_decisions hook. Surfaced as new P1.6 workstream.
+- A1 [Nexus]: /personas page wired up (stale container recreate + parseValue inline-comment fix). 32 personas surfaced cleanly. Commit f052778. Note: dashboard reads Nexus persona YAMLs from disk — boundary leak (F-2 in audit), deferred.
+- B1-rich [Boundary-violation]: DecisionsPage with cross-table storyline view. First direct PostgreSQL in dashboard. 5 new endpoints + 440 LOC frontend page. Commit 042247b (+1206 LOC). Direct pg.Pool access bypasses Pulse's API — addressed by P1.B1.1 (Pulse READ API).
+- **Adapt-absorb-replace finding (per user directive)**: executor.py had ~30% observability parity vs executor.sh. 8/33 sites ported; missing all 10 inline operational decisions + _parse_and_emit_persona_decisions hook. Surfaced as P1.6 workstream — now COMPLETE.
 - Real-flow evidence: executor.sh --job ollama-test → 5 rows in pulse_dev ($0.00 via qwen3:8b local).
 - Report: `projects/project-aion/reports/p1-dashboard-personas-decisions-2026-05-04.md`
 
-### P1.5 (COMPLETE 2026-05-04 evening): Pulse API endpoints — observability dual-write LIVE
+### P1.5 [Pulse] (COMPLETE 2026-05-04 evening): Pulse API endpoints — observability dual-write LIVE
 - pulse/app.py: parse_iso_ts() helper + 3 POST endpoints (+122 LOC)
 - aifred-pulse:latest rebuilt; aifred-dev-pulse recreated --no-deps
 - End-to-end validated: python log_audit() → pulse_dev row via API path → main spool → 0-byte swallowed-errors (no fail-quiet)
-- Commit AIFred-Pro-Dev `090f6ec` on nate-dev (LOCAL — push pending confirmation)
+- Commit AIFred-Pro-Dev `090f6ec` on nate-dev
 - Report: `projects/project-aion/reports/p15-pulse-observability-endpoints-2026-05-04.md`
+- Followup [Boundary]: P1.B1.1 — add symmetric Pulse READ endpoints (GET /audit/events, /audit/decisions, /costs/events, /observability/storyline/{thread_id}, /observability/stats) so dashboard can drop direct-DB access. ~3-4 hr.
 
-### P2: Jarvis — C1 Phase 4 intelligent scheduling
+### P1.6 [Nexus] (COMPLETE 2026-05-05): Executor.py + pipeline-watcher.py observability port
+- P1.6 (5720cdc): executor.py 7 → 30 observability sites (+376/-7 LOC)
+- P1.6.x (4322469): pipeline-watcher.py retry/give_up decisions + job.retrying audit (+75 LOC)
+- P1.6.y (6305258): fail_fast auth circuit breaker (executor + pipeline-watcher + state file, +119 LOC)
+- M1 hygiene (002f02e): lib/pulse-env.sh canonical PULSE_API_URL resolver + 4 unconditional-hardcode fixes (+34/-20 LOC)
+- Live restart still needed for pipeline-watcher PID 94229 (running pre-P1.6 code since Thursday)
+- Reports: `projects/project-aion/reports/p1-dashboard-personas-decisions-2026-05-04.md`, `pulse-nexus-boundary-audit-2026-05-05.md`
+
+### P1.B1.1 [Boundary] (NEW 2026-05-05, surfaced by audit): Pulse observability READ API
+- Add 5 GET endpoints to pulse/app.py to symmetrize the P1.5 write API
+- Refactor dashboard/server/services/pulse-events.ts to consume Pulse API; drop pg dependency
+- ~3-4 hr. Repairs the P1.B1 boundary violation.
+
+### P2 [Nexus]: Jarvis — C1 Phase 4 intelligent scheduling
 - Pure-Jarvis usage-proxy work (budget gates, priority queue, Telegram)
 - 2-3 sessions
 
-### P3: AIFred-Pro Dev — B2+B3 exploratory sweep
+### P3 [Nexus]: AIFred-Pro Dev — B2+B3 exploratory sweep
 - B2: audit-ingest env adaptation + sidecar container for cron
 - B3: David's `40290c4` orchestration graph viz already lifted; build out dashboard layer
 - ~2-3 hr each
