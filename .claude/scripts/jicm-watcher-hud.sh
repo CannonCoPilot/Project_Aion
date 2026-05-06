@@ -80,6 +80,7 @@ JICM_ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"
 JICM_VIRGIL_TASKS="$PROJECT_DIR/.claude/context/.virgil-tasks.json"
 JICM_SESSION_STATE_DOC="$PROJECT_DIR/.claude/context/session-state.md"
 JICM_ACTIVE_PLAN_DOC="$PROJECT_DIR/.claude/context/.active-plan"
+COST_STATE_FILE="${COST_STATE_FILE:-$PROJECT_DIR/.claude/context/.cost-state.json}"
 HUD_PULSE_CACHE="/tmp/jarvis-hud-pulse.cache"
 HUD_PULSE_TTL=30
 HUD_PULSE_URL_OPEN="${HUD_PULSE_URL_OPEN:-http://localhost:8700/api/v1/tasks?status=open}"
@@ -387,6 +388,23 @@ refresh_tokens_from_jsonl() {
     return 0
 }
 
+load_cost_state() {
+    [[ -f "$COST_STATE_FILE" ]] || return 0
+    local json
+    json=$(cat "$COST_STATE_FILE" 2>/dev/null) || return 0
+    [[ -z "$json" ]] && return 0
+    CA_TS=$(jq -r '.timestamp // ""' <<<"$json" 2>/dev/null)
+    CA_5H_COST=$(jq -r '.window_5h.cost_usd // 0' <<<"$json" 2>/dev/null)
+    CA_5H_RATE=$(jq -r '.window_5h.rate_usd_per_h // 0' <<<"$json" 2>/dev/null)
+    CA_5H_REQS=$(jq -r '.window_5h.request_count // 0' <<<"$json" 2>/dev/null)
+    CA_5M_COST=$(jq -r '.rate_5min.cost_usd // 0' <<<"$json" 2>/dev/null)
+    CA_5M_RATE=$(jq -r '.rate_5min.rate_usd_per_h // 0' <<<"$json" 2>/dev/null)
+    CA_ALERT=$(jq -r '.alert_level // "ok"' <<<"$json" 2>/dev/null)
+    CA_ANOMALY_COUNT=$(jq -r '.anomalies | length' <<<"$json" 2>/dev/null)
+    CA_ANOMALY_TYPE=$(jq -r '.anomalies[0].type // ""' <<<"$json" 2>/dev/null)
+    return 0
+}
+
 load_state_legacy() {
     [[ -f "$JICM_STATE_FILE" ]] || return 0
     local txt
@@ -581,6 +599,7 @@ load_all() {
         load_pulse_counts
         load_project_status
         load_git_state
+        load_cost_state
     fi
     return 0
 }
@@ -827,6 +846,22 @@ render_cache_cost_row() {
 
     content_row "$width" "  ${C_LABEL}Hit rate:${C_NC} ${hit_color}${C_BOLD}${hit_pct}%${C_NC}   ${C_LABEL}Read:${C_NC} ${C_VALUE}$(human_int "$HK_CACHE_READ")${C_NC}   ${C_LABEL}Create:${C_NC} ${C_VALUE}$(human_int "$HK_CACHE_CREATE")${C_NC} ${C_DIM}(5m: $(human_int "$HK_CACHE_5M") / 1h: $(human_int "$HK_CACHE_1H"))${C_NC}"
     content_row "$width" "  ${C_LABEL}Cost:${C_NC} ${cost_disp}   ${C_LABEL}5h block:${C_NC} ${rate5_disp}   ${C_LABEL}7d window:${C_NC} ${rate7_disp}   ${C_LABEL}eph_1h adoption:${C_NC} ${C_GREEN}100%${C_NC} ${C_DIM}(derived)${C_NC}"
+
+    # Cost-anomaly watcher row (Aion proxy-summed rate; updated every 5min by com.aion.jarvis-cost-watcher)
+    if [[ -n "${CA_TS:-}" ]]; then
+        local alert_color="$C_DIM" alert_label="${CA_ALERT:-ok}"
+        case "${CA_ALERT:-ok}" in
+            ok)       alert_color="$C_GREEN" ;;
+            watch)    alert_color="$C_YELLOW" ;;
+            warn)     alert_color="$C_YELLOW${C_BOLD}" ;;
+            critical) alert_color="$C_RED${C_BOLD}" ;;
+        esac
+        local anom_disp="${C_DIM}none${C_NC}"
+        if [[ "${CA_ANOMALY_COUNT:-0}" -gt 0 ]]; then
+            anom_disp="${C_RED}${CA_ANOMALY_COUNT}× ${CA_ANOMALY_TYPE}${C_NC}"
+        fi
+        content_row "$width" "  ${C_LABEL}Burn rate:${C_NC} ${C_VALUE}\$${CA_5H_RATE}/hr${C_NC} ${C_DIM}(5h, ${CA_5H_REQS} reqs, \$${CA_5H_COST})${C_NC}   ${C_LABEL}5m:${C_NC} ${C_VALUE}\$${CA_5M_RATE}/hr${C_NC}   ${C_LABEL}alert:${C_NC} ${alert_color}${alert_label}${C_NC}   ${C_LABEL}anomalies:${C_NC} ${anom_disp}"
+    fi
     return 0
 }
 
