@@ -30,6 +30,7 @@
 .claude/context/.exit-guard-passed
 .claude/context/.last-prompt-ts*
 .claude/context/.ccusage-blocks.json
+.claude/context/.cost-state.json
 .claude/context/.context-display.txt
 .claude/context/.statusline-context.json
 
