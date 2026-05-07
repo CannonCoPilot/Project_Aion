@@ -1172,13 +1172,13 @@ send_prompt_by_type() {
 
     case "${mode}:${prompt_type}" in
         "jicm_resume:RESUME")
-            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md, .claude/context/.in-progress-ready.md, and .claude/context/session-state.md — resume work immediately. Do NOT greet.'
+            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l 'Watcher here. Refresh complete - please read .claude/context/.compressed-context-ready.md, .claude/context/.in-progress-ready.md, and .claude/context/session-state.md and resume work. No greeting needed.'
             ;;
         "jicm_resume:SIMPLE")
-            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[JICM-RESUME] Read .claude/context/.compressed-context-ready.md and .claude/context/.in-progress-ready.md — continue work.'
+            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l 'Watcher here. Refresh complete - please read .claude/context/.compressed-context-ready.md and .claude/context/.in-progress-ready.md and continue.'
             ;;
         "jicm_resume:MINIMAL")
-            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[JICM-RESUME] Continue.'
+            "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l 'Watcher here. Continue.'
             ;;
         "session_start:RESUME")
             "$TMUX_BIN" send-keys -t "$TMUX_TARGET" -l '[SESSION-START] New session. Begin AC-01. Read .claude/context/session-state.md (includes priorities) — assess state, decide next action, begin work. Do NOT just greet.'

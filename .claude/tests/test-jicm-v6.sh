@@ -764,36 +764,36 @@ echo ""
 
 echo "Group 16: Prompt Lexicon"
 
-# Test 15.1: Halt prompt has JICM-HALT tag
-if grep -q 'JICM-HALT' "$WATCHER"; then
-    pass "Halt prompt has [JICM-HALT] tag"
+# Test 15.1: Halt prompt has stable greppable marker
+if grep -q 'Watcher here\. Context is getting heavy' "$WATCHER"; then
+    pass "Halt prompt has 'Watcher here. Context is getting heavy' marker"
 else
-    fail "Halt tag" "Missing [JICM-HALT]"
+    fail "Halt marker" "Missing 'Watcher here. Context is getting heavy' phrase"
 fi
 
-# Test 15.2: Halt prompt includes percentage
-if grep -A3 'JICM-HALT' "$WATCHER" | grep -q '\${pct}%'; then
-    pass "Halt prompt includes context percentage"
+# Test 15.2: Halt prompt is acknowledgment-driven (asks for 'Understood' reply)
+if grep -A1 'Watcher here\. Context is getting heavy' "$WATCHER" | grep -qi 'Understood'; then
+    pass "Halt prompt requests Understood acknowledgment"
 else
-    fail "Halt percentage" "Missing percentage in halt prompt"
+    fail "Halt acknowledgment" "Missing Understood-reply request"
 fi
 
-# Test 15.3: Compress prompt uses /intelligent-compress
-if grep -q 'JICM-COMPRESS' "$WATCHER" && grep -q 'intelligent-compress' "$WATCHER"; then
-    pass "Compress uses /intelligent-compress skill"
+# Test 15.3: Compress prompt uses /intelligent-compress (legacy v6 — current v7.9 path is signal-file-driven)
+if grep -q 'intelligent-compress' "$WATCHER" || grep -q 'JICM_PREP_SCRIPT' "$WATCHER"; then
+    pass "Compress invocation present (legacy intelligent-compress or v7.9 prep script)"
 else
-    fail "Compress skill" "Missing /intelligent-compress reference"
+    fail "Compress invocation" "Missing intelligent-compress and JICM_PREP_SCRIPT references"
 fi
 
-# Test 15.4: Restore prompt has JICM-RESUME tag
-if grep -q 'JICM-RESUME' "$WATCHER"; then
-    pass "Restore prompt has [JICM-RESUME] tag"
+# Test 15.4: Restore prompt has stable greppable marker
+if grep -q 'Watcher here\. Refresh complete' "$WATCHER"; then
+    pass "Restore prompt has 'Watcher here. Refresh complete' marker"
 else
-    fail "Resume tag" "Missing [JICM-RESUME]"
+    fail "Resume marker" "Missing 'Watcher here. Refresh complete' phrase"
 fi
 
 # Test 15.5: Restore prompt references checkpoint file (NOT session-state)
-if grep -A2 'JICM-RESUME' "$WATCHER" | grep -q 'compressed-context-ready.md'; then
+if grep -A1 'Watcher here\. Refresh complete' "$WATCHER" | grep -q 'compressed-context-ready.md'; then
     pass "Resume prompt references checkpoint file"
 else
     fail "Resume checkpoint ref" "Missing checkpoint file reference"

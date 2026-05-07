@@ -70,7 +70,7 @@ All signal files live in `.claude/context/` and are gitignored.
 ### Two-Tier System (`jicm-prep-context.sh`)
 
 **Tier 1 — Bash Extraction (~1s)**:
-1. Find best JSONL transcript (JICM-HALT marker → message count → newest)
+1. Find best JSONL transcript (watcher HALT marker `Watcher here. Context is getting heavy` → message count → newest; legacy `[JICM-HALT]` also recognised for backward-compat with older transcripts)
 2. Extract recent user + assistant messages from JSONL
 3. Extract TodoWrite tasks from JSONL `.todos` array
 4. Read session-state.md, scratchpad, active plan, git state
