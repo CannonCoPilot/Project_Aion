@@ -1,8 +1,19 @@
 # Project Aion — Workstream Architecture & Roadmap
 
-**Date**: 2026-05-05
+**Date**: 2026-05-05 (v1.0); 2026-05-06 (v1.4 revision)
+**Version**: v1.4
 **Author**: Jarvis
 **Audience**: Nate (review + roadmap alignment); David (read-only context for cross-Archon decisions, including a Jarvis-systems primer in §1.3)
+
+**v1.4 changelog** (2026-05-06):
+- §1.1: items 1, 2 graduated to VALIDATED (UsagePage MVP shipped via 7+ commits across `935572c..d47a186`); item 5 gained 4-phase durable plan-of-record; added items 13-16 (cost-anomaly watcher, Telegram routing, executor pre-flight gates, JICM autonomic reframing).
+- §1.3: JICM systems primer extended with "autonomic reframing" principle (the durable fix for prompt-injection-detector false positives).
+- §3: items 1-4 (reverse-proxy capture, session spend, burn-rate, cache-hit) all VALIDATED; mermaid diagram rebalanced (4 items moved Gap → Done).
+- §4.2: added 2026-05-05 PM (Telegram + reverse-proxy + 5 UsagePage cards) and 2026-05-06 entries (PROD halt + executor gates + cost-anomaly watcher + UsagePage polish + JICM autonomic reframing).
+- §4.1: dual-write loop migration clock at 3 / 30 days clean (started 2026-05-04 21:39).
+- §6.1: Telegram routing + Reverse-proxy + Usage MVP marked SHIPPED with smoke-test/attribution-gap follow-ups; Reviewer Dash + Watchdog now reference durable plans.
+- §9: added shipped-but-unfired risks (Telegram 0 in-vivo, attribution-gap, pipeline-v2 obs sparse).
+- §11: next-deliverables stack rewritten — top 3 are smoke-test, Reviewer Dash R1-R4, Watchdog W1-W3.
 
 **Document purpose** — track parallel work along two axes:
 
@@ -29,11 +40,11 @@ These are the **visible** deliverables, not the deep-layer work. Foreground for 
 
 | # | Deliverable | State | Workstream | Priority |
 |---|---|---|---|---|
-| 1 | Reverse-proxy capture of live Anthropic API metadata → **Usage page** | `IN-PROGRESS` (proxy at `:9800` operational; UI partial) | C | `★ David ◆ Loom` |
-| 2 | **Session spend** + **trajectory burn-rate** + **cache-hit visibility** widgets | `IN-PROGRESS` / `PROPOSED` | C | `★ David ◆ Loom` |
-| 3 | **DecisionsPage** with cross-table storyline drawer at `/decisions` | `VALIDATED` (P1.B1.1 today) | C | `★ David` |
+| 1 | Reverse-proxy capture of live Anthropic API metadata → **Usage page** | `VALIDATED` (proxy at `:9800` LIVE; full UsagePage MVP shipped via `935572c..d47a186` chain, 12 commits 2026-05-05/-06) | C | `★ David ◆ Loom` |
+| 2 | **Session spend** + **trajectory burn-rate** + **cache-hit visibility** widgets | `VALIDATED` (session-spend-dollars endpoint + dollar/token burn-rate split + cache panel composed chart all shipped; comprehensive 6-card refactor `96bf29a`) | C | `★ David ◆ Loom` |
+| 3 | **DecisionsPage** with cross-table storyline drawer at `/decisions` | `VALIDATED` (P1.B1.1) | C | `★ David` |
 | 4 | **/personas page** initial wiring (32 personas surfaced) | `VALIDATED` (P1.A1) | C | `★ David` |
-| 5 | **Reviewer Dash** prototype to replace `/board` Classic tab | `PROPOSED` | Connection-point | `★ David` |
+| 5 | **Reviewer Dash** prototype to replace `/board` Classic tab | `PROPOSED` (4-phase plan-of-record at `plans/aifred-pro-dev-reviewer-dash.md`; precursor cost-column on existing Review page shipped via `423b3c1`) | Connection-point | `★ David` |
 | 6 | **/personas rebuild** — interactive nav + domain/tool/model viz | `PROPOSED` | Connection-point | `★ David` |
 | 7 | **Pulse/Nexus boundary** repaired (P1.B1.1 read API + dashboard refactor) | `VALIDATED` | C/D | — |
 | 8 | **Streamlined, validated Nexus pipeline** (220-cycle stress, 77 tests) | `VALIDATED` | C | `★ David` |
@@ -41,8 +52,12 @@ These are the **visible** deliverables, not the deep-layer work. Foreground for 
 | 10 | **Kanban viz** — conditional/loop/retry/output flow | `VALIDATED` (David's `b8f480d`); deeper overlays `IN-PROGRESS` | C | `★ David` |
 | 11 | **Token compression** Phase 1.x persona briefs (Jeeves-Brief, Alfred-Brief, pipeline briefs) | `VALIDATED` (Stage-1) | B | — |
 | 12 | **JICM v7.9** sensing-layer hardening (autonomous compression) | `VALIDATED` (Stage-1 5/5) | A | `◆ Loom` |
+| 13 | **Cost-anomaly watcher** (Jarvis-side defensive layer; HUD ticker) | `VALIDATED` (Jarvis `92ecb21`; launchd KeepAlive PID 72472; HUD live) | A | — |
+| 14 | **Pipeline-v2 Telegram alert dispatch** (operator visibility on prod) | `VALIDATED` (AIFred-Pro-Dev `cd0aadd`); 0 in-vivo fires yet — smoke-test pending | C | `★ David` |
+| 15 | **Executor pre-flight gates** (hard-safety regex + attempt-budget) | `VALIDATED` (AIFred-Pro-Dev `649acfc`); awaiting David's review for prod merge | C | — |
+| 16 | **JICM autonomic reframing** (Watcher prompts as natural-language) | `VALIDATED` (Jarvis `5413824`); resolves Opus 4.7 injection-detector flagging of bracketed signal-tags | A | — |
 
-The lever is consistently *"surface data already captured."* Items 1-2 and 5-6 are where remaining David-priority work concentrates.
+The lever remains *"surface data already captured."* Items 1-4 are now shipped; items 5-6 (Reviewer Dash + /personas rebuild) are where remaining David-priority work concentrates. Items 13-16 represent the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident response — see §4.2 chronological notes.
 
 ### 1.2 What needed revision in AIFred-Pro-Dev
 
@@ -50,10 +65,16 @@ The lever is consistently *"surface data already captured."* Items 1-2 and 5-6 a
 |---|---|---|
 | Pulse | Phase 5.1 schema migration (audit_log / cost_events / decision_events) | `VALIDATED` |
 | Pulse | P1.5 POST + P1.B1.1 GET observability endpoints (symmetric) | `VALIDATED` |
+| Pulse | session-spend-dollars endpoint + reverse-proxy header-fallback | `VALIDATED` (`935572c`) |
 | Nexus | executor.py port-completion (7 → 30 observability sites) | `VALIDATED` |
 | Nexus | pipeline-watcher retry/give_up + fail_fast circuit breaker | `VALIDATED` |
 | Nexus | M1 PULSE_URL canonicalization (lib/pulse-env.sh) | `VALIDATED` |
-| Reviewer UI | Dash dashboard prototype (replace /board Classic tab) | `PROPOSED` |
+| Nexus | Telegram alert dispatch wire-up (`emit_alert` in pipeline-watcher + executor) | `VALIDATED` (`cd0aadd`) — 0 in-vivo fires |
+| Nexus | Executor pre-flight gates (hard-safety regex + attempt-budget; env `MAX_ATTEMPTS_PER_24H`) | `VALIDATED` (`649acfc`) |
+| Dashboard | UsagePage MVP (6-card refactor + boxplot rewrite + ribbons + tooltips) | `VALIDATED` (`96bf29a..d47a186`) |
+| Dashboard | BudgetPage hero burn-rate dollars card | `VALIDATED` (`c79643a`) |
+| Dashboard | Reviewer page cost-column (Reviewer Dash precursor) | `VALIDATED` (`423b3c1`) |
+| Reviewer UI | Dash dashboard prototype (replace /board Classic tab) | `PROPOSED` (4-phase plan-of-record) |
 | Persona mgmt | /personas rebuild (interactive nav, model/tool/domain viz) | `PROPOSED` |
 
 ### 1.3 Jarvis systems primer (for David — assume zero prior context)
@@ -73,7 +94,7 @@ Key Jarvis-side systems David may not know:
 
 | System | What it is | One-line role |
 |---|---|---|
-| **JICM** (Jarvis Intelligent Context Management) | Autonomous token-budget watcher | When context approaches threshold, JICM compresses + resumes — no operator intervention |
+| **JICM** (Jarvis Intelligent Context Management) | Autonomous token-budget watcher | When context approaches threshold, JICM compresses + resumes — no operator intervention. Watcher prompts use natural-language phrasing from a workspace collaborator named "Watcher" rather than tagged control signals (autonomic reframing 2026-05-06; commit `5413824`) |
 | **Aion Quartet** | 4 always-on tmux scripts (Watcher, Ennoia, Virgil, Commands) | Sense and orchestrate Jarvis state |
 | **Hippocrenae AC-01..AC-09** | 9 autonomic components | Self-launch, multi-pass execution (Wiggum Loop), milestone review, JICM, self-reflection, self-evolution, R&D, maintenance, session meditation |
 | **Ulfhedthnar AC-10** | Dormant berserker override | Activates on defeat-signals to spawn parallel approaches |
@@ -135,17 +156,17 @@ The 12 feature additions and quality-of-life improvements introduced by the rede
 
 | # | Feature | State | Side |
 |---|---|---|---|
-| 1 | Usage page reverse-proxy capture of live Anthropic API metadata `★ David` | `IN-PROGRESS` (proxy `:9800` live; UI partial) | [Pulse] |
-| 2 | Session spend tracking `★ David` | `IN-PROGRESS` (back-calculated allotment) | [Pulse] |
-| 3 | Trajectory burn-rate visibility `★ David` | `PROPOSED` (data captured; viz pending) | [Boundary] |
-| 4 | Cache-hit visibility `★ David ◆ Loom` | `PROPOSED` (`cache_read_input_tokens` captured) | [Boundary] |
+| 1 | Usage page reverse-proxy capture of live Anthropic API metadata `★ David` | `VALIDATED` (proxy `:9800` LIVE; UsagePage MVP shipped via `935572c..d47a186` 2026-05-05/-06) | [Pulse] |
+| 2 | Session spend tracking `★ David` | `VALIDATED` (`/api/v1/usage/session-spend-dollars` endpoint + BudgetPage ApiSpendCard + dual-quantity honest framing) | [Pulse] |
+| 3 | Trajectory burn-rate visibility `★ David` | `VALIDATED` (UsagePage HeroBurnRateTokensCard + BudgetPage BurnRateDollarsCard split per page semantic; linear best-fit projection) | [Boundary] |
+| 4 | Cache-hit visibility `★ David ◆ Loom` | `VALIDATED` (HeroCacheCard + Cache panel composed chart with cold-starts + token-volume bars) | [Boundary] |
 | 5 | Beta "Create" page UI for idea-to-ticket workspace | `IN-PROGRESS` (HTTP 200; "too basic / clunky") | [Nexus] |
 | 6 | Reinforced Pulse/Nexus boundary | `VALIDATED` (audit + tagging + P1.B1.1) | [Boundary] |
 | 7 | Streamlined, automated, validated Nexus pipeline `★ David` | `VALIDATED` | [Nexus] |
-| 8 | Improved Nexus logging + telemetry `★ David` | `VALIDATED` (P1.5 + P1.6 + R5.5) | [Boundary] |
+| 8 | Improved Nexus logging + telemetry `★ David` | `VALIDATED` (P1.5 + P1.6 + R5.5 + Telegram routing `cd0aadd`) | [Boundary] |
 | 9 | Kanban board feature improvements `★ David` | `IN-PROGRESS` (initial viz `b8f480d`; deeper pending) | [Nexus] |
 | 10 | Master/Parent → Child ticket routing | `PROPOSED` (parent_task_id schema exists; UI absent) | [Boundary] |
-| 11 | Session ID tracking + handling `★ David ◆ Loom` | `IN-PROGRESS` (proxy captures; thread↔session map pending) | [Pulse] |
+| 11 | Session ID tracking + handling `★ David ◆ Loom` | `IN-PROGRESS` (proxy captures `x-aion-*` headers via fallback `935572c`; **attribution-gap GAP**: claude-code SDK not propagating headers — 100% `agent_name=unattributed` in Wire D data) | [Pulse] |
 | 12 | `--session-resume` + `--fork` support | `PROPOSED` (Claude Code surface; not yet wired) | [Nexus] |
 
 ```mermaid
@@ -153,30 +174,32 @@ flowchart LR
     subgraph Done [Validated]
       D1[Reinforced boundary]
       D2[Streamlined pipeline]
-      D3[Logging + telemetry]
+      D3[Logging + telemetry + Telegram routing]
       D4[Kanban viz initial]
+      D5[Reverse-proxy capture + UsagePage MVP]
+      D6[Session spend tracking]
+      D7[Burn-rate visibility tokens + dollars]
+      D8[Cache-hit visibility]
     end
     subgraph WIP [In-Progress]
-      W1[Reverse-proxy capture]
-      W2[Session spend]
       W3[Beta Create page]
-      W4[Session ID propagation]
+      W4[Session ID propagation - attribution gap]
       W5[Kanban deeper features]
     end
     subgraph Gap [Proposed / Gap]
-      G1[Burn-rate viz]
-      G2[Cache-hit widget]
       G3[Master parent to child routing]
       G4[--session-resume / --fork]
+      G5[Reviewer Dash - plan exists]
+      G6[Watchdog - plan exists]
     end
     Done -->|enables| WIP
     WIP -->|needed for| Gap
     classDef done fill:#d9f7be,stroke:#52c41a
     classDef wip fill:#fff7e6,stroke:#fa8c16
     classDef gap fill:#ffccc7,stroke:#cf1322
-    class D1,D2,D3,D4 done
-    class W1,W2,W3,W4,W5 wip
-    class G1,G2,G3,G4 gap
+    class D1,D2,D3,D4,D5,D6,D7,D8 done
+    class W3,W4,W5 wip
+    class G3,G4,G5,G6 gap
 ```
 
 ---
@@ -219,10 +242,13 @@ gantt
     nexus-sync supplant R1-R7                    :supp, 2026-05-04, 1d
     P1.5 POST + P1.6 trilogy + M1                :p1x, 2026-05-04, 2d
     P1.B1.1 READ API repair                      :milestone, p1b11, 2026-05-05, 0d
-    Telegram routing restoration                 :tg, 2026-05-06, 2d
-    Reverse-proxy + Usage surfacing completion   :rp, 2026-05-06, 2d
-    Watchdog stuck-task detection                :wd, 2026-05-08, 3d
-    Reviewer Dash dashboard                      :dash, 2026-05-10, 4d
+    Telegram routing wire-up SHIPPED             :crit, tg, 2026-05-05, 1d
+    Reverse-proxy + Usage MVP SHIPPED            :crit, rp, 2026-05-05, 2d
+    PROD halt + executor gates SHIPPED           :crit, halt, 2026-05-06, 1d
+    Cost-anomaly watcher Jarvis-side SHIPPED     :milestone, ca, 2026-05-06, 0d
+    Telegram smoke-test + attribution-gap        :smoke, 2026-05-07, 1d
+    Reviewer Dash R1-R4                          :dash, 2026-05-08, 2d
+    Watchdog W1-W3                               :wd, 2026-05-10, 3d
     /personas rebuild                            :pr, 2026-05-14, 4d
     Reviewer metrics page                        :rm, 2026-05-18, 5d
     Kanban deeper feature work                   :kb, 2026-05-20, 4d
@@ -231,6 +257,12 @@ gantt
     Audit + tagging convention                   :crit, audit, 2026-05-05, 0d
     F-1 repair shipped                           :milestone, f1, 2026-05-05, 0d
     F-2 persona-listing API repair               :f2, 2026-05-25, 1d
+
+    section Defensive layer (cross-A/C)
+    Executor pre-flight gates SHIPPED            :milestone, peg, 2026-05-06, 0d
+    Cost-anomaly watcher SHIPPED                 :milestone, caw, 2026-05-06, 0d
+    JICM autonomic reframing SHIPPED             :milestone, jar, 2026-05-06, 0d
+    Halt runbook + 30-day spool clock            :clk, 2026-05-04, 30d
 
     section Strategic gates
     Jarvis ↔ AIFred convergence revisit          :crit, conv, 2026-05-26, 1d
@@ -263,11 +295,13 @@ flowchart LR
 
 **Eventual fate**: dual-write is a **migration scaffold**, not a permanent property. Single-source-of-truth migration completes when:
 
-1. `swallowed-errors.jsonl` is 0 bytes for 30 consecutive days (currently: 0 bytes today; 30-day clock starts now).
+1. `swallowed-errors.jsonl` is 0 bytes for 30 consecutive days. **Clock at v1.4 update: 3 / 30 days clean** (started 2026-05-04 21:39 UTC; if held continuously, sunset window opens 2026-06-04).
 2. Pulse failover/HA is configured so a single instance failure doesn't drop events.
 3. All consumers (dashboard, future MCPs, ad-hoc CLIs) read exclusively via Pulse API.
 
 After migration: spool drops to a write-on-failure-only debug path; `audit-ingest` stays as DR (disaster recovery).
+
+**Confounding observation since v1.3**: pipeline-v2 observability is **sparse in dev** — only 47 audit / 27 decision / 7 cost rows since 2026-05-03, all from a single 21-min synthetic burst on 2026-05-05. PROD halted post-incident (see §4.2 2026-05-06); dev is operator-driven. The 30-day clock continues but with low signal volume. Recommend: drive synthetic load OR incrementally lift PROD halt with watchdog (§6.1) as a new safety layer before declaring the clock criterion validated.
 
 ### 4.2 Major past milestones (condensed)
 
@@ -282,6 +316,10 @@ After migration: spool drops to a write-on-failure-only debug path; `audit-inges
 | 2026-05-04 PM | C | nexus-sync supplant R1-R7 (25 commits); Phase 5.1 schema applied; P1.A1 + P1.B1; P1.5 POST endpoints |
 | 2026-05-05 AM | C | P1.6 trilogy: executor port + pipeline-watcher retry + fail_fast circuit breaker |
 | 2026-05-05 PM | C/D | M1 PULSE_URL canonicalization; boundary audit + tagging; P1.B1.1 READ API + dashboard refactor; live restart sweep |
+| 2026-05-05 evening | C | **Telegram routing wire-up shipped** (`cd0aadd`); **Reverse-proxy + Usage/Budget surfacing completion** (`935572c`); UsagePage 5-card iteration (Wire D burn-rate slider + Wire E cost-card honest framing + HeroCacheCard + Cache panel redesign + Burn rate full-height + linear best-fit); Route 1 prod proxy switch `:8877`→`:9800` |
+| 2026-05-06 AM | C/A | **Task-executor leak investigation** (AION-4ad1bff9, ~22% of 5h budget wasted); **3-layer PROD halt** (launchd bootout + 13 jobs disabled + 25 tasks closed); defensive layer ships: executor pre-flight gates `649acfc` (hard-safety regex + attempt-budget) + Hero burn-rate dashboard cards `423b3c1` + Reviewer Dash cost-column precursor + Burn rate semantic split `c79643a`; Jarvis-side: cost-anomaly watcher `92ecb21` (launchd PID 72472, KeepAlive) + HUD cost ticker + halt-aifred-pro-prod runbook |
+| 2026-05-06 mid | C | UsagePage MVP polish: comprehensive 6-card refactor `96bf29a` (~1500 LOC) + MessagePanel log-log boxplot rewrite `ea52c1b` + trend-chart x-domain pin `d47a186` |
+| 2026-05-06 evening | A | **JICM autonomic reframing** (`5413824`): bracketed `[JICM-HALT]`/`[JICM-RESUME]` signal-tags removed from all active producers; replaced with natural Watcher-collaborator phrasing. Force-loaded docs reframed (Operational signals → Workspace and collaborators). Watcher restarted PID 5322 → 4508 with new prompts. Two plans-of-record durable: `aifred-pro-dev-pipeline-watcher-watchdog.md` + `aifred-pro-dev-reviewer-dash.md`. |
 
 ---
 
@@ -360,13 +398,21 @@ flowchart TB
 
 ### 6.1 Next several deliverable feature sets
 
-These are the next wave of operator-visible deliverables. Each sized in **days**, not weeks (a session ≈ 1 day of focused work).
+These are the next wave of operator-visible deliverables. Each sized in **days**, not weeks (a session ≈ 1 day of focused work). v1.4 update: 4 prior items shipped; new items surfaced.
 
-- **Telegram routing restoration** `★ David` — 1 day. Pipeline-v2 alert dispatch wire-up; restores operator visibility on production system.
-- **Reverse-proxy + Usage page surfacing completion** `★ David ◆ Loom` — 1 day. Per-session spend cards, burn-rate sparkline, cache-hit ratio table.
-- **Reviewer Dash dashboard** `★ David` — 2 days. Replaces /board Classic tab with persona-decision timeline; serves as design template for §7 Connection Points work.
-- **Watchdog stuck-task detection** `★ David` — 2-3 days. Liveness probe + auto-cancel; documented incident on `AION-13dc7b96` proves operational need.
-- **/personas page rebuild** `★ David` — 3 days. Interactive nav by persona group + domain/tool/model/scheduled-task/Nexus-component cross-link viz.
+**Recently shipped (since v1.3)**:
+- ~~Telegram routing restoration~~ **SHIPPED** (`cd0aadd` 2026-05-05). Pipeline-v2 alert dispatch wire-up complete.
+- ~~Reverse-proxy + Usage page surfacing completion~~ **SHIPPED** (`935572c..d47a186` chain 2026-05-05/-06; 12 commits). Per-session spend cards, burn-rate sparklines (token + dollar split), cache-hit composed chart, MessagePanel log-log boxplot — all live.
+- ~~Defensive layer (executor gates + cost-anomaly watcher + halt runbook)~~ **SHIPPED** (`649acfc` + `423b3c1` + `92ecb21` 2026-05-06). Operational response to AION-4ad1bff9 task-executor leak.
+- ~~JICM autonomic reframing~~ **SHIPPED** (`5413824` 2026-05-06). Bracketed signal-tags removed from active producers; Watcher named as workspace collaborator.
+
+**Queued — top priority**:
+- **Telegram smoke-test + attribution-gap investigation** `★ David` — ~0.5d. Drive synthetic load to fire `emit_alert` in vivo for the first time (zero in-vivo fires since `cd0aadd` shipped). Investigate why claude-code SDK isn't propagating `x-aion-{session-id,agent-name,project,task-id}` headers upstream through reverse proxy (100% `agent_name=unattributed` in proxy data despite header-fallback in `935572c`).
+- **Reviewer Dash R1-R4** `★ David` — 2 days. Per durable plan-of-record at `plans/aifred-pro-dev-reviewer-dash.md`. R1 backend (3 GET endpoints joining `decision_events` + `cost_events` + `audit_log` on `thread_id`) → R2 vertical timeline frontend → R3 reasoning drawer → R4 live-data switch + empty-state smoke. Serves as design template for §7 Connection Points work; ships scaffolding now, accepts empty `actor='persona:reviewer'` rows until reviewer service goes live.
+- **Watchdog W1-W3** `★ David` — 2-3 days. Per durable plan-of-record at `plans/aifred-pro-dev-pipeline-watcher-watchdog.md`. W1 cycle-error-rate alert (`_consecutive_cycle_errors` rolling counter) → W2 external liveness probe (launchd-driven, 30m alert / 2h auto-cancel gated behind env flag) → W3 expose new metrics in `/health` panel. Closes the AION-13dc7b96 class of failure (4466 cycle errors / 74h with zero alerts).
+
+**Queued — medium priority**:
+- **/personas page rebuild** `★ David` — 3 days. Interactive nav by persona group + domain/tool/model/scheduled-task/Nexus-component cross-link viz. Also fixes F-2 boundary leak.
 - **JICM v7.9 Stage-2 verdict** — 0 days (passive). Window closes 2026-05-17.
 - **JICM v8.0 PTY backend prototype** `◆ Loom` — 6-8 days. Unblocks Path-A convergence and deeper Loom integration.
 - **Token compression Phase 3** `◆ Loom` — 1-2 days. JICM context compression (NLP preprocessing + Signal notation).
@@ -397,13 +443,14 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 
 ### 6.3 Active gates (passive observation; no operator action)
 
-| Gate | Date |
-|---|---|
-| Phase 2 CoD Stage-1 verdict | 2026-05-06 |
-| Phase 1.5 Stage-2 sign-off | 2026-05-15 |
-| Phase 1.3.5 Stage-2 sign-off | 2026-05-16 |
-| JICM v7.9 Stage-2 closes | 2026-05-17 |
-| Phase 2 CoD Stage-2 verdict | 2026-05-18 |
+| Gate | Date | Status |
+|---|---|---|
+| Phase 2 CoD Stage-1 verdict | 2026-05-06 | **due today** — verdict pending |
+| Phase 1.5 Stage-2 sign-off | 2026-05-15 | upcoming |
+| Phase 1.3.5 Stage-2 sign-off | 2026-05-16 | upcoming |
+| JICM v7.9 Stage-2 closes | 2026-05-17 | upcoming (autonomic reframing v1.4 may extend observation period informally — natural-prompt phrasing not in original Stage-2 design but is a follow-on test) |
+| Phase 2 CoD Stage-2 verdict | 2026-05-18 | upcoming |
+| **Dual-write swallowed-errors clock** | 2026-06-04 | **3 / 30 days clean** (started 2026-05-04 21:39 UTC) |
 
 ---
 
@@ -586,9 +633,13 @@ Effort: 2 days.
 | JICM v7.9 Stage-2 reveals regression | A | Medium | Passive observation; rollback path documented; `jicm-watcher-legacy.sh` preserved |
 | JICM v8.0 PTY introduces cross-OS portability bugs | A | Medium | Cross-OS smoke tests gating |
 | CoD reduces math/logic accuracy −4% (per arxiv) | B | Medium | Skip CoD for arithmetic tasks; flag in skip-rule |
-| Pipeline-v2 hangs on Claude API stall (no watchdog) | C | High | Watchdog (§6.1) is operationally needed |
+| Pipeline-v2 hangs on Claude API stall (no watchdog) | C | High | Watchdog (§6.1) plan-of-record durable; ship within ~3d window |
 | Boundary drift recurs as new workstreams accumulate | D | Medium | Tagging convention forces classification; future audits at major milestones |
 | Reverse-proxy capture relies on operator running `:9800` | C | Medium | Document in startup checklist; surface in dashboard health indicator |
+| **Telegram routing shipped but 0 in-vivo fires** | C | Medium-High | Smoke-test prioritized in §6.1 (~0.5d). Until first in-vivo fire, no proof the path works under real conditions. |
+| **Reverse-proxy attribution gap** (claude-code SDK not propagating `x-aion-*` headers) | C | Medium | 100% `unattributed` in Wire D data. Header-fallback in `935572c` is structurally correct; SDK-side investigation queued in §6.1. |
+| **Pipeline-v2 dev observability sparse** (29h gap since synthetic burst; PROD halted) | C | Medium | Drive synthetic load OR lift PROD halt with watchdog as new safety layer. 30-day clean clock gives low-signal data until then. |
+| **Autonomic-reframing regression** (Opus refuses watcher prompts again post-rollout) | A | Low-Medium | Backward-compat OR pattern in `jicm-prep-context.sh:139` recognizes both old and new markers; first post-restart JICM cycle is the validation marker. |
 
 ### 9.2 Cross-stream gaps
 
@@ -684,12 +735,14 @@ flowchart TB
 6. **`★ David` priority work concentrates on operator-facing observability + meta-cognition** — Usage page completion, Dash, /personas rebuild, Kanban deeper, Cortex schema interop.
 7. **`◆ Loom` priority work concentrates on enabling integration** — JICM v8.0 PTY untether is strict precondition; Token Compression Phase 3-5 is natural complement.
 
-**The next-deliverables stack** (§6.1):
+**The next-deliverables stack** (§6.1, v1.4):
 
-Telegram routing → Reverse-proxy/Usage completion → Reviewer Dash → Watchdog → /personas rebuild → JICM v7.9 Stage-2 verdict → JICM v8.0 prototype → Token Compression Phase 3 → Reviewer metrics page.
+Telegram smoke-test + attribution-gap (~0.5d) → Reviewer Dash R1-R4 (~2d) → Watchdog W1-W3 (~2-3d) → /personas rebuild (~3d) → JICM v7.9 Stage-2 verdict (passive 2026-05-17) → JICM v8.0 prototype (~6-8d) → Token Compression Phase 3 (~1-2d) → Reviewer metrics page (~3-4d).
 
-This document is revised at major milestone boundaries; read alongside `pulse-nexus-boundary-audit-2026-05-05.md` (governance) and David's debriefs at `Shared_Projects/Debriefs/AIFred-Pro/` (priority signals).
+**v1.4 emergent observation worth highlighting**: the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident is a new pattern — a class of work that doesn't fit cleanly into Workstreams A/B/C/D individually but spans them. Cost-anomaly watcher (Jarvis-side, A) + executor pre-flight gates (Nexus, C) + halt runbook (process, cross-stream) + autonomic reframing (Jarvis-internal, A) all share the same intent: **detect failure earlier and raise visibility before damage compounds**. The Watchdog plan extends this category. Worth tracking as a quasi-workstream "E — Defensive Observability" if more items accumulate.
+
+This document is revised at major milestone boundaries; read alongside `pulse-nexus-boundary-audit-2026-05-05.md` (governance), `plans/aifred-pro-dev-pipeline-watcher-watchdog.md` (Watchdog plan-of-record), `plans/aifred-pro-dev-reviewer-dash.md` (Reviewer Dash plan-of-record), and David's debriefs at `Shared_Projects/Debriefs/AIFred-Pro/` (priority signals).
 
 ---
 
-*Project Aion Workstream Architecture v1.3 — 2026-05-05 — Internal planning artifact*
+*Project Aion Workstream Architecture v1.4 — 2026-05-06 — Internal planning artifact*
