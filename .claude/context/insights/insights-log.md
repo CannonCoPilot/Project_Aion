@@ -6792,3 +6792,37 @@ The Question/ takes a deliberate shape worth flagging: rather than a "what shoul
 ### 2026-05-07 [880cc9557885]
 
 The canonical `log_decision()` signature lives in `diagnose.py:116-129`: positional `(actor, decision_type, outcome)` then kwargs `(rationale, confidence, downstream_effect, task_id)`. Confidence is a float 0-1, but reviewer's review_output uses string levels (`"high"|"medium"|"low"`) — I'll map them via a module-level `_CONFIDENCE_MAP = {"high": 0.9, "medium": 0.6, "low": 0.3}` constant. The `decision_type` stays `"review_outcome"` across all 5 branches; what varies is the `outcome` string (`passed | engine_failed | failed_diagnose_triggered | blocked_max_retries`). This keeps downstream queries simple — one `decision_type` filter surfaces all reviewer activity, then group by `outcome` for the actual semantics.
+
+### 2026-05-07 [b682506092ef]
+
+This workstream's plan separates per-step Build verification (curl + tsc) from end-to-end visual validation (Nate walks the UI in Phase 3). That's actually a thoughtful separation: each Bx is a small, isolated change that's easy to smoke-curl, while a single Validate pass at end-of-Build catches integration drift across all Bx pieces at once. The cost is that browser regressions slip into the Build phase undetected — but the count of Bx pieces is small enough that the trade is worth it.
+
+### 2026-05-07 [6d8699ecd62f]
+
+The pattern here is interesting: `.claude/context/.active-plan` is force-loaded via `@`-import from CLAUDE.md but gitignored. That means cross-machine sessions hydrate the active-plan content not from git but from a *snapshot in session-state.md* that gets rewritten on each meditation. session-state is the durable cross-session truth; .active-plan is a working scratchpad whose canonical source is whatever the conversation just decided. Avoids merge conflicts on tactical state, at the cost of needing discipline about updating session-state at phase boundaries.
+
+### 2026-05-07 [222582ef0ea1]
+
+Two observations from how this session went, sir. First: the JICM compressor's stale-checkpoint failure mode (Chronicler Phase 3 surfacing instead of REO Build) was caught in under a minute by the documented self-correction's cross-check discipline — the scratchpad-as-source-of-truth pattern paid back its setup cost on its first real use. Second: B7's decomposition (UI stub absorbed into B6, backend deferred to Harden H5) demonstrates a useful planning idiom — when a feature has a UI surface and a backend wire, splitting them across phases lets the UI ship in Build (where it's load-bearing for the drawer's visual completeness) while the more invasive schema/migration work waits for Harden's higher confirmation bar. Same pattern as B5 (copy-only) absorbed into B3 (rename).
+
+### 2026-05-07 [229f1cf04f29]
+
+The W1 implementation was the most architecturally interesting piece, sir. The motivating incident (AION-13dc7b96, 4466 errors over 74h with no alert) had two existing watchdog mechanisms in place that should have caught it: the sliding-window burst threshold (50 errors / 5 min) and the task-LABEL stuck-state watchdog. Both missed because the failure was *low-rate persistent* — each cycle dies the same way at ~1 error/minute, never bursts, no individual task gets stuck. W1 closes that exact gap by tracking *consecutive* cycle exceptions as a different signal type. Two independent watchdogs catching different failure surfaces is what defense-in-depth looks like in practice; the lesson is that "we already alert on errors" can hide a class of slow-fail that requires an entirely separate signal to detect.
+
+### 2026-05-07 [adde23c10332]
+
+This is a recoverable ergonomic gap, sir. Three paths from cleanest to fastest:
+
+| Path | Effort | What you get |
+|---|---|---|
+| Fix the dev compose properly | ~1-2h | Add a `dashboard-dev` service that mounts `dashboard/frontend/` source and runs `vite` with hot-reload. Preserves the unified `docker compose up` ergonomics |
+| Drop the stale `build: !reset null` | ~10min | Rebuild dashboard from source on every `docker compose up --build`. Slow (~30s vite-build per launch) but eliminates the prod/dev image divergence |
+| Status quo + manual `npm run dev` | 0 | What you've been doing. Works but adds a sidecar process that doesn't appear in `docker ps` |
+
+The middle path is the most defensible — `build: !reset null` was a workaround for a problem that no longer exists, and removing it surfaces the real Dockerfile in dev so any future drift gets caught immediately. The vite-dev-in-container path is more ergonomic for actual frontend coding (sub-second hot reload vs. 30s rebuild) but requires more compose plumbing.
+
+### 2026-05-07 [07a57c28c728]
+
+- The `!reset null` override was a documented opt-out from `docker-compose.dev.yml`'s build layer, but the *justification* (a "bd binary not shipped with upstream") no longer holds — `dashboard/bd` is a 25-byte shell script, not referenced in the Dockerfile, and `docker compose build nexus-dashboard` succeeds cleanly. This is the canonical failure mode of stale exclusions outliving their reason.
+- "Are all components wired together to auto-start" answers crisply: **yes** — the dev compose brings up all 5 services together (`postgres`, `pulse`, `nexus-dashboard`, `pipeline`, `usage-proxy`). The gap is auto-*rebuild* on source change, not auto-start.
+- Path 2 is the smallest diff that surfaces the real Dockerfile in dev. It also de-risks Path 1: if the rebuild reveals a hidden Dockerfile bug, we want to know that before investing in a hot-reload sidecar service.

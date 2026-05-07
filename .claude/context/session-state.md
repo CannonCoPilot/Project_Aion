@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: REO Build SUBSTANTIVELY COMPLETE + early-MVP polish landed. Watchdog W1 SHIPPED. P1.B1.1 reconciled (already shipped prior session at 66885bb; Jarvis active-plan was stale). Next gate: Nate UX walkthrough at /reo (Validate phase per REO plan §8). Then REO Harden (5 more decision-emitter wires + feedback backend + lessons-learned extension), Ship, Debrief. Watchdog W2/W3 deferred. Board v2 component-cards layer still needs plan-of-record draft.
-**Date**: 2026-05-07 (post-meditation continuation, triple-workstream sweep complete)
+**Status**: REO Build SUBSTANTIVELY COMPLETE + early-MVP polish landed. Watchdog W1 SHIPPED. P1.B1.1 reconciled. Dev-env Path 2 SHIPPED (cross-contamination fix — dev dashboard was running prod-derived image; now correctly builds from AIFred-Pro-Dev source). REO Phase 5.5 PRE-SHIP AUDIT added as final gate. Next: Nate UX walkthrough at /reo (Validate phase per REO plan §8). Then dev-env Path 1 (vite-dev hot-reload), REO Harden, PRE-SHIP AUDIT, Ship, Debrief.
+**Date**: 2026-05-07 (post-meditation continuation; triple-sweep + dev-env Path 2 complete)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
-**Last commit (Jarvis)**: 29ba625 (docs(workstreams): REO Build B4+B6+B7-UI shipped — Validate next gate). Pending: this session-state + scratchpad + active-plan updates from A/B/C run.
-**Last commit (AIFred-Pro-Dev)**: 0f17f73 (feat(reo): MVP polish — presets + skeleton + smoke script). Earlier this session in order: 8fd2446 (REO B4), 6f40b1b (REO B6+B7-UI), f511e16 (Watchdog W1), 0f17f73 (REO MVP polish).
+**Last commit (Jarvis)**: e959dbc (docs(workstreams): triple-sweep — Watchdog W1 + P1.B1.1 reconcile + REO MVP polish). Pending: this session's dev-env-fix tracking docs commit.
+**Last commit (AIFred-Pro-Dev)**: faa9406 (fix(dev-env): drop prod-image pin so dev dashboard builds from source [Nexus]). Order this session: 8fd2446 (REO B4), 6f40b1b (REO B6+B7-UI), f511e16 (Watchdog W1), 0f17f73 (REO MVP polish), faa9406 (dev-env Path 2).
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:
