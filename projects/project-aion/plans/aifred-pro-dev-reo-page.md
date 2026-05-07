@@ -258,7 +258,25 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 - **H7**: Add Pulse READ aggregations for cross-persona stats (counts, outcome distribution per actor)
 - **H8**: Deep-link, export (CSV/JSON), saved-search persistence
 
+### Phase 5.5: PRE-SHIP AUDIT (~0.5d) — FINAL GATE before SHIP
+**Trigger**: discovery 2026-05-07 that AIFred-Pro-Dev `aifred-dev-dashboard` was running `aifred-pro-nexus-dashboard:latest` (a production-derived image tag with no compose labels), pinned via `image:` override + `build: !reset null` in `docker-compose.dev.yml`. Frontend dev work was not reaching the dev container; dev was effectively running prod-frontend code.
+
+**Scope**: full audit across all 5 dev compose services (`postgres`, `pulse`, `nexus-dashboard`, `pipeline`, `usage-proxy`) for any other dev/prod cross-contamination:
+- Image tags: every dev container's image must come from a build of AIFred-Pro-Dev source, with project label `com.docker.compose.project=aifred-pro-dev`. Flag any image tagged `aifred-pro-*` (production-derived).
+- Container names: confirm `aifred-dev-*` convention is universal; flag any leak to `aifred-*` (prod) names.
+- Network attachments: dev should be on `aifred-dev-network` exclusively; flag any join to `aifred-network` (prod).
+- Volume mounts: dev volumes named `aifred-dev-*-data`; flag any reuse of `aifred-*-data` (prod) volumes that could leak state.
+- Port bindings: dev uses prod+100 convention per `dev-space-isolation.md`; flag drift.
+- Environment variables: any reference to prod database hosts / Pulse URLs / API keys that point at production endpoints.
+
+**Deliverable**: `Jarvis/projects/project-aion/reports/aifred-pro-dev-cross-contamination-audit-YYYY-MM-DD.md` with findings + remediation per finding. Each finding gets one of: FIXED (in same PR), DEFERRED (with justification + ticket), ACCEPTED-RISK (with justification).
+
+**Done criteria**: zero P0 findings (silent prod data leak, prod-image cross-contamination, prod-DB write from dev). P1+P2 findings may be deferred with explicit acknowledgement.
+
+**Why a final gate**: REO is the first dashboard surface where Jarvis is the primary builder of dashboard frontend code. Prior cross-contamination wasn't load-bearing because dev frontend wasn't being iterated on. Now it is. Other contamination patterns may exist that haven't surfaced yet because no current workstream stresses them.
+
 ### Phase 6: SHIP (~0.25d)
+- **GATED** on Phase 5.5 PRE-SHIP AUDIT zero-P0 sign-off
 - Push nate-dev
 - Verify dashboard build green
 - Update AIFred-Pro-Dev `.claude/CLAUDE.md` if architectural change touches docs
