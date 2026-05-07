@@ -466,6 +466,15 @@ fi
 # See: projects/aifred-usage-tracking/anthropic-api-headers-reference.md
 USAGE_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
 
+# x-aion-* attribution headers per reverse-proxy-paradigm-2026-05-05.md §8.5.
+# Claude Code reads ANTHROPIC_CUSTOM_HEADERS at session start (Name: Value pairs,
+# comma- or newline-separated). proxy.py:_parse_request_body falls back to these
+# when body metadata is absent — they survive the SDK's body-redaction layer.
+# Single UUID for both windows so cross-window calls correlate by session_id.
+JARVIS_SESSION_UUID="${JARVIS_SESSION_UUID:-$(uuidgen)}"
+W0_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-w0,x-aion-session-id: $JARVIS_SESSION_UUID"
+DEV_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-session-id: $JARVIS_SESSION_UUID"
+
 CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
 
 # Create new tmux session with Claude in the main pane
@@ -518,7 +527,7 @@ fi
 # Restart loop: --continue is safe here because W0's JSONL was the most recently
 # modified file (it just exited). W5 contamination only affects initial launch.
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
-W0_WRAPPER="export $CLAUDE_ENV && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
+W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS='$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
 "$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" "$W0_WRAPPER"
 
@@ -597,7 +606,7 @@ if [[ "$DEV_MODE" == "true" ]]; then
     # Preload dev instructions file into context on launch
     DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
-        "cd '$PROJECT_DIR' && export $CLAUDE_ENV_DEV && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
+        "cd '$PROJECT_DIR' && export $CLAUDE_ENV_DEV && export ANTHROPIC_CUSTOM_HEADERS='$DEV_HEADERS' && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
     "$TMUX_BIN" set-window-option -t "$SESSION_NAME:5" automatic-rename off 2>/dev/null || true
 fi
 
