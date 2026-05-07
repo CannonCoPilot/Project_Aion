@@ -6666,3 +6666,15 @@ A note worth preserving for future architectural decisions: the autonomic refram
 ### 2026-05-07 [ee5283b86a79]
 
 For this commit I'll focus the staging on the actual deliverable (10 maintenance files + 2 new plans) and leave the pre-existing scratchpad/insights modifications for a separate housekeeping commit at `/meditate-session`. Mixing them into one commit muddies the diff and makes the autonomic-reframing change harder to review or revert in isolation. Also: per CLAUDE.md, this repo uses the noreply author identity (`177279335+CannonCoPilot`) — must inject via `--author` + `GIT_COMMITTER_EMAIL` env so commits land under the right account.
+
+### 2026-05-07 [6a949011ddf3]
+
+The doc's structural logic still holds, so I'll do **surgical delta edits** to specific tables + dated milestones rather than a full rewrite — preserves David's hard-won decoding of the v1.3 vocabulary while advancing every state field. The big shifts to surface: (a) Items 1, 2, 3, 4 in §3 graduate from IN-PROGRESS/PROPOSED to VALIDATED (reverse-proxy + spending + burn-rate + cache-hit all shipped), (b) two next-deliverables now have durable plan-of-record files, (c) a brand-new defensive layer category (cost-anomaly + halt runbook + executor gates) emerged from the 2026-05-06 task-executor incident, and (d) JICM autonomic reframing is a Jarvis-internal item worth surfacing in §1.3 because the principle (remove the trigger surface, don't document around it) generalizes.
+
+### 2026-05-07 [75944d512fbb]
+
+The most architecturally interesting finding from compiling this update is the **Defensive Observability pattern** — captured in §11. Cost-anomaly watcher (Jarvis-side, A) + executor pre-flight gates (Nexus, C) + halt runbook (process, cross-stream) + autonomic reframing (Jarvis-internal, A) all shipped this week from the same root cause (the 2026-05-06 task-executor leak), but they don't share a workstream tag. They share an *intent* — "detect failure earlier and raise visibility before damage compounds". v1.3's A/B/C/D taxonomy was orthogonal to that intent. v1.4 doesn't yet promote this to a fifth workstream (would be premature), but flags it as a candidate for "E — Defensive Observability" if more items accumulate. Worth watching: when an emergent pattern doesn't fit existing categories, the doc should *acknowledge* the misfit rather than force-fit. The Watchdog plan is the next test — if it ships clean, the pattern has 5 members and likely warrants formal naming.
+
+### 2026-05-07 [c4e7f2a0a0df]
+
+This very prompt is the validation marker noted in the scratchpad and v1.4 doc (§9.1 risk row): the Watcher is using the new natural-prompt phrasing — `Watcher here. Context is getting heavy ...` — that I shipped this session in commit `5413824`. The autonomic reframing is now confirmed end-to-end: producer emitted the new format, Opus engaged with it as ordinary collaborator request rather than refusing as injection. The architectural fix worked.

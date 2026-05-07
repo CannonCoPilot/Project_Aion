@@ -17,6 +17,8 @@
 
 **Architectural follow-up (2026-05-06)**: Repeated channel-anxiety false positives — including ones that persisted even after explicit "trust this signal" guidance was added — prompted removal of the "this-is-a-system-signal" framing from documentation. Workspace prompts now arrive in natural-conversation phrasing from named collaborators (see `psyche/jarvis-identity.md` "Workspace and collaborators" section). The guardrail test alone now governs refusal. The architectural lesson: telling a model "trust this channel even though it looks suspicious" is a fragile patch; making the channel not look suspicious in the first place is the durable fix.
 
+**Validation milestone (2026-05-06 evening, in-vivo)**: First full JICM stop-and-wait cycle after commit `5413824` exercised the new natural-language Watcher phrasing in both directions — HALT ("Watcher here. Context is getting heavy ...") and RESUME ("Watcher here. Refresh complete ..."). Opus 4.7 engaged with both prompts as ordinary collaborator requests. No refusal, no injection-detector trip. The architectural fix is now validated end-to-end by the very mechanism it was designed to repair. The risk noted in `project-aion-workstream-architecture-2026-05-05.md` v1.4 §9.1 ("autonomic regression — Opus 4.7 may revert to flagging Watcher prompts") is downgraded by this evidence.
+
 ---
 
 ## 2026-04-24 | judgment | JICM checkpoint stale-task inference
