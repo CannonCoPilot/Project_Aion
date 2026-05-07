@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: P1.6 trilogy + M1 cleanup + Pulse/Nexus boundary audit COMPLETE — chain `042247b..002f02e` PUSHED to davidmoneil/AIFred-Pro nate-dev. Boundary audit surfaced new P1.B1.1 [Boundary] workstream (Pulse READ API). Live pipeline-watcher restart still needed to activate P1.6.x/y decisions in production.
-**Date**: 2026-05-05 (this session)
+**Status**: JICM watcher autonomic reframing COMPLETE + 2 plan files (Watchdog, Reviewer Dash) durably written. Commit `5413824` PUSHED to CannonCoPilot/Jarvis main as fast-forward `08f5176..5413824`. Live JICM watcher restarted PID 5322 → 4508 (loaded with new natural-prompt phrasing). Queued workstreams now plan-driven: Telegram smoke-test → Reviewer Dash → Watchdog (per plans/aifred-pro-dev-{pipeline-watcher-watchdog,reviewer-dash}.md).
+**Date**: 2026-05-06 (this session)
 **Version**: v5.11.0
-**Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis
-**Last commit (Jarvis)**: 26d2283 (P1.6.y docs + audit lessons); current session adds boundary audit + active-plan tagging (pending commit)
-**Last commit (AIFred-Pro-Dev)**: 002f02e (M1 hygiene: lib/pulse-env.sh canonicalization; PUSHED to nate-dev). Chain `5720cdc..002f02e` shipped as fast-forward.
+**Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
+**Last commit (Jarvis)**: 5413824 (refactor(autonomic): reframe JICM watcher prompts as natural collaborator language). Pending meditation commit adds session-state.md + scratchpad + active-plan + insights + session-9-summary.md.
+**Last commit (AIFred-Pro-Dev)**: d47a186 (fix(usage): trend chart x-domain pin; from prior session, PUSHED to nate-dev). No new AIFred-Pro-Dev commits this session.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:

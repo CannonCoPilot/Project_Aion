@@ -1,0 +1,339 @@
+# Scratchpad — Short-Term Working Memory
+
+**Purpose**: Transient details needed within this session or the next 1-2 sessions. Force-loaded via CLAUDE.md. Survives /clear and JICM compression.
+
+**Rules**:
+- Write here for: credentials locations, active paths, custom functions, transient gotchas, session-specific commands
+- Do NOT write here for stable facts (use MEMORY.md) or work progress (use session-state.md)
+- Entries should have dates; prune when stale (AC-08 maintenance + scratchpad-rotate hook)
+- **Keep under 80 lines (~2K tokens) to limit force-loaded token cost.** Older entries auto-rotate to `archive/scratchpad-YYYY-MM-DD.md`.
+
+---
+
+## Active Notes
+
+### 2026-05-06 ~22:30 UTC — JICM-HALT post UsagePage MVP commit/push + workstream refocus + Watchdog/Reviewer-Dash planning
+
+**AIFred-Pro-Dev shipped + pushed this session** (chain `96bf29a..d47a186` to davidmoneil/AIFred-Pro:nate-dev):
+- `ea52c1b feat(usage): UsagePage MVP polish — message-sizes + ribbons + tooltips [Boundary]` — 13 bundled changes (3 files, +625/-324). MessageSizes log-log boxplot rewrite + Anthropic-Window tooltip fix + Burn-Rate tooltip fix + Allotment ribbons (sliding-2 → smoothed two-pass box filter 4pt→3pt) + hour-of-day timezone (UTC→local with LOCAL_TZ_ABBREV) + windowLabel minute-precision.
+- `d47a186 fix(usage): trend chart — pin X domain so y-axis aligns with first dot [Boundary]` — explicit `domain={[firstTs, lastTsEnd]}` + day-tick filter + `allowDataOverflow={false}`. Recharts 3.8 silently extends auto-domain for explicit ticks outside [dataMin,dataMax]; noon-UTC day-ticks were pulling y-axis leftward.
+
+**Workstream verification snapshot** (post-refocus):
+- **Stage-2 14d obs**: JICM streaming actively (jicm-{watcher,gate,stop}.log, .jicm-state-hook.json fresh). Pipeline-v2 obs SPARSE — 47 audit / 27 decision / 7 cost rows since 2026-05-03 ALL from single 21-min burst on 05-05 15:39-16:00 UTC; 29h gap since. PROD halted + dev operator-driven = nothing flowing through pipeline-v2. **Open**: drive synthetic load OR incrementally lift PROD halt with watchdog+Telegram as new safety layer.
+- **Telegram routing**: code shipped (cd0aadd), pipeline-watcher PID 15622 alive 19.5h, 6 emit_alert sites wired, **0 fired in vivo**. ~15min synthetic smoke-test recommended before declaring complete.
+- **Reverse-proxy**: :9800 healthy. Wire D returns $27.78/59 reqs but **100% `agent_name=unattributed`** — claude-code SDK isn't injecting `x-aion-{session-id,project,agent-name,task-id}` headers upstream. Treat as separate sub-workstream from "Reverse-proxy completion".
+- **Dual-write fate**: swallowed-errors.jsonl 0 bytes since 2026-05-04 21:39 (3/30 days clean for migration criterion).
+
+**Watchdog plan drafted (2-3d, 3 phases)** — motivated by AION-13dc7b96 (4,466 cycle errors / 74h, no alert):
+- W1 (0.5-1d): cycle-error-rate alert via `_consecutive_cycle_errors` rolling counter + threshold + emit_alert + dedup sentinel
+- W2 (1d): liveness probe (30m alert / 2h auto-cancel via `pulse_post .../close {scenario:'watchdog-auto-cancel'}`); gate auto-cancel behind `WATCHDOG_AUTO_CANCEL_ENABLED=false` initially
+- W3 (0.5d): expose new metrics in pipeline-watcher /health + dashboard /health panel
+- Existing scaffolding at `pipeline-watcher.py:272-303` covers task-LABEL stuck states only — extension is cycle-error-rate + liveness, not replacement
+
+**Reviewer Dash plan drafted (2d, 4 phases)** — replaces `/board` Classic tab at `KanbanPage.tsx:405`:
+- R1 (0.5d): backend `/api/reviewer-dash/{timeline,persona-aggregates,decision/:id}` joining decision_events + cost_events on thread_id
+- R2 (0.75d): frontend ReviewerDashTab.tsx vertical timeline
+- R3 (0.5d): drawer for full reasoning text from `details` JSONB
+- R4 (0.25d): live-data switch + empty-state smoke
+- **Critical**: `decision_events.actor='persona:reviewer'` rows = 0 today (executor=19, diagnose=8). Recommended: build now, accept empty state, ship scaffolding so it's ready when reviewer service goes live. Architecture doc §7.2 positions Reviewer Dash as the schema template for §7.1 #4 Cortex↔AC-05/06 interop.
+
+**Pending user decision at HALT** (last open question before halt): user asked if I should write the plans to a durable plan-of-record file under `Jarvis/projects/project-aion/plans/` for survival across sessions. **Did not yet write — pending user nod.**
+
+**Recommended next-session sequence** (per architecture doc §11):
+1. Telegram smoke-test + attribution-gap investigation (~0.5d)
+2. Reviewer Dash R1-R4 (~2d)
+3. Watchdog W1-W3 (~2-3d)
+
+**Live infra at HALT**: aifred-dev-{dashboard,pulse,usage-proxy,postgres} all healthy. Pipeline-watcher PID 15622, jarvis-watcher PID 5322, HUD PID 32998.
+
+**Files touched this session**:
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/pulse/app.py`
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/api/usage.ts`
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/pages/UsagePage.tsx`
+
+**Resume directive**: respond to user's "should I write the plan-of-record doc?" question OR proceed directly with #1 next-sequence item if user has decided.
+
+### 2026-05-06 ~21:00 UTC — JICM-HALT post-MessagePanel rewrite + 5 UsagePage follow-ons. ALL LOCAL, NOT PUSHED.
+
+**Status**: 6 sequential improvements to AIFred-Pro-Dev :8701 dashboard after `96bf29a`. NO COMMITS YET — user said "commit + push when you're satisfied with Message Sizes + Anthropic Session Window changes together". Both finished this session; commit-bundle is ready when next session resumes and user confirms visual.
+
+**Bundle of changes (all on AIFred-Pro-Dev nate-dev working tree, uncommitted)**:
+1. **Message Sizes invisible plot** → boxplot opacity bumped (sky-300 0.45/0.85 vs prior blue-400 0.22/0.55), Bar→ReferenceArea for explicit width on numeric XAxis
+2. **Allotment by hour: fractional timestamps** → `getUTCHours() + minutes/60 + sec/3600` instead of integer `hour_of_day`
+3. **Allotment trend: per-day x-ticks** (Sunday-only filter produced empty arrays on 14-window slices ≈3 days), `interval={0}`, `timeZone: 'UTC'`
+4. **Anthropic Session Window tooltip** (initial pass, then revisited): filter `name === 'session-usage'`
+5. **Allotment by hour: HH:MM tooltip + integer-bucket ribbon + end-time contributions** (start AND end hour buckets per window; integer bucketing collapses the segmented look)
+6. **Allotment trend: end-times in ribbon calc** (separate `trendRibbonData` of 2 points per window, used as `<Area data={...}>`)
+7. **Message Sizes COMPLETE REWRITE** (largest change): backend + frontend
+    - Backend `pulse/app.py`: `_LOG_BIN_CANDIDATES`, `_derive_log_bin_boundaries` (strict `>` stop condition), `_format_bin_label`. Endpoint groups by `unified_5h_reset` not date. Returns `n_sessions`, `bins[]` with `index/from/to/label/q0..q4/n_sessions_with_msgs`. Last bin open-ended (`64K+`). Cached 24h. Verified live: 30 sessions, 11 bins, real Q1/MED/Q3 populated through bin 7.
+    - Frontend type `MessageSizesHistoricalBin` + rewritten `MessagePanel`: numeric x-axis on bin INDEX (equal-width bars), log-log presentation, custom `MessageSizesTooltip`. 6 render layers: IQR rect (q1<q3) → whisker stems → whisker caps → median hash (always at q2>0) → median connector (`q2Connector` null at empty bins, `connectNulls={false}`) → live bars. Degrades from N=1 (hash mark only) to N≥3 (full boxplot).
+8. **Anthropic Session Window tooltip activation fix**: trendline moved off `data={curveFitData}` onto chart's primary data via derived `trendline` field per point. Phantom point at `elapsed_h=5` with `utilization: null, trendline: projected` preserves dashed-line extrapolation while Area path breaks cleanly. Root cause was split-data activation domains in Recharts.
+
+**Live state**: `aifred-dev-pulse` + `aifred-dev-dashboard` both healthy. Type-checks clean. New Jarvis-2 instance spawned at `tmux jarvis:6` running claude (separate context, separate budget envelope).
+
+**Files touched (full paths)**:
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/pulse/app.py` (helpers + endpoint rewrite)
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/api/usage.ts` (`MessageSizesHistoricalBin` type)
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/pages/UsagePage.tsx` (5 of 8 changes touch this single file)
+
+**Resume next session**:
+1. Confirm visual at `:8701/usage` (especially Message Sizes log-log boxplot rendering across N=1→N=3 sessions, Anthropic Session Window hover firing reliably)
+2. Single bundled commit on AIFred-Pro-Dev nate-dev — `feat(usage): MessageSizes log-log redesign + 7 UsagePage refinements` covering all 8 items together
+3. Push `96bf29a..HEAD` to davidmoneil/AIFred-Pro:nate-dev
+4. Jarvis-side: scratchpad + insights cleanup + commit at /meditate-session
+
+**Cache behavior to know about**: `pulse/app.py` `_message_sizes_historical_cache` is 24h in-process. New code's payload is already cached at the new shape (rebuilt + recreated). If results look wrong, `docker restart aifred-dev-pulse` clears it.
+
+### 2026-05-06 ~late-afternoon UTC — Prior JICM-HALT post-comprehensive-UsagePage-refactor (96bf29a). All work shipped + pushed.
+
+**AIFred-Pro-Dev commit**: `96bf29a feat(usage): comprehensive UsagePage refactor across 6 cards [Boundary]` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `c79643a..96bf29a`. 4 files, +1,495/-255 LOC.
+
+**Per-card changes**:
+- **Anthropic Window**: dynamic best-fit trendline (linear regression like BurnRatePanel); plot height 100→280; red 10% gridlines + red 35% top-border ReferenceLine
+- **Burn Rate**: same red-toned grid + top-border treatment; min-h 300→400
+- **Cache**: x-axis ticks 1-per-date at 12:00 UTC formatted m/d; 5h session blocks as rounded gray ReferenceArea (rx=3, 25% opacity); cache reads Bar→Line (opacity 0.18→0.85)
+- **Message Sizes**: removed historical scree-line; per-bin boxplot via ReferenceArea (IQR) + ReferenceLines (median + min/max whiskers); log y-axis with computed power-of-10 bounds. NO outlier dots
+- **Model Usage**: new `/api/usage/loaded-models` endpoint queries Ollama `/api/ps` + MLX-Embed `/health`; ALWAYS_SHOWN_MODELS hardcoded list replaced with dynamic discovery; Claude tiers always shown; loaded local models only (deployed-but-unloaded hidden); alive indicator (green/gray dot) per row
+- **Allotment trend**: x-range slider (1-90 windows, default 14, localStorage `aifred.usage.trend-window-count`); log y-axis; Sunday-tick recompute moved into IIFE
+- **Hour-of-day**: confidence band restyled vertical-whisker → continuous Area aggregating per-hour low/high envelopes
+- **Rate Limit**: explicit `dayTicks` array (UTC midnight per day) + `interval={0}` forces day labels to persist on zero-data days as slider moves; y-axis 10% increments; height 210→315 (1.5x)
+
+**Backend additions**:
+- `pulse/app.py`: `_quantile()` helper + per-bin q0/q1/q2/q3/q4 daily-count distribution (DATE(ts AT TIME ZONE 'UTC') grouping); 24h in-process cache preserved
+- `dashboard/server/routes/usage.ts`: `discoverLoadedModels()` with 3s AbortSignal.timeout per probe; new env vars OLLAMA_URL + MLX_EMBED_URL with host.docker.internal defaults
+
+**Live state at JICM-HALT**:
+- aifred-dev-pulse + aifred-dev-dashboard rebuilt + healthy at :8800/:8701
+- `/api/usage/loaded-models` → 3 models discovered: qwen3:32b (Ollama), qwen3:8b (Ollama), mlx-community/Qwen3-Embedding-4B-4bit-DWQ (MLX-Embed)
+- `/api/usage/message-sizes-historical` → 8,579 messages over 30 days, 10 distinct days, full q0..q4 spread (e.g. bin[0-3218 tokens]: q0=22 q1=211 q2=638 q3=1154 q4=2158)
+- frontend tsc + server tsc clean; all 11 dashboard endpoints return 200
+
+**Deferred items** (documented in commit message under "Deferred (scope-bounded)"):
+1. Round-trip latency probe per model — needs periodic backend ping job; cost concerns (Anthropic $ + Ollama VRAM thrash). Currently ships as alive-indicator from discovery, NOT latency
+2. Embedding-model API-header capture via reverse proxy — requires Jarvis-side LiteLLM/proxy config; out of AIFred-Pro-Dev scope
+
+**Files touched (full paths)**:
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/pages/UsagePage.tsx`
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/api/usage.ts`
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/server/routes/usage.ts`
+- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/pulse/app.py`
+
+**Pending push state**:
+- AIFred-Pro-Dev origin/nate-dev HEAD: `96bf29a` (PUSHED to davidmoneil/AIFred-Pro)
+- Jarvis Project_Aion HEAD: `08f5176` (LOCAL — scratchpad updates from this session pending Jarvis-side commit at /meditate-session)
+
+**Possible next-session pickups**:
+1. Round-trip latency probe job — periodic backend ping every N min, cache results, render `lastPingMs` per model
+2. Boxplot performance — currently ~80-100 ReferenceLines per chart at 20 bins; if scaling to 100+ bins, migrate to `<Customized>` SVG path approach
+3. Lift `REFERENCE_5H_TOKEN_BUDGET` constant into shared `lib/usage-reference.ts` (pending from prior sessions)
+4. Telegram routing for cost-anomaly events (Phase 2 of C, deferred)
+5. Visual review of dashboard at `:8701/usage` — particularly worth eyeballing boxplot rendering and 3-card row hover behavior
+
+**No unstaged changes in AIFred-Pro-Dev at JICM-HALT.**
+
+### 2026-05-06 ~16:45 UTC — JICM-HALT received post-Burn-Rate split. All work shipped.
+
+**Latest commit (post-debrief follow-on)**: `c79643a` on AIFred-Pro-Dev nate-dev (PUSHED `423b3c1..c79643a`):
+- UsagePage: HeroBurnRateCard (dollars) → HeroBurnRateTokensCard. Token bands: <200K/min emerald, <600K/min amber, ≥600K/min red. Reference: ~250M-token Claude Pro 5h budget / 5h / 60 ≈ 833K/min saturation.
+- BudgetPage: NEW BurnRateDollarsCard between Header and ApiSpendCard. 3-col body (current rate / extrapolated hourly / projected to window end). Dollar bands: <$0.05/min emerald, <$0.15/min amber, ≥$0.15/min red.
+- Rationale: each page's docstring contract — UsagePage is token-velocity, BudgetPage is dollar-velocity. Original 423b3c1 placement on UsagePage was a small contradiction with the page's own "Token-based, Anthropic session-aware" docstring.
+
+**Total session commits across both repos**:
+- AIFred-Pro-Dev nate-dev: `649acfc` (executor gates A+B), `423b3c1` (dashboard hero burn-rate D + Reviewer Dash cost column Task 5), `c79643a` (Burn Rate split). Chain `a2efc53..c79643a` PUSHED to davidmoneil/AIFred-Pro.
+- Jarvis Project_Aion: `92ecb21` (cost-monitoring C+E+H), `08f5176` (scratchpad summary). Chain `21ad679..08f5176` PUSHED to CannonCoPilot/Jarvis main.
+- PROD halt (`launchctl bootout` + 13 jobs disabled + 25 tasks closed): config-only changes; no commit footprint. Cleaned to original pre-halt state minus the `every_hours: 0.25` override (which was the leak source).
+
+**Defense layer status (live)**:
+- Cost-anomaly watcher: PID 72472, KeepAlive launchd job, COST_INTERVAL=300, alert=warn (my opus burn during this very session).
+- HUD cost ticker: rendering live in CACHE & COST section.
+- executor.py pre-flight gates: shipped + pushed, awaiting David's review/merge.
+- Dashboard: rebuilt + healthy at :8701 with the new split.
+
+**Pending / next-session pickups** (all optional, none requested):
+1. Lift REFERENCE_5H_TOKEN_BUDGET constant into shared `lib/usage-reference.ts` (token threshold bands + ApiSpendCard coverage heuristic both depend on it).
+2. Telegram routing for cost-anomaly events (Phase 2 of C, deferred).
+3. Inventory all `nexus-settings.json` runtime overrides on both PROD + Dev, document divergence intentionally (the kind of audit that surfaced the `every_hours: 0.25` override today).
+4. AC-05 reflection consumption of `.cost-anomaly-events.jsonl` (correlate spikes with corrections).
+5. Polynomial best-fit on burn rate (deferred from prior session).
+6. David's call: re-enable PROD jobs after merging `649acfc` + `423b3c1`. Halt runbook documents reversal at `Jarvis/projects/project-aion/runbooks/halt-aifred-pro-prod.md`.
+
+**Debrief delivered**: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-06-task-executor-leak-investigation.md` (99 lines, structured per template).
+
+**No unstaged changes in either repo at JICM-HALT.**
+
+### 2026-05-06 ~16:30 UTC — Task-executor leak investigation + multi-layered repair COMPLETE
+
+**Root cause** (verified): AIFred-Pro task-executor running every 15min via runtime override `every_hours: 0.25` in `nexus-settings.json` (set 2026-04-23 by dashboard, not declared in registry). 19 evaluations on AION-4ad1bff9 over 7.5h, 17 returning "queue stalled / 0 actionable" at $0.37-$0.44 each, 2 attempting PAUSE-routing on hard rule #4 violation (docker-compose edits). Two stacked bugs: pre_check too coarse (matches tasks LLM will hard-fail) + PAUSE-routing unreliable (1-in-19 success). Total wasted: ~$8 / 5h-window = ~22% of proxy budget. Matches the "20-25% baseline creep" observation from the new burn-rate panel.
+
+**PROD halt** (3 layers, executed): launchctl bootout `com.aion.nexus-dispatcher`; PATCH `enabled:false` on all 13 jobs in `nexus-settings.json` job_overrides (subsequently cleaned to original pre-halt state, retaining budget caps); POST `/api/v1/tasks/$id/close` on all 25 open tasks (preserved to 90 total in `tasks` table). Verified: `dashboard/api/health` shows `tasks.openCount: 0`, `dispatcher.status: unknown`, no further dispatcher.log entries after 09:55:57 MDT.
+
+**Repairs shipped (constrained to AIFred-Pro-Dev + Jarvis, per user directive)**:
+- AIFred-Pro-Dev nate-dev (PUSHED `a2efc53..423b3c1`):
+  - `649acfc` executor.py pre-flight gates: `_check_hard_safety_preflight` (regex pattern list mirrors LLM hard-rules) + `_check_attempt_budget` (cap N=3/24h via env MAX_ATTEMPTS_PER_24H). Both apply `parked` label and audit/decision events, exit before LLM call.
+  - `423b3c1` dashboard: HeroBurnRateCard on UsagePage (live $/min with threshold colors); Reviewer Dash cost column on ReviewPage (10-col grid, threshold-colored cell with run-count + models tooltip). Backend extension: `getCostByTask(sinceHours)` aggregates Pulse cost_events.
+- Jarvis Project_Aion (LOCAL `92ecb21`, push pending at end):
+  - `cost-anomaly-watcher.sh` (243 LOC) running as launchd `com.aion.jarvis-cost-watcher` (PID 72472, KeepAlive=true, COST_INTERVAL=300). Three detection rules: 15-min cadence + low-input-high-cache (task-executor signature), 5min rate spike (>$3 warn, >$5 critical), coverage-gap (account util > 0.3 AND proxy/expected < 0.5). State at `.claude/context/.cost-state.json`, anomaly events at `.claude/logs/cost-anomaly-events.jsonl`.
+  - HUD ticker enhancement (`jicm-watcher-hud.sh`): new row in CACHE & COST section showing `Burn rate: $X.XX/hr (5h, N reqs, $Y) | 5m: $Z/hr | alert: <level> | anomalies: <count>`.
+  - Halt runbook at `projects/project-aion/runbooks/halt-aifred-pro-prod.md` codifying the 3-layer halt + reversal procedure + scope-fences.
+
+**Debrief to David**: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-06-task-executor-leak-investigation.md` (99 lines, complete with vision/why-now/decisions/where-this-leads/activity sections). David's call on when to merge `649acfc + 423b3c1` to prod and re-enable jobs.
+
+**Live state of defense layers**:
+| Layer | State | Notes |
+|---|---|---|
+| Cost-anomaly watcher | running PID 72472 | alert=warn now (my opus burn) |
+| HUD cost row | rendering | $7.22/hr 5h, $59/hr 5m |
+| executor.py gates | shipped, not yet active in PROD | gated behind David's review |
+| Reviewer Dash cost column | shipped, dev-dashboard rebuilt | live on :8701 |
+| PROD dispatcher | UNLOADED | `launchctl list` confirms |
+| PROD jobs | enabled flags removed (clean state) | dispatcher unloaded = single layer of defense by design |
+| PROD tasks | 0 open (25 closed at halt) | full 90-task history preserved |
+
+**Possible next-session pickups** (not requested, recording for completeness):
+1. Telegram routing for cost-anomaly events (Phase 2 of C). Push instead of pull when alert=critical.
+2. Cost-anomaly threshold tuning panel on dashboard (env-tunable thresholds bound to UI controls).
+3. Overlap audit: inventory all `nexus-settings.json` runtime overrides on both PROD + Dev, document divergence intentionally.
+4. AC-05 reflection consumption of `.cost-anomaly-events.jsonl` to correlate spikes with corrections (expensive misunderstandings pattern).
+5. Polynomial best-fit on burn rate (deferred from prior session — previous linear fit's intercept ~13% reveals concave shape).
+
+### 2026-05-06 ~06:25 UTC — JICM-HALT received; all in-flight work complete. No outstanding tasks.
+
+**Session summary**: 4 workstreams shipped + pushed in sequence — all `[Boundary]` tag, all on davidmoneil/AIFred-Pro:nate-dev. Chain `935572c..a2efc53`:
+- `99da5d2` Wire D burn-rate slider + Wire E cost-card honest framing + dashboard route fix + Route 1 prod plist switch (`:8877`→`:9800`)
+- `582909d` HeroCacheCard swap (replaced HeroCostCard on UsagePage hero row)
+- `1884dec` Cache panel redesign (ComposedChart + slider + cold-starts + token-volume bars)
+- `a2efc53` Burn-rate panel full-height + linear best-fit regression
+
+**Live findings worth preserving for next session**:
+- Burn-rate regression on 7 trailing windows: slope **+21.08%/h**, projection **100% at reset**. Workload is saturating sessions. AC-04 JICM thresholds may benefit from earlier tightening on long sessions.
+- Cache panel cold-start detection caught **5 model swaps in trailing 50 calls** — claude-code SDK alternates sonnet-4-6 (background) ↔ opus-4-7 (foreground). Each swap = cache invalidation. Effective hit rate is being under-realized by SDK model-mixing.
+- Coverage rollout (Route 1) live but unverified at scale — production dispatcher fires every 300s; full effect visible only as 5h window cycles. No need to monitor; cost-card coverage dot (BudgetPage) will signal completion as proxy share climbs.
+
+**Pending push state**:
+- AIFred-Pro-Dev origin/nate-dev HEAD: `a2efc53` (latest; chain `935572c..a2efc53`)
+- Jarvis Project_Aion HEAD: `057195f` (LOCAL — push at /meditate-session). Scratchpad updates pending Jarvis-side commit.
+
+**Possible next-session pickups** (in priority order):
+1. **Polynomial best-fit on burn-rate** — current linear fit is honest about its limitation (intercept ~13% reveals concave shape). Polynomial or log fit would give true session-shape prediction. Deferred unless user asks.
+2. **Reviewer Dash cost column** (v1.3 §6.1 #3) — earmarked for reverse-proxy paradigm follow-up.
+3. **Coverage telemetry verification** — confirm Route 1 propagation by inspecting api_requests rows after 1+ full 5h cycle (window resets at 07:20 UTC, so first full post-rollout window completes ~12:20 UTC).
+4. **Polynomial fit feature flag**, OR cache prompt-mutation event detection (separate from model-swap), OR Telegram alert on coverage-dot regression — all reasonable v1.4 additions.
+
+### 2026-05-06 ~06:15 UTC — Burn-rate panel: full-height + linear best-fit SHIPPED + PUSHED [post-cache-redesign, [Boundary]]
+
+**AIFred-Pro-Dev commit**: `a2efc53 feat(usage): burn-rate panel — full-height chart + linear best-fit` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `1884dec..a2efc53`. 1 file, +110/-39 LOC.
+
+**What shipped**:
+- BurnRatePanel card: `h-full flex flex-col`; chart wrapper `flex-1 min-h-[300px]`; ResponsiveContainer `height="100%"` — chart now fills the cache-panel-height row instead of leaving ~130px empty.
+- Linear least-squares regression across all visible (elapsed_h, util%) points. Dashed amber `Line` spanning x=[0,5]. Recomputes naturally on slider OR 10s refetch (no useMemo/effect — pure derivation in render path).
+- Header subtitle shows slope + projection: e.g. "+21.1%/h · projects to 100% at reset". Live verification: 1441 points / 7 windows / slope +21.08%/h.
+
+**Caveat captured in commit**: linear fit on hyperbolic data (burn is front-loaded). Non-zero intercept (~13% on current data) reflects the curvature mismatch — slope is honest as a trend metric; intercept reveals the data isn't actually linear. Polynomial fit deferred unless requested.
+
+### 2026-05-06 ~05:55 UTC — Cache panel redesign SHIPPED + PUSHED [post-HeroCacheCard, [Boundary], full scope]
+
+**AIFred-Pro-Dev commit**: `1884dec feat(usage): cache panel redesign — composed chart + slider + cold-starts` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `582909d..1884dec`. 3 files (`pulse/app.py`, `dashboard/frontend/src/api/usage.ts`, `dashboard/frontend/src/pages/UsagePage.tsx`), +261/-23 LOC.
+
+**What shipped**:
+- Backend: `cache-effectiveness` per-point response now includes `input_tokens`, `cache_read_tokens`, `cache_write_tokens` (SQL already SELECTed; just exposed in JSON).
+- Type: `CacheEffectiveness.points` extended.
+- Card redesign: `Cache Effectiveness` → `Prompt Cache Performance`. ComposedChart with three layers — log-scale token-volume bars (right axis, faint blue), rolling-avg primary line (3px emerald), per-call scatter (translucent dots). X-axis = timestamps. Custom tooltip with time + rolling + this-call + reads + cold-input + model. Cold-start ReferenceLines for model swaps + invalidation events. Time-window slider 1-168h, default 5h, localStorage `aifred.usage.cache-window-hours`. Stat boxes window-scoped. Lifetime baseline preserved as footer.
+
+**Live finding**: claude-code SDK alternates sonnet-4-6 (background utility calls — status line, etc.) and opus-4-7 (main thread). Cache is per-model, so every alternation = invalidation. Sample showed 5 cold-starts in 50 calls — visible as periodic orange annotations. Implies effective hit rate is being under-realized by SDK model-mixing.
+
+**Insights worth keeping**:
+- Two Y axes capture two semantics: hit *rate* (left, linear, 0-100%) vs hit *volume* (right, log scale, tokens). Same hit rate can mean very different things at different volumes — early small-cache vs late deep-cache.
+- Hours is the right slider unit for cache (cache patterns are minute-to-hour timescale; default 5h = one Anthropic session window). Sessions/days were considered and rejected as either too data-structural or too coarse.
+
+### 2026-05-06 ~05:25 UTC — HeroCacheCard swap SHIPPED + PUSHED [post-Wire-D/E, [Boundary], small follow-on]
+
+**AIFred-Pro-Dev commit**: `582909d feat(usage): replace cost hero card with live cache summary` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `99da5d2..582909d`. Single file (`dashboard/frontend/src/pages/UsagePage.tsx`), +25/-11 LOC.
+
+**What changed**: UsagePage hero row card #3 swapped from `Cost This Window (USD)` (duplicated BudgetPage's better-framed Proxy-Attributed Cost card) to `Cache This Window` showing hit ratio % + reads/writes + savings factor. Hit ratio color-coded emerald (≥90%) / amber (<90%). Window-scoped derivation from `useSessionTokens` (NOT `useCacheEffectiveness` — that's all-time aggregate, would mislabel a "This Window" card). Live values at swap: 100.0% hit / 43.2M reads / 1.9M writes / 10.0× savings. Larger CachePanel below the hero still consumes useCacheEffectiveness for its longer-history sparkline (correct scope for that panel).
+
+**Insight worth keeping**: derivations live in the component (3 lines), not the backend. Anthropic pricing change tomorrow = one frontend edit, no coordinated migration. Same pattern recommends keeping cost-pricing logic out of `pulse/app.py` and in the dashboard's `useSessionTokens` consumers.
+
+### 2026-05-06 ~05:10 UTC — Wire D + Wire E + Route 1 SHIPPED + PUSHED [post-JICM-RESUME, [Boundary], v1.3 §6.1 #2 fully closed]
+
+**AIFred-Pro-Dev commit**: `99da5d2 feat(usage,budget): burn-rate slider + cost-card honest framing` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `935572c..99da5d2`. 3 files, +146/-33 LOC.
+
+**What shipped**:
+- **Wire D** (UsagePage burn-rate slider): 1-30 windows, default 7, localStorage key `aifred.usage.burn-rate-count`. Client-side `slice(-count)` over existing `/api/usage/burn-rate-curve` payload — no backend change. Indicator reads "last N of M" when slicing, "M windows" when showing all. Slider degrades gracefully (28 windows currently, slider asks for up to 30 — naturally bounded).
+- **Wire E** (BudgetPage cost-card honest framing): Relabel "API Spend" → "Proxy-Attributed Cost". Coverage dot green/amber/red on ratio `(proxy_tokens/REFERENCE_5H_BUDGET) / utilization`. Inline annotation surfaces dual quantities (utilization% account-wide truth vs proxy-summed cost). Reconciliation footnote documents 250M-token reference baseline. Imports `useSessionWindow` + `useSessionTokens` alongside `useSessionSpendDollars`.
+- **Route fix discovered + fixed**: `dashboard/server/routes/usage.ts` was missing the `/api/usage/session-spend-dollars` proxy line. The Pulse endpoint + frontend hook shipped in 935572c, but the dashboard server-side proxy never got the route. Pre-fix: 404. Post-fix: 200 + $108.77 / 182 req. Was a latent bug from prior session.
+- **Route 1** (operational): `~/Library/LaunchAgents/com.aion.nexus-dispatcher.plist` ANTHROPIC_BASE_URL changed `http://127.0.0.1:8877` → `http://localhost:9800`. Backup at `com.aion.nexus-dispatcher.plist.pre-coverage-rollout-2026-05-05`. Reload via `launchctl bootout gui/$UID/com.aion.nexus-dispatcher; launchctl bootstrap gui/$UID <plist>`. Service registered (RunAtLoad=false, StartInterval=300s). Dev dispatcher already at `:9800` from prior config; Jarvis launch script `launch-jarvis-tmux.sh:467` already exports proxy URL for W0/W5. So: prod dispatcher was the last gap on this machine; closed.
+
+**Smoke-verified end-to-end**:
+| Layer | Test | Result |
+|---|---|---|
+| Pulse direct `:8800` | `/api/v1/usage/session-spend-dollars` | ✓ $106.33 / 175 req / proj $199.19 |
+| Dashboard proxy `:8701` (post-route-fix) | `/api/usage/session-spend-dollars` | ✓ $108.77 / 182 req / proj $202.40 |
+| Dashboard proxy `:8701` | `/api/usage/burn-rate-curve` | ✓ 28 windows, 246 avg pts/window |
+| Dashboard proxy `:8701` | `/api/usage/session-window` | ✓ util 63.0% (5h), 62.0% (7d) |
+| Plist syntax | `plutil -lint` | ✓ OK |
+| Plist values | `plutil -extract EnvironmentVariables.ANTHROPIC_BASE_URL` | ✓ both prod + dev plists return `http://localhost:9800` |
+| Container health | `docker ps` | ✓ aifred-dev-dashboard healthy after recreate |
+
+**Coverage gap update post-Route 1**: This Jarvis (W0+W5) + AIfred Nexus dispatcher + dispatcher children (24+ personas, executor, cortex) = now all routing through `:9800`. Account-wide utilization 63% — proxy-summed for current window = $108.77 / 278K tokens / 182 req. Coverage ratio improvement should become visible in next 5h window as dispatcher cycles begin emitting through `:9800`. Was 1 caller (this Jarvis), now will be Jarvis + dispatcher + dispatcher children.
+
+**Earmarked for follow-up (NOT this session)**:
+- Coverage rollout to David's separate machine (his `~/Library/LaunchAgents/` plists are independent of ours; out of our reach without an env-var deployment story).
+- Standalone `claude -p` invocations from terminal — would need shell rc export. Decided against ~/.zshrc add: too coupled to Docker uptime. Document as user-toggle.
+- Production cost-event ingestion: prod `:8877` proxy still alive on PID 97735 (orphan; source file moved). Could decom or repoint. Not required for our coverage work.
+- Anomaly alert on coverage-dot drop: if util > 80% but coverage <50%, escalate (some other source is consuming the account budget invisibly).
+
+### 2026-05-05 ~23:00 MDT — JICM-HALT received mid-Wire-D/E proposal (RESOLVED above)
+
+(Original resume directive obsolete — work shipped. See entry above for outcomes.)
+
+### 2026-05-05 ~22:35 MDT — Reverse-proxy + Usage/Budget surfacing SHIPPED + PUSHED [v1.3 §6.1 #2, [Boundary], expanded option]
+
+**AIFred-Pro-Dev commit**: `935572c feat(usage): reverse-proxy + Usage/Budget surfacing completion` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `cd0aadd..935572c`. v1.3 §6.1 deliverable #2 of 9 closed at ~1.5 days (1 day + half-day for metadata helper, expanded scope).
+
+**What shipped (5 files, +290/-19 LOC)**:
+- `pulse/app.py` — NEW `/api/v1/usage/session-spend-dollars` endpoint (USD cost for current 5h window + by_model/by_agent breakdowns + linear projection-to-window-end)
+- `usage-proxy/proxy.py` — `_parse_request_body` accepts headers param; falls back to `x-aion-{session-id,project,agent-name,task-id}` headers when body `metadata.*` absent. Closes attribution discipline gap for clients that can't inject body metadata (claude-code internal SDK, AIFred personas).
+- `dashboard/frontend/src/api/usage.ts` — SessionSpendDollars type + useSessionSpendDollars hook (5s refetch)
+- `dashboard/frontend/src/pages/UsagePage.tsx` — Hero row (Time / Tokens / Cost cards) + redesign into Hero → Trend → Detail → History → Anomaly layout
+- `dashboard/frontend/src/pages/BudgetPage.tsx` — ApiSpendCard at top (live API spend from proxy with reconciliation note vs cost-ledger)
+
+**Live state**: aifred-dev-pulse + aifred-dev-usage-proxy + aifred-dev-dashboard all rebuilt + recreated + healthy. Smoke verified end-to-end: invalid-auth POST through proxy with `x-aion-*` headers landed row in `api_requests` with all three attribution fields populated from headers (body had no metadata) — first proof the discipline-gap fix works.
+
+**Jarvis-side design doc**: `Jarvis/projects/project-aion/designs/reverse-proxy-paradigm-and-surfacing-2026-05-05.md` (440+ lines, 1 mermaid). Captures 10-pattern paradigm map, source/sink inventories, per-datapoint surface, current-task scope, and 12 ear-marked future-wiring items (Reviewer Dash cost column, Cortex cost-aware recs, Pulsar cost.spike, JICM token gating, HUD burn-rate widget, AC-05 cost-quality reflection, capability-map cost annotations, subagent budget gates, anomaly detection service, cross-archon coordinator, predictive 429 dodge, monthly-API-vs-job-ledger reconciliation). Local commit + push at /meditate-session.
+
+### 2026-05-05 ~22:00 MDT — Telegram routing restoration SHIPPED + PUSHED [v1.3 §6.1 #1, [Nexus]]
+
+**AIFred-Pro-Dev commit**: `cd0aadd feat(notify): pipeline-v2 alert dispatch wire-up` PUSHED to davidmoneil/AIFred-Pro:nate-dev. Chain `66885bb..cd0aadd`. v1.3 §6.1 deliverable #1 of 9 closed in ~1 day per estimate.
+
+**What shipped (6 files, +167/-4 LOC)**:
+- NEW `services/observability/notify.py` — python port of `"$MSGBUS" send` shell pattern; fail-quiet 2s timeout; optional /tmp/nexus-msgbus-<key>-<UTC-date> sentinel for daily-dedup parity with executor.sh:1706-1712
+- `pipeline-watcher.py` emit_alert branch — closes AION-13dc7b96 (4466 errors / 74h, no alert)
+- `services/executor.py` — 3 alert sites (budget hard-stop critical, soft-warning warning, persona.error warning); all deduped per job/day or persona/day
+- `lib/decision-log.sh:28` + `lib/cost-log.sh:26` — PROJECT_DIR tautology fix mirroring audit-log.sh:33's cd-pwd fallback. Without these, msg-relay aborted under set -u while sourcing decision-log → blocked the chain in dev (pipeline-v2 events landed in msgbus but never delivered)
+
+**Live state**: pipeline-watcher restarted 27086 → **PID 15622** (.venv/bin/python 3.14.3, Flask 3.1.3); webhook-primary mode, :8810 LISTEN, /health 200, heartbeat #1 logged. Smoke event id 53 visible in `msg-relay.sh --dry-run`.
+
+**Insight worth noting**: the cost-log.sh + decision-log.sh tautology was a sibling-of-audit-log.sh pattern that the prior nexus-sync PROJECT_DIR repair (181a742) missed. Worth a systemic find-and-fix audit pass on the next [Nexus] cleanup workstream — `grep -rn '${PROJECT_DIR:-${PROJECT_DIR}}'` should return zero results across the codebase.
+
+### 2026-05-05 ~21:25 MDT — Workstream Architecture v1.3 SHIPPED + ProjectIntel published (JICM-HALT received)
+
+**Jarvis-side commit**: `057195f docs(synthesis): Project Aion workstream architecture v1.3` on Project_Aion (LOCAL; push at /meditate-session). Single-file commit; scratchpad/insights stayed unstaged intentionally.
+
+**ProjectIntel publication** (`Shared_Projects/Debriefs/AIFred-Pro/`):
+- `2026-05-05-project-aion-workstream-architecture-v1.3.md` (708 lines; YAML frontmatter prepended `type: artifact`, `author: Nate`, `commits: 057195f`, `companion_debrief: ...`)
+- `2026-05-05-workstream-architecture-debrief.md` (69 lines; standard `type: debrief` template; foregrounds §1.1 + §3 as 5-min read for David, §6.1 + §7.2 as queued sessions, §9.3 #2 as the one optional question for David — adopt Pulse/Nexus tagging convention in AIFred-Pro-Dev README?)
+
+**v1.3 final state**: 695 lines, 7 mermaid diagrams, 11 H2 sections. All 13 directives A-M applied. Reframed around (1) AIFred-Pro-Dev patches + (2) Jarvis portability/complementarity. Jarvis-systems primer for David in §1.3. Observability dual-write loop fate criteria in §4.1 (30-day clean-window clock starts now). Effort estimates use days not weeks. Cortex/AC-05+06 mirror flagged as concrete cross-Archon gap.
+
+**Resume state**:
+- AIFred-Pro-Dev origin/nate-dev HEAD: `66885bb` (P1.B1.1 from this session, pushed earlier)
+- Jarvis Project_Aion HEAD: `057195f` (workstream arch v1.3, LOCAL)
+- Live processes nominal: pipeline-watcher PID 27086, watcher PID 5322, HUD PID 32998
+- ProjectIntel artifacts in place under Debriefs/AIFred-Pro/
+
+**Next session resume**: per v1.3 §6.1 next-deliverables stack — Telegram routing → Reverse-proxy/Usage page surfacing → Reviewer Dash → Watchdog → /personas rebuild. Top single-day pickup is Telegram routing restoration (4-8 hr, milestone exec report §7.2.A; David debrief 2026-04-24 Phase 4 Item 4).
+
+### Pending push state
+- AIFred-Pro-Dev origin/nate-dev HEAD: `935572c` (latest; chain `66885bb..935572c` covering P1.B1.1 → Telegram routing → Usage/Budget surfacing)
+- Jarvis Project_Aion HEAD: `057195f` (LOCAL — push at /meditate-session); design doc `reverse-proxy-paradigm-and-surfacing-2026-05-05.md` pending Jarvis-side commit
+- Earlier today (superseded above): P1.B1.1 (`66885bb`) + workstream-arch v1.0-v1.2 work
