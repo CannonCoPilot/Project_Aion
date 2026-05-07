@@ -17,10 +17,12 @@
 # When editing prompts, update THIS file first, then propagate to consumers.
 
 jicm_resume:
-  # After JICM compression + /clear — Claude has fresh context, needs restoration
-  resume: "[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md, .claude/context/.in-progress-ready.md, and .claude/context/session-state.md — resume work immediately. Do NOT greet."
-  simple: "[JICM-RESUME] Read .claude/context/.compressed-context-ready.md and .claude/context/.in-progress-ready.md — continue work."
-  minimal: "[JICM-RESUME] Continue."
+  # After JICM compression + /clear — Claude has fresh context, needs restoration.
+  # Phrased as collaborator-to-collaborator natural prompts. The "Watcher here. Refresh complete"
+  # prefix is the stable greppable marker used by consumers.
+  resume: "Watcher here. Refresh complete - please read .claude/context/.compressed-context-ready.md, .claude/context/.in-progress-ready.md, and .claude/context/session-state.md and resume work. No greeting needed."
+  simple: "Watcher here. Refresh complete - please read .claude/context/.compressed-context-ready.md and .claude/context/.in-progress-ready.md and continue."
+  minimal: "Watcher here. Continue."
 
 session_start:
   # Fresh session or --continue — Claude needs orientation
@@ -37,7 +39,7 @@ fallback:
 # Listed here for documentation only.
 ennoia_dynamic:
   arise: "[SESSION-START] New session. Current: {current_work}. Next: {next_priority}. Read .claude/context/session-state.md + .claude/context/current-priorities.md, begin work. Do NOT just greet."
-  resume: "[JICM-RESUME] Context compressed and cleared. Task: {work_hint}. Read {files_list}, and session-state.md — resume work immediately. Do NOT greet."
+  resume: "Watcher here. Refresh complete. Task: {work_hint}. Please read {files_list} and session-state.md and resume work. No greeting needed."
 
 # Session-start.sh hook injection (additionalContext, NOT tmux keystroke)
 # These can be multi-line since they're JSON additionalContext, not tmux send-keys.

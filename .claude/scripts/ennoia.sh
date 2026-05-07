@@ -202,7 +202,7 @@ write_recommendation() {
             fi
             local task_clause=""
             [[ -n "$work_hint" ]] && task_clause=" Task: ${work_hint}."
-            recommendation="[JICM-RESUME] Context compressed and cleared.${task_clause} Read ${files_hint:-.compressed-context-ready.md}, and session-state.md — resume work immediately. Do NOT greet."
+            recommendation="Watcher here. Refresh complete.${task_clause} Please read ${files_hint:-.compressed-context-ready.md} and session-state.md and resume work. No greeting needed."
             ;;
         attend|idle)
             # No recommendation for attend (working) or idle (Phase J scope)

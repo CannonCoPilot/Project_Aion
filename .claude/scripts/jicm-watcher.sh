@@ -120,8 +120,12 @@ wait_for_idle() {
 }
 
 # --- Canonical prompts (single-line per tmux constraint) --------------------
-HALT_PROMPT="[JICM-HALT] Context approaching threshold. Save in-progress details to .claude/context/.scratchpad.md, acknowledge with the single word Understood, and stop work. Compression and /clear will follow."
-RESUME_PROMPT="[JICM-RESUME] Context compressed and cleared. Read .claude/context/.compressed-context-ready.md for current state and .claude/context/.scratchpad.md for transient working details. Resume work immediately. Do NOT greet."
+# Phrased as natural collaborator-to-collaborator requests rather than tagged
+# control signals. The "Watcher here. <distinctive phrase>" prefix is the
+# stable greppable marker used by jicm-prep-context.sh to identify the active
+# session JSONL and to filter these prompts out of message-extraction summaries.
+HALT_PROMPT="Watcher here. Context is getting heavy - please save any in-progress details to .claude/context/.scratchpad.md, then reply Understood and stop. I'll handle the refresh."
+RESUME_PROMPT="Watcher here. Refresh complete - please read .claude/context/.compressed-context-ready.md for current state and .claude/context/.scratchpad.md for transient working details, then resume work immediately. No greeting needed."
 
 # --- Cycle: idle → HALT → prep → /clear → resume → RESUME -------------------
 # 7.9.6c: Approach C back-compat shim (v73_shim_write_state) removed.
@@ -147,7 +151,7 @@ actuate_jicm_cycle() {
     sleep 0.5
     inject submit
     sleep 0.5
-    if ! wait_for_capture_pattern "JICM-HALT" 5; then
+    if ! wait_for_capture_pattern "Watcher here. Context" 5; then
         log "cycle: HALT not visible after submit — retrying submit once"
         inject submit
         sleep 1
@@ -195,7 +199,7 @@ actuate_jicm_cycle() {
     #       recall mode, reloading HALT_PROMPT into the input buffer. Combined
     #       with subsequent Ctrl+U (which behaves as delete-word in the recalled
     #       state, not delete-line) and inject text "/clear", the result is the
-    #       documented concatenated prompt "[JICM-HALT] ... /clear /clear".
+    #       documented concatenated prompt "Watcher here. Context ... /clear /clear".
     #       wait_for_idle obsoletes the original stream-interrupt purpose.
     wait_for_idle "$JICM_HALT_ACK_TIMEOUT"
     log "cycle: claude idle confirmed (pre /clear)"

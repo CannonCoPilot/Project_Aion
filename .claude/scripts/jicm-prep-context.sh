@@ -112,6 +112,7 @@ JQ_USER_FILTER='
     | select(length > 30)
     | select(startswith("<") | not)
     | select(startswith("[JICM-") | not)
+    | select(startswith("Watcher here.") | not)
     | select(startswith("[IDLE-HANDS]") | not)
     | select(startswith("[Request interrupted") | not)
     | select(startswith("This session is being continued") | not)
@@ -127,18 +128,21 @@ JQ_USER_FILTER='
 find_best_jsonl() {
     local dir="$1"
 
-    # Priority 1: Find JSONL with most recent [JICM-HALT] marker.
+    # Priority 1: Find JSONL with most recent watcher HALT marker.
     # This text appears ONLY in W0's JSONL (watcher sends HALT only to W0).
-    # Guaranteed correct targeting during compression cycles.
+    # Guaranteed correct targeting during compression cycles. Recognises both
+    # the current natural-prompt marker ("Watcher here. Context is getting heavy")
+    # and the legacy bracketed marker ("[JICM-HALT]") so transcripts written by
+    # older watcher binaries still route correctly during the rollout window.
     local halt_match=""
     for f in $(ls -t "$dir"/*.jsonl 2>/dev/null | head -5); do
-        if tail -200 "$f" 2>/dev/null | grep -q '\[JICM-HALT\]' 2>/dev/null; then
+        if tail -200 "$f" 2>/dev/null | grep -qE 'Watcher here\. Context is getting heavy|\[JICM-HALT\]' 2>/dev/null; then
             halt_match="$f"
-            break  # Most recently modified file with HALT wins
+            break  # Most recently modified file with HALT marker wins
         fi
     done
     if [[ -n "$halt_match" ]]; then
-        echo "JSONL targeted via [JICM-HALT] marker: $(basename "$halt_match")" >&2
+        echo "JSONL targeted via watcher HALT marker: $(basename "$halt_match")" >&2
         echo "$halt_match"
         return 0
     fi
