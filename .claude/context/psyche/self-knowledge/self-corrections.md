@@ -29,4 +29,34 @@
 
 ---
 
+## 2026-05-06 | architecture | plan-of-record before investigation locks in misconceptions
+
+**What happened**: Wrote `aifred-pro-dev-reviewer-dash.md` plan-of-record before doing the deep audit on what reviewer.py actually emits and what the four "*-reviewer" personas actually are. The plan codified two factual errors: (a) reviewer.py emits decision_events (it doesn't — only log_activity), and (b) the four "*-reviewer" personas share a schema (they don't — four unrelated Nexus headless agents sharing a suffix). Both errors propagated through R1+R2 implementation and the qwen3 JICM compressor's checkpoint before being caught by Nate's "be critical, push back on yourself" prompt.
+
+**Should have happened**: Investigation FIRST. Read reviewer.py, read each persona's prompt + config, query the existing decision_events table for actual actor/decision_type distribution. THEN write the plan-of-record as a SUMMARY of investigation findings.
+
+**Lesson**: Plans-of-record codify the writer's mental model at write-time. If that model contains factual errors, downstream work inherits them. The cost of investigating before writing is 1-2 hours; the cost of correcting after multiple commits land is the entire session-10 reframe (3+ hours of rework). Pattern: when starting a new workstream that touches code I haven't read recently, schedule the deep audit BEFORE drafting the plan.
+
+---
+
+## 2026-05-06 | tool-use | bulk text substitution requires post-grep verification
+
+**What happened**: Used sed for bulk rename `/reviewer-dash` → `/reo` across 5 dashboard files. Initial pass missed three boundary cases: `/reviewer-dash"` (route path with closing-quote not slash), `'../api/reviewer-dash'` (import between single-quotes), and `'reviewer-dash/...'` (log messages with single-quote prefix not slash). All caught by the verification grep AFTER sed; without verification the rename would have shipped broken.
+
+**Should have happened**: After sed, IMMEDIATELY grep for old terms across affected files — BEFORE claiming completion. Iterate until grep returns zero matches.
+
+**Lesson**: Bulk text substitution patterns operate on character boundaries intuitive to the writer but rarely match all source-text variants. Always verify with grep before declaring done. Three minutes of grep prevents three hours of regression debugging when a rename ships with stragglers.
+
+---
+
+## 2026-05-06 | architecture | JICM compressor extrapolates forward, elides reframe turns
+
+**What happened**: Session 9 ended at "HALT mid-stream pending strategic decision" — Nate's "be critical, push back" prompt had triggered an analysis that called the shipped Reviewer Dash work into question. The qwen3:8b JICM compressor's post-cycle checkpoint reported "Reviewer Dash IN PROGRESS — implementing persona-agnostic decision timeline" and recommended I continue building. Cross-checking against the actual session-9-end scratchpad entry (force-loaded) revealed the truth: work was paused pending Nate's strategic call.
+
+**Should have happened**: Cross-check JICM checkpoint against scratchpad immediately on resume. Trust the scratchpad for near-term work-state; treat the checkpoint as background only.
+
+**Lesson**: Low-tier compression models read commit cadence as forward momentum and miss reframe turns at session-end. They report "still doing X" when actual state is "stopped doing X to ask if X is right." This is a structural failure mode of LLM-based summarization, not a bug fixable by prompt engineering. Mitigation: post-JICM resume protocol includes scratchpad cross-check before acting on checkpoint guidance. (Builds on 2026-04-24 entry on stale-state inference; different failure mode, related diagnostic discipline.)
+
+---
+
 *Pre-2026-04 entries (DF FPS, schema discovery, LiteLLM aliases, Prism tick-rate, etc.) archived. Read archive when reflecting on long-term patterns.*

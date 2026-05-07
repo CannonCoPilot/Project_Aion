@@ -5,6 +5,22 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
+### 2026-05-07 [meditate-session-10]
+
+- **The REO reframe dissolves the central question, doesn't refine it.** The "Reviewer Dashboard" framing was load-bearing on a singular AI-David reviewer concept that no longer exists in the system — that role got distributed across evaluate/orchestrate/execute/review/diagnose. Naming a page after one of five shards was arbitrary. REO (Reviews, Executions, Orchestrations) captures the right typology at the level of decision-moment categories, not service identity. Plans-of-record load-bearing on a concept that can dissolve are fragile; plans load-bearing on a TYPOLOGY are durable.
+
+- **Filing systems and dashboards are different IA primitives.** Filing systems answer "what was decided + why" — search, browse, retrieve, case-file shape. Dashboards answer "is it healthy now" — KPI tiles, live charts, color-coded health. The interaction patterns conflict. Court-reporter-transcript-archive vs courtroom-security-monitor is the right mental model. The REO + Board v2 split is intentional IA decoupling.
+
+- **AI-mediated curation is a third pattern beyond human-curated and autonomic-with-gates.** `personas/ai-reviewer/learned-patterns.yaml` runs a closed loop where the persona itself processes its own feedback (in `feedback.jsonl`) and self-updates patterns in-place via three actions (agreed/wrong/adjusted). 7 months of accumulation (104+3+13 = 120 round-trips) without major regression. Right primitive for REO MVP — generalize the existing pattern, not design green-field.
+
+- **The qwen3:8b JICM compressor extrapolates forward and elides reframe turns.** Session 9 ended at HALT pending strategic decision; checkpoint reported "IN PROGRESS — implementing persona-agnostic decision timeline" and recommended continuing. Low-tier models read commit cadence as forward momentum and miss the "stop to ask if right" turn. Practical mitigation: post-JICM resume MUST cross-check checkpoint vs scratchpad — trust scratchpad for near-term work-state, checkpoint is background only.
+
+- **Single decision_type, multiple outcomes is the right schema for REO.** All 5 reviewer branches emit `decision_type='review_outcome'` with `outcome` string distinguishing semantics. Mirrors executor.py P1.6 pattern. One filter surfaces the whole stream; group-by-outcome for branch breakdown. Alternative (separate decision_types per branch) would fragment filtering and break cross-branch queries.
+
+- **Plans-of-record before investigation codify misconceptions.** Wrote `aifred-pro-dev-reviewer-dash.md` before deep audit; codified two factual errors (reviewer-emits-decision_events; personas-share-schema) that propagated through R1+R2 implementation and qwen3 checkpoint. Investigation should come FIRST; plan-of-record is the SUMMARY of investigation, not the prediction.
+
+---
+
 ### 2026-02-19 [5c7a59bb0f7e]
 
 **RTK and git --amend**: The RTK hook intercepts `git commit` and doesn't support `--amend`. When you need git operations that RTK can't handle, bypass it by calling `/opt/homebrew/bin/git` directly. This is a stable workaround — RTK is a token-saving proxy, not a full git replacement.
@@ -6772,3 +6788,7 @@ The Question/ takes a deliberate shape worth flagging: rather than a "what shoul
 ### 2026-05-07 [8b87d5a61d60]
 
 **The architecture is persona-scoped, not pipeline-wide**, with one important secondary surface for cross-cutting lessons. There's a `.claude/context/lessons/corrections.md` placeholder template referencing an unimplemented `self-correction-capture` hook — designed for human-authored pipeline-wide lessons (cross-persona patterns like "always defer destructive ops on `tag:experimental` regardless of which persona handles them"). David started this design but never wired it. The right architectural shape for REO is therefore: **per-persona `learned-patterns.yaml` (extend ai-reviewer's pattern to 5 more personas) + cross-cutting `corrections.md` hook (implement)**. REO's feedback connector routes by `decision_event.actor` — feedback on a reviewer decision goes to reviewer's feedback.jsonl; feedback on an executor decision goes to executor's feedback.jsonl. Cortex (the Meta-Learning Advisor persona) already monitors pattern-health system-wide and writes recommendations — REO could surface those too, but that's a separate question.
+
+### 2026-05-07 [880cc9557885]
+
+The canonical `log_decision()` signature lives in `diagnose.py:116-129`: positional `(actor, decision_type, outcome)` then kwargs `(rationale, confidence, downstream_effect, task_id)`. Confidence is a float 0-1, but reviewer's review_output uses string levels (`"high"|"medium"|"low"`) — I'll map them via a module-level `_CONFIDENCE_MAP = {"high": 0.9, "medium": 0.6, "low": 0.3}` constant. The `decision_type` stays `"review_outcome"` across all 5 branches; what varies is the `outcome` string (`passed | engine_failed | failed_diagnose_triggered | blocked_max_retries`). This keeps downstream queries simple — one `decision_type` filter surfaces all reviewer activity, then group by `outcome` for the actual semantics.
