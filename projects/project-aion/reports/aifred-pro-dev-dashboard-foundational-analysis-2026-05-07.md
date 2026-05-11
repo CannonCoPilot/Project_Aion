@@ -3,11 +3,12 @@ title: AIFred-Pro-Dev Dashboard — Foundational Analysis
 date: 2026-05-07
 project: AIFred-Pro-Dev
 audience: Nate, future-Jarvis
-status: DRAFT — review, edit, return for additional brainstorming
-context: Captured from a 2026-05-07 session conversation immediately following dev-env Path 1 (vite hot-reload sidecar, commit 23e838c) and Path 2 (cross-contamination fix, commit faa9406). Nate paused REO Validate to ask the foundational IA question — "what are we actually building, and how should /decisions, /reo, /reviews, /tasks, /board, /nexus-ops, /findings, /personas, /report, /observability, /pipeline, /health (and the rest) come together?"
+status: APPROVED-PENDING-IMPL (decisions captured 2026-05-11; see §11)
+context: Captured from a 2026-05-07 session conversation immediately following dev-env Path 1 (vite hot-reload sidecar, commit 23e838c) and Path 2 (cross-contamination fix, commit faa9406). Nate paused REO Validate to ask the foundational IA question — "what are we actually building, and how should /decisions, /reo, /reviews, /tasks, /board, /nexus-ops, /findings, /personas, /report, /observability, /pipeline, /health (and the rest) come together?" Decisions returned 2026-05-11; ratified positions recorded in §11. Implementation plan: ../plans/aifred-pro-dev-dashboard-recleavage.md.
 related:
-  - reviewer-foundational-reexamination-2026-05-07.md (precedent — earlier today's session-10 reframe used the same approach)
-  - ../plans/aifred-pro-dev-reo-page.md (REO plan-of-record; will be revised in light of this analysis)
+  - reviewer-foundational-reexamination-2026-05-07.md (precedent — session-10 reframe used the same approach)
+  - ../plans/aifred-pro-dev-reo-page.md (REO plan-of-record; revised 2026-05-11 — Validate paused, /decisions subsumes into /reo per §11.3)
+  - ../plans/aifred-pro-dev-dashboard-recleavage.md (implementation plan-of-record for the re-cleave PR, drafted 2026-05-11)
   - aifred-nexus-deep-analysis-2026-03-28.md (architectural antecedent)
 investigation_artifacts:
   - 6 task phases (route inventory → impl-depth audit → /decisions vs /reo vs /reviews compare → design-intent docs → persona/job system → synthesis)
@@ -31,6 +32,7 @@ investigation_artifacts:
 8. [Q4: What does AIFred-Pro-Dev seem designed to provide?](#8-q4-what-does-aifred-pro-dev-seem-designed-to-provide)
 9. [Q5: The envisioned optimal version](#9-q5-the-envisioned-optimal-version)
 10. [What I'd take next (prioritized)](#10-what-id-take-next-prioritized)
+11. [Decisions captured 2026-05-11](#11-decisions-captured-2026-05-11) — ratified positions on all 7 open questions
 
 ---
 
@@ -318,4 +320,57 @@ When Nate returns to this doc with edits, the conversations that matter most:
 
 ---
 
-*Status: DRAFT. Open for Nate's edits. Return for additional brainstorming and design decisions.*
+## 11. Decisions captured 2026-05-11
+
+Nate returned with answers to all 7 open questions (§ above). Ratified positions:
+
+### 11.1 The mode model (Q1)
+**Bundle PLANNING into DOING.** The /projects, /projects/:id, /cross-project, /create surfaces stay where they are functionally but are not a separate top-level mode — they are absorbed under DOING in the IA. The mode model going forward is **4 modes**: DOING (incl. planning), DIRECTING, REFLECTING, DIAGNOSING.
+
+### 11.2 Top-level toggle (Q2)
+**WORK | DIAGNOSE** confirmed as the top-level shell metaphor.
+- **WORK side** contains DOING + DIRECTING (planning absorbed into DOING).
+- **DIAGNOSE side** contains REFLECTING + DIAGNOSING — Nate's rationale: "DIAGNOSE implies and includes REFLECTING," i.e., looking-back-at-decisions and looking-at-system-internals are both forms of inspecting-after-the-fact and belong on the same side of the toggle.
+
+This collapses §6's recommended 5-cluster sidebar (Today / Plan / Direct / Reflect / Inspect) to **4 clusters**:
+- **WORK side**: Today, Direct
+- **DIAGNOSE side**: Reflect, Inspect
+
+### 11.3 /decisions vs /reo (Q3)
+**Redirect /decisions → /reo and consolidate features.** Full subsume, not parallel maintenance. Audit DecisionsPage.tsx for any features ReoPage.tsx doesn't have, port them into ReoPage.tsx, then make /decisions a Navigate redirect. Implementation milestone 2 of the re-cleave PR (see ../plans/aifred-pro-dev-dashboard-recleavage.md).
+
+### 11.4 Operations Center metaphor (Q4)
+**Confirmed.** "Ops Center is the metaphor, and reflects user purposes of the AIfred UI." The long-term framing in §9.2 (Operations Center: top-bar shows active profile, dispatcher heartbeat, $ burn rate, open approvals, last 5 critical events) is the durable design target. Near-term re-cleave is the first concrete step toward that framing.
+
+### 11.5 MVP cut + staging (Q5)
+**All 7 consolidations in one shared PR.** No staging — single coherent re-cleave. Implementation plan-of-record decomposes the work into 3 AC-03 milestones for review checkpoints within the PR, but the milestones land together.
+
+### 11.6 Mapping completeness (Q6)
+**Mapping accepted as-is.** Completeness verification deferred to a later pass (likely during the re-cleave implementation, when each page gets touched and a final audit naturally occurs).
+
+### 11.7 REO Validate gate (Q7)
+**PAUSE Validate.** The REO Build is substantively complete (B4/B6/B7-UI shipped + MVP polish), but the Validate UX walkthrough is paused pending the re-cleave. After the re-cleave lands, REO resumes with:
+- /decisions URL is a redirect to /reo (no UX confusion)
+- /reo lives in the new DIAGNOSE → Reflect sidebar cluster (no longer orphaned in nav)
+- REO Phase 5.5 PRE-SHIP AUDIT expanded to include /decisions-feature-parity verification
+- Validate UX walkthrough then proceeds on the re-cleaved surface
+
+REO Harden H5 (feedback connector backend) still recommended as parallel-write to existing JSONL per §2 of this analysis — separate from re-cleave; can resume after re-cleave + Validate.
+
+### 11.8 Resulting near-term sequence
+
+| # | Workstream | Effort | Status |
+|---|---|---|---|
+| 1 | **Dashboard re-cleave PR** (this artifact's §9.1 fully ratified) | ~3-5d | NOW (M1 begins after Nate approves impl plan) |
+| 2 | REO Validate (paused — resumes after re-cleave lands) | ~0.5d | PAUSED |
+| 3 | REO Harden H5 (parallel-write feedback) | ~2-3h | QUEUED (after Validate) |
+| 4 | REO Harden H1-H4, H6-H8 (other emitters, lessons-learned extension) | ~3-4d | QUEUED |
+| 5 | Long-term: Operations Center frame, profile-awareness, AI org roster | months | DEFERRED |
+
+### 11.9 What this analysis becomes now
+
+Status flips from DRAFT to **APPROVED-PENDING-IMPL**. The implementation plan-of-record (`../plans/aifred-pro-dev-dashboard-recleavage.md`) is the next thing to read for execution detail. Once the re-cleave PR lands, status flips to **APPROVED-IMPLEMENTED**, and this document becomes the durable IA reference for AIFred-Pro-Dev's dashboard.
+
+---
+
+*Status: APPROVED-PENDING-IMPL. Implementation plan: `../plans/aifred-pro-dev-dashboard-recleavage.md`.*
