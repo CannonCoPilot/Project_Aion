@@ -1,17 +1,35 @@
 ---
 title: REO Page — Plan of Record (Reviews, Executions, Orchestrations)
 date: 2026-05-07
-status: DRAFT (Phase 1 of draft→build→validate→MVP→harden→ship→debrief)
+last_updated: 2026-05-11
+status: BUILD COMPLETE + early-MVP polish landed; VALIDATE PAUSED 2026-05-11 pending dashboard re-cleave PR. REO resumes after re-cleave lands.
 project: AIFred-Pro-Dev
 target_branch: nate-dev
 supersedes: aifred-pro-dev-reviewer-dash.md (factual errors corrected; framing rewritten)
 related:
   - reviewer-foundational-reexamination-2026-05-07.md (Jarvis analysis, preserved intact)
   - pulse-nexus-boundary-audit-2026-05-05.md (boundary tagging Pulse vs Nexus)
+  - ../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md (broader IA analysis 2026-05-07; ratified 2026-05-11 — bears on REO positioning, see §2 + §8 Phase 3 + Phase 5.5 of this plan)
+  - aifred-pro-dev-dashboard-recleavage.md (re-cleave PR impl plan; PRECEDES REO Validate-resume)
 parallel_workstreams:
+  - Dashboard re-cleave PR (was: parallel; promoted 2026-05-11 to BLOCKING — REO Validate resumes after it lands)
   - Board v2 component-cards layer (separate plan, not yet drafted)
   - Watchdog W1-W3 (separate plan: aifred-pro-dev-pipeline-watcher-watchdog.md)
 audience: Nate, David, future-Jarvis
+---
+
+## Status update 2026-05-11
+
+REO Build is substantively complete (B1+B3 shipped session 10; B4+B6+B7-UI shipped session 11; MVP polish landed early; Watchdog W1 shipped). The Validate UX walkthrough is **PAUSED** pending the dashboard re-cleave PR (see `aifred-pro-dev-dashboard-recleavage.md`).
+
+**Why paused**: the foundational IA analysis 2026-05-07 surfaced that /reo, /decisions, and the sidebar grouping all need re-cleavage before Validate is a coherent UX exercise. Validating /reo on the *current* sidebar (where /reo isn't even linked) and alongside /decisions (which should be a redirect to /reo) would produce feedback that's invalidated by the re-cleave anyway.
+
+**What changes for REO**:
+- §2 IA position: /decisions row updated — was "functionally subsumed", now "REDIRECT to /reo after re-cleave PR; DecisionsPage.tsx deleted one cycle after"
+- §8 Phase 3 Validate: PAUSED marker; resumes after re-cleave lands with /reo in DIAGNOSE → Reflect sidebar cluster
+- §8 Phase 5.5 PRE-SHIP AUDIT: expanded to include /decisions-feature-parity verification (audit DecisionsPage.tsx for features ReoPage.tsx lacks before deleting)
+- §8 Phase 5 H5 (feedback backend): unchanged plan, but recommendation refined to **parallel-write** — POST endpoint writes to BOTH `pulse.decision_feedback` table AND existing `RESULTS_DIR/feedback.jsonl` so existing learned-patterns curation works unchanged (per foundational analysis §2 Insight)
+
 ---
 
 # REO Page — Plan of Record
@@ -30,10 +48,10 @@ The user can browse, search, retrieve case files, and provide right/wrong feedba
 
 | Surface | Route | Primitive | Status |
 |---|---|---|---|
-| **REO** | `/reo` | Filing system | NEW (this plan) |
-| `/decisions` (P1.B1) | `/decisions` | Filing-subset (legacy) | Stays in place; functionally subsumed by REO |
-| `/reviews` (human queue) | `/reviews` | Active work-queue | Stays distinct (different IA primitive) |
-| `/reviewer-dash` (R1+R2) | `/reviewer-dash` | NA | Renamed to `/reo` in Build phase |
+| **REO** | `/reo` | Filing system | SHIPPED 2026-05-07 (B1-B7-UI + MVP polish); pending Validate (paused) |
+| `/decisions` (P1.B1) | `/decisions` | Filing-subset (legacy) | **REDIRECT to /reo** after re-cleave PR (Milestone 2); DecisionsPage.tsx removed one cycle later — confirmed 2026-05-11 |
+| `/reviews` (human queue) | `/reviews` | Active work-queue | Stays distinct (different IA primitive) — confirmed 2026-05-11 |
+| `/reviewer-dash` (R1+R2) | `/reviewer-dash` | NA | Renamed to `/reo` in Build B3 (shipped 2026-05-06, commit 54d890a) |
 | Board v2 component-cards | TBD | Live ops dashboard | Parallel workstream, separate plan |
 
 **Key distinctions**:
@@ -231,11 +249,16 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 - **B6**: Implement case-file drawer (replaces R3 from old plan)
 - **B7**: Stub feedback connector UI (no backend yet — front-end captures + console.logs in this phase)
 
-### Phase 3: VALIDATE (~0.5d)
-- Smoke test against pulse_dev with reviewer + executor + diagnose decisions
-- Verify case-file drawer joins (decision + cost + audit) correctly
-- Confirm browse + live-tail toggle works under real load
-- Manual UX walkthrough (Nate); identify gaps and capture in scratchpad
+### Phase 3: VALIDATE (~0.5d) — PAUSED 2026-05-11
+**Resumes after dashboard re-cleave PR lands.** See `aifred-pro-dev-dashboard-recleavage.md`. When resumed:
+- /reo will be in DIAGNOSE → Reflect sidebar cluster (no longer orphaned)
+- /decisions URL redirects to /reo (no UX confusion)
+- DecisionsPage.tsx feature-parity verified by re-cleave Milestone 2 + Phase 5.5 audit
+- Validate work-items unchanged from original plan:
+  - Smoke test against pulse_dev with reviewer + executor + diagnose decisions
+  - Verify case-file drawer joins (decision + cost + audit) correctly
+  - Confirm browse + live-tail toggle works under real load
+  - Manual UX walkthrough (Nate); identify gaps and capture in scratchpad
 
 ### Phase 4: MVP (~0.5d)
 - Polish: copy, empty states, error handling, loading skeletons
@@ -248,7 +271,10 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 - **H2**: Wire `orchestrate.py` → decision_events (~2h)
 - **H3**: Wire `watchdog` → decision_events (~1h, after watchdog implementation review)
 - **H4**: Wire `stage.py` / intake → decision_events (~1h)
-- **H5**: Build feedback connector backend (`pulse.decision_feedback` table + POST endpoint + GET for case-file drawer)
+- **H5**: Build feedback connector backend — **PARALLEL-WRITE pattern** (refined 2026-05-11 per foundational analysis §2 Insight):
+  - NEW `pulse.decision_feedback` table + POST endpoint + GET for case-file drawer
+  - POST endpoint ALSO appends to existing `RESULTS_DIR/feedback.jsonl` so existing learned-patterns curation scripts keep working unchanged
+  - This avoids rewriting `learned-patterns.yaml` ingestion and de-risks the cutover
 - **H6**: Wire feedback into lessons-learned mechanism (per investigation findings — see §7):
   - Bootstrap 5 new `learned-patterns.yaml` templates for executor / evaluate / orchestrate / diagnose / reviewer-service following ai-reviewer's schema
   - Add load+process workflow to each persona's prompt.md (mirror of ai-reviewer lines 41-90)
@@ -268,6 +294,11 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 - Volume mounts: dev volumes named `aifred-dev-*-data`; flag any reuse of `aifred-*-data` (prod) volumes that could leak state.
 - Port bindings: dev uses prod+100 convention per `dev-space-isolation.md`; flag drift.
 - Environment variables: any reference to prod database hosts / Pulse URLs / API keys that point at production endpoints.
+
+**Added 2026-05-11 — /decisions feature-parity audit** (per dashboard re-cleave decisions §11.3):
+- Audit DecisionsPage.tsx for features ReoPage.tsx does not have. For each missing feature, decide: PORT (add to ReoPage.tsx), DROP (intentional removal), or DEFERRED (with ticket).
+- Verify /decisions → /reo redirect works for all known historical deep-link patterns (?decision_id=, ?thread_id=, etc.).
+- This blocks deletion of DecisionsPage.tsx. Until parity is verified, keep DecisionsPage.tsx as fallback for one release cycle (Nate's earlier preference).
 
 **Deliverable**: `Jarvis/projects/project-aion/reports/aifred-pro-dev-cross-contamination-audit-YYYY-MM-DD.md` with findings + remediation per finding. Each finding gets one of: FIXED (in same PR), DEFERRED (with justification + ticket), ACCEPTED-RISK (with justification).
 

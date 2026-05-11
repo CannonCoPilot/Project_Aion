@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: REO Build SUBSTANTIVELY COMPLETE + early-MVP polish landed. Watchdog W1 SHIPPED. P1.B1.1 reconciled. Dev-env Path 2 SHIPPED (cross-contamination fix). Dev-env Path 1 SHIPPED (vite hot-reload sidecar at :8702 — edit-roundtrip <2s validated). REO Phase 5.5 PRE-SHIP AUDIT added as final gate. Next: Nate UX walkthrough at /reo (Validate phase per REO plan §8 — recommend using new :8702 hot-reload surface). Then REO Harden, PRE-SHIP AUDIT, Ship, Debrief.
-**Date**: 2026-05-07 (post-meditation continuation; triple-sweep + dev-env Path 2 + Path 1 complete)
+**Status**: WORKSTREAM PIVOT 2026-05-11. REO PAUSED at Validate gate. New active workstream: aifred-pro-dev-dashboard-recleavage (3-5d, single PR, 3 AC-03 milestones). Foundational IA analysis ratified by Nate 2026-05-11 with all 7 decisions captured: 4 modes (planning bundled into DOING) / WORK|DIAGNOSE 2-way toggle / /decisions → /reo subsume / Ops Center metaphor confirmed / all 7 consolidations in shared PR / mapping accepted / REO Validate paused. Impl plan drafted (`aifred-pro-dev-dashboard-recleavage.md`), pending Nate's go-ahead before Milestone 1 begins.
+**Date**: 2026-05-11 (return-brainstorm session — decisions captured, impl plan drafted)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
-**Last commit (Jarvis)**: 267d0d3 (docs(workstreams): dev-env Path 2 shipped — cross-contamination fix + REO §5.5 audit gate). Pending: this turn's Path 1 tracking docs commit.
-**Last commit (AIFred-Pro-Dev)**: 23e838c (feat(dev-env): vite hot-reload sidecar for dashboard frontend [Nexus]). Order this session: 8fd2446 (REO B4), 6f40b1b (REO B6+B7-UI), f511e16 (Watchdog W1), 0f17f73 (REO MVP polish), faa9406 (dev-env Path 2), 23e838c (dev-env Path 1).
+**Last commit (Jarvis)**: 18ba329 (docs(analysis): foundational IA analysis — AIFred-Pro-Dev dashboard). Pending: this turn's decisions-captured + impl plan commit.
+**Last commit (AIFred-Pro-Dev)**: 23e838c (feat(dev-env): vite hot-reload sidecar for dashboard frontend [Nexus]). No new AIFred-Pro-Dev commits since 2026-05-07.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:

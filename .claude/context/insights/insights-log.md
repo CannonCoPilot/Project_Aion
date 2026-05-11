@@ -6826,3 +6826,15 @@ The middle path is the most defensible — `build: !reset null` was a workaround
 - The `!reset null` override was a documented opt-out from `docker-compose.dev.yml`'s build layer, but the *justification* (a "bd binary not shipped with upstream") no longer holds — `dashboard/bd` is a 25-byte shell script, not referenced in the Dockerfile, and `docker compose build nexus-dashboard` succeeds cleanly. This is the canonical failure mode of stale exclusions outliving their reason.
 - "Are all components wired together to auto-start" answers crisply: **yes** — the dev compose brings up all 5 services together (`postgres`, `pulse`, `nexus-dashboard`, `pipeline`, `usage-proxy`). The gap is auto-*rebuild* on source change, not auto-start.
 - Path 2 is the smallest diff that surfaces the real Dockerfile in dev. It also de-risks Path 1: if the rebuild reveals a hidden Dockerfile bug, we want to know that before investing in a hot-reload sidecar service.
+
+### 2026-05-07 [e27c9fd4991b]
+
+The "/reviews JSONL" finding reframes the whole REO Harden H5 conversation. We've been planning to build `pulse.decision_feedback` from scratch (database table + POST + lessons-learned wire), but the production feedback path already exists at the filesystem layer with a working AI-mediated curation loop on top. The optimal Harden play may be: write the DB table, BUT have the POST endpoint *also* append to the existing JSONL so existing curation scripts keep working unchanged — a parallel-write, not a cutover. Saves rewriting `learned-patterns.yaml` ingestion.
+
+### 2026-05-07 [039fab577612]
+
+The "Nexus" sidebar group is where IA collapsed. The label suggests "the orchestration platform's pages" — and that's a *technical* boundary, not a user-mode boundary. So everything Nexus-touching landed there regardless of what the user is *doing* on each page. This is exactly the "code organization leaking into UX organization" anti-pattern. The fix isn't to rename Nexus — it's to dissolve the Nexus group entirely and re-shelve every page by user mode.
+
+### 2026-05-07 [323397abadd4]
+
+The honest read of the dashboard's *intent* is in `dashboard/PLAN.md:1-3`: "Transform tasks.example.com from a basic task viewer into an actionable task management interface that handles 86+ tasks efficiently." That's a TASK MANAGEMENT INTERFACE — not the operations console for an AI organization. Everything beyond that primary intent (Nexus, Cortex, decision streams, persona configuration, observability) was bolted on later because the underlying system grew faster than the UX vocabulary to describe it. The current dashboard is a task manager that *also* shows you the AI org's internals because the AI org's internals are increasingly important. It's not an integrated console; it's a task manager + 27 ops/diagnostics/feedback pages.
