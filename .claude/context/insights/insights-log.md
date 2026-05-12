@@ -6937,3 +6937,13 @@ The observation revealed **two failures in one shot**, not just F-1:
 2. **F-5 newly surfaced**: T1's `blocked:no` got **flipped to `blocked:yes`** by the executor mid-cycle. Combined with the same outcome for T2 and T3, this suggests the executor is auto-blocking ALL three at the claim step (likely due to dispatcher.status="unknown" or absent persona). So tasks get advanced into `queued:done` but never reach `active:running` because executor refuses to actually claim them.
 
 So F-1 enforcement is missing, AND there's a separate "auto-block-on-claim-failure" behavior that creates noise. Both belong in the same plan-of-record.
+
+### 2026-05-12 [b4010303af48]
+
+The planning-hygiene rule has a non-obvious structural consequence: when F-numbers (or any cross-cutting IDs) live in audit docs, those docs become the AUTHORITATIVE source for "what F-N means right now." Queue entries elsewhere should reference the audit doc by path + section, NOT redefine the meaning. I hit a namespace collision in this consolidation: the workstream-arch already had its own F-1/F-2 entries (Pulse/Nexus boundary leaks from the 2026-05-05 audit), distinct from the M3-audit F-1/F-2. Resolved by explicit cross-references like "M3-audit Appendix A §F-1" in the workstream-arch entry. This is a generalizable pattern: when multiple audit docs spawn F-numbers, refer to them by `<audit-name> §F-N` to avoid collisions.
+
+Saved as feedback memory `feedback_planning_doc_discipline.md` — indexed in MEMORY.md so future sessions inherit the rule rather than re-learning it.
+
+### 2026-05-12 [71db81a49fc5]
+
+The qwen3:8b compressor pulled "Nexus-Sync Supplant" as Current Task from 2026-05-04 — same compressor-extrapolation failure mode I logged at `self-corrections.md` 2026-05-06. Scratchpad cross-check is the canonical guard against this; without it I'd have wandered back to 8-day-old work. Pattern flag: low-tier LLM compressors read commit cadence as forward momentum and lose reframe/decision-point turns at session boundaries.
