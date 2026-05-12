@@ -1,0 +1,88 @@
+{
+  "name": "topology-rename-alfred",
+  "_doc": "Rename local /Users/nathanielcannon/Claude/AIFred-Pro-Dev → /Users/nathanielcannon/Claude/Alfred-Dev. Per Decision 3 of 2026-05-12 topology migration: AIFred-Pro stays as-is (read-only pull-destination); only the -Dev variant gets renamed. Project name 'aifred-pro-dev' is preserved to keep Docker volume + network namespaces intact across the dir rename.",
+
+  "preflight": {
+    "expected_dir": "/Users/nathanielcannon/Claude/AIFred-Pro-Dev",
+    "no_dir_exists": "/Users/nathanielcannon/Claude/Alfred-Dev",
+    "expected_containers_up": [
+      "aifred-dev-usage-proxy",
+      "aifred-dev-pulse",
+      "aifred-dev-pipeline"
+    ]
+  },
+
+  "down": {
+    "project_dir": "/Users/nathanielcannon/Claude/AIFred-Pro-Dev",
+    "compose_files": ["docker-compose.yml", "docker-compose.dev.yml"],
+    "project_name": "aifred-pro-dev"
+  },
+
+  "repairs": [
+    {
+      "type": "shell",
+      "description": "Rename local directory AIFred-Pro-Dev → Alfred-Dev",
+      "cmd": "mv /Users/nathanielcannon/Claude/AIFred-Pro-Dev /Users/nathanielcannon/Claude/Alfred-Dev"
+    },
+    {
+      "type": "shell",
+      "description": "Unload dev event-watcher plist (currently loaded; others weren't per launchctl list)",
+      "cmd": "launchctl unload /Users/nathanielcannon/Library/LaunchAgents/com.aion.nexus-dev-event-watcher.plist 2>/dev/null; true"
+    },
+    {
+      "type": "sed-in-place",
+      "description": "Rewrite 3 dev plists to point at /Alfred-Dev instead of /AIFred-Pro-Dev",
+      "files": [
+        "/Users/nathanielcannon/Library/LaunchAgents/com.aion.nexus-dev-event-watcher.plist",
+        "/Users/nathanielcannon/Library/LaunchAgents/com.aion.nexus-dev-dispatcher.plist",
+        "/Users/nathanielcannon/Library/LaunchAgents/com.aion.nexus-dev-watchdog.plist"
+      ],
+      "pattern": "AIFred-Pro-Dev",
+      "replacement": "Alfred-Dev"
+    },
+    {
+      "type": "shell",
+      "description": "Sed .env file (one comment line per Phase 2.1 audit; ignore if no match)",
+      "cmd": "if [ -f /Users/nathanielcannon/Claude/Alfred-Dev/.env ] && grep -q 'AIFred-Pro-Dev' /Users/nathanielcannon/Claude/Alfred-Dev/.env; then sed -i '' 's|AIFred-Pro-Dev|Alfred-Dev|g' /Users/nathanielcannon/Claude/Alfred-Dev/.env; fi"
+    },
+    {
+      "type": "shell",
+      "description": "Reload event-watcher plist with new paths",
+      "cmd": "launchctl load /Users/nathanielcannon/Library/LaunchAgents/com.aion.nexus-dev-event-watcher.plist"
+    },
+    {
+      "type": "audit-paths",
+      "description": "Informational scan — any remaining AIFred-Pro-Dev refs inside the renamed dir get logged but DO NOT fail the recipe (some tracked archive JSON files contain historical refs per Phase 2.1 audit)",
+      "in": "/Users/nathanielcannon/Claude/Alfred-Dev",
+      "pattern": "AIFred-Pro-Dev",
+      "expect_zero_matches": false
+    }
+  ],
+
+  "up": {
+    "project_dir": "/Users/nathanielcannon/Claude/Alfred-Dev",
+    "compose_files": ["docker-compose.yml", "docker-compose.dev.yml"],
+    "project_name": "aifred-pro-dev",
+    "wait_for_healthy": [
+      "aifred-dev-usage-proxy",
+      "aifred-dev-pulse",
+      "aifred-dev-pipeline"
+    ]
+  },
+
+  "validate": {
+    "ports_listening": [9800, 8800, 8701, 8702],
+    "container_status": {
+      "aifred-dev-usage-proxy": "healthy",
+      "aifred-dev-pulse": "healthy",
+      "aifred-dev-pipeline": "healthy"
+    }
+  },
+
+  "timeout_seconds": 600,
+
+  "rollback": {
+    "on_repair_failure": "if [ -d /Users/nathanielcannon/Claude/Alfred-Dev ] && [ ! -d /Users/nathanielcannon/Claude/AIFred-Pro-Dev ]; then mv /Users/nathanielcannon/Claude/Alfred-Dev /Users/nathanielcannon/Claude/AIFred-Pro-Dev; fi; cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev 2>/dev/null && /usr/local/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d",
+    "on_up_failure": "if [ -d /Users/nathanielcannon/Claude/Alfred-Dev ] && [ ! -d /Users/nathanielcannon/Claude/AIFred-Pro-Dev ]; then mv /Users/nathanielcannon/Claude/Alfred-Dev /Users/nathanielcannon/Claude/AIFred-Pro-Dev; fi; cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev 2>/dev/null && /usr/local/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d"
+  }
+}

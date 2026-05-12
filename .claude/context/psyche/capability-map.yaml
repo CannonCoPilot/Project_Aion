@@ -16,6 +16,7 @@ skills:
   - {id: skill.mcp-ops,          model: sonnet, when: "MCP/skill build/validate/decompose/create",  file: .claude/skills/mcp-ops/SKILL.md, absorbs: [mcp-builder,mcp-validation,plugin-decompose,skill-creator]}
   - {id: skill.autonom-ops,      model: haiku,  when: "session orchestration: commands, JICM, Ralph", file: .claude/skills/autonom-ops/SKILL.md, absorbs: [autonomous-commands,session-management,context-management,ralph-loop]}
   - {id: skill.dev-ops,          model: sonnet, when: "test W0 from Jarvis-dev, JICM cycles, hooks",  file: .claude/skills/dev-ops/SKILL.md}
+  - {id: skill.compose-maintain, model: sonnet, when: "dev-stack compose down/repair/up via ephemeral Claude worker; proxy-safe maintenance", file: .claude/skills/compose-maintain/SKILL.md}
 
   # Research + memory
   - {id: skill.research-ops,     model: opus,   when: "multi-source research, 15 backends",         file: .claude/skills/research-ops/SKILL.md}

@@ -1,0 +1,63 @@
+{
+  "_doc": "compose-maintain recipe schema reference. Copy this file, rename, and fill in real values. All paths MUST be absolute. Comments via _doc/_note keys are stripped by JSON parsers but tolerated as schema hints.",
+
+  "name": "human-readable-name (becomes status file + window name suffix)",
+
+  "preflight": {
+    "_doc": "Pre-conditions that MUST hold before the recipe executes. If any fail, the worker aborts without touching state.",
+    "expected_dir": "/absolute/path/that/must/exist",
+    "no_dir_exists": "/absolute/path/that/must/NOT/exist (omit if not relevant)",
+    "expected_containers_up": ["container-name-1", "container-name-2"]
+  },
+
+  "down": {
+    "_doc": "docker compose down. Worker cd's to project_dir before running.",
+    "project_dir": "/absolute/path/to/compose/dir",
+    "compose_files": ["docker-compose.yml", "docker-compose.dev.yml"],
+    "project_name": "explicit-project-name (preserves volume/network namespace across dir renames; omit to derive from cwd basename)"
+  },
+
+  "repairs": [
+    {
+      "_doc": "Sequential steps applied between down and up. Failure of any step → rollback (if defined) → exit.",
+      "type": "shell",
+      "description": "human description for status logs",
+      "cmd": "bash command run via /bin/bash -c"
+    },
+    {
+      "type": "sed-in-place",
+      "description": "...",
+      "files": ["/abs/path/1", "/abs/path/2"],
+      "pattern": "search-pattern",
+      "replacement": "replace-with"
+    },
+    {
+      "type": "audit-paths",
+      "description": "...",
+      "in": "/abs/path/dir-or-file",
+      "pattern": "grep-pattern",
+      "expect_zero_matches": true
+    }
+  ],
+
+  "up": {
+    "project_dir": "/absolute/path/to/compose/dir (may differ from down.project_dir if a rename happened in repairs)",
+    "compose_files": ["docker-compose.yml", "docker-compose.dev.yml"],
+    "project_name": "explicit-project-name (recommended: same as down.project_name)",
+    "wait_for_healthy": ["container-name-1", "container-name-2"]
+  },
+
+  "validate": {
+    "_doc": "Post-up sanity checks. Failures are flagged but do NOT trigger rollback (stack is up; just doesn't match expectations).",
+    "ports_listening": [9800, 8800],
+    "container_status": {"container-name": "healthy"}
+  },
+
+  "timeout_seconds": 600,
+
+  "rollback": {
+    "_doc": "Bash commands to restore pre-down state. Worker invokes the appropriate one on failure.",
+    "on_repair_failure": "bash command to undo any partial repair + bring stack back up at original location",
+    "on_up_failure": "bash command if compose up fails after repairs (stack down, partial state)"
+  }
+}
