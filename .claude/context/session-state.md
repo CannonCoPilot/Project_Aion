@@ -10,7 +10,7 @@
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
 **Last commit (Jarvis)**: 5e0a20e (docs(workstreams): M3 consumer audit + plan revisions). Pending: this turn's M3 SHIPPED tracking commit.
-**Last commit (AIFred-Pro-Dev)**: 0f3341a (docs(plans): F-1 pipeline approval-gate enforcement workstream plan [Nexus]). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: d001c75..0f3341a (M1+M2+M3 + F-1 plan = 4 commits on nate-dev).
+**Last commit (AIFred-Pro-Dev)**: 18c1136 (docs(plans): remove F-1 plan fork; content consolidated into Jarvis-side docs). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: d001c75..18c1136 (5 commits: M1+M2+M3 + 0f3341a plan fork + 18c1136 plan removal). 0f3341a + 18c1136 are history-preserving correction pair — net merged-tree effect equals just M1+M2+M3. F-1/F-5 content now lives in canonical Jarvis-side docs (m3-pipeline-approval-consumer-audit-2026-05-11.md Appendix A + project-aion-workstream-architecture-2026-05-05.md §6.2).
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:

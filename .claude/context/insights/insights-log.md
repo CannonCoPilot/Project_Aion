@@ -6929,3 +6929,11 @@ This M3 hit three classifier layers in the same codebase — and aligning them s
 3. **Badge taxonomy `BLOCKED_REASONS`** (`dashboard/frontend/src/lib/labels.ts`) — naturally ordered correctly via label-array iteration
 
 The server's drift went unnoticed because there's no test asserting the two classifiers agree. A future hardening play: a single-file `classify-task.ts` in `dashboard/shared/` that both frontend and server import from, eliminating the drift surface entirely. That's a P2 refactor, not M3 scope — but flagging it for the F-bucket alongside F-1/F-2/F-4.
+
+### 2026-05-12 [4a8daa6b193a]
+
+The observation revealed **two failures in one shot**, not just F-1:
+1. **F-1 confirmed**: T1 (with `pipeline:needs-approval` and `blocked:no`) auto-advanced from `staging:wait` through `evaluated:done` to `queued:done`. The approval label did zero work.
+2. **F-5 newly surfaced**: T1's `blocked:no` got **flipped to `blocked:yes`** by the executor mid-cycle. Combined with the same outcome for T2 and T3, this suggests the executor is auto-blocking ALL three at the claim step (likely due to dispatcher.status="unknown" or absent persona). So tasks get advanced into `queued:done` but never reach `active:running` because executor refuses to actually claim them.
+
+So F-1 enforcement is missing, AND there's a separate "auto-block-on-claim-failure" behavior that creates noise. Both belong in the same plan-of-record.

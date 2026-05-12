@@ -186,9 +186,44 @@ Three findings discovered during the 2026-05-11 visual-validate session. None ar
 
 **Severity**: HIGH — human approval gates are advisory in practice, not enforcing. Tasks marked needs-approval will run anyway.
 
-**Scope**: out of M3. File as separate workstream: "pipeline approval-gate enforcement" — investigate executor.py / pipeline-watcher.py code paths that should consume `pipeline:needs-approval` and halt progression; add the missing check.
+**Scope**: out of M3. Queued as the "Approval-Gate Enforcement" entry in `../designs/project-aion-workstream-architecture-2026-05-05.md` §6.2 Future Work. Investigation needed for executor.py / pipeline-watcher.py / dispatcher.sh code paths that should consume `pipeline:needs-approval` and halt progression.
 
 **Mitigation while unresolved**: for synthetic / non-destructive test tasks, pair `pipeline:needs-approval` with `blocked:yes` to prevent auto-progression.
+
+**In-vivo observation captured 2026-05-12T15:47Z** (post-SIGCONT of pipeline-watcher.py PID 15622 at 15:42Z; ~280s = one POLL_INTERVAL cycle):
+
+| Task | Critical labels | Before SIGCONT | After ~280s | Verdict |
+|---|---|---|---|---|
+| T1 `AION-84584004` | `pipeline:needs-approval` + `blocked:no` | `staging:wait`, `blocked:no` | `staging:done`, `evaluated:done`, `queued:done`, **`blocked:yes` (mutated)** | F-1 confirmed — approval label did zero work; advanced through 3 states |
+| T2 `AION-0a97f9ee` | `blocked:yes` only | `staging:wait`, `blocked:yes` | `staging:done`, `evaluated:done`, `queued:done`, `blocked:yes` | Control — same auto-progress path |
+| T3 `AION-e6fa39f5` | `pipeline:needs-approval` AND `blocked:yes` | `staging:wait`, `blocked:yes` | `staging:done`, `evaluated:done`, `queued:done`, `blocked:yes` | `blocked:yes` was the only thing holding; approval label irrelevant |
+
+T1's `blocked:no` being **silently mutated to `blocked:yes`** during the cycle is a separate defect (F-5 below). It's the only reason T1 didn't continue all the way to `active:running` and `completed:done`. In production where the dispatcher is healthy (here `dispatcher.status: "unknown"`), F-5 wouldn't mask F-1, and T1 would have run end-to-end without human approval.
+
+**Code-grep verification** (2026-05-12):
+
+```bash
+$ grep -rn 'approval\|needs.approval\|pipeline:needs' \
+    AIFred-Pro-Dev/.claude/jobs/services/executor.py \
+    AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py \
+    AIFred-Pro-Dev/.claude/jobs/dispatcher.sh
+# Returns: zero matches
+```
+
+None of the three orchestration entry points have any code that detects `pipeline:needs-approval` as a guard, holds task progression at staging, emits gate-fire decision events, or listens for an approval-release signal. The approval gate is a UI affordance only.
+
+**Proposed remediation (sketch — finalize at workstream kickoff)**:
+
+- **Option A** (recommended, minimum delta): pre-claim guard in `executor.py` `_claim_task()`. Helper `_is_blocked_by_approval(labels) → bool` returns True when `pipeline:needs-approval ∈ labels` AND `pipeline:approved ∉ labels` AND `trust:auto-approve ∉ labels`. Hold via early return; emit `task.released_to_queue` audit + `decision_event` actor=`system:approval-gate` outcome=`held`. Release signal: presence of `pipeline:approved` label OR removal of `pipeline:needs-approval`.
+- **Option B** (advisory): pre-poll filter in `pipeline-watcher.py` `poll_cycle()` to skip eligible-task list when label present. Less robust (intra-cycle decisions fall to executor).
+- **Option C** (taxonomy redesign): add 7th v2 dimension `approval:wait | approval:granted | approval:n/a`. `classifyTaskPipeline` and the executor both check `approval:wait` as a hard gate. Cleaner architecturally; requires task migration.
+
+Open questions for workstream kickoff:
+1. Release signal taxonomy: `pipeline:approved` added vs `pipeline:needs-approval` removed (both? either?)
+2. Audit granularity: per-task or per-poll-cycle entry
+3. Decision-event actor naming: `system:approval-gate` vs `system:dispatcher` vs new actor
+4. Does pre-existing `trust:auto-approve` semantics (per `TaskForm.tsx:28`) override the gate? Probably yes — that's the existing "skip approval gates" semantics.
+5. Notification surface: should held tasks emit msgbus + Telegram the way other blockers do?
 
 ### F-2 — BlockedBanner human-count is page-scope, not global
 
@@ -209,6 +244,28 @@ Three findings discovered during the 2026-05-11 visual-validate session. None ar
 **Severity**: was MEDIUM (visibility); now resolved.
 
 **Scope**: M3-internal — fixed in same commit as core M3 work.
+
+### F-4 — server `isBlocked()` has two false-positives [LOW]
+
+**Symptom**: `dashboard/server/services/constants.ts:isBlocked()` over-classifies tasks as blocked:
+1. `BLOCKER_PREFIXES = ['blocked']` matches BOTH `blocked:yes` AND `blocked:no` via `label.startsWith('blocked:')`. A task with `blocked:no` is reported as blocked.
+2. `BLOCKER_LABELS` includes `pipeline:needs-approval`, conflating approval state with blocked state.
+
+**Diagnosis**: pre-existing taxonomy mismatch with the frontend M3-D2 ordering. Surfaced during M3a investigation but sidestepped, not fixed — `classifyTask` returning 'approvals' BEFORE falling through to `isBlocked` means the over-count no longer reaches the badge layer.
+
+**Severity**: LOW — masked by M3a; underlying defects remain but no longer user-visible.
+
+**Scope**: out of M3. Queued — small hygiene fix. Estimated ~1 hour. Either tighten `BLOCKER_PREFIXES` to exact-match `blocked:yes` only, or remove the prefix entry entirely (rely on `BLOCKER_LABELS` exact-match). Drop `pipeline:needs-approval` from `BLOCKER_LABELS` to disentangle approval from blocked semantics.
+
+### F-5 — executor silently mutates `blocked:no` → `blocked:yes` on claim failure [MEDIUM, NEW 2026-05-12]
+
+**Symptom**: T1 (`AION-84584004`) started the F-1 observation window with `blocked:no` explicitly. After one POLL_INTERVAL cycle, T1's labels showed `blocked:yes` despite no user mutation. T2 and T3 (which started `blocked:yes`) ended in identical state to T1, suggesting all three tasks landed at the same auto-block state regardless of starting blocked-status.
+
+**Diagnosis**: Likely the executor's `_claim_task()` (or surrounding logic) auto-applies `blocked:yes` when claim fails — in this dev env, `/api/health` reports `dispatcher.status: "unknown"`, so the executor probably can't actually dispatch. The auto-block is opaque: no audit_log entry is visible via Pulse `/audit/events` for the mutation, and no decision_event surfaces in `/reo`. The blocked-state mutation is silent.
+
+**Severity**: MEDIUM — masks F-1 (in this dev env) AND creates state-drift without observability. In prod with a healthy dispatcher, F-5 wouldn't trigger and F-1 would be fully visible. In dev, F-5 makes it look like things are "blocking themselves" without explanation.
+
+**Scope**: out of M3. Queued alongside F-1 since they likely share code paths. Investigation needed: identify the executor mutation site, decide whether to (a) emit audit_log + decision_event when the auto-block fires, or (b) refuse to auto-progress at all when `dispatcher.status: "unknown"`. Estimated ~1-2 days.
 
 ## Appendix B. M3 validation rig (clean board + curated synthetic tasks)
 
