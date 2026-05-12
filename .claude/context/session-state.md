@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: M1 SHIPPED 2026-05-11. Dashboard re-cleave PR Milestone 1 (nav shell + sidebar IA) landed on AIFred-Pro-Dev `nate-dev` as commit `d001c75`. PROD|OPS toggle + 4 sub-clusters (Projects/Config under PROD; Review/Monitor under OPS) live. Dashboard pinned above PROJECTS expander. Visual-validate caught 2 bugs (toggle-revert from useEffect-deps cycle; cluster-chevron force-open via containsActive) — both fixed in the same M1 commit. Label refinement applied during impl: WORK→PROD, DIAGNOSE→OPS, Today→Projects, Direct→Config, Reflect→Review, Inspect→Monitor. AC-03 gate: technical 4.5 / progress 5.0 — both ≥ 4 → PASS. M2 (/decisions → /reo consolidation) pending Nate's go; keep-DecisionsPage.tsx-one-cycle decision stands.
-**Date**: 2026-05-11 (M1 ship session — visual-validate iteration + commits both repos)
+**Status**: M2 SHIPPED 2026-05-11. Dashboard re-cleave PR Milestones 1 + 2 done; M3 pending Nate's go-ahead. M2 (`fc1546f` on AIFred-Pro-Dev nate-dev): /decisions URL now redirects to /reo via DecisionsRedirect wrapper preserving search params. Audit-driven impl — 35-affordance feature-parity table (`decisions-to-reo-feature-parity-audit-2026-05-11.md`), 24 already-present / 3 improved / 3 different / 2 ported / 8 intentional drops. PORT-A (URL search-param translation, load-bearing) + PORT-B (confidence bar in TimelineList row) landed. DecisionsPage.tsx and api/decisions.ts marked @deprecated and kept in tree per keep-one-cycle decision; paired deletion scheduled at REO Phase 5.5 PRE-SHIP AUDIT. M2 AC-03 gate: technical 4.5 / progress 5.0 → PASS. REO Validate still paused until full PR lands.
+**Date**: 2026-05-11 (M2 ship session — audit + port + redirect + visual-validate + commits both repos)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
-**Last commit (Jarvis)**: c4a1652 (docs(workstreams): dashboard re-cleave — decisions ratified + impl plan drafted). Pending: this turn's M1 tracking commit.
-**Last commit (AIFred-Pro-Dev)**: d001c75 (feat(dashboard): re-cleave sidebar IA with PROD|OPS toggle + pinned Dashboard [M1] [Nexus]). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: 23e838c..d001c75.
+**Last commit (Jarvis)**: 92358da (docs(workstreams): M1 sidebar re-cleave SHIPPED). Pending: this turn's M2 tracking commit.
+**Last commit (AIFred-Pro-Dev)**: fc1546f (feat(dashboard): consolidate /decisions into /reo via redirect + 2 ported affordances [M2] [Nexus]). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: d001c75..fc1546f.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:

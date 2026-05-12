@@ -163,7 +163,11 @@ From `../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md` �
 
 ---
 
-### Milestone 2: /decisions → /reo consolidation (~1.5d)
+### Milestone 2: /decisions → /reo consolidation — SHIPPED 2026-05-11
+
+**Status**: SHIPPED on AIFred-Pro-Dev `nate-dev` as commit `fc1546f` (2026-05-11). All AC items checked; AC-03 gate technical 4.5 / progress 5.0 → PASS. Visual-validate confirmed by Nate before commit. Plan §5.2 ACs detailed below for reference.
+
+**Audit report**: `Jarvis/projects/project-aion/reports/decisions-to-reo-feature-parity-audit-2026-05-11.md` — 35-item affordance table, 24 already-present / 3 improved / 3 different-but-valid / 2 ported / 8 intentional drops with rationale.
 
 **Goal**: /decisions URL is a redirect to /reo with parameter-mapping where useful. DecisionsPage.tsx feature-parity audit complete; missing features ported to ReoPage.tsx. DecisionsPage.tsx file kept (unreferenced) for one release cycle as fallback.
 
@@ -182,18 +186,21 @@ From `../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md` �
 5. Document the audit in a short report under `Jarvis/projects/project-aion/reports/` for posterity
 
 **Acceptance criteria** (M2):
-- [ ] /decisions URL resolves with HTTP 200 and renders ReoPage at /reo
-- [ ] All known historical query patterns (?decision_id=, ?thread_id=) still work (translate via Navigate's `to` if needed)
-- [ ] Feature-parity audit report written and committed
-- [ ] Any portable features moved into ReoPage.tsx without regressing existing /reo functionality (B4 filters, B6 drawer, MVP polish all still work)
-- [ ] DecisionsPage.tsx remains in tree with deprecation header
-- [ ] Smoke `scripts/smoke-reo.sh` passes
-- [ ] Sidebar shows /reo as "Decision Archive" (or similar) — no longer "REO" jargon if user-facing label matters
+- [x] /decisions URL resolves with HTTP 200 and renders ReoPage at /reo (via DecisionsRedirect wrapper)
+- [x] All known historical query patterns (?actor=, ?decision_type=, ?outcome=, ?thread_id=) preserved through redirect; ReoPage `readInitialFilters()` pre-populates filter state on mount
+- [x] ?drawer= (legacy thread_id-based drawer) silently ignored — drawer model changed to event_id; graceful degradation
+- [x] Feature-parity audit report written and committed (Jarvis side)
+- [x] PORT-A (load-bearing): URL search-param translation
+- [x] PORT-B (visual enhancement): confidence bar in TimelineList row (≥85% green / 60-84% amber / <60% red / null=hidden)
+- [x] No regression on existing /reo functionality (B4 filters, B6 drawer, MVP polish all still work — verified by 9/9 smoke-reo.sh pass)
+- [x] DecisionsPage.tsx remains in tree with @deprecated JSDoc header + cross-reference to audit report
+- [x] api/decisions.ts marked @deprecated; only consumer is DecisionsPage (paired deletion at Phase 5.5)
+- [x] DecisionsPage import removed from App.tsx (file orphan in tree per keep-one-cycle)
+- [x] Sidebar shows /reo as "Decision Archive" (M1 placement honored)
 
-**AC-03 review gate**:
-- **Technical review** (1-5): code consolidation, redirect, feature port. Risk class: UX regression on /reo. Expected score: 4-5.
-- **Progress review** (1-5): completes ratification §11.3. Expected score: 5.
-- **Proceed criteria**: both ratings ≥ 4.
+**AC-03 review gate**: PASS 2026-05-11
+- **Technical review**: 4.5 — clean code, audit-driven implementation, tsc strict-clean, no API changes needed, deprecation headers explicit, orphan-check passes. -0.5 because runtime interaction unverified by Jarvis (verified by Nate visual-validate before commit).
+- **Progress review**: 5.0 — ratification §11.3 ("full subsume") executed; 35-affordance audit captures every disposition; keep-one-cycle decision honored.
 
 ---
 
