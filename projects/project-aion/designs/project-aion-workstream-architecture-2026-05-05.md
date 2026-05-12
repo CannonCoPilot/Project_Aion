@@ -433,6 +433,8 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 | — | `/triage` rebuild — flowchart/graph default | dagre + React Flow |
 | — | Executor internal retry | Small additive change |
 | — | F-2 boundary repair — persona-listing API | Defer until /personas rebuild needs it |
+| — | **Approval-Gate Enforcement** (HIGH; see `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` Appendix A §F-1 + §F-5) | `pipeline:needs-approval` does NOT halt v2 pipeline state machine; in-vivo confirmed 2026-05-12; executor.py / pipeline-watcher.py / dispatcher.sh have zero approval-label consumption. ~3-5d. Sibling F-5 (executor silent `blocked:no→yes` mutation, MEDIUM) bundled. Deferred behind re-cleave PR merge + REO Validate resume. |
+| — | M3-audit hygiene sweep — Appendix A §F-2 (BlockedBanner page-scope count, LOW, ~30min) + §F-4 (server `isBlocked()` false-positives, LOW, ~1h) | Small UI/server hygiene cleanups; can be picked up between larger workstreams. (Note: M3-audit F-2 is distinct from the F-2 boundary-repair entry above.) |
 | `◆ Loom` | Token Compression Phase 4 — pipeline integration | Compression-mode env + telemetry feed |
 | `★ David ◆ Loom` | Token Compression Phase 5 — Dashboard /token-compression page | Aligns with David's dashboard-priority directive |
 | `★ David` | Aion Quartet → dashboard widgets | Watcher/Ennoia/Virgil panes |
