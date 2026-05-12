@@ -6965,3 +6965,13 @@ Also notable in the decision trail: 2 `persona:reviewer review_outcome=passed` d
 The queued+blocked stall is **not permanent** — it resolves on a `risk` axis I didn't initially see. T1's lineage (`risk:safe`) processed ALL 4 children to closed+completed:done. T2/T3 lineages (`risk:moderate`) remain stuck. This rewrites the F-1/F-5 framing: the approval-gate enforcement gap *interacts with* risk classification. `risk:safe` auto-approves end-to-end; `risk:moderate` falls into the silent dependency-block that doesn't resolve. So the system has more enforcement-by-risk than I credited earlier — `pipeline:needs-approval` doesn't gate, but `risk:moderate` does (incorrectly, via blocked:yes).
 
 **Also surprising**: 6 new grandchildren spawned from AION-4698f774. The "no dispatcher daemon" finding was wrong — decomposition IS firing, just not as a separate daemon process. It's embedded in `evaluate.py` (PID 30312) or `pipeline-watcher.py`. The dispatcher review (step 3) needs to find where decomposition lives in v2.
+
+### 2026-05-12 [82969aef5091]
+
+Your rule has a non-obvious structural consequence: `task-score`, `task-investigator`, `task-executor` — three jobs that the v2 design doc treats as "registered scheduled jobs" — are actually **pipeline-ops on a 20-min cron** under the current registry.yaml. Per your new rule they must be ripped out of dispatcher and replaced with event triggers (e.g., on `task.created` → score; on `auto:candidate` → investigate; on `stage:queue` → execute). That's a significant scope item for D — not just an audit, but a refactor blueprint. I'll lay this out in the audit report.
+
+### 2026-05-12 [5e12a5b84d73]
+
+Grep confirms a structural finding: **auto:candidate / auto:ready are V1-routing labels with ZERO consumers in v2 services** (evaluate.py / executor.py / orchestrate.py / reviewer.py / stage.py / diagnose.py — none reference them). They're consumed only by legacy shell layer (event-watcher.sh, pipeline-watchdog.sh, team-runner.py, registry.yaml jobs). The v2 pipeline drives everything via staging/evaluated/queued/active/completed/blocked dimension labels — auto:* is essentially vestigial in v2.
+
+This means D.6 (`services/investigate.py`) as scoped in the audit would be a **legacy-compat service operating on labels that nothing in v2 actually reads.** Building it parallels the legacy task-investigator's behavior but produces output that no v2 service consumes.
