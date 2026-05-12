@@ -420,6 +420,8 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 
 ### 6.2 Future Work (longer tail)
 
+**Architectural rule (added 2026-05-12 per Nate's directive)**: Two-tier scheduling. `dispatcher.sh` (cron-style) handles ONLY recurring jobs that are NOT pipeline-nexus task-management operations. All Pulse-Nexus task pipeline state transitions must fire event-driven from v2 services. Canonical decision log + 3-job removal + new event-driven service blueprint: `../reports/dispatcher-registry-audit-2026-05-12.md`. This rule retroactively re-prioritizes the queue below — **Phase D (dispatcher / registry refactor) is now a hard prerequisite for the Approval-Gate Enforcement entry** and the F-5 silent-mutation audit, because both fixes live in the executor's claim path whose invocation source changes under the new rule. Phase D entry below.
+
 | Tag | Item | Why / what |
 |---|---|---|
 | `★ David` | Burn-rate visualization widget | Plot trajectory through 5h window |
@@ -433,7 +435,8 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 | — | `/triage` rebuild — flowchart/graph default | dagre + React Flow |
 | — | Executor internal retry | Small additive change |
 | — | F-2 boundary repair — persona-listing API | Defer until /personas rebuild needs it |
-| — | **Approval-Gate Enforcement** (HIGH; see `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` Appendix A §F-1 + §F-5) | `pipeline:needs-approval` does NOT halt v2 pipeline state machine; in-vivo confirmed 2026-05-12; executor.py / pipeline-watcher.py / dispatcher.sh have zero approval-label consumption. ~3-5d. Sibling F-5 (executor silent `blocked:no→yes` mutation, MEDIUM) bundled. Deferred behind re-cleave PR merge + REO Validate resume. |
+| — | **Phase D — Dispatcher / Registry Event-Driven Refactor** (HIGH; canonical audit at `../reports/dispatcher-registry-audit-2026-05-12.md`) | Implements the 2026-05-12 architectural rule (above). Removes 3 pipeline jobs (task-score / task-investigator / task-executor) from registry.yaml; adds `services/score.py` + `services/investigate.py` event-driven services; refactors `event-watcher.sh` to dispatch directly to v2 services bypassing dispatcher; possibly extends Pulse with `/api/v1/events?type=label_added` polling endpoint. Awaiting Nate's answers to §5 Q1-Q4 in the audit before impl begins. ~3-4d. **Hard prerequisite for Approval-Gate Enforcement + F-5 audit below.** |
+| — | **Approval-Gate Enforcement** (HIGH; see `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` Appendix A §F-1 + §F-5) | `pipeline:needs-approval` does NOT halt v2 pipeline state machine; in-vivo confirmed 2026-05-12; executor.py / pipeline-watcher.py / dispatcher.sh have zero approval-label consumption. ~3-5d. Sibling F-5 (executor silent `blocked:no→yes` mutation, MEDIUM) bundled. **Depends on Phase D (immediately above)** — fix gates at the new `label.added(stage:queue)` event consumer. Deferred behind re-cleave PR merge + REO Validate resume + Phase D. |
 | — | M3-audit hygiene sweep — Appendix A §F-2 (BlockedBanner page-scope count, LOW, ~30min) + §F-4 (server `isBlocked()` false-positives, LOW, ~1h) | Small UI/server hygiene cleanups; can be picked up between larger workstreams. (Note: M3-audit F-2 is distinct from the F-2 boundary-repair entry above.) |
 | `◆ Loom` | Token Compression Phase 4 — pipeline integration | Compression-mode env + telemetry feed |
 | `★ David ◆ Loom` | Token Compression Phase 5 — Dashboard /token-compression page | Aligns with David's dashboard-priority directive |

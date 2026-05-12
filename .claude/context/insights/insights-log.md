@@ -6947,3 +6947,21 @@ Saved as feedback memory `feedback_planning_doc_discipline.md` — indexed in ME
 ### 2026-05-12 [71db81a49fc5]
 
 The qwen3:8b compressor pulled "Nexus-Sync Supplant" as Current Task from 2026-05-04 — same compressor-extrapolation failure mode I logged at `self-corrections.md` 2026-05-06. Scratchpad cross-check is the canonical guard against this; without it I'd have wandered back to 8-day-old work. Pattern flag: low-tier LLM compressors read commit cadence as forward momentum and lose reframe/decision-point turns at session boundaries.
+
+### 2026-05-12 [2eb57ce0b49d]
+
+Two pattern flags worth filing for future sessions:
+1. **Always rev-count `main..<branch>` before PR assembly** even if conversational framing implies a smaller scope. The "5 commits" framing was the push-range this session, not the PR-range. Conflating "what was pushed" with "what's in a PR" is a structural failure mode — `git push` ranges and PR ranges are different units of work. Future-Jarvis: when the user says "PR assembly", treat `gh pr create` as a high-blast-radius action and verify scope before clicking.
+2. **`cd` persists across Bash tool calls**, contrary to my mental model that each call is a fresh shell. The `cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev` for `gh pr create` leaked into the next git command and caused a "pathspec did not match" error. Defensive move: prefer `git -C <abs-path>` or chained `cd <abs> && <cmd>` to keep cwd containment per Bash-call. This is the second time this has bitten me in recent sessions — should log to self-corrections.
+
+### 2026-05-12 [70097efb48d2]
+
+The current board is **not idle Nexus cron traffic** — it's the M3 validation rig's complete decomposition lineage. T1/T2/T3 (the closed parents) spawned 4 children each via v2 pipeline decomposition between the earlier SIGCONT (15:42Z) and re-stop. This is itself an unexpected F-1 manifestation: not only did the parents auto-advance through staging→queued, they **also triggered child-task creation** by the dispatcher. The approval gate failed at *two* layers, not just one.
+
+Also notable in the decision trail: 2 `persona:reviewer review_outcome=passed` decisions — these are REO B1 (`086f08d`) firing in vivo. First time that wire's been exercised on dev data outside the smoke harness. Both reviewer decisions hit `passed` on the path that fed `system:diagnose` failure-mode analysis — so the persona-decision fanout chain works end-to-end.
+
+### 2026-05-12 [7997affeb488]
+
+The queued+blocked stall is **not permanent** — it resolves on a `risk` axis I didn't initially see. T1's lineage (`risk:safe`) processed ALL 4 children to closed+completed:done. T2/T3 lineages (`risk:moderate`) remain stuck. This rewrites the F-1/F-5 framing: the approval-gate enforcement gap *interacts with* risk classification. `risk:safe` auto-approves end-to-end; `risk:moderate` falls into the silent dependency-block that doesn't resolve. So the system has more enforcement-by-risk than I credited earlier — `pipeline:needs-approval` doesn't gate, but `risk:moderate` does (incorrectly, via blocked:yes).
+
+**Also surprising**: 6 new grandchildren spawned from AION-4698f774. The "no dispatcher daemon" finding was wrong — decomposition IS firing, just not as a separate daemon process. It's embedded in `evaluate.py` (PID 30312) or `pipeline-watcher.py`. The dispatcher review (step 3) needs to find where decomposition lives in v2.
