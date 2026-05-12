@@ -1,7 +1,7 @@
 ---
 title: AIFred-Pro-Dev Dashboard Re-Cleave — Implementation Plan of Record
 date: 2026-05-11
-status: DRAFT — pending Nate's go-ahead before Milestone 1 begins
+status: M1 IN PROGRESS — label refinement applied during visual-validate (WORK→PROD, DIAGNOSE→OPS, Today→Proj, Direct→Config, Reflect→Review, Inspect→Monitor)
 project: AIFred-Pro-Dev
 target_branch: nate-dev
 ratifies: ../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md (§11 Decisions captured 2026-05-11)
@@ -18,7 +18,11 @@ estimated_effort: 3-5 days (single PR with 3 milestones for AC-03 review gates)
 
 ## 1. Vision
 
-Re-cleave the AIFred-Pro-Dev dashboard's information architecture along a **WORK | DIAGNOSE** top-level axis, with **4 sub-clusters** (WORK → Today, Direct ; DIAGNOSE → Reflect, Inspect) replacing the current Main / Nexus / System sidebar grouping.
+Re-cleave the AIFred-Pro-Dev dashboard's information architecture along a **PROD | OPS** top-level axis, with **4 sub-clusters** (PROD → Proj, Config ; OPS → Review, Monitor) replacing the current Main / Nexus / System sidebar grouping.
+
+**Label refinement (2026-05-11, during M1 visual-validate)**: the underlying semantic dichotomy ratified in §11.2 (production-side doing vs operations-side observing) is preserved; only user-facing labels changed. WORK → PROD (producing/building/configuring), DIAGNOSE → OPS (reviewing/monitoring). Today → Projects (project-level artifacts), Direct → Config (direct configuration surfaces). Reflect → Review, Inspect → Monitor. Internal: `useActiveMode` hook, `ActiveMode` type (`'prod' | 'ops'`), `ModeToggle` component.
+
+**Structural refinement (2026-05-11, during M1 visual-validate)**: Dashboard (`/`, OverviewPage) is now a **pinned item** above the PROJECTS expander in PROD mode, not an entry inside any sub-cluster. Reflects Dashboard's role as the global home rather than a project artifact. `/projects` (ProjectsListPage) moved to index 0 of PROJECTS sub-cluster — natural anchor for the cluster that bears its name. Dashboard remains the default landing page (App.tsx route at `/`).
 
 Outcome: every page knows what user mode it serves; users know which side of the toggle to be on; the dashboard becomes the first concrete step toward the long-term Operations Center metaphor (foundational analysis §9.2).
 
@@ -28,15 +32,15 @@ Outcome: every page knows what user mode it serves; users know which side of the
 
 ### In scope
 
-- Top-level WORK | DIAGNOSE shell toggle in `dashboard/frontend/src/components/layout/AppShell.tsx`
-- Sidebar regrouping: every nav item placed into one of 4 sub-clusters
+- Top-level PROD | OPS shell toggle in `dashboard/frontend/src/components/layout/AppShell.tsx`
+- Sidebar regrouping: every nav item placed into one of 4 sub-clusters (Proj / Config / Review / Monitor)
 - `/decisions` → `/reo` Navigate redirect; DecisionsPage.tsx feature-parity audit; port-missing-features pass
 - `/pipeline` split: approval-card affordance extracted into `/tasks?board=approvals` (or equivalent); monitoring widgets stay on /pipeline
 - `/reo` added to sidebar (currently orphaned)
 - `/notifications` removed from sidebar (top-bar bell remains)
-- `/budget` + `/usage` moved from WORK side to DIAGNOSE → Inspect
+- `/budget` + `/usage` moved from PROD side to OPS → Monitor
 - Cross-mode link buttons (3-5): /reo decision → /reviews feedback; /findings issue → /tasks/:id; /health failing-job → /jobs/:id config
-- Visual: WORK | DIAGNOSE toggle should be a prominent primary-color UI affordance
+- Visual: PROD | OPS toggle should be a prominent primary-color UI affordance
 - Tests: smoke checks for every old route still resolves (no 404s on existing bookmarks)
 
 ### Out of scope (deferred to long-term Operations Center vision §9.2)
@@ -64,22 +68,23 @@ From `../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md` �
 ## 4. Architecture: the new sidebar IA
 
 ```
-┌─ TOP-OF-SIDEBAR: WORK | DIAGNOSE TOGGLE ─┐
+┌─ TOP-OF-SIDEBAR: PROD | OPS TOGGLE ──────┐
 │                                          │
-│  WORK SIDE (default)                     │
+│  PROD MODE (default)                     │
 │  ────────────────                        │
-│  ▼ Today                                 │
-│    /  Dashboard (Overview)               │
+│  ◈ /  Dashboard (pinned — default home)  │
+│                                          │
+│  ▼ PROJECTS                              │
+│    /projects  Projects                   │
+│    /projects/:id          (deep-link)    │
 │    /tasks  Tasks                         │
 │    /board  Board                         │
 │    /triage  Triage                       │
 │    /digest  Digest                       │
-│    /projects  Projects   (planning)      │
-│    /projects/:id          (deep-link)    │
 │    /cross-project  Cross-Project         │
 │    /create  Create                       │
 │                                          │
-│  ▼ Direct                                │
+│  ▼ Config                                │
 │    /jobs  Recurring Jobs                 │
 │    /personas  Personas                   │
 │    /automation  Rules                    │
@@ -88,21 +93,21 @@ From `../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md` �
 │    /settings  Settings                   │
 │    /account  Account                     │
 │                                          │
-│  DIAGNOSE SIDE                           │
+│  OPS MODE                                │
 │  ──────────────                          │
-│  ▼ Reflect                               │
+│  ▼ Review                                │
 │    /reviews  AI Reviews (feedback queue) │
 │    /reo  Decision Archive (was /decisions)│
 │    /patterns  Patterns                   │
 │    /cortex  Cortex                       │
 │    /report  Reports                      │
 │                                          │
-│  ▼ Inspect                               │
+│  ▼ Monitor                               │
 │    /health  Health                       │
 │    /pipeline  Pipeline (monitoring only) │
 │    /observability  Observability         │
 │    /nexus-ops  Nexus Operations          │
-│    /token-compression  Token Compression │
+│    /token-compression  Compression       │
 │    /usage  Usage                         │
 │    /findings  Findings                   │
 │    /budget  Budget                       │
@@ -116,34 +121,40 @@ From `../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md` �
 └──────────────────────────────────────────┘
 ```
 
-**Sidebar collapsed state**: WORK | DIAGNOSE toggle is icons-only; sub-clusters collapse to flat icon lists. Toggle persists in localStorage.
+**Sidebar collapsed state**: PROD | OPS toggle is icons-only; sub-clusters collapse to flat icon lists. Toggle persists in localStorage.
 
-**Default**: WORK side active on first load. Keystroke shortcut to flip (proposed `Cmd+\`).
+**Default**: PROD mode active on first load. Keystroke shortcut to flip (`Cmd+\` / `Ctrl+\`).
 
 ## 5. Milestones
 
 ### Milestone 1: Nav shell + Sidebar IA (~1.5d)
 
-**Goal**: New sidebar renders correctly with 4 sub-clusters under WORK | DIAGNOSE. All existing routes resolve. No functional page changes yet (DecisionsPage.tsx still works; /pipeline still mixes monitoring + approvals).
+**Goal**: New sidebar renders correctly with 4 sub-clusters under PROD | OPS. All existing routes resolve. No functional page changes yet (DecisionsPage.tsx still works; /pipeline still mixes monitoring + approvals).
 
 **Files to touch**:
-- `dashboard/frontend/src/components/layout/AppShell.tsx` — replace MAIN_NAV / NEXUS_NAV / MANAGE_NAV with WORK_NAV / DIAGNOSE_NAV containing nested sub-clusters; add toggle component; persist active side in localStorage; add Cmd+\ shortcut
+- `dashboard/frontend/src/components/layout/AppShell.tsx` — replace MAIN_NAV / NEXUS_NAV / MANAGE_NAV with PROD_NAV / OPS_NAV containing nested sub-clusters; add toggle component; persist active mode in localStorage; add Cmd+\ shortcut
 - `dashboard/frontend/src/App.tsx` — no route changes in M1 (Milestone 2 adds the /decisions redirect)
-- New file: `dashboard/frontend/src/components/layout/WorkDiagnoseToggle.tsx` if extracted as a component
+- New file: `dashboard/frontend/src/components/layout/ModeToggle.tsx`
+- New file: `dashboard/frontend/src/hooks/useActiveMode.ts`
 - Tests: existing smoke (`scripts/smoke-reo.sh` etc.) must still pass
 
 **Acceptance criteria** (M1):
-- [ ] Sidebar renders with two top-level sections (WORK | DIAGNOSE) and four sub-clusters total
-- [ ] Default active side is WORK; toggle persists in localStorage across reloads
-- [ ] Cmd+\ keyboard shortcut flips active side
-- [ ] Every page from the 35-page inventory is present in exactly one sub-cluster (no orphans, no doubles)
-- [ ] /reo appears in DIAGNOSE → Reflect (was orphaned)
+- [ ] Sidebar renders with two top-level modes (PROD | OPS) and four sub-clusters total (Projects / Config / Review / Monitor)
+- [ ] Default active mode is PROD; toggle persists in localStorage across reloads
+- [ ] Cmd+\ keyboard shortcut flips active mode
+- [ ] Manual toggle action wins over auto-flip; auto-flip fires ONLY on URL change, not on user toggle (ref-based useEffect)
+- [ ] Cluster chevron expand/collapse works on every page, including pages whose route is inside the cluster
+- [ ] **Dashboard pinned above PROJECTS expander in PROD mode** (not inside any sub-cluster)
+- [ ] **`/` (Dashboard / OverviewPage) is the default landing page when user opens the dashboard with no path** — already true via App.tsx `<Route path="/" element={<OverviewPage />} />`; preserve
+- [ ] **/projects appears at the TOP of the PROJECTS sub-cluster items list** (above /tasks)
+- [ ] Every page from the 35-page inventory is present in exactly one sub-cluster OR pinned (no orphans, no doubles)
+- [ ] /reo appears in OPS → Review (was orphaned)
 - [ ] /notifications removed from sidebar; bell in top bar continues to work
-- [ ] /budget + /usage appear under DIAGNOSE → Inspect (not WORK)
-- [ ] Collapsed-sidebar mode works for both sides
+- [ ] /budget + /usage appear under OPS → Monitor (not PROD)
+- [ ] Collapsed-sidebar mode works for both modes
 - [ ] No regression on existing badge counts (actionCount, inProgress, researchQueue)
 - [ ] Approval-pending alert banner still appears at sidebar bottom when approvalCount > 0
-- [ ] Mobile menu reflects the new structure
+- [ ] Mobile menu reflects the new structure (Dashboard pinned at top of Prod section, above Projects sub-cluster header)
 
 **AC-03 review gate**:
 - **Technical review** (1-5): sidebar IA changes only, no new feature surface, no API changes. Risk class: UX/CSS only. Expected score: 4-5.
