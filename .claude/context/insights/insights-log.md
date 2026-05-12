@@ -6901,3 +6901,31 @@ Two confirmations of the architectural pattern from §11 of foundational analysi
 - **The single most important infrastructure decision is the Neo4j second database.** Create `graphify_codebase` alongside the existing graphiti `neo4j` database — Neo4j 4.3+ Community supports unlimited databases on one daemon. This is ~2 minutes of setup that prevents graphify's `Entity`-label MERGE-collision from corrupting graphiti's `jarvis-core` data.
 - **Pulse UI integration is asymmetric.** graphify's vis.js → iframe embed (clean, ~2 hr backend wiring). codebase-memory-mcp's 3D viewer → must build wrapped UI (no export API). Serena's dashboard → cannot run during Claude Code; poll JSON endpoints instead. Total UI dashboard work: 16-24 hours.
 - **The 4-milestone structure naturally aligns with AC-03 review boundaries.** M1 install+smoke, M2 shared infra wired, M3 Pulse UI tab built, M4 operational glue+docs. Each ships independent value, none blocks the next.
+
+### 2026-05-12 [048f363bf14e]
+
+Investigating L1's deep-link target surfaced another schema question: `ReviewPage` (1842 LOC) doesn't currently support `?decision_id=N` filtering — it has internal filter state but doesn't read URL params on mount, and reviews are task-centric (no `decision_id` field on `Review`). Adding deep-link support would mean ~30-50 LOC + a data-model audit to confirm decision↔review linkage exists.
+
+Combined with L3's missing `/jobs/:id` route, that's two of the five cross-mode buttons with ratification debt. The remaining three (L2, L4, L5) likely have similar nuance.
+
+Stopping core M3 work here is the right call — the load-bearing taxonomy + cleanup is done. Cross-mode buttons deserve their own ratification pass before code. Running mechanical verify on what's shipped, then surfacing for Nate's visual-validate gate + cross-mode-button scope decision.
+
+### 2026-05-12 [732088081e0c]
+
+Tracing the approval-count data path surfaced a pre-existing architectural quirk worth flagging: the sidebar badge count comes from `dashboard/server/services/nexus-db.ts:getPendingApprovals` which queries `getFilteredTasks({ label: 'waiting:david', status: 'open' })` and only counts those that ALSO have `question`, `needs-input`, or `pipeline:needs-approval`. So `waiting:david` is the load-bearing label — `pipeline:needs-approval` alone won't fire the sidebar badge.
+
+This is M3-orthogonal (it's not a regression I introduced) but means the test task needs BOTH labels to exercise the full path: `pipeline:needs-approval` → `?board=approvals` taxonomy + `waiting:david` → sidebar badge count.
+
+### 2026-05-12 [228f2a0f1e4b]
+
+Architectural note about pulse_dev's task lifecycle: the Pulse API has no DELETE endpoint for tasks — only `/labels/{label}` deletion. Closing a task is an API-supported operation (POST `/tasks/{id}/close`), but DELETE-from-tasks requires direct SQL. The asymmetry makes sense — Pulse is designed around an event-sourced task lifecycle where "closed" is a terminal state and deletion is reserved for dev/admin cleanup. The related observability tables (`pulse.audit_log`, `pulse.cost_events`, `pulse.decision_events`) don't have FK constraints back to `tasks(id)`, which is why deletion was safe but also why orphaned rows in those tables remain (they reference the now-deleted task_ids). For prod, this would be a data-integrity concern; for dev pre-M3-validate, it's acceptable noise.
+
+### 2026-05-12 [e21dceb0b02a]
+
+This M3 hit three classifier layers in the same codebase — and aligning them surfaced an architectural pattern worth noting:
+
+1. **Frontend `classifyTask`** (`dashboard/frontend/src/lib/board.ts`) — already M3-D2 from prior session
+2. **Server `classifyTask`** (`dashboard/server/routes/stats.ts`) — fixed today; **had a code comment "Must match frontend lib/board.ts classifyTask exactly"** that wasn't being enforced
+3. **Badge taxonomy `BLOCKED_REASONS`** (`dashboard/frontend/src/lib/labels.ts`) — naturally ordered correctly via label-array iteration
+
+The server's drift went unnoticed because there's no test asserting the two classifiers agree. A future hardening play: a single-file `classify-task.ts` in `dashboard/shared/` that both frontend and server import from, eliminating the drift surface entirely. That's a P2 refactor, not M3 scope — but flagging it for the F-bucket alongside F-1/F-2/F-4.
