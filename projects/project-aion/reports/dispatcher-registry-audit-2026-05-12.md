@@ -1,23 +1,23 @@
 ---
 title: Dispatcher / Registry.yaml Audit — Phase D of post-PR-#3 workstream
 date: 2026-05-12
-author: Jarvis (Nate's dev session)
-status: AUDIT-COMPLETE (impl plan pending Nate's answers to §5 open questions)
-project: AIFred-Pro-Dev
+author: Jarvis (Sir's dev session)
+status: AUDIT-COMPLETE (impl plan pending Sir's answers to §5 open questions)
+project: Alfred-Dev
 target_branch: nate-dev
-ratifies: Nate's 2026-05-12 architectural rule — see §1
+ratifies: Sir's 2026-05-12 architectural rule — see §1
 related:
   - ../designs/project-aion-workstream-architecture-2026-05-05.md (§6.2 Future Work — to be extended)
   - ../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md (F-1/F-5 defect catalog this audit feeds)
-  - ../../AIFred-Pro-Dev/.claude/jobs/registry.yaml (the inventory)
-  - ../../AIFred-Pro-Dev/.claude/jobs/dispatcher.sh (the executor of these jobs)
-  - ../../AIFred-Pro-Dev/.claude/context/designs/pipeline-redesign-v2.md (v2 design + designed-vs-running gaps)
-audience: Nate, future-Jarvis, David (post-PR-#3 merge)
+  - ../../Alfred-Dev/.claude/jobs/registry.yaml (the inventory)
+  - ../../Alfred-Dev/.claude/jobs/dispatcher.sh (the executor of these jobs)
+  - ../../Alfred-Dev/.claude/context/designs/pipeline-redesign-v2.md (v2 design + designed-vs-running gaps)
+audience: Sir, future-Jarvis, David (post-PR-#3 merge)
 ---
 
 # Dispatcher / Registry.yaml Audit — Phase D of post-PR-#3 workstream
 
-## 1. Architectural rule (Nate's 2026-05-12 directive)
+## 1. Architectural rule (Sir's 2026-05-12 directive)
 
 > Dispatcher should be reconceived as handling the cycle of recurring jobs, but NO recurring jobs should be in place to handle the task-ticket pipeline-nexus operations. All Pulse-Nexus task pipeline operations must function in an event-driven manner.
 
@@ -103,17 +103,17 @@ Of the 13: **3 are pipeline-ops on cron** (task-score / task-investigator / task
 
 **Tentative disposition**: REMOVE cron `task-executor` from registry.yaml; let `services/executor.py` daemon handle all queue-execution. If `task-executor.md` workflow has unique value, port it into a persona option for v2 executor.
 
-## 5. Open questions for Nate's decision — RATIFIED 2026-05-12
+## 5. Open questions for Sir's decision — RATIFIED 2026-05-12
 
 ### Q1 — RATIFIED: Plan B (subsume + drop `auto:*` from event-driven layer)
 
-After running the audit-default approach into a wall (see §6 D-impl discovery: 60+ `auto:*` references in legacy shell layer with zero V2-service consumers), Nate ratified **Plan B** — drop `auto:*` emission from the event-driven layer entirely. `services/score.py` strips its `determine_auto_label` + `fix_contradictions` paths; emits `risk:*` only. `services/investigate.py` (D.6) is NOT BUILT — the `auto:candidate → auto:ready` promotion path it would have implemented now produces labels that no V2 service consumes. V2 pipeline drives task advancement via dimension labels (staging/evaluated/queued/active/completed/blocked) independently. Legacy shell layer (event-watcher.sh inline auto:ready additions, pipeline-watchdog.sh mutex rules, lib/routing-rules.yaml, persona configs) keeps its `auto:*` machinery untouched in this phase — those migrate in a separate post-Phase-D workstream.
+After running the audit-default approach into a wall (see §6 D-impl discovery: 60+ `auto:*` references in legacy shell layer with zero V2-service consumers), Sir ratified **Plan B** — drop `auto:*` emission from the event-driven layer entirely. `services/score.py` strips its `determine_auto_label` + `fix_contradictions` paths; emits `risk:*` only. `services/investigate.py` (D.6) is NOT BUILT — the `auto:candidate → auto:ready` promotion path it would have implemented now produces labels that no V2 service consumes. V2 pipeline drives task advancement via dimension labels (staging/evaluated/queued/active/completed/blocked) independently. Legacy shell layer (event-watcher.sh inline auto:ready additions, pipeline-watchdog.sh mutex rules, lib/routing-rules.yaml, persona configs) keeps its `auto:*` machinery untouched in this phase — those migrate in a separate post-Phase-D workstream.
 
 **Variant of Q1 (subsumption)**: `services/executor.py` daemon subsumes legacy `task-executor` cron job; autofix-executor folded as persona-mode of v2 executor.
 
 ### Q2 — RATIFIED: extend Pulse with the events endpoint
 
-D.4 already shipped extending `GET /api/v1/events` with `event_type` + `since` filters (commit `78693a3` on AIFred-Pro-Dev nate-dev). event-watcher.sh converts to a polling consumer.
+D.4 already shipped extending `GET /api/v1/events` with `event_type` + `since` filters (commit `78693a3` on Alfred-Dev nate-dev). event-watcher.sh converts to a polling consumer.
 
 **In-vivo discovery (informs D.7)**: Pulse emits `event_type="created"` on POST `/api/v1/tasks` (app.py:386), NOT `"task.created"` as audit §4.1 speculated. Webhook fires with `"task:created"` (line 388). The events table uses bare `"created"`. D.7 polling URL uses `event_type=created`.
 
@@ -127,7 +127,7 @@ Option B kept. `task-score`, `task-investigator`, `task-executor` all set `enabl
 
 ### Q-B (branch strategy) — RATIFIED: B2 (hold local until PR #3 merges)
 
-Phase D commits stay local on AIFred-Pro-Dev `nate-dev` until `davidmoneil/AIFred-Pro#3` merges. After merge: pull main into nate-dev, push Phase D as separate PR. PR #3 itself unaffected — David reviews the re-cleave bundle on its merits without bundled Phase D scope-creep.
+Phase D commits stay local on Alfred-Dev `nate-dev` until `davidmoneil/AIFred-Pro#3` merges. After merge: pull main into nate-dev, push Phase D as separate PR. PR #3 itself unaffected — David reviews the re-cleave bundle on its merits without bundled Phase D scope-creep.
 
 ## 6. Refactor scope estimate + execution log
 
@@ -135,8 +135,8 @@ Phase D commits stay local on AIFred-Pro-Dev `nate-dev` until `davidmoneil/AIFre
 |---|---|---|---|
 | D.1 | Architectural rule documented in workstream-arch §6.2 (this audit feeds it) | DONE 2026-05-12 (commit `c413e03` Jarvis main) | **SHIPPED** |
 | D.2 | This audit (canonical decision log) | DONE 2026-05-12 (same commit) | **SHIPPED** |
-| D.3 | Answer Q1-Q4 (Nate decision) | Ratified 2026-05-12 — see §5 above | **CLOSED** |
-| D.4 | Pulse `/api/v1/events` extended with `event_type` + `since` filters | ~3-4 hr (actual ~2 hr) | **SHIPPED LOCAL** (commit `78693a3` on AIFred-Pro-Dev nate-dev; held per B2) |
+| D.3 | Answer Q1-Q4 (Sir decision) | Ratified 2026-05-12 — see §5 above | **CLOSED** |
+| D.4 | Pulse `/api/v1/events` extended with `event_type` + `since` filters | ~3-4 hr (actual ~2 hr) | **SHIPPED LOCAL** (commit `78693a3` on Alfred-Dev nate-dev; held per B2) |
 | D.5 | `services/score.py` implementation + smoke test | ~3-4 hr (actual ~2 hr) | **SHIPPED LOCAL** (initial commit `eb6032f`; Plan-B-revised in this turn — `auto:*` stripped, `risk:*` only) |
 | D.6 | `services/investigate.py` | — | **SKIPPED** under Plan B (auto:candidate path dropped from event-driven layer) |
 | D.7 | event-watcher.sh refactor — new `created`-event polling block firing score.py | ~2-3 hr (actual ~1 hr + bugfix) | **SHIPPED LOCAL** (uncommitted this turn). Added `/api/v1/events?event_type=created&since=<encoded-cursor>` polling block before legacy JSONL handler; URL-encoded cursor's `+00:00` → `%2B00:00`; warning log on curl failure |
@@ -161,7 +161,7 @@ Captured during D.7-D.9 implementation, surfaces these mismatches between the au
 
 ### 6.2 Files touched (Phase D total)
 
-**On AIFred-Pro-Dev nate-dev (3 commits local, NOT pushed per B2 ratification)**:
+**On Alfred-Dev nate-dev (3 commits local, NOT pushed per B2 ratification)**:
 - `pulse/app.py` — D.4 events endpoint extension (+29/-10 lines) — commit `78693a3`
 - `.claude/jobs/services/score.py` — D.5 NEW (157 LOC) — initial commit `eb6032f`; Plan-B revision (-49 LOC stripping auto:* paths) folded into combined commit `65e2eef`
 - `.claude/jobs/event-watcher.sh` — D.7 polling block (+51 LOC) — combined commit `65e2eef`
@@ -200,17 +200,17 @@ The new event topology determines what to monitor. Pre-D, /health UI would surfa
 
 ## 8. Next-action sequence
 
-1. **PAUSE for Nate's answers to Q1-Q4** in §5. Default recommendations stated. No code changes yet.
+1. **PAUSE for Sir's answers to Q1-Q4** in §5. Default recommendations stated. No code changes yet.
 2. **After answers**: kick off D.4-D.8 (event-driven services + Pulse endpoint + event-watcher refactor + registry edits).
 3. **After D verified in dev**: kick off **B + C in parallel** (F-1 enforcement + F-5 silent-mutation fix — both in `services/executor.py` claim path).
 4. **After B + C**: kick off **E** (Watchdog W2/W3 — observability surfaces for the new event topology).
-5. Each phase capstone: AC-03 gate + Jarvis-side tracking commit + AIFred-Pro-Dev `nate-dev` commit + PR-to-David once a logical group lands.
+5. Each phase capstone: AC-03 gate + Jarvis-side tracking commit + Alfred-Dev `nate-dev` commit + PR-to-David once a logical group lands.
 
 ## 9. Status (2026-05-12 end-of-day)
 
 **Audit phase**: COMPLETE 2026-05-12.
 
-**Phase D impl**: IN-DEV-COMPLETE 2026-05-12. D.4 + D.5 + D.7 + D.8 + D.9 SHIPPED LOCAL. D.6 SKIPPED per Plan B. D.10 THIS TURN. All commits HELD on AIFred-Pro-Dev `nate-dev` per B2 ratification — NOT pushed to davidmoneil/AIFred-Pro until PR #3 merges. After PR #3 merge: pull main into nate-dev, push Phase D as separate PR.
+**Phase D impl**: IN-DEV-COMPLETE 2026-05-12. D.4 + D.5 + D.7 + D.8 + D.9 SHIPPED LOCAL. D.6 SKIPPED per Plan B. D.10 THIS TURN. All commits HELD on Alfred-Dev `nate-dev` per B2 ratification — NOT pushed to davidmoneil/AIFred-Pro until PR #3 merges. After PR #3 merge: pull main into nate-dev, push Phase D as separate PR.
 
 **Subsequent phases**: still queued behind D's completion + PR #3 merge.
 - Phase B + C (F-1 enforcement + F-5 silent-mutation fix): both live in `services/executor.py` claim path. Estimated ~2-3 day combined after Phase D ships to David.

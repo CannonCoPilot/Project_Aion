@@ -1,4 +1,4 @@
-# Executive Milestone Report — AIFred-Pro-Dev `nate-dev` Milestone (2026-05-04)
+# Executive Milestone Report — Alfred-Dev `nate-dev` Milestone (2026-05-04)
 
 **Generated**: 2026-05-04
 **Branch under review**: `nate-dev` HEAD `af73a46` (45 commits ahead of `origin/main` `dfd40c5`; 0 behind; +1 unpushed)
@@ -10,11 +10,11 @@
 
 ## 1. Executive Summary
 
-Two-and-a-half weeks of stacked work across two workspaces (Jarvis production + AIFred-Pro-Dev `nate-dev`) and two methodological tracks (Pipeline v2 architecture rebuild + token-compression initiative under pre-registration discipline) produced six shippable initiatives converging on a single architectural decision now staged for David O'Neil's review. The dominant deliverable is **Pipeline v2** — 45 commits on `nate-dev`, 19 of them direct pipeline rebuilds, implementing webhook-driven 6-dimensional Pulse orchestration with five dedicated Python services, end-to-end telemetry, and atomic label state transitions.
+Two-and-a-half weeks of stacked work across two workspaces (Jarvis production + Alfred-Dev `nate-dev`) and two methodological tracks (Pipeline v2 architecture rebuild + token-compression initiative under pre-registration discipline) produced six shippable initiatives converging on a single architectural decision now staged for David O'Neil's review. The dominant deliverable is **Pipeline v2** — 45 commits on `nate-dev`, 19 of them direct pipeline rebuilds, implementing webhook-driven 6-dimensional Pulse orchestration with five dedicated Python services, end-to-end telemetry, and atomic label state transitions.
 
-The supporting deliverables: (1) **Token-compression Phases 1.1–1.3.5** deployed on AIFred-Pro-Dev with pre-registration discipline imported from clinical-trial methodology; (2) **JICM v7.9** promoted to Jarvis production with Stage-1 CLEAR (slim watcher cutover, sensing-layer hooks); (3) **Two-Stage Validation Gating pattern** formalized as a first-class Jarvis pattern; (4) **Dashboard live panels** (Activity Timeline, Dependency Chain, Project Creator streaming, live execution telemetry); (5) **ProjectIntel collaboration cadence** — 4 substantive debriefs (~6,050 words), 2 questions resolved; (6) **Phase 1.3.5 reviewer Claude-CLI route** as the first clean pre-deploy pre-registration in the token-compression family.
+The supporting deliverables: (1) **Token-compression Phases 1.1–1.3.5** deployed on Alfred-Dev with pre-registration discipline imported from clinical-trial methodology; (2) **JICM v7.9** promoted to Jarvis production with Stage-1 CLEAR (slim watcher cutover, sensing-layer hooks); (3) **Two-Stage Validation Gating pattern** formalized as a first-class Jarvis pattern; (4) **Dashboard live panels** (Activity Timeline, Dependency Chain, Project Creator streaming, live execution telemetry); (5) **ProjectIntel collaboration cadence** — 4 substantive debriefs (~6,050 words), 2 questions resolved; (6) **Phase 1.3.5 reviewer Claude-CLI route** as the first clean pre-deploy pre-registration in the token-compression family.
 
-The **REJECT-all decision on the 21 nexus-sync commits** rests on three convergent reasoning chains. First, Pipeline v2 architecturally deprecates the legacy `executor.sh` shell stack that 17 of the 21 commits extend; adopting Phase 5 observability into deprecated code contradicts the deprecation argument we are committing to in the milestone debrief. Second, the diff David evaluates should carry a clean authorship signal — "what Nate built since branching from main" — not a mixture of Nate's milestone work plus David's own experimental work cherry-picked back. Third, `nexus-sync-2026-04` has had zero new commits since 2026-04-22 and zero direct mentions in any debrief, question, or focus-areas file authored by David since then; the implicit signal is that David has not himself elected to merge his branch to `main`, and Nate cherry-picking from it would invert the review hierarchy.
+The **REJECT-all decision on the 21 nexus-sync commits** rests on three convergent reasoning chains. First, Pipeline v2 architecturally deprecates the legacy `executor.sh` shell stack that 17 of the 21 commits extend; adopting Phase 5 observability into deprecated code contradicts the deprecation argument we are committing to in the milestone debrief. Second, the diff David evaluates should carry a clean authorship signal — "what Sir built since branching from main" — not a mixture of Sir's milestone work plus David's own experimental work cherry-picked back. Third, `nexus-sync-2026-04` has had zero new commits since 2026-04-22 and zero direct mentions in any debrief, question, or focus-areas file authored by David since then; the implicit signal is that David has not himself elected to merge his branch to `main`, and Sir cherry-picking from it would invert the review hierarchy.
 
 The **honest scope statement on Pipeline v2** is the most consequential finding from the rewiring assessment: Pipeline v2 is a *reconceptualization* of Nexus, not an incremental enhancement. Three architectural tradeoffs were taken explicitly: scheduled cron-driven jobs were replaced with event-driven webhook dispatch (sub-second latency at the cost of registry-based scheduling flexibility); executor-level retry-with-backoff was replaced with the Review→Diagnose→Staging cycle (more intelligent recovery at the cost of executor-internal hedging); and the cron watchdog heartbeat was replaced with implicit progress tracking via Pulse label mutations (simpler, but no automatic killing of hung executor processes). All three tradeoffs work; they are not bugs. **Restoring v1 feature parity (Telegram routing, watchdog stuck-task detection, registry-based scheduling, v1→v2 task migration tooling, in-process retry) totals approximately 30-50 hours of additional work** — itemized in §7 below. David should decide whether v1's traits are essential to AIFred-Pro's production mission. If they are, the rewiring is straightforward and additive; if they are not, the tradeoffs stand.
 
@@ -22,7 +22,7 @@ The **honest scope statement on Pipeline v2** is the most consequential finding 
 
 ## 2. Major Changes We've Made
 
-The work in this 14-day window organizes into six initiatives, listed in order of architectural weight on AIFred-Pro-Dev.
+The work in this 14-day window organizes into six initiatives, listed in order of architectural weight on Alfred-Dev.
 
 ### 2.1 Pipeline v2 — Webhook-Driven Service Mesh (Dominant)
 
@@ -168,11 +168,11 @@ v1's `dispatcher-watchdog.sh` runs every 15 min, detects stuck jobs (no progress
 
 ### 4.6 Bash Personas with Inline Decision Logging vs Python Personas with Structured `decisions[]` Output
 
-nexus-sync's Phase 5.5 (`93f5320`) adds 9 inline `log_decision` call sites in `executor.sh` (budget_gate, task_claim, retry, task_release) and a `decisions[]` array convention in three persona prompts (task-evaluator, task-investigator, ai-reviewer; 188-line diff on ai-reviewer/prompt.md). v2's persona system loads prompts from disk via `_shared.py.load_persona_prompt()` but the persona prompts themselves have evolved on `nate-dev` for Pipeline v2. The 188-line diff represents direct conflict between Nate's Pipeline-v2-aware prompt evolution and David's Phase 5.5 decision-rationale rollout. The two cannot be merged file-by-file without manual reconciliation.
+nexus-sync's Phase 5.5 (`93f5320`) adds 9 inline `log_decision` call sites in `executor.sh` (budget_gate, task_claim, retry, task_release) and a `decisions[]` array convention in three persona prompts (task-evaluator, task-investigator, ai-reviewer; 188-line diff on ai-reviewer/prompt.md). v2's persona system loads prompts from disk via `_shared.py.load_persona_prompt()` but the persona prompts themselves have evolved on `nate-dev` for Pipeline v2. The 188-line diff represents direct conflict between Archon's Pipeline-v2-aware prompt evolution and David's Phase 5.5 decision-rationale rollout. The two cannot be merged file-by-file without manual reconciliation.
 
 ### 4.7 Dashboard Birth Commit vs Independent Dashboard Evolution
 
-nexus-sync's `a450f61` (200+ files) is the dashboard's birth commit on that branch — David's initial import from `nexus-dashboard/`. nate-dev inherits the dashboard via merge-base `dfd40c5` and has evolved it independently (live execution panel, Activity Timeline, Dependency Chain, Project Creator streaming). Re-merging `a450f61` would not be a cherry-pick; it would be a destructive overwrite of Nate's dashboard evolution with a 4-week-old snapshot.
+nexus-sync's `a450f61` (200+ files) is the dashboard's birth commit on that branch — David's initial import from `nexus-dashboard/`. nate-dev inherits the dashboard via merge-base `dfd40c5` and has evolved it independently (live execution panel, Activity Timeline, Dependency Chain, Project Creator streaming). Re-merging `a450f61` would not be a cherry-pick; it would be a destructive overwrite of Sir's dashboard evolution with a 4-week-old snapshot.
 
 ---
 
@@ -194,7 +194,7 @@ David's audit-ingest is the most architecturally independent piece of nexus-sync
 
 The pattern is valuable: SDK-based personas emit `decisions[]` arrays in their report JSON (alongside primary report content); the executor post-processes those arrays into `pulse.decision_events`. This separates *decision content* (what the persona thought) from *decision mechanics* (how those thoughts get logged). Aligns directly with David's stated AI-Reviewer dashboard instrumentation priority.
 
-**Merge mechanism**: cannot direct-cherry-pick due to 188-line conflict on `ai-reviewer/prompt.md` between David's Phase 5.5 evolution and Nate's Pipeline-v2 evolution. Recommended path: David refreshes the persona prompts in main when ready; Nate rebases nate-dev onto the new main.
+**Merge mechanism**: cannot direct-cherry-pick due to 188-line conflict on `ai-reviewer/prompt.md` between David's Phase 5.5 evolution and Archon's Pipeline-v2 evolution. Recommended path: David refreshes the persona prompts in main when ready; Sir rebases nate-dev onto the new main.
 
 **Effort if conceptual port instead**: ~6-12 hours to implement `decisions[]` output convention in v2's persona prompt templates + executor.py post-processing + dashboard surface for the decision_events.
 
@@ -214,7 +214,7 @@ Direct merge contradicts authorship signal. Recommendation: write a milestone-re
 
 ### 5.5 Persona Prompt Evolution (`task-evaluator`, `task-investigator`) — REBASE-AFTER
 
-David's nexus-sync evolution of `task-evaluator/prompt.md` and `task-investigator/prompt.md` (decision-rationale rollout) conflicts file-by-file with nate-dev's Pipeline-v2-aware evolution of the same files. The cleanest reconciliation is sequential: David merges nexus-sync to main when he chooses; Nate rebases nate-dev onto the new main; conflicts resolve in one focused session.
+David's nexus-sync evolution of `task-evaluator/prompt.md` and `task-investigator/prompt.md` (decision-rationale rollout) conflicts file-by-file with nate-dev's Pipeline-v2-aware evolution of the same files. The cleanest reconciliation is sequential: David merges nexus-sync to main when he chooses; Sir rebases nate-dev onto the new main; conflicts resolve in one focused session.
 
 ---
 
@@ -315,7 +315,7 @@ The actionable summary of what would be required to restore v1 feature parity to
 
 **Status**: Pulse handles mutex enforcement server-side natively (per `pulse-reference.md` §Label System). Adding a label via Pulse API automatically removes conflicting mutex-group members. No rewiring required.
 
-**Audit task** (just to be safe): `grep -r "label-ops.sh" AIFred-Pro-Dev/.claude/` — if any v2 code path invokes the legacy wrapper, replace with direct Pulse API call. Likely returns zero hits.
+**Audit task** (just to be safe): `grep -r "label-ops.sh" Alfred-Dev/.claude/` — if any v2 code path invokes the legacy wrapper, replace with direct Pulse API call. Likely returns zero hits.
 
 #### D. V1-to-V2 Task Migration Tool (SMALL, 2-4 hours, ONE-TIME)
 
@@ -329,7 +329,7 @@ The actionable summary of what would be required to restore v1 feature parity to
 
 **Architectural conflict**: None. Pure data migration.
 
-**Recommendation**: Required only if AIFred-Pro production migrates from v1 to v2 in-place. If David maintains AIFred-Pro production on v1 indefinitely while Nate's Pipeline v2 lives separately, this script is not needed.
+**Recommendation**: Required only if AIFred-Pro production migrates from v1 to v2 in-place. If David maintains AIFred-Pro production on v1 indefinitely while Archon's Pipeline v2 lives separately, this script is not needed.
 
 #### E. Specialized Executors (LARGE or N/A)
 
@@ -412,9 +412,9 @@ The **REJECT-all decision on the 21 nexus-sync commits** is downstream of this h
 
 ### 9.2 Architectural Source Material
 
-- Pipeline v2 design — `AIFred-Pro-Dev/.claude/context/designs/pipeline-redesign-v2.md` (1100 lines)
-- Pipeline v2 technical reference — `AIFred-Pro-Dev/.claude/context/designs/pipeline-v2-technical-reference.md` (577 lines)
-- Pipeline v2 services — `AIFred-Pro-Dev/.claude/jobs/services/{stage,evaluate,orchestrate,executor,reviewer,_shared}.py`
+- Pipeline v2 design — `Alfred-Dev/.claude/context/designs/pipeline-redesign-v2.md` (1100 lines)
+- Pipeline v2 technical reference — `Alfred-Dev/.claude/context/designs/pipeline-v2-technical-reference.md` (577 lines)
+- Pipeline v2 services — `Alfred-Dev/.claude/jobs/services/{stage,evaluate,orchestrate,executor,reviewer,_shared}.py`
 - AIFred-Pro production master — `AIFred-Pro/.claude/CLAUDE.md`, `AIFred-Pro/docs/nexus-automation.md`, `AIFred-Pro/.claude/context/tools/pulse-reference.md`
 
 ### 9.3 Token-Compression Initiative Artifacts
@@ -450,8 +450,8 @@ The **REJECT-all decision on the 21 nexus-sync commits** is downstream of this h
 
 ### 9.7 Resolved Questions
 
-- 2026-04-21 — `Shared_Projects/Questions/2026-04-21-nate-for-david-workspace-setup.md` (answered 2026-04-22 by Liaison persona)
-- 2026-04-25 — `Shared_Projects/Questions/nate-2026-04-25-reply-to-checkin.md` (answered 2026-04-25 directly by David — `bd` binary dead, React+RQ+Recharts confirmed, AI Reviewer first instrumentation target)
+- 2026-04-21 — `Shared_Projects/Questions/2026-04-21-Archon-for-david-workspace-setup.md` (answered 2026-04-22 by Liaison persona)
+- 2026-04-25 — `Shared_Projects/Questions/Archon-2026-04-25-reply-to-checkin.md` (answered 2026-04-25 directly by David — `bd` binary dead, React+RQ+Recharts confirmed, AI Reviewer first instrumentation target)
 
 ---
 

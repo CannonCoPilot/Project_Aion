@@ -1,6 +1,6 @@
 # Token Compression — Production Roadmap (v3, Source-Grounded + Multi-Pass Architecture)
 
-**Project**: Token Compression for Jarvis & AIFred-Pro-Dev
+**Project**: Token Compression for Jarvis & Alfred-Dev
 **Date**: 2026-04-30
 **Author**: Jarvis (Master Archon)
 **Status**: Draft v3 — multi-pass architecture, AIFred persona variant, cache-study promoted to Phase 0
@@ -11,9 +11,9 @@
 ## What changed in v3 (this revision)
 
 - Added explicit **Multi-Pass Architecture** (§2.4): seven sequential/orthogonal passes with token-stream and timing rationale
-- Added **AIFred persona variant** (Alfred-Brief) for AIFred-Pro-Dev CLAUDE.md (§2.3): Alfred Pennyworth's drier, more measured register vs Jarvis's Jeeves register
+- Added **AIFred persona variant** (Alfred-Brief) for Alfred-Dev CLAUDE.md (§2.3): Alfred Pennyworth's drier, more measured register vs Jarvis's Jeeves register
 - Reframed **prompt-cache interaction study** as Phase 0 — **runs concurrently with Phases 1-5, not gating** (§3.0)
-- Added Phase 1.5: deploy Alfred-Brief to AIFred-Pro-Dev CLAUDE.md (§3.1)
+- Added Phase 1.5: deploy Alfred-Brief to Alfred-Dev CLAUDE.md (§3.1)
 - Expanded **§4.7 Stacking Rules** with full mechanism-level rationale (why each combination works or fails)
 - Added §4.8: **DSPy clarification** — DSPy is a build-tool reference, not a runtime dependency
 - Restructured **Phase 6** as "Future Backlog (deferred)" — only 6.4 was load-bearing (now Phase 0); the rest become nice-to-haves contingent on Phase 1-5 metrics
@@ -34,7 +34,7 @@ The headline change: **caveman's viral "65% savings" number does not survive rub
 
 ## 1. Executive Summary
 
-Compression targets five consumption phases across two systems (Jarvis + AIFred-Pro-Dev). The **honest** technique stack, after source review:
+Compression targets five consumption phases across two systems (Jarvis + Alfred-Dev). The **honest** technique stack, after source review:
 
 | Layer | Technique | Source-verified savings | Overhead | Quality |
 |-------|-----------|------------------------|----------|---------|
@@ -54,7 +54,7 @@ The Executive Summary table is the output of a constrained optimization across f
 
 **Criterion 2 — Quality preservation against rubric.** `"Be brief."` won the user-facing slot because cc-compression-bench measured 0.985 vs 0.985 baseline (parity). Caveman lost the same slot at 0.975 with a real failure mode (`must_use_terms` drop on lite/arch_02). A 1pp quality loss is non-trivial when accumulated across thousands of turns; quality gates are absolute, not soft.
 
-**Criterion 3 — Persona compatibility (hard constraint).** Jarvis identity spec requires "butler precision + lab partner warmth + senior engineer competence" (Wodehouse-Jeeves + Stark-JARVIS lineage). Caveman's voice (`"why use many token when few do trick"`) and Rocky's voice (`"hull bending"`, `"plan good"`) violate the persona spec. They were excluded from the user-facing layer regardless of their savings numbers. AIFred-Pro-Dev has a parallel constraint: Alfred Pennyworth's measured-butler register, drier than Jeeves.
+**Criterion 3 — Persona compatibility (hard constraint).** Jarvis identity spec requires "butler precision + lab partner warmth + senior engineer competence" (Wodehouse-Jeeves + Stark-JARVIS lineage). Caveman's voice (`"why use many token when few do trick"`) and Rocky's voice (`"hull bending"`, `"plan good"`) violate the persona spec. They were excluded from the user-facing layer regardless of their savings numbers. Alfred-Dev has a parallel constraint: Alfred Pennyworth's measured-butler register, drier than Jeeves.
 
 **Criterion 4 — Deployment overhead.** Prompt-only (zero infrastructure) > skill-only (config file changes) > full skill + hooks + telemetry. `"Be brief."` is 2 tokens, zero infrastructure. CoD is one prompt line plus optional few-shot. Caveman is a 30+ file plugin with hooks and statusline — over-engineered for what it actually delivers.
 
@@ -104,13 +104,13 @@ AIFRED-PRO-DEV (Pipeline)
 - **Error messages and diagnostics**: Clarity > brevity for debugging
 - **Anything Caveman's Auto-Clarity rule excludes**: security warnings, irreversible actions, multi-step sequences with fragment ambiguity. Source: `caveman/skills/caveman/SKILL.md` lines 54-65.
 
-### 2.3 Persona Constraints (Jarvis vs AIFred-Pro-Dev)
+### 2.3 Persona Constraints (Jarvis vs Alfred-Dev)
 
 Both Archons require persona-compatible brevity. They have *different* personas, so we need *two* directives.
 
 **Jarvis** = Wodehouse-Jeeves + Stark-JARVIS lineage. Identity spec: "Butler precision + lab partner warmth + senior engineer competence." Polite, slightly sarcastic, dry humor, witty scientific assistant. Caveman's tone (`"why use many token when few do trick"`) directly conflicts; Rocky's alien voice is incompatible.
 
-**AIFred-Pro-Dev** = Alfred Pennyworth (Batman's butler, Wayne family). Identity: measured, care-worn, professional, less playful than Jeeves, more grave. Habitual brevity (vs Jeeves's crafted brevity). Honorifics restrained, no theatrics.
+**Alfred-Dev** = Alfred Pennyworth (Batman's butler, Wayne family). Identity: measured, care-worn, professional, less playful than Jeeves, more grave. Habitual brevity (vs Jeeves's crafted brevity). Honorifics restrained, no theatrics.
 
 **Solution**: adapt the Caveman 6-line micro structure (Guzik) into two register-distinct variants. Verbatim Guzik (85 tokens, source: medium article):
 
@@ -120,7 +120,7 @@ Both Archons require persona-compatible brevity. They have *different* personas,
 
 > Respond with the precision of an experienced butler. Cut all filler; keep technical substance. Drop pleasantries (sure, certainly, happy to), hedging, and restated context. Prefer one clear sentence over three cautious ones. Maintain formal register: complete sentences, professional diction. Technical terms stay exact. Code blocks, paths, and commands unchanged. Pattern: [observation]. [implication]. [next action], sir.
 
-**Alfred-Brief** (proposed for AIFred-Pro-Dev CLAUDE.md, ~135 tokens — refined):
+**Alfred-Brief** (proposed for Alfred-Dev CLAUDE.md, ~135 tokens — refined):
 
 > Respond with the measured economy of a long-serving butler. Cut filler; keep technical substance. Drop pleasantries (sure, certainly, happy to), hedging, and restated context. Speak plainly. Maintain professional register: complete sentences, no theatrics. Technical terms stay exact. Code blocks, paths, and commands unchanged. Pattern: [observation]. [implication]. [next action]. Close action-bearing replies with a confirmatory valediction — "Very good.", "Right away.", "It shall be taken care of.", "Immediately.", or "I will see to it myself." — singly or in pairs ("Very good. Right away."). Address the user as "Master Nathaniel" only at the conclusion of a lengthy reply, never on routine short answers.
 
@@ -133,7 +133,7 @@ Differences are deliberate:
 
 Token counts to be validated with `tiktoken` before deployment. Deployment locations:
 - Jarvis: `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md` (system section)
-- AIFred-Pro-Dev: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/CLAUDE.md` (system section). **Note**: Production AIFred-Pro at `/Users/nathanielcannon/Claude/AIFred-Pro/` is read-only for Jarvis (one-way awareness rule); deployment goes to the Dev workspace where David will see it on the next pull.
+- Alfred-Dev: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/CLAUDE.md` (system section). **Note**: Production AIFred-Pro at `/Users/nathanielcannon/Claude/AIFred-Pro/` is read-only for Jarvis (one-way awareness rule); deployment goes to the Dev workspace where David will see it on the next pull.
 
 ### 2.4 Multi-Pass System Design
 
@@ -149,7 +149,7 @@ PASS 0 — Cache layer (Phase 0; concurrent measurement, not a gate)
 
 PASS 1 — System level (always on, Phase 1)
   ├─ Jarvis: Jeeves-Brief in /Users/nathanielcannon/Claude/Jarvis/CLAUDE.md
-  └─ AIFred-Pro-Dev: Alfred-Brief in AIFred-Pro-Dev/.claude/CLAUDE.md
+  └─ Alfred-Dev: Alfred-Brief in Alfred-Dev/.claude/CLAUDE.md
      Affects: every output_token; not thinking_tokens.
 
 PASS 2 — Per-task injection (selective, Phase 2)
@@ -229,9 +229,9 @@ Sources:
 
 #### 0.3 Implementation note for 1h TTL deployment
 
-To enable 1h TTL on the force-loaded prefix, the system-prompt construction in Claude Code (or the equivalent SDK call from AIFred-Pro-Dev pipeline) must include the `cache_control` field on the cached block. Anthropic accepts up to 4 cache breakpoints per request — for Jarvis we'd want one at the end of the force-loaded context (after CLAUDE.md + MEMORY.md + psyche files), giving us a stable 1h-cached prefix and short-cache for everything after.
+To enable 1h TTL on the force-loaded prefix, the system-prompt construction in Claude Code (or the equivalent SDK call from Alfred-Dev pipeline) must include the `cache_control` field on the cached block. Anthropic accepts up to 4 cache breakpoints per request — for Jarvis we'd want one at the end of the force-loaded context (after CLAUDE.md + MEMORY.md + psyche files), giving us a stable 1h-cached prefix and short-cache for everything after.
 
-**Note on Claude Code**: The CLI may not expose `cache_control` directly. Jarvis runs inside Claude Code; we can't control TTL from inside the CLI. The 1h test (Arm 2, Arm 4) is therefore meaningful for the **AIFred-Pro-Dev pipeline's `claude -p` calls and Anthropic-SDK consumers**, not for in-session Jarvis. Adjust expectations accordingly: Phase 0 measures cache behavior from telemetry; the 1h *deployment* is a Phase 4 (pipeline) capability.
+**Note on Claude Code**: The CLI may not expose `cache_control` directly. Jarvis runs inside Claude Code; we can't control TTL from inside the CLI. The 1h test (Arm 2, Arm 4) is therefore meaningful for the **Alfred-Dev pipeline's `claude -p` calls and Anthropic-SDK consumers**, not for in-session Jarvis. Adjust expectations accordingly: Phase 0 measures cache behavior from telemetry; the 1h *deployment* is a Phase 4 (pipeline) capability.
 
 #### 0.4 No gate — concurrent with Phase 1 onward
 
@@ -242,14 +242,14 @@ Per directive, Phase 0 measurement runs alongside Phase 1-5 implementation. We d
 | Task | Technique | Where | Effort |
 |------|-----------|-------|--------|
 | 1.1 | Add Jeeves-Brief to Jarvis CLAUDE.md | `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md` (system section) | 10 min + tiktoken count |
-| 1.2 | Add `"Be brief."` epilogue to executor.py | AIFred-Pro-Dev `executor.py` build_prompt | 5 min |
-| 1.3 | Add `"Be brief."` to reviewer.py | AIFred-Pro-Dev `reviewer.py` review_prompt | 5 min |
+| 1.2 | Add `"Be brief."` epilogue to executor.py | Alfred-Dev `executor.py` build_prompt | 5 min |
+| 1.3 | Add `"Be brief."` to reviewer.py | Alfred-Dev `reviewer.py` review_prompt | 5 min |
 | 1.4 | Capture 3-session baseline (token usage, JICM frequency, response token medians) | passive, before deploying 1.1-1.3 | 3 sessions |
-| **1.5** | **Add Alfred-Brief to AIFred-Pro-Dev CLAUDE.md** | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/CLAUDE.md` (system section) | **10 min + tiktoken count** |
+| **1.5** | **Add Alfred-Brief to Alfred-Dev CLAUDE.md** | `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/CLAUDE.md` (system section) | **10 min + tiktoken count** |
 
 **Milestone 1 gate**: Compare session token counts before/after over ≥3 sessions each. Target: 20-30% output reduction vs baseline. Source-grounded expectation: 34% on rubric-scored prompts; less in chatty interactive sessions where the model already had reason to be brief.
 
-**Note on Phase 1.5**: AIFred-Pro-Dev is the development workspace; production AIFred-Pro is read-only for Jarvis (one-way awareness rule from Jarvis CLAUDE.md). Alfred-Brief lands on `nate-dev` branch first; promotion to production happens via David's normal merge workflow. The variant text and rationale are in §2.3.
+**Note on Phase 1.5**: Alfred-Dev is the development workspace; production AIFred-Pro is read-only for Jarvis (one-way awareness rule from Jarvis CLAUDE.md). Alfred-Brief lands on `nate-dev` branch first; promotion to production happens via David's normal merge workflow. The variant text and rationale are in §2.3.
 
 ### Phase 2: Chain of Draft for Reasoning (2-3 sessions)
 
@@ -280,7 +280,7 @@ The arxiv paper (2502.18600) reports **"matches or surpasses CoT in accuracy whi
 
 **Milestone 3 gate**: JICM checkpoint ≤60% of current size; resume quality unchanged across 5 consecutive cycles. Acceptance criterion: zero cases where Jarvis re-asks "what task?" after resume.
 
-### Phase 4: AIFred-Pro-Dev Pipeline Integration (2-3 sessions)
+### Phase 4: Alfred-Dev Pipeline Integration (2-3 sessions)
 
 | Task | Description | Effort |
 |------|-------------|--------|
@@ -312,7 +312,7 @@ Phase 6.4 (cache interaction study) was **promoted to Phase 0** as a prerequisit
 |------|-------------|-------------------|
 | 6.1 | Strategy router — auto-select compression mode by phase + task type + model | Only if Phase 4 shows uniform compression underperforms per-task selection by ≥10% |
 | 6.2 | Adaptive threshold — disable compression when session < 30K tokens (overhead not worth it) | Only if Phase 0 cache study shows overhead exceeds savings on short sessions |
-| 6.3 | LiteLLM middleware plugin — transparent compression for all model calls | Only if multiple downstream consumers (beyond Jarvis + AIFred-Pro-Dev) emerge |
+| 6.3 | LiteLLM middleware plugin — transparent compression for all model calls | Only if multiple downstream consumers (beyond Jarvis + Alfred-Dev) emerge |
 | ~~6.4~~ | ~~Prompt cache interaction study~~ | **PROMOTED to Phase 0** |
 | 6.5 | Token budget enforcement — hard caps per phase (JICM ≤ 40K, thinking ≤ 8K) | Only if Phase 4 metrics show variance > 30% in per-phase token use |
 
@@ -469,7 +469,7 @@ Each rule has a specific mechanism that explains why it works or fails. Stacking
 
 | Aspect | Relevance |
 |---|---|
-| As a runtime dependency | **Not relevant.** Jarvis runs Claude Code; AIFred-Pro-Dev runs Pulse executors calling `claude -p` and Ollama directly. We do not orchestrate model calls through DSPy. |
+| As a runtime dependency | **Not relevant.** Jarvis runs Claude Code; Alfred-Dev runs Pulse executors calling `claude -p` and Ollama directly. We do not orchestrate model calls through DSPy. |
 | As a build/research tool | **Optionally useful in Phase 2.** DSPy's teleprompter algorithms can auto-optimize CoD few-shot examples per task type. Run offline once, capture optimized prompts, paste into our skill files, discard the DSPy program. Treats DSPy as a benchmarking-style tool. |
 | As conceptual confirmation | **Most useful.** The one-line CoD implementation in DSPy proves the technique is portable to any prompt-driven system. We don't need DSPy to do CoD; we need a prompt-injection point in our skill, which `apply-cod.sh` already provides. |
 
@@ -505,7 +505,7 @@ Reduced Phase 4 ambition vs v1 (-30% → -28% session, -40% → -33% JICM, -70% 
 | CoD degrades math/logic accuracy | -4% on arithmetic per paper | Skip CoD for code review math, debugging numeric output |
 | Compressed JICM breaks resume | Lost context on /clear | Validate with 5 consecutive resume cycles before production |
 | Jeeves-Brief makes Jarvis too terse | UX regression | A/B test: 3 sessions with, 3 without; user preference check |
-| **Compression invalidates prompt cache** | **Higher API costs** | **Phase 0 study (concurrent measurement).** Cache hits are 10× cheaper. Mitigation #1: place compression directives at the *top* of CLAUDE.md so the cached prefix changes once and then stays stable. Mitigation #2: opt into 1-hour cache TTL (`ttl: "1h"`) for the AIFred-Pro-Dev pipeline so writes are amortized over 12× longer windows. See §3.0. |
+| **Compression invalidates prompt cache** | **Higher API costs** | **Phase 0 study (concurrent measurement).** Cache hits are 10× cheaper. Mitigation #1: place compression directives at the *top* of CLAUDE.md so the cached prefix changes once and then stays stable. Mitigation #2: opt into 1-hour cache TTL (`ttl: "1h"`) for the Alfred-Dev pipeline so writes are amortized over 12× longer windows. See §3.0. |
 | Auto-Clarity collapse on safety prompts | Caveman-style savings disappear on 1/3 of dev tasks | Use brief, not caveman; brief preserves savings on those categories |
 | Lite mode drops `must_use_terms` | Terminology precision loss (cc-compression-bench arch_02) | Don't deploy lite for documentation, technical writing |
 | Eridani Signal not validated for pipelines | Author's explicit disclaimer | Use only for machine-consumed sections; never user-facing |
@@ -545,12 +545,12 @@ Jarvis/.claude/skills/token-compression/      # SKELETON ALREADY EXISTS (Apr 29)
     ├── prompts-verbatim.md     # All source-prompts cited verbatim (Caveman SKILL.md, Signal, Rocky, Guzik 6-line, CoD seed)
     └── technique-comparison.md # Decision tree and stacking rules
 
-AIFred-Pro-Dev/.claude/jobs/services/
+Alfred-Dev/.claude/jobs/services/
 ├── executor.py                 # Phase 4: compression mode env var; "be brief" epilogue
 ├── reviewer.py                 # Phase 1: "be brief" in review prompt
 └── _shared.py                  # Phase 4: token measurement utilities
 
-AIFred-Pro-Dev/dashboard/
+Alfred-Dev/dashboard/
 ├── server/routes/compression.ts        # Phase 5: /api/compression/stats
 ├── server/services/compression.ts      # Phase 5: aggregation
 ├── frontend/src/pages/TokenCompressionPage.tsx  # Phase 5
@@ -589,7 +589,7 @@ AIFred-Pro-Dev/dashboard/
 
 1. ~~**Prompt cache interaction**~~ — moved to **Phase 0** (prerequisite). See §3.0.
 2. **CoD few-shot example generation**: Phase 2.1 might show single-line prompt is enough. If quality drops, Phase 2.2's example library needs careful curation — 5 examples per task type × 5 task types = 25 examples to write and verify. **DSPy is the offline tool of last resort here** (see §4.8) — only if hand-written examples underperform.
-3. **Local LLM CoD validation**: Qwen3:32b is the AIFred-Pro-Dev pipeline executor. CoD's arxiv paper benchmarks GPT-4 and Claude. Local validation needed before Phase 4.
+3. **Local LLM CoD validation**: Qwen3:32b is the Alfred-Dev pipeline executor. CoD's arxiv paper benchmarks GPT-4 and Claude. Local validation needed before Phase 4.
 4. **Stacked configuration**: No source benchmarks Brief + CoD together. Phase 1 + Phase 2 evaluation should measure them stacked vs each alone (also addressed in §4.7 Rule 1).
 5. **Caveman-shrink MCP middleware** (mentioned in caveman README): Compresses MCP `tools/list` `description` fields. Worth investigating for Jarvis's heavy MCP load (7 active MCPs) — separate from the 5-phase plan; treat as a discrete experiment in Phase 6 backlog if the cache study shows MCP descriptions are a meaningful slice of input tokens.
 6. **Memory-file compressor (formal-register variant of caveman-compress)**: Caveman's memory-file rewriter claims ~46% input-token savings on CLAUDE.md-style files while preserving code/URLs/paths byte-for-byte. The mechanism is sound (regex-protected zones + LLM-driven prose rewrite). Building a formal-register variant is a Phase 5/Phase 6 candidate, valuable specifically for `.compressed-context-ready.md` and the JICM checkpoint pipeline. Source: `caveman/caveman-compress/SKILL.md`.

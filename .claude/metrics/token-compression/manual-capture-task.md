@@ -1,6 +1,6 @@
 # Token-compression Phase 1 — Manual post-deploy capture
 
-**Owner**: Nate
+**Owner**: Sir
 **Created**: 2026-04-30
 **Deadline**: 2026-05-03 21:00 America/Denver (= 03:00 UTC May 4)
 **Why deadline**: A remote agent (`trig_01EtBi9X7q42owtUCWzmSgLH`) fires at that time to compute Δ vs the 2026-04-30 baseline. Without this capture committed first, that agent will only be able to report `PENDING`.

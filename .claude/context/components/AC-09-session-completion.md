@@ -92,7 +92,7 @@ All signal files live in `.claude/context/` and are gitignored.
 | Updated priorities | `current-priorities.md` | Task tracking |
 | Git commit | Repository | Version control |
 | ProjectIntel debrief | `Shared_Projects/Debriefs/<Project>/` | Collaborator communication |
-| Focus areas update | `Shared_Projects/Status/nate/` | Priority visibility |
+| Focus areas update | `Shared_Projects/Status/Archon/` | Priority visibility |
 
 ---
 

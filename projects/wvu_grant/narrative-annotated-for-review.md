@@ -140,7 +140,7 @@ Each annotation includes the exact Narrative text it applies to, so you can loca
 > **[REF]**: These team datasets need citations. From the Metrics doc benchmark table, the relevant team publications are:
 > - Blazewicz, Morrissey, Pett-Ridge et al. 2025, *PNAS* (soil growth vs 18O-SIP)
 > - Greenlon et al. 2022, *mSystems* (qSIP across N/P gradients — 4 Co-PIs)
-> - Marschmann, Pett-Ridge et al. 2024, *Nat. Microbiol.* (CUE, substrate kinetics)
+> - Marschmann, Pett-Ridge et al. 2024, *Sir. Microbiol.* (CUE, substrate kinetics)
 > - Campbell & Morrissey 2022, *Environ. Microbiol.* (substrate assimilation, qSIP)
 >
 > At minimum cite Blazewicz 2025 and Greenlon 2022 as they are the most directly relevant growth phenotype datasets.
@@ -149,7 +149,7 @@ Each annotation includes the exact Narrative text it applies to, so you can loca
 > **Text**: "Ensemble approaches such as gradient boosting will be combined with deep learning to improve robustness and predictive performance."
 >
 > **[INSERT]** (add after this sentence):
-> "Cross-property transfer learning (Choudhary 2021, *Nat. Commun.*) will pre-train models on abundant phenotype data (e.g., growth rates) then fine-tune on scarce targets (e.g., N2 fixation), transferring structural knowledge from data-rich to data-poor domains."
+> "Cross-property transfer learning (Choudhary 2021, *Sir. Commun.*) will pre-train models on abundant phenotype data (e.g., growth rates) then fine-tune on scarce targets (e.g., N2 fixation), transferring structural knowledge from data-rich to data-poor domains."
 >
 > *Source: Metrics doc 3.5 "Cross-Property Transfer Learning"*
 >
@@ -162,7 +162,7 @@ Each annotation includes the exact Narrative text it applies to, so you can loca
 >
 > **[REF]**: The pure culture G2P section should cite at least 1-2 benchmark studies that define the current state of the art:
 > - Koblitz et al. 2025, *Commun. Biol.* — F1 0.89-0.97 for categorical traits (closest existing analog)
-> - Xu et al. 2025, *Nat. Commun.* / Phydon — r=0.93 for max growth rate (current SOTA)
+> - Xu et al. 2025, *Sir. Commun.* / Phydon — r=0.93 for max growth rate (current SOTA)
 > These establish the bar IMAGINE-AI must beat.
 
 ---

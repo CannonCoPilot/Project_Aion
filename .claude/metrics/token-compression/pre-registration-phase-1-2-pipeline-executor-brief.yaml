@@ -1,7 +1,7 @@
 # Pre-Registration — Phase 1.2 Pipeline Executor "Be brief" Epilogue
 #
 # METHODOLOGICAL NOTE: post-hoc.
-# The deploy at AIFred-Pro-Dev `f15f6a2` (2026-05-01T03:29:07Z) predates
+# The deploy at Alfred-Dev `f15f6a2` (2026-05-01T03:29:07Z) predates
 # this pre-registration by approximately one day. Predictions below are
 # magnitude-mirrored from Phase 1.5 (Alfred-Brief), which itself draws
 # on cc-compression-bench's measured 34% output reduction at parity
@@ -11,7 +11,7 @@
 #
 # Honest interpretation: like Phase 1.1, this run validates protocol
 # mechanics on real data, not a clean per-class effect signal. The first
-# clean pre-registration in the AIFred-Pro-Dev pipeline-telemetry family
+# clean pre-registration in the Alfred-Dev pipeline-telemetry family
 # will be the next pipeline intervention deployed AFTER the pipeline-
 # telemetry extractor (Phase 0.5 backlog) ships.
 #
@@ -32,7 +32,7 @@ deploy_repo: davidmoneil/AIFred-Pro
 # they affect different services and may exhibit different per-class effects.
 
 baseline_lineage: []
-# First-time intervention against AIFred-Pro-Dev pipeline executor.
+# First-time intervention against Alfred-Dev pipeline executor.
 
 # === HYPOTHESIS ===
 #

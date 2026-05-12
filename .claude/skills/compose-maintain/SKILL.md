@@ -146,7 +146,7 @@ cd <project_dir>
 
 | Recipe | Purpose | Typical runtime |
 |---|---|---|
-| `topology-rename-alfred` | Topology migration: `AIFred-Pro-Dev` → `Alfred-Dev` directory rename + path sed | ~3-5 min |
+| `topology-rename-alfred` | Topology migration: `Alfred-Dev` → `Alfred-Dev` directory rename + path sed | ~3-5 min |
 | (add more as needed) | | |
 
 ## Safety

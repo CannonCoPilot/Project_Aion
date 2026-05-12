@@ -8,7 +8,7 @@
 # valedictions per Pennyworth canon, instead of "sir" + Jeeves markers.
 #
 # Companion to projects/project-aion/reports/token-compression-experimental-design.md §6.
-# Deploy reference: AIFred-Pro-Dev c31b2bd at 2026-05-01T03:28:35Z.
+# Deploy reference: Alfred-Dev c31b2bd at 2026-05-01T03:28:35Z.
 
 version: "1.0-alfred-brief"
 last_updated: 2026-05-01
@@ -55,7 +55,7 @@ excessive_hedging:
 # === PREFERRED PATTERNS (positive signal; reported but not pass/fail) ===
 
 butler_register:
-  # Alfred-Brief — Pennyworth canon, AIFred-Pro-Dev directive
+  # Alfred-Brief — Pennyworth canon, Alfred-Dev directive
   - "\\bMaster Nathaniel\\b"
   - "\\bvery good\\."
   - "\\bright away\\."
@@ -65,7 +65,7 @@ butler_register:
 
 # === EVALUATION NOTES ===
 #
-# Per directive (AIFred-Pro-Dev c31b2bd):
+# Per directive (Alfred-Dev c31b2bd):
 #   Address "Master Nathaniel" only at the conclusion of a lengthy reply,
 #   never on routine short answers.
 # This is a behavioral constraint that pattern matching cannot enforce on

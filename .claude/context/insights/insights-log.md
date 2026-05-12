@@ -4536,7 +4536,7 @@ For functional annotation specifically, the relevant references remain Pavlopoul
 
 4. **Kimbrel has 3 nitrogen fixation papers** — biofertilizer SynCom genomics, diazotroph community responses, and PGP trait spectrum characterization.
 
-5. **Choudhary's cross-property transfer learning** (2021 *Nat. Commun.*) directly solves IMAGINE-AI's small-dataset problem — pre-train on abundant phenotypes, fine-tune on scarce ones like N₂ fixation rates.
+5. **Choudhary's cross-property transfer learning** (2021 *Sir. Commun.*) directly solves IMAGINE-AI's small-dataset problem — pre-train on abundant phenotypes, fine-tune on scarce ones like N₂ fixation rates.
 
 6. **Romero and Choudhary have zero biology publications** — their contributions are methodological (AI/ML architecture, HPC). This is fine for the proposal but worth noting.
 
@@ -4550,7 +4550,7 @@ For functional annotation specifically, the relevant references remain Pavlopoul
 
 2. **The "comps" reference set should include the team's own prior papers.** The 8 benchmarking candidates from PI publications can serve as internal comps — IMAGINE-AI should be able to reproduce and improve on the team's own best published results. This is honest, testable, and compelling: "We built models that beat our own best previous work."
 
-3. **Choudhary's cross-property transfer learning paper** (2021 *Nat. Commun.*) is the methodological key to the small-dataset problem. Pre-training on abundant phenotypes (growth rate, Gram stain) and fine-tuning on scarce phenotypes (N₂ fixation rates) is exactly the strategy that makes IMAGINE-AI feasible with available training data. This should be cited prominently in the AI Models section of the narrative.
+3. **Choudhary's cross-property transfer learning paper** (2021 *Sir. Commun.*) is the methodological key to the small-dataset problem. Pre-training on abundant phenotypes (growth rate, Gram stain) and fine-tuning on scarce phenotypes (N₂ fixation rates) is exactly the strategy that makes IMAGINE-AI feasible with available training data. This should be cited prominently in the AI Models section of the narrative.
 
 ### 2026-04-17 [130c6c72923f]
 
@@ -4895,7 +4895,7 @@ The meditation command now embodies a genuine philosophical shift: Phase 3 (Refl
 
 ### 2026-04-25 [f5ff07ef99ba]
 
-The cross-project commit check (Phase 7c of `/meditate-session`) just proved its value in real-time — we caught 12 uncommitted files in AIFred-Pro-Dev that represented a full feature's worth of work. Without this check, that work would have sat uncommitted across session boundaries, invisible to David and vulnerable to loss.
+The cross-project commit check (Phase 7c of `/meditate-session`) just proved its value in real-time — we caught 12 uncommitted files in Alfred-Dev that represented a full feature's worth of work. Without this check, that work would have sat uncommitted across session boundaries, invisible to David and vulnerable to loss.
 
 ### 2026-04-25 [f4ab8741e99b]
 
@@ -4966,7 +4966,7 @@ The workflows and pre_checks are using two different label systems that were nev
 
 ### 2026-04-25 [59271c18e430]
 
-**Why 20 turns isn't enough**: Each headless Claude session in AIFred-Pro-Dev loads a substantial CLAUDE.md context (~66K tokens of cache creation). The session's "turns" include every tool call — reading config files, querying the Pulse API, evaluating tasks. With 20 turns, roughly 10-12 get consumed by context setup and discovery, leaving only 8-10 for actual work. Bumping to 40 turns gives the investigator room to query tasks, check file paths, evaluate 5 candidates, and write its report. The budget bump to $3.00 accommodates the additional turns.
+**Why 20 turns isn't enough**: Each headless Claude session in Alfred-Dev loads a substantial CLAUDE.md context (~66K tokens of cache creation). The session's "turns" include every tool call — reading config files, querying the Pulse API, evaluating tasks. With 20 turns, roughly 10-12 get consumed by context setup and discovery, leaving only 8-10 for actual work. Bumping to 40 turns gives the investigator room to query tasks, check file paths, evaluate 5 candidates, and write its report. The budget bump to $3.00 accommodates the additional turns.
 
 ### 2026-04-25 [437f652cb4b0]
 
@@ -5054,7 +5054,7 @@ The full pipeline gives: proper stage tracking, capability-based executor routin
 
 ### 2026-04-26 [e85fe1ab962c]
 
-**Duplicate JSON keys cause undefined parser behavior.** Your Jarvis `settings.json` has TWO `"permissions"` keys at the same level — one at position 7177 (restrictive, read-only commands) and one at position 10217 (your bypass config with AIFred-Pro-Dev access). JSON spec says duplicate keys are undefined behavior — some parsers take the first, some take the last. Python's parser takes the last (your intended config), but Claude Code's parser likely takes the **first** (the restrictive one), which has no `Edit`, `Write`, or `Bash(*)` permissions and no `defaultMode`.
+**Duplicate JSON keys cause undefined parser behavior.** Your Jarvis `settings.json` has TWO `"permissions"` keys at the same level — one at position 7177 (restrictive, read-only commands) and one at position 10217 (your bypass config with Alfred-Dev access). JSON spec says duplicate keys are undefined behavior — some parsers take the first, some take the last. Python's parser takes the last (your intended config), but Claude Code's parser likely takes the **first** (the restrictive one), which has no `Edit`, `Write`, or `Bash(*)` permissions and no `defaultMode`.
 
 ### 2026-04-26 [4b6564595b24]
 
@@ -5088,9 +5088,9 @@ The working directory persistence between Bash calls is why `git -C <path>` is c
 
 **What the checkpoint captured from Session 52:**
 
-The LLM enrichment (qwen3:8b) correctly identified the main work thread — AIFred-Pro-Dev pipeline redesign — but its "Progress" section got confused: it logged the JICM compression steps themselves as the "progress items" (check flag, create flag, run prep script) rather than the actual session work. This is the hallucination pattern that the post-compression validator was built to catch.
+The LLM enrichment (qwen3:8b) correctly identified the main work thread — Alfred-Dev pipeline redesign — but its "Progress" section got confused: it logged the JICM compression steps themselves as the "progress items" (check flag, create flag, run prep script) rather than the actual session work. This is the hallucination pattern that the post-compression validator was built to catch.
 
-The **raw Tier 1 data** (lines 37-232) is more useful — it preserves the actual conversation, including your 6 design decisions on webhooks/chaining/limits/models/clean DB/concurrency, the settings.json duplicate-key fix, and the pipeline redesign document at `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/context/designs/pipeline-redesign-v2.md`.
+The **raw Tier 1 data** (lines 37-232) is more useful — it preserves the actual conversation, including your 6 design decisions on webhooks/chaining/limits/models/clean DB/concurrency, the settings.json duplicate-key fix, and the pipeline redesign document at `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/context/designs/pipeline-redesign-v2.md`.
 
 ### 2026-04-26 [a78b7d1f511c]
 
@@ -5144,11 +5144,11 @@ This is a critical finding for the pipeline design: the qwen3:32b Evaluate servi
 
 ### 2026-04-29 [5d2a4b87e7c1]
 
-**Claude Code permission resolution model**: Three layers cascade — **User** (`~/.claude/settings.json`), **Project** (`<project>/.claude/settings.json`), and **Local** (`<project>/.claude/settings.local.json`). The key rules: (1) `deny` from ANY layer always wins; (2) `defaultMode: bypassPermissions` allows everything not denied; (3) `additionalDirectories` extends the working directory scope. When launching from Jarvis, the Jarvis project settings are the active project layer, but operations targeting files in `additionalDirectories` are still subject to deny rules from ALL layers. Critically, the **AIFred-Pro-Dev project settings are NOT loaded** when you launch from Jarvis — only its files become accessible via `additionalDirectories`. But the bash-safety-guard hook runs on every tool call and has its own workspace boundary logic.
+**Claude Code permission resolution model**: Three layers cascade — **User** (`~/.claude/settings.json`), **Project** (`<project>/.claude/settings.json`), and **Local** (`<project>/.claude/settings.local.json`). The key rules: (1) `deny` from ANY layer always wins; (2) `defaultMode: bypassPermissions` allows everything not denied; (3) `additionalDirectories` extends the working directory scope. When launching from Jarvis, the Jarvis project settings are the active project layer, but operations targeting files in `additionalDirectories` are still subject to deny rules from ALL layers. Critically, the **Alfred-Dev project settings are NOT loaded** when you launch from Jarvis — only its files become accessible via `additionalDirectories`. But the bash-safety-guard hook runs on every tool call and has its own workspace boundary logic.
 
 ### 2026-04-29 [e1d687d232aa]
 
-**Key change**: The deny list now correctly protects two read-only locations: (1) the archived AIfred baseline at `Archive/AIfred/`, and (2) the **production** AIFred-Pro at `/Claude/AIFred-Pro/` (which CLAUDE.md says is read-only for Jarvis — one-way awareness). The **dev** workspace at `/Claude/AIFred-Pro-Dev/` is NOT denied, giving full write access there. This matches the workspace policy exactly.
+**Key change**: The deny list now correctly protects two read-only locations: (1) the archived AIfred baseline at `Archive/AIfred/`, and (2) the **production** AIFred-Pro at `/Claude/AIFred-Pro/` (which CLAUDE.md says is read-only for Jarvis — one-way awareness). The **dev** workspace at `/Claude/Alfred-Dev/` is NOT denied, giving full write access there. This matches the workspace policy exactly.
 
 ### 2026-04-29 [0311a3c19321]
 
@@ -5168,7 +5168,7 @@ RAG only has Session 51 ingested — Session 52's work (pipeline test, two new c
 
 ### 2026-04-29 [6db3bc47e907]
 
-**The root cause is a string prefix collision in `isBaselinePath()`.** `'/Users/nathanielcannon/Claude/AIFred-Pro'` is a prefix of `'/Users/nathanielcannon/Claude/AIFred-Pro-Dev'`, so JavaScript's `startsWith()` returns true for ALL AIFred-Pro-Dev paths. The hook returns `{proceed: false}` which blocks the Edit/Write operation. This is a classic sibling-directory prefix collision bug — the fix is adding a trailing `/` to the comparison.
+**The root cause is a string prefix collision in `isBaselinePath()`.** `'/Users/nathanielcannon/Claude/AIFred-Pro'` is a prefix of `'/Users/nathanielcannon/Claude/Alfred-Dev'`, so JavaScript's `startsWith()` returns true for ALL Alfred-Dev paths. The hook returns `{proceed: false}` which blocks the Edit/Write operation. This is a classic sibling-directory prefix collision bug — the fix is adding a trailing `/` to the comparison.
 
 Additionally, the hook uses `proceed` instead of `continue` as the output field. Looking at the Claude Code hook schema, the standard field is `continue`. If Claude Code ignores `proceed`, the block might not be activating as intended — but it could also be triggering fallback behavior that shows a permission prompt.
 
@@ -5208,13 +5208,13 @@ Why: When Claude Code resumes via `--resume`, it preserves the prior session's r
 
 ### 2026-04-29 [ac4769fad11f]
 
-**The deny rules in settings.json are prefix-matching `AIFred-Pro-Dev` as if it were `AIFred-Pro`.** The debug log at startup (05:12:05) shows Claude Code loads deny rules including `Edit(/Users/nathanielcannon/Claude/AIFred-Pro/**)` and `Write(/Users/nathanielcannon/Claude/AIFred-Pro/**)`. The path being edited is `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/stage.py`. Claude Code's glob matcher sees `AIFred-Pro` as a prefix of `AIFred-Pro-Dev` — the `**` wildcard appears to match before the directory separator, causing the deny rule to swallow all `-Dev` paths too. **Deny rules override allow rules and even `--dangerously-skip-permissions`**, which is why no amount of allow-rule additions or bypass flags has worked.
+**The deny rules in settings.json are prefix-matching `Alfred-Dev` as if it were `AIFred-Pro`.** The debug log at startup (05:12:05) shows Claude Code loads deny rules including `Edit(/Users/nathanielcannon/Claude/AIFred-Pro/**)` and `Write(/Users/nathanielcannon/Claude/AIFred-Pro/**)`. The path being edited is `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/stage.py`. Claude Code's glob matcher sees `AIFred-Pro` as a prefix of `Alfred-Dev` — the `**` wildcard appears to match before the directory separator, causing the deny rule to swallow all `-Dev` paths too. **Deny rules override allow rules and even `--dangerously-skip-permissions`**, which is why no amount of allow-rule additions or bypass flags has worked.
 
 The `bash-safety-guard.js` hook correctly handles this with `startsWith(AIFRED_PRO_PRODUCTION + '/')` (trailing slash prevents `-Dev` matching), but the settings deny rules don't have this protection.
 
 ### 2026-04-29 [b1582775899a]
 
-**Claude Code's deny rules are immutable for the life of a session.** Allow rules and session-level grants can be added mid-session (via "Yes, allow all" or Shift+Tab), but deny rules loaded at startup persist until restart. This is why `--dangerously-skip-permissions` bypasses Bash/Read (no deny rules match those tools on AIFred-Pro-Dev paths) but NOT Edit (the deny rule `Edit(/Users/nathanielcannon/Claude/AIFred-Pro/**)` prefix-matches `AIFred-Pro-Dev` and overrides everything). The flag bypasses the allow/deny framework but cannot override an explicit deny.
+**Claude Code's deny rules are immutable for the life of a session.** Allow rules and session-level grants can be added mid-session (via "Yes, allow all" or Shift+Tab), but deny rules loaded at startup persist until restart. This is why `--dangerously-skip-permissions` bypasses Bash/Read (no deny rules match those tools on Alfred-Dev paths) but NOT Edit (the deny rule `Edit(/Users/nathanielcannon/Claude/AIFred-Pro/**)` prefix-matches `Alfred-Dev` and overrides everything). The flag bypasses the allow/deny framework but cannot override an explicit deny.
 
 ### 2026-04-29 [f38374dce8e5]
 
@@ -5238,11 +5238,11 @@ However, the **empirical evidence is clear**: Edits to non-`.claude/` paths (lik
 
 ### 2026-04-29 [1916aabec283]
 
-**The `.claude/` safety check is hardcoded and bypass-immune.** The ONLY path through it is a session-level `Edit(/.claude/**)` rule checked at step 1.6. But this rule resolves relative to `getOriginalCwd()` (the primary working directory, Jarvis). For files in additional directories (AIFred-Pro-Dev), the relative path computation produces `../`, which causes the rule to be skipped.
+**The `.claude/` safety check is hardcoded and bypass-immune.** The ONLY path through it is a session-level `Edit(/.claude/**)` rule checked at step 1.6. But this rule resolves relative to `getOriginalCwd()` (the primary working directory, Jarvis). For files in additional directories (Alfred-Dev), the relative path computation produces `../`, which causes the rule to be skipped.
 
-**Bottom line**: Claude Code's permission system was designed for single-project workflows. The multi-workspace pattern (Jarvis editing files in AIFred-Pro-Dev's `.claude/` directory) is an edge case the permission system doesn't handle.
+**Bottom line**: Claude Code's permission system was designed for single-project workflows. The multi-workspace pattern (Jarvis editing files in Alfred-Dev's `.claude/` directory) is an edge case the permission system doesn't handle.
 
-**The fix**: Since `cliArg` rules also resolve relative to `getOriginalCwd()` (line 748-751), the cleanest approach is to add **absolute-path allow rules** using the `//` prefix (which resolves relative to `/`). The pattern `//Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/**` should match.
+**The fix**: Since `cliArg` rules also resolve relative to `getOriginalCwd()` (line 748-751), the cleanest approach is to add **absolute-path allow rules** using the `//` prefix (which resolves relative to `/`). The pattern `//Users/nathanielcannon/Claude/Alfred-Dev/.claude/**` should match.
 
 But step 1.6 only accepts session-scope rules — not `cliArg`. So `--allowedTools` won't work for the `.claude/` bypass either. The session-level grant from the dialog IS the intended path.
 
@@ -5254,7 +5254,7 @@ The only mechanism that bypasses the safety check is step 1.6: a **session-scope
 
 ### 2026-04-29 [489a2b1292f7]
 
-**Option 2 DOES persist within a session.** After choosing "Yes, and allow Claude to edit its own settings for this session" once, a session-level `Edit(/.claude/**)` rule is created that covers ALL subsequent `.claude/` edits — including files in additional directories like AIFred-Pro-Dev. Seven consecutive `.claude/` edits succeeded after the single grant.
+**Option 2 DOES persist within a session.** After choosing "Yes, and allow Claude to edit its own settings for this session" once, a session-level `Edit(/.claude/**)` rule is created that covers ALL subsequent `.claude/` edits — including files in additional directories like Alfred-Dev. Seven consecutive `.claude/` edits succeeded after the single grant.
 
 **The earlier reports of repeated prompts** may have been from the prior session where `--resume`/`--continue` was using the old command string without `--permission-mode bypassPermissions`. In that degraded state, the session rule might not have been properly stored or evaluated.
 
@@ -5262,11 +5262,11 @@ The only mechanism that bypasses the safety check is step 1.6: a **session-scope
 
 ### 2026-04-29 [fb7a212b2fac]
 
-The session rule created by option 2 is `Edit(/.claude/**)` which resolves relative to `getOriginalCwd()` = Jarvis. For AIFred-Pro-Dev, the dialog shows a DIFFERENT option — the generic "allow all edits during this session" (which sets `acceptEdits` mode, NOT a `.claude/**` scoped rule). This is because `isInClaudeFolder()` checks against the primary cwd only.
+The session rule created by option 2 is `Edit(/.claude/**)` which resolves relative to `getOriginalCwd()` = Jarvis. For Alfred-Dev, the dialog shows a DIFFERENT option — the generic "allow all edits during this session" (which sets `acceptEdits` mode, NOT a `.claude/**` scoped rule). This is because `isInClaudeFolder()` checks against the primary cwd only.
 
 So there are actually TWO separate prompts needed:
 1. First `.claude/` edit in **Jarvis** → option 2 creates `Edit(/.claude/**)` scoped to Jarvis
-2. First `.claude/` edit in **AIFred-Pro-Dev** → different dialog, different mechanism
+2. First `.claude/` edit in **Alfred-Dev** → different dialog, different mechanism
 
 ### 2026-04-29 [1d6c1b363d9c]
 
@@ -5282,7 +5282,7 @@ The `stage.py` fix separates the unconditional metadata patch from the condition
 
 ### 2026-04-29 [bc33d82aa1b2]
 
-**The dev Pulse API (with v2 pipeline dimensions) is NOT running.** Port 8800 is served by the Docker-based production Pulse, which predates the v2 pipeline work. The dev Pulse needs to be started separately — it's a Python process using the updated `pulse/app.py` from AIFred-Pro-Dev. The tasks were created against the production Pulse, which doesn't inject dimension labels.
+**The dev Pulse API (with v2 pipeline dimensions) is NOT running.** Port 8800 is served by the Docker-based production Pulse, which predates the v2 pipeline work. The dev Pulse needs to be started separately — it's a Python process using the updated `pulse/app.py` from Alfred-Dev. The tasks were created against the production Pulse, which doesn't inject dimension labels.
 
 ### 2026-04-29 [08d434052019]
 
@@ -5628,7 +5628,7 @@ This is a **persona-task mismatch** at the evaluator level. The evaluator's LLM 
 
 ### 2026-05-01 [3302804874e5]
 
-**What just happened, end-to-end**: This turn answered a 1-hour-cache-TTL research question (with primary-source verification), revised the roadmap to v3-final, committed it, and scheduled a 1-week follow-up agent — adapted for remote-sandbox constraints. The routine will fire at exactly 2026-05-07 8:43 PM Denver and inspect both Jarvis and AIFred-Pro-Dev repos for Phase 1.1 and 1.5 deployment.
+**What just happened, end-to-end**: This turn answered a 1-hour-cache-TTL research question (with primary-source verification), revised the roadmap to v3-final, committed it, and scheduled a 1-week follow-up agent — adapted for remote-sandbox constraints. The routine will fire at exactly 2026-05-07 8:43 PM Denver and inspect both Jarvis and Alfred-Dev repos for Phase 1.1 and 1.5 deployment.
 
 ### 2026-05-01 [d6dd2c7bc47c]
 
@@ -5642,7 +5642,7 @@ The skill at `.claude/skills/token-compression/` was scaffolded yesterday with t
 
 **The pipeline architecture made the deploy zero-downtime.** `pipeline-watcher.py` spawns `executor.py` and `reviewer.py` as fresh Python subprocesses for each task. There's no in-memory module cache to invalidate — the next task that spawns picks up the edited code from disk. No watcher restart needed. This is why the `mtime` change on the .py files is sufficient.
 
-**Cache invalidation cost is one-time, per file.** `Jarvis/CLAUDE.md` cache invalidates on next session start (this session is unaffected because its prompt is already cached). `AIFred-Pro-Dev/.claude/CLAUDE.md` invalidates the next time an AIFred-Pro-Dev session boots. Per-task subprocesses don't have a CLAUDE.md cache to invalidate — they build prompts from scratch each run.
+**Cache invalidation cost is one-time, per file.** `Jarvis/CLAUDE.md` cache invalidates on next session start (this session is unaffected because its prompt is already cached). `Alfred-Dev/.claude/CLAUDE.md` invalidates the next time an Alfred-Dev session boots. Per-task subprocesses don't have a CLAUDE.md cache to invalidate — they build prompts from scratch each run.
 
 **The Phase 0 baseline (93.6% global hit rate) is the comparison point for Phase 1 verification.** Running the cache-telemetry-extractor again after 3+ post-deploy sessions and computing the Δ is the §3.3 / §4.4 pass test. That can't happen in a single session.
 
@@ -5668,7 +5668,7 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 
 **Config drift to flag.** CLAUDE.md says origin should point to `CannonCoPilot/Jarvis`, but it actually points to `davidmoneil/AIfred` (the same as `upstream`). That's the established push target — `Project_Aion → davidmoneil/AIfred:main` is the path your prior commits took, and origin/main already has your Jarvis history on it. The pending "Create CannonCoPilot/Jarvis GitHub repo" task in session-state is the migration that would resolve this drift; until then, pushing to davidmoneil/AIfred:main is the working pattern.
 
-**One security note worth surfacing.** Your `origin` URL has an embedded PAT (visible in `git remote -v`). That works but means anyone with read access to `~/.gitconfig` or `.git/config` sees the token. Future hygiene improvement: switch to a credential helper (osxkeychain or PAT-via-stdin like the AIFred-Pro-Dev push uses) so the URL stays clean. Not a today-problem.
+**One security note worth surfacing.** Your `origin` URL has an embedded PAT (visible in `git remote -v`). That works but means anyone with read access to `~/.gitconfig` or `.git/config` sees the token. Future hygiene improvement: switch to a credential helper (osxkeychain or PAT-via-stdin like the Alfred-Dev push uses) so the URL stays clean. Not a today-problem.
 
 ### 2026-05-01 [2066e589d1a1]
 
@@ -5698,7 +5698,7 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 
 **Two doc-staleness patterns at play.** One is *path drift* — files moved (AIfred → Archive/AIfred) without updating the references that point at them (sync-aifred-baseline.md still hardcodes the old path). Two is *aspirational documentation* — CLAUDE.md describing the desired origin pointer that was never actually set. The first is mechanical (find/replace path strings). The second is the riskier one because someone (you, me, an autonomic component) reads CLAUDE.md, trusts it, and acts on a false premise — exactly the failure that produced today's failed push. The fix is to do the topology change *and* the doc update in the same commit so the reality stays in sync.
 
-**There's already a precedent skill (`sync-aifred-baseline.md`) you can clone for nexus-sync-2026-04.** It already has the right shape — fetch baseline, classify changes ADOPT/ADAPT/REJECT/DEFER, write a sync report. Cloning it for AIFred-Pro-Dev means you don't reinvent the analytical frame; you just re-target it.
+**There's already a precedent skill (`sync-aifred-baseline.md`) you can clone for nexus-sync-2026-04.** It already has the right shape — fetch baseline, classify changes ADOPT/ADAPT/REJECT/DEFER, write a sync report. Cloning it for Alfred-Dev means you don't reinvent the analytical frame; you just re-target it.
 
 ### 2026-05-01 [86d3b2d39f82]
 
@@ -5727,7 +5727,7 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 ### 2026-05-01 [d69d3000e93b]
 
 - **The two-PAT injection mechanism worked transparently**: the credential.helper override fed the GitHub PAT to AIFred-Pro's HTTPS push without baking it into `.git/config`. That's the intended pattern from MEMORY.md — the token never persists to disk; it lives only in the lifetime of one `git push` invocation.
-- **AIFred-Pro-Dev has THREE remotes that matter**: `origin` = davidmoneil/AIFred-Pro (collaborate with David), `my-fork` = CannonCoPilot/AIFred-Pro (historical archive), `prod-local` = the local production AIfred-Pro. Pushing to `origin/nate-dev` is the canonical promote-to-David path; the others stay quiet.
+- **Alfred-Dev has THREE remotes that matter**: `origin` = davidmoneil/AIFred-Pro (collaborate with David), `my-fork` = CannonCoPilot/AIFred-Pro (historical archive), `prod-local` = the local production AIfred-Pro. Pushing to `origin/nate-dev` is the canonical promote-to-David path; the others stay quiet.
 
 ### 2026-05-01 [9898f5ce8dfb]
 
@@ -5783,7 +5783,7 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 
 - **The rerun produced more useful output than the original Phase 1.4 v1 run** — even though the headline verdict is INCOMPLETE rather than "INCONCLUSIVE", that's a specific, actionable status. INCOMPLETE means "the protocol works; the data isn't there yet." INCONCLUSIVE meant "the criterion was the wrong question." The first is recoverable; the second was a methodology gap.
 - **Three protocol-level findings now caught and recorded** before they became "wait why doesn't this work" later: placeholder values for two intent classes were significantly off (now corrected from measured baseline); the register classifier doesn't distinguish meta-mention from actual use (now logged as Phase 0.4 backlog with explicit candidate heuristics); ordinary-session collection rate is workload-dependent (collection-window guidance updated). All three are the kind of finding that's worth $50 in tomorrow-time to record today.
-- **The post-hoc pre-registration is honestly limiting**: Phase 1.5 (Alfred-Brief on AIFred-Pro-Dev) is now the first opportunity for a *clean* pre-registered run. The deploy already exists (commits c31b2bd / f15f6a2), but the pre-registration would be filed before any post-deploy data is collected — exactly what the protocol calls for.
+- **The post-hoc pre-registration is honestly limiting**: Phase 1.5 (Alfred-Brief on Alfred-Dev) is now the first opportunity for a *clean* pre-registered run. The deploy already exists (commits c31b2bd / f15f6a2), but the pre-registration would be filed before any post-deploy data is collected — exactly what the protocol calls for.
 
 ### 2026-05-01 [91fea63ccfdc]
 
@@ -5800,12 +5800,12 @@ For Phase 1's verification cadence (one-time, 3 days out), option 1 is probably 
 ### 2026-05-01 [c1b42163112c]
 
 - **Phase 0.4 needs careful scoping on what to strip**: double-quoted strings yes (the actual false-positive cause), backticks yes (inline code is mechanical), single-quoted strings NO (apostrophes in normal English would cause cascading false negatives — `it's`, `don't`). Smart quotes (curly quotes U+201C/U+201D) yes — same semantics as ASCII double quotes. Markdown blockquotes deferred — they're a separate concern with different tradeoffs (sometimes echoing user content, sometimes attribution).
-- **Phase 1.5 setup has hidden dependencies on baseline knowledge**: AIFred-Pro-Dev's session corpus has a different content profile than Jarvis's (more pipeline-development work, different tool mix), so its class shares will differ from Jarvis's measured baseline. Calibrating predictions and ordinariness bands requires running extractor v2 against the AIFred-Pro-Dev pre-deploy corpus *first*, then filing pre-registration with workspace-specific values.
+- **Phase 1.5 setup has hidden dependencies on baseline knowledge**: Alfred-Dev's session corpus has a different content profile than Jarvis's (more pipeline-development work, different tool mix), so its class shares will differ from Jarvis's measured baseline. Calibrating predictions and ordinariness bands requires running extractor v2 against the Alfred-Dev pre-deploy corpus *first*, then filing pre-registration with workspace-specific values.
 - **The pre-registration deploy timestamp will be the deciding cutoff**: Alfred-Brief lives at `c31b2bd`; need its commit timestamp via `%cI` to define the pre/post boundary. Multiple commits land near each other (c31b2bd, f15f6a2) — `c31b2bd` per scratchpad is the Alfred-Brief deploy itself; the others are subsequent Be-Brief epilogue work in the pipeline executor that's actually Phase 1.2-1.4 territory, not 1.5.
 
 ### 2026-05-01 [c289c118820c]
 
-Phase 1.5 is methodologically novel in this benchmark family: the pre-registration was filed at exactly 0 post-deploy turns, with predictions visible in commit `5046897` *before* the first post-deploy AIFred-Pro-Dev session lands. That's the cleanest possible state for a pre-registered experiment — no opportunity for hindsight calibration. Phase 1.1's protocol-rerun couldn't claim that because the protocol postdated the deploy.
+Phase 1.5 is methodologically novel in this benchmark family: the pre-registration was filed at exactly 0 post-deploy turns, with predictions visible in commit `5046897` *before* the first post-deploy Alfred-Dev session lands. That's the cleanest possible state for a pre-registered experiment — no opportunity for hindsight calibration. Phase 1.1's protocol-rerun couldn't claim that because the protocol postdated the deploy.
 
 ### 2026-05-01 [04ebfb2ba3f0]
 
@@ -6113,7 +6113,7 @@ Two methodological points worth noting from this near-cycle: **(1) Edit's Read-f
 
 ### 2026-05-04 [45fe57dec822]
 
-The two pushes carry distinct weight in the trajectory: the Jarvis push is administrative — internal evidence-base reports for our own reference, and David doesn't have read access to `CannonCoPilot/Jarvis` regardless. The AIFred-Pro-Dev push is the actual milestone-review handoff to David, the moment where 14+ days of stacked work changes hands for review. Worth deciding whether you want to give him a heads-up via Pulse or an explicit ProjectIntel `Questions/` ping before the push lands, or whether the Synology Drive debrief sync (already complete) is the appropriate handshake. Either way, the `pre-merge-baseline-2026-05-04` tag is already in place on origin as the rollback anchor if anything in the milestone needs reverting.
+The two pushes carry distinct weight in the trajectory: the Jarvis push is administrative — internal evidence-base reports for our own reference, and David doesn't have read access to `CannonCoPilot/Jarvis` regardless. The Alfred-Dev push is the actual milestone-review handoff to David, the moment where 14+ days of stacked work changes hands for review. Worth deciding whether you want to give him a heads-up via Pulse or an explicit ProjectIntel `Questions/` ping before the push lands, or whether the Synology Drive debrief sync (already complete) is the appropriate handshake. Either way, the `pre-merge-baseline-2026-05-04` tag is already in place on origin as the rollback anchor if anything in the milestone needs reverting.
 
 ### 2026-05-04 [7740b13b2f2f]
 
@@ -6261,7 +6261,7 @@ Validation paths from here:
 ### 2026-05-05 [e9894520ef26]
 
 - **The schema-gap discovery validates your "verify NOW" instinct on Q4.** Finding this in R5/R6 would have meant a 3-4 hour sunk cost before realising audit-ingest can't function — and the "no REJECT" mandate makes silent skipping of the migration unacceptable. Surfacing it now lets us treat the schema as a first-class deliverable, derive it cleanly from audit-ingest's INSERT statements, and integrate it as part of the supplant rather than as a follow-up surprise.
-- **The adapt-absorb-replace mandate transforms the supplant's authorship signature.** Original lift would have been ~21 cherry-picks (David authored, us committed). Now it's ~21 cherry-picks + ~7-8 follow-up commits in our authorship that complete the python parity. When David reviews to merge nate-dev → main, he sees: his original work intact (he can recognise it commit-by-commit) PLUS our adapt-absorb commits documenting the bridging work. That's a cleaner story than a single "merge with conflict resolution" mega-commit and is also a clearer artifact for any future "why did Nate do X" question.
+- **The adapt-absorb-replace mandate transforms the supplant's authorship signature.** Original lift would have been ~21 cherry-picks (David authored, us committed). Now it's ~21 cherry-picks + ~7-8 follow-up commits in our authorship that complete the python parity. When David reviews to merge nate-dev → main, he sees: his original work intact (he can recognise it commit-by-commit) PLUS our adapt-absorb commits documenting the bridging work. That's a cleaner story than a single "merge with conflict resolution" mega-commit and is also a clearer artifact for any future "why did Sir do X" question.
 - **The shell-script-isolation step is the architecturally interesting commit.** Most R5 commits move code; the final rewire commit moves *control*. Its diff will be small (likely a handful of dispatcher.sh / event-watcher.sh lines), but it's the moment when the live system stops depending on shell paths. Worth explicit documentation in R7's debrief.
 
 ### 2026-05-05 [8f98f3ddaa24]
@@ -6298,7 +6298,7 @@ Validation paths from here:
 
 - **The autonomy invariant is the load-bearing JICM constraint, surfaced retrospectively**: The original `jicm-portable-architecture.md` (2026-05-01) was written with rigorous architectural reasoning — but missed that hooks alone cannot submit `/clear` to their host process. The 2026-05-02 reframing (`jicm-roadmap-v7-9-to-v8.md`) caught this, decomposed hardening from portability, and made the autonomy invariant explicit as the gating property. This document's §3.1 captures the pivot for future readers — without that framing, the v8 design would have shipped silently regressing the property that makes JICM useful.
 - **The Pulse/Nexus boundary tagging convention is the highest-leverage governance change in the window**: Within 24 hours of articulating the axis, F-1 was identified, queued (P1.B1.1), repaired, and verified. The convention forces architectural classification at *planning* time, not after the fact. This means future workstreams describe themselves in terms that make boundary violations *visible* rather than discoverable only via spot-checking — which is exactly the failure mode the boundary audit was responding to (the dashboard's `pg.Pool` was working code that had been merged for ~24 hours before anyone realized it bypassed Pulse's API contract).
-- **The strategic-convergence question is genuinely open and should stay that way until JICM v8.0 ships**: Three signals point inward (Path A: Jarvis-into-AIFred-Pro-Dev); two signals point toward parity (Path B: joint Project-Archon suite); Path C (status quo) is workable indefinitely. Critically, Path A is *technically blocked* by JICM's tmux-substrate dependency — Jarvis cannot run in a Docker container or on a non-tmux host until v8.0 ships the PTY backend. So even if the operator decided to pursue Path A today, the merge couldn't happen yet. This is a useful architectural decoupling: the question of *whether to merge* doesn't need to be answered until the question of *can we merge* is unblocked, and JICM v8.0 is the work that unblocks it. The recommendation in §9.3 is therefore **stay on Path C; revisit when JICM v8.0 ships**.
+- **The strategic-convergence question is genuinely open and should stay that way until JICM v8.0 ships**: Three signals point inward (Path A: Jarvis-into-Alfred-Dev); two signals point toward parity (Path B: joint Project-Archon suite); Path C (status quo) is workable indefinitely. Critically, Path A is *technically blocked* by JICM's tmux-substrate dependency — Jarvis cannot run in a Docker container or on a non-tmux host until v8.0 ships the PTY backend. So even if the operator decided to pursue Path A today, the merge couldn't happen yet. This is a useful architectural decoupling: the question of *whether to merge* doesn't need to be answered until the question of *can we merge* is unblocked, and JICM v8.0 is the work that unblocks it. The recommendation in §9.3 is therefore **stay on Path C; revisit when JICM v8.0 ships**.
 
 ### 2026-05-06 [9e6533f7c0f9]
 
@@ -6387,7 +6387,7 @@ Validation paths from here:
 ### 2026-05-06 [14d8834d3561]
 
 - The compressed context (qwen3:8b extraction) reflects a snapshot from before the JICM-HALT mid-session — its "Next Step: implement the burn-rate slider" is **stale by 4 commits**. The scratchpad and git log are authoritative; the LLM-enriched checkpoint is a fallback when conversation is sparse. My self-correction note from 2026-04-24 about "stale Current Task inference from session-state.md" applies directly here — same failure mode, different artifact.
-- AIFred-Pro-Dev tip is `a2efc53` (matches scratchpad's "all-pushed"). Jarvis tip is `21ad679` (one commit ahead of scratchpad's recorded `057195f`) — that's the design-doc commit the scratchpad said was "pending Jarvis-side commit." So scratchpad was written *just before* the design-doc commit landed.
+- Alfred-Dev tip is `a2efc53` (matches scratchpad's "all-pushed"). Jarvis tip is `21ad679` (one commit ahead of scratchpad's recorded `057195f`) — that's the design-doc commit the scratchpad said was "pending Jarvis-side commit." So scratchpad was written *just before* the design-doc commit landed.
 
 ### 2026-05-06 [ecfc4674ef5d]
 
@@ -6424,12 +6424,12 @@ Validation paths from here:
 ### 2026-05-06 [7ecb071babe9]
 
 - **`com.aion.david-nexus-sync-fetch` (6h) and `david-nexus-sync-health-check` are still loaded.** These are git-fetch jobs for David's branch sync; they don't make Anthropic calls. Left running per scope (no leak surface).
-- **`com.aion.anthropic-proxy` PID 97735 orphan** also still running (the old `:8877` proxy whose source file was relocated to AIFred-Pro-Dev). Not a leak source — it's idle and not receiving traffic — but worth decommissioning eventually for hygiene. Out of scope of this halt.
+- **`com.aion.anthropic-proxy` PID 97735 orphan** also still running (the old `:8877` proxy whose source file was relocated to Alfred-Dev). Not a leak source — it's idle and not receiving traffic — but worth decommissioning eventually for hygiene. Out of scope of this halt.
 - **`every_hours: 0.25` override on `task-executor` is preserved** in nexus-settings.json (just with `enabled: false` added). If someone toggles the job back on, the 15-min cadence recurs. Worth removing the override for a clean state, but I left it as forensic evidence pending your call.
 
 ### 2026-05-06 [a33c80e44e9c]
 
-- **The constraint "Dev + Jarvis only" actually expands what we can do, not contracts it.** Without needing to wait for David's review cycle, we can ship Jarvis-side protection (C, E, H) immediately — zero coordination cost. AIFred-Pro-Dev work (A, B, D) goes through the standard nate-dev push path and David's merge cadence. So the constraint reorders priorities but doesn't reduce them.
+- **The constraint "Dev + Jarvis only" actually expands what we can do, not contracts it.** Without needing to wait for David's review cycle, we can ship Jarvis-side protection (C, E, H) immediately — zero coordination cost. Alfred-Dev work (A, B, D) goes through the standard nate-dev push path and David's merge cadence. So the constraint reorders priorities but doesn't reduce them.
 - **C is the single highest-ROI item.** It's generic (catches *any* future leak with this fingerprint, not just task-executor), it's ours to build (no external dependency), and it inverts the discovery latency — instead of operator noticing 25% creep over 5 hours and asking, the watcher alerts within 5-15 minutes. The investigation we just ran took ~25 min with telemetry; an alert would have eliminated the 5-hour delay before discovery.
 - **Recommended bundle: G + C + A**. Debrief to David first (so he has context before potentially re-enabling), then ship the Jarvis-side watcher (immediate protection regardless of David's decisions), then the executor.py pre_check fix (clean source-side repair). H and E are nice-to-haves; D folds into Task #5 naturally.
 
@@ -6795,7 +6795,7 @@ The canonical `log_decision()` signature lives in `diagnose.py:116-129`: positio
 
 ### 2026-05-07 [b682506092ef]
 
-This workstream's plan separates per-step Build verification (curl + tsc) from end-to-end visual validation (Nate walks the UI in Phase 3). That's actually a thoughtful separation: each Bx is a small, isolated change that's easy to smoke-curl, while a single Validate pass at end-of-Build catches integration drift across all Bx pieces at once. The cost is that browser regressions slip into the Build phase undetected — but the count of Bx pieces is small enough that the trade is worth it.
+This workstream's plan separates per-step Build verification (curl + tsc) from end-to-end visual validation (Sir walks the UI in Phase 3). That's actually a thoughtful separation: each Bx is a small, isolated change that's easy to smoke-curl, while a single Validate pass at end-of-Build catches integration drift across all Bx pieces at once. The cost is that browser regressions slip into the Build phase undetected — but the count of Bx pieces is small enough that the trade is worth it.
 
 ### 2026-05-07 [6d8699ecd62f]
 
@@ -6883,7 +6883,7 @@ The honest read of the dashboard's *intent* is in `dashboard/PLAN.md:1-3`: "Tran
 
 ### 2026-05-12 [4fb9c06694dc]
 
-The qwen3:8b compressor checkpoint at lines 5-32 of `.compressed-context-ready.md` hallucinated the "Current Task" again — it reconstructs M1's PROJ→PROJECTS rename + dashboard-pinning work as if pending, but M1 shipped in commit `d001c75` (PROD|OPS toggle, PROJECTS rename, Dashboard pinned, /projects at top) and M2 shipped in `fc1546f` (/decisions→/reo redirect). This is exactly the failure mode logged 2026-05-06 in `self-corrections.md`: low-tier compression treats fragments of M1-iteration dialogue as forward-looking work. Scratchpad is authoritative — confirms M1+M2 both SHIPPED and the actual pause point is M3 awaiting Nate's go/no-go.
+The qwen3:8b compressor checkpoint at lines 5-32 of `.compressed-context-ready.md` hallucinated the "Current Task" again — it reconstructs M1's PROJ→PROJECTS rename + dashboard-pinning work as if pending, but M1 shipped in commit `d001c75` (PROD|OPS toggle, PROJECTS rename, Dashboard pinned, /projects at top) and M2 shipped in `fc1546f` (/decisions→/reo redirect). This is exactly the failure mode logged 2026-05-06 in `self-corrections.md`: low-tier compression treats fragments of M1-iteration dialogue as forward-looking work. Scratchpad is authoritative — confirms M1+M2 both SHIPPED and the actual pause point is M3 awaiting Sir's go/no-go.
 
 Two confirmations of the architectural pattern from §11 of foundational analysis: (a) M1 (sidebar IA) and M2 (URL consolidation with 35-affordance audit) both passed AC-03 gates 4.5/5.0 with audit-first sequencing; (b) the `DecisionsRedirect` wrapper using `useLocation` + `<Navigate to={{ pathname, search }} replace />` is now the canonical react-router-v7 pattern for URL-preserving redirects in this codebase — applicable later to `/queue`, `/approvals`, `/orchestrations*`, etc. when consolidation reaches them.
 
@@ -6891,13 +6891,13 @@ Two confirmations of the architectural pattern from §11 of foundational analysi
 
 - **The complementarity hypothesis was validated.** Serena = LSP-backed edit/refactor (39 tools, no symbol graph of its own — relies on live LSP queries). codebase-memory-mcp = SQLite-backed indexed retrieval + 14 MCP tools with Cypher subset (no editing — read-only graph). graphify = on-demand NetworkX build + 7 retrieval tools + multi-format export including vis.js HTML. **They genuinely cover three distinct slices**: live edit/refactor, persistent code-graph retrieval, and visualization/exporting. None of the three duplicates more than ~25% of another.
 - **The Neo4j sharing question has a definitive answer.** graphify's `push_to_neo4j()` has NO namespace/database parameter and falls back to `Entity` label when `file_type` is absent — which would MERGE-collide with graphiti's `Entity` nodes on `id` property. **Recommendation: create a separate Neo4j database** (`CREATE DATABASE graphify_codebase`) in the existing instance — Neo4j 4.0+ supports this natively. One Neo4j daemon, two logical databases, zero schema collision.
-- **Three blocker-grade issues to flag prominently.** (1) Serena's web dashboard breaks Claude Code MCP handshake (issue #898) — must run with `web_dashboard: false`. (2) codebase-memory-mcp has open segfault bugs on 200+ file repos (issues #340, #336) — AIFred-Pro-Dev is well over 200 files; staged adoption recommended. (3) graphify's non-determinism issue #741 produces 11K-line diffs on unchanged source — gitignore `graphify-out/` rather than committing it.
+- **Three blocker-grade issues to flag prominently.** (1) Serena's web dashboard breaks Claude Code MCP handshake (issue #898) — must run with `web_dashboard: false`. (2) codebase-memory-mcp has open segfault bugs on 200+ file repos (issues #340, #336) — Alfred-Dev is well over 200 files; staged adoption recommended. (3) graphify's non-determinism issue #741 produces 11K-line diffs on unchanged source — gitignore `graphify-out/` rather than committing it.
 - **The UI integration verdict is asymmetric.** graphify → easy iframe embed (self-contained vis.js HTML, no headers blocking embedding). codebase-memory-mcp → must build custom panel (3D viewer has no export API, no embeddable widget). Serena → must build custom panel (dashboard at :24282 conflicts with Claude Code; poll JSON endpoints `/heartbeat`, `/get_config_overview`, `/get_tool_stats` instead).
 
 ### 2026-05-12 [117fe8718fef]
 
 - **The "three tools, three slices" verdict is the load-bearing finding.** Each tool covers ≥5 capabilities the other two lack: Serena's LSP-backed live edit (rename across files, find_referencing_symbols at LSP accuracy, get_diagnostics_for_symbol) has no equivalent in the other two. codebase-memory-mcp's `detect_changes` blast-radius and Cypher-subset `query_graph` over persistent SQLite have no equivalent. graphify's Leiden community clustering + multi-format export (vis.js HTML + Obsidian vault + GraphML + Neo4j cypher.txt) have no equivalent. The overlap is real (~20-25%, mostly on basic symbol lookup) but the unique value of each is large — full installation of all three is the correct conclusion.
-- **Three operational gates dominate the risk surface.** (1) Serena's `web_dashboard: false` is mandatory when Claude Code is the consumer (issue #898 reproducibly breaks `tools/list`). (2) graphify's `graphify-out/` must be gitignored due to issue #741's 11K-line nondeterministic diffs. (3) codebase-memory-mcp's open segfault on 200+ file repos (issue #340) means AIFred-Pro-Dev indexing might crash — recommendation is to attempt, retreat to v0.5.x if needed, and not block other progress on it.
+- **Three operational gates dominate the risk surface.** (1) Serena's `web_dashboard: false` is mandatory when Claude Code is the consumer (issue #898 reproducibly breaks `tools/list`). (2) graphify's `graphify-out/` must be gitignored due to issue #741's 11K-line nondeterministic diffs. (3) codebase-memory-mcp's open segfault on 200+ file repos (issue #340) means Alfred-Dev indexing might crash — recommendation is to attempt, retreat to v0.5.x if needed, and not block other progress on it.
 - **The single most important infrastructure decision is the Neo4j second database.** Create `graphify_codebase` alongside the existing graphiti `neo4j` database — Neo4j 4.3+ Community supports unlimited databases on one daemon. This is ~2 minutes of setup that prevents graphify's `Entity`-label MERGE-collision from corrupting graphiti's `jarvis-core` data.
 - **Pulse UI integration is asymmetric.** graphify's vis.js → iframe embed (clean, ~2 hr backend wiring). codebase-memory-mcp's 3D viewer → must build wrapped UI (no export API). Serena's dashboard → cannot run during Claude Code; poll JSON endpoints instead. Total UI dashboard work: 16-24 hours.
 - **The 4-milestone structure naturally aligns with AC-03 review boundaries.** M1 install+smoke, M2 shared infra wired, M3 Pulse UI tab built, M4 operational glue+docs. Each ships independent value, none blocks the next.
@@ -6908,7 +6908,7 @@ Investigating L1's deep-link target surfaced another schema question: `ReviewPag
 
 Combined with L3's missing `/jobs/:id` route, that's two of the five cross-mode buttons with ratification debt. The remaining three (L2, L4, L5) likely have similar nuance.
 
-Stopping core M3 work here is the right call — the load-bearing taxonomy + cleanup is done. Cross-mode buttons deserve their own ratification pass before code. Running mechanical verify on what's shipped, then surfacing for Nate's visual-validate gate + cross-mode-button scope decision.
+Stopping core M3 work here is the right call — the load-bearing taxonomy + cleanup is done. Cross-mode buttons deserve their own ratification pass before code. Running mechanical verify on what's shipped, then surfacing for Sir's visual-validate gate + cross-mode-button scope decision.
 
 ### 2026-05-12 [732088081e0c]
 
@@ -6952,7 +6952,7 @@ The qwen3:8b compressor pulled "Nexus-Sync Supplant" as Current Task from 2026-0
 
 Two pattern flags worth filing for future sessions:
 1. **Always rev-count `main..<branch>` before PR assembly** even if conversational framing implies a smaller scope. The "5 commits" framing was the push-range this session, not the PR-range. Conflating "what was pushed" with "what's in a PR" is a structural failure mode — `git push` ranges and PR ranges are different units of work. Future-Jarvis: when the user says "PR assembly", treat `gh pr create` as a high-blast-radius action and verify scope before clicking.
-2. **`cd` persists across Bash tool calls**, contrary to my mental model that each call is a fresh shell. The `cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev` for `gh pr create` leaked into the next git command and caused a "pathspec did not match" error. Defensive move: prefer `git -C <abs-path>` or chained `cd <abs> && <cmd>` to keep cwd containment per Bash-call. This is the second time this has bitten me in recent sessions — should log to self-corrections.
+2. **`cd` persists across Bash tool calls**, contrary to my mental model that each call is a fresh shell. The `cd /Users/nathanielcannon/Claude/Alfred-Dev` for `gh pr create` leaked into the next git command and caused a "pathspec did not match" error. Defensive move: prefer `git -C <abs-path>` or chained `cd <abs> && <cmd>` to keep cwd containment per Bash-call. This is the second time this has bitten me in recent sessions — should log to self-corrections.
 
 ### 2026-05-12 [70097efb48d2]
 
@@ -6994,11 +6994,11 @@ Each course-correction took 5-15 minutes during impl. Cumulative ~1 hour, integr
 
 **B2 is a self-imposed policy constraint, not a technical dependency.** That's the load-bearing observation behind any contingency plan. PR #3 controls only what we *publish*; the *code* for Phases B/C/E exists independently and can be developed on whichever branch makes sense. Most of the "blocked" workstreams are blocked by B2's "wait for clean linear history" preference, not by code-level dependency. The contingency plan is therefore mostly about *progressively relaxing B2* as the wait extends — converting policy patience into operational pragmatism on a defined schedule.
 
-**Many "blocked" items aren't truly blocked**: REO Validate is paused for *bundle scope clarity*, not because the validation work is impossible; Watchdog W2 is pure Jarvis-side (launchd liveness probe — no AIFred-Pro-Dev surface); Board v2 has no plan-of-record yet, so it's drafting-blocked not review-blocked. Pulling these forward maintains *forward velocity* even while PR #3 sits.
+**Many "blocked" items aren't truly blocked**: REO Validate is paused for *bundle scope clarity*, not because the validation work is impossible; Watchdog W2 is pure Jarvis-side (launchd liveness probe — no Alfred-Dev surface); Board v2 has no plan-of-record yet, so it's drafting-blocked not review-blocked. Pulling these forward maintains *forward velocity* even while PR #3 sits.
 
 ### 2026-05-12 [bdd844ba366d]
 
-**Distinguishing "David updated something" from "David communicated something."** Three files in `Shared_Projects/Status/david/` have a 2026-05-12 timestamp, but all three are **auto-generated**: `nexus-sync-2026-04-recent.md` by the `com.aion.david-nexus-sync-fetch` Jarvis launchd job (every 6h), `projects-summary.md` + `loom-tasks.md` by a Pulse-API auto-generator (frontmatter says "Auto-generated from Pulse API"; the `author: David` field marks *whose* tasks are summarized, not who wrote the file). So the fresh timestamps reflect **Jarvis polling David's data**, not David typing anything. The true signal of David direct communication would be a new entry under `Debriefs/AIFred-Pro/` authored by David, a `Questions/` file with `from: David, to: Nate`, or hand-authored edits to `focus-areas.md` (last touched 2026-04-13).
+**Distinguishing "David updated something" from "David communicated something."** Three files in `Shared_Projects/Status/david/` have a 2026-05-12 timestamp, but all three are **auto-generated**: `nexus-sync-2026-04-recent.md` by the `com.aion.david-nexus-sync-fetch` Jarvis launchd job (every 6h), `projects-summary.md` + `loom-tasks.md` by a Pulse-API auto-generator (frontmatter says "Auto-generated from Pulse API"; the `author: David` field marks *whose* tasks are summarized, not who wrote the file). So the fresh timestamps reflect **Jarvis polling David's data**, not David typing anything. The true signal of David direct communication would be a new entry under `Debriefs/AIFred-Pro/` authored by David, a `Questions/` file with `from: David, to: Archon`, or hand-authored edits to `focus-areas.md` (last touched 2026-04-13).
 
 ### 2026-05-12 [c80d6b20db86]
 
@@ -7014,7 +7014,7 @@ This re-frames the contingency: the "T2 → T3 → T4" tier I set assumed time w
 
 **Two architectural truths the gh check exposed**: (1) PR #3 was filed without a reviewer assignment, so the "5+ business-day wait" tier in the original contingency was measuring against a clock that never started in David's world — `notifications/email pipeline` only fires on explicit reviewer-request, @-mention, or assignee-add. (2) GitHub Copilot bailed at 16:10:18Z (8s post-creation) on >300 files; that's a tool-level rejection of the PR's *shape*, independent of human bandwidth. Even after fixing (1), David walks into a PR that GitHub's own auto-reviewer refused to engage. The "structure is the variable, not time" reframe collapses the T2→T3→T4 schedule from weeks down to same-day.
 
-**B2 is policy, not technical dependency** — the Phase D code now lives in 3 commits (`78693a3..65e2eef`) ready to push when policy clears. Workstream momentum need not wait on it; Watchdog W2 is pure-Jarvis with zero AIFred-Pro-Dev surface and can run in parallel regardless of which decision branch you pick.
+**B2 is policy, not technical dependency** — the Phase D code now lives in 3 commits (`78693a3..65e2eef`) ready to push when policy clears. Workstream momentum need not wait on it; Watchdog W2 is pure-Jarvis with zero Alfred-Dev surface and can run in parallel regardless of which decision branch you pick.
 
 ### 2026-05-12 [a4af412af96e]
 
@@ -7036,7 +7036,7 @@ This re-frames the contingency: the "T2 → T3 → T4" tier I set assumed time w
 
 ### 2026-05-12 [9a3539206e2d]
 
-**The prior plan is the template for this one — it solves an isomorphic problem.** The April-30 plan re-pointed Jarvis origin from `davidmoneil/AIfred` → `CannonCoPilot/Jarvis`; this plan re-points AIFred-Pro-Dev origin from `davidmoneil/AIFred-Pro` → `CannonCoPilot/AIFred-Pro`. Same shape, same mechanisms. Most of my morning outline already mirrors the prior plan's stages by accident. The improvements come from extracting the prior plan's *philosophical commitments* (§5 "not our repo, not our deletion") and applying them consistently here.
+**The prior plan is the template for this one — it solves an isomorphic problem.** The April-30 plan re-pointed Jarvis origin from `davidmoneil/AIfred` → `CannonCoPilot/Jarvis`; this plan re-points Alfred-Dev origin from `davidmoneil/AIFred-Pro` → `CannonCoPilot/AIFred-Pro`. Same shape, same mechanisms. Most of my morning outline already mirrors the prior plan's stages by accident. The improvements come from extracting the prior plan's *philosophical commitments* (§5 "not our repo, not our deletion") and applying them consistently here.
 
 **The §5 principle is load-bearing for the David conversation.** The prior plan's most-considered move was *not* deleting `davidmoneil/AIfred:Project_Aion` after the Jarvis migration — kept as fossil at David's discretion. Same logic must apply to PR #3 and `davidmoneil/AIFred-Pro:nate-dev`. We do not close PR #3 unilaterally. We do not push to davidmoneil/AIFred-Pro:nate-dev after migration. We leave both as fossils — PR #3 stays open at David's discretion. This is courteous AND preserves audit trail AND avoids forcing his hand. It also gives the Question/ to David a *softer* framing: "we're shifting our work to a primary home; your repo + PR #3 are unchanged and yours to dispose of as you see fit."
 
@@ -7044,7 +7044,7 @@ This re-frames the contingency: the "T2 → T3 → T4" tier I set assumed time w
 
 **Three different "scrub" surfaces, each with different reversibility.** (1) **Forward-only content scrub** — easy and recommended: change 49 tracked files (per just-completed grep) before they ever touch CannonCoPilot/Alfred. Cost: per-file judgment, ~1-2 hr. (2) **Historical commit-message scrub** — destructive: requires `git filter-repo` to rewrite every commit's SHA in the 110-commit nate-dev range plus all ancestor history. Breaks PR #3's commit links, breaks any external SHA references, breaks David's local clones, breaks reflogs. Generally a bad idea even when scrub goals are real. (3) **Username-in-absolute-paths scrub** — pervasive but local-only: `/Users/nathanielcannon/...` appears in launchd plists, JSON archives, log files, but those don't go to GitHub (since they're not in tracked source). Recommended: not in scope.
 
-**The pseudonymous author identity is already in place.** Recent commits show author = `CannonCoPilot <177279335+CannonCoPilot@users.noreply.github.com>` — already neutralized via GitHub's noreply email. No personal name in author lines on commits. **The only commit-history "nate" references are 3 stash entries** (`On nate-dev: stash E2E executor artifacts`) which won't get pushed since stashes don't propagate. The real scrub work is the 49 tracked files.
+**The pseudonymous author identity is already in place.** Recent commits show author = `CannonCoPilot <177279335+CannonCoPilot@users.noreply.github.com>` — already neutralized via GitHub's noreply email. No personal name in author lines on commits. **The only commit-history "Sir" references are 3 stash entries** (`On nate-dev: stash E2E executor artifacts`) which won't get pushed since stashes don't propagate. The real scrub work is the 49 tracked files.
 
 **The rename is bigger than the topology migration.** Renaming `AIFred-Pro` → `Alfred` cascades through ~10 launchd plists, Pulse runtime, dispatchers, event-watchers, watchdogs — all currently running services bound to the old path name. This requires either a maintenance window (5-15 min downtime) or symlink-bridge (zero downtime, technical debt). Worth treating as its own dedicated phase, not folded into the topology push.
 
@@ -7078,7 +7078,7 @@ The scratchpad was *correct as of the moment it was written* but the session con
 
 ### 2026-05-12 [79df854d87c4]
 
-**Phase 2 maintenance window CLOSED but unfinished.** Containers are back UP — but local directories were never renamed (`AIFred-Pro-Dev` still exists at the original path; no `Alfred-Dev` anywhere). The JICM-triggering error (`ConnectionRefused`) was likely an Anthropic API blip mid-Phase-2.2; *something* brought Docker back up (autorestart/manual) before the rename step. Phase 2.3-2.5 never executed. **And `aifred-dev-pipeline` is in a restart loop** — likely the Phase D event-watcher/score.py code hitting a runtime issue the direct-invocation smoke didn't catch.
+**Phase 2 maintenance window CLOSED but unfinished.** Containers are back UP — but local directories were never renamed (`Alfred-Dev` still exists at the original path; no `Alfred-Dev` anywhere). The JICM-triggering error (`ConnectionRefused`) was likely an Anthropic API blip mid-Phase-2.2; *something* brought Docker back up (autorestart/manual) before the rename step. Phase 2.3-2.5 never executed. **And `aifred-dev-pipeline` is in a restart loop** — likely the Phase D event-watcher/score.py code hitting a runtime issue the direct-invocation smoke didn't catch.
 
 ### 2026-05-12 [f6fad6c18e2b]
 
@@ -7091,3 +7091,35 @@ The scratchpad was *correct as of the moment it was written* but the session con
 ### 2026-05-12 [bda43962ca0a]
 
 `--print` is the cleaner pick — no `send-keys` timing complexity, no multi-line gotcha, and the prompt arrives atomically as one command-line arg. The worker just becomes: spawn → run → exit → window self-kills. The trade-off is no mid-stream intervention, but that's acceptable since the recipe JSON encodes the entire decision tree upfront. Building v1 now with this design.
+
+### 2026-05-12 [0cbb793cf0c1]
+
+**Order matters for the :9800 window.** Git pushes don't route through :9800 (SSH direct to GitHub), but the *tool-result delivery* from each Bash call does. So all commits + pushes happen BEFORE the worker run (while :9800 is up), the scratchpad gets a pre-worker checkpoint, then the worker fires with `run_in_background=true` so W0's tool call returns instantly and the :9800 outage doesn't strand a pending result.
+
+### 2026-05-12 [bfa91ca30512]
+
+**Recipe completed in 101 seconds** (21:26:38Z → 21:28:19Z), with phases tracked cleanly: launching → preflight → down → repair[0..5] → wait_healthy → validate → complete. All 6 containers healthy at new path. :9800 healthy.
+
+**Two flags to inspect**: (1) `/Users/nathanielcannon/Claude/Alfred-Dev` still exists with 1 child — something recreated it after the mv (worker reported the mv succeeded). (2) `stale_refs_in_dir: 2623` — the audit found 2623 Alfred-Dev references inside `/Alfred-Dev`. Worker classified them as "caches/logs/archives, non-failing" but that count is high enough to warrant a Phase 3 inventory.
+
+### 2026-05-12 [77c0ea6d11c7]
+
+**Ghost dir explanation**: The OLD plist had `StandardOutPath`/`StandardErrorPath` pointing at `/Alfred-Dev/.claude/logs/headless/event-watcher-v2*.log`. Between `mv` (repair[0]) and `launchctl unload` (repair[1]), there was a ~6 second window where macOS's `KeepAlive: true` likely triggered a relaunch attempt — and **launchctl auto-creates parent directories** for StandardOutPath if missing, even when the program fails to start. That's the ghost. Safe to `rm -rf` now (current plist points at `/Alfred-Dev/...` per the user's intentional update I just received).
+
+**Stale refs breakdown of 673 files**: 669 are in `.claude/` (caches, archives, historical logs — informational, non-load-bearing). Only **4 files are load-bearing**: `docker-compose.dev.yml`, `usage-proxy/...`, `tests/...`, `README.dev.md`. Those need Phase 3 scrubbing.
+
+### 2026-05-12 [3750842708f3]
+
+This is the classic JICM-compressor-stale-checkpoint failure mode — qwen3:8b summarizers prioritize the highest-token-density content and overshoot when the active scratchpad is short relative to surrounding canonical docs. The scratchpad-cross-check protocol (`self-corrections.md` 2026-05-06 entry) catches it cleanly. The checkpoint here pulled Chronicler paths from an old session, but the scratchpad's `2026-05-12 (post-topology-rename)` entry is the authoritative resume target.
+
+### 2026-05-12 [eef395340066]
+
+This is the classic "scope-creep risk vs. completeness-debt" trade-off that comes up after a partial bulk operation. The user approved scoped scrub (force-loaded files only); the broader project docs (~25 hits across 7 design/plan/report files) sit outside that scope. The honest move is to (a) surface the discovery, (b) complete E (scratchpad Alfred-Dev refs — explicitly requested), then (c) ask for scope-extension decision rather than silently extending. The user's preference for scope discipline ("Don't drift on your planning documentation") from the 2026-05-12 feedback memory argues for explicit ask.
+
+### 2026-05-12 [031694fb5746]
+
+This is the cascade pattern from "bulk text substitution requires post-grep verification" (self-corrections 2026-05-06). Renaming a path/filename creates a ripple: every doc that referenced the old path is now stale. The 4 active docs I'm about to fix are operational bugs *I created* in the prior step — not scope creep. The 4 historical reports + 3 logs + 1 JSONL session export are append-only or archival; scrubbing them rewrites history. Distinction matters: fix the bugs I caused (active docs), surface the historical-vs-current choice for everything else.
+
+### 2026-05-12 [447fdf74757a]
+
+The two-stage substitution (`Nate → Nat` then `Nat → Sir`) could theoretically be collapsed into one pass (`Nate → Sir` directly), but doing it sequentially has a useful property: the intermediate `Nat` state is uniquely identifiable. If the second pass needs to be reverted while preserving the first, `git diff` between commits makes the boundary clear. Also: doing `Nat → Sir` second means anywhere a fresh `Nate` was missed in the first pass, the second pass still catches it (because we'll grep `\bNate\b` count = 0 before proceeding). Defense in depth on the cleanup.

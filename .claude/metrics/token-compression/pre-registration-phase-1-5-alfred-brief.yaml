@@ -1,7 +1,7 @@
 # Pre-Registration — Phase 1.5 Alfred-Brief
 #
 # FIRST CLEAN PRE-REGISTERED RUN in this benchmark family.
-# Filed BEFORE post-deploy data accumulates: at filing time the AIFred-Pro-Dev
+# Filed BEFORE post-deploy data accumulates: at filing time the Alfred-Dev
 # corpus contains 3,488 turns across 133 sessions, ALL pre-deploy
 # (ts < 2026-05-01T03:28:35Z). Zero post-deploy turns exist yet, so this
 # pre-registration is methodologically clean (not retroactive).
@@ -18,12 +18,12 @@ deploy_commit: c31b2bd
 deploy_timestamp: 2026-05-01T03:28:35Z
 
 deploy_repo: davidmoneil/AIFred-Pro
-# Branch: nate-dev. The directive lives in AIFred-Pro-Dev/.claude/CLAUDE.md.
+# Branch: nate-dev. The directive lives in Alfred-Dev/.claude/CLAUDE.md.
 # Analysis artifacts (this yaml, the run report, telemetry CSVs) live in
 # Jarvis per token-compression experimental-design §13.2 lineage convention.
 
 baseline_lineage: []
-# First intervention against the AIFred-Pro-Dev corpus. Jeeves-Brief is on a
+# First intervention against the Alfred-Dev corpus. Jeeves-Brief is on a
 # different repo (Jarvis) and a different corpus (Jarvis JSONLs); it is NOT
 # part of this lineage.
 
@@ -35,7 +35,7 @@ baseline_lineage: []
 # pattern: observation→implication→next action). Differences ("Master Nathaniel"
 # vs "sir", confirmatory valedictions) are register-style, not brevity-magnitude.
 # The expected reductions should therefore track Jeeves-Brief unless the
-# AIFred-Pro-Dev corpus's substantially different intent-class composition
+# Alfred-Dev corpus's substantially different intent-class composition
 # (interactive 57.14% vs Jarvis 26.83%) reveals a different effect profile.
 
 hypothesis:
@@ -53,7 +53,7 @@ hypothesis:
     interactive:
       expected: -20
       tolerance: 10
-      reason: "filler-cutting effective on conversational answers; AIFred-Pro-Dev corpus is 57% interactive so this class drives most of the effect signal"
+      reason: "filler-cutting effective on conversational answers; Alfred-Dev corpus is 57% interactive so this class drives most of the effect signal"
 
     analysis:
       expected: -10
@@ -96,7 +96,7 @@ hypothesis:
 sample_targets:
   ordinary_sessions: 3
   # "Ordinary" per §7.3 means class composition within ±tolerance of the
-  # AIFred-Pro-Dev pre-deploy reference (NOT the Jarvis reference). See
+  # Alfred-Dev pre-deploy reference (NOT the Jarvis reference). See
   # baseline-aifred-2026-05-01.md for the bands.
 
   total_substantive_turns: 300
@@ -128,11 +128,11 @@ interim_check:
     - per_class_median_reduction
   verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
   unblocks_on_clear:
-    - Phase 2 CoD on AIFred-Pro-Dev (orthogonal: thinking_tokens stream, §4.7 Rule 1)
+    - Phase 2 CoD on Alfred-Dev (orthogonal: thinking_tokens stream, §4.7 Rule 1)
     - Phase 3 JICM compression on Jarvis (orthogonal: checkpoint files)
     - Phase 5 dashboard wiring (orthogonal: frontend visualization)
   notes: |
-    AIFred-Pro-Dev session arrival rate is unknown for the 48h window; if
+    Alfred-Dev session arrival rate is unknown for the 48h window; if
     the post-deploy bucket has < 20 turns at the interim check, Stage 1
     closes as STAGE_1_DEFERRED (insufficient data for the cache + register
     smoke test) rather than CLEAR or HALT — orthogonal-stream work proceeds
@@ -140,7 +140,7 @@ interim_check:
 
 # === ORDINARINESS BANDS (corpus-specific) ===
 #
-# AIFred-Pro-Dev pre-deploy class shares (n=3,488 turns / 133 sessions, source:
+# Alfred-Dev pre-deploy class shares (n=3,488 turns / 133 sessions, source:
 # .claude/metrics/token-compression/cache-telemetry-aifred-v2-20260501.csv):
 #
 #   tool_only    3.38%
@@ -163,7 +163,7 @@ gate_to_next_phase:
     Two-stage gating per design doc §10.4.
     Stage 1 (deploy+48h): interim safety check; clears orthogonal-stream work.
     Stage 2 (deploy+14d): formal pre-reg sign-off; THIS gates Phase 2 promotion.
-    Phase 1.5 Stage-2 FULL_PASS unblocks Phase 2 (CoD validation) for AIFred-Pro-Dev.
+    Phase 1.5 Stage-2 FULL_PASS unblocks Phase 2 (CoD validation) for Alfred-Dev.
   required_classes: [brief, interactive, analysis]
   required_stage: 2
 

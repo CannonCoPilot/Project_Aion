@@ -224,7 +224,7 @@ These are mechanical ports — the shell-side already documents the call signatu
   ollama-test only emitted 5 rows on one thread. A multi-task or persona-with-
   decisions flow would more thoroughly exercise the storyline drawer.
 - **Frontend visual QA**: API probes verified data flow; a human-eyes pass on
-  `/decisions` in browser is recommended once Nate has 5 minutes.
+  `/decisions` in browser is recommended once Sir has 5 minutes.
 - **YAML parser robustness**: the homemade parser in `services/personas.ts`
   handled the inline-comment case but is generally fragile (no list-of-objects
   support, no anchors/aliases). Replacing with `js-yaml` (already a dep) is a
@@ -232,7 +232,7 @@ These are mechanical ports — the shell-side already documents the call signatu
 
 ## Files touched
 
-### AIFred-Pro-Dev (commit 042247b)
+### Alfred-Dev (commit 042247b)
 - `dashboard/server/services/pulse-events.ts` (NEW, 265 LOC)
 - `dashboard/server/routes/decisions.ts` (NEW, 95 LOC)
 - `dashboard/server/index.ts` (registered route)
@@ -243,7 +243,7 @@ These are mechanical ports — the shell-side already documents the call signatu
 - `dashboard/frontend/src/App.tsx` (route)
 - `dashboard/frontend/src/components/layout/AppShell.tsx` (nav link)
 
-### AIFred-Pro-Dev (commit f052778, A1 fix)
+### Alfred-Dev (commit f052778, A1 fix)
 - `dashboard/server/services/personas.ts` (parseValue inline-comment fix)
 
 ### Jarvis-side

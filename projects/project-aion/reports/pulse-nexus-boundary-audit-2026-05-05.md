@@ -10,7 +10,7 @@
 | Concept | Authoritative source | One-line definition |
 |---|---|---|
 | **Pulse** | `AIFred-Pro/.claude/context/tools/pulse-reference.md` | The *service*: state-of-record for tasks, labels, transitions, events, triggers, messages, jobs, settings, observability tables. FastAPI + PostgreSQL on `:8700` (prod) / `:8800` (dev). |
-| **Nexus** | `AIFred-Pro-Dev/.claude/context/systems/nexus.md` | The *platform*: scheduling, execution, observability emission, communication, dashboard, tenants. Uses Pulse as its task-state backend. |
+| **Nexus** | `Alfred-Dev/.claude/context/systems/nexus.md` | The *platform*: scheduling, execution, observability emission, communication, dashboard, tenants. Uses Pulse as its task-state backend. |
 
 ### Ownership matrix
 
@@ -104,7 +104,7 @@ David's `nexus-sync-2026-04` branch name uses "Nexus" as a brand for the refacto
 | `Jarvis/.claude/context/session-state.md` | Same tagging for current priorities; add boundary-audit summary line |
 | `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md` | This file (new) |
 
-No AIFred-Pro-Dev docs are modified — the canonical Pulse/Nexus framing in `.claude/context/systems/nexus.md` and `tools/pulse-reference.md` is already correct and authoritative. Jarvis-side docs are the only ones drifting from it.
+No Alfred-Dev docs are modified — the canonical Pulse/Nexus framing in `.claude/context/systems/nexus.md` and `tools/pulse-reference.md` is already correct and authoritative. Jarvis-side docs are the only ones drifting from it.
 
 ---
 

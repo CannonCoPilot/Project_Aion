@@ -14,7 +14,7 @@ related:
 
 # A1 Source Documents — Reference
 
-Annotated bibliography for **P1 / A1** (AI Reviewer persona dashboard instrumentation, AIFred-Pro-Dev `nate-dev` branch). Consult this while implementing A1 to anchor design decisions back to authoritative inputs.
+Annotated bibliography for **P1 / A1** (AI Reviewer persona dashboard instrumentation, Alfred-Dev `nate-dev` branch). Consult this while implementing A1 to anchor design decisions back to authoritative inputs.
 
 This is a *working reference*, not a plan. The implementation plan, when written, lives in `projects/project-aion/plans/`.
 
@@ -43,11 +43,11 @@ A1 *shares* the dashboard container with UsagePage — that's why "rebuild the d
 | 1 | Origin | `Shared_Projects/Questions/david-2026-04-14.md` | 7 lines | David's open invitation — conversation seed |
 | 2 | Vision | `Shared_Projects/Debriefs/AIFred-Pro/2026-04-23-dev-workspace-and-usage-metrics-vision.md` | 71 lines | First "dashboard is highest priority" articulation |
 | 3 | Phase 3 evidence | `Shared_Projects/Debriefs/AIFred-Pro/2026-04-24-usage-tracking-phase3-complete.md` | 66 lines | Confirms Phase 1-3 shipped; flags dashboard rebuild as the unblock |
-| 4 | **DECISION** | `Shared_Projects/Questions/nate-2026-04-25-reply-to-checkin.md` | 89 lines, **answered by David directly** | The mandate — selects AI Reviewer first, locks UI stack, resolves `bd` binary FUD |
+| 4 | **DECISION** | `Shared_Projects/Questions/Archon-2026-04-25-reply-to-checkin.md` | 89 lines, **answered by David directly** | The mandate — selects AI Reviewer first, locks UI stack, resolves `bd` binary FUD |
 | 5 | Synthesis | `projects/project-aion/reports/aifred-pro-dev-comprehensive-review-2026-05-04.md` | 331 lines | Bundles A1+B1 into P1; surfaces audit-ingest dedup gap connection |
-| 6 | Pattern artifact | `AIFred-Pro-Dev/dashboard/frontend/src/pages/UsagePage.tsx` | 38,969 bytes | Pattern reference — A1's panel will live alongside, share visual grammar, NOT replace |
-| 7 | Target artifact | `AIFred-Pro-Dev/.claude/jobs/personas/ai-reviewer/` | 5 files (config.yaml, learned-patterns.yaml, methodology.yaml, permissions.yaml, prompt.md) | Persona being instrumented; defines what a "review" is |
-| 8 | Data artifact | `AIFred-Pro-Dev/.claude/logs/headless/executions/` | 826 dated execution dirs (latest 2026-05-04) | Live runtime data; A1's read source |
+| 6 | Pattern artifact | `Alfred-Dev/dashboard/frontend/src/pages/UsagePage.tsx` | 38,969 bytes | Pattern reference — A1's panel will live alongside, share visual grammar, NOT replace |
+| 7 | Target artifact | `Alfred-Dev/.claude/jobs/personas/ai-reviewer/` | 5 files (config.yaml, learned-patterns.yaml, methodology.yaml, permissions.yaml, prompt.md) | Persona being instrumented; defines what a "review" is |
+| 8 | Data artifact | `Alfred-Dev/.claude/logs/headless/executions/` | 826 dated execution dirs (latest 2026-05-04) | Live runtime data; A1's read source |
 
 **Document hierarchy when in conflict**: Doc 4 (David's direct answer) trumps Doc 5 (Jarvis's synthesis). Both are current; no known conflict between them.
 
@@ -57,14 +57,14 @@ A1 *shares* the dashboard container with UsagePage — that's why "rebuild the d
 
 ### Doc 4 — David's 2026-04-25 reply (THE decision document)
 
-`Shared_Projects/Questions/nate-2026-04-25-reply-to-checkin.md`
+`Shared_Projects/Questions/Archon-2026-04-25-reply-to-checkin.md`
 
 The load-bearing document for A1. Six material decisions David committed in writing:
 
 | Decision | Verbatim | Implication for A1 |
 |---|---|---|
 | `bd` binary status | "dead weight now... should be able to build the container fine" | Build path unblocked; no need to chase binary |
-| Build directory | "make sure you're building from the `dashboard/` directory, not the project root" | `cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard` is the canonical location |
+| Build directory | "make sure you're building from the `dashboard/` directory, not the project root" | `cd /Users/nathanielcannon/Claude/Alfred-Dev/dashboard` is the canonical location |
 | Build command | `docker build -t aifred-dashboard:latest .` | Direct command; no improvisation |
 | Run command | `docker run -it -p 8600:8600 aifred-dashboard:latest` | Port `:8600` is canonical (prod); `:8701` in dev override per `docker-compose.dev.yml` |
 | UI stack | "stick with React + React Query + Recharts" | No framework decision; mirror UsagePage.tsx pattern |
@@ -139,7 +139,7 @@ Most recent and most opinionated. Passages directly relevant to A1:
 
 ### Doc 6 — UsagePage.tsx (pattern reference)
 
-`AIFred-Pro-Dev/dashboard/frontend/src/pages/UsagePage.tsx` (38,969 bytes)
+`Alfred-Dev/dashboard/frontend/src/pages/UsagePage.tsx` (38,969 bytes)
 
 What to copy from this for A1:
 
@@ -153,7 +153,7 @@ What to copy from this for A1:
 
 ### Doc 7 — AI Reviewer persona definition (the target)
 
-`AIFred-Pro-Dev/.claude/jobs/personas/ai-reviewer/`
+`Alfred-Dev/.claude/jobs/personas/ai-reviewer/`
 
 Five files defining what AI Reviewer *is*. A1 must read these to know what to surface:
 
@@ -173,7 +173,7 @@ Five files defining what AI Reviewer *is*. A1 must read these to know what to su
 
 ### Doc 8 — Headless logs (the data)
 
-`AIFred-Pro-Dev/.claude/logs/headless/`
+`Alfred-Dev/.claude/logs/headless/`
 
 Live evidence the AI Reviewer is producing data right now:
 
@@ -223,7 +223,7 @@ A1 reads from `executions/<date>/<job-id>/` per execution. The daily-JSONL patte
 
 Concrete checks before opening an editor on A1 code:
 
-- [ ] **Dashboard build clears** — `cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard && docker build -t aifred-dashboard:latest .` exits 0
+- [ ] **Dashboard build clears** — `cd /Users/nathanielcannon/Claude/Alfred-Dev/dashboard && docker build -t aifred-dashboard:latest .` exits 0
 - [ ] **UsagePage renders** — `docker run -it -p 8600:8600 aifred-dashboard:latest` then visit `http://localhost:8600/usage`
 - [ ] **Persona files sampled** — read all 5 files in `.claude/jobs/personas/ai-reviewer/`
 - [ ] **Execution data shape understood** — sample `.claude/logs/headless/executions/<recent-date>/<one-job>/` to know what fields exist

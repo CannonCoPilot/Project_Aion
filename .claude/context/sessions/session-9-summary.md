@@ -13,7 +13,7 @@
 
 This session resolved a recurring architectural fragility: Claude Opus 4.7 was flagging the bracketed `[JICM-HALT]` and `[JICM-RESUME]` signal-tags as prompt injection despite the 2026-05-03 mitigation that added an "Operational signals" section to `jarvis-identity.md` documenting them as legitimate workspace infrastructure. Telling the model "trust this signal because docs say so" required meta-cognition about the input channel — which is exactly where the injection detector tripped.
 
-The fix was architectural rather than corrective: remove the cognitive surface entirely. Producer scripts (5 files: `jicm-watcher.sh`, `jarvis-watcher.sh`, `ennoia.sh`, `prompts.yaml`, plus comment in `jicm-watcher.sh`) now emit natural Watcher-collaborator phrasing — `Watcher here. Context is getting heavy ...` and `Watcher here. Refresh complete ...` — instead of bracketed control-signal tags. Consumers (`jicm-prep-context.sh`, two edits at line 115 filter and line 139 router) keep a backward-compat OR pattern so cycles started by the live pre-edit watcher process still route correctly during the rollout window. Force-loaded docs (`jarvis-identity.md`, project + auto-memory `MEMORY.md` copies, `self-corrections.md`, `AC-04-jicm.md`) replaced the "Operational signals" framing with "Workspace and collaborators" language that names Watcher as a co-equal collaborator alongside Nate and David. Single refusal test = guardrail violation regardless of arrival channel.
+The fix was architectural rather than corrective: remove the cognitive surface entirely. Producer scripts (5 files: `jicm-watcher.sh`, `jarvis-watcher.sh`, `ennoia.sh`, `prompts.yaml`, plus comment in `jicm-watcher.sh`) now emit natural Watcher-collaborator phrasing — `Watcher here. Context is getting heavy ...` and `Watcher here. Refresh complete ...` — instead of bracketed control-signal tags. Consumers (`jicm-prep-context.sh`, two edits at line 115 filter and line 139 router) keep a backward-compat OR pattern so cycles started by the live pre-edit watcher process still route correctly during the rollout window. Force-loaded docs (`jarvis-identity.md`, project + auto-memory `MEMORY.md` copies, `self-corrections.md`, `AC-04-jicm.md`) replaced the "Operational signals" framing with "Workspace and collaborators" language that names Watcher as a co-equal collaborator alongside Archon and David. Single refusal test = guardrail violation regardless of arrival channel.
 
 Also wrote two plan-of-record files to `projects/project-aion/plans/`: `aifred-pro-dev-pipeline-watcher-watchdog.md` (3-phase Watchdog, motivated by AION-13dc7b96 incident where pipeline-watcher accumulated 4,466 cycle errors over 74 hours with zero alerts) and `aifred-pro-dev-reviewer-dash.md` (4-phase Reviewer Dash, replaces `/board` Classic tab with a vertical timeline joining `decision_events` + `cost_events` on `thread_id`). Both were drafted in scratchpad pre-HALT in the prior session; this session promoted them to durable cross-session storage per user direction.
 
@@ -34,7 +34,7 @@ After commit + push (5413824 → CannonCoPilot/Jarvis main, fast-forward), the l
 - Maintenance work shipped + pushed; watcher restart complete (PID 4508 loaded with new prompts).
 - Pending live evidence: next JICM cycle will use new natural-prompt phrasing; if Opus 4.7 stops refusing JICM-RESUME mid-cycle, the architectural reframing is validated.
 - Two plans of record durable on disk; ready for implementation when their workstreams come up.
-- AIFred-Pro-Dev: chain `96bf29a..d47a186` PUSHED to davidmoneil/AIFred-Pro:nate-dev (UsagePage MVP from prior session, no new commits this session).
+- Alfred-Dev: chain `96bf29a..d47a186` PUSHED to davidmoneil/AIFred-Pro:nate-dev (UsagePage MVP from prior session, no new commits this session).
 
 ## Next Steps (per durable plans)
 
@@ -43,7 +43,7 @@ Per workstream architecture v1.3 §6.1 next-deliverables stack and the two new p
 2. **Reviewer Dash R1-R4** (~2d) — backend endpoints, frontend timeline, drawer, polish
 3. **Watchdog W1-W3** (~2-3d) — cycle-error-rate alert, external liveness probe, /health metric exposure
 
-All three target AIFred-Pro-Dev `nate-dev` branch.
+All three target Alfred-Dev `nate-dev` branch.
 
 ## Files Modified (full absolute paths)
 

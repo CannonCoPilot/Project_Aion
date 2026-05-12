@@ -4,7 +4,7 @@
 
 **Created**: 2026-05-01
 **Author**: Jarvis (autonomous synthesis)
-**Audience**: User (Nate) — three short tests, ~10 minutes total
+**Audience**: User (Sir) — three short tests, ~10 minutes total
 **Status**: READY for execution; agent rate-limit is irrelevant (no agents required)
 
 **Design doc**: `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/designs/jicm-portable-architecture.md`

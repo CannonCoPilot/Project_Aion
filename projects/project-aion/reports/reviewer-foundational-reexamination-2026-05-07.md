@@ -2,18 +2,18 @@
 title: Reviewer Dashboard — Foundational Re-Examination
 date: 2026-05-07
 session: post-JICM-resume
-status: ANALYSIS — SUPERSEDED by REO reframe (Nate, 2026-05-07)
+status: ANALYSIS — SUPERSEDED by REO reframe (Sir, 2026-05-07)
 supersedes: projects/project-aion/plans/aifred-pro-dev-reviewer-dash.md (factual errors corrected here)
 superseded_by: (forthcoming) projects/project-aion/plans/aifred-pro-dev-reo-page.md
 preserve_intact: true
-audience: Nate, David, future-Jarvis
+audience: Sir, David, future-Jarvis
 purpose: |
   Foundational re-examination of "what should the Reviewer Dashboard be?"
   Answers the seven basic questions (What is it? What does it do? Why? Where in
   framework? Why own dashboard? Why not Executor/Orchestrator? David's vision /
-  Nate's vision / possible vision?) with critical pushback. Surfaces two factual
+  Sir's vision / possible vision?) with critical pushback. Surfaces two factual
   corrections to the prior plan-of-record. Result: Reviewer-Dash framing was
-  wrong; should be generalized to a persona-decision-stream pattern. Per Nate's
+  wrong; should be generalized to a persona-decision-stream pattern. Per Sir's
   2026-05-07 reframe, this is now superseded by REO (Reviews, Executions,
   Orchestrations) — a filing system for pipeline decision-making, distinct from
   the planned Board v2 component-cards ops layer.
@@ -75,7 +75,7 @@ The `(?)` is the gap reviewer fills. Executor's "I succeeded" claim is a self-re
 
 Both wrap LLM calls around structured task state. Both can route to retry. Both currently under-instrument their decisions (`evaluate.py` also doesn't emit `decision_events` cleanly). The "why does Reviewer get a dashboard" question has a structural counterpart: "why doesn't Evaluator?" That symmetry suggests the right answer is *neither does, in isolation* — they both feed a **persona decision-stream** view.
 
-## 4. Where does it sit in Pulse–Nexus–AIFred-Pro-Dev?
+## 4. Where does it sit in Pulse–Nexus–Alfred-Dev?
 
 It is firmly a **Nexus** service that talks to **Pulse** as the state-of-record:
 
@@ -137,7 +137,7 @@ I missed the load-bearing word "*pattern*" in his writing. He's not building a R
 
 **Pushback on each:**
 
-- **A** is what I'd build if Nate said "I want Reviewer ops." But it's *not* what David asked for in his debrief, and the scope grows fast (engine A/B requires Pulse aggregations that don't exist; confidence histograms require time-bucketed queries). Skeptical.
+- **A** is what I'd build if Sir said "I want Reviewer ops." But it's *not* what David asked for in his debrief, and the scope grows fast (engine A/B requires Pulse aggregations that don't exist; confidence histograms require time-bucketed queries). Skeptical.
 - **B** matches David's words exactly. Risk: it's basically "rename `/reviewer-dash` → `/decision-streams` and extend DecisionsPage with persona filtering." That's an honest 1-day refactor that makes the prior 2 commits not-wasted but also not-new-deliverable. Worth doing if true; not worth shipping under a misleading name.
 - **C** is what I'd build if I were David and angry that no one was thinking holistically. But David didn't write this; I extrapolated it. Highest risk of building the wrong thing.
 - **D** is the *engineering* answer (smallest delta to existing UX) but not the *learning* answer (no place to compare engines, see issue taxonomy). Also fails to satisfy David's "pattern" intent.
@@ -193,11 +193,11 @@ This is also a meta-lesson about plans-of-record: writing one before doing the d
 2. **Phase 1 in parallel** — wire `reviewer.py` to emit `decision_events`. Pure infrastructure win regardless of vision; ~3-4h. Justifiable to ship before David replies.
 3. **Phase 2 after David's reply** — execute whichever vision he picks (most likely B given his own writing).
 
-What I'd ask Nate to confirm:
+What I'd ask Sir to confirm:
 - (i) Do you want me to draft the Question/ now, or defer until you've reflected further?
 - (ii) Is the Phase 1 reviewer.py wiring acceptable to ship pre-emptively (it's a non-controversial infrastructure win), or hold until vision is decided?
-- (iii) Of the four visions, do *you* (Nate, distinct from David) lean toward one? Your prompt asked "what does Nate envision" — and I notice I haven't given you space to answer that yet, which itself was a flaw in my prior framing.
+- (iii) Of the four visions, do *you* (Sir, distinct from David) lean toward one? Your prompt asked "what does Sir envision" — and I notice I haven't given you space to answer that yet, which itself was a flaw in my prior framing.
 
 ---
 
-**End of report (preserved intact 2026-05-07 per Nate). Subsequent REO reframe builds on this analysis but supersedes the Vision A/B/C/D framing entirely — the page is now conceived as REO (Reviews, Executions, Orchestrations), a filing system for ALL pipeline decision-making, parallel to a planned Board v2 component-cards ops layer.**
+**End of report (preserved intact 2026-05-07 per Sir). Subsequent REO reframe builds on this analysis but supersedes the Vision A/B/C/D framing entirely — the page is now conceived as REO (Reviews, Executions, Orchestrations), a filing system for ALL pipeline decision-making, parallel to a planned Board v2 component-cards ops layer.**

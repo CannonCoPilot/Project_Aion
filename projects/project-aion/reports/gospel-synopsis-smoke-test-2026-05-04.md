@@ -1,6 +1,6 @@
 # Gospel-Synopsis Max-Depth Smoke-Test Run Report (2026-05-04)
 
-**Pipeline**: AIFred-Pro-Dev `nate-dev` HEAD `af73a46` (dev Pulse :8800, dashboard :8701)
+**Pipeline**: Alfred-Dev `nate-dev` HEAD `af73a46` (dev Pulse :8800, dashboard :8701)
 **Test suite**: `.claude/jobs/test-suites/gospel-synopsis.yaml` (1 master + 6 ordered objectives, ~15 min design runtime)
 **Pre-flight cleanup**: 9 stale OPEN tasks from 2026-05-01 closed via Pulse API at `2026-05-04T03:36–03:37Z` (User-approved Option 2)
 **Master imported**: `SETUP-e1c9f166` at `2026-05-04T03:38:22Z`
@@ -245,12 +245,12 @@ This naming-convention divergence is downstream of the §5.4 finding (master ran
 
 ### 5.3 Three Compounding Path-Handling Findings (Executor → Reviewer → Test Methodology)
 
-**Finding A — Executor uses `output/gospel-synopsis/` instead of YAML-specified `tests/gospel-synopsis/`**: The YAML spec instructs the executor to write `tests/gospel-synopsis/<scene-slug>-synopsis.md` etc. The executor instead writes to `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/output/gospel-synopsis/` — a **workspace-root deliverable directory** that pre-existed (created Apr 30 19:29Z, 17 files from earlier test sessions). For example, child #2's `files_modified` (verbatim from telemetry):
+**Finding A — Executor uses `output/gospel-synopsis/` instead of YAML-specified `tests/gospel-synopsis/`**: The YAML spec instructs the executor to write `tests/gospel-synopsis/<scene-slug>-synopsis.md` etc. The executor instead writes to `/Users/nathanielcannon/Claude/Alfred-Dev/output/gospel-synopsis/` — a **workspace-root deliverable directory** that pre-existed (created Apr 30 19:29Z, 17 files from earlier test sessions). For example, child #2's `files_modified` (verbatim from telemetry):
 
 ```
-/Users/nathanielcannon/Claude/AIFred-Pro-Dev/output/gospel-synopsis/comparison-scene-01-wilderness-temptation.md
+/Users/nathanielcannon/Claude/Alfred-Dev/output/gospel-synopsis/comparison-scene-01-wilderness-temptation.md
 ... (5 more comparison-scene-NN-*.md)
-/Users/nathanielcannon/Claude/AIFred-Pro-Dev/output/gospel-synopsis/comparison-index.md
+/Users/nathanielcannon/Claude/Alfred-Dev/output/gospel-synopsis/comparison-index.md
 ```
 
 The executor's persona training (or prompt template) treats `output/<project>/` as the canonical deliverable path, overriding YAML-specified paths. This is **convention-over-spec behavior**, not a bug per se, but it makes YAML path instructions advisory rather than authoritative.
@@ -318,14 +318,14 @@ This run report is methodologically distinct from the Phase 1.3.5 verdict drafts
 ## 8. Cross-References
 
 - Executive milestone report: `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/reports/aifred-pro-dev-milestone-executive-report-2026-05-04.md`
-- Pipeline v2 design doc: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/context/designs/pipeline-redesign-v2.md`
+- Pipeline v2 design doc: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/context/designs/pipeline-redesign-v2.md`
 - Phase 1.3.5 pre-registration: `/Users/nathanielcannon/Claude/Jarvis/.claude/metrics/token-compression/pre-registration-phase-1-3-5-reviewer-claude-route.yaml`
-- Test suite: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/test-suites/gospel-synopsis.yaml`
-- Importer: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/test-suites/import-suite.py`
-- Pipeline-watcher: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py`
+- Test suite: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/test-suites/gospel-synopsis.yaml`
+- Importer: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/test-suites/import-suite.py`
+- Pipeline-watcher: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/pipeline-watcher.py`
 - Service logs:
-  - `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/logs/headless/pipeline-watcher.log`
-  - `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/logs/headless/service-{stage,evaluate,orchestrate,execute,review}.log`
+  - `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/headless/pipeline-watcher.log`
+  - `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/headless/service-{stage,evaluate,orchestrate,execute,review}.log`
 - Monitor log: `/tmp/gs-monitor.log` (transient, smoke-test session only)
 
 ---
@@ -412,9 +412,9 @@ Watcher (PID 74731) and HUD (PID 28966) remain SIGSTOP'd through the smoke-test 
 ### 9.9 Cross-references
 
 - Run #1 (v1) details: §1-§8 above
-- v2 YAML: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/test-suites/gospel-synopsis.yaml` (commit `b78551f` on `nate-dev`)
+- v2 YAML: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/test-suites/gospel-synopsis.yaml` (commit `b78551f` on `nate-dev`)
 - JICM fix commit: `3e7f4f4` on `Project_Aion` — `fix(jicm): HALT/clear concatenation + state-file staleness`
-- Pipeline-watcher: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py` (decomposed-parent-guard path needs `closed_at`/`closed_reason` symmetry per §9.5)
+- Pipeline-watcher: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/pipeline-watcher.py` (decomposed-parent-guard path needs `closed_at`/`closed_reason` symmetry per §9.5)
 
 ---
 

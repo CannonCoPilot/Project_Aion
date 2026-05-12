@@ -312,5 +312,5 @@ The pipeline's core lifecycle (stage -> evaluate -> orchestrate -> execute -> re
 ---
 
 *Report finalized 2026-04-30 ~06:45 MDT. Pipeline was still cycling at time of finalization.*
-*Pipeline v2 — AIFred-Pro-Dev nate-dev (commit b42e87f)*
+*Pipeline v2 — Alfred-Dev nate-dev (commit b42e87f)*
 *Data snapshots saved to .claude/scratch/pipeline-test-snapshot.json and pipeline-test-final.json*

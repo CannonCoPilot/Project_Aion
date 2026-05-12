@@ -154,7 +154,7 @@ These are opt-in overlays. Base system runs without any of them. On macOS, use `
 | `pulse-ops` | Task CRUD via Pulse — canonical task interface | `mcp__jarvis-pulse`, API calls |
 | `nexus-ops` | Submit/check Nexus jobs | `Bash(curl)`, jobs.db queries |
 | `dashboard-ops` | Navigate dashboard, extract metrics | `WebFetch`, `Bash(curl)` |
-| `git-ops` | Branch management for AIFred-Pro-Dev | `Bash(git *)` |
+| `git-ops` | Branch management for Alfred-Dev | `Bash(git *)` |
 | `telegram-ops` | Send messages via @Keryx_Archon | `Bash(curl)` Telegram API |
 
 Skills are prompt+tool-call specs (no companion .sh scripts). `pulse-ops` is the most developed — includes label conventions and the `agent:aifred`/`agent:jarvis`/`agent:shared` taxonomy. David recommends using this skill for all task mutations.

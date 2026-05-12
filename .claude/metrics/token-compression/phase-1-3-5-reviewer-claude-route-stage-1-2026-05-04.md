@@ -1,7 +1,7 @@
 # Phase 1.3.5 — Reviewer Claude-CLI Route — Stage-1 Verdict (2026-05-04)
 
 **Pre-registration**: `.claude/metrics/token-compression/pre-registration-phase-1-3-5-reviewer-claude-route.yaml`
-**Deploy commit**: `af73a46` (AIFred-Pro-Dev:nate-dev) — `feat(reviewer): add Claude-CLI route mirroring executor pattern`
+**Deploy commit**: `af73a46` (Alfred-Dev:nate-dev) — `feat(reviewer): add Claude-CLI route mirroring executor pattern`
 **Deploy timestamp**: 2026-05-02T23:04:12Z
 **Earliest verdict run**: 2026-05-04T23:04:12Z (deploy + PT48H)
 **Verdict run**: 2026-05-04T15:00:00Z (regression-catch axes only; Claude-route axes deferred)
@@ -118,7 +118,7 @@ Both can proceed without waiting for Stage-2 verdict.
 ## 7. Cross-references
 
 - Pre-registration: `.claude/metrics/token-compression/pre-registration-phase-1-3-5-reviewer-claude-route.yaml`
-- Reviewer service: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/reviewer.py` (commit `af73a46`)
+- Reviewer service: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/reviewer.py` (commit `af73a46`)
 - Pipeline-telemetry extractor: `.claude/skills/token-compression/scripts/pipeline-telemetry-extractor.py` (used to query Pulse dev DB)
 - Two-stage gating pattern: `.claude/context/patterns/two-stage-validation-gating.md` (§4 effort-class table; reviewer-route is `per-deploy / behavior-additive` class)
 - Sample data source: `aifred-dev-postgres:tasks` table filtered by `created_at >= deploy_timestamp`

@@ -3,7 +3,7 @@ session: 10
 date: 2026-05-06
 end_time: 23:00 MDT
 duration_approx: ~4h foreground
-project: AIFred-Pro-Dev / Jarvis
+project: Alfred-Dev / Jarvis
 workstream: aifred-pro-dev-reo-page (Reviews, Executions, Orchestrations)
 phase: BUILD (B1 + B3 complete; B4-B7 pending)
 ---
@@ -12,19 +12,19 @@ phase: BUILD (B1 + B3 complete; B4-B7 pending)
 
 ## What was accomplished
 
-Resumed post-JICM cycle on the Reviewer Dash R3-R4 stack and immediately encountered a strategic reframe from Nate. The session's substantive arc:
+Resumed post-JICM cycle on the Reviewer Dash R3-R4 stack and immediately encountered a strategic reframe from Sir. The session's substantive arc:
 
-1. **Critical re-examination of "what is the Reviewer?"** — Deep audit prompted by Nate's "be critical, push back on yourself" prompt. Surfaced two factual errors in the prior plan-of-record: (a) `reviewer.py` emits `log_activity` only, NOT `decision_events` (the "0 rows for actor='persona:reviewer'" was correct because that wire was never built); (b) the four "*-reviewer" personas (`ai-reviewer`/`pipeline-reviewer`/`security-reviewer`/`test-reviewer`) are unrelated Nexus headless agents sharing a suffix — treating them as a class was a category error. Foundational re-examination report preserved at `Jarvis/projects/project-aion/reports/reviewer-foundational-reexamination-2026-05-07.md`.
+1. **Critical re-examination of "what is the Reviewer?"** — Deep audit prompted by Sir's "be critical, push back on yourself" prompt. Surfaced two factual errors in the prior plan-of-record: (a) `reviewer.py` emits `log_activity` only, NOT `decision_events` (the "0 rows for actor='persona:reviewer'" was correct because that wire was never built); (b) the four "*-reviewer" personas (`ai-reviewer`/`pipeline-reviewer`/`security-reviewer`/`test-reviewer`) are unrelated Nexus headless agents sharing a suffix — treating them as a class was a category error. Foundational re-examination report preserved at `Jarvis/projects/project-aion/reports/reviewer-foundational-reexamination-2026-05-07.md`.
 
-2. **REO reframe by Nate** — Dissolved the "Reviewer Dash" framing entirely. Rebrand to **REO** (Reviews, Executions, Orchestrations) — the three classes of pipeline decision-moment, framed as "review-reflect-decide-tag" operators. REO is a *filing system* for ALL pipeline decision-making (reasoning AND mechanistic, AI-assisted AND deterministic), distinct from a planned Board v2 component-cards layer (parallel workstream, ops-metrics dashboard primitive). Nate clarified `/reo` literal route, replaces `/decisions` and `/reviews` functionally (legacy pages stay in place during transition), and a future user-feedback connector wires back into a "lessons-learned book."
+2. **REO reframe by Sir** — Dissolved the "Reviewer Dash" framing entirely. Rebrand to **REO** (Reviews, Executions, Orchestrations) — the three classes of pipeline decision-moment, framed as "review-reflect-decide-tag" operators. REO is a *filing system* for ALL pipeline decision-making (reasoning AND mechanistic, AI-assisted AND deterministic), distinct from a planned Board v2 component-cards layer (parallel workstream, ops-metrics dashboard primitive). Sir clarified `/reo` literal route, replaces `/decisions` and `/reviews` functionally (legacy pages stay in place during transition), and a future user-feedback connector wires back into a "lessons-learned book."
 
-3. **Lessons-learned investigation** — Discovered existing operational mechanism at `AIFred-Pro-Dev/.claude/jobs/personas/ai-reviewer/learned-patterns.yaml` (350 LOC, 32 patterns, 120+ feedback round-trips, last updated 2026-04-09). Schema includes `description`/`conditions`/`action`/`confidence`/`risk`/`source`. Maintenance flow: feedback in JSONL → persona reads on next run → updates patterns in-place via three actions (`agreed`/`wrong`/`adjusted`). This is **AI-mediated curation** — neither human-curated (proposals queue) nor fully autonomic (auto-apply with gates) but a third pattern where the persona itself processes its own feedback and self-updates. Plan §7 + Phase 5 H6 revised from green-field to extension.
+3. **Lessons-learned investigation** — Discovered existing operational mechanism at `Alfred-Dev/.claude/jobs/personas/ai-reviewer/learned-patterns.yaml` (350 LOC, 32 patterns, 120+ feedback round-trips, last updated 2026-04-09). Schema includes `description`/`conditions`/`action`/`confidence`/`risk`/`source`. Maintenance flow: feedback in JSONL → persona reads on next run → updates patterns in-place via three actions (`agreed`/`wrong`/`adjusted`). This is **AI-mediated curation** — neither human-curated (proposals queue) nor fully autonomic (auto-apply with gates) but a third pattern where the persona itself processes its own feedback and self-updates. Plan §7 + Phase 5 H6 revised from green-field to extension.
 
 4. **Plan-of-record + Question/ to David drafted** — `aifred-pro-dev-reo-page.md` (13 sections, 7-phase plan) supersedes the old reviewer-dash plan. Question/ to David at `Shared_Projects/Questions/AIFred-Pro/2026-05-07-reo-page-direction.md` — concrete proposals in 5 questions, lower-stakes than the original "pick a vision" framing.
 
 5. **Build phase B1+B3 shipped + pushed**:
-   - **B1** (`086f08d` on AIFred-Pro-Dev nate-dev): wired `reviewer.py` → `log_decision()` at 5 outcome branches (PASS / engine_failed × 2 / blocked_max_retries / failed_diagnose_triggered). Single `decision_type='review_outcome'`; `outcome` string distinguishes branches. Confidence maps reviewer's string levels to log_decision's float scale via `_CONFIDENCE_MAP` constant. Smoke-validated end-to-end via direct invocation — JSONL row landed at `2026-05-07T04:49:41Z` with all expected fields.
-   - **B3** (`54d890a` on AIFred-Pro-Dev nate-dev): renamed `/reviewer-dash` → `/reo`. Three files git-mv'd (api/reo.ts, ReoPage.tsx, server/routes/reo.ts); App.tsx + server/index.ts updated; symbol renames + queryKeys + API paths + log messages + comment headers all reframed. Page header changed from "Reviewer Dash" to "REO" with filing-system subtitle. tsc --noEmit clean on both frontend + server.
+   - **B1** (`086f08d` on Alfred-Dev nate-dev): wired `reviewer.py` → `log_decision()` at 5 outcome branches (PASS / engine_failed × 2 / blocked_max_retries / failed_diagnose_triggered). Single `decision_type='review_outcome'`; `outcome` string distinguishes branches. Confidence maps reviewer's string levels to log_decision's float scale via `_CONFIDENCE_MAP` constant. Smoke-validated end-to-end via direct invocation — JSONL row landed at `2026-05-07T04:49:41Z` with all expected fields.
+   - **B3** (`54d890a` on Alfred-Dev nate-dev): renamed `/reviewer-dash` → `/reo`. Three files git-mv'd (api/reo.ts, ReoPage.tsx, server/routes/reo.ts); App.tsx + server/index.ts updated; symbol renames + queryKeys + API paths + log messages + comment headers all reframed. Page header changed from "Reviewer Dash" to "REO" with filing-system subtitle. tsc --noEmit clean on both frontend + server.
 
 6. **Jarvis-side commit + push** (`16543a3` on CannonCoPilot/Jarvis main): plan-of-record + analysis report + active-plan pivoted to REO BUILD + session insights/scratchpad updates.
 
@@ -50,7 +50,7 @@ Resumed post-JICM cycle on the Reviewer Dash R3-R4 stack and immediately encount
 
 ## Current state
 
-- AIFred-Pro-Dev nate-dev: at `54d890a` (B3 rename pushed); 2 untracked files (observe-trace.log + .bak from sed)
+- Alfred-Dev nate-dev: at `54d890a` (B3 rename pushed); 2 untracked files (observe-trace.log + .bak from sed)
 - Jarvis Project_Aion → main: at `16543a3` (REO plan + analysis pushed); active-plan updated to BUILD phase
 - pulse_dev decision-log.jsonl: smoke-test row visible at `2026-05-07T04:49:41Z` with `actor='persona:reviewer'`
 
@@ -70,4 +70,4 @@ David's response to the Question/ may inform Q2/Q3 (lessons-learned integration 
 - Plan-of-record: `Jarvis/projects/project-aion/plans/aifred-pro-dev-reo-page.md`
 - Foundational analysis: `Jarvis/projects/project-aion/reports/reviewer-foundational-reexamination-2026-05-07.md`
 - Question/ to David: `Shared_Projects/Questions/AIFred-Pro/2026-05-07-reo-page-direction.md`
-- Commits: Jarvis `16543a3`; AIFred-Pro-Dev `086f08d` (B1), `54d890a` (B3)
+- Commits: Jarvis `16543a3`; Alfred-Dev `086f08d` (B1), `54d890a` (B3)

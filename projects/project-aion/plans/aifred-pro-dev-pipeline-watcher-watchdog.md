@@ -1,7 +1,7 @@
 # Pipeline-Watcher Watchdog — Implementation Plan
 
 **Status**: drafted, not started
-**Target repo**: AIFred-Pro-Dev (`nate-dev` branch)
+**Target repo**: Alfred-Dev (`nate-dev` branch)
 **Effort**: 2-3 days across 3 phases
 **Created**: 2026-05-06
 **Tag**: `[Nexus]` (modifies `.claude/jobs/pipeline-watcher.py` + dashboard `/health` panel)
@@ -16,7 +16,7 @@ The 2026-05-06 task-executor leak investigation confirmed this is a recurring cl
 
 ## 2. Current Scaffolding
 
-Existing watchdog infrastructure in `AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py:272-303` covers a narrow case: **task-LABEL stuck states** (a task labelled `in-flight` for too long). It does NOT cover:
+Existing watchdog infrastructure in `Alfred-Dev/.claude/jobs/pipeline-watcher.py:272-303` covers a narrow case: **task-LABEL stuck states** (a task labelled `in-flight` for too long). It does NOT cover:
 - Cycle-loop error accumulation (the AION-13dc7b96 failure mode)
 - Process liveness from outside the process (the `/health` 200 paradox — process is alive enough to serve the endpoint but not alive enough to drain its work queue)
 
@@ -69,12 +69,12 @@ Two independent failure-detection paths, each with its own alert channel and ded
 - Run in dev for 24h → zero spurious alerts on healthy operation
 
 **Files touched** (anticipated):
-- `AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py` (~30 LOC added)
+- `Alfred-Dev/.claude/jobs/pipeline-watcher.py` (~30 LOC added)
 
 ### W2 — External liveness probe (1d)
 
 **Deliverables**:
-- New script `AIFred-Pro-Dev/.claude/scripts/watchdog-liveness-probe.sh`
+- New script `Alfred-Dev/.claude/scripts/watchdog-liveness-probe.sh`
 - launchd plist `~/Library/LaunchAgents/com.aifred.watchdog-liveness.plist` (StartInterval=300, RunAtLoad=true)
 - Script logic:
   - `curl -fsS --max-time 5 http://localhost:8810/health` → 200 OK = healthy, advance heartbeat file mtime
@@ -88,9 +88,9 @@ Two independent failure-detection paths, each with its own alert channel and ded
 - Ledger of probe attempts visible at `.claude/logs/watchdog-liveness.log` for post-mortem reconstruction
 
 **Files touched**:
-- `AIFred-Pro-Dev/.claude/scripts/watchdog-liveness-probe.sh` (NEW, ~80 LOC)
-- `AIFred-Pro-Dev/~/Library/LaunchAgents/com.aifred.watchdog-liveness.plist` (NEW)
-- `AIFred-Pro-Dev/.gitignore` (add probe state files)
+- `Alfred-Dev/.claude/scripts/watchdog-liveness-probe.sh` (NEW, ~80 LOC)
+- `Alfred-Dev/~/Library/LaunchAgents/com.aifred.watchdog-liveness.plist` (NEW)
+- `Alfred-Dev/.gitignore` (add probe state files)
 
 ### W3 — Surface new metrics (0.5d)
 
@@ -114,9 +114,9 @@ Two independent failure-detection paths, each with its own alert channel and ded
 - Alert state visible in dashboard during forced-error injection
 
 **Files touched**:
-- `AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py` (`/health` payload extension, ~10 LOC)
-- `AIFred-Pro-Dev/dashboard/server/routes/health.ts` (passthrough, ~5 LOC)
-- `AIFred-Pro-Dev/dashboard/frontend/src/pages/HealthPage.tsx` (display, ~30 LOC)
+- `Alfred-Dev/.claude/jobs/pipeline-watcher.py` (`/health` payload extension, ~10 LOC)
+- `Alfred-Dev/dashboard/server/routes/health.ts` (passthrough, ~5 LOC)
+- `Alfred-Dev/dashboard/frontend/src/pages/HealthPage.tsx` (display, ~30 LOC)
 
 ## 5. Risks / Open Questions
 
@@ -142,6 +142,6 @@ Two independent failure-detection paths, each with its own alert channel and ded
 
 This work is the **W3-tier safety layer** in the workstream architecture v1.3 (Jarvis design doc §7.2). It complements but does not replace:
 - W1 (cost-anomaly watcher, Jarvis-side, shipped 2026-05-06)
-- W2 (executor pre-flight gates, AIFred-Pro-Dev, shipped commit `649acfc`)
+- W2 (executor pre-flight gates, Alfred-Dev, shipped commit `649acfc`)
 
 The three together form a defense-in-depth pattern: cost-anomaly catches budget leakage, executor gates catch hard-fail tasks before LLM call, watchdog catches the watcher itself failing silently. None alone is sufficient; together they cover the failure surface that produced the 2026-05-06 incident.

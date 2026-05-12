@@ -70,9 +70,9 @@ audit-ingest.py defaults assume:
 
 Our reality:
 - aifred-dev-postgres @ port 5432, dbname=`pulse_dev`, user=`pulse_dev`, password from `.env`
-- PROJECT_DIR is `/Users/nathanielcannon/Claude/AIFred-Pro-Dev`
+- PROJECT_DIR is `/Users/nathanielcannon/Claude/Alfred-Dev`
 
-**Connection adaptation**: when lifting `ea298c2`, ADAPT the audit-ingest.sh wrapper to source AIFred-Pro-Dev's `.env.dev` (PULSE_DB_PORT=5432, PULSE_DB_NAME=pulse_dev, PULSE_DB_USER=pulse_dev, PULSE_DB_PASSWORD from secret). Set PROJECT_DIR via env. This is part of ea298c2's ADAPT strategy now.
+**Connection adaptation**: when lifting `ea298c2`, ADAPT the audit-ingest.sh wrapper to source Alfred-Dev's `.env.dev` (PULSE_DB_PORT=5432, PULSE_DB_NAME=pulse_dev, PULSE_DB_USER=pulse_dev, PULSE_DB_PASSWORD from secret). Set PROJECT_DIR via env. This is part of ea298c2's ADAPT strategy now.
 
 ---
 
@@ -257,7 +257,7 @@ Sequence with rationale:
 - **Classification**: **ADAPT** (was ADOPT — upgraded due to schema gap and config divergence)
 - **Strategy** (R3-resolved, Q4 = Option B verified):
   1. Cherry-pick the two new files
-  2. ADAPT `audit-ingest.sh` wrapper to source AIFred-Pro-Dev's dev env (port 5432, db=pulse_dev, user=pulse_dev, PROJECT_DIR=$AIFRED_DEV_ROOT)
+  2. ADAPT `audit-ingest.sh` wrapper to source Alfred-Dev's dev env (port 5432, db=pulse_dev, user=pulse_dev, PROJECT_DIR=$AIFRED_DEV_ROOT)
   3. Author Phase 5.1 schema migration: `pulse/migrations/0002-phase-5-1-observability-tables.sql` (column lists derived from audit-ingest INSERT statements; type inference: TIMESTAMPTZ for ts, TEXT for strings, JSONB for alternatives/details, NUMERIC for cost_usd, etc.)
   4. Apply migration to pulse_dev in R6 verification
   5. Author `services/observability/audit_ingest.py`: python port of audit-ingest.py for the live pipeline-v2 path. Same logic, native python service.
@@ -347,7 +347,7 @@ Sequence with rationale:
 - **Files**: 1 (`README.md`)
 - **Conflict surface**: David's README describes nexus-sync state. nate-dev's current README (if any) may describe pipeline-v2 work or be the unchanged repo template.
 - **Classification**: **ADAPT** (rewrite informed by both inputs)
-- **Strategy**: cherry-pick `--no-commit`. Adapt the resulting README to describe the merged state: AIFred-Pro-Dev nate-dev branch contains both the comprehensive Nexus sync (David's authorship) AND pipeline-v2 work (our authorship). Acknowledge David's contribution in the README.
+- **Strategy**: cherry-pick `--no-commit`. Adapt the resulting README to describe the merged state: Alfred-Dev nate-dev branch contains both the comprehensive Nexus sync (David's authorship) AND pipeline-v2 work (our authorship). Acknowledge David's contribution in the README.
 - **Estimated effort**: 20 min (write-from-merge)
 
 ---
@@ -465,7 +465,7 @@ Failure of any smoke-test stops R5. Diagnose, fix in place, then continue. No de
 | `projects/project-aion/reports/nexus-sync-supplant-r5-progress-2026-05-04.md` | R5 | Per-commit checklist updated as we go |
 | `projects/project-aion/reports/nexus-sync-supplant-r6-validation-2026-05-04.md` | R6 | Smoke-test results, integration verification |
 | `Shared_Projects/Debriefs/AIFred-Pro/2026-05-04-nexus-sync-supplant-completion.md` | R7 | Milestone debrief for David |
-| Updates to `.active-plan`, `session-state.md`, `Status/nate/focus-areas.md` | R7 | State sync after milestone |
+| Updates to `.active-plan`, `session-state.md`, `Status/Archon/focus-areas.md` | R7 | State sync after milestone |
 
 ---
 

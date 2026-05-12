@@ -38,7 +38,7 @@ Jarvis locked into AIFred-Pro's Pulse task system; does NOT modify AIFred-Pro fo
 | Property | Value |
 |---|---|
 | Production (read-only for Jarvis) | `/Users/nathanielcannon/Claude/AIFred-Pro/` |
-| Development (collaborative w/ David, `nate-dev` branch) | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/` |
+| Development (collaborative w/ David, `nate-dev` branch) | `/Users/nathanielcannon/Claude/Alfred-Dev/` |
 | GitHub | `https://github.com/davidmoneil/AIFred-Pro` (CannonCoPilot contributor) |
 | Pulse API (canonical for ALL projects) | `http://localhost:8700` |
 | Pulse MCP | `jarvis-pulse` (6 tools) |
@@ -53,16 +53,16 @@ Jarvis locked into AIFred-Pro's Pulse task system; does NOT modify AIFred-Pro fo
 
 Path: `/Users/nathanielcannon/Claude/Shared_Projects/` (Debriefs/, Questions/, Status/, Setup/).
 
-**AC-01 session-start checks**: Questions/ for `to: Nate, status: open`; Debriefs/_latest.md; Status/david/focus-areas.md.
-**AC-09 session meditation writes**: Debriefs/<Project>/YYYY-MM-DD-<slug>.md (use _template.md, set `author: Nate`); Status/nate/{focus-areas,projects-summary}.md.
-**Asking David**: Questions/ via _template.md (`from: Nate, to: David, status: open, project: <name>`).
+**AC-01 session-start checks**: Questions/ for `to: Archon, status: open`; Debriefs/_latest.md; Status/david/focus-areas.md.
+**AC-09 session meditation writes**: Debriefs/<Project>/YYYY-MM-DD-<slug>.md (use _template.md, set `author: Archon`); Status/Archon/{focus-areas,projects-summary}.md.
+**Asking David**: Questions/ via _template.md (`from: Archon, to: David, status: open, project: <name>`).
 
 ## Workspace layout
 
 ```
 /Users/nathanielcannon/Claude/
 ├── AIFred-Pro/          # MASTER Operations Archon (read-only for Jarvis)
-├── AIFred-Pro-Dev/      # DEV — nate-dev branch, collab w/ David
+├── Alfred-Dev/          # DEV — nate-dev branch, collab w/ David
 ├── Jarvis/              # MASTER Project Aion Archon (this repo)
 ├── Jarvis-Dev/          # DEV — dev branch, push to CannonCoPilot/Jarvis
 ├── Projects/            # Deliverable code (DwarfCron, etc.)
@@ -120,7 +120,7 @@ Path: `/Users/nathanielcannon/Claude/Shared_Projects/` (Debriefs/, Questions/, S
 Do NOT short-cut Chronicler app functionality with ad-hoc commands/scripts. No Phase complete unless a stand-alone executable exists, packaged hands-off, user-controlled.
 
 ### Filesystem Policy (MANDATORY)
-- **Full write**: `Jarvis/`, `Jarvis-Dev/`, `AIFred-Pro-Dev/`, `Projects/<Name>/`, `Shared_Projects/`, `GitRepos/`, `~/.claude/`
+- **Full write**: `Jarvis/`, `Jarvis-Dev/`, `Alfred-Dev/`, `Projects/<Name>/`, `Shared_Projects/`, `GitRepos/`, `~/.claude/`
 - **Session-confirm before first write**: `~/Documents/`, `~/Desktop/`, `~/Downloads/`, `~/Pictures/`, `~/Public/`
 - **NEVER write**: `/tmp`, `/var`, `/etc`, `/usr`, `/Applications/`, anywhere outside `~/`, AIfred baseline `main`, `AIFred-Pro/`, `Archive/`
 - **Temp files**: project-local `.claude/scratch/` (gitignored), NOT `/tmp`
@@ -140,7 +140,7 @@ Edit tool prompts on `.claude/`, `.git/`, `.vscode/`, `.idea/` even in `bypassPe
 | Jarvis (this) | `Project_Aion` | origin → `CannonCoPilot/Jarvis` | `git push origin Project_Aion:main` |
 | Jarvis-Dev | `dev` | origin → `CannonCoPilot/Jarvis` | `git -C ~/Claude/Jarvis-Dev push origin dev` |
 | AIFred-Pro (read-only) | `main` | upstream → `davidmoneil/AIFred-Pro` | (pull-only) |
-| AIFred-Pro-Dev | `nate-dev` | origin → `davidmoneil/AIFred-Pro` | `git -C ~/Claude/AIFred-Pro-Dev push origin nate-dev` |
+| Alfred-Dev | `nate-dev` | origin → `CannonCoPilot/Alfred`<br>upstream → `davidmoneil/AIFred-Pro` | `git -C ~/Claude/Alfred-Dev push origin nate-dev:main` |
 
 **Reviewing David's `nexus-sync-2026-04`**: Layer 1 launchd `com.aion.david-nexus-sync-fetch` (every 6h, writes `Shared_Projects/Status/david/nexus-sync-2026-04-recent.md`); Layer 2 `/sync-aifred-pro-dev` for ADOPT/ADAPT/REJECT/DEFER classification.
 

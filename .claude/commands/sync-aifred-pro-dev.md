@@ -1,9 +1,9 @@
 ---
-description: Sync and analyze AIFred-Pro-Dev nexus-sync-2026-04 (David's experimental Nexus refactor)
+description: Sync and analyze Alfred-Dev nexus-sync-2026-04 (David's experimental Nexus refactor)
 allowed-tools: Read, Write, Edit, Bash(git:*), Glob, Grep
 ---
 
-# Sync AIFred-Pro-Dev (nexus-sync-2026-04)
+# Sync Alfred-Dev (nexus-sync-2026-04)
 
 You are running the deep-review workflow for David O'Neil's experimental Nexus refactor branch on `davidmoneil/AIFred-Pro:nexus-sync-2026-04`.
 
@@ -12,7 +12,7 @@ This is **Layer 2** of the three-layer review mechanism:
 - **Layer 2** (this command): on-demand deep review with classification.
 - **Layer 3** (optional Pulse digest): only if 1+2 prove insufficient.
 
-**CRITICAL CONSTRAINT**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev` is read-write for our `nate-dev` branch only. The `nexus-sync-2026-04` branch on `origin` (David's repo) is **read-only** for us — fetch only, never push, never edit, never delete.
+**CRITICAL CONSTRAINT**: `/Users/nathanielcannon/Claude/Alfred-Dev` is read-write for our `nate-dev` branch only. The `nexus-sync-2026-04` branch on `origin` (David's repo) is **read-only** for us — fetch only, never push, never edit, never delete.
 
 ## Arguments
 
@@ -29,7 +29,7 @@ Every invocation MUST generate two report files:
 
 2. **Ad-Hoc Assessment**: `projects/project-aion/evolution/aifred-pro-integration/sync-reports/adhoc-assessment-YYYY-MM-DD.md`
    - Key discoveries (what was unexpected or important)
-   - Implications for AIFred-Pro-Dev (`nate-dev` branch) work
+   - Implications for Alfred-Dev (`nate-dev` branch) work
    - Implications for Jarvis architecture (if any)
    - Recommended next steps
    - Blockers or concerns
@@ -37,8 +37,8 @@ Every invocation MUST generate two report files:
 ## Phase 1: Fetch the branch
 
 ```bash
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev fetch origin nexus-sync-2026-04
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev rev-parse origin/nexus-sync-2026-04
+git -C /Users/nathanielcannon/Claude/Alfred-Dev fetch origin nexus-sync-2026-04
+git -C /Users/nathanielcannon/Claude/Alfred-Dev rev-parse origin/nexus-sync-2026-04
 ```
 
 ## Phase 2: Identify the review window
@@ -46,13 +46,13 @@ git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev rev-parse origin/nexus-sync-
 Read `paths-registry.yaml:aifred_pro_dev.nexus_sync.last_reviewed_commit`. If absent, default to the merge-base with `nate-dev`.
 
 ```bash
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev diff --name-status <last_reviewed>..origin/nexus-sync-2026-04
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev log <last_reviewed>..origin/nexus-sync-2026-04 --pretty=format:"%h %ci %an: %s"
+git -C /Users/nathanielcannon/Claude/Alfred-Dev diff --name-status <last_reviewed>..origin/nexus-sync-2026-04
+git -C /Users/nathanielcannon/Claude/Alfred-Dev log <last_reviewed>..origin/nexus-sync-2026-04 --pretty=format:"%h %ci %an: %s"
 ```
 
 ## Phase 3: Categorize changes
 
-Group changed files by area. AIFred-Pro-Dev categories that matter:
+Group changed files by area. Alfred-Dev categories that matter:
 
 | Category | Path patterns |
 |----------|--------------|
@@ -92,7 +92,7 @@ Group changed files by area. AIFred-Pro-Dev categories that matter:
 Path: `projects/project-aion/evolution/aifred-pro-integration/sync-reports/sync-report-YYYY-MM-DD.md`
 
 ```markdown
-# AIFred-Pro-Dev nexus-sync-2026-04 Sync Report
+# Alfred-Dev nexus-sync-2026-04 Sync Report
 
 **Generated**: YYYY-MM-DD HH:MM UTC
 **Branch HEAD**: <commit_hash>
@@ -152,7 +152,7 @@ Path: `projects/project-aion/evolution/aifred-pro-integration/sync-reports/sync-
 Path: `projects/project-aion/evolution/aifred-pro-integration/sync-reports/adhoc-assessment-YYYY-MM-DD.md`
 
 ```markdown
-# AIFred-Pro-Dev nexus-sync-2026-04 Ad-Hoc Assessment
+# Alfred-Dev nexus-sync-2026-04 Ad-Hoc Assessment
 
 **Generated**: YYYY-MM-DD HH:MM UTC
 **Branch HEAD**: <commit_hash>
@@ -193,7 +193,7 @@ In `dry-run` mode, do NOT update the registry — leave it pointing at the previ
 ## Output
 
 ```
-AIFred-Pro-Dev nexus-sync-2026-04 review complete
+Alfred-Dev nexus-sync-2026-04 review complete
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Branch HEAD:       <short_hash>

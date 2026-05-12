@@ -33,7 +33,7 @@ Sorted by earliest_run.
 | event-bound | — | Phase 1.2 / 1.3 — Stage-2 sample-sufficiency | BLOCKED |
 | event-bound | — | Phase 1.2 / 1.3 — Stage-2 final analysis | BLOCKED |
 | 2026-05-01T17:00:00Z | 2026-05-01 11:00 MDT | Phase 1.2 / 1.3 — pre-registrations + two-stage gating doc | DONE |
-| 2026-05-01T16:50:00Z | 2026-05-01 10:50 MDT | Phase 1.5 — pre-registration + AIFred-Pro-Dev baseline | DONE |
+| 2026-05-01T16:50:00Z | 2026-05-01 10:50 MDT | Phase 1.5 — pre-registration + Alfred-Dev baseline | DONE |
 | 2026-05-01T16:30:00Z | 2026-05-01 10:30 MDT | Phase 0.4 — quote-aware register filter | DONE |
 
 Status legend:
@@ -71,7 +71,7 @@ Phase 0.5 pipeline-telemetry extractor ships.
 **What to do**:
 1. Re-run extractor v2 against
    `~/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/` and
-   `~/.claude/projects/-Users-nathanielcannon-Claude-AIFred-Pro-Dev/`.
+   `~/.claude/projects/-Users-nathanielcannon-Claude-Alfred-Dev/`.
 2. For each: split pre-deploy / post-deploy at the relevant deploy timestamp
    (Phase 1.1: `2026-05-01T03:27:28Z`; Phase 1.5: `2026-05-01T03:28:35Z`).
 3. Compute Stage-1 axes per the pre-reg `interim_check` blocks:
@@ -113,7 +113,7 @@ Stage-2 is the formal pre-reg sign-off regardless of Stage-1 verdict)
 **Why**: Formal Phase-2 promotion gate per design doc §10.4 / §10.3.
 
 **What to do**:
-1. Re-run extractor v2 against AIFred-Pro-Dev corpus.
+1. Re-run extractor v2 against Alfred-Dev corpus.
 2. Filter to `ts >= 2026-05-01T03:28:35Z` (post-deploy bucket).
 3. Tag each post-deploy session ordinary vs atypical per
    `baseline-aifred-2026-05-01.md` §3 bands.
@@ -129,11 +129,11 @@ Stage-2 is the formal pre-reg sign-off regardless of Stage-1 verdict)
 ### Item 3 — Phase 1.5 Stage-2 final analysis (event-bound)
 
 **Status**: BLOCKED
-**Earliest run**: when 3 ordinary AIFred-Pro-Dev post-deploy sessions exist
+**Earliest run**: when 3 ordinary Alfred-Dev post-deploy sessions exist
 **Trigger**: condition-based; Item 2 promotes this
 **Owner**: Jarvis (local session)
 **Prerequisites**:
-- 3+ ordinary post-deploy AIFred-Pro-Dev sessions per `baseline-aifred-2026-05-01.md` §3
+- 3+ ordinary post-deploy Alfred-Dev sessions per `baseline-aifred-2026-05-01.md` §3
 - Phase 0.4 quote-aware register filter (DONE 2026-05-01)
 
 **Why**: Phase 1.5 is the **first clean pre-registered run**. Stage-2
@@ -141,12 +141,12 @@ verdict is the formal Phase-2-promotion gate.
 
 **What to do**: full per-class statistical analysis using the methodology
 of `phase-1-1-jeeves-brief-result-2026-05-01.md`, but against the
-AIFred-Pro-Dev pre-registration, register-markers override, and bands.
+Alfred-Dev pre-registration, register-markers override, and bands.
 
 **Outputs**:
 - `.claude/metrics/token-compression/phase-1-5-alfred-brief-result-<YYYY-MM-DD>.md`
 - Pre-reg `outcome.status` = FULL_PASS / PROVISIONAL_PASS / FAIL / etc.
-- If FULL_PASS: Phase 2 (CoD on AIFred-Pro-Dev) unblocked.
+- If FULL_PASS: Phase 2 (CoD on Alfred-Dev) unblocked.
 
 **Effort estimate**: 1-2 hours.
 
@@ -208,7 +208,7 @@ If PASS: Phase 2 (CoD on Jarvis) unblocked.
 **Status**: READY
 **Earliest run**: any time (no time gate)
 **Trigger**: any time before next pipeline-intervention evaluation
-**Owner**: Jarvis (local session) or AIFred-Pro-Dev pipeline contributor
+**Owner**: Jarvis (local session) or Alfred-Dev pipeline contributor
 **Prerequisites**: none
 
 **Why**: Phase 1.2 / 1.3 evaluations require per-task telemetry from
@@ -227,7 +227,7 @@ and 1.3 Stage-1 + Stage-2 evaluations are deferred (Items 7-9 BLOCKED).
    Pulse task records). Output the same CSV schema for compatibility:
    intent_class can be tagged `executor_completion`, `reviewer_verdict`,
    `reviewer_reasoning` etc.
-4. Validate against AIFred-Pro-Dev pipeline data; emit class distribution.
+4. Validate against Alfred-Dev pipeline data; emit class distribution.
 5. Document the extractor in design doc §13.x or a new §13.4.
 6. Promote Items 7-9 from BLOCKED to PENDING/READY as appropriate.
 
@@ -286,7 +286,7 @@ most-recent-first.
 | Completed | Item | Result | Linked report |
 |---|---|---|---|
 | 2026-05-01T17:00:00Z | Phase 1.2 / 1.3 — pre-registrations filed; two-stage gating (§10.4) added | DONE; Phase 1.2 (executor) and Phase 1.3 (reviewer) pre-registrations filed against deploy `f15f6a2`; predictions magnitude-mirrored from Phase 1.5; analysis deferred to Phase 0.5 (pipeline-telemetry extractor); design doc §10.4 documents two-stage gating model | `.claude/metrics/token-compression/pre-registration-phase-1-2-pipeline-executor-brief.yaml`; `.claude/metrics/token-compression/pre-registration-phase-1-3-pipeline-reviewer-brief.yaml`; design doc §10.4 + §14.3 |
-| 2026-05-01T16:50:00Z | Phase 1.5 — pre-registration + AIFred-Pro-Dev baseline | DONE; AIFred-Pro-Dev v2 telemetry generated (3,488 turns / 133 sessions, all pre-deploy); pre-registration filed at zero post-deploy turns (first clean pre-reg in benchmark family); register-markers override created; sample window now open through 2026-05-15 | `.claude/metrics/token-compression/pre-registration-phase-1-5-alfred-brief.yaml`; `.claude/metrics/token-compression/baseline-aifred-2026-05-01.md` |
+| 2026-05-01T16:50:00Z | Phase 1.5 — pre-registration + Alfred-Dev baseline | DONE; Alfred-Dev v2 telemetry generated (3,488 turns / 133 sessions, all pre-deploy); pre-registration filed at zero post-deploy turns (first clean pre-reg in benchmark family); register-markers override created; sample window now open through 2026-05-15 | `.claude/metrics/token-compression/pre-registration-phase-1-5-alfred-brief.yaml`; `.claude/metrics/token-compression/baseline-aifred-2026-05-01.md` |
 | 2026-05-01T16:30:00Z | Phase 0.4 — quote-aware register filter for extractor v2 | DONE; corpus-wide register violations 636 → 608; targeted false-positive case (94c8971e turn 182) 2 → 0; class shares unchanged | `.claude/metrics/token-compression/phase-1-1-jeeves-brief-result-2026-05-01.md` §6 (Post-Phase-0.4 re-scan); design doc §14.3 changelog |
 
 ---

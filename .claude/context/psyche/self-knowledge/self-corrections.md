@@ -31,7 +31,7 @@
 
 ## 2026-05-06 | architecture | plan-of-record before investigation locks in misconceptions
 
-**What happened**: Wrote `aifred-pro-dev-reviewer-dash.md` plan-of-record before doing the deep audit on what reviewer.py actually emits and what the four "*-reviewer" personas actually are. The plan codified two factual errors: (a) reviewer.py emits decision_events (it doesn't — only log_activity), and (b) the four "*-reviewer" personas share a schema (they don't — four unrelated Nexus headless agents sharing a suffix). Both errors propagated through R1+R2 implementation and the qwen3 JICM compressor's checkpoint before being caught by Nate's "be critical, push back on yourself" prompt.
+**What happened**: Wrote `aifred-pro-dev-reviewer-dash.md` plan-of-record before doing the deep audit on what reviewer.py actually emits and what the four "*-reviewer" personas actually are. The plan codified two factual errors: (a) reviewer.py emits decision_events (it doesn't — only log_activity), and (b) the four "*-reviewer" personas share a schema (they don't — four unrelated Nexus headless agents sharing a suffix). Both errors propagated through R1+R2 implementation and the qwen3 JICM compressor's checkpoint before being caught by Sir's "be critical, push back on yourself" prompt.
 
 **Should have happened**: Investigation FIRST. Read reviewer.py, read each persona's prompt + config, query the existing decision_events table for actual actor/decision_type distribution. THEN write the plan-of-record as a SUMMARY of investigation findings.
 
@@ -51,7 +51,7 @@
 
 ## 2026-05-06 | architecture | JICM compressor extrapolates forward, elides reframe turns
 
-**What happened**: Session 9 ended at "HALT mid-stream pending strategic decision" — Nate's "be critical, push back" prompt had triggered an analysis that called the shipped Reviewer Dash work into question. The qwen3:8b JICM compressor's post-cycle checkpoint reported "Reviewer Dash IN PROGRESS — implementing persona-agnostic decision timeline" and recommended I continue building. Cross-checking against the actual session-9-end scratchpad entry (force-loaded) revealed the truth: work was paused pending Nate's strategic call.
+**What happened**: Session 9 ended at "HALT mid-stream pending strategic decision" — Sir's "be critical, push back" prompt had triggered an analysis that called the shipped Reviewer Dash work into question. The qwen3:8b JICM compressor's post-cycle checkpoint reported "Reviewer Dash IN PROGRESS — implementing persona-agnostic decision timeline" and recommended I continue building. Cross-checking against the actual session-9-end scratchpad entry (force-loaded) revealed the truth: work was paused pending Sir's strategic call.
 
 **Should have happened**: Cross-check JICM checkpoint against scratchpad immediately on resume. Trust the scratchpad for near-term work-state; treat the checkpoint as background only.
 

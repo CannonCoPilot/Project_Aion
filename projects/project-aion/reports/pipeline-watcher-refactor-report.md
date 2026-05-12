@@ -54,7 +54,7 @@
 **Impact**: The reviewer accepted task #0's output despite two objective quality failures.
 
 **Failures not caught**:
-1. **Wrong file path**: Output file `mark1-luke4-parallels.md` written to project root (`/Users/nathanielcannon/Claude/AIFred-Pro-Dev/`) instead of `tests/gospel-synopsis/` as specified in the task description
+1. **Wrong file path**: Output file `mark1-luke4-parallels.md` written to project root (`/Users/nathanielcannon/Claude/Alfred-Dev/`) instead of `tests/gospel-synopsis/` as specified in the task description
 2. **Source texts not read**: Claude Code used training knowledge instead of reading the actual KJV text files at `tests/gospel-synopsis/sources/mark-1.txt` and `luke-4.txt`. The executor's own context summary noted: "No source text files were provided; analysis drawn from standard Gospel knowledge"
 
 **Root cause**: The reviewer calls Ollama with the context summary and expected output description, but doesn't verify actual file system state. It can only judge what the executor REPORTED doing, not what actually happened.

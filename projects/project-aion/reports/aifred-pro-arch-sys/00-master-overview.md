@@ -3,8 +3,8 @@
 **Date**: 2026-04-23 (verified — every claim cross-referenced with source files)
 **Version**: AIFred-Pro v3.2.0
 **Repository**: `/Users/nathanielcannon/Claude/AIFred-Pro/` (production, read-only for Jarvis)
-**Development**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/` (nate-dev branch)
-**Purpose**: Comprehensive systems-oriented architectural analysis for shared development reference between Nate and David O'Neil.
+**Development**: `/Users/nathanielcannon/Claude/Alfred-Dev/` (nate-dev branch)
+**Purpose**: Comprehensive systems-oriented architectural analysis for shared development reference between Archon and David O'Neil.
 
 ---
 
