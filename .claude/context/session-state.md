@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: WORKSTREAM PIVOT 2026-05-11. REO PAUSED at Validate gate. New active workstream: aifred-pro-dev-dashboard-recleavage (3-5d, single PR, 3 AC-03 milestones). Foundational IA analysis ratified by Nate 2026-05-11 with all 7 decisions captured: 4 modes (planning bundled into DOING) / WORK|DIAGNOSE 2-way toggle / /decisions → /reo subsume / Ops Center metaphor confirmed / all 7 consolidations in shared PR / mapping accepted / REO Validate paused. Impl plan drafted (`aifred-pro-dev-dashboard-recleavage.md`), pending Nate's go-ahead before Milestone 1 begins.
-**Date**: 2026-05-11 (return-brainstorm session — decisions captured, impl plan drafted)
+**Status**: M1 SHIPPED 2026-05-11. Dashboard re-cleave PR Milestone 1 (nav shell + sidebar IA) landed on AIFred-Pro-Dev `nate-dev` as commit `d001c75`. PROD|OPS toggle + 4 sub-clusters (Projects/Config under PROD; Review/Monitor under OPS) live. Dashboard pinned above PROJECTS expander. Visual-validate caught 2 bugs (toggle-revert from useEffect-deps cycle; cluster-chevron force-open via containsActive) — both fixed in the same M1 commit. Label refinement applied during impl: WORK→PROD, DIAGNOSE→OPS, Today→Projects, Direct→Config, Reflect→Review, Inspect→Monitor. AC-03 gate: technical 4.5 / progress 5.0 — both ≥ 4 → PASS. M2 (/decisions → /reo consolidation) pending Nate's go; keep-DecisionsPage.tsx-one-cycle decision stands.
+**Date**: 2026-05-11 (M1 ship session — visual-validate iteration + commits both repos)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
-**Last commit (Jarvis)**: 18ba329 (docs(analysis): foundational IA analysis — AIFred-Pro-Dev dashboard). Pending: this turn's decisions-captured + impl plan commit.
-**Last commit (AIFred-Pro-Dev)**: 23e838c (feat(dev-env): vite hot-reload sidecar for dashboard frontend [Nexus]). No new AIFred-Pro-Dev commits since 2026-05-07.
+**Last commit (Jarvis)**: c4a1652 (docs(workstreams): dashboard re-cleave — decisions ratified + impl plan drafted). Pending: this turn's M1 tracking commit.
+**Last commit (AIFred-Pro-Dev)**: d001c75 (feat(dashboard): re-cleave sidebar IA with PROD|OPS toggle + pinned Dashboard [M1] [Nexus]). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: 23e838c..d001c75.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:
