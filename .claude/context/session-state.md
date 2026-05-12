@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: **Phase D IN-DEV-COMPLETE-PENDING-MERGE 2026-05-12** — Plan B + B2 ratified by Nate this turn. Phase D dispatcher/registry event-driven refactor shipped local on AIFred-Pro-Dev nate-dev (D.4 pulse events endpoint + D.5+Plan-B-revision risk:*-only score.py + D.7 event-watcher.sh polling block + D.8 registry.yaml 3-pipeline-job disable; D.6 SKIPPED per Plan B). D.9 in-dev smoke green: 12 task.created events processed, all received risk:* (zero auto:* anywhere), URL-encoded cursor functions, v2 orchestrate.py demonstrably operational on test task decomposition. Held local (per B2) until PR #3 merges, then ships as separate PR. Prior: **PR OPENED 2026-05-12 as [davidmoneil/AIFred-Pro#3](https://github.com/davidmoneil/AIFred-Pro/pull/3)** — A1 scope chosen (110-commit batch, all of nate-dev since 2026-04-22; first batch-merge since branch creation). M3 SHIPPED 2026-05-11 (`fcf62df`). F-1 in-vivo confirmed 2026-05-12 post-SIGCONT: pipeline approval gate did zero work; F-5 surfaced (executor silent blocked:no→yes mutation). F-1/F-5 content lives in canonical Jarvis docs. PR #3 pending David's review/merge.
+**Status**: **Phase D IN-DEV-COMPLETE-PENDING-MERGE 2026-05-12** — Plan B + B2 ratified by Sir this turn. Phase D dispatcher/registry event-driven refactor shipped local on Alfred-Dev nate-dev (D.4 pulse events endpoint + D.5+Plan-B-revision risk:*-only score.py + D.7 event-watcher.sh polling block + D.8 registry.yaml 3-pipeline-job disable; D.6 SKIPPED per Plan B). D.9 in-dev smoke green: 12 task.created events processed, all received risk:* (zero auto:* anywhere), URL-encoded cursor functions, v2 orchestrate.py demonstrably operational on test task decomposition. Held local (per B2) until PR #3 merges, then ships as separate PR. Prior: **PR OPENED 2026-05-12 as [davidmoneil/AIFred-Pro#3](https://github.com/davidmoneil/AIFred-Pro/pull/3)** — A1 scope chosen (110-commit batch, all of nate-dev since 2026-04-22; first batch-merge since branch creation). M3 SHIPPED 2026-05-11 (`fcf62df`). F-1 in-vivo confirmed 2026-05-12 post-SIGCONT: pipeline approval gate did zero work; F-5 surfaced (executor silent blocked:no→yes mutation). F-1/F-5 content lives in canonical Jarvis docs. PR #3 pending David's review/merge.
 **Date**: 2026-05-12 (Phase D in-dev-complete session — Plan B + B2 ratified + 3 file edits + smoke + doc updates)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
 **Last commit (Jarvis)**: c413e03 (docs(workstreams): Phase D dispatcher/registry audit + architectural rule codified). Pending this turn: Phase D D.10 doc updates (audit §5/§6/§9 + workstream-arch §6.2 + scratchpad + session-state).
-**Last commit (AIFred-Pro-Dev)**: 18c1136 PUSHED + eb6032f local (D.5 initial) + 78693a3 local (D.4). UNCOMMITTED local this turn (3 files): score.py Plan-B revision (-49 LOC), event-watcher.sh (+51 LOC D.7 polling block), registry.yaml (3 pipeline jobs disabled + Plan-B comment block).
+**Last commit (Alfred-Dev)**: 18c1136 PUSHED + eb6032f local (D.5 initial) + 78693a3 local (D.4). UNCOMMITTED local this turn (3 files): score.py Plan-B revision (-49 LOC), event-watcher.sh (+51 LOC D.7 polling block), registry.yaml (3 pipeline jobs disabled + Plan-B comment block).
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:
@@ -43,7 +43,7 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - pulse/app.py: parse_iso_ts() helper + 3 POST endpoints (+122 LOC)
 - aifred-pulse:latest rebuilt; aifred-dev-pulse recreated --no-deps
 - End-to-end validated: python log_audit() → pulse_dev row via API path → main spool → 0-byte swallowed-errors (no fail-quiet)
-- Commit AIFred-Pro-Dev `090f6ec` on nate-dev
+- Commit Alfred-Dev `090f6ec` on nate-dev
 - Report: `projects/project-aion/reports/p15-pulse-observability-endpoints-2026-05-04.md`
 - Followup [Boundary]: P1.B1.1 — add symmetric Pulse READ endpoints (GET /audit/events, /audit/decisions, /costs/events, /observability/storyline/{thread_id}, /observability/stats) so dashboard can drop direct-DB access. ~3-4 hr.
 

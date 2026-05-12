@@ -1,8 +1,8 @@
-# Comprehensive Review — AIFred-Pro-Dev + Jarvis Work (2026-04-21 → 2026-05-04)
+# Comprehensive Review — Alfred-Dev + Jarvis Work (2026-04-21 → 2026-05-04)
 
 **Generated**: 2026-05-04
 **Window**: 14 days (workspace reorganization through HEAD on both sides)
-**Scope**: All Jarvis (Project_Aion + Jarvis-Dev branches), all AIFred-Pro-Dev (`nate-dev`), all ProjectIntel debriefs and questions
+**Scope**: All Jarvis (Project_Aion + Jarvis-Dev branches), all Alfred-Dev (`nate-dev`), all ProjectIntel debriefs and questions
 **Source reports** (preserved verbatim in `.claude/scratch/aifred-pro-dev-review/`):
 - `jarvis-side-2026-05-04.md` (435 lines, Agent A)
 - `aifred-pro-dev-side-2026-05-04.md` (365 lines, Agent B)
@@ -14,13 +14,13 @@ This document is the canonical synthesis. The next phases (2-5) operate from thi
 
 ## 1. Executive Summary
 
-Two-and-a-half weeks of stacked work across two workspaces (Jarvis + AIFred-Pro-Dev) and two-tier methodology (token-compression initiative + JICM v7.9 architecture) have produced four shippable initiatives that converge on a single architectural decision now awaiting David O'Neil. **The dominant deliverable is Pipeline v2** (45 commits on `nate-dev`, 19 of them direct pipeline rebuilds), implementing webhook-driven 6-dimensional Pulse orchestration with 5 dedicated Python services and end-to-end telemetry. **The supporting deliverables**: (1) Token-compression Phases 1.1–1.3.5 deployed on AIFred-Pro-Dev with full pre-registration discipline; (2) JICM v7.9 promoted to Jarvis production with Stage-1 CLEAR (slim watcher, Approach C cutover, sensing-layer hooks); (3) Two-Stage Validation Gating pattern formalized as a first-class Jarvis pattern; (4) ProjectIntel collaboration structure operational and exercised through 4 substantive debriefs. **The architectural decision** the milestone commit is now staging: David picks Path A (Replace), Path B (Selective adoption), or Path C (Park as experimental) — the 2026-05-02 strategic debrief framed all three. Both workspaces are in clean, near-shippable state: Jarvis production is 1 commit ahead of `origin/main`, `nate-dev` HEAD `af73a46` is clean. **Critical timing**: Phase 1.3.5 Stage-1 verdict draft is due tomorrow night MDT (2026-05-04 ~17:04 MDT) — this lands during or just after the milestone work and is the gate David's debrief was waiting on.
+Two-and-a-half weeks of stacked work across two workspaces (Jarvis + Alfred-Dev) and two-tier methodology (token-compression initiative + JICM v7.9 architecture) have produced four shippable initiatives that converge on a single architectural decision now awaiting David O'Neil. **The dominant deliverable is Pipeline v2** (45 commits on `nate-dev`, 19 of them direct pipeline rebuilds), implementing webhook-driven 6-dimensional Pulse orchestration with 5 dedicated Python services and end-to-end telemetry. **The supporting deliverables**: (1) Token-compression Phases 1.1–1.3.5 deployed on Alfred-Dev with full pre-registration discipline; (2) JICM v7.9 promoted to Jarvis production with Stage-1 CLEAR (slim watcher, Approach C cutover, sensing-layer hooks); (3) Two-Stage Validation Gating pattern formalized as a first-class Jarvis pattern; (4) ProjectIntel collaboration structure operational and exercised through 4 substantive debriefs. **The architectural decision** the milestone commit is now staging: David picks Path A (Replace), Path B (Selective adoption), or Path C (Park as experimental) — the 2026-05-02 strategic debrief framed all three. Both workspaces are in clean, near-shippable state: Jarvis production is 1 commit ahead of `origin/main`, `nate-dev` HEAD `af73a46` is clean. **Critical timing**: Phase 1.3.5 Stage-1 verdict draft is due tomorrow night MDT (2026-05-04 ~17:04 MDT) — this lands during or just after the milestone work and is the gate David's debrief was waiting on.
 
 ---
 
 ## 2. Timeline at a Glance
 
-| Week | Jarvis-side milestones | AIFred-Pro-Dev milestones | Collaboration |
+| Week | Jarvis-side milestones | Alfred-Dev milestones | Collaboration |
 |------|------------------------|---------------------------|---------------|
 | **W1: 2026-04-21 → 2026-04-27** | Workspace reorg complete; ProjectIntel-ops skill v1.1; v7.3 JICM in production; Token-compression scaffolding (roadmap v3, multi-pass architecture) | `nate-dev` branched from `main` at `dfd40c5` (2026-04-22); workspace setup, hooks, context docs imported; Pipeline-redesign-v2 design doc (1100 lines) + foundation commit `fdc8466`; Dashboard dev overlay on port 8701 | Debrief 2026-04-23 (workspace + usage metrics vision); Question 2026-04-21 answered 2026-04-22 (workspace, branch workflow) |
 | **W2: 2026-04-28 → 2026-05-04** | Token-compression Phases 0.2–0.5 (telemetry, register filter, pipeline-extractor); Phase 1.1 deploy + Phase 1.4 result; Two-stage gating pattern formalized (e3fdc6d); Git topology migration to CannonCoPilot/Jarvis (4b69b2b); JICM v7.9 hook layer + Stage-1 harness (Jarvis-Dev); JICM v7.9 hooks+sensing deployed to production (57cb3ed, Stage-1 CLEAR); slim watcher promoted (2a559b5, Approach C); Phase 2 CoD architecture frozen (313df6f, fe61041); Stage-1 deploy of `cod-inject.sh` (2de41e5); Phase 2.1.b stratified baseline (ea2488a) | Pipeline v2 hardening (atomicity, crash recovery, chain dependencies, telemetry, filesystem verification, path validation) — 16 commits; Dashboard live monitoring (b86b46c), Activity Timeline + Dependency Chain (811734d, d45e943); Project Creator chat UI + streaming v2 (a1b648a, a4ff87e); Token-compression deploys: Phase 1.5 Alfred-Brief (c31b2bd), Phase 1.2/1.3 brief epilogues (f15f6a2), Phase 1.3.5 reviewer Claude-CLI route (af73a46) | Debriefs 2026-04-24 (usage tracking phase 3, telemetry vision); Question 2026-04-25 answered directly by David (dashboard priority, AI Reviewer first); Comprehensive strategic debrief 2026-05-02 (Pipeline v2 + token-compression + JICM v8 + two-stage gating + replace-or-evolve framing) |
@@ -29,7 +29,7 @@ Two-and-a-half weeks of stacked work across two workspaces (Jarvis + AIFred-Pro-
 
 ## 3. Workstream Inventory
 
-### 3.1 Pipeline-Redesign-v2 (AIFred-Pro-Dev) — DOMINANT
+### 3.1 Pipeline-Redesign-v2 (Alfred-Dev) — DOMINANT
 
 **Scope**: Replace AIFred-Pro's prior orchestration (single dispatcher + executor.sh shell loop) with a Python-first service mesh. Six-stage state machine (`intake → evaluate → route → queue → execute → review`) governed by webhook-driven Pulse label transitions.
 
@@ -59,10 +59,10 @@ The most methodologically mature workstream. Pre-registration discipline importe
 | Phase | Brief | Deploy | Status | Pre-reg |
 |-------|-------|--------|--------|---------|
 | 1.1 | Jeeves-Brief (Jarvis output style) | Jarvis `75c9d97` 2026-04-30 | Stage-1 INCOMPLETE under new protocol; Stage-2 sample-sufficiency check 2026-05-15 | Filed post-hoc |
-| 1.2 | Pipeline Executor-Brief | AIFred-Pro-Dev `f15f6a2` 2026-04-30 | Pre-reg filed (post-hoc); Stage-1/2 unblocked via Phase 0.5 | Filed |
-| 1.3 | Pipeline Reviewer-Brief | AIFred-Pro-Dev `f15f6a2` 2026-04-30 | Pre-reg filed (post-hoc); Stage-1/2 unblocked via Phase 0.5 | Filed |
-| 1.3.5 | Reviewer Claude-CLI route | AIFred-Pro-Dev `af73a46` 2026-05-02 | **First clean pre-deploy pre-reg**; Stage-1 verdict draft due 2026-05-04 ~17:04 MDT; Stage-2 due 2026-05-16 | Pre-reg sealed `2026-05-02T23:04:12Z` |
-| 1.5 | Alfred-Brief (AIFred-Pro-Dev system prompt) | AIFred-Pro-Dev `c31b2bd` 2026-04-30 | First clean pre-reg in family; Stage-1 interim 2026-05-03; Stage-2 formal 2026-05-15 | Filed pre-deploy |
+| 1.2 | Pipeline Executor-Brief | Alfred-Dev `f15f6a2` 2026-04-30 | Pre-reg filed (post-hoc); Stage-1/2 unblocked via Phase 0.5 | Filed |
+| 1.3 | Pipeline Reviewer-Brief | Alfred-Dev `f15f6a2` 2026-04-30 | Pre-reg filed (post-hoc); Stage-1/2 unblocked via Phase 0.5 | Filed |
+| 1.3.5 | Reviewer Claude-CLI route | Alfred-Dev `af73a46` 2026-05-02 | **First clean pre-deploy pre-reg**; Stage-1 verdict draft due 2026-05-04 ~17:04 MDT; Stage-2 due 2026-05-16 | Pre-reg sealed `2026-05-02T23:04:12Z` |
+| 1.5 | Alfred-Brief (Alfred-Dev system prompt) | Alfred-Dev `c31b2bd` 2026-04-30 | First clean pre-reg in family; Stage-1 interim 2026-05-03; Stage-2 formal 2026-05-15 | Filed pre-deploy |
 
 **Phase 2 — Chain-of-Draft Codification** (Jarvis side):
 - 2.1.b: Stratified baseline complete (40 sessions, 5 task types, frozen Stage-2 targets) — `ea2488a` 2026-05-03
@@ -124,7 +124,7 @@ Cadence: 1 debrief per ~3.5 days (4 total in window, 398 lines / ~6,050 words). 
 |------|--------|------|----------|-------|--------|-------------|--------------|
 | `Jarvis/` (production) | `Project_Aion` | `ea2488a` | `origin/main` (CannonCoPilot/Jarvis) | 1 | 0 | 2 modified (insights), 8 untracked (intentional .pre-* backups + launchd logs) | YES — 1 commit |
 | `Jarvis-Dev/` | `dev` | `1cddeda` | `origin/dev` (CannonCoPilot/Jarvis) | 4 | 0 | 2 modified (insights) | YES — 4 commits |
-| `AIFred-Pro-Dev/` | `nate-dev` | `af73a46` | `origin/nate-dev` (davidmoneil/AIFred-Pro) | **VERIFY** | 0 | clean | **VERIFY** (see §6) |
+| `Alfred-Dev/` | `nate-dev` | `af73a46` | `origin/nate-dev` (davidmoneil/AIFred-Pro) | **VERIFY** | 0 | clean | **VERIFY** (see §6) |
 
 **Cross-checks needed in Phase 2**:
 - Verify `nate-dev` push state (Agent B reported "1 ahead" but scratchpad notes `af73a46` was pushed 2026-05-02 in same session as commit). Run `git ls-remote origin nate-dev` to confirm.
@@ -156,7 +156,7 @@ Merged from all three source reports, deduplicated, prioritized.
 | Ollama + Claude-CLI router load-test | AIFred §Open items #7 | **DOCUMENT**: known follow-up; surface in debrief |
 | Phase 1.1 INCOMPLETE rerun verdict | Jarvis §Open items #1 | **REFERENCE in debrief**: token-compression methodology working correctly (caught insufficient sample) |
 | Pulse task filing workflow not yet integrated | Jarvis §Open items #7 | **DEFER**: opportunity, not blocker |
-| AIFred-Pro-Dev baseline integration ongoing | Jarvis §Open items #8 | **REFERENCE in debrief**: cross-workspace metric flow validated |
+| Alfred-Dev baseline integration ongoing | Jarvis §Open items #8 | **REFERENCE in debrief**: cross-workspace metric flow validated |
 | `Status/david/focus-areas.md` 22 days stale | ProjectIntel §weakness | **NOT OUR TO FIX**: David's discipline; surface gently if at all |
 
 ### 5.3 Pre-merge verifications (Phase 2)
@@ -183,7 +183,7 @@ Per the 2026-05-02 strategic debrief, three honest paths face David:
 
 **The milestone commit this work is staging toward**: the artifact that makes Path A *possible to evaluate*. Even if David ultimately chooses B or C, the milestone is what enables the commit-by-commit diff session.
 
-**No urgency stated** by Nate in 2026-05-02 debrief: "the question of whether AIFred-Pro absorbs Pipeline v2 wholesale, selectively, or not at all is yours to decide on your timeline — there's no urgency from my side."
+**No urgency stated** by Sir in 2026-05-02 debrief: "the question of whether AIFred-Pro absorbs Pipeline v2 wholesale, selectively, or not at all is yours to decide on your timeline — there's no urgency from my side."
 
 ---
 
@@ -191,7 +191,7 @@ Per the 2026-05-02 strategic debrief, three honest paths face David:
 
 ### Phase 2: Pull AIFred-Pro main + nexus-sync-2026-04; tag baseline
 
-**Operations** (in `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/`):
+**Operations** (in `/Users/nathanielcannon/Claude/Alfred-Dev/`):
 1. `git fetch origin --prune --tags` (refresh all upstream refs)
 2. Run all the verifications in §5.3 above; note results
 3. `git tag pre-merge-baseline-2026-05-04 nate-dev` (rollback anchor)
@@ -245,7 +245,7 @@ Per the 2026-05-02 strategic debrief, three honest paths face David:
 3. Write milestone debrief: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-04-milestone-merge-and-pipeline-v2-completion.md`
    - Topic: completed milestone, summary of merged content, link to comprehensive review, surface deferred items, restate Path A/B/C framing
    - Include explicit ask: when does David want the diff session?
-4. Update `Shared_Projects/Status/nate/focus-areas.md` if priorities shifted
+4. Update `Shared_Projects/Status/Archon/focus-areas.md` if priorities shifted
 5. Update Jarvis `session-state.md` and `current-priorities.md` with milestone completion
 6. Optional: file Pulse task `agent:shared` flagging the milestone for David
 
@@ -306,7 +306,7 @@ Drawn from Agent C's recommendations + Agent B's open items + the milestone comm
 - `.claude/metrics/token-compression/pre-registration-phase-2-cod.yaml`
 - `.claude/metrics/token-compression/phase-2-1-b-baseline-stratified-2026-05-04.md`
 
-### Canonical AIFred-Pro-Dev artifacts (committed on `nate-dev`)
+### Canonical Alfred-Dev artifacts (committed on `nate-dev`)
 - `.claude/context/designs/pipeline-redesign-v2.md` (1100 lines)
 - `.claude/context/designs/pipeline-v2-technical-reference.md` (577 lines)
 - `.claude/jobs/services/{stage,evaluate,orchestrate,executor,reviewer,_shared}.py`
@@ -321,8 +321,8 @@ Drawn from Agent C's recommendations + Agent B's open items + the milestone comm
 - `Shared_Projects/Debriefs/AIFred-Pro/2026-05-02-pipeline-v2-and-token-compression-progress.md` (~3,200 words, the strategic debrief)
 
 ### Resolved questions
-- `Shared_Projects/Questions/2026-04-21-nate-for-david-workspace-setup.md` (answered 2026-04-22 by Liaison)
-- `Shared_Projects/Questions/nate-2026-04-25-reply-to-checkin.md` (answered 2026-04-25 directly by David)
+- `Shared_Projects/Questions/2026-04-21-Archon-for-david-workspace-setup.md` (answered 2026-04-22 by Liaison)
+- `Shared_Projects/Questions/Archon-2026-04-25-reply-to-checkin.md` (answered 2026-04-25 directly by David)
 
 ---
 

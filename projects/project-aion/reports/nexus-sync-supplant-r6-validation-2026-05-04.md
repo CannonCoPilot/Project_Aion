@@ -154,6 +154,6 @@ git push origin nate-dev
 
 Plus:
 - Write `Shared_Projects/Debriefs/AIFred-Pro/2026-05-04-nexus-sync-supplant-completion.md`
-- Update `.active-plan` + `session-state.md` + `Status/nate/focus-areas.md`
+- Update `.active-plan` + `session-state.md` + `Status/Archon/focus-areas.md`
 
 R7 is mechanical (~15-20 min) since R5/R5.5/R6 all passed smoke.

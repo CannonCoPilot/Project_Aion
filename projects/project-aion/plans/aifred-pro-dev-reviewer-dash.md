@@ -1,7 +1,7 @@
 # Reviewer Dash — Implementation Plan
 
 **Status**: drafted, not started
-**Target repo**: AIFred-Pro-Dev (`nate-dev` branch)
+**Target repo**: Alfred-Dev (`nate-dev` branch)
 **Effort**: 2 days across 4 phases
 **Created**: 2026-05-06
 **Tag**: `[Boundary]` (adds Pulse READ endpoints + new dashboard tab)
@@ -85,8 +85,8 @@ The endpoint surface is partially drafted in the P1.B1.1 boundary follow-up (act
 - All 3 endpoints return 200 with empty arrays when no data exists (graceful empty state)
 
 **Files touched**:
-- `AIFred-Pro-Dev/pulse/app.py` (~120 LOC added)
-- `AIFred-Pro-Dev/dashboard/server/routes/reviewer-dash.ts` (NEW, ~50 LOC)
+- `Alfred-Dev/pulse/app.py` (~120 LOC added)
+- `Alfred-Dev/dashboard/server/routes/reviewer-dash.ts` (NEW, ~50 LOC)
 
 ### R2 — Frontend timeline (0.75d)
 
@@ -106,9 +106,9 @@ The endpoint surface is partially drafted in the P1.B1.1 boundary follow-up (act
 - 100+ events render at 60fps (virtualized via existing react-virtuoso pattern if needed)
 
 **Files touched**:
-- `AIFred-Pro-Dev/dashboard/frontend/src/pages/ReviewerDashTab.tsx` (NEW, ~250 LOC)
-- `AIFred-Pro-Dev/dashboard/frontend/src/pages/KanbanPage.tsx` (~10 LOC tab wiring)
-- `AIFred-Pro-Dev/dashboard/frontend/src/api/reviewer-dash.ts` (NEW, ~40 LOC types + hooks)
+- `Alfred-Dev/dashboard/frontend/src/pages/ReviewerDashTab.tsx` (NEW, ~250 LOC)
+- `Alfred-Dev/dashboard/frontend/src/pages/KanbanPage.tsx` (~10 LOC tab wiring)
+- `Alfred-Dev/dashboard/frontend/src/api/reviewer-dash.ts` (NEW, ~40 LOC types + hooks)
 
 ### R3 — Reasoning drawer (0.5d)
 
@@ -128,7 +128,7 @@ The endpoint surface is partially drafted in the P1.B1.1 boundary follow-up (act
 - Deep-link refresh works (drawer state survives page reload)
 
 **Files touched**:
-- `AIFred-Pro-Dev/dashboard/frontend/src/pages/ReviewerDashTab.tsx` (drawer component, ~150 LOC added)
+- `Alfred-Dev/dashboard/frontend/src/pages/ReviewerDashTab.tsx` (drawer component, ~150 LOC added)
 
 ### R4 — Live-data switch + empty-state smoke (0.25d)
 
@@ -138,7 +138,7 @@ The endpoint surface is partially drafted in the P1.B1.1 boundary follow-up (act
   - No persona selected: "Select a persona above to see decisions"
   - All filters but no results: "No decisions match these filters in the selected window"
   - All-time empty (no rows in DB): "No decisions recorded yet — reviewer service may not be running"
-- Smoke-test script at `AIFred-Pro-Dev/.claude/scripts/smoke-reviewer-dash.sh`:
+- Smoke-test script at `Alfred-Dev/.claude/scripts/smoke-reviewer-dash.sh`:
   - Inject one synthetic decision_event via Pulse API
   - Assert dashboard `/api/reviewer-dash/timeline` returns it within 30s
   - Cleanup: delete the synthetic row
@@ -149,8 +149,8 @@ The endpoint surface is partially drafted in the P1.B1.1 boundary follow-up (act
 - Smoke script passes in CI
 
 **Files touched**:
-- `AIFred-Pro-Dev/dashboard/frontend/src/pages/ReviewerDashTab.tsx` (~40 LOC additions)
-- `AIFred-Pro-Dev/.claude/scripts/smoke-reviewer-dash.sh` (NEW, ~60 LOC)
+- `Alfred-Dev/dashboard/frontend/src/pages/ReviewerDashTab.tsx` (~40 LOC additions)
+- `Alfred-Dev/.claude/scripts/smoke-reviewer-dash.sh` (NEW, ~60 LOC)
 
 ## 5. Risks / Open Questions
 

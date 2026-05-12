@@ -3,7 +3,7 @@ title: REO Page — Plan of Record (Reviews, Executions, Orchestrations)
 date: 2026-05-07
 last_updated: 2026-05-11
 status: BUILD COMPLETE + early-MVP polish landed; VALIDATE PAUSED 2026-05-11 pending dashboard re-cleave PR. REO resumes after re-cleave lands.
-project: AIFred-Pro-Dev
+project: Alfred-Dev
 target_branch: nate-dev
 supersedes: aifred-pro-dev-reviewer-dash.md (factual errors corrected; framing rewritten)
 related:
@@ -15,7 +15,7 @@ parallel_workstreams:
   - Dashboard re-cleave PR (was: parallel; promoted 2026-05-11 to BLOCKING — REO Validate resumes after it lands)
   - Board v2 component-cards layer (separate plan, not yet drafted)
   - Watchdog W1-W3 (separate plan: aifred-pro-dev-pipeline-watcher-watchdog.md)
-audience: Nate, David, future-Jarvis
+audience: Sir, David, future-Jarvis
 ---
 
 ## Status update 2026-05-11
@@ -142,7 +142,7 @@ Dashboard server (consumes Pulse API)                │
 ```typescript
 interface DecisionFeedback {
   decision_event_id: string  // FK to pulse.decision_events.id
-  user: string               // 'nate' | 'david' | persona-id (future)
+  user: string               // 'Sir' | 'david' | persona-id (future)
   verdict: 'right' | 'wrong' | 'partial'
   comment: string            // freeform, ~500 char limit
   suggested_correction?: {   // optional structured field
@@ -175,7 +175,7 @@ In case-file drawer:
 
 ### Existing mechanism (discovered)
 
-**Primary**: `AIFred-Pro-Dev/.claude/jobs/personas/ai-reviewer/learned-patterns.yaml`
+**Primary**: `Alfred-Dev/.claude/jobs/personas/ai-reviewer/learned-patterns.yaml`
 - 350 lines, fully operational, last updated 2026-04-09
 - YAML schema: per-pattern entries with `description`, `conditions`, `action`, `confidence`, `risk`, `source` (citation back to session or David-quote)
 - 32 named patterns; aggregate stats: 104 agreed, 3 wrong, 13 adjusted (120+ feedback round-trips over ~7 months)
@@ -186,7 +186,7 @@ In case-file drawer:
 - Loaded by ai-reviewer's `prompt.md` (lines 41-64) at start of every run; patterns matched during task evaluation (line 111)
 - **This is a third curation pattern**: persona-self-curation. Not human-curated (no proposals queue); not fully autonomic (the persona, not a separate process, decides updates).
 
-**Secondary**: `AIFred-Pro-Dev/.claude/context/lessons/corrections.md`
+**Secondary**: `Alfred-Dev/.claude/context/lessons/corrections.md`
 - Placeholder/template (~25 lines, empty body)
 - Designed for unimplemented `self-correction-capture` hook (referenced line 4)
 - Pipeline-wide rather than persona-scoped
@@ -258,7 +258,7 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
   - Smoke test against pulse_dev with reviewer + executor + diagnose decisions
   - Verify case-file drawer joins (decision + cost + audit) correctly
   - Confirm browse + live-tail toggle works under real load
-  - Manual UX walkthrough (Nate); identify gaps and capture in scratchpad
+  - Manual UX walkthrough (Sir); identify gaps and capture in scratchpad
 
 ### Phase 4: MVP (~0.5d)
 - Polish: copy, empty states, error handling, loading skeletons
@@ -285,10 +285,10 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 - **H8**: Deep-link, export (CSV/JSON), saved-search persistence
 
 ### Phase 5.5: PRE-SHIP AUDIT (~0.5d) — FINAL GATE before SHIP
-**Trigger**: discovery 2026-05-07 that AIFred-Pro-Dev `aifred-dev-dashboard` was running `aifred-pro-nexus-dashboard:latest` (a production-derived image tag with no compose labels), pinned via `image:` override + `build: !reset null` in `docker-compose.dev.yml`. Frontend dev work was not reaching the dev container; dev was effectively running prod-frontend code.
+**Trigger**: discovery 2026-05-07 that Alfred-Dev `aifred-dev-dashboard` was running `aifred-pro-nexus-dashboard:latest` (a production-derived image tag with no compose labels), pinned via `image:` override + `build: !reset null` in `docker-compose.dev.yml`. Frontend dev work was not reaching the dev container; dev was effectively running prod-frontend code.
 
 **Scope**: full audit across all 5 dev compose services (`postgres`, `pulse`, `nexus-dashboard`, `pipeline`, `usage-proxy`) for any other dev/prod cross-contamination:
-- Image tags: every dev container's image must come from a build of AIFred-Pro-Dev source, with project label `com.docker.compose.project=aifred-pro-dev`. Flag any image tagged `aifred-pro-*` (production-derived).
+- Image tags: every dev container's image must come from a build of Alfred-Dev source, with project label `com.docker.compose.project=aifred-pro-dev`. Flag any image tagged `aifred-pro-*` (production-derived).
 - Container names: confirm `aifred-dev-*` convention is universal; flag any leak to `aifred-*` (prod) names.
 - Network attachments: dev should be on `aifred-dev-network` exclusively; flag any join to `aifred-network` (prod).
 - Volume mounts: dev volumes named `aifred-dev-*-data`; flag any reuse of `aifred-*-data` (prod) volumes that could leak state.
@@ -298,7 +298,7 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 **Added 2026-05-11 — /decisions feature-parity audit** (per dashboard re-cleave decisions §11.3):
 - Audit DecisionsPage.tsx for features ReoPage.tsx does not have. For each missing feature, decide: PORT (add to ReoPage.tsx), DROP (intentional removal), or DEFERRED (with ticket).
 - Verify /decisions → /reo redirect works for all known historical deep-link patterns (?decision_id=, ?thread_id=, etc.).
-- This blocks deletion of DecisionsPage.tsx. Until parity is verified, keep DecisionsPage.tsx as fallback for one release cycle (Nate's earlier preference).
+- This blocks deletion of DecisionsPage.tsx. Until parity is verified, keep DecisionsPage.tsx as fallback for one release cycle (Sir's earlier preference).
 
 **Deliverable**: `Jarvis/projects/project-aion/reports/aifred-pro-dev-cross-contamination-audit-YYYY-MM-DD.md` with findings + remediation per finding. Each finding gets one of: FIXED (in same PR), DEFERRED (with justification + ticket), ACCEPTED-RISK (with justification).
 
@@ -310,13 +310,13 @@ Optional human-override layer: the unimplemented `self-correction-capture` hook 
 - **GATED** on Phase 5.5 PRE-SHIP AUDIT zero-P0 sign-off
 - Push nate-dev
 - Verify dashboard build green
-- Update AIFred-Pro-Dev `.claude/CLAUDE.md` if architectural change touches docs
+- Update Alfred-Dev `.claude/CLAUDE.md` if architectural change touches docs
 - Update Jarvis force-loaded if any
 - Coordinate Telegram announcement to David if appropriate
 
 ### Phase 7: DEBRIEF (~0.25d)
 - Write debrief: `Shared_Projects/Debriefs/AIFred-Pro/YYYY-MM-DD-reo-page-shipped.md`
-- Update `Status/nate/focus-areas.md`
+- Update `Status/Archon/focus-areas.md`
 - Capture lessons in `psyche/self-knowledge/self-corrections.md` if any
 - Close out workstream in `.active-plan`
 
@@ -349,7 +349,7 @@ See: `Shared_Projects/Questions/AIFred-Pro/2026-05-07-reo-page-direction.md`
 - Persona prompt system architecture changes beyond context injection
 - Human-review queue rework (`/reviews` stays as-is)
 - Backfilling decision_events for historical pre-P1.6 data
-- Multi-tenant feedback (single-user assumption: Nate or David)
+- Multi-tenant feedback (single-user assumption: Sir or David)
 
 ## 12. Success criteria
 
@@ -358,7 +358,7 @@ See: `Shared_Projects/Questions/AIFred-Pro/2026-05-07-reo-page-direction.md`
 - Feedback connector captures user verdicts; persists to pulse.decision_feedback
 - Lessons-learned wire updates persona context at decision time (closed loop verified by at least one round-trip: feedback → lesson → improved-decision)
 - /reviewer-dash retired; /decisions deferred (subset view kept for compatibility, not actively maintained)
-- Debrief shipped; Nate confirms the page is the surface he reaches for when investigating "why did the pipeline make this choice?"
+- Debrief shipped; Sir confirms the page is the surface he reaches for when investigating "why did the pipeline make this choice?"
 
 ## 13. Risk register
 

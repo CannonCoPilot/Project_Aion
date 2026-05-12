@@ -12,7 +12,7 @@ tags: [projectintel, collaboration, david, shared, debriefs, questions, status, 
 # ProjectIntel Operations Skill
 
 Manage the shared ProjectIntel workspace at `/Users/nathanielcannon/Claude/Shared_Projects/`.
-Synology Drive syncs this folder between Nate and David's systems.
+Synology Drive syncs this folder between Archon and David's systems.
 
 **Philosophy**: Code repos track *what* changed. ProjectIntel tracks *why*.
 
@@ -28,17 +28,17 @@ Synology Drive syncs this folder between Nate and David's systems.
 | See recent debriefs | Read | `Debriefs/_latest.md` |
 | See debrief index | Read | `Debriefs/_index.md` |
 | Read a specific debrief | Read | `Debriefs/<Project>/YYYY-MM-DD-*.md` |
-| Check open questions | Glob+Read | `Questions/*` where `to: Nate`, `status: open` |
-| Ask David a question | Write | `Questions/YYYY-MM-DD-nate-for-david-<topic>.md` |
+| Check open questions | Glob+Read | `Questions/*` where `to: Archon`, `status: open` |
+| Ask David a question | Write | `Questions/YYYY-MM-DD-Archon-for-david-<topic>.md` |
 | Write a session debrief | Write | `Debriefs/<Project>/YYYY-MM-DD-<slug>.md` |
-| Update Nate's focus areas | Edit | `Status/nate/focus-areas.md` |
-| Update Nate's project summary | Edit | `Status/nate/projects-summary.md` |
+| Update Archon's focus areas | Edit | `Status/Archon/focus-areas.md` |
+| Update Archon's project summary | Edit | `Status/Archon/projects-summary.md` |
 
 ## Session Start Checks (AC-01)
 
 Run these three checks at the start of every session:
 
-1. **Questions**: `Glob("Questions/*.md")` → Read files where `to: Nate` and `status: open` → present to user or draft answers
+1. **Questions**: `Glob("Questions/*.md")` → Read files where `to: Archon` and `status: open` → present to user or draft answers
 2. **Latest debriefs**: Read `Debriefs/_latest.md` — scan for recent work from David
 3. **David's focus**: Read `Status/david/focus-areas.md` — know what David is working on
 
@@ -47,9 +47,9 @@ Run these three checks at the start of every session:
 On non-trivial session end:
 
 1. **Write debrief** to `Debriefs/<Project>/YYYY-MM-DD-<slug>.md` using template
-2. **Update status** — edit `Status/nate/focus-areas.md` if priorities changed
-3. **Update summary** — edit `Status/nate/projects-summary.md` with current project state
-4. Always set `author: Nate` in frontmatter
+2. **Update status** — edit `Status/Archon/focus-areas.md` if priorities changed
+3. **Update summary** — edit `Status/Archon/projects-summary.md` with current project state
+4. Always set `author: Archon` in frontmatter
 
 ## Investigation Workflows
 
@@ -74,7 +74,7 @@ On non-trivial session end:
 
 Use the template at `Debriefs/_template.md`. Key rules:
 
-- **Always set `author: Nate`** in frontmatter (shows "unknown" in feed without it)
+- **Always set `author: Archon`** in frontmatter (shows "unknown" in feed without it)
 - Title captures the **theme**, not the task ("Building a Development Journal" not "Updated session-stop.js")
 - Five sections: What We're Building Toward → Why This Matters Now → Key Decisions → Where This Leads → Session Activity
 - Vision first, activity last — the thinking matters more than the changelog
@@ -85,7 +85,7 @@ Use the template at `Debriefs/_template.md`. Key rules:
 type: debrief
 version: "1.0"
 date: YYYY-MM-DD          # Today's date
-author: Nate              # ALWAYS "Nate"
+author: Archon              # ALWAYS "Archon"
 session: <session-slug>   # Matches filename slug
 project: <project-name>   # Primary project
 commits:                  # Optional
@@ -99,7 +99,7 @@ tags: [<domain>, <project>, <topic>]
 
 Use the template at `Questions/_template.md`. David's Nexus liaison persona auto-answers within ~1 hour.
 
-- Filename: `YYYY-MM-DD-nate-for-david-<topic>.md`
+- Filename: `YYYY-MM-DD-Archon-for-david-<topic>.md`
 - Liaison access: can read AIProjects knowledge, Pulse tasks (shared projects), CodeGraph, Obsidian vault
 - Liaison CANNOT access: secrets, credentials, .env files, security audits, hook internals
 - For urgent questions, set `priority: urgent`
@@ -109,7 +109,7 @@ Use the template at `Questions/_template.md`. David's Nexus liaison persona auto
 type: question
 version: "1.0"
 date: YYYY-MM-DD
-from: Nate
+from: Archon
 to: David
 status: open              # open -> answered -> closed
 priority: normal          # normal | urgent
@@ -119,12 +119,12 @@ tags: []
 
 ## Answering a Question from David
 
-When a question file has `to: Nate` and `status: open`:
+When a question file has `to: Archon` and `status: open`:
 
 1. Read the question and context sections
 2. Present to user for review/approval
 3. Write the answer in the `## Answer` section
-4. Update frontmatter: `status: answered`, add `answered_date: YYYY-MM-DD`, `answered_by: Nate`
+4. Update frontmatter: `status: answered`, add `answered_date: YYYY-MM-DD`, `answered_by: Archon`
 
 ## Read-Only Files (NEVER modify)
 
@@ -142,7 +142,7 @@ These are auto-generated by David's sync scripts:
 ## Conventions
 
 - **File sharing**: Only via `Shared_Projects/` — never copy files into other project directories
-- **Sync direction**: Nate → Shared is manual or Jarvis-automated; David auto-syncs via NAS scripts
+- **Sync direction**: Archon → Shared is manual or Jarvis-automated; David auto-syncs via NAS scripts
 - **Extended Q&A**: For back-and-forth, create a new question file rather than threading replies
 - **Debrief frequency**: After meaningful sessions (not trivial fixes)
 - **Debrief whitelist** (projects David shares): AIProjects, Loom, Nexus, Pulse, Dashboard, Cortex, AIFred, AIFred Pro
@@ -169,20 +169,20 @@ These are auto-generated by David's sync scripts:
     _index.md               # Auto-generated: full index (READ-ONLY)
     AIProjects/             # David's AIProjects debriefs
     loom/                   # David's Loom debriefs
-    <NewProject>/           # Create as needed for Nate's debriefs
+    <NewProject>/           # Create as needed for Archon's debriefs
   Questions/
     _template.md            # Question template
   Status/
-    david/                  # David's status (READ-ONLY for Nate)
+    david/                  # David's status (READ-ONLY for Archon)
       focus-areas.md        # Manual: current goals and priorities
       projects-summary.md   # Auto: all projects + open task counts
       loom-tasks.md         # Auto: Loom task detail
       loom-roadmap.md       # Auto: Loom 13-phase roadmap
       loom-project.yaml     # Auto: machine-readable project orchestration
-    nate/                   # Nate's status (WE maintain these)
+    Archon/                   # Archon's status (WE maintain these)
       focus-areas.md        # Manual: update when priorities change
       projects-summary.md   # Manual: project table
   Setup/
-    nate-setup-guide.md     # Setup walkthrough
+    Archon-setup-guide.md     # Setup walkthrough
     reference/              # David's sync scripts (reference copies)
 ```

@@ -3,7 +3,7 @@
 **Date**: 2026-05-05 (v1.0); 2026-05-06 (v1.4 revision)
 **Version**: v1.4
 **Author**: Jarvis
-**Audience**: Nate (review + roadmap alignment); David (read-only context for cross-Archon decisions, including a Jarvis-systems primer in §1.3)
+**Audience**: Sir (review + roadmap alignment); David (read-only context for cross-Archon decisions, including a Jarvis-systems primer in §1.3)
 
 **v1.4 changelog** (2026-05-06):
 - §1.1: items 1, 2 graduated to VALIDATED (UsagePage MVP shipped via 7+ commits across `935572c..d47a186`); item 5 gained 4-phase durable plan-of-record; added items 13-16 (cost-anomaly watcher, Telegram routing, executor pre-flight gates, JICM autonomic reframing).
@@ -17,8 +17,8 @@
 
 **Document purpose** — track parallel work along two axes:
 
-1. **Updating and patching AIFred-Pro-Dev systems** — Pulse/Nexus pipeline-v2, observability dual-write, dashboard surfaces, persona system.
-2. **Jarvis portability + complementarity to AIFred-Pro-Dev** — JICM v8.0 PTY untether, Aion Quartet relocation, candidate ports (HUD into dashboard; reverse proxy concept; long-session protocol into Loom-fed agents).
+1. **Updating and patching Alfred-Dev systems** — Pulse/Nexus pipeline-v2, observability dual-write, dashboard surfaces, persona system.
+2. **Jarvis portability + complementarity to Alfred-Dev** — JICM v8.0 PTY untether, Aion Quartet relocation, candidate ports (HUD into dashboard; reverse proxy concept; long-session protocol into Loom-fed agents).
 
 **Priority key**:
 
@@ -53,13 +53,13 @@ These are the **visible** deliverables, not the deep-layer work. Foreground for 
 | 11 | **Token compression** Phase 1.x persona briefs (Jeeves-Brief, Alfred-Brief, pipeline briefs) | `VALIDATED` (Stage-1) | B | — |
 | 12 | **JICM v7.9** sensing-layer hardening (autonomous compression) | `VALIDATED` (Stage-1 5/5) | A | `◆ Loom` |
 | 13 | **Cost-anomaly watcher** (Jarvis-side defensive layer; HUD ticker) | `VALIDATED` (Jarvis `92ecb21`; launchd KeepAlive PID 72472; HUD live) | A | — |
-| 14 | **Pipeline-v2 Telegram alert dispatch** (operator visibility on prod) | `VALIDATED` (AIFred-Pro-Dev `cd0aadd`); 0 in-vivo fires yet — smoke-test pending | C | `★ David` |
-| 15 | **Executor pre-flight gates** (hard-safety regex + attempt-budget) | `VALIDATED` (AIFred-Pro-Dev `649acfc`); awaiting David's review for prod merge | C | — |
+| 14 | **Pipeline-v2 Telegram alert dispatch** (operator visibility on prod) | `VALIDATED` (Alfred-Dev `cd0aadd`); 0 in-vivo fires yet — smoke-test pending | C | `★ David` |
+| 15 | **Executor pre-flight gates** (hard-safety regex + attempt-budget) | `VALIDATED` (Alfred-Dev `649acfc`); awaiting David's review for prod merge | C | — |
 | 16 | **JICM autonomic reframing** (Watcher prompts as natural-language) | `VALIDATED` (Jarvis `5413824`); resolves Opus 4.7 injection-detector flagging of bracketed signal-tags | A | — |
 
 The lever remains *"surface data already captured."* Items 1-4 are now shipped; items 5-6 (Reviewer Dash + /personas rebuild) are where remaining David-priority work concentrates. Items 13-16 represent the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident response — see §4.2 chronological notes.
 
-### 1.2 What needed revision in AIFred-Pro-Dev
+### 1.2 What needed revision in Alfred-Dev
 
 | Surface | Revision | State |
 |---|---|---|
@@ -116,7 +116,7 @@ These are the surfaces where the two systems coordinate or should coordinate. Re
 
 | Contact point | Direction | State |
 |---|---|---|
-| **Pulse task store** (FastAPI + Postgres :8700/:8800) | Bidirectional | `LIVE` — schema owned by AIFred-Pro-Dev's `pulse/migrations/` |
+| **Pulse task store** (FastAPI + Postgres :8700/:8800) | Bidirectional | `LIVE` — schema owned by Alfred-Dev's `pulse/migrations/` |
 | **Dashboard** (`:8701`) | Jarvis consumes via API | `LIVE` (P1.B1.1) — boundary symmetric |
 | **Observability dual-write loop** (audit/decision/cost) | Nexus emits → Pulse stores → Nexus reads | `LIVE` (P1.5 + P1.6 + P1.B1.1); see §4.1 |
 | **Cortex (AIFred) ↔ AC-05 + AC-06 (Jarvis)** | Mirror meta-cognition | `GAP` — overlap exists, no shared schema |
@@ -142,7 +142,7 @@ Multi-pass compression across both Archons (cache, system, per-task, generation,
 
 ### 2.3 Workstream C — Pipeline-v2 + Observability Port `★ David`
 
-AIFred-Pro-Dev's webhook-driven Python service mesh (stage·evaluate·orchestrate·executor·reviewer·diagnose) replacing cron + executor.sh. Includes nexus-sync supplant (25 commits), Phase 5.1 schema migration, P1.5 + P1.6 trilogy + P1.B1.1, M1 cleanup. Three remaining feature gaps: Telegram routing (P1), watchdog (P2), executor retry (P3).
+Alfred-Dev's webhook-driven Python service mesh (stage·evaluate·orchestrate·executor·reviewer·diagnose) replacing cron + executor.sh. Includes nexus-sync supplant (25 commits), Phase 5.1 schema migration, P1.5 + P1.6 trilogy + P1.B1.1, M1 cleanup. Three remaining feature gaps: Telegram routing (P1), watchdog (P2), executor retry (P3).
 
 ### 2.4 Workstream D — Pulse/Nexus Boundary
 
@@ -420,7 +420,7 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 
 ### 6.2 Future Work (longer tail)
 
-**Architectural rule (added 2026-05-12 per Nate's directive)**: Two-tier scheduling. `dispatcher.sh` (cron-style) handles ONLY recurring jobs that are NOT pipeline-nexus task-management operations. All Pulse-Nexus task pipeline state transitions must fire event-driven from v2 services. Canonical decision log + 3-job removal + new event-driven service blueprint: `../reports/dispatcher-registry-audit-2026-05-12.md`. This rule retroactively re-prioritizes the queue below — **Phase D (dispatcher / registry refactor) is now a hard prerequisite for the Approval-Gate Enforcement entry** and the F-5 silent-mutation audit, because both fixes live in the executor's claim path whose invocation source changes under the new rule. Phase D entry below.
+**Architectural rule (added 2026-05-12 per Sir's directive)**: Two-tier scheduling. `dispatcher.sh` (cron-style) handles ONLY recurring jobs that are NOT pipeline-nexus task-management operations. All Pulse-Nexus task pipeline state transitions must fire event-driven from v2 services. Canonical decision log + 3-job removal + new event-driven service blueprint: `../reports/dispatcher-registry-audit-2026-05-12.md`. This rule retroactively re-prioritizes the queue below — **Phase D (dispatcher / registry refactor) is now a hard prerequisite for the Approval-Gate Enforcement entry** and the F-5 silent-mutation audit, because both fixes live in the executor's claim path whose invocation source changes under the new rule. Phase D entry below.
 
 | Tag | Item | Why / what |
 |---|---|---|
@@ -435,7 +435,7 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 | — | `/triage` rebuild — flowchart/graph default | dagre + React Flow |
 | — | Executor internal retry | Small additive change |
 | — | F-2 boundary repair — persona-listing API | Defer until /personas rebuild needs it |
-| — | **Phase D — Dispatcher / Registry Event-Driven Refactor** (HIGH; canonical audit at `../reports/dispatcher-registry-audit-2026-05-12.md`) | IN-DEV-COMPLETE-PENDING-MERGE 2026-05-12. Plan B ratified (drop auto:* from event-driven layer; investigate.py NOT built — auto:candidate path dropped; score.py emits risk:* only) + B2 ratified (Phase D commits held local on AIFred-Pro-Dev nate-dev until PR #3 merges). Shipped local: D.4 (Pulse `/api/v1/events` extended with `event_type` + `since` filters), D.5+Plan-B-revision (score.py risk:*-only), D.7 (event-watcher.sh polling block consuming Pulse `created` events, URL-encoded cursor), D.8 (registry.yaml 3 pipeline jobs disabled with Plan-B comment block), D.9 (in-dev smoke 11 tasks scored, zero auto:*, cursor advanced cleanly). D.6 SKIPPED. Three legacy-shell-layer items remain for a separate post-Phase-D workstream (event-watcher inline auto:ready additions, pipeline-watchdog.sh mutex rules, lib/routing-rules.yaml auto:* references — V1 routing primitives V2 services don't consume). ~5h actual through D.10 (vs 3-4d estimate; Plan B saved ~3-4h). **Hard prerequisite for Approval-Gate Enforcement + F-5 audit below.** |
+| — | **Phase D — Dispatcher / Registry Event-Driven Refactor** (HIGH; canonical audit at `../reports/dispatcher-registry-audit-2026-05-12.md`) | IN-DEV-COMPLETE-PENDING-MERGE 2026-05-12. Plan B ratified (drop auto:* from event-driven layer; investigate.py NOT built — auto:candidate path dropped; score.py emits risk:* only) + B2 ratified (Phase D commits held local on Alfred-Dev nate-dev until PR #3 merges). Shipped local: D.4 (Pulse `/api/v1/events` extended with `event_type` + `since` filters), D.5+Plan-B-revision (score.py risk:*-only), D.7 (event-watcher.sh polling block consuming Pulse `created` events, URL-encoded cursor), D.8 (registry.yaml 3 pipeline jobs disabled with Plan-B comment block), D.9 (in-dev smoke 11 tasks scored, zero auto:*, cursor advanced cleanly). D.6 SKIPPED. Three legacy-shell-layer items remain for a separate post-Phase-D workstream (event-watcher inline auto:ready additions, pipeline-watchdog.sh mutex rules, lib/routing-rules.yaml auto:* references — V1 routing primitives V2 services don't consume). ~5h actual through D.10 (vs 3-4d estimate; Plan B saved ~3-4h). **Hard prerequisite for Approval-Gate Enforcement + F-5 audit below.** |
 | — | **Approval-Gate Enforcement** (HIGH; see `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` Appendix A §F-1 + §F-5) | `pipeline:needs-approval` does NOT halt v2 pipeline state machine; in-vivo confirmed 2026-05-12; executor.py / pipeline-watcher.py / dispatcher.sh have zero approval-label consumption. ~3-5d. Sibling F-5 (executor silent `blocked:no→yes` mutation, MEDIUM) bundled. **Depends on Phase D (immediately above)** — fix gates at the new `label.added(stage:queue)` event consumer. Deferred behind re-cleave PR merge + REO Validate resume + Phase D. |
 | — | M3-audit hygiene sweep — Appendix A §F-2 (BlockedBanner page-scope count, LOW, ~30min) + §F-4 (server `isBlocked()` false-positives, LOW, ~1h) | Small UI/server hygiene cleanups; can be picked up between larger workstreams. (Note: M3-audit F-2 is distinct from the F-2 boundary-repair entry above.) |
 | `◆ Loom` | Token Compression Phase 4 — pipeline integration | Compression-mode env + telemetry feed |
@@ -445,7 +445,7 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 | — | Pulse webhook hygiene — TTL stale subscribers | Pipeline-watcher's id=1 still in webhook_subscriptions |
 | — | V1-to-V2 task migration tooling | Conditional on AIFred-Pro production migrating to v2 |
 | `★ David` | Cortex ↔ AC-05/AC-06 schema interop | See §7 Connection Points |
-| — | **W0/9800 routing catch-22 — dev-env operational hygiene** (surfaced 2026-05-12 mid-Phase-2 migration) | W0 (Jarvis tmux pane) and W5 (Jarvis-dev) export `ANTHROPIC_BASE_URL=http://localhost:9800` (per `launch-jarvis-tmux.sh:467`) which routes Claude API calls through `aifred-dev-usage-proxy` for cost telemetry. **Side effect**: any `docker compose down` of the dev stack from W0 kills its own API path, blinding Claude mid-command. Resolved this incident via W6 (a non-9800-routed instance) bringing the stack back up. Future hygiene options: (a) `.envrc`/Makefile setting `COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml` for the dir (also fixes Jarvis-2's observation that bare `compose down` in `AIFred-Pro-Dev/` reads only the base PROD compose file); (b) launch script branches W0 routing through a non-disposable proxy (e.g. PROD `:8877` if its source-file orphan is repaired first — see scratchpad gotcha); (c) runbook note: never `compose down` from W0; always coordinate from W6. Severity LOW (recoverable) but recurrent risk. ~1-2h. |
+| — | **W0/9800 routing catch-22 — dev-env operational hygiene** (surfaced 2026-05-12 mid-Phase-2 migration) | W0 (Jarvis tmux pane) and W5 (Jarvis-dev) export `ANTHROPIC_BASE_URL=http://localhost:9800` (per `launch-jarvis-tmux.sh:467`) which routes Claude API calls through `aifred-dev-usage-proxy` for cost telemetry. **Side effect**: any `docker compose down` of the dev stack from W0 kills its own API path, blinding Claude mid-command. Resolved this incident via W6 (a non-9800-routed instance) bringing the stack back up. Future hygiene options: (a) `.envrc`/Makefile setting `COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml` for the dir (also fixes Jarvis-2's observation that bare `compose down` in `Alfred-Dev/` reads only the base PROD compose file); (b) launch script branches W0 routing through a non-disposable proxy (e.g. PROD `:8877` if its source-file orphan is repaired first — see scratchpad gotcha); (c) runbook note: never `compose down` from W0; always coordinate from W6. Severity LOW (recoverable) but recurrent risk. ~1-2h. |
 | — | **Stale-rename gotcha — `event-watcher-v2.py` → `pipeline-watcher.py` (4 callsites)** (silently broken since `77145a9`, 2026-04-30; surfaced 2026-05-12 after Phase 2.2 killed host-side fallback PID 15622) | The rename commit updated the python file but **not** its 4 references: `pipeline/Dockerfile:17` CMD, `docker-compose.yml:112` healthcheck, `docker-compose.dev.yml:117` healthcheck, AND `/Users/nathanielcannon/Library/LaunchAgents/com.aion.nexus-dev-event-watcher.plist:10` ProgramArguments. Container restart-looped for 12 days; nobody noticed because host-side `pipeline-watcher.py` PID 15622 (started 2026-05-06) was doing the actual orchestration. When Phase 2.2 killed PID 15622, the silent failure became loud. **Fix landed 2026-05-12**: all 4 dev-side refs corrected to `pipeline-watcher.py`; plist additionally retargeted to Phase D's `event-watcher.sh` (the actual event-driven script). **PROD plist `com.aion.nexus-event-watcher.plist` still references `event-watcher-v2.py`** — broken but not loaded; surface as PROD parity item for post-Phase-D PR. Hygiene rule for future renames: grep across `Dockerfile`, `docker-compose*.yml`, and `~/Library/LaunchAgents/*.plist` BEFORE committing the rename. Severity MEDIUM (latent operational risk; layered failure modes hide it). ~30min for PROD parity fix. |
 
 ### 6.3 Active gates (passive observation; no operator action)
@@ -503,7 +503,7 @@ flowchart LR
 
 | # | Connection point | Direction | State | Notes |
 |---|---|---|---|---|
-| 1 | **Pulse task store** (`:8700/:8800`) | Bidirectional | `LIVE` | Schema owned by AIFred-Pro-Dev |
+| 1 | **Pulse task store** (`:8700/:8800`) | Bidirectional | `LIVE` | Schema owned by Alfred-Dev |
 | 2 | **Dashboard** (`:8701`) | Jarvis → API consumer | `LIVE` (P1.B1.1) | Boundary symmetric; F-2 deferred |
 | 3 | **Observability dual-write loop** | Nexus emits → Pulse → Nexus reads | `LIVE` | Eventual fate: single-source migration (§4.1) |
 | 4 | **Cortex (AIFred) ↔ AC-05 + AC-06 (Jarvis)** | Mirror inward | `GAP` | Both are self-improvement observability; no shared schema |
@@ -660,7 +660,7 @@ Effort: 2 days.
 ### 9.3 Open questions
 
 1. Will David adopt pipeline-v2 in AIFred-Pro production?
-2. Should AIFred-Pro-Dev README absorb the Pulse/Nexus tagging convention, or is it Jarvis-internal?
+2. Should Alfred-Dev README absorb the Pulse/Nexus tagging convention, or is it Jarvis-internal?
 3. Is the JICM autonomy invariant negotiable for v8.x web/IDE backends?
 4. Should Jeeves-Brief and Alfred-Brief converge or remain distinct?
 5. Should Cortex and Jarvis AC-05/AC-06 share a recommendation schema?

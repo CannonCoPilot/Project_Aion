@@ -2,7 +2,7 @@
 
 **Date**: 2026-04-23
 **Repository**: `/Users/nathanielcannon/Claude/AIFred-Pro/` (production, read-only for Jarvis)
-**Development**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/` (nate-dev branch)
+**Development**: `/Users/nathanielcannon/Claude/Alfred-Dev/` (nate-dev branch)
 **Version**: AIFred-Pro v3.2.0
 **Total Source Files**: ~1,245 (excluding node_modules, .git, __pycache__)
 
@@ -154,9 +154,9 @@ Nexus automation:
 ## Recommended First Actions (for `nate-dev` development)
 
 1. **Fix B-1**: Create `dashboard/server/config.ts` per plan in `.claude/plans/eager-sunrise-falcon.md`
-2. **Run unit tests**: `cd AIFred-Pro-Dev && pytest tests/unit/ -v` to establish baseline
+2. **Run unit tests**: `cd Alfred-Dev && pytest tests/unit/ -v` to establish baseline
 3. **Start Pulse**: `bash pulse/start-pulse.sh --background` (already running on Jarvis infra)
-4. **Review David's liaison response**: `Shared_Projects/Questions/2026-04-21-nate-for-david-workspace-setup.md`
+4. **Review David's liaison response**: `Shared_Projects/Questions/2026-04-21-Archon-for-david-workspace-setup.md`
 
 ---
 

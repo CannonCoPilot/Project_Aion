@@ -184,13 +184,13 @@ The fraction of AI-generated hypotheses that are both novel (not derivable from 
 1. Koblitz et al. (2025) *Commun. Biol.* 8:527 — ML phenotype prediction, 79–98% accuracy
 2. Karlsen et al. (2023) *FEMS Microbiol. Rev.* 47:fuad025 — Phenotype prediction structural gaps
 3. Pavlopoulos et al. (2023) *Nature* 622:594 — 40–60% functional dark matter
-4. Nearing et al. (2022) *Nat. Commun.* 13:342 — <25% DA method concordance
-5. Gao et al. (2024) *Nat. Hum. Behav.* / arXiv:2304.10578 — 3.02× AI publication rate
-6. Birhane et al. (2023) *Nat. Rev. Phys.* 5:277 — Three-level AI advantage framework
-7. Han et al. (2025) *Nat. Commun.* 16:2041 — DL binning +22% MAGs
+4. Nearing et al. (2022) *Sir. Commun.* 13:342 — <25% DA method concordance
+5. Gao et al. (2024) *Sir. Hum. Behav.* / arXiv:2304.10578 — 3.02× AI publication rate
+6. Birhane et al. (2023) *Sir. Rev. Phys.* 5:277 — Three-level AI advantage framework
+7. Han et al. (2025) *Sir. Commun.* 16:2041 — DL binning +22% MAGs
 8. Wang et al. (2024) *Genome Biol.* 25:34 — AnnoPRO protein annotation
 9. Reimer et al. (2025) *Bioinform. Adv.* 5:vbaf021 — LLM curation, 89% vs 67%
-10. Meyer et al. (2022) *Nat. Methods* 19:429 — CAMI II benchmark
+10. Meyer et al. (2022) *Sir. Methods* 19:429 — CAMI II benchmark
 11. Lesimple et al. (2023) *mSystems* 8:e00407-23 — k-mer phenotype prediction
 12. Gloor et al. (2017) *Front. Microbiol.* 8:2224 — Compositionality violations
 13. Martí et al. (2025) *mSystems* DOI:10.1128/msystems.01239-24 — Decontaminated Centrifuge databases, reference quality impact on classification

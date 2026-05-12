@@ -2,8 +2,8 @@
 
 **Version**: 1.1.0
 **Created**: 2026-04-23
-**Author**: Nate (Jarvis)
-**Target**: AIFred-Pro-Dev (`nate-dev` branch)
+**Author**: Sir (Jarvis)
+**Target**: Alfred-Dev (`nate-dev` branch)
 **Status**: Design — pending implementation
 
 ---
@@ -308,7 +308,7 @@ CREATE INDEX idx_usage_summary_period ON usage_summary (period_type, period_star
 
 ### 3.4 API Endpoints (Pulse Dev — new)
 
-Add to `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/pulse/app.py`:
+Add to `/Users/nathanielcannon/Claude/Alfred-Dev/pulse/app.py`:
 
 ```
 GET /api/v1/usage/current          # Current session stats + rate limit state

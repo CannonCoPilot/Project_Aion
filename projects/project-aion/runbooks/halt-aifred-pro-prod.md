@@ -4,7 +4,7 @@
 
 **Authorized by**: explicit user instruction (destructive ops require explicit permission per Jarvis CLAUDE.md guardrails). Do NOT execute proactively.
 
-**Scope**: AIFred-Pro production only. Does NOT touch AIFred-Pro-Dev, Jarvis, or any of David's machine. Coordinate via Shared_Projects/Debriefs/AIFred-Pro/ before / after.
+**Scope**: AIFred-Pro production only. Does NOT touch Alfred-Dev, Jarvis, or any of David's machine. Coordinate via Shared_Projects/Debriefs/AIFred-Pro/ before / after.
 
 ---
 
@@ -83,7 +83,7 @@ Reversal must be coordinated with: (a) David, since AIFred-Pro is his primary ar
 
 ## What this runbook does NOT do
 
-- Does NOT touch AIFred-Pro-Dev launchd plists (those weren't loaded — `com.aion.nexus-dev-*` are inert)
+- Does NOT touch Alfred-Dev launchd plists (those weren't loaded — `com.aion.nexus-dev-*` are inert)
 - Does NOT touch David's separate machine (his launchd is independent of ours)
 - Does NOT decommission `com.aion.anthropic-proxy` (PID 97735, orphan from old `:8877` proxy) — separate hygiene matter
 - Does NOT touch `com.aion.david-nexus-sync-fetch` (6h git fetch, no LLM calls — not a leak source)
@@ -97,4 +97,4 @@ This runbook codifies the halt sequence executed on **2026-05-06** during the ta
 
 Investigation artifact: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-06-task-executor-leak-investigation.md`.
 
-Repair fixes applied subsequently: A (pre_check mirror) + B (per-task attempt budget) in AIFred-Pro-Dev `executor.py`; C (Jarvis cost-anomaly watcher) in Jarvis. See debrief for full detail.
+Repair fixes applied subsequently: A (pre_check mirror) + B (per-task attempt budget) in Alfred-Dev `executor.py`; C (Jarvis cost-anomaly watcher) in Jarvis. See debrief for full detail.

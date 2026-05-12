@@ -259,7 +259,7 @@ Validates the core send-to-jarvis.sh functionality.
 
 Claude Code's Edit tool has a hardcoded safety check that prompts for ANY file
 under a `.claude/` directory — even in `bypassPermissions` mode. This blocks
-autonomous editing of files in dev projects (AIFred-Pro-Dev, Jarvis-Dev) where
+autonomous editing of files in dev projects (Alfred-Dev, Jarvis-Dev) where
 code legitimately lives under `.claude/`.
 
 Two complementary patterns handle this:

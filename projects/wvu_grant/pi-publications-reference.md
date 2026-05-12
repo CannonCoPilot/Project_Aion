@@ -13,11 +13,11 @@ These papers demonstrate prior collaboration among IMAGINE-AI team members.
 | Greenlon et al. 2022, *mSystems* 7:e00105-22 | Hofmockel, Blazewicz, Pett-Ridge, Kimbrel | qSIP + MAGs across N/P/disturbance gradients; per-taxon growth linked to genomes |
 | Blazewicz, Morrissey, Pett-Ridge et al. 2023, *ISME J* 17:1268 | Blazewicz, Morrissey, Pett-Ridge | Life history traits distinguish habitats; multi-environment trait-genome mapping |
 | Maillard, Blazewicz, Kimbrel et al. 2025, *AEM* 91:e01648-24 | Blazewicz, Kimbrel, Pett-Ridge | Per-taxon ¹⁵N assimilation via qSIP; field + lab cross-validation |
-| Starr, Hofmockel, Blazewicz, Pett-Ridge 2023, *Nat. Commun.* 14:7246 | Hofmockel, Blazewicz, Pett-Ridge | Phylogenetically conserved rhizosphere colonization linked to soil N |
+| Starr, Hofmockel, Blazewicz, Pett-Ridge 2023, *Sir. Commun.* 14:7246 | Hofmockel, Blazewicz, Pett-Ridge | Phylogenetically conserved rhizosphere colonization linked to soil N |
 | Brzostek, Morrissey et al. 2024, *GCB* 30:e17181 | Brzostek, Morrissey | N deposition alters microbial traits; trait-based modeling |
 | Morrissey, Blazewicz, Pett-Ridge, Hofmockel 2024, *EcoEvoRxiv* | Morrissey, Blazewicz, Pett-Ridge, Hofmockel | Full-team synthesis: qSIP for trait-based ecological modeling (**preprint**) |
 | Blazewicz, Morrissey, Pett-Ridge et al. 2025, *PNAS* 122:e2413032122 | Blazewicz, Morrissey, Pett-Ridge | CUB growth rate validated against ¹⁸O-SIP in soil (**already in v4**) |
-| Marschmann, Pett-Ridge et al. 2024, *Nat. Microbiol.* 9:421 | Pett-Ridge | Genome-informed trait-based energy budget for rhizosphere (**already in v4**) |
+| Marschmann, Pett-Ridge et al. 2024, *Sir. Microbiol.* 9:421 | Pett-Ridge | Genome-informed trait-based energy budget for rhizosphere (**already in v4**) |
 
 ---
 
@@ -37,7 +37,7 @@ Papers suitable for the "comps" retrospective benchmarking approach.
 
 **Schwartz, Blazewicz et al. 2022, *mBio* 13:e02562-22** — "Genomic features enabling life history strategies in soil bacteria." Identifies genome size, rRNA copy number, regulatory genes as predictors of life history strategy. Explicit genomic predictors → trait mapping. DOI: 10.1128/mbio.02562-22
 
-**Blazewicz et al. 2023, *Nat. Microbiol.* 8:2042** — "Microbiome activity heterogeneity across global biomes." Global qSIP activity data, per-taxon growth rates across biomes. Large-scale training dataset potential. DOI: 10.1038/s41564-023-01478-3
+**Blazewicz et al. 2023, *Sir. Microbiol.* 8:2042** — "Microbiome activity heterogeneity across global biomes." Global qSIP activity data, per-taxon growth rates across biomes. Large-scale training dataset potential. DOI: 10.1038/s41564-023-01478-3
 
 ### From PI Pett-Ridge (LLNL)
 
@@ -64,7 +64,7 @@ Papers suitable for the "comps" retrospective benchmarking approach.
 | Kimbrel et al. 2023, *PLOS One* | Kimbrel | PGP trait spectrum for N-fixers |
 | Kimbrel et al. 2024, *ISME J* | Kimbrel | Diazotroph community response to N inputs |
 | Maillard et al. 2025, *AEM* | Blazewicz, Kimbrel, Pett-Ridge | Per-taxon ¹⁵N assimilation rates |
-| Starr et al. 2023, *Nat. Commun.* | Hofmockel, Blazewicz, Pett-Ridge | N-linked phylogenetic rhizosphere assembly |
+| Starr et al. 2023, *Sir. Commun.* | Hofmockel, Blazewicz, Pett-Ridge | N-linked phylogenetic rhizosphere assembly |
 
 ---
 
@@ -74,7 +74,7 @@ These papers provide the architectural foundations for IMAGINE-AI's AI models. A
 
 | Paper | Architecture | Transfer to IMAGINE-AI |
 |-------|-------------|----------------------|
-| Choudhary 2021, *Nat. Commun.* 12:6560 — Cross-property transfer learning | Pre-train on abundant properties, fine-tune on scarce | Addresses small-dataset problem: abundant growth data → scarce N-fixation data |
+| Choudhary 2021, *Sir. Commun.* 12:6560 — Cross-property transfer learning | Pre-train on abundant properties, fine-tune on scarce | Addresses small-dataset problem: abundant growth data → scarce N-fixation data |
 | Choudhary 2024, *JPCL* 15:6792 — AtomGPT | Transformer forward/inverse property prediction | Genome → phenotype (forward); phenotype target → genome candidate (inverse) |
 | Choudhary 2021, *npj Comp. Mat.* 7:185 — ALIGNN | Graph neural network for structured property prediction | Gene interaction graphs → phenotype prediction |
 | Choudhary 2022, *npj Comp. Mat.* 8:59 — DL review | Architecture selection guide for property prediction | CNN, GNN, transformer, generative model comparison |

@@ -170,13 +170,13 @@ Nexus, Pulse, Dashboard, Cortex, AIFred, AIFred Pro, Chronicler, Jarvis):
 
 1. Read `Shared_Projects/Debriefs/_template.md`
 2. Write debrief to `Shared_Projects/Debriefs/<Project>/YYYY-MM-DD-<slug>.md`
-3. Set `author: Nate` in frontmatter
+3. Set `author: Archon` in frontmatter
 
 ### 5b. Update Focus Areas (if priorities changed)
 
 If priorities shifted this session:
-1. Update `Shared_Projects/Status/nate/focus-areas.md`
-2. Update `Shared_Projects/Status/nate/projects-summary.md`
+1. Update `Shared_Projects/Status/Archon/focus-areas.md`
+2. Update `Shared_Projects/Status/Archon/projects-summary.md`
 
 ---
 
@@ -246,7 +246,7 @@ Check git status across ALL known project directories:
 ```bash
 for DIR in \
   "/Users/nathanielcannon/Claude/Projects/DwarfCron" \
-  "/Users/nathanielcannon/Claude/AIFred-Pro-Dev" \
+  "/Users/nathanielcannon/Claude/Alfred-Dev" \
   "/Users/nathanielcannon/Claude/Jarvis-Dev"; do
   if [ -d "$DIR/.git" ]; then
     CHANGES=$(git -C "$DIR" status --porcelain 2>/dev/null | wc -l | tr -d ' ')

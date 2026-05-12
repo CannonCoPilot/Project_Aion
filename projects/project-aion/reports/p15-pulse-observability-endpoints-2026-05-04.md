@@ -181,9 +181,9 @@ fine because:
 
 ## Files touched
 
-- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/pulse/app.py` — added
+- `/Users/nathanielcannon/Claude/Alfred-Dev/pulse/app.py` — added
   `parse_iso_ts()` + 3 POST endpoints (~108 LOC).
-- `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/logs/swallowed-errors.jsonl`
+- `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/swallowed-errors.jsonl`
   — truncated (preserved as `swallowed-errors-pre-p1.5.jsonl`).
 
 ## Outcome

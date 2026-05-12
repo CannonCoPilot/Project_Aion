@@ -3,7 +3,7 @@ title: DecisionsPage.tsx → ReoPage.tsx Feature-Parity Audit
 date: 2026-05-11
 status: COMPLETE — feeds M2 of dashboard re-cleave PR
 author: Jarvis (Claude Opus 4.7)
-audience: Nate, future-Jarvis, future-David
+audience: Sir, future-Jarvis, future-David
 context: Pre-redirect audit per plan §5.2 M2 acceptance criteria. Identifies which DecisionsPage affordances need porting before `/decisions` becomes a Navigate redirect to `/reo`.
 inputs:
   - dashboard/frontend/src/pages/DecisionsPage.tsx (514 LOC, P1.B1 era 2026-05-04)
@@ -55,12 +55,12 @@ row, currently only in the drawer).
 | 12 | URL search params: `?actor=X&decision_type=Y&outcome=Z&thread_id=T` | **MISSING_IN_REO_PORTABLE (load-bearing)** | ReoPage uses local state for filters; only `?decision_id=` is URL-synced | **PORT-A**: redirect wrapper preserves search; ReoPage reads on mount to pre-populate filters. Single-value mapping (each query param → single-entry array for chip-multi-selects). |
 | 13 | URL param `?drawer=<thread_id>` | INTENTIONAL_DROP | `?decision_id=<event_id>` (B6) | Drawer model fundamentally changed (thread_id → event_id). No clean translation; drop with the redirect. Old links to `?drawer=` will land on /reo with no drawer open. |
 | 14 | "Recent threads" section header | INTENTIONAL_DROP | — | Thread-level aggregation not adopted by REO. |
-| 15 | Threads table (thread_id, first, last, count) | INTENTIONAL_DROP | — | Same. Could be added later as a separate aggregation view if Nate finds it missed; not load-bearing. |
+| 15 | Threads table (thread_id, first, last, count) | INTENTIONAL_DROP | — | Same. Could be added later as a separate aggregation view if Sir finds it missed; not load-bearing. |
 | 16 | Click thread row → drawer | INTENTIONAL_DROP | — | Drawer model changed. |
 | 17 | Threads loading state | INTENTIONAL_DROP | — | Section removed. |
 | 18 | Threads empty state | INTENTIONAL_DROP | — | Section removed. |
 | 19 | "Recent decisions (N)" header | PRESENT_IN_REO | "N decision(s)" header | Equivalent. |
-| 20 | Decisions table: When (relative timeAgo + tooltip with absolute ts) | PRESENT_IN_REO_DIFFERENT | TimelineList row shows full absolute timestamp | Both valid. Could change REO to relative-with-tooltip later if Nate prefers; out of M2 scope. |
+| 20 | Decisions table: When (relative timeAgo + tooltip with absolute ts) | PRESENT_IN_REO_DIFFERENT | TimelineList row shows full absolute timestamp | Both valid. Could change REO to relative-with-tooltip later if Sir prefers; out of M2 scope. |
 | 20a | Decisions table: thread_id (truncated mono) | PRESENT_IN_REO_DIFFERENT | Not in row directly; shown in drawer DefList | REO's filter-by-thread-id covers the "filter by this thread" intent. |
 | 20b | Decisions table: Actor (colored text) | PRESENT_IN_REO_DIFFERENT | Actor chip (colored, palette by service: executor/diagnose/reviewer) | REO's palette is service-aware (more useful than prefix-only). |
 | 20c | Decisions table: Decision (decision_type) | PRESENT_IN_REO | Decision-type column | Equivalent. |
@@ -119,7 +119,7 @@ they should land at `/reo` with those filters pre-applied.
 4. Use the existing `readDeepLinkId()` / `writeDeepLinkId()` pattern as
    the template for `readFilterParams()`. Run on initial mount only;
    subsequent filter changes stay in local state (no URL write-back) to
-   avoid scope creep. If Nate wants full URL sync later, separate
+   avoid scope creep. If Sir wants full URL sync later, separate
    workstream.
 
 **Cost**: ~20 LOC in ReoPage.tsx + 4 LOC in App.tsx.
@@ -184,13 +184,13 @@ in the drawer (as text `confidence X%`).
 |---|---|
 | StatCard "per-hour" subtitle on Decisions count | Cosmetic detail. Time-window awareness of the page header replaces it. |
 | StatCard "Top actor" / "Top decision_type" | Aggregates panel chips already convey ranked-by-count info with more granularity. |
-| Recent threads section (table) | Thread-level aggregation isn't part of REO's mental model. If Nate misses it after the redirect lands, file a follow-up — easy to add as a sub-page or tab. |
+| Recent threads section (table) | Thread-level aggregation isn't part of REO's mental model. If Sir misses it after the redirect lands, file a follow-up — easy to add as a sub-page or tab. |
 | `?drawer=<thread_id>` URL param | Drawer indexing changed from thread_id to event_id (decision_id) when B6 case-file landed. No clean 1:1 translation. Old `?drawer=` links will simply land on /reo with no drawer (graceful degradation). |
 | OfflineBanner PULSE_DB_* env hint | Stale advice — Pulse READ API (P1.B1.1, commit 66885bb) replaced direct DB access; PULSE_DB_* env vars no longer exist in dashboard server. Dropping this prevents the user being misled toward irrelevant diagnostics. |
 
 ## DecisionsPage.tsx + api/decisions.ts disposition
 
-Per Nate's 2026-05-11 "keep-one-cycle" decision:
+Per Sir's 2026-05-11 "keep-one-cycle" decision:
 
 - **DecisionsPage.tsx**: kept in tree, unreferenced from App.tsx after M2.
   Add deprecation header comment. Scheduled deletion: REO Phase 5.5
@@ -235,6 +235,6 @@ Post-port smoke (M2.6):
 
 - Plan-of-record: `Jarvis/projects/project-aion/plans/aifred-pro-dev-dashboard-recleavage.md` §5.2 (Milestone 2)
 - Foundational analysis ratification §11.3: "/decisions → /reo redirect + consolidate features"
-- DecisionsPage origin: P1.B1 commit `042247b` on AIFred-Pro-Dev nate-dev (2026-05-04)
+- DecisionsPage origin: P1.B1 commit `042247b` on Alfred-Dev nate-dev (2026-05-04)
 - ReoPage build: B1+B3+B4+B6+B7-UI+MVP commits `086f08d` / `54d890a` / `8fd2446` / `6f40b1b` / `0f17f73`
-- M1 (nav re-cleave) ship: commit `d001c75` on AIFred-Pro-Dev nate-dev (2026-05-11)
+- M1 (nav re-cleave) ship: commit `d001c75` on Alfred-Dev nate-dev (2026-05-11)

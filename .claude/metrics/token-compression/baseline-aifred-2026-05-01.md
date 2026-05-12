@@ -1,9 +1,9 @@
-# AIFred-Pro-Dev Baseline — 2026-05-01
+# Alfred-Dev Baseline — 2026-05-01
 
-**Corpus**: `~/.claude/projects/-Users-nathanielcannon-Claude-AIFred-Pro-Dev/`
+**Corpus**: `~/.claude/projects/-Users-nathanielcannon-Claude-Alfred-Dev/`
 **Telemetry CSV**: `.claude/metrics/token-compression/cache-telemetry-aifred-v2-20260501.csv`
 **Extractor**: `cache-telemetry-extractor-v2.py` (post-Phase-0.4 quote-aware register filter)
-**Reference for**: Phase 1.5 Alfred-Brief and any future AIFred-Pro-Dev intervention
+**Reference for**: Phase 1.5 Alfred-Brief and any future Alfred-Dev intervention
 **Cutoff**: 2026-05-01T03:28:35Z (Alfred-Brief deploy commit `c31b2bd`)
 
 ---
@@ -11,7 +11,7 @@
 ## §1 Why a separate baseline
 
 Jarvis's pre-deploy baseline (`baseline-2026-04-30.md`) is not transferable.
-The AIFred-Pro-Dev corpus has a substantially different content profile:
+The Alfred-Dev corpus has a substantially different content profile:
 pipeline development, MCP testing, dashboard work, and David-O'Neil-collab
 sessions, versus Jarvis's mix of self-improvement, Chronicler, infra, and
 methodology work. Class composition diverges enough that comparing post-
@@ -31,7 +31,7 @@ n = 3,488 turns / 133 sessions. ts < 2026-05-01T03:28:35Z.
 | `code_dump` | 11 | 0.32% | 0.61% | -0.29pp |
 | `structured` | 39 | 1.12% | 1.65% | -0.53pp |
 
-Headline distinction: AIFred-Pro-Dev is dominated by interactive answers
+Headline distinction: Alfred-Dev is dominated by interactive answers
 (57%) where Jarvis is more evenly split between tool-call-only turns,
 short status outputs, and conversational answers. This means:
 
@@ -95,9 +95,9 @@ these from the CSV in one pass.
 - Pre-registration: `.claude/metrics/token-compression/pre-registration-phase-1-5-alfred-brief.yaml`
 - Register markers override: `.claude/skills/token-compression/templates/register-markers-phase-1-5-alfred-brief.yaml`
 - Deploy commit: `davidmoneil/AIFred-Pro:nate-dev` `c31b2bd` (2026-05-01T03:28:35Z)
-- Directive text: AIFred-Pro-Dev `.claude/CLAUDE.md` Output style (Alfred-Brief) section
+- Directive text: Alfred-Dev `.claude/CLAUDE.md` Output style (Alfred-Brief) section
 
 ---
 
-*AIFred-Pro-Dev baseline reference — 2026-05-01.*
+*Alfred-Dev baseline reference — 2026-05-01.*
 *Captured at the moment of Phase 1.5 pre-registration; before any post-deploy turns existed.*

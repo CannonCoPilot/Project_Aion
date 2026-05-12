@@ -10,7 +10,7 @@
 
 ## 1. Headline Recommendation
 
-**REJECT all 21 nexus-sync commits for this milestone.** Push the existing `nate-dev` branch (45 commits ahead of `origin/main`, +1 unpushed local) as the milestone, with one small inline cleanup (`board.ts` BLOCKER_LABELS fix). The dashboard improvements and decision-rationale work in nexus-sync are real and worth considering, but they belong on a separate track David owns — adopting them through Nate would muddy the authorship signal of the architectural diff David is being asked to review.
+**REJECT all 21 nexus-sync commits for this milestone.** Push the existing `nate-dev` branch (45 commits ahead of `origin/main`, +1 unpushed local) as the milestone, with one small inline cleanup (`board.ts` BLOCKER_LABELS fix). The dashboard improvements and decision-rationale work in nexus-sync are real and worth considering, but they belong on a separate track David owns — adopting them through Sir would muddy the authorship signal of the architectural diff David is being asked to review.
 
 This is a recommendation, not a decision. The User authorized the milestone work with "merging changes from the main and the nexus-sync branches"; the analysis below makes the case for why a leaner scope is more useful here, and surfaces the small ADOPT candidates if the User prefers to retain some of them.
 
@@ -22,7 +22,7 @@ This is a recommendation, not a decision. The User authorized the milestone work
 
 | Comparison | Commits | Files | Insertions | Deletions |
 |------------|---------|-------|------------|-----------|
-| `origin/main` ← `nate-dev` | 45 | (Nate's Pipeline v2 + token-compression + dashboard) | substantial | substantial |
+| `origin/main` ← `nate-dev` | 45 | (Sir's Pipeline v2 + token-compression + dashboard) | substantial | substantial |
 | `origin/main` ← `origin/nexus-sync-2026-04` | 21 | ~250 | substantial | minor |
 | `nate-dev` ↔ `origin/nexus-sync-2026-04` | combined | **450** | **27,319** | **24,018** |
 
@@ -62,8 +62,8 @@ These are David's foundational commits creating the "Nexus" framework + bundling
 | `0e6e1a2` | remove hardcoded paths and secrets for standalone operation | 7 (executor.sh, agent docs, scripts) | **REJECT** | Pipeline v2 has its own credential model via `.claude/secrets/credentials.yaml` and Pulse metadata; nexus-sync's hardcoded-path fixes target the legacy executor.sh path which Pipeline v2 deprecates |
 | `7c4db38` | critical bug fixes — executor MODEL pin and watchdog improvements | 2 (executor.sh, dispatcher-watchdog.sh) | **REJECT** | Targets legacy executor; Pipeline v2 services (`executor.py`) have their own model pinning via `engine` metadata and routing rules |
 | `3ada792` | rebrand Headless Claude Jobs Framework to Nexus | 65+ files | **REJECT** | Cosmetic + structural rebrand; nate-dev inherited the post-rebrand state via main at `dfd40c5`. Re-merging would re-introduce drift. |
-| `a450f61` | bundle Pulse Dashboard as Docker service | **200+ files** (initial dashboard import) | **REJECT** | This is the dashboard's birth commit. nate-dev already has the dashboard (inherited via main); Nate's dashboard work builds on it. Re-merging would be a no-op at best, conflict-storm at worst. |
-| `7bc1538` | comprehensive Nexus sync — libs, scripts, hooks, personas, workflows, docs | 130+ files | **REJECT** | Foundation sync; mostly already in nate-dev via main. Re-merging would conflict on the 50+ persona prompt files Nate has now further evolved for Pipeline v2. |
+| `a450f61` | bundle Pulse Dashboard as Docker service | **200+ files** (initial dashboard import) | **REJECT** | This is the dashboard's birth commit. nate-dev already has the dashboard (inherited via main); Sir's dashboard work builds on it. Re-merging would be a no-op at best, conflict-storm at worst. |
+| `7bc1538` | comprehensive Nexus sync — libs, scripts, hooks, personas, workflows, docs | 130+ files | **REJECT** | Foundation sync; mostly already in nate-dev via main. Re-merging would conflict on the 50+ persona prompt files Sir has now further evolved for Pipeline v2. |
 | `7f80e16` | bump version to 4.0.0 — Nexus sync complete | 1 (VERSION) | **REJECT** | Version-pinning a now-superseded architecture |
 | `b0d4ff8` | flatten nested persona directories from cp -r | 40 (persona files) | **REJECT** | Cleanup of an artifact of David's local copy operation; not relevant to nate-dev which has clean directory structure |
 | `16ed6d5` | complete executor.sh sync + missing workflows | 20 (executor.sh, systems docs, workflows) | **REJECT** | Targets legacy executor + adds David's `.claude/context/systems/` documentation. Pipeline v2 supersedes executor; systems docs belong on David's side. |
@@ -80,7 +80,7 @@ David's Phase 5 observability work: dual-write logging, audit-ingest replay, dec
 | `54dda47` | Phase 5.2 — dual-write Nexus libs + thread_id propagation | 5 (dispatcher.sh, executor.sh, audit/cost/decision-log.sh) | **REJECT** | Pipeline v2 has its own metadata.orchestration thread tracking; dual-write to a parallel logging schema would create maintenance burden |
 | `4689195` | SC2155 fix in Phase 5.2 NEXUS_THREAD_ID block | 2 | **REJECT** | Defensive fix on legacy executor; not applicable |
 | `ea298c2` | Phase 5.3 — audit-ingest.sh/py (JSONL → Postgres replay) | 2 NEW (684 lines) | **DEFER** | Substantial standalone infrastructure; could be valuable for Pipeline v2 too, but warrants its own evaluation and Pulse task. Not bundled into the milestone. |
-| `93f5320` | Phase 5.5 — decision rationale rollout | 7 (incl. ai-reviewer/task-evaluator/task-investigator prompts) | **DEFER (with strong consider)** | Decision rationale is exactly what David flagged for AI Reviewer dashboard instrumentation. **However**: ai-reviewer/prompt.md has 188 lines of diff vs nate-dev (132 ins / 56 del). Adopting it conflicts with whatever Nate has done to that file for Pipeline v2. Cleaner to have David refresh the persona prompts in main, then Nate rebases. |
+| `93f5320` | Phase 5.5 — decision rationale rollout | 7 (incl. ai-reviewer/task-evaluator/task-investigator prompts) | **DEFER (with strong consider)** | Decision rationale is exactly what David flagged for AI Reviewer dashboard instrumentation. **However**: ai-reviewer/prompt.md has 188 lines of diff vs nate-dev (132 ins / 56 del). Adopting it conflicts with whatever Sir has done to that file for Pipeline v2. Cleaner to have David refresh the persona prompts in main, then Sir rebases. |
 | `613a71e` | Phase 5.5 — shellcheck SC2038 fix | 1 (executor.sh) | **REJECT** | Defensive fix on legacy executor |
 | `0641bc3` | Phase 5.5 hardening — audit-ingest ON CONFLICT + watchdog fix guard | 2 | **DEFER** | Hardening for the audit-ingest infrastructure that's already deferred |
 | `c4058bf` | mirror observability Phases 5.0+5.8 from AIProjects | 8 (executor.sh, pulsar-runner, event-watcher, audit-log, cost-log, common.sh, pipeline-runner, pipeline-watchdog) | **REJECT** | Mirrors David's other-project observability into the legacy shell stack; Pipeline v2 has its own observability layer (Pulse metadata + dashboard) |
@@ -99,7 +99,7 @@ David's experimental work on the orchestration graph view. Small, focused, compl
 | `1e618ef` | remove dead has_retry badge, clean type references | 4 (orchestrations.ts, OrchestrationGraphView, OrchestrationTaskNode, ProjectDetailPage) | ~40 lines | **DEFER** | Cleanup follow-up to `40290c4` |
 | `ee9b155` | refresh project overview + nexus-sync-2026-04 notes | 1 (README.md) | ~80 lines | **ADAPT** | Write our own README update reflecting milestone work; reference nexus-sync notes as appropriate |
 
-**Aggregate Category C verdict**: 3 DEFER, 1 ADAPT. The dashboard improvements are real value but they target `OrchestrationGraphView.tsx` which has its own evolution path on nate-dev. A cherry-pick would conflict with Nate's Pipeline v2 dashboard work (which uses different visualization patterns). Better to evaluate post-milestone whether to port the conditional/loop/retry visualization concepts into Pipeline v2's dashboard idioms.
+**Aggregate Category C verdict**: 3 DEFER, 1 ADAPT. The dashboard improvements are real value but they target `OrchestrationGraphView.tsx` which has its own evolution path on nate-dev. A cherry-pick would conflict with Sir's Pipeline v2 dashboard work (which uses different visualization patterns). Better to evaluate post-milestone whether to port the conditional/loop/retry visualization concepts into Pipeline v2's dashboard idioms.
 
 ### Aggregate classification
 
@@ -118,13 +118,13 @@ Three converging reasons to NOT bring nexus-sync work into the milestone:
 
 ### 4a. Authorship clarity for David's review
 
-The milestone's purpose (per the User's framing) is "for David's review and merge." The diff David evaluates should be "what Nate built since branching from main" — a clear authorship signal. If the milestone includes commits David himself authored (cherry-picked or merged from nexus-sync), it muddles that signal:
+The milestone's purpose (per the User's framing) is "for David's review and merge." The diff David evaluates should be "what Sir built since branching from main" — a clear authorship signal. If the milestone includes commits David himself authored (cherry-picked or merged from nexus-sync), it muddles that signal:
 
-- Did Nate review and adopt those commits, or just blindly include them?
-- If David previously decided NOT to merge nexus-sync into main (it's been stable since 2026-04-22), why is Nate now arguing for those commits?
-- Does Nate have higher conviction than David that those commits are ready for main?
+- Did Sir review and adopt those commits, or just blindly include them?
+- If David previously decided NOT to merge nexus-sync into main (it's been stable since 2026-04-22), why is Sir now arguing for those commits?
+- Does Sir have higher conviction than David that those commits are ready for main?
 
-A milestone that says "here's what Nate built — review it" is a cleaner ask than "here's what Nate built plus what you might want to revisit from your own experimental branch."
+A milestone that says "here's what Sir built — review it" is a cleaner ask than "here's what Sir built plus what you might want to revisit from your own experimental branch."
 
 ### 4b. Pipeline v2 deprecates the architecture nexus-sync extends
 
@@ -134,9 +134,9 @@ The strong reasoning chain is: Pipeline v2's Python services own dispatch now �
 
 ### 4c. nexus-sync is David's branch; he can merge it himself when ready
 
-David's `nexus-sync-2026-04` branch shows zero new commits since 2026-04-22 (per Agent C's auto-fetch summary). He has not chosen to merge it to main. That's his prerogative. Nate cherry-picking from it implies Nate has decided when David's experimental work is ready — that's not the right hierarchy.
+David's `nexus-sync-2026-04` branch shows zero new commits since 2026-04-22 (per Agent C's auto-fetch summary). He has not chosen to merge it to main. That's his prerogative. Sir cherry-picking from it implies Sir has decided when David's experimental work is ready — that's not the right hierarchy.
 
-The cleanest model: nexus-sync stays as David's separate track. If David wants the dashboard orchestration improvements or audit-ingest infrastructure to land in main, he merges nexus-sync → main on his timeline. After that lands, Nate rebases nate-dev onto the new main.
+The cleanest model: nexus-sync stays as David's separate track. If David wants the dashboard orchestration improvements or audit-ingest infrastructure to land in main, he merges nexus-sync → main on his timeline. After that lands, Sir rebases nate-dev onto the new main.
 
 ---
 

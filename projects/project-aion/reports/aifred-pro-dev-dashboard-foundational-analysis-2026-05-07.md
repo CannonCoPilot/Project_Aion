@@ -1,10 +1,10 @@
 ---
-title: AIFred-Pro-Dev Dashboard — Foundational Analysis
+title: Alfred-Dev Dashboard — Foundational Analysis
 date: 2026-05-07
-project: AIFred-Pro-Dev
-audience: Nate, future-Jarvis
+project: Alfred-Dev
+audience: Sir, future-Jarvis
 status: APPROVED-PENDING-IMPL (decisions captured 2026-05-11; see §11)
-context: Captured from a 2026-05-07 session conversation immediately following dev-env Path 1 (vite hot-reload sidecar, commit 23e838c) and Path 2 (cross-contamination fix, commit faa9406). Nate paused REO Validate to ask the foundational IA question — "what are we actually building, and how should /decisions, /reo, /reviews, /tasks, /board, /nexus-ops, /findings, /personas, /report, /observability, /pipeline, /health (and the rest) come together?" Decisions returned 2026-05-11; ratified positions recorded in §11. Implementation plan: ../plans/aifred-pro-dev-dashboard-recleavage.md.
+context: Captured from a 2026-05-07 session conversation immediately following dev-env Path 1 (vite hot-reload sidecar, commit 23e838c) and Path 2 (cross-contamination fix, commit faa9406). Sir paused REO Validate to ask the foundational IA question — "what are we actually building, and how should /decisions, /reo, /reviews, /tasks, /board, /nexus-ops, /findings, /personas, /report, /observability, /pipeline, /health (and the rest) come together?" Decisions returned 2026-05-11; ratified positions recorded in §11. Implementation plan: ../plans/aifred-pro-dev-dashboard-recleavage.md.
 related:
   - reviewer-foundational-reexamination-2026-05-07.md (precedent — session-10 reframe used the same approach)
   - ../plans/aifred-pro-dev-reo-page.md (REO plan-of-record; revised 2026-05-11 — Validate paused, /decisions subsumes into /reo per §11.3)
@@ -16,9 +16,9 @@ investigation_artifacts:
   - direct reads: App.tsx, AppShell.tsx (sidebar IA), reviews.ts (feedback persistence), .claude/CLAUDE.md, registry.yaml
 ---
 
-# AIFred-Pro-Dev Dashboard — Foundational Analysis
+# Alfred-Dev Dashboard — Foundational Analysis
 
-> **Reading guide.** Sections 1–3 are inventory and findings; sections 4–7 are the synthesis (the "5 questions" Nate posed); section 8 is the prioritized take-next list. Insights flagged with `★ Insight` are intended as standalone takeaways — they're the most surprising or load-bearing conclusions and worth re-reading independently.
+> **Reading guide.** Sections 1–3 are inventory and findings; sections 4–7 are the synthesis (the "5 questions" Sir posed); section 8 is the prioritized take-next list. Insights flagged with `★ Insight` are intended as standalone takeaways — they're the most surprising or load-bearing conclusions and worth re-reading independently.
 
 ## Table of contents
 
@@ -29,7 +29,7 @@ investigation_artifacts:
 5. [Q2: Mapping current pages onto the 4+1 mode model](#5-q2-mapping-current-pages-onto-the-41-mode-model)
 6. [Q3: Critical assessment of "get work done" vs "monitor/diagnose"](#6-q3-critical-assessment-of-get-work-done-vs-monitordiagnose)
 7. [Q3.5: The /decisions vs /reo vs /reviews question, finally](#7-q35-the-decisions-vs-reo-vs-reviews-question-finally)
-8. [Q4: What does AIFred-Pro-Dev seem designed to provide?](#8-q4-what-does-aifred-pro-dev-seem-designed-to-provide)
+8. [Q4: What does Alfred-Dev seem designed to provide?](#8-q4-what-does-aifred-pro-dev-seem-designed-to-provide)
 9. [Q5: The envisioned optimal version](#9-q5-the-envisioned-optimal-version)
 10. [What I'd take next (prioritized)](#10-what-id-take-next-prioritized)
 11. [Decisions captured 2026-05-11](#11-decisions-captured-2026-05-11) — ratified positions on all 7 open questions
@@ -69,7 +69,7 @@ The sidebar groups everything into three sections:
 **MANAGE_NAV** ("System"):
 - `/observability` Observability, `/pipeline` Pipeline, `/token-compression` Token Compression, `/health` Health, `/document-guard` Doc Guard, `/documentation` Documentation, `/settings` Settings, `/account` Account
 
-The visible pattern: **the current sidebar grouping is a half-correct attempt at the same cleavage Nate proposed.** "Main" approximately = DOING + PLANNING. "System" approximately = DIRECTING + DIAGNOSING. "Nexus" is the messy bucket where everything-related-to-the-AI-machine got dumped — and it contains all four modes mixed together (`/reviews` REFLECTING, `/jobs` DIRECTING, `/findings` DIAGNOSING, `/decisions` REFLECTING, etc.).
+The visible pattern: **the current sidebar grouping is a half-correct attempt at the same cleavage Sir proposed.** "Main" approximately = DOING + PLANNING. "System" approximately = DIRECTING + DIAGNOSING. "Nexus" is the messy bucket where everything-related-to-the-AI-machine got dumped — and it contains all four modes mixed together (`/reviews` REFLECTING, `/jobs` DIRECTING, `/findings` DIAGNOSING, `/decisions` REFLECTING, etc.).
 
 > **★ Insight**
 >
@@ -96,13 +96,13 @@ Why this matters more than 2 buckets:
 
 There's a fifth mode worth naming but lower-traffic: **PLANNING** — multi-task, multi-phase project work in `/projects`, `/projects/:id`, `/cross-project`, `/create`. This is sufficiently distinct from per-ticket DOING that it probably wants its own zone, though it overlaps DOING heavily.
 
-So: **4 primary modes + 1 secondary mode**. Nate's "get-work-done vs monitor" axis is real — it's the cleavage between {DOING, DIRECTING, PLANNING} and {REFLECTING, DIAGNOSING} — but the sub-modes within each side are themselves distinct surfaces.
+So: **4 primary modes + 1 secondary mode**. Sir's "get-work-done vs monitor" axis is real — it's the cleavage between {DOING, DIRECTING, PLANNING} and {REFLECTING, DIAGNOSING} — but the sub-modes within each side are themselves distinct surfaces.
 
 ---
 
 ## 5. Q2: Mapping current pages onto the 4+1 mode model
 
-Within Nate's specified investigation domain (not expanding to the entirety of Pulse), here is what each page actually *is*, regardless of where the sidebar puts it today:
+Within Sir's specified investigation domain (not expanding to the entirety of Pulse), here is what each page actually *is*, regardless of where the sidebar puts it today:
 
 | Page | Sidebar group today | What it actually does | True mode |
 |---|---|---|---|
@@ -141,7 +141,7 @@ Within Nate's specified investigation domain (not expanding to the entirety of P
 
 ## 6. Q3: Critical assessment of "get work done" vs "monitor/diagnose"
 
-Nate's proposed top-level cleavage **is the right primary axis**, but worth refining in three ways:
+Sir's proposed top-level cleavage **is the right primary axis**, but worth refining in three ways:
 
 **1. It captures the most important distinction.** When a user opens the dashboard, the first decision is "am I trying to do something *with the system* or am I trying to know something *about the system*?" That is a real cleavage and pages that confuse it (e.g., `/pipeline` mixing approve-work with monitor-dispatcher) feel awkward to use because they're answering two questions at once.
 
@@ -202,19 +202,19 @@ These are different IA primitives — the original REO plan-of-record (§2 IA po
 
 **Concrete recommendation for next REO move**:
 
-1. **REO Validate** (the next gate per plan §8 Phase 3) should explicitly include a UX walkthrough of `/reviews` to validate the "feedback queue vs filing archive" distinction holds with Nate holding the mouse
+1. **REO Validate** (the next gate per plan §8 Phase 3) should explicitly include a UX walkthrough of `/reviews` to validate the "feedback queue vs filing archive" distinction holds with Sir holding the mouse
 2. **REO Harden H5 (feedback connector backend)** should write to BOTH `pulse.decision_feedback` (new structured table) AND the existing `RESULTS_DIR/feedback.jsonl` so existing learned-patterns curation keeps working — parallel-write, not cutover
 3. **Add a `/decisions → /reo` redirect** in App.tsx during REO Ship phase. Don't immediately delete DecisionsPage.tsx — keep it as fallback for one release cycle, then remove
-4. **Add `/reo` to the sidebar Nexus group** before Nate's UX walkthrough (currently invisible)
+4. **Add `/reo` to the sidebar Nexus group** before Sir's UX walkthrough (currently invisible)
 5. **Bigger reframing question deferred**: do we eventually adopt the 4-mode IA across the whole sidebar? That's the "ultimate version" question (§9)
 
 ---
 
-## 8. Q4: What does AIFred-Pro-Dev seem designed to provide?
+## 8. Q4: What does Alfred-Dev seem designed to provide?
 
 Reading the README, CLAUDE.md, registry.yaml, archon-architecture.md, and the dashboard PLAN.md together, here is the most honest characterization:
 
-**AIFred-Pro-Dev is a single-operator console for running an autonomous AI organization.**
+**Alfred-Dev is a single-operator console for running an autonomous AI organization.**
 
 The system is trying to be three things simultaneously, and **the dashboard's IA confusion comes from the fact that it has never explicitly named which of the three a given page serves**:
 
@@ -241,7 +241,7 @@ I want to be careful here because "rebuild it from scratch" is rarely the right 
 
 ### 9.1 Near-term: re-cleave the existing surfaces, don't rebuild
 
-**Top-level shell**: explicit two-mode toggle at the top of the sidebar — **WORK** | **DIAGNOSE** — Nate's original axis. Default to WORK. Single keystroke to flip.
+**Top-level shell**: explicit two-mode toggle at the top of the sidebar — **WORK** | **DIAGNOSE** — Sir's original axis. Default to WORK. Single keystroke to flip.
 
 **Within WORK**, three subsections:
 - **Today** (`/`, `/tasks`, `/board`, `/triage`, `/digest`)
@@ -272,7 +272,7 @@ This is **achievable in ~3-5 days of work** if we're disciplined. Most of it is 
 
 ### 9.2 Long-term: the integrated console
 
-If designing AIFred-Pro-Dev's dashboard from a clean sheet, I'd start with this premise: **the user is operating an AI organization. The dashboard is their command-and-control interface. Every page should be visibly *of* that frame.**
+If designing Alfred-Dev's dashboard from a clean sheet, I'd start with this premise: **the user is operating an AI organization. The dashboard is their command-and-control interface. Every page should be visibly *of* that frame.**
 
 That means:
 
@@ -297,7 +297,7 @@ In priority order, given this analysis:
 
 | # | Effort | What |
 |---|---|---|
-| 1 | (no impl) | Discuss this analysis with Nate. Identify which pieces resonate, which don't, where to push back. The wrong move is to start refactoring before alignment. |
+| 1 | (no impl) | Discuss this analysis with Sir. Identify which pieces resonate, which don't, where to push back. The wrong move is to start refactoring before alignment. |
 | 2 | ~0.5d | Write this foundational analysis doc to `Jarvis/projects/project-aion/reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md`. **(This document.)** |
 | 3 | ~0.5d | Revise `aifred-pro-dev-reo-page.md` plan with the refined positioning — `/reo` is the canonical Decision Archive (subsumes /decisions), `/reviews` stays as canonical Feedback Queue (gets generalized), the parallel-write JSONL approach for H5. |
 | 4 | ~3-5d | Near-term sidebar re-cleave: implement WORK/DIAGNOSE shell + 5 sidebar moves + /decisions → /reo redirect + cross-mode link buttons. Big perceived improvement, contained blast radius. |
@@ -306,14 +306,14 @@ In priority order, given this analysis:
 
 ---
 
-## Open questions for Nate (returning brainstorm)
+## Open questions for Sir (returning brainstorm)
 
-When Nate returns to this doc with edits, the conversations that matter most:
+When Sir returns to this doc with edits, the conversations that matter most:
 
 1. **Does the 4-mode model (DOING / DIRECTING / REFLECTING / DIAGNOSING) feel right, or is there a fifth I'm missing?**
 2. **Is "WORK | DIAGNOSE" the right top-level toggle, or would a 3-way (WORK | REFLECT | DIAGNOSE) be more honest about REFLECTING's distinct status?**
 3. **The /decisions → /reo consolidation: agree to redirect, or keep both with clear cross-links?**
-4. **The "Operations Center" long-term framing — is that the metaphor, or is there a different frame closer to how Nate actually uses the system?**
+4. **The "Operations Center" long-term framing — is that the metaphor, or is there a different frame closer to how Sir actually uses the system?**
 5. **What's the MVP cut for the near-term re-cleave? Are all 7 specific consolidations worth doing in one PR, or stage them?**
 6. **Any pages I've miscategorized in the mapping table?**
 7. **How does this analysis bear on the in-flight REO Validate gate — should we proceed with Validate as planned, or pause Validate pending IA decision?**
@@ -322,7 +322,7 @@ When Nate returns to this doc with edits, the conversations that matter most:
 
 ## 11. Decisions captured 2026-05-11
 
-Nate returned with answers to all 7 open questions (§ above). Ratified positions:
+Sir returned with answers to all 7 open questions (§ above). Ratified positions:
 
 ### 11.1 The mode model (Q1)
 **Bundle PLANNING into DOING.** The /projects, /projects/:id, /cross-project, /create surfaces stay where they are functionally but are not a separate top-level mode — they are absorbed under DOING in the IA. The mode model going forward is **4 modes**: DOING (incl. planning), DIRECTING, REFLECTING, DIAGNOSING.
@@ -330,7 +330,7 @@ Nate returned with answers to all 7 open questions (§ above). Ratified position
 ### 11.2 Top-level toggle (Q2)
 **WORK | DIAGNOSE** confirmed as the top-level shell metaphor.
 - **WORK side** contains DOING + DIRECTING (planning absorbed into DOING).
-- **DIAGNOSE side** contains REFLECTING + DIAGNOSING — Nate's rationale: "DIAGNOSE implies and includes REFLECTING," i.e., looking-back-at-decisions and looking-at-system-internals are both forms of inspecting-after-the-fact and belong on the same side of the toggle.
+- **DIAGNOSE side** contains REFLECTING + DIAGNOSING — Sir's rationale: "DIAGNOSE implies and includes REFLECTING," i.e., looking-back-at-decisions and looking-at-system-internals are both forms of inspecting-after-the-fact and belong on the same side of the toggle.
 
 This collapses §6's recommended 5-cluster sidebar (Today / Plan / Direct / Reflect / Inspect) to **4 clusters**:
 - **WORK side**: Today, Direct
@@ -361,7 +361,7 @@ REO Harden H5 (feedback connector backend) still recommended as parallel-write t
 
 | # | Workstream | Effort | Status |
 |---|---|---|---|
-| 1 | **Dashboard re-cleave PR** (this artifact's §9.1 fully ratified) | ~3-5d | NOW (M1 begins after Nate approves impl plan) |
+| 1 | **Dashboard re-cleave PR** (this artifact's §9.1 fully ratified) | ~3-5d | NOW (M1 begins after Sir approves impl plan) |
 | 2 | REO Validate (paused — resumes after re-cleave lands) | ~0.5d | PAUSED |
 | 3 | REO Harden H5 (parallel-write feedback) | ~2-3h | QUEUED (after Validate) |
 | 4 | REO Harden H1-H4, H6-H8 (other emitters, lessons-learned extension) | ~3-4d | QUEUED |
@@ -369,7 +369,7 @@ REO Harden H5 (feedback connector backend) still recommended as parallel-write t
 
 ### 11.9 What this analysis becomes now
 
-Status flips from DRAFT to **APPROVED-PENDING-IMPL**. The implementation plan-of-record (`../plans/aifred-pro-dev-dashboard-recleavage.md`) is the next thing to read for execution detail. Once the re-cleave PR lands, status flips to **APPROVED-IMPLEMENTED**, and this document becomes the durable IA reference for AIFred-Pro-Dev's dashboard.
+Status flips from DRAFT to **APPROVED-PENDING-IMPL**. The implementation plan-of-record (`../plans/aifred-pro-dev-dashboard-recleavage.md`) is the next thing to read for execution detail. Once the re-cleave PR lands, status flips to **APPROVED-IMPLEMENTED**, and this document becomes the durable IA reference for Alfred-Dev's dashboard.
 
 ---
 

@@ -1,6 +1,6 @@
 # Token Compression — End-to-End Implementation Guide (v1)
 
-**Project**: Token Compression for Jarvis & AIFred-Pro-Dev
+**Project**: Token Compression for Jarvis & Alfred-Dev
 **Date**: 2026-04-30
 **Author**: Jarvis (Master Archon)
 **Status**: Draft v1 — tactical playbook companion to roadmap v3 (commit `c95a334`)
@@ -38,7 +38,7 @@ Both documents target the same phase numbers (0-5 plus deferred 6). Where the ro
 | Repo | Local path | Branch | Purpose |
 |---|---|---|---|
 | Jarvis | `/Users/nathanielcannon/Claude/Jarvis/` | `Project_Aion` | All Jarvis-side edits |
-| AIFred-Pro-Dev | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/` | `nate-dev` | Phases 1.5, 1.2-1.4, 4, 5 |
+| Alfred-Dev | `/Users/nathanielcannon/Claude/Alfred-Dev/` | `nate-dev` | Phases 1.5, 1.2-1.4, 4, 5 |
 
 ### 1.3 Pre-flight check
 
@@ -48,9 +48,9 @@ git -C /Users/nathanielcannon/Claude/Jarvis status --short
 git -C /Users/nathanielcannon/Claude/Jarvis rev-parse --abbrev-ref HEAD  # expect: Project_Aion
 infrastructure/.venv/bin/python -c "import tiktoken; print('tiktoken OK')"
 
-# AIFred-Pro-Dev side (Phase 1.5+):
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev status --short
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev rev-parse --abbrev-ref HEAD  # expect: nate-dev
+# Alfred-Dev side (Phase 1.5+):
+git -C /Users/nathanielcannon/Claude/Alfred-Dev status --short
+git -C /Users/nathanielcannon/Claude/Alfred-Dev rev-parse --abbrev-ref HEAD  # expect: nate-dev
 ```
 
 ### 1.4 Credentials
@@ -70,7 +70,7 @@ python3 /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/dev/protected-edit.
   <file> --old '<exact text>' --new '<replacement text>'
 ```
 
-Phases 1.5, 4, and 5 all touch `.claude/` paths in AIFred-Pro-Dev.
+Phases 1.5, 4, and 5 all touch `.claude/` paths in Alfred-Dev.
 
 ---
 
@@ -295,7 +295,7 @@ git -C /Users/nathanielcannon/Claude/Jarvis commit -m "revert: Jeeves-Brief Phas
 
 ---
 
-## §4 Phase 1.5 — Deploy Alfred-Brief to AIFred-Pro-Dev CLAUDE.md
+## §4 Phase 1.5 — Deploy Alfred-Brief to Alfred-Dev CLAUDE.md
 
 **Goal**: same as Phase 1.1 but for AIFred (Alfred Pennyworth persona, drier register, Master-Nathaniel address, confirmatory valedictions).
 
@@ -311,9 +311,9 @@ print(f"Tokens (cl100k approx): {len(enc.encode(prompt))}")
 # Expected: ~135-150 tokens
 ```
 
-### 4.2 Edit: insert Alfred-Brief in AIFred-Pro-Dev CLAUDE.md
+### 4.2 Edit: insert Alfred-Brief in Alfred-Dev CLAUDE.md
 
-**File**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/CLAUDE.md`
+**File**: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/CLAUDE.md`
 
 **Position**: top of the file (after H1 title and any role description), before existing operational sections. Same cache-stability reasoning as §3.2.
 
@@ -321,7 +321,7 @@ Use `protected-edit.py` because the path is under `.claude/`:
 
 ```bash
 python3 /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/dev/protected-edit.py \
-  /Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/CLAUDE.md \
+  /Users/nathanielcannon/Claude/Alfred-Dev/.claude/CLAUDE.md \
   --old "<H1 + role line, exact verbatim from current file>" \
   --new "<H1 + role line>
 
@@ -335,7 +335,7 @@ Read the file first to get the exact `--old` text — don't paraphrase from memo
 ### 4.3 Commit and push to nate-dev
 
 ```bash
-cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev
+cd /Users/nathanielcannon/Claude/Alfred-Dev
 git checkout nate-dev
 git add .claude/CLAUDE.md
 git commit -m "docs: deploy Alfred-Brief output style (token-compression Phase 1.5)
@@ -351,7 +351,7 @@ git -c "credential.helper=!f() { echo \"username=CannonCoPilot\"; echo \"passwor
 
 ### 4.4 Test protocol
 
-Same as Phase 1.1 but exercised through AIFred-Pro-Dev sessions launched from `/Users/nathanielcannon/Claude/AIFred-Pro-Dev`.
+Same as Phase 1.1 but exercised through Alfred-Dev sessions launched from `/Users/nathanielcannon/Claude/Alfred-Dev`.
 
 Persona-specific spot-checks:
 
@@ -366,20 +366,20 @@ Persona-specific spot-checks:
 ### 4.5 Rollback
 
 ```bash
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev revert <hash>
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev push origin nate-dev
+git -C /Users/nathanielcannon/Claude/Alfred-Dev revert <hash>
+git -C /Users/nathanielcannon/Claude/Alfred-Dev push origin nate-dev
 ```
 
 ---
 
 ## §5 Phase 1.2-1.4 — Pipeline Executor Brevity Injection
 
-**Goal**: append `"Be brief."` to the AIFred-Pro-Dev pipeline executor and reviewer system prompts. No persona constraint here — subagents and CLI invocations don't user-face.
+**Goal**: append `"Be brief."` to the Alfred-Dev pipeline executor and reviewer system prompts. No persona constraint here — subagents and CLI invocations don't user-face.
 
 ### 5.1 Locate the executor prompt-build function
 
 ```bash
-cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev
+cd /Users/nathanielcannon/Claude/Alfred-Dev
 grep -n "def build_prompt\|def _build\|def construct_prompt\|system.*prompt" .claude/jobs/services/executor.py
 ```
 
@@ -391,7 +391,7 @@ Apply via `protected-edit.py` (path is under `.claude/`):
 
 ```bash
 python3 /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/dev/protected-edit.py \
-  /Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/executor.py \
+  /Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/executor.py \
   --old '<lines just before return of build_prompt>' \
   --new '<same lines>
     prompt += "\n\nBe brief."  # token-compression Phase 1.2'
@@ -402,7 +402,7 @@ If the function constructs a structured prompt (e.g., separate system + user mes
 ### 5.3 Same pattern for reviewer
 
 ```bash
-grep -n "def review\|def _build_review\|review_prompt" /Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/reviewer.py
+grep -n "def review\|def _build_review\|review_prompt" /Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/reviewer.py
 ```
 
 Apply the same `\n\nBe brief.` epilogue to the reviewer's system-prompt construction.
@@ -410,7 +410,7 @@ Apply the same `\n\nBe brief.` epilogue to the reviewer's system-prompt construc
 ### 5.4 Test command
 
 ```bash
-cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev
+cd /Users/nathanielcannon/Claude/Alfred-Dev
 /Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/bin/python -m pytest \
   .claude/jobs/tests/test_pipeline_v2.py -k gospel -v
 ```
@@ -422,8 +422,8 @@ Pass criterion: all tasks close with rubric-style score ≥ 0.97; mean output_to
 ### 5.5 Rollback
 
 ```bash
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev checkout HEAD~1 -- .claude/jobs/services/executor.py .claude/jobs/services/reviewer.py
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev commit -m "revert: brief epilogue Phase 1.2-1.3 (regression)"
+git -C /Users/nathanielcannon/Claude/Alfred-Dev checkout HEAD~1 -- .claude/jobs/services/executor.py .claude/jobs/services/reviewer.py
+git -C /Users/nathanielcannon/Claude/Alfred-Dev commit -m "revert: brief epilogue Phase 1.2-1.3 (regression)"
 ```
 
 ---
@@ -656,11 +656,11 @@ Comment out the preprocessing line in `jicm-prep-context.sh`; the LLM enrichment
 
 ## §8 Phase 4 — Pipeline Compression Mode + 1-Hour Cache TTL
 
-**Goal**: end-to-end compression in the AIFred-Pro-Dev pipeline with telemetry capture and 1-hour cache TTL on `claude -p` calls (or, more cleanly, Anthropic SDK direct calls).
+**Goal**: end-to-end compression in the Alfred-Dev pipeline with telemetry capture and 1-hour cache TTL on `claude -p` calls (or, more cleanly, Anthropic SDK direct calls).
 
 ### 8.1 Add COMPRESSION_MODE env var
 
-**File**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/executor.py`
+**File**: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/executor.py`
 
 ```python
 import os
@@ -683,7 +683,7 @@ def is_reasoning_task(task):
 
 ### 8.2 Telemetry capture into Pulse metadata
 
-**File**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/_shared.py`
+**File**: `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/_shared.py`
 
 ```python
 def capture_telemetry(response, mode):
@@ -711,7 +711,7 @@ pulse_update(task_id, metadata=task["metadata"])
 
 The trickiest part. `claude -p` does not expose `cache_control`; the executor must call the Anthropic SDK directly to use `ttl: "1h"`.
 
-**Option A** — call Anthropic SDK directly (recommended for AIFred-Pro-Dev pipeline):
+**Option A** — call Anthropic SDK directly (recommended for Alfred-Dev pipeline):
 
 ```python
 import anthropic
@@ -742,7 +742,7 @@ Recommendation: Option A. The pipeline's four services (evaluator, stager, execu
 ### 8.4 Test protocol
 
 ```bash
-cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev
+cd /Users/nathanielcannon/Claude/Alfred-Dev
 COMPRESSION_MODE=both python3 -m pytest .claude/jobs/tests/test_pipeline_v2.py -k gospel -v
 
 # Verify telemetry was captured:
@@ -766,11 +766,11 @@ For SDK-direct migration rollback: revert the executor.py change that swapped `c
 
 ## §9 Phase 5 — Dashboard Wiring
 
-**Goal**: surface compression telemetry in the AIFred-Pro-Dev dashboard at a new `/token-compression` route.
+**Goal**: surface compression telemetry in the Alfred-Dev dashboard at a new `/token-compression` route.
 
 ### 9.1 Backend route
 
-**File**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/server/routes/compression.ts` (new)
+**File**: `/Users/nathanielcannon/Claude/Alfred-Dev/dashboard/server/routes/compression.ts` (new)
 
 ```typescript
 import { Router } from 'express';
@@ -802,7 +802,7 @@ app.use(compressionRouter);
 
 ### 9.2 Aggregation service
 
-**File**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/server/services/compression.ts` (new)
+**File**: `/Users/nathanielcannon/Claude/Alfred-Dev/dashboard/server/services/compression.ts` (new)
 
 ```typescript
 import { db } from './db';
@@ -845,7 +845,7 @@ export async function getCompressionPerTask(limit: number) {
 
 ### 9.3 Frontend page
 
-**File**: `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard/frontend/src/pages/TokenCompressionPage.tsx` (new)
+**File**: `/Users/nathanielcannon/Claude/Alfred-Dev/dashboard/frontend/src/pages/TokenCompressionPage.tsx` (new)
 
 ```tsx
 import { useEffect, useState } from 'react';
@@ -916,7 +916,7 @@ Add a sidebar entry pointing to `/token-compression`.
 ### 9.5 Test
 
 ```bash
-cd /Users/nathanielcannon/Claude/AIFred-Pro-Dev/dashboard
+cd /Users/nathanielcannon/Claude/Alfred-Dev/dashboard
 docker build -t aifred-dashboard:dev .
 docker stop aifred-dev-dashboard
 docker rm aifred-dev-dashboard
@@ -929,8 +929,8 @@ Visit `http://localhost:8701/token-compression`; verify cards populate after ≥
 ### 9.6 Rollback
 
 ```bash
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev revert <hash>
-git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev push origin nate-dev
+git -C /Users/nathanielcannon/Claude/Alfred-Dev revert <hash>
+git -C /Users/nathanielcannon/Claude/Alfred-Dev push origin nate-dev
 # then redeploy dashboard
 ```
 
@@ -944,7 +944,7 @@ A single table consolidating per-phase pass criteria and regression alarms.
 |---|---|---|---|
 | 0 | `cache-telemetry-aggregate.sh latest.csv` | Hit rate ≥60% across baseline sessions | Hit rate <40% |
 | 1.1 | 3 sessions + extractor | Median output_tokens −20-34%; persona spot-check clean | Hit rate drops >10pp |
-| 1.5 | 3 AIFred-Pro-Dev sessions + extractor | Same as 1.1; "Master Nathaniel" appears <10% of replies; valediction at end of action replies | Same as 1.1, plus persona drift |
+| 1.5 | 3 Alfred-Dev sessions + extractor | Same as 1.1; "Master Nathaniel" appears <10% of replies; valediction at end of action replies | Same as 1.1, plus persona drift |
 | 1.2-1.4 | gospel-synopsis pipeline | All tasks score ≥0.97; output_tokens −20-34% | Score drops >2pp |
 | 2 | 5 reasoning tasks before/after CoD | Thinking_tokens −50%; quality ≥0.95 | Thinking flat or quality <0.90 |
 | 3 | 5 JICM cycles | Checkpoint ≤60% baseline; 5/5 correct resume | Any "what task?" / wrong-task resume |
@@ -959,8 +959,8 @@ A single table consolidating per-phase pass criteria and regression alarms.
 |---|---|
 | 0 | None — measurement only |
 | 1.1 | `git -C /Users/nathanielcannon/Claude/Jarvis revert <hash>` |
-| 1.5 | `git -C /Users/nathanielcannon/Claude/AIFred-Pro-Dev revert <hash>; git push origin nate-dev` |
-| 1.2-1.4 | `git revert <hash>` on AIFred-Pro-Dev; push |
+| 1.5 | `git -C /Users/nathanielcannon/Claude/Alfred-Dev revert <hash>; git push origin nate-dev` |
+| 1.2-1.4 | `git revert <hash>` on Alfred-Dev; push |
 | 2 | Remove CoD block from system prompts; `--no-cod` flag for opt-in scripts |
 | 3 | Comment out preprocessing line in `jicm-prep-context.sh`; remove signal-format invocation |
 | 4 | `export COMPRESSION_MODE=none`, or revert SDK-direct migration |
@@ -1005,16 +1005,16 @@ Out of scope for v1. A Phase-6 candidate if sustained operations require active 
 | 0 | CREATE | `.claude/skills/token-compression/scripts/cache-telemetry-extractor.py` |
 | 0 | CREATE | `.claude/skills/token-compression/scripts/cache-telemetry-aggregate.sh` |
 | 1.1 | MODIFY | `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md` |
-| 1.5 | MODIFY | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/CLAUDE.md` |
-| 1.2 | MODIFY | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/executor.py` |
-| 1.3 | MODIFY | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/reviewer.py` |
+| 1.5 | MODIFY | `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/CLAUDE.md` |
+| 1.2 | MODIFY | `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/executor.py` |
+| 1.3 | MODIFY | `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/reviewer.py` |
 | 2 | VERIFY | `.claude/skills/token-compression/templates/chain-of-draft.txt` |
 | 2 | CONDITIONAL CREATE | `.claude/skills/token-compression/prompts/cod-examples/{code-review,bug-diagnosis,planning,research,session-mgmt}.md` |
 | 3 | CREATE | `.claude/skills/token-compression/scripts/nlp-preprocess.py` |
 | 3 | CREATE | `.claude/skills/token-compression/scripts/signal-format.sh` |
 | 3 | MODIFY | `.claude/scripts/jicm-prep-context.sh` |
-| 4 | MODIFY | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/executor.py` |
-| 4 | MODIFY | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev/.claude/jobs/services/_shared.py` |
+| 4 | MODIFY | `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/executor.py` |
+| 4 | MODIFY | `/Users/nathanielcannon/Claude/Alfred-Dev/.claude/jobs/services/_shared.py` |
 | 4 | POSSIBLY MIGRATE | `claude -p` calls → Anthropic SDK direct (for `cache_control`) |
 | 5 | CREATE | `dashboard/server/routes/compression.ts` |
 | 5 | CREATE | `dashboard/server/services/compression.ts` |
@@ -1046,7 +1046,7 @@ If you have one session and want maximum impact, do this:
 
 1. `Phase 0.2` — create cache-telemetry-extractor.py, run on past month of sessions, capture baseline hit rate
 2. `Phase 1.1` — apply Jeeves-Brief edit to Jarvis CLAUDE.md, commit
-3. `Phase 1.5` — apply Alfred-Brief edit to AIFred-Pro-Dev CLAUDE.md, commit, push to nate-dev
+3. `Phase 1.5` — apply Alfred-Brief edit to Alfred-Dev CLAUDE.md, commit, push to nate-dev
 4. Run `cache-telemetry-aggregate.sh` against the post-deploy session(s)
 5. Compare medians; if within ±5pp of baseline hit rate and output_tokens dropped 20%+: proceed to Phase 1.2-1.4 next session
 6. If hit rate dropped >10pp: investigate cache-prefix change before further phases

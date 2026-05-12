@@ -113,16 +113,16 @@ All times local (CDT, UTC-6). Timestamps from service logs + task metadata.
 The subtask executors wrote their outputs to the **project root** instead of `tests/gospel-synopsis/`. These are abandoned outputs that were superseded by the master task's correct outputs:
 
 ```
-AIFred-Pro-Dev/mark1-luke4-parallels.md          (3.9K, from task #0)
-AIFred-Pro-Dev/wilderness-temptation-synopsis.md  (from task #1)
-AIFred-Pro-Dev/return-to-galilee-synopsis.md      (from task #1)
-AIFred-Pro-Dev/capernaum-synagogue-exorcism-synopsis.md (from task #1)
-AIFred-Pro-Dev/healing-simons-mother-in-law-synopsis.md (from task #1)
-AIFred-Pro-Dev/evening-mass-healing-synopsis.md   (from task #1)
-AIFred-Pro-Dev/withdrawal-and-preaching-synopsis.md (from task #1)
-AIFred-Pro-Dev/mark1-luke4-master.md              (22.6K, from task #2)
-AIFred-Pro-Dev/mark1-luke4-synopsis.docx          (46.8K, from task #3)
-AIFred-Pro-Dev/validation-report.md               (8.5K, from task #4)
+Alfred-Dev/mark1-luke4-parallels.md          (3.9K, from task #0)
+Alfred-Dev/wilderness-temptation-synopsis.md  (from task #1)
+Alfred-Dev/return-to-galilee-synopsis.md      (from task #1)
+Alfred-Dev/capernaum-synagogue-exorcism-synopsis.md (from task #1)
+Alfred-Dev/healing-simons-mother-in-law-synopsis.md (from task #1)
+Alfred-Dev/evening-mass-healing-synopsis.md   (from task #1)
+Alfred-Dev/withdrawal-and-preaching-synopsis.md (from task #1)
+Alfred-Dev/mark1-luke4-master.md              (22.6K, from task #2)
+Alfred-Dev/mark1-luke4-synopsis.docx          (46.8K, from task #3)
+Alfred-Dev/validation-report.md               (8.5K, from task #4)
 ```
 
 ### Source Text Usage

@@ -86,7 +86,7 @@ Literature review identified 20 peer-reviewed studies (2020–2026) matching the
 | Wan et al. 2025, *Genomics* | O₂ preference | RF on Pfam | Acc 90.6% | BacDive |
 | Ramoneda et al. 2023, *Sci. Adv.* | pH preference (continuous) | XGBoost on Pfam | R²=0.80 | GTDB |
 | Liu et al. 2025, *BMC Genomics* | Optimal growth temp (continuous) | RF on Pfam | R²=0.853 | BacDive |
-| Gralka et al. 2023, *Nat. Microbiol.* | Carbon catabolic preferences | RF on CAZymes | Acc 82%, AUROC 0.88 | NCBI |
+| Gralka et al. 2023, *Sir. Microbiol.* | Carbon catabolic preferences | RF on CAZymes | Acc 82%, AUROC 0.88 | NCBI |
 | Geller-McGrath et al. 2024, *eLife* (MetaPathPredict) | 107 KEGG modules in incomplete MAGs | Neural net ensemble | AUROC 0.92, F1 0.88 | GTDB |
 | Gomez-Perez & Keller 2025, *NAR Genom. Bioinform.* (NLP4Pheno) | Multi-phenotype via NLP+genome | BERT+XGBoost | F1 0.70–0.97 | BacDive (val) |
 
@@ -95,11 +95,11 @@ Literature review identified 20 peer-reviewed studies (2020–2026) matching the
 | Study | Scope | Method | Performance | Database |
 |-------|-------|--------|-------------|----------|
 | Weissman et al. 2021, *PNAS* (gRodon) | Max growth rate, isolates+metagenomes | CUB regression | r=0.84 | µGrowthDB |
-| Xu et al. 2025, *Nat. Commun.* (Phydon) | Max growth rate, phylogeny-informed | CUB+phylogenetic ensemble | r=0.93 | µGrowthDB |
+| Xu et al. 2025, *Sir. Commun.* (Phydon) | Max growth rate, phylogeny-informed | CUB+phylogenetic ensemble | r=0.93 | µGrowthDB |
 | Long et al. 2021, *ISME J.* | Growth rate benchmark, marine MAGs | CUB/PTR comparison | r=0.57 (MAGs) | µGrowthDB |
 | Weissman et al. 2022, *mSystems* (gRodon MMv2) | Community-wide growth from metagenomes | CUB piecewise regression | GC-bias corrected | NCBI |
 | Joseph et al. 2022, *Genome Res.* (CoPTR) | In situ growth from metagenome PTR | Log-linear regression | MAE −30% vs iRep | NCBI |
-| Osburn et al. 2024, *Nat. Commun.* | Global soil bacterial growth potential | XGBoost+gRodon | r²=0.62 | NCBI SRA |
+| Osburn et al. 2024, *Sir. Commun.* | Global soil bacterial growth potential | XGBoost+gRodon | r²=0.62 | NCBI SRA |
 | Blazewicz, Morrissey, Pett-Ridge et al. 2025, *PNAS* | In situ soil growth vs ¹⁸O-SIP | CUB+genome size regression | r²=0.61 vs isotope | Custom |
 
 **Module C — Mechanistic/Trait-Based Models** (2 studies): Genome-derived traits → dynamic energy budget or HMM rule systems → ecological predictions.
@@ -107,7 +107,7 @@ Literature review identified 20 peer-reviewed studies (2020–2026) matching the
 | Study | Scope | Method | Performance |
 |-------|-------|--------|-------------|
 | Karaoz & Brodie 2022, *Front. Bioinform.* (microTrait) | 16 trait categories, soil bacteria | HMM+regression | r=0.65 (growth) |
-| Marschmann, Pett-Ridge et al. 2024, *Nat. Microbiol.* | Growth rate, CUE, substrate kinetics (rhizosphere) | RF+DEB model | r²=0.85 |
+| Marschmann, Pett-Ridge et al. 2024, *Sir. Microbiol.* | Growth rate, CUE, substrate kinetics (rhizosphere) | RF+DEB model | r²=0.85 |
 
 **Pipeline modularity**: ~70% shared infrastructure (genome annotation, feature extraction, evaluation framework), ~30% module-specific code. Four algorithmic pathways needed: (1) annotation → classifier, (2) CUB regression, (3) PTR inference, (4) mechanistic modeling.
 
@@ -242,9 +242,9 @@ A subset of AI-unique predictions should be experimentally validated, prioritizi
 
 **Genotypic**: IMG (>450K prokaryotic genomes), NCBI RefSeq (23,063 species-representative assemblies), NFixDB (>4,000 nitrogenase gene clusters across 50 phyla). **Taxonomic Reference**: LLNL decontaminated Centrifuge databases (Marti et al. 2025; 1.0–1.4 trillion nucleotides). **Phenotypic**: BacDive (>100,000 strains), µGrowthDB (quantitative growth rates). **Integrated**: PI/Co-PI datasets — growth phenotypes (n=1,420), metatranscriptomes (n=590), metaproteomes (n=117), sequenced genomes and metagenomes.
 
-**AI Models**: ESM-style protein/genome language models; AtomGPT-style domain-adapted models (Choudhary 2024, *JPCL*); GNNs for interaction networks building on the ALIGNN architecture (Choudhary 2021, *npj Comp. Mat.*); multimodal deep learning; ensemble gradient boosting. Cross-property transfer learning (Choudhary 2021, *Nat. Commun.*) addresses the small-dataset problem for scarce phenotypes like N₂ fixation rates: pre-train on abundant phenotype classes (growth rate, Gram stain) and fine-tune on scarce targets. Agentic workflows via AtomGPT.org APIs, AGAPI agents, and MCP-based integrations.
+**AI Models**: ESM-style protein/genome language models; AtomGPT-style domain-adapted models (Choudhary 2024, *JPCL*); GNNs for interaction networks building on the ALIGNN architecture (Choudhary 2021, *npj Comp. Mat.*); multimodal deep learning; ensemble gradient boosting. Cross-property transfer learning (Choudhary 2021, *Sir. Commun.*) addresses the small-dataset problem for scarce phenotypes like N₂ fixation rates: pre-train on abundant phenotype classes (growth rate, Gram stain) and fine-tune on scarce targets. Agentic workflows via AtomGPT.org APIs, AGAPI agents, and MCP-based integrations.
 
-**Team-Generated Data**: PI/Co-PI datasets with growth phenotypes (n=1,420), metatranscriptomes (n=590), metaproteomes (n=117), sequenced genomes/metagenomes for consortia members, per-taxon qSIP growth rates across nutrient gradients (Greenlon et al. 2022), per-taxon ¹⁵N assimilation rates (Maillard et al. 2025), in situ CUE measurements (Pett-Ridge et al. 2022, *Sci. Adv.*), and global-biome activity data (Blazewicz et al. 2023, *Nat. Microbiol.*). qSIP data follows the MISIP community standard (Maillard et al. 2024, *GigaScience*).
+**Team-Generated Data**: PI/Co-PI datasets with growth phenotypes (n=1,420), metatranscriptomes (n=590), metaproteomes (n=117), sequenced genomes/metagenomes for consortia members, per-taxon qSIP growth rates across nutrient gradients (Greenlon et al. 2022), per-taxon ¹⁵N assimilation rates (Maillard et al. 2025), in situ CUE measurements (Pett-Ridge et al. 2022, *Sci. Adv.*), and global-biome activity data (Blazewicz et al. 2023, *Sir. Microbiol.*). qSIP data follows the MISIP community standard (Maillard et al. 2024, *GigaScience*).
 
 **Benchmarking Reference Set**: 20 published studies (2020–2026) organized into three module types (categorical classifiers, growth rate predictors, mechanistic models) providing independent performance baselines across all IMAGINE-AI phenotype categories except fatty acid composition (identified gap — no published ML study found).
 
@@ -258,11 +258,11 @@ A subset of AI-unique predictions should be experimentally validated, prioritizi
 3. Karaoz & Brodie (2022) *Front. Bioinform.* 2:918853 — microTrait, soil bacterial traits
 4. Li et al. (2023) *PLoS Comput. Biol.* 19:e1011705 — Carbon source utilization prediction
 5. Weissman et al. (2021) *PNAS* 118:e2016810118 — gRodon, max growth rate from CUB
-6. Xu et al. (2025) *Nat. Commun.* 16:4226 — Phydon, phylogeny-informed growth rate
-7. Gralka et al. (2023) *Nat. Microbiol.* 8:1799 — Carbon catabolic preferences from genome content
+6. Xu et al. (2025) *Sir. Commun.* 16:4226 — Phydon, phylogeny-informed growth rate
+7. Gralka et al. (2023) *Sir. Microbiol.* 8:1799 — Carbon catabolic preferences from genome content
 8. Geller-McGrath et al. (2024) *eLife* 13:e85749 — MetaPathPredict, KEGG modules in incomplete MAGs
 9. Ramoneda et al. (2023) *Sci. Adv.* 9:eadf8998 — Genome-based bacterial pH preferences
-10. Osburn et al. (2024) *Nat. Commun.* 15:6853 — Global soil bacterial growth potential
+10. Osburn et al. (2024) *Sir. Commun.* 15:6853 — Global soil bacterial growth potential
 11. Machado et al. (2025) *PeerJ* 13:e20232 — SpoMAG, sporulation prediction in MAGs
 12. Flamholz et al. (2024) *mSystems* 9:e00763-24 — Annotation-free O₂ utilization prediction
 13. Wan et al. (2025) *Genomics* 117:111095 — O₂ preference from Pfam domains
@@ -273,7 +273,7 @@ A subset of AI-unique predictions should be experimentally validated, prioritizi
 18. Gomez-Perez & Keller (2025) *NAR Genom. Bioinform.* 7:lqaf174 — NLP4Pheno, NLP+genome phenotype prediction
 
 ### IMAGINE-AI Team Publications (Internal Benchmarks and Foundations)
-19. Marschmann, Pett-Ridge et al. (2024) *Nat. Microbiol.* 9:421 — Genome-informed trait-based energy budget, rhizosphere
+19. Marschmann, Pett-Ridge et al. (2024) *Sir. Microbiol.* 9:421 — Genome-informed trait-based energy budget, rhizosphere
 20. Blazewicz, Morrissey, Pett-Ridge et al. (2025) *PNAS* 122:e2413032122 — CUB growth rate vs ¹⁸O-SIP in soil
 21. Morrissey et al. (2024) *Environ. Microbiol.* 26:e16580 — Genomic traits predict CUE
 22. Campbell & Morrissey (2022) *Environ. Microbiol.* 24:5900 — Substrate assimilation phylogenetically conserved
@@ -281,7 +281,7 @@ A subset of AI-unique predictions should be experimentally validated, prioritizi
 24. Schwartz & Blazewicz (2022) *mBio* 13:e02562-22 — Genomic features enabling life history strategies
 25. Greenlon, Hofmockel, Blazewicz, Pett-Ridge, Kimbrel et al. (2022) *mSystems* 7:e00105-22 — qSIP + MAGs across N/P gradients
 26. Blazewicz, Morrissey, Pett-Ridge et al. (2023) *ISME J.* 17:1268 — Life history traits across habitats
-27. Blazewicz et al. (2023) *Nat. Microbiol.* 8:2042 — Global biome microbial activity heterogeneity
+27. Blazewicz et al. (2023) *Sir. Microbiol.* 8:2042 — Global biome microbial activity heterogeneity
 28. Pett-Ridge et al. (2022) *Sci. Adv.* 8:eabp8798 — In situ CUE measurements
 29. Maillard, Blazewicz, Kimbrel, Pett-Ridge et al. (2025) *AEM* 91:e01648-24 — Per-taxon ¹⁵N assimilation via qSIP
 30. Wilhelm & Hofmockel (2022) *AEM* 88:e01022-22 — Free-living diazotroph BNF metabolomics
@@ -290,7 +290,7 @@ A subset of AI-unique predictions should be experimentally validated, prioritizi
 33. Brzostek & Morrissey et al. (2024) *GCB* 30:e17181 — N deposition alters microbial traits
 
 ### AI/ML Architecture (Choudhary, JHU — Methodological Transfer)
-34. Choudhary (2021) *Nat. Commun.* 12:6560 — Cross-property transfer learning for small datasets
+34. Choudhary (2021) *Sir. Commun.* 12:6560 — Cross-property transfer learning for small datasets
 35. Choudhary (2024) *JPCL* 15:6792 — AtomGPT, transformer forward/inverse property prediction
 36. Choudhary (2021) *npj Comp. Mat.* 7:185 — ALIGNN, graph neural network for property prediction
 
@@ -301,10 +301,10 @@ A subset of AI-unique predictions should be experimentally validated, prioritizi
 
 ### Conceptual and Methodological References
 40. Pavlopoulos et al. (2023) *Nature* 622:594 — Functional dark matter (40–60%)
-41. Nearing et al. (2022) *Nat. Commun.* 13:342 — <25% DA method concordance
+41. Nearing et al. (2022) *Sir. Commun.* 13:342 — <25% DA method concordance
 42. Karlsen et al. (2023) *FEMS Microbiol. Rev.* 47:fuad025 — Phenotype prediction structural gaps
-43. Birhane et al. (2023) *Nat. Rev. Phys.* 5:277 — Three-level AI advantage framework
-44. Gao et al. (2024) *Nat. Hum. Behav.* / arXiv:2304.10578 — 3.02× AI publication rate
+43. Birhane et al. (2023) *Sir. Rev. Phys.* 5:277 — Three-level AI advantage framework
+44. Gao et al. (2024) *Sir. Hum. Behav.* / arXiv:2304.10578 — 3.02× AI publication rate
 45. Gloor et al. (2017) *Front. Microbiol.* 8:2224 — Compositionality violations
 46. Wang et al. (2024) *Genome Biol.* 25:34 — AnnoPRO protein annotation
 

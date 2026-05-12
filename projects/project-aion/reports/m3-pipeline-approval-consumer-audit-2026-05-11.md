@@ -2,12 +2,12 @@
 title: M3 /pipeline approval-card consumer audit + Option A taxonomy ratification
 date: 2026-05-11
 status: APPROVED — Option A locked, implementation green-lit
-project: AIFred-Pro-Dev
+project: Alfred-Dev
 target_branch: nate-dev
 ratifies: ../plans/aifred-pro-dev-dashboard-recleavage.md (§5.3 M3)
 foundational_ref: aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md §11
 predecessor_audit: decisions-to-reo-feature-parity-audit-2026-05-11.md (M2 pattern)
-audience: Nate, future-Jarvis, future-David
+audience: Sir, future-Jarvis, future-David
 ---
 
 # M3 /pipeline approval-card consumer audit + Option A taxonomy ratification
@@ -18,7 +18,7 @@ Mirror of the M2 audit pattern, applied to M3's higher-blast-radius consolidatio
 
 | ID | Decision | Source |
 |---|---|---|
-| **M3-D1** | Approvals become a **distinct board column**, not a sub-view of blocked (Option A). | Nate 2026-05-11 |
+| **M3-D1** | Approvals become a **distinct board column**, not a sub-view of blocked (Option A). | Sir 2026-05-11 |
 | **M3-D2** | `classifyTask` checks `pipeline:needs-approval` BEFORE `isBlocked`, so approvals don't fall through to `'blocked'`. | M3-D1 entailment |
 | **M3-D3** | `'approvals'` added to `BoardColumn` type in `lib/board.ts`. | M3-D1 entailment |
 | **M3-D4** | `/tasks?board=approvals` is the canonical URL for the approval index view. | M3-D1 + AppShell pattern |
@@ -71,7 +71,7 @@ Five buttons specified in plan §5.3. Each requires both a source-page UI add AN
 
 **Recommendation**: L3-Option β. Cheap, satisfies the user intent (jump from a failing job in /health to its config), no new page required.
 
-**Action**: present this ratification question to Nate at the visual-validate gate; default to L3-Option β on a "go" signal.
+**Action**: present this ratification question to Sir at the visual-validate gate; default to L3-Option β on a "go" signal.
 
 ## 4. Implementation specs (per file)
 
@@ -168,7 +168,7 @@ Per §3 destination-audit. L1, L2, L4, L5 land cleanly. L3 deferred or β-routed
 
 **Sibling audit**: `decisions-to-reo-feature-parity-audit-2026-05-11.md` is the M2 equivalent. Together they constitute the canonical release-cycle decision log: M2 = "where did /decisions affordances go?"; M3 = "where did /pipeline approval-cards go?".
 
-**Next action**: confirm Nate's L3 disposition (M3-D8), apply plan §5.3 + §6 edits, then commit Jarvis planning artifacts + push, then begin AIFred-Pro-Dev code per §4.
+**Next action**: confirm Sir's L3 disposition (M3-D8), apply plan §5.3 + §6 edits, then commit Jarvis planning artifacts + push, then begin Alfred-Dev code per §4.
 
 ---
 
@@ -204,9 +204,9 @@ T1's `blocked:no` being **silently mutated to `blocked:yes`** during the cycle i
 
 ```bash
 $ grep -rn 'approval\|needs.approval\|pipeline:needs' \
-    AIFred-Pro-Dev/.claude/jobs/services/executor.py \
-    AIFred-Pro-Dev/.claude/jobs/pipeline-watcher.py \
-    AIFred-Pro-Dev/.claude/jobs/dispatcher.sh
+    Alfred-Dev/.claude/jobs/services/executor.py \
+    Alfred-Dev/.claude/jobs/pipeline-watcher.py \
+    Alfred-Dev/.claude/jobs/dispatcher.sh
 # Returns: zero matches
 ```
 
@@ -227,7 +227,7 @@ Open questions for workstream kickoff:
 
 ### F-2 — BlockedBanner human-count is page-scope, not global
 
-**Symptom**: Red banner on /tasks shows "1 task blocked — awaiting your review" even when multiple human-blocked tasks exist in the wider system. Nate observed the banner reporting count=1 while many other blocked tasks existed in earlier test data.
+**Symptom**: Red banner on /tasks shows "1 task blocked — awaiting your review" even when multiple human-blocked tasks exist in the wider system. Sir observed the banner reporting count=1 while many other blocked tasks existed in earlier test data.
 
 **Diagnosis**: `BlockedBanner.tsx` iterates over a `tasks` prop passed by the parent page's filtered list. The banner counts blocked tasks visible in the current view, not in the global system. When the user is on a filtered view (any `?board=`, `?status=`, search filter, etc.), the banner reports only what's in scope.
 
@@ -269,7 +269,7 @@ Open questions for workstream kickoff:
 
 ## Appendix B. M3 validation rig (clean board + curated synthetic tasks)
 
-Visual-validate-only artifacts created on pulse_dev 2026-05-11 to give Nate a clean systematic-validation surface. Should be closed after M3 PR lands.
+Visual-validate-only artifacts created on pulse_dev 2026-05-11 to give Sir a clean systematic-validation surface. Should be closed after M3 PR lands.
 
 ### Pre-validation state
 

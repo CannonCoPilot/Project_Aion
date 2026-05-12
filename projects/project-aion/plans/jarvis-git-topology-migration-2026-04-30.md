@@ -13,7 +13,7 @@
 |---|---|---|---|---|
 | AIfred (legacy/archived) | `/Users/nathanielcannon/Claude/Archive/AIfred` | main | `davidmoneil/AIfred` (read-only) | Public AIfred baseline; pull occasionally |
 | AIFred-Pro (production reference) | `/Users/nathanielcannon/Claude/AIFred-Pro` | main | `davidmoneil/AIFred-Pro` as `upstream` | Read-only baseline of David's main |
-| AIFred-Pro-Dev (collab dev) | `/Users/nathanielcannon/Claude/AIFred-Pro-Dev` | nate-dev | `davidmoneil/AIFred-Pro` as `origin`; CannonCoPilot/AIFred-Pro as `my-fork` | Push nate-dev to David's repo; fetch David's `nexus-sync-2026-04` for review |
+| Alfred-Dev (collab dev) | `/Users/nathanielcannon/Claude/Alfred-Dev` | nate-dev | `davidmoneil/AIFred-Pro` as `origin`; CannonCoPilot/AIFred-Pro as `my-fork` | Push nate-dev to David's repo; fetch David's `nexus-sync-2026-04` for review |
 | Jarvis (master Archon) | `/Users/nathanielcannon/Claude/Jarvis` | Project_Aion (local) → main (remote) | `CannonCoPilot/Jarvis` as `origin`; `davidmoneil/AIfred` as `upstream` (baseline) | Jarvis canonical |
 | Jarvis-Dev | `/Users/nathanielcannon/Claude/Jarvis-Dev` | dev (local) → dev (remote) | `CannonCoPilot/Jarvis` as `origin` (push to `dev` branch) | Jarvis development workspace |
 
@@ -33,7 +33,7 @@
 | `README.md` "Jarvis Repository → Remote" | `https://github.com/davidmoneil/AIfred.git` | `git@github.com:CannonCoPilot/Jarvis.git` | Stage B |
 | `.claude/commands/sync-aifred-baseline.md` paths | Hardcodes `/Users/nathanielcannon/Claude/AIfred` (no longer exists) | Should reference `/Users/nathanielcannon/Claude/Archive/AIfred` | Stage B |
 | `paths-registry.yaml` AIfred baseline path | (assumed similarly stale — verify) | `Archive/AIfred` | Stage B |
-| `paths-registry.yaml` AIFred-Pro-Dev nexus-sync tracking | Not present | Add `nexus_sync.last_reviewed_commit` | Stage B |
+| `paths-registry.yaml` Alfred-Dev nexus-sync tracking | Not present | Add `nexus_sync.last_reviewed_commit` | Stage B |
 | Review mechanism for David's `nexus-sync-2026-04` | None — purely manual | Daily fetch + change summary surfaced via Shared_Projects/Status/david/ | Stage C |
 
 ---
@@ -51,7 +51,7 @@
 
 ### Layer 2 — On-demand deep review (slash command)
 
-- Clone of `/sync-aifred-baseline.md` retargeted at AIFred-Pro-Dev
+- Clone of `/sync-aifred-baseline.md` retargeted at Alfred-Dev
 - New command: `/sync-aifred-pro-dev`
 - Fetches latest `nexus-sync-2026-04`, classifies new commits ADOPT/ADAPT/REJECT/DEFER
 - Writes report to `projects/project-aion/evolution/aifred-pro-integration/sync-reports/sync-report-YYYY-MM-DD.md`
@@ -59,7 +59,7 @@
 
 ### Layer 3 — Optional remote agent (only if Layers 1+2 insufficient)
 
-- RemoteTrigger routine, weekly, posts a digest as a Pulse task labeled `agent:nate review:david-nexus-sync`
+- RemoteTrigger routine, weekly, posts a digest as a Pulse task labeled `agent:Sir review:david-nexus-sync`
 - Skipped unless layers 1 & 2 prove inadequate
 
 ---
@@ -93,7 +93,7 @@ git -C /Users/nathanielcannon/Claude/Jarvis branch --set-upstream-to=origin/main
 
 ### Stage B — Doc cleanup (one commit on Project_Aion after Stage A)
 
-- `CLAUDE.md` Git workflow section: confirm origin/upstream descriptions are accurate post-Stage-A; add a "Reviewing David's nexus-sync-2026-04" subsection under "AIFred-Pro-Dev"
+- `CLAUDE.md` Git workflow section: confirm origin/upstream descriptions are accurate post-Stage-A; add a "Reviewing David's nexus-sync-2026-04" subsection under "Alfred-Dev"
 - `README.md` Jarvis Repository remote: change `https://github.com/davidmoneil/AIfred.git` → `git@github.com:CannonCoPilot/Jarvis.git`
 - `.claude/commands/sync-aifred-baseline.md`: change `/Users/nathanielcannon/Claude/AIfred` → `/Users/nathanielcannon/Claude/Archive/AIfred`
 - `paths-registry.yaml`: confirm or add `aifred_baseline.path = Archive/AIfred`; add `aifred_pro_dev.nexus_sync.last_reviewed_commit = ee9b155` (current head of David's branch)

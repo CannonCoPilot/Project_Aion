@@ -2,7 +2,7 @@
 title: Reverse-Proxy Paradigm + Usage/Budget Surfacing
 version: "1.0"
 date: 2026-05-05
-author: Nate (synthesized via Jarvis)
+author: Archon (synthesized via Jarvis)
 project: AIFred-Pro
 status: active
 related:
@@ -142,7 +142,7 @@ flowchart LR
 - AIFred Nexus dispatcher (claude -p invocations)
 - AIFred personas (24+, all routed via dispatcher)
 - AIFred Cortex evaluator
-- Jarvis-Dev / AIFred-Pro-Dev sessions
+- Jarvis-Dev / Alfred-Dev sessions
 
 **Future sources**:
 - Loom (when unified API surface lands — Phase 8 of David's roadmap)
@@ -283,7 +283,7 @@ Ordered by dependency:
 7. **Wire B**: BudgetPage proxy-API panel (§8.2)
 8. **Redesign**: UsagePage layout restructure (§8.4)
 9. **Verify**: browser-load both pages; smoke metadata header path with test request
-10. **Commit + push**: single commit on AIFred-Pro-Dev nate-dev with `[Nexus]` tag (proxy + pulse + dashboard); Jarvis-side scratchpad update
+10. **Commit + push**: single commit on Alfred-Dev nate-dev with `[Nexus]` tag (proxy + pulse + dashboard); Jarvis-side scratchpad update
 
 **Boundary tagging** per audit 2026-05-05: this workstream is `[Nexus]` (proxy is a Nexus-component piece even though it runs alongside Pulse). The new Pulse endpoint is technically `[Pulse]`, but the whole bundle ships together so it gets `[Nexus]+[Pulse]` ↔ `[Boundary]` if we're strict, or `[Nexus]` if we treat the pulse endpoint as a downstream consumer of proxy data. **Decision: tag `[Boundary]`** — clean cross-boundary work (Pulse adds endpoint, dashboard adds consumer, proxy adds attribution). Documented per `pulse-nexus-boundary-audit-2026-05-05.md`.
 

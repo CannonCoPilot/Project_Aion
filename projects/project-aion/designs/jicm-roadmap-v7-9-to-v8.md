@@ -321,7 +321,7 @@ These are real gaps but explicitly NOT addressed by v7.9 or v8.0:
 - **v8.1 — Web client backend** for `claude.ai/code`. Different injection class (browser automation via Playwright). Separate design.
 - **v8.2 — IDE-extension backend** for VS Code / JetBrains. Depends on Claude Code IDE APIs that may or may not expose slash-command invocation.
 - **Multi-session JICM** — concurrent Jarvis sessions on different projects with shared state. Requires session-id-scoped signal files and per-session watcher instances.
-- **Pulse-Nexus dashboard widget** — consume `.jicm-state-hook.json` and visualize cycles. Independent track in AIFred-Pro-Dev.
+- **Pulse-Nexus dashboard widget** — consume `.jicm-state-hook.json` and visualize cycles. Independent track in Alfred-Dev.
 - **Aion Quartet (Ennoia / Virgil) decoupling** — currently tmux-windowed; will be repositioned as `.jicm-state-hook.json` consumers (no longer JICM-coupled). Independent of v7.9 / v8.0.
 
 ---

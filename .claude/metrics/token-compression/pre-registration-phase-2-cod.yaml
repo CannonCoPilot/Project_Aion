@@ -143,7 +143,7 @@ interim_check:
   verdict_states: [STAGE_1_CLEAR, STAGE_1_HALT, STAGE_1_DEFERRED]
   unblocks_on_clear:
     - Phase 3.2 Signal notation (orthogonal: machine-section state files)
-    - Phase 4.1 COMPRESSION_MODE env var (orthogonal: AIFred-Pro-Dev pipeline)
+    - Phase 4.1 COMPRESSION_MODE env var (orthogonal: Alfred-Dev pipeline)
 
 # === GATE TO NEXT PHASE (Stage 2 formal sign-off) ===
 
@@ -152,7 +152,7 @@ gate_to_next_phase:
     Two-stage gating per design doc §10.4 and patterns/two-stage-validation-gating.md.
     Stage 1 (deploy+48h): interim safety check; clears orthogonal-stream work.
     Stage 2 (deploy+14d): formal pre-reg sign-off; THIS gates Phase 4 and 6
-    promotion (CoD propagation to AIFred-Pro-Dev pipeline executor; CoD
+    promotion (CoD propagation to Alfred-Dev pipeline executor; CoD
     propagation to subagent dispatch).
 
     Stage-2 ≥ 5× Stage-1 window (P14D / PT48H = 7×) per pattern §5.
@@ -174,7 +174,7 @@ gate_to_next_phase:
       max_leak_count: 0                   # zero arithmetic/code-gen/creative tasks with CoD applied
 
   blocks_on_fail:
-    - Phase 4.x (AIFred-Pro-Dev pipeline CoD integration)
+    - Phase 4.x (Alfred-Dev pipeline CoD integration)
     - Phase 6.1 (compression strategy router)
 
 # === SKIP RULES (encoded; must be enforced at runtime injection layer) ===
@@ -210,7 +210,7 @@ rollback:
     - "Pre-registration outcome: STAGE_1_HALT or STAGE_2_FAIL with rollback_at timestamp"
   parallel_work_survival:
     - "Phase 3.2 Signal notation: SURVIVES (orthogonal: machine-section state files; different file/time stream per §4.7 Rule 1)"
-    - "Phase 4.x AIFred-Pro-Dev pipeline: BLOCKED if not yet deployed; ROLLED BACK with Phase 2 if deployed (same-stream dependency)"
+    - "Phase 4.x Alfred-Dev pipeline: BLOCKED if not yet deployed; ROLLED BACK with Phase 2 if deployed (same-stream dependency)"
 
 # === OUTCOME ===
 

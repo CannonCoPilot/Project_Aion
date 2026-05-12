@@ -60,7 +60,7 @@ LLMs extract features from unstructured text (gene descriptions, literature, pat
 
 ### 3.5 Cross-Property Transfer Learning
 
-Traditional ML trains independently per phenotype. Cross-property transfer (Choudhary 2021, *Nat. Commun.*) pre-trains on abundant phenotypes then fine-tunes on scarce targets — transferring structural knowledge from data-rich to data-poor domains. Directly applicable: growth rate data is abundant, N₂ fixation data is scarce.
+Traditional ML trains independently per phenotype. Cross-property transfer (Choudhary 2021, *Sir. Commun.*) pre-trains on abundant phenotypes then fine-tunes on scarce targets — transferring structural knowledge from data-rich to data-poor domains. Directly applicable: growth rate data is abundant, N₂ fixation data is scarce.
 
 ---
 
@@ -87,20 +87,20 @@ We benchmark IMAGINE-AI against published G2P studies with known outcomes, runni
 
 | Study | Scope | Performance | Notes |
 |-------|-------|-------------|-------|
-| Xu et al. 2025, *Nat. Commun.* (Phydon) | Max growth rate | r=0.93 | Current SOTA |
+| Xu et al. 2025, *Sir. Commun.* (Phydon) | Max growth rate | r=0.93 | Current SOTA |
 | Weissman et al. 2021, *PNAS* (gRodon) | Max growth rate from CUB | r=0.84 | Foundation method |
 | Blazewicz, Morrissey, Pett-Ridge et al. 2025, *PNAS* | Soil growth vs ¹⁸O-SIP | r²=0.61 | **Team**; gold-standard validation |
 | Greenlon et al. 2022, *mSystems* | qSIP across N/P gradients | Per-taxon rates | **Team** (4 Co-PIs) |
-| Osburn et al. 2024, *Nat. Commun.* | Global soil growth potential | r²=0.62 | Soil; environmental covariates |
+| Osburn et al. 2024, *Sir. Commun.* | Global soil growth potential | r²=0.62 | Soil; environmental covariates |
 
 **Module C — Mechanistic/Trait-Based and Community Models**
 
 | Study | Scope | Performance | Notes |
 |-------|-------|-------------|-------|
-| Marschmann, Pett-Ridge et al. 2024, *Nat. Microbiol.* | CUE, substrate kinetics | r²=0.85 | **Team**; genome traits → DEB |
+| Marschmann, Pett-Ridge et al. 2024, *Sir. Microbiol.* | CUE, substrate kinetics | r²=0.85 | **Team**; genome traits → DEB |
 | Morrissey et al. 2024, *Environ. Microbiol.* | CUE from genomic traits | G2P correlation | **Team**; IMAGINE-AI proof-of-concept |
 | Schwartz & Blazewicz 2022, *mBio* | Genome → life history strategy | Feature identification | **Team** |
-| Gralka et al. 2023, *Nat. Microbiol.* | Carbon catabolic preferences | Acc 82%, AUROC 0.88 | CAZyme features |
+| Gralka et al. 2023, *Sir. Microbiol.* | Carbon catabolic preferences | Acc 82%, AUROC 0.88 | CAZyme features |
 | Geller-McGrath et al. 2024, *eLife* (MetaPathPredict) | KEGG modules in incomplete MAGs | AUROC 0.92, F1 0.88 | Handles incomplete genomes |
 
 Improvement over team-authored baselines is the most credible evidence for AI advantage — it addresses methodology or dataset artifacts.
@@ -211,7 +211,7 @@ Limited to planned high-throughput phenotyping: growth rates and metabolites in 
 10–21: Marschmann 2024; Blazewicz 2025 PNAS; Morrissey 2024; Campbell 2022; Morrissey 2023; Schwartz 2022; Greenlon 2022; Blazewicz 2023 ISME J; Wilhelm 2022; Kimbrel 2025; Maillard 2025; Pett-Ridge 2022
 
 ### AI/ML Architecture
-22–24: Choudhary 2021 Nat Commun; Choudhary 2024 JPCL; Choudhary 2021 npj CM
+22–24: Choudhary 2021 Sir Commun; Choudhary 2024 JPCL; Choudhary 2021 npj CM
 
 ### Data Infrastructure
 25–26: Marti 2025; Maillard 2024 GigaScience

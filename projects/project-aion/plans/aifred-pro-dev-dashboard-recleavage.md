@@ -1,8 +1,8 @@
 ---
-title: AIFred-Pro-Dev Dashboard Re-Cleave — Implementation Plan of Record
+title: Alfred-Dev Dashboard Re-Cleave — Implementation Plan of Record
 date: 2026-05-11
 status: M1 SHIPPED (d001c75) / M2 SHIPPED (fc1546f) / M3 SHIPPED (fcf62df) — PR OPENED 2026-05-12 as davidmoneil/AIFred-Pro#3 (A1 scope, 110-commit batch); pending David's review/merge
-project: AIFred-Pro-Dev
+project: Alfred-Dev
 target_branch: nate-dev
 ratifies: ../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md (§11 Decisions captured 2026-05-11)
 m3_audit: ../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md (Option A + 8 consumer dispositions + M3-D1..D8 ratifications)
@@ -13,15 +13,15 @@ related:
   - ../reports/decisions-to-reo-feature-parity-audit-2026-05-11.md
   - ../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md
   - aifred-pro-dev-reo-page.md
-audience: Nate, future-Jarvis, future-David
+audience: Sir, future-Jarvis, future-David
 estimated_effort: 3-5 days (single PR with 3 milestones for AC-03 review gates); M1 used ~0.5d, M2 used ~0.5d, M3 budgeted ~1d
 ---
 
-# AIFred-Pro-Dev Dashboard Re-Cleave — Implementation Plan of Record
+# Alfred-Dev Dashboard Re-Cleave — Implementation Plan of Record
 
 ## 1. Vision
 
-Re-cleave the AIFred-Pro-Dev dashboard's information architecture along a **PROD | OPS** top-level axis, with **4 sub-clusters** (PROD → Proj, Config ; OPS → Review, Monitor) replacing the current Main / Nexus / System sidebar grouping.
+Re-cleave the Alfred-Dev dashboard's information architecture along a **PROD | OPS** top-level axis, with **4 sub-clusters** (PROD → Proj, Config ; OPS → Review, Monitor) replacing the current Main / Nexus / System sidebar grouping.
 
 **Label refinement (2026-05-11, during M1 visual-validate)**: the underlying semantic dichotomy ratified in §11.2 (production-side doing vs operations-side observing) is preserved; only user-facing labels changed. WORK → PROD (producing/building/configuring), DIAGNOSE → OPS (reviewing/monitoring). Today → Projects (project-level artifacts), Direct → Config (direct configuration surfaces). Reflect → Review, Inspect → Monitor. Internal: `useActiveMode` hook, `ActiveMode` type (`'prod' | 'ops'`), `ModeToggle` component.
 
@@ -29,7 +29,7 @@ Re-cleave the AIFred-Pro-Dev dashboard's information architecture along a **PROD
 
 Outcome: every page knows what user mode it serves; users know which side of the toggle to be on; the dashboard becomes the first concrete step toward the long-term Operations Center metaphor (foundational analysis §9.2).
 
-**This is not a rebuild.** Most page implementations stay untouched. The work is sidebar regrouping, one redirect (/decisions → /reo), one page split (/pipeline approval cards), one feature audit (DecisionsPage.tsx parity), and a handful of cross-mode link buttons. Single shared PR per Nate's 2026-05-11 decision §11.5.
+**This is not a rebuild.** Most page implementations stay untouched. The work is sidebar regrouping, one redirect (/decisions → /reo), one page split (/pipeline approval cards), one feature audit (DecisionsPage.tsx parity), and a handful of cross-mode link buttons. Single shared PR per Sir's 2026-05-11 decision §11.5.
 
 ## 2. Scope
 
@@ -79,7 +79,7 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 - **M3-D5**: `PipelineApprovalCard.tsx` does NOT move; only mount sites change. (Component is already extracted at `components/pipeline/PipelineApprovalCard.tsx`.)
 - **M3-D6**: M3 risk class **MEDIUM** (was HIGH). No `pipeline-watcher.py` interaction, no Pulse mutation surface change.
 - **M3-D7**: `BlockedBanner.tsx` URL param normalized from `?status=blocked` to `?board=blocked` (hygiene fix).
-- **M3-D8** *(pending Nate ratification at visual-validate gate)*: L3 cross-mode link (Health failing job → /jobs/:id) — `/jobs/:id` route does not exist. Default proposal: L3-Option β (revise to `/jobs?focus=<id>` semantics with focus-state handling on RecurringJobsPage). Alternative: defer L3 entirely.
+- **M3-D8** *(pending Sir ratification at visual-validate gate)*: L3 cross-mode link (Health failing job → /jobs/:id) — `/jobs/:id` route does not exist. Default proposal: L3-Option β (revise to `/jobs?focus=<id>` semantics with focus-state handling on RecurringJobsPage). Alternative: defer L3 entirely.
 
 ## 4. Architecture: the new sidebar IA
 
@@ -145,7 +145,7 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 
 ### Milestone 1: Nav shell + Sidebar IA — SHIPPED 2026-05-11
 
-**Status**: SHIPPED on AIFred-Pro-Dev `nate-dev` as commit `d001c75` (2026-05-11). All AC items checked. AC-03 gate technical 4.5 / progress 5.0 → PASS. One visual-validate iteration caught 2 bugs (toggle revert on non-/notifications pages, cluster-chevron silent expand) — both fixed and re-validated before commit.
+**Status**: SHIPPED on Alfred-Dev `nate-dev` as commit `d001c75` (2026-05-11). All AC items checked. AC-03 gate technical 4.5 / progress 5.0 → PASS. One visual-validate iteration caught 2 bugs (toggle revert on non-/notifications pages, cluster-chevron silent expand) — both fixed and re-validated before commit.
 
 **Goal**: New sidebar renders correctly with 4 sub-clusters under PROD | OPS. All existing routes resolve. No functional page changes yet (DecisionsPage.tsx still works; /pipeline still mixes monitoring + approvals).
 
@@ -180,7 +180,7 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 
 ### Milestone 2: /decisions → /reo consolidation — SHIPPED 2026-05-11
 
-**Status**: SHIPPED on AIFred-Pro-Dev `nate-dev` as commit `fc1546f` (2026-05-11). All AC items checked; AC-03 gate technical 4.5 / progress 5.0 → PASS. Visual-validate confirmed by Nate before commit. Plan §5.2 ACs detailed below for reference.
+**Status**: SHIPPED on Alfred-Dev `nate-dev` as commit `fc1546f` (2026-05-11). All AC items checked; AC-03 gate technical 4.5 / progress 5.0 → PASS. Visual-validate confirmed by Sir before commit. Plan §5.2 ACs detailed below for reference.
 
 **Audit report**: `Jarvis/projects/project-aion/reports/decisions-to-reo-feature-parity-audit-2026-05-11.md` — 35-item affordance table, 24 already-present / 3 improved / 3 different-but-valid / 2 ported / 8 intentional drops with rationale.
 
@@ -214,14 +214,14 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 - [x] Sidebar shows /reo as "Decision Archive" (M1 placement honored)
 
 **AC-03 review gate**: PASS 2026-05-11
-- **Technical review**: 4.5 — clean code, audit-driven implementation, tsc strict-clean, no API changes needed, deprecation headers explicit, orphan-check passes. -0.5 because runtime interaction unverified by Jarvis (verified by Nate visual-validate before commit).
+- **Technical review**: 4.5 — clean code, audit-driven implementation, tsc strict-clean, no API changes needed, deprecation headers explicit, orphan-check passes. -0.5 because runtime interaction unverified by Jarvis (verified by Sir visual-validate before commit).
 - **Progress review**: 5.0 — ratification §11.3 ("full subsume") executed; 35-affordance audit captures every disposition; keep-one-cycle decision honored.
 
 ---
 
 ### Milestone 3: /pipeline approval-column split + cross-mode link buttons (~1d, MEDIUM risk)
 
-**Status**: SHIPPED 2026-05-11 (commit `fcf62df` on AIFred-Pro-Dev nate-dev). +87/-124 across 12 files. AC-03 PASS 4.5/5.0.
+**Status**: SHIPPED 2026-05-11 (commit `fcf62df` on Alfred-Dev nate-dev). +87/-124 across 12 files. AC-03 PASS 4.5/5.0.
 
 **M3-D8 + M3-D9 ratifications (made at visual-validate gate)**:
 - **M3-D8** (L3): **β-revise** — `/health` job rows clickable → `/jobs?focus=<name>`. RecurringJobsPage reads `?focus=` URL param on mount via `useSearchParams`, opens matching job's `DetailDrawer`, strips param via `setSearchParams({ replace: true })`. Verified end-to-end via `/jobs?focus=creative-think` → DetailDrawer opens correctly.
@@ -252,7 +252,7 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 | `pulse/app.py` | OUT_OF_SCOPE | Read-only `/api/v1/pipeline/*` endpoints. Mutations go through dashboard-server. |
 | `.claude/jobs/pipeline-watcher.py` | OUT_OF_SCOPE | Zero approval-flow code paths. No change. |
 
-**Cross-mode link buttons** (M3-D8 pending Nate ratification at visual-validate):
+**Cross-mode link buttons** (M3-D8 pending Sir ratification at visual-validate):
 
 | ID | From | To | Status |
 |---|---|---|---|
@@ -352,7 +352,7 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 **Completed next-action sequence (2026-05-12)**:
 1. ✅ SIGCONT `pipeline-watcher.py` PID 15622; observed F-1 in-vivo (T1 auto-advanced despite `pipeline:needs-approval`); F-5 surfaced (executor silent `blocked:no` → `blocked:yes` mutation).
 2. ✅ T1/T2/T3 closed via POST `/api/v1/tasks/{id}/close` (actor=jarvis).
-3. ✅ **PR assembly** — opened as davidmoneil/AIFred-Pro#3. Scope expanded from re-cleave-only (3 commits) to full nate-dev batch (110 commits) per Nate's 2026-05-12 A1 decision. The literal reading of §11.5 ("PR from nate-dev → main") matched the practical state: no prior commits on nate-dev had ever merged to main; this PR is the first batch-merge since branch creation. PR body organizes 110 commits into 12 workstream themes for review scannability.
+3. ✅ **PR assembly** — opened as davidmoneil/AIFred-Pro#3. Scope expanded from re-cleave-only (3 commits) to full nate-dev batch (110 commits) per Sir's 2026-05-12 A1 decision. The literal reading of §11.5 ("PR from nate-dev → main") matched the practical state: no prior commits on nate-dev had ever merged to main; this PR is the first batch-merge since branch creation. PR body organizes 110 commits into 12 workstream themes for review scannability.
 
 **Post-PR next-action sequence**:
 1. Await David's review/merge.
@@ -364,10 +364,10 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 - M2 audit + plan revisions: `a3bcdcc` (Jarvis main)
 - M3 audit + plan revisions: `5e0a20e` (Jarvis main)
 - M3 SHIPPED tracking + F-1 consolidation: `fe3405f` / `ba87a77` / `6e503ac` (Jarvis main)
-- M1 ship: `d001c75` (AIFred-Pro-Dev nate-dev)
-- M2 ship: `fc1546f` (AIFred-Pro-Dev nate-dev)
-- M3 ship: `fcf62df` (AIFred-Pro-Dev nate-dev)
-- F-1 plan fork + removal (cancelling pair): `0f3341a` / `18c1136` (AIFred-Pro-Dev nate-dev)
+- M1 ship: `d001c75` (Alfred-Dev nate-dev)
+- M2 ship: `fc1546f` (Alfred-Dev nate-dev)
+- M3 ship: `fcf62df` (Alfred-Dev nate-dev)
+- F-1 plan fork + removal (cancelling pair): `0f3341a` / `18c1136` (Alfred-Dev nate-dev)
 - PR-opened tracking: this commit (Jarvis main)
 
 ---
