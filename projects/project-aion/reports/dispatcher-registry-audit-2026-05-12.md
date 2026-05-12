@@ -103,49 +103,78 @@ Of the 13: **3 are pipeline-ops on cron** (task-score / task-investigator / task
 
 **Tentative disposition**: REMOVE cron `task-executor` from registry.yaml; let `services/executor.py` daemon handle all queue-execution. If `task-executor.md` workflow has unique value, port it into a persona option for v2 executor.
 
-## 5. Open questions for Nate's decision (BEFORE refactor begins)
+## 5. Open questions for Nate's decision — RATIFIED 2026-05-12
 
-### Q1: Does `services/executor.py` (v2) fully subsume `task-executor` (legacy cron)?
+### Q1 — RATIFIED: Plan B (subsume + drop `auto:*` from event-driven layer)
 
-The legacy `task-executor` uses the `autofix-executor` persona and is restricted to `risk:safe` + `auto:ready`. The v2 `services/executor.py` is more general (handles all queue tasks across personas). If subsumption is clean, we just delete the legacy job. If autofix-executor has unique logic, we either keep it as an event-driven service (separate from `services/executor.py`) or fold it as a persona-mode of the v2 executor.
+After running the audit-default approach into a wall (see §6 D-impl discovery: 60+ `auto:*` references in legacy shell layer with zero V2-service consumers), Nate ratified **Plan B** — drop `auto:*` emission from the event-driven layer entirely. `services/score.py` strips its `determine_auto_label` + `fix_contradictions` paths; emits `risk:*` only. `services/investigate.py` (D.6) is NOT BUILT — the `auto:candidate → auto:ready` promotion path it would have implemented now produces labels that no V2 service consumes. V2 pipeline drives task advancement via dimension labels (staging/evaluated/queued/active/completed/blocked) independently. Legacy shell layer (event-watcher.sh inline auto:ready additions, pipeline-watchdog.sh mutex rules, lib/routing-rules.yaml, persona configs) keeps its `auto:*` machinery untouched in this phase — those migrate in a separate post-Phase-D workstream.
 
-**Recommended default**: Subsume into v2. Autofix-executor becomes a *persona* (one of many) that v2 executor can select. Cleaner architecture.
+**Variant of Q1 (subsumption)**: `services/executor.py` daemon subsumes legacy `task-executor` cron job; autofix-executor folded as persona-mode of v2 executor.
 
-### Q2: Does Pulse already emit per-label-change events that `event-watcher.sh` can subscribe to?
+### Q2 — RATIFIED: extend Pulse with the events endpoint
 
-The current event-watcher polls for new tasks via client-side ID tracking (per v2 design doc line 81). It does NOT poll for label-changes. If Pulse doesn't expose a label-change event stream, we need either: (a) extend Pulse to emit them, or (b) have event-watcher poll for label-change diffs (more expensive, eventually-consistent).
+D.4 already shipped extending `GET /api/v1/events` with `event_type` + `since` filters (commit `78693a3` on AIFred-Pro-Dev nate-dev). event-watcher.sh converts to a polling consumer.
 
-**Recommended default**: Extend Pulse with a `/api/v1/events?type=label_added&since=<ts>` polling endpoint. Pure additive; no breaking changes. event-watcher converts to a polling consumer.
+**In-vivo discovery (informs D.7)**: Pulse emits `event_type="created"` on POST `/api/v1/tasks` (app.py:386), NOT `"task.created"` as audit §4.1 speculated. Webhook fires with `"task:created"` (line 388). The events table uses bare `"created"`. D.7 polling URL uses `event_type=created`.
 
-### Q3: Should event-watcher dispatch directly to v2 services, or stay routed through dispatcher.sh?
+### Q3 — RATIFIED: direct invocation, bypassing dispatcher
 
-Currently event-watcher triggers `dispatcher.sh --run task-score` to fire the score job. Under the new rule, dispatcher is for cron-recurring jobs only. So event-watcher should call `python3 services/score.py --task-id=<id>` directly, bypassing dispatcher.
+event-watcher.sh fires `python3 services/score.py --task-id=<id>` synchronously per polled `created` event. Score.py runs in ~13-21ms; sync invocation inside the cron-style outer loop is cheap enough. Failure non-fatal via `|| log "..."` (suppresses `set -e`).
 
-**Recommended default**: Direct invocation. event-watcher gains 3 new code paths (score, investigate, execute) that call services directly.
+### Q4 — RATIFIED: Plan B (parallel-write) for migration
 
-### Q4: Migration plan — big-bang or feature-flag?
+Option B kept. `task-score`, `task-investigator`, `task-executor` all set `enabled: false` in registry.yaml (Phase D / Plan B comment block in registry.yaml lines 115-129 explains the disposition + replacements). Cron blocks retained for one observation cycle so rollout can be reverted by a single field flip if event-driven path regresses.
 
-Option A: drop the 3 pipeline jobs from registry.yaml in one commit; new event-driven services land in same commit. 5-min-cron silence; if event-driven path is broken, no fallback.
+### Q-B (branch strategy) — RATIFIED: B2 (hold local until PR #3 merges)
 
-Option B: keep the 3 cron jobs but disable (`enabled: false`); add event-driven services; both paths "live" for one observation cycle; remove cron jobs after event-driven verified in vivo.
+Phase D commits stay local on AIFred-Pro-Dev `nate-dev` until `davidmoneil/AIFred-Pro#3` merges. After merge: pull main into nate-dev, push Phase D as separate PR. PR #3 itself unaffected — David reviews the re-cleave bundle on its merits without bundled Phase D scope-creep.
 
-**Recommended default**: Option B (parallel-write pattern). Lower-risk; familiar from the P1.5 + P1.B1.1 dual-write rollout. ~1 day cost for the extra verification window.
+## 6. Refactor scope estimate + execution log
 
-## 6. Refactor scope estimate
+| Phase | Item | Effort | Status (2026-05-12) |
+|---|---|---|---|
+| D.1 | Architectural rule documented in workstream-arch §6.2 (this audit feeds it) | DONE 2026-05-12 (commit `c413e03` Jarvis main) | **SHIPPED** |
+| D.2 | This audit (canonical decision log) | DONE 2026-05-12 (same commit) | **SHIPPED** |
+| D.3 | Answer Q1-Q4 (Nate decision) | Ratified 2026-05-12 — see §5 above | **CLOSED** |
+| D.4 | Pulse `/api/v1/events` extended with `event_type` + `since` filters | ~3-4 hr (actual ~2 hr) | **SHIPPED LOCAL** (commit `78693a3` on AIFred-Pro-Dev nate-dev; held per B2) |
+| D.5 | `services/score.py` implementation + smoke test | ~3-4 hr (actual ~2 hr) | **SHIPPED LOCAL** (initial commit `eb6032f`; Plan-B-revised in this turn — `auto:*` stripped, `risk:*` only) |
+| D.6 | `services/investigate.py` | — | **SKIPPED** under Plan B (auto:candidate path dropped from event-driven layer) |
+| D.7 | event-watcher.sh refactor — new `created`-event polling block firing score.py | ~2-3 hr (actual ~1 hr + bugfix) | **SHIPPED LOCAL** (uncommitted this turn). Added `/api/v1/events?event_type=created&since=<encoded-cursor>` polling block before legacy JSONL handler; URL-encoded cursor's `+00:00` → `%2B00:00`; warning log on curl failure |
+| D.8 | registry.yaml edits — 3 jobs `enabled: false` + Plan B replacement comment block | ~30 min (actual ~30 min) | **SHIPPED LOCAL** (uncommitted this turn) |
+| D.9 | Validate dev-env: event-driven path fires risk:* (no auto:*); cursor advances; v2 state machine independent | ~half day (actual ~2 hr including bugfix) | **SHIPPED** — direct score.py: ✓ ; polling block 10 events captured + scored: ✓ ; PLAN B PASS verified (zero auto:*, risk:* applied); 11 smoke tasks cleaned |
+| D.10 | Update v2 design doc + audit report (this section) | ~1-2 hr | **THIS TURN** |
+| **Total** | | **~3-4 days estimate** | **~5 hr ACTUAL** through D.10 local (smaller than estimate because D.6 dropped) |
 
-| Phase | Item | Effort |
-|---|---|---|
-| D.1 | Architectural rule documented in workstream-arch §6.2 (this audit feeds it) | DONE this turn |
-| D.2 | This audit (canonical decision log) | DONE this turn |
-| D.3 | Answer Q1-Q4 (Nate decision) | NEXT — pending |
-| D.4 | Pulse `/api/v1/events?type=label_added` endpoint (if Q2 chooses extend-Pulse path) | ~3-4 hr |
-| D.5 | `services/score.py` implementation + smoke test | ~3-4 hr |
-| D.6 | `services/investigate.py` implementation + smoke test | ~3-4 hr |
-| D.7 | event-watcher.sh refactor (3 new event-route handlers) | ~2-3 hr |
-| D.8 | registry.yaml edits (3 jobs disabled OR removed depending on Q4) | ~30 min |
-| D.9 | Validate dev-env: no pipeline-state-change comes from dispatcher | ~half day |
-| D.10 | Update v2 design doc with the two-tier rule + new event topology | ~1-2 hr |
-| **Total** | | **~3-4 days** assuming Option B parallel-write rollout |
+**Saved effort from Plan B (~3-4 hr)**: D.6 services/investigate.py not implemented, eliminating ~3-4 hr of build + smoke + design-doc time. Plan B also lowers cognitive load on future readers who would otherwise have to trace why a service emits labels nothing consumes.
+
+### 6.1 Phase D in-vivo discoveries (audit-doc vs reality)
+
+Captured during D.7-D.9 implementation, surfaces these mismatches between the audit's pre-impl model and the actual codebase. None changed scope materially but each required a small course-correction:
+
+| # | Audit assumption | Reality | Fix |
+|---|---|---|---|
+| 1 | event_type is `task.created` | event_type is bare `created` (Pulse app.py:386) | URL filter uses `event_type=created` |
+| 2 | event-watcher already detects task.created (audit §4.1) | event-watcher only detects events via `.beads/events.jsonl` legacy path (vestigial post-Pulse-migration; line 9 comment) | D.7 added a brand-new Pulse `/api/v1/events` polling block |
+| 3 | event-watcher.sh launchd label is `event-watcher` | actual labels: `com.aion.nexus-event-watcher` (prod) + `com.aion.nexus-dev-event-watcher` (dev); dev plist exists but not loaded | n/a for impl; documented for ops |
+| 4 | PULSE_API_URL convention | already contains `/api/v1`; callers append `/events` not `/api/v1/events` | corrected D.7 polling URL |
+| 5 | Bare bash variable interpolation safe for ISO timestamps in URLs | `+00:00` decodes to space in URL query string → HTTP 400 → silent fail-open | URL-encode cursor: `"${PE_CURSOR//+/%2B}"`; warning log on curl exit non-zero |
+
+### 6.2 Files touched (Phase D total)
+
+**On AIFred-Pro-Dev nate-dev (3 commits local, NOT pushed per B2 ratification)**:
+- `pulse/app.py` — D.4 events endpoint extension (+29/-10 lines) — commit `78693a3`
+- `.claude/jobs/services/score.py` — D.5 NEW (157 LOC) — initial commit `eb6032f`; Plan-B revision (-49 LOC stripping auto:* paths) folded into combined commit `65e2eef`
+- `.claude/jobs/event-watcher.sh` — D.7 polling block (+51 LOC) — combined commit `65e2eef`
+- `.claude/jobs/registry.yaml` — D.8 (3 jobs disabled + Plan-B comment block; +21/-13 net) — combined commit `65e2eef`
+- `.claude/jobs/state/pulse-events-cursor` — NEW state file (cursor seeded to 2026-05-12T18:18:14Z post-smoke); gitignored
+
+**Combined Phase D commit `65e2eef`** (D.5-revision + D.7 + D.8): "feat(phase-d): event-driven score.py + event-watcher polling + registry disable [Plan B, B2] [Nexus]". 3 files, +95/-70.
+
+**On Jarvis Project_Aion (this commit)**:
+- `projects/project-aion/reports/dispatcher-registry-audit-2026-05-12.md` (this update; §5 + §6 + §9 rewritten)
+- `projects/project-aion/designs/project-aion-workstream-architecture-2026-05-05.md` (§6.2 Phase D row flipped to IN-DEV-COMPLETE-PENDING-MERGE)
+- `.claude/context/.scratchpad.md` (Phase D state captured)
+- `.claude/context/session-state.md` (status updated)
 
 ## 7. Dependencies for Phases B + C + E
 
@@ -177,13 +206,18 @@ The new event topology determines what to monitor. Pre-D, /health UI would surfa
 4. **After B + C**: kick off **E** (Watchdog W2/W3 — observability surfaces for the new event topology).
 5. Each phase capstone: AC-03 gate + Jarvis-side tracking commit + AIFred-Pro-Dev `nate-dev` commit + PR-to-David once a logical group lands.
 
-## 9. Status
+## 9. Status (2026-05-12 end-of-day)
 
 **Audit phase**: COMPLETE 2026-05-12.
 
-**Phase D impl**: AWAITING Nate's answers to §5 Q1-Q4.
+**Phase D impl**: IN-DEV-COMPLETE 2026-05-12. D.4 + D.5 + D.7 + D.8 + D.9 SHIPPED LOCAL. D.6 SKIPPED per Plan B. D.10 THIS TURN. All commits HELD on AIFred-Pro-Dev `nate-dev` per B2 ratification — NOT pushed to davidmoneil/AIFred-Pro until PR #3 merges. After PR #3 merge: pull main into nate-dev, push Phase D as separate PR.
 
-**Subsequent phases**: not started; queued behind D's completion.
+**Subsequent phases**: still queued behind D's completion + PR #3 merge.
+- Phase B + C (F-1 enforcement + F-5 silent-mutation fix): both live in `services/executor.py` claim path. Estimated ~2-3 day combined after Phase D ships to David.
+- Phase E (Watchdog W2/W3): observability surfaces for new event topology. ~1-2 day after B+C.
+- Total remaining post-PR-#3-merge workstream: ~3-5 days.
+
+**Production-readiness note for cursor file**: when the prod event-watcher (com.aion.nexus-event-watcher) picks up the new polling block, the `pulse-events-cursor` file will not exist on its first run and default to `1970-01-01T00:00:00Z`. With LIMIT=200, only the 200 most-recent `created` events will be processed; older events will be silently skipped. Score.py idempotency means this is benign on dev (re-scoring an already-classified task no-ops), but on first prod cutover the operator should `date -u +'%Y-%m-%dT%H:%M:%SZ' > .claude/jobs/state/pulse-events-cursor` to seed cursor to "now" before the first cron fire. Dev cursor was seeded post-smoke at 2026-05-12T18:18:14Z.
 
 ---
 
