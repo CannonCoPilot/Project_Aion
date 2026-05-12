@@ -1,7 +1,7 @@
 ---
 title: AIFred-Pro-Dev Dashboard Re-Cleave — Implementation Plan of Record
 date: 2026-05-11
-status: M1 SHIPPED (d001c75) / M2 SHIPPED (fc1546f) / M3 SHIPPED (fcf62df) — re-cleave PR complete on nate-dev; PR assembly pending
+status: M1 SHIPPED (d001c75) / M2 SHIPPED (fc1546f) / M3 SHIPPED (fcf62df) — PR OPENED 2026-05-12 as davidmoneil/AIFred-Pro#3 (A1 scope, 110-commit batch); pending David's review/merge
 project: AIFred-Pro-Dev
 target_branch: nate-dev
 ratifies: ../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md (§11 Decisions captured 2026-05-11)
@@ -342,26 +342,33 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 
 ## 10. Status / next action
 
-**Status**: M1 SHIPPED 2026-05-11 (`d001c75`) / M2 SHIPPED 2026-05-11 (`fc1546f`) / M3 SHIPPED 2026-05-11 (`fcf62df`) — re-cleave PR complete on nate-dev. PR assembly pending Nate's go-ahead.
+**Status**: PR OPENED 2026-05-12 as [davidmoneil/AIFred-Pro#3](https://github.com/davidmoneil/AIFred-Pro/pull/3) — A1 scope (110-commit batch, all of nate-dev since 2026-04-22). M1 SHIPPED 2026-05-11 (`d001c75`) / M2 SHIPPED 2026-05-11 (`fc1546f`) / M3 SHIPPED 2026-05-11 (`fcf62df`). Pending David's review/merge.
 
 **Completed milestones**:
 - **M1** (commit `d001c75`): AppShell PROD|OPS toggle + 4 sub-clusters + pinned Dashboard. AC-03 PASS 4.5/5.0.
 - **M2** (commit `fc1546f`): /decisions → /reo redirect via DecisionsRedirect + 2 ported affordances. AC-03 PASS 4.5/5.0.
 - **M3** (commit `fcf62df`): /pipeline approval-card split + M3a server-side classifyTask alignment fix (sidebar counter 5→3) + 4 of 5 cross-mode link buttons (L2, L3-β, L4, L5). L1 deferred per M3-D9-γ. AC-03 PASS 4.5/5.0.
 
-**Pending next-action sequence**:
-1. SIGCONT `pipeline-watcher.py` PID 15622; observe T1/T2/T3 behavior (expected: T1+T3 auto-advance per F-1; T2 stays blocked).
-2. Close T1/T2/T3 via POST `/api/v1/tasks/{id}/close` (actor=jarvis).
-3. **PR assembly** — single shared PR `nate-dev → main` on davidmoneil/AIFred-Pro per §11.5. Range: `d001c75..fcf62df` (3 commits). PR description summarizes M1+M2+M3 collectively per plan §7.
-4. REO Validate workstream resumes after PR lands.
+**Completed next-action sequence (2026-05-12)**:
+1. ✅ SIGCONT `pipeline-watcher.py` PID 15622; observed F-1 in-vivo (T1 auto-advanced despite `pipeline:needs-approval`); F-5 surfaced (executor silent `blocked:no` → `blocked:yes` mutation).
+2. ✅ T1/T2/T3 closed via POST `/api/v1/tasks/{id}/close` (actor=jarvis).
+3. ✅ **PR assembly** — opened as davidmoneil/AIFred-Pro#3. Scope expanded from re-cleave-only (3 commits) to full nate-dev batch (110 commits) per Nate's 2026-05-12 A1 decision. The literal reading of §11.5 ("PR from nate-dev → main") matched the practical state: no prior commits on nate-dev had ever merged to main; this PR is the first batch-merge since branch creation. PR body organizes 110 commits into 12 workstream themes for review scannability.
+
+**Post-PR next-action sequence**:
+1. Await David's review/merge.
+2. After merge: pull main into nate-dev, REO Validate workstream resumes (per §11.7).
+3. Follow-up PRs for F-1 enforcement + F-5 audit + REO B7 backend (out-of-scope items documented in PR body).
 
 **Plan-of-record commits referenced**:
 - Foundational analysis: `18ba329` (Jarvis main)
 - M2 audit + plan revisions: `a3bcdcc` (Jarvis main)
-- M3 audit + plan revisions: this commit (Jarvis main)
+- M3 audit + plan revisions: `5e0a20e` (Jarvis main)
+- M3 SHIPPED tracking + F-1 consolidation: `fe3405f` / `ba87a77` / `6e503ac` (Jarvis main)
 - M1 ship: `d001c75` (AIFred-Pro-Dev nate-dev)
 - M2 ship: `fc1546f` (AIFred-Pro-Dev nate-dev)
-- M3 ship: pending
+- M3 ship: `fcf62df` (AIFred-Pro-Dev nate-dev)
+- F-1 plan fork + removal (cancelling pair): `0f3341a` / `18c1136` (AIFred-Pro-Dev nate-dev)
+- PR-opened tracking: this commit (Jarvis main)
 
 ---
 
