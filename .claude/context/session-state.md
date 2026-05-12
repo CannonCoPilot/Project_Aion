@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: M2 SHIPPED 2026-05-11. Dashboard re-cleave PR Milestones 1 + 2 done; M3 pending Nate's go-ahead. M2 (`fc1546f` on AIFred-Pro-Dev nate-dev): /decisions URL now redirects to /reo via DecisionsRedirect wrapper preserving search params. Audit-driven impl — 35-affordance feature-parity table (`decisions-to-reo-feature-parity-audit-2026-05-11.md`), 24 already-present / 3 improved / 3 different / 2 ported / 8 intentional drops. PORT-A (URL search-param translation, load-bearing) + PORT-B (confidence bar in TimelineList row) landed. DecisionsPage.tsx and api/decisions.ts marked @deprecated and kept in tree per keep-one-cycle decision; paired deletion scheduled at REO Phase 5.5 PRE-SHIP AUDIT. M2 AC-03 gate: technical 4.5 / progress 5.0 → PASS. REO Validate still paused until full PR lands.
-**Date**: 2026-05-11 (M2 ship session — audit + port + redirect + visual-validate + commits both repos)
+**Status**: M3 SHIPPED 2026-05-11 — dashboard re-cleave PR complete (M1+M2+M3 all on nate-dev). M3 (`fcf62df` on AIFred-Pro-Dev nate-dev): /pipeline approval-cards moved to /tasks?board=approvals; 4 of 5 cross-mode link buttons wired (L1 deferred per M3-D9-γ; L5 already pre-wired); M3a server-side classifyTask alignment fixed the sidebar counter over-count (was 5, now 3 correctly). Validation: 11/11 visual + L3-Part-2 deep-link verified directly (/jobs?focus=creative-think → DetailDrawer); L2/L3-Part-1/L5 row-click flows tsc + inspection only (pre-existing dev-env data scarcity — /findings, /health, /reviews have no source data populated). 3 pre-existing defects surfaced (F-1 HIGH approval-gate non-enforcement; F-2 LOW BlockedBanner page-scope count; F-4 LOW isBlocked false-positives — all filed for separate workstreams). AC-03 gate: technical 4.5 / progress 5.0 → PASS. SIGCONT pipeline-watcher + close T1/T2/T3 + observe F-1 evidence next. PR assembly (M1+M2+M3 single PR per §11.5) pending Nate's go-ahead.
+**Date**: 2026-05-11 (M3 ship session — audit + impl + rebuild + visual-validate + commit + push both repos)
 **Version**: v5.11.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis (synced)
-**Last commit (Jarvis)**: 92358da (docs(workstreams): M1 sidebar re-cleave SHIPPED). Pending: this turn's M2 tracking commit.
-**Last commit (AIFred-Pro-Dev)**: fc1546f (feat(dashboard): consolidate /decisions into /reo via redirect + 2 ported affordances [M2] [Nexus]). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: d001c75..fc1546f.
+**Last commit (Jarvis)**: 5e0a20e (docs(workstreams): M3 consumer audit + plan revisions). Pending: this turn's M3 SHIPPED tracking commit.
+**Last commit (AIFred-Pro-Dev)**: fcf62df (feat(dashboard): /pipeline approval split + 4 cross-mode link buttons [M3] [Nexus]). PUSHED to davidmoneil/AIFred-Pro nate-dev. Push range: d001c75..fcf62df (M1+M2+M3 all on nate-dev).
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:

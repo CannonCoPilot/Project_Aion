@@ -1,7 +1,7 @@
 ---
 title: AIFred-Pro-Dev Dashboard Re-Cleave — Implementation Plan of Record
 date: 2026-05-11
-status: M1 SHIPPED (d001c75) / M2 SHIPPED (fc1546f) / M3 IN PROGRESS — Option A taxonomy locked, audit-gated, code begins next
+status: M1 SHIPPED (d001c75) / M2 SHIPPED (fc1546f) / M3 SHIPPED (fcf62df) — re-cleave PR complete on nate-dev; PR assembly pending
 project: AIFred-Pro-Dev
 target_branch: nate-dev
 ratifies: ../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md (§11 Decisions captured 2026-05-11)
@@ -221,7 +221,18 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 
 ### Milestone 3: /pipeline approval-column split + cross-mode link buttons (~1d, MEDIUM risk)
 
-**Status**: IN PROGRESS — Option A taxonomy locked, consumer-audit complete, code begins next.
+**Status**: SHIPPED 2026-05-11 (commit `fcf62df` on AIFred-Pro-Dev nate-dev). +87/-124 across 12 files. AC-03 PASS 4.5/5.0.
+
+**M3-D8 + M3-D9 ratifications (made at visual-validate gate)**:
+- **M3-D8** (L3): **β-revise** — `/health` job rows clickable → `/jobs?focus=<name>`. RecurringJobsPage reads `?focus=` URL param on mount via `useSearchParams`, opens matching job's `DetailDrawer`, strips param via `setSearchParams({ replace: true })`. Verified end-to-end via `/jobs?focus=creative-think` → DetailDrawer opens correctly.
+- **M3-D9** (L1): **γ-defer entirely** — REO drawer → `/reviews?decision_id=N` deferred. REO's B7-UI in-page feedback connector (3-state radio + comment, console.log on submit) covers the feedback intent without cross-mode navigation. Revisit if B7-UI proves insufficient at REO Validate phase.
+
+**Sub-milestones shipped**:
+- **M3a (server fix)**: `dashboard/server/routes/stats.ts` `classifyTask` now checks `pipeline:needs-approval` BEFORE `isBlocked`, mirroring frontend M3-D2. Fixes sidebar Tasks badge over-count (was 5 for 3 tasks; now correctly 3). Surfaced during visual-validate; uncovered the parallel classifyTask drift between server and frontend.
+- **M3b (L2)**: `FindingsPage.tsx` related-task link upgraded `<a href>` → `<Link to>` (SPA navigation).
+- **M3c (L3, M3-D8-β)**: `HealthPage.tsx` job rows clickable → `/jobs?focus=<name>`; `RecurringJobsPage.tsx` reads `?focus=` and opens matching job's `DetailDrawer`.
+- **M3d (L4)**: `TaskDetailPage.tsx` gains teal "View in REO →" button → `/reo?task_id=<id>`; `ReoPage.tsx` `readInitialFilters` extended to read `task_id` URL param.
+- **M3e (L5)**: `ReviewPage.tsx:634` already linked to `/tasks/:id` — verified pre-existing wiring, no code change.
 
 **Goal**: /pipeline becomes monitoring-only. Approvals become a **distinct board column** (Option A, M3-D1) at `/tasks?board=approvals`, no longer subsumed into `?board=blocked`. Cross-mode link buttons (L1-L5) connect the 4 modes.
 
@@ -331,24 +342,18 @@ From `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` §1:
 
 ## 10. Status / next action
 
-**Status**: M1 SHIPPED 2026-05-11 (`d001c75`) / M2 SHIPPED 2026-05-11 (`fc1546f`) / M3 IN PROGRESS — Option A locked, audit committed, code begins next.
+**Status**: M1 SHIPPED 2026-05-11 (`d001c75`) / M2 SHIPPED 2026-05-11 (`fc1546f`) / M3 SHIPPED 2026-05-11 (`fcf62df`) — re-cleave PR complete on nate-dev. PR assembly pending Nate's go-ahead.
 
 **Completed milestones**:
 - **M1** (commit `d001c75`): AppShell PROD|OPS toggle + 4 sub-clusters + pinned Dashboard. AC-03 PASS 4.5/5.0.
 - **M2** (commit `fc1546f`): /decisions → /reo redirect via DecisionsRedirect + 2 ported affordances. AC-03 PASS 4.5/5.0.
+- **M3** (commit `fcf62df`): /pipeline approval-card split + M3a server-side classifyTask alignment fix (sidebar counter 5→3) + 4 of 5 cross-mode link buttons (L2, L3-β, L4, L5). L1 deferred per M3-D9-γ. AC-03 PASS 4.5/5.0.
 
-**M3 sequence (post-audit)**:
-1. ~~Audit consumer-side surface~~ — DONE (`../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md`, 8 consumers ratified)
-2. ~~Apply plan §5.3 + §6 + §3 revisions~~ — this commit
-3. Commit + push Jarvis planning artifacts
-4. Begin AIFred-Pro-Dev code per audit §4 specs (lib/board.ts + AppShell + DashboardPage + PipelinePage + BlockedBanner + App.tsx)
-5. Add cross-mode link buttons L1, L2, L4, L5 (L3 held for M3-D8 ratification)
-6. Mechanical verify (tsc, vite HMR, smoke-reo.sh, HTTP-200 sweep)
-7. Pause for Nate visual-validate (per M1+M2 pattern); ratify M3-D8 (L3 disposition) at the gate
-8. After visual-validate clean: commit AIFred-Pro-Dev + push
-9. AC-03 gate (technical + progress ≥ 4)
-10. **PR assembly** — single shared PR per §11.5
-11. REO Validate resumes after PR lands
+**Pending next-action sequence**:
+1. SIGCONT `pipeline-watcher.py` PID 15622; observe T1/T2/T3 behavior (expected: T1+T3 auto-advance per F-1; T2 stays blocked).
+2. Close T1/T2/T3 via POST `/api/v1/tasks/{id}/close` (actor=jarvis).
+3. **PR assembly** — single shared PR `nate-dev → main` on davidmoneil/AIFred-Pro per §11.5. Range: `d001c75..fcf62df` (3 commits). PR description summarizes M1+M2+M3 collectively per plan §7.
+4. REO Validate workstream resumes after PR lands.
 
 **Plan-of-record commits referenced**:
 - Foundational analysis: `18ba329` (Jarvis main)

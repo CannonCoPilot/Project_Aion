@@ -169,3 +169,77 @@ Per §3 destination-audit. L1, L2, L4, L5 land cleanly. L3 deferred or β-routed
 **Sibling audit**: `decisions-to-reo-feature-parity-audit-2026-05-11.md` is the M2 equivalent. Together they constitute the canonical release-cycle decision log: M2 = "where did /decisions affordances go?"; M3 = "where did /pipeline approval-cards go?".
 
 **Next action**: confirm Nate's L3 disposition (M3-D8), apply plan §5.3 + §6 edits, then commit Jarvis planning artifacts + push, then begin AIFred-Pro-Dev code per §4.
+
+---
+
+## Appendix A. Findings surfaced during visual-validate (M3-orthogonal)
+
+Three findings discovered during the 2026-05-11 visual-validate session. None are M3-introduced; all pre-existed. Captured here so they don't get lost — file as separate workstreams.
+
+### F-1 — `pipeline:needs-approval` does NOT halt the v2 pipeline state machine
+
+**Symptom**: A synthetic test task (`AION-ac1e41de`) created with `pipeline:needs-approval` + `waiting:david` autonomously progressed through `staging:wait` → `evaluated:done` → `queued:done` → `active:running` without human approval. PipelineApprovalCard kept rendering throughout (per its label-check) but the executor did not honor the approval-gate semantics.
+
+**Diagnosis**: The v2 pipeline classifier `classifyTaskPipeline` (`lib/board.ts:107`) only inspects `staging:|evaluated:|queued:|active:|completed:|blocked:` labels. It does NOT check `pipeline:needs-approval`. The approval gate is supposed to be enforced at the executor/dispatcher layer — that enforcement appears to be missing or broken.
+
+**Evidence**: pipeline-watcher.py running as PID 15622 since 2026-05-09 21:00 (~4 days). Test task progressed within minutes of creation.
+
+**Severity**: HIGH — human approval gates are advisory in practice, not enforcing. Tasks marked needs-approval will run anyway.
+
+**Scope**: out of M3. File as separate workstream: "pipeline approval-gate enforcement" — investigate executor.py / pipeline-watcher.py code paths that should consume `pipeline:needs-approval` and halt progression; add the missing check.
+
+**Mitigation while unresolved**: for synthetic / non-destructive test tasks, pair `pipeline:needs-approval` with `blocked:yes` to prevent auto-progression.
+
+### F-2 — BlockedBanner human-count is page-scope, not global
+
+**Symptom**: Red banner on /tasks shows "1 task blocked — awaiting your review" even when multiple human-blocked tasks exist in the wider system. Nate observed the banner reporting count=1 while many other blocked tasks existed in earlier test data.
+
+**Diagnosis**: `BlockedBanner.tsx` iterates over a `tasks` prop passed by the parent page's filtered list. The banner counts blocked tasks visible in the current view, not in the global system. When the user is on a filtered view (any `?board=`, `?status=`, search filter, etc.), the banner reports only what's in scope.
+
+**Severity**: LOW — cosmetic accuracy issue. The banner still alerts; it just under-counts on filtered views.
+
+**Scope**: out of M3. File as a small UX fix: BlockedBanner should query a global "blocked tasks pending review" endpoint or use the parent's unfiltered task data.
+
+### F-3 — Approval banner position (M3-internal, FIXED)
+
+**Symptom**: Approval banner rendered at the bottom of the sidebar, below all clusters. On a long sidebar (4 sub-clusters + many items), the banner falls below the fold and users miss it.
+
+**Fix**: Relocated banner to render between PROD_PINNED_TOP (Dashboard) and the cluster list. Now visible immediately on sidebar open, regardless of cluster expansion state. Both expanded + collapsed banner variants moved together.
+
+**Severity**: was MEDIUM (visibility); now resolved.
+
+**Scope**: M3-internal — fixed in same commit as core M3 work.
+
+## Appendix B. M3 validation rig (clean board + curated synthetic tasks)
+
+Visual-validate-only artifacts created on pulse_dev 2026-05-11 to give Nate a clean systematic-validation surface. Should be closed after M3 PR lands.
+
+### Pre-validation state
+
+- Bulk-closed all 37 open pulse_dev tasks at 2026-05-11T03:18Z via POST /api/v1/tasks/{id}/close.
+- Closed tasks classify to `done` (closed_at < 7d) or `archived` (closed_at >= 7d) — neither appears on the M3-relevant boards.
+
+### Curated 3-task validation set
+
+| Key | Task ID | Critical labels | Expected board | Expected red banner | Expected sidebar badge |
+|---|---|---|---|---|---|
+| T1 | `AION-9427962a` | `pipeline:needs-approval` + `waiting:david` (no blocked:yes) | `?board=approvals` | NO | +1 |
+| T2 | `AION-5812157e` | `blocked:yes` + `waiting:david` + `reason:max-retries` | `?board=blocked` | YES (count ≥ 1) | 0 (no pipeline:needs-approval) |
+| T3 | `AION-767c6618` | `pipeline:needs-approval` AND `blocked:yes` + `waiting:david` | `?board=approvals` (M3-D2 precedence) | NO (approvals precedence) | +1 |
+
+Expected aggregate state:
+- Sidebar approval badge: **2 pending approvals** (T1 + T3)
+- `/tasks?board=approvals`: shows T1 + T3 (NOT T2)
+- `/tasks?board=blocked`: shows T2 only (NOT T1, NOT T3)
+- BlockedBanner red banner on /tasks: "1 task blocked" (counts T2's `waiting:david` in HUMAN_REVIEW_REASONS)
+- `/pipeline` page: no "Needs Approval" section anywhere; KPI top row is 3 cards (Queued / Executing / Blocked)
+- `/approvals` URL: redirects to `/tasks?board=approvals`
+
+### Caveat: T1 may auto-progress (F-1)
+
+T1 lacks `blocked:yes` so the pipeline executor may advance its v2 labels (`staging:wait` → `evaluated:done` etc.) within minutes. As long as the task's `status` stays `open` AND `pipeline:needs-approval` stays present, classifyTask continues returning `'approvals'`. If T1 progresses to status=closed before validation finishes, regenerate it.
+
+### Cleanup after validation
+
+After M3 commit lands, close all three test tasks (T1, T2, T3) via `/api/v1/tasks/{id}/close` to keep pulse_dev clean.
+
