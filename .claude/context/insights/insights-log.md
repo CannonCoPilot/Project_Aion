@@ -7123,3 +7123,46 @@ This is the cascade pattern from "bulk text substitution requires post-grep veri
 ### 2026-05-12 [447fdf74757a]
 
 The two-stage substitution (`Nate → Nat` then `Nat → Sir`) could theoretically be collapsed into one pass (`Nate → Sir` directly), but doing it sequentially has a useful property: the intermediate `Nat` state is uniquely identifiable. If the second pass needs to be reverted while preserving the first, `git diff` between commits makes the boundary clear. Also: doing `Nat → Sir` second means anywhere a fresh `Nate` was missed in the first pass, the second pass still catches it (because we'll grep `\bNate\b` count = 0 before proceeding). Defense in depth on the cleanup.
+
+### 2026-05-12 [d183ff23f528]
+
+This is the canonical "data about the operation gets confused with the operation's targets" pattern. The 3 `Nate` hits in `insights-log` and `compressed-context-ready` are LITERALLY the strings `Nate`, `Nat`, `Sir` USED AS DATA inside meta-text describing the substitution. Replacing them would destroy the explanation ("Sir → Sir → Sir doesn't make sense"). Conventional fix: wrap such meta-strings in code blocks or backticks so grep can be scoped to non-code-block text. For this session, leaving them is correct — they're documentation OF the change, not affected BY the change.
+
+### 2026-05-12 [dadb101489fc]
+
+Three subtle git-workflow patterns worth flagging from this commit cycle:
+
+1. **Per-commit author env-set, never config update**: `--author="..."` flag + `GIT_COMMITTER_NAME/EMAIL` env vars override per-process without touching `.git/config`. Future-Jarvis can use this pattern unchanged across any CannonCoPilot/* repo without worrying about polluting global git state.
+
+2. **Cross-namespace push targets**: Both pushes used `<local-branch>:<remote-branch>` form (`Project_Aion:main`, `nate-dev:main`). This is intentional — local branch names preserve historical authorship signal (which work was on which feature line), while the remote consolidates to `main`. The colon syntax lets a single repo have multi-named local branches all targeting one canonical remote.
+
+3. **Commit size signal**: Jarvis commit is 556 insertions / 1130 deletions across 65 files — the 2:1 delete:insert ratio is the perl `-i -pe` signature, since each substituted line is replaced wholesale (line out + line in) even when the actual change is a 3-char swap. Useful diagnostic: if you ever see a *suspicious* delete-heavy diff in a sed-driven commit, the ratio confirms it's substitution-pattern not content-loss.
+
+### 2026-05-12 [2c9d10e88bd8]
+
+The diagnostic principle here is **historical vs operational document status**: a milestone-decision-record like the 2026-05-04 executive report should not be backdated; its value is preserving what was decided at decision-time. An operational tracking doc like the workstream architecture v1.4 SHOULD be updated, because future readers consult it for "what's the current state?" The cleavage matters — overwriting historical decisions erases the audit trail of how the project actually evolved.
+
+### 2026-05-12 [9923a93c3eaf]
+
+The most useful diagnostic the review surfaced: **Project Aion is currently in a single-merge-gate funnel**. Four distinct workstreams (REO Validate, Phase D follow-on PR, F-1/F-5 fix sequence, future re-cleave-dependent work) all stall behind one external decision: David's review/merge of PR #3. This is healthy concentration of review burden, but it means Sir's allocation choices for the interim period determine throughput — picking unrelated, fully-unblocked work (Watchdog W2/W3, /personas rebuild, JICM v8.0 PTY prototype) maximizes parallel productivity.
+
+### 2026-05-12 [3b54ba185ed0]
+
+The selection logic for what Sir picks next breaks into three buckets by their dependency on the PR-#3-merge gate. Picking from the **fully-unblocked** bucket extracts maximum parallel value during the merge wait. Picking from the **merge-dependent** bucket commits Sir-time but yields nothing until David reviews. Picking from the **observation-only** bucket is the cheapest cost (passive) but produces zero throughput.
+
+### 2026-05-13 [585446038e94]
+
+The audit surfaces a clean dependency map between the persona system and 4 other dashboard surfaces that today live in separate IA silos: (1) **/reviews** consumes ai-reviewer's `learned-patterns.yaml` curation outputs; (2) **/jobs** maps 8 of 33 personas to scheduled cron jobs; (3) **/reo** stores decision_events emitted by ~6 personas (executor, diagnose, reviewer, evaluator); (4) **/cortex** acts as a meta-persona that monitors all the others. The /personas rebuild is naturally the **hub** of this graph — every other surface deep-links here for "who is this persona?" The current implementation is a flat alphabetical list precisely because it was never positioned as the hub.
+
+### 2026-05-13 [0ed9e3442bb2]
+
+- **Root cause of the original incident was a learnable one.** Running `docker compose down` (or any halt sequence) in `AIFred-Pro-Dev/` without `-f docker-compose.yml -f docker-compose.dev.yml` will read the base PROD compose file and may produce confusing behavior. Same trap on `up`. Worth a one-line addition to the halt-aifred-pro runbook: **dev stack invocations require both compose files, override pattern, every time.** Could also be solved by a `Makefile` or `.envrc` setting `COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml` for the directory.
+- **The pipeline-restart symptom is most likely a startup-order race** rather than a code bug — `aifred-dev-pipeline` came up before some dependency settled. The clean check is `docker logs aifred-dev-pipeline --tail 50`; if the error is connection-refused to another service, a single `docker compose -f ... -f ... restart aifred-dev-pipeline` (after the other services are healthy) usually clears it.
+
+### 2026-05-13 [9417b703c9b2]
+
+The design surfaces an architecturally significant consolidation: the `/personas` page is not just one of 35 dashboard surfaces — it's the **hub-of-hubs** for the persona graph. Every cross-mode deep-link from /reo, /jobs, /reviews, /observability, /cortex resolves here. That makes Phase 1 doubly load-bearing: it ships the priority-#1 feature AND establishes the deep-link substrate that Phase 4's per-page wiring sweep will repeatedly consume. Investing in clean cross-link semantics here pays compound dividends through the rest of the trajectory.
+
+### 2026-05-13 [847aa4a5fc79]
+
+The four-version evolution of this doc (brainstorm → audit-corrected → scope-expanded-per-directive → tier-finalized-and-audit-integrated) illustrates a working pattern: each round narrowed the design surface by eliminating ambiguity, not by adding constraints. v4's tier list (4/2/1/25) has fewer locked personas than v3's (14/1/6/11) yet stronger semantics — because the boundary is mechanically derived from "exclusively internal" code analysis rather than name-pattern intuition. Similarly, the audit-grounded tech stack (Canvas + d3-force + CSS sprites) replaces v3's tentative library names with patterns that 8 production repos have already validated. The 10-tab "overbuild" is risky — Sir explicitly invited it, and sub-phased build gates mean any subset can ship if scope tightens during execution.
