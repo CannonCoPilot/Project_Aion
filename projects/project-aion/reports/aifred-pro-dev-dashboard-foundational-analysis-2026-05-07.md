@@ -1,9 +1,10 @@
 ---
 title: Alfred-Dev Dashboard — Foundational Analysis
 date: 2026-05-07
+last_updated: 2026-05-12
 project: Alfred-Dev
 audience: Sir, future-Jarvis
-status: APPROVED-PENDING-IMPL (decisions captured 2026-05-11; see §11)
+status: APPROVED-IMPL-PR-PENDING-MERGE (M1+M2+M3 SHIPPED 2026-05-11 on Alfred-Dev `nate-dev` as commits `d001c75`/`fc1546f`/`fcf62df`; PR opened 2026-05-12 as `davidmoneil/AIFred-Pro#3` — A1 scope, 110-commit batch; awaiting David's review/merge. Status flips to APPROVED-IMPLEMENTED when PR merges. See §11 for ratified decisions.)
 context: Captured from a 2026-05-07 session conversation immediately following dev-env Path 1 (vite hot-reload sidecar, commit 23e838c) and Path 2 (cross-contamination fix, commit faa9406). Sir paused REO Validate to ask the foundational IA question — "what are we actually building, and how should /decisions, /reo, /reviews, /tasks, /board, /nexus-ops, /findings, /personas, /report, /observability, /pipeline, /health (and the rest) come together?" Decisions returned 2026-05-11; ratified positions recorded in §11. Implementation plan: ../plans/aifred-pro-dev-dashboard-recleavage.md.
 related:
   - reviewer-foundational-reexamination-2026-05-07.md (precedent — session-10 reframe used the same approach)
@@ -369,8 +370,10 @@ REO Harden H5 (feedback connector backend) still recommended as parallel-write t
 
 ### 11.9 What this analysis becomes now
 
-Status flips from DRAFT to **APPROVED-PENDING-IMPL**. The implementation plan-of-record (`../plans/aifred-pro-dev-dashboard-recleavage.md`) is the next thing to read for execution detail. Once the re-cleave PR lands, status flips to **APPROVED-IMPLEMENTED**, and this document becomes the durable IA reference for Alfred-Dev's dashboard.
+Status flipped from DRAFT (2026-05-07) → **APPROVED-PENDING-IMPL** (2026-05-11, when Sir ratified §11.1-§11.7) → **APPROVED-IMPL-PR-PENDING-MERGE** (2026-05-12, when the re-cleave PR opened as `davidmoneil/AIFred-Pro#3`). All 3 milestones (M1 `d001c75` / M2 `fc1546f` / M3 `fcf62df`) shipped on Alfred-Dev `nate-dev` 2026-05-11 with AC-03 PASS at 4.5/5.0 each. PR scope expanded to A1 (110-commit batch covering all of nate-dev since 2026-04-22, not just re-cleave) per Sir's 2026-05-12 decision — first batch-merge since branch creation. Status flips to **APPROVED-IMPLEMENTED** once David reviews + merges PR #3.
+
+The implementation plan-of-record (`../plans/aifred-pro-dev-dashboard-recleavage.md`) records milestone-by-milestone shipping detail. Two follow-on items were surfaced during M3 in-vivo testing (F-1 approval-gate enforcement and F-5 executor silent-mutation audit) — documented in `m3-pipeline-approval-consumer-audit-2026-05-11.md` Appendix A and queued for a separate post-PR-#3-merge workstream behind Phase D (dispatcher/registry refactor).
 
 ---
 
-*Status: APPROVED-PENDING-IMPL. Implementation plan: `../plans/aifred-pro-dev-dashboard-recleavage.md`.*
+*Status: APPROVED-IMPL-PR-PENDING-MERGE (2026-05-12). Implementation plan: `../plans/aifred-pro-dev-dashboard-recleavage.md`. PR: `davidmoneil/AIFred-Pro#3`.*

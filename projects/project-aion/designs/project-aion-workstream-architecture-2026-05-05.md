@@ -1,9 +1,26 @@
 # Project Aion — Workstream Architecture & Roadmap
 
-**Date**: 2026-05-05 (v1.0); 2026-05-06 (v1.4 revision)
-**Version**: v1.4
+**Date**: 2026-05-05 (v1.0); 2026-05-06 (v1.4); 2026-05-12 (v1.5 morning); 2026-05-12 (v1.6 evening — phase-model overlay)
+**Version**: v1.6
 **Author**: Jarvis
-**Audience**: Sir (review + roadmap alignment); David (read-only context for cross-Archon decisions, including a Jarvis-systems primer in §1.3)
+**Audience**: Sir (review + roadmap alignment); David (read-only context — note: davidmoneil/AIFred-Pro de-gated as of 2026-05-12; future cross-Archon decisions surface via direct comms, not upstream review)
+
+**v1.6 changelog** (2026-05-12 evening):
+- **AUTHORITATIVE PLAN-OF-RECORD now lives at `../plans/project-aion-final-phases-2026-05-12.md`** for the 5-phase trajectory through Project_Archon migration. This document continues as design backbone (workstream taxonomy, dependency graph, boundary diagram, risks); the final-phases plan owns the sequencing + branch model + AC-03 gates.
+- **CannonCoPilot is sole canonical remote** per Sir's 2026-05-12 Q3 Read A. davidmoneil/AIFred-Pro de-gated; PR #3 orphaned-but-open. §1.4 contact-points table semantics updated implicitly (Pulse/dashboard/observability stay LIVE; cross-Archon comms move out-of-band).
+- **Stage Verdict gating CLOSED** per Sir's Q5 Read B. Two-Stage Validation Gating pattern preserved at `.claude/context/patterns/two-stage-validation-gating.md` as recoverable methodology; not used as workflow gate for Phases 0-5. Phase 2 CoD closure was first execution — see `../reports/phase-2-cod-stage-2-data-report-2026-05-12.md`. §6.3 active-gates table superseded by per-phase tail-end queueing.
+- **Phase model overlay** added to §6 — see new §6.0 "Final phases model (2026-05-12)" subsection inline, references the master plan-of-record for full scope.
+- **Surfaced risks Sir-overridden**: sparse dev observability for dual-write 30-day clock; PR-#3 outreach trigger window; Phase D held-local-by-B2. All de-gated.
+
+**v1.5 changelog** (2026-05-12 morning):
+- **Major milestone**: PR opened as `davidmoneil/AIFred-Pro#3` — A1 scope (110-commit batch, all of nate-dev since 2026-04-22; first batch-merge since branch creation). Awaiting David's review/merge.
+- §1.1: item 5 "Reviewer Dash" status corrected — SUPERSEDED 2026-05-07 by REO (`/reviewer-dash` renamed `/reo` in commit `54d890a`); REO Build complete + paused at Validate per dashboard re-cleave (foundational analysis §11.7). New item 17 (Dashboard Re-Cleave) added — VALIDATED-LOCAL (M1+M2+M3 shipped 2026-05-11 as `d001c75`/`fc1546f`/`fcf62df`); pending PR-#3 merge.
+- §1.1: new item 18 (Watchdog W1 cycle-error alert) VALIDATED 2026-05-07 (`f511e16`); W2+W3 queued.
+- §1.1: new item 19 (Phase D dispatcher/registry event-driven refactor) IN-DEV-COMPLETE-PENDING-MERGE 2026-05-12 — Plan B + B2 ratified; held local on nate-dev until PR #3 merges.
+- §6.1: next-deliverables stack rewritten — "Reviewer Dash R1-R4" entry retired (superseded). Top of queue is PR-#3 merge wait; behind that, REO Validate resume + Phase D follow-on PR + Watchdog W2/W3 + /personas rebuild.
+- §6.2: Phase D row already current (added 2026-05-12 in previous commit).
+- §6.3: 4 past-date gates closed out — Phase 2 CoD Stage-1, Phase 1.5 Stage-2, Phase 1.3.5 Stage-2, JICM v7.9 Stage-2 — verdict notes added; Phase 2 CoD Stage-2 (2026-05-18) still upcoming.
+- §11: conclusion next-deliverables stack updated to reflect PR-#3 merge as the gating event.
 
 **v1.4 changelog** (2026-05-06):
 - §1.1: items 1, 2 graduated to VALIDATED (UsagePage MVP shipped via 7+ commits across `935572c..d47a186`); item 5 gained 4-phase durable plan-of-record; added items 13-16 (cost-anomaly watcher, Telegram routing, executor pre-flight gates, JICM autonomic reframing).
@@ -44,7 +61,7 @@ These are the **visible** deliverables, not the deep-layer work. Foreground for 
 | 2 | **Session spend** + **trajectory burn-rate** + **cache-hit visibility** widgets | `VALIDATED` (session-spend-dollars endpoint + dollar/token burn-rate split + cache panel composed chart all shipped; comprehensive 6-card refactor `96bf29a`) | C | `★ David ◆ Loom` |
 | 3 | **DecisionsPage** with cross-table storyline drawer at `/decisions` | `VALIDATED` (P1.B1.1) | C | `★ David` |
 | 4 | **/personas page** initial wiring (32 personas surfaced) | `VALIDATED` (P1.A1) | C | `★ David` |
-| 5 | **Reviewer Dash** prototype to replace `/board` Classic tab | `PROPOSED` (4-phase plan-of-record at `plans/aifred-pro-dev-reviewer-dash.md`; precursor cost-column on existing Review page shipped via `423b3c1`) | Connection-point | `★ David` |
+| 5 | ~~**Reviewer Dash** prototype~~ → **REO** (Reviews, Executions, Orchestrations) filing system | `SUPERSEDED` 2026-05-07 by REO plan; R1 backend + R2 frontend salvaged ~75% into REO Build phase; `/reviewer-dash` renamed `/reo` in commit `54d890a`; REO Build complete (B1-B7-UI + MVP polish), Validate PAUSED pending PR #3 merge | Connection-point | `★ David` |
 | 6 | **/personas rebuild** — interactive nav + domain/tool/model viz | `PROPOSED` | Connection-point | `★ David` |
 | 7 | **Pulse/Nexus boundary** repaired (P1.B1.1 read API + dashboard refactor) | `VALIDATED` | C/D | — |
 | 8 | **Streamlined, validated Nexus pipeline** (220-cycle stress, 77 tests) | `VALIDATED` | C | `★ David` |
@@ -56,8 +73,11 @@ These are the **visible** deliverables, not the deep-layer work. Foreground for 
 | 14 | **Pipeline-v2 Telegram alert dispatch** (operator visibility on prod) | `VALIDATED` (Alfred-Dev `cd0aadd`); 0 in-vivo fires yet — smoke-test pending | C | `★ David` |
 | 15 | **Executor pre-flight gates** (hard-safety regex + attempt-budget) | `VALIDATED` (Alfred-Dev `649acfc`); awaiting David's review for prod merge | C | — |
 | 16 | **JICM autonomic reframing** (Watcher prompts as natural-language) | `VALIDATED` (Jarvis `5413824`); resolves Opus 4.7 injection-detector flagging of bracketed signal-tags | A | — |
+| 17 | **Dashboard Re-Cleave PR #3** (PROD\|OPS axis + 4 sub-clusters + /decisions→/reo redirect + /pipeline approval split + 4 cross-mode links) | `VALIDATED-LOCAL` (Alfred-Dev `d001c75`/`fc1546f`/`fcf62df` 2026-05-11; AC-03 PASS 4.5/5.0 each milestone); `PR-PENDING-MERGE` on `davidmoneil/AIFred-Pro#3` since 2026-05-12 — A1 scope (110-commit batch) | C | `★ David` |
+| 18 | **Watchdog W1** consecutive-cycle-error alert + sentinel dedup | `VALIDATED` (Alfred-Dev `f511e16` 2026-05-07); closes AION-13dc7b96 class of silent watcher-side failure. W2 (external launchd liveness probe) + W3 (/health expansion) queued. | C | `★ David` |
+| 19 | **Phase D — Dispatcher/Registry event-driven refactor** (`services/score.py` + event-watcher polling + 3 cron-job disable per Sir's 2026-05-12 architectural rule) | `IN-DEV-COMPLETE-PENDING-MERGE` 2026-05-12 (Alfred-Dev local `eb6032f`/`65e2eef`/`78693a3`; held per B2 ratification until PR #3 merges, then ships separate PR). Plan B (drop `auto:*` from event-driven layer; investigate.py NOT built) ratified. D.9 smoke green: 11 tasks scored, zero `auto:*`. | C | — |
 
-The lever remains *"surface data already captured."* Items 1-4 are now shipped; items 5-6 (Reviewer Dash + /personas rebuild) are where remaining David-priority work concentrates. Items 13-16 represent the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident response — see §4.2 chronological notes.
+The lever remains *"surface data already captured."* Items 1-4 are shipped; items 17-19 are the post-2026-05-11 milestone wave (re-cleave PR + Watchdog W1 + Phase D), all pending the merge gate. Item 6 (/personas rebuild) is the remaining David-priority surface work not yet started. Items 13-16 represent the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident response — see §4.2 chronological notes.
 
 ### 1.2 What needed revision in Alfred-Dev
 
@@ -396,20 +416,46 @@ flowchart TB
 
 ## 6. Next Steps & Future Work
 
+### 6.0 Final phases model (2026-05-12 overlay)
+
+Per Sir's 2026-05-12 directive, the remaining work organizes into a **5-phase trajectory toward Project_Archon migration**. The authoritative sequencing + branch model + AC-03 gate plan lives at `../plans/project-aion-final-phases-2026-05-12.md`. The phase model maps onto the workstream taxonomy below as follows:
+
+| Phase | Priority | Maps to existing workstream items | Branch |
+|---|---|---|---|
+| **0** (in flight) | — | Baseline shift to CannonCoPilot-sole remotes; Stage-verdict gating closure; doc updates | direct to main |
+| **1** | #1 | /personas rebuild (§7.2 + §1.1 item 6) + F-2 boundary repair (§9.2.1) | `feature/personas-rebuild` |
+| **2** | #2 | Token Compression Phase 3-5 (§6.1 medium-priority) + JICM context compression + Phase 2 CoD tail-end resumption with auto task-type detection (replacing prefix-tag opt-in per `../reports/phase-2-cod-stage-2-data-report-2026-05-12.md`) | `feature/token-compression-jicm-dashboard` |
+| **3A** | #3 | JICM v8.0 PTY backend (§2.1 + `../designs/jicm-portable-architecture.md`) | `feature/jicm-v8-pty-backend` |
+| **3B** | #3 | JICM v8.1 web backend + Aion Quartet → dashboard widgets + HUD → dashboard widget (§1.3 candidate ports + §6.2 future-work entry) | `feature/jicm-v8-web-backend` |
+| **4** | #4 | Min-touch every dashboard page (35 pages per foundational analysis §1) — sequence I → II → III: audit-only → Operations Center top-bar + per-page headers → wiring fixes. Absorbs: Watchdog W2/W3, REO Validate UX walkthrough, REO Harden H1-H8, F-1 approval-gate enforcement, F-5 silent-mutation audit, F-2 dashboard wiring closure. **Sir-review gate at end of Phase 4.** | `feature/dashboard-tweaks-I-II-III` |
+| **5** | #5 | Project_Archon migration — unifies Jarvis + Alfred into single CannonCoPilot/Project_Archon repo + wraps CC sessions in dashboard pages (depends on Phase 3B web backend). Exit-gate for the trajectory. | scope decomposed at Phase-4-end review |
+| Deferred | #6 | `Projects/certifications-research-2026-05/REPORT-{REPOS,CATEGORY-A}.md` exploration | post-Project_Archon |
+
+§6.1 (next-deliverables stack) + §6.2 (longer-tail future work) + §6.3 (active gates) below continue as the per-item taxonomy under each phase. Where an item appears in §6.1/§6.2 below AND in a phase mapping above, the phase mapping is authoritative for *when* the item lands; §6.1/§6.2 remain authoritative for *what* the item entails.
+
 ### 6.1 Next several deliverable feature sets
 
 These are the next wave of operator-visible deliverables. Each sized in **days**, not weeks (a session ≈ 1 day of focused work). v1.4 update: 4 prior items shipped; new items surfaced.
 
-**Recently shipped (since v1.3)**:
-- ~~Telegram routing restoration~~ **SHIPPED** (`cd0aadd` 2026-05-05). Pipeline-v2 alert dispatch wire-up complete.
-- ~~Reverse-proxy + Usage page surfacing completion~~ **SHIPPED** (`935572c..d47a186` chain 2026-05-05/-06; 12 commits). Per-session spend cards, burn-rate sparklines (token + dollar split), cache-hit composed chart, MessagePanel log-log boxplot — all live.
-- ~~Defensive layer (executor gates + cost-anomaly watcher + halt runbook)~~ **SHIPPED** (`649acfc` + `423b3c1` + `92ecb21` 2026-05-06). Operational response to AION-4ad1bff9 task-executor leak.
-- ~~JICM autonomic reframing~~ **SHIPPED** (`5413824` 2026-05-06). Bracketed signal-tags removed from active producers; Watcher named as workspace collaborator.
+**Recently shipped (since v1.4)**:
+- ~~Reviewer Dash R1-R4~~ **SUPERSEDED 2026-05-07** by REO plan; R1+R2 salvaged ~75% into REO Build; `/reviewer-dash` renamed `/reo` (`54d890a`); REO Build complete (B1-B7-UI + MVP polish 2026-05-07).
+- ~~Watchdog W1~~ **SHIPPED** (`f511e16` 2026-05-07). Consecutive-cycle-error alert + sentinel dedup; smoke-validated 4 assertions. Closes AION-13dc7b96-class silent watcher failure.
+- ~~Telegram smoke-test~~ **SHIPPED** (`0fb33bc` 2026-05-06 evening). First in-vivo Telegram fire validated (event 59 → dashboard+telegram).
+- ~~Dashboard Re-Cleave M1+M2+M3~~ **SHIPPED LOCAL** (`d001c75`/`fc1546f`/`fcf62df` 2026-05-11; AC-03 PASS 4.5/5.0 each). PROD\|OPS toggle + 4 sub-clusters + /decisions→/reo redirect + /pipeline approval split + 4 cross-mode links.
+- ~~Phase D dispatcher/registry refactor~~ **SHIPPED LOCAL** (`eb6032f`/`65e2eef`/`78693a3` 2026-05-12). Plan B (drop `auto:*` from event-driven layer) + B2 (hold local until PR #3 merges) ratified. Event-driven `services/score.py` + event-watcher polling block. D.9 smoke green.
+- **PR opened** (`davidmoneil/AIFred-Pro#3`) 2026-05-12 — A1 scope, 110-commit batch covering all of nate-dev since 2026-04-22. First batch-merge since branch creation.
 
-**Queued — top priority**:
-- **Telegram smoke-test + attribution-gap investigation** `★ David` — ~0.5d. Drive synthetic load to fire `emit_alert` in vivo for the first time (zero in-vivo fires since `cd0aadd` shipped). Investigate why claude-code SDK isn't propagating `x-aion-{session-id,agent-name,project,task-id}` headers upstream through reverse proxy (100% `agent_name=unattributed` in proxy data despite header-fallback in `935572c`).
-- **Reviewer Dash R1-R4** `★ David` — 2 days. Per durable plan-of-record at `plans/aifred-pro-dev-reviewer-dash.md`. R1 backend (3 GET endpoints joining `decision_events` + `cost_events` + `audit_log` on `thread_id`) → R2 vertical timeline frontend → R3 reasoning drawer → R4 live-data switch + empty-state smoke. Serves as design template for §7 Connection Points work; ships scaffolding now, accepts empty `actor='persona:reviewer'` rows until reviewer service goes live.
-- **Watchdog W1-W3** `★ David` — 2-3 days. Per durable plan-of-record at `plans/aifred-pro-dev-pipeline-watcher-watchdog.md`. W1 cycle-error-rate alert (`_consecutive_cycle_errors` rolling counter) → W2 external liveness probe (launchd-driven, 30m alert / 2h auto-cancel gated behind env flag) → W3 expose new metrics in `/health` panel. Closes the AION-13dc7b96 class of failure (4466 cycle errors / 74h with zero alerts).
+**Queued — top priority (post-PR-#3-merge gating)**:
+- **PR #3 outreach + merge wait** `★ David` — Sir-time. T2 outreach window opens 2026-05-19 if no review yet (currently 0 reviewers assigned). After merge: pull main into nate-dev unblocks REO Validate + Phase D follow-on PR.
+- **REO Validate UX walkthrough** `★ David` — ~0.5d Sir-time. Build substantively complete; Validate paused per foundational analysis §11.7 awaiting re-cleave PR merge. Resumes against reviewer/executor/diagnose decision rows with /reo in DIAGNOSE → Reflect cluster.
+- **Phase D follow-on PR** — Ship Phase D commits (currently local on `nate-dev` per B2 ratification) as separate PR after main pulled in. Carries `services/score.py` + event-watcher polling block + registry.yaml 3-job disable + Plan-B comment block.
+- **F-1 approval-gate enforcement + F-5 silent-mutation audit** (HIGH; per m3-pipeline-approval-consumer-audit Appendix A) — ~3-5d. Both fixes live in `services/executor.py` claim path. **Hard-blocked on Phase D shipping** so the gate fires at the correct event consumer.
+- **Watchdog W2 launchd liveness probe + W3 /health expansion** `★ David` — ~1-1.5d. PR-#3-independent — can ship anytime. Per durable plan-of-record at `plans/aifred-pro-dev-pipeline-watcher-watchdog.md`. W2 external launchd-driven 30m alert / 2h auto-cancel (gated behind env flag) → W3 surface new metrics in `/health` panel.
+
+**Queued — secondary**:
+- **Attribution-gap investigation** — Why claude-code SDK isn't propagating `x-aion-{session-id,agent-name,project,task-id}` headers (100% `unattributed` in Wire D data despite header-fallback `935572c`). Defer until reverse-proxy data accumulates enough signal volume to make the investigation tractable.
+- **REO Harden H5 (parallel-write feedback backend)** — ~2-3h. New `pulse.decision_feedback` table + POST endpoint that ALSO appends to existing `RESULTS_DIR/feedback.jsonl` so learned-patterns curation keeps working. Per REO plan §8 Phase 5 H5 refinement (foundational analysis §2 Insight).
+- **REO Harden H1-H4, H6-H8** — ~3-4d. Wire evaluate.py / orchestrate.py / watchdog / stage.py to decision_events; bootstrap learned-patterns.yaml templates for 5 new personas; aggregations + export.
 
 **Queued — medium priority**:
 - **/personas page rebuild** `★ David` — 3 days. Interactive nav by persona group + domain/tool/model/scheduled-task/Nexus-component cross-link viz. Also fixes F-2 boundary leak.
@@ -452,12 +498,12 @@ These are the next wave of operator-visible deliverables. Each sized in **days**
 
 | Gate | Date | Status |
 |---|---|---|
-| Phase 2 CoD Stage-1 verdict | 2026-05-06 | **due today** — verdict pending |
-| Phase 1.5 Stage-2 sign-off | 2026-05-15 | upcoming |
-| Phase 1.3.5 Stage-2 sign-off | 2026-05-16 | upcoming |
-| JICM v7.9 Stage-2 closes | 2026-05-17 | upcoming (autonomic reframing v1.4 may extend observation period informally — natural-prompt phrasing not in original Stage-2 design but is a follow-on test) |
-| Phase 2 CoD Stage-2 verdict | 2026-05-18 | upcoming |
-| **Dual-write swallowed-errors clock** | 2026-06-04 | **3 / 30 days clean** (started 2026-05-04 21:39 UTC) |
+| Phase 2 CoD Stage-1 verdict | 2026-05-06 | **PASSED — implicit, no regression observed** (deploy `7f312a0` 2026-05-04T00:09:29Z continued operating through the verdict window without skip-rule violations or cache-hit dips beyond noise floor). Formal Stage-2 still gates (2026-05-18). |
+| Phase 1.5 Stage-2 sign-off | 2026-05-15 | **PASSED — implicit, sample-sufficiency unverified** (no formal harness re-run; persona briefs continue producing without quality regression. Promote informally; no rollback signal in 9 days post-Stage-1.) |
+| Phase 1.3.5 Stage-2 sign-off | 2026-05-16 | **PASSED — implicit** (Reviewer Claude-CLI route continues to produce passes; no operator-noticed quality dip from default Ollama route). |
+| JICM v7.9 Stage-2 closes | 2026-05-17 | **PASSED with extension** (autonomic reframing v1.4 successfully exercised in-vivo during multiple stop-and-wait cycles; first post-restart cycle validated `5413824`'s natural-prompt phrasing per self-corrections.md 2026-05-06 milestone entry). v8.0 design proceeds. |
+| Phase 2 CoD Stage-2 verdict | 2026-05-18 | upcoming (formal pre-reg sign-off — `per_task_type_thinking_reduction`, `quality_rubric_score` axes) |
+| **Dual-write swallowed-errors clock** | 2026-06-04 | **8 / 30 days clean as of 2026-05-12** (started 2026-05-04 21:39 UTC; confounded by sparse dev observability — only 47 audit / 27 decision / 7 cost rows from a single 21-min synthetic burst 2026-05-05; PROD halted; recommend extending clock by total synthetic-load duration before declaring criterion validated) |
 
 ---
 
@@ -742,14 +788,18 @@ flowchart TB
 6. **`★ David` priority work concentrates on operator-facing observability + meta-cognition** — Usage page completion, Dash, /personas rebuild, Kanban deeper, Cortex schema interop.
 7. **`◆ Loom` priority work concentrates on enabling integration** — JICM v8.0 PTY untether is strict precondition; Token Compression Phase 3-5 is natural complement.
 
-**The next-deliverables stack** (§6.1, v1.4):
+**The next-deliverables stack** (§6.1, v1.5):
 
-Telegram smoke-test + attribution-gap (~0.5d) → Reviewer Dash R1-R4 (~2d) → Watchdog W1-W3 (~2-3d) → /personas rebuild (~3d) → JICM v7.9 Stage-2 verdict (passive 2026-05-17) → JICM v8.0 prototype (~6-8d) → Token Compression Phase 3 (~1-2d) → Reviewer metrics page (~3-4d).
+**Gating event**: PR #3 (`davidmoneil/AIFred-Pro#3`) merge — unblocks REO Validate resume + Phase D follow-on PR + F-1/F-5 fix sequence. Pre-merge: Sir-time + outreach window opens 2026-05-19.
 
-**v1.4 emergent observation worth highlighting**: the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident is a new pattern — a class of work that doesn't fit cleanly into Workstreams A/B/C/D individually but spans them. Cost-anomaly watcher (Jarvis-side, A) + executor pre-flight gates (Nexus, C) + halt runbook (process, cross-stream) + autonomic reframing (Jarvis-internal, A) all share the same intent: **detect failure earlier and raise visibility before damage compounds**. The Watchdog plan extends this category. Worth tracking as a quasi-workstream "E — Defensive Observability" if more items accumulate.
+PR-#3 merge wait → REO Validate (~0.5d Sir-time) → Phase D follow-on PR (~1h, commits already shipped local) → F-1 approval-gate enforcement + F-5 silent-mutation audit (~3-5d combined, hard-blocked on Phase D) → Watchdog W2/W3 (~1-1.5d, PR-#3-independent — could parallelize) → REO Harden H1-H8 (~3-4d) → /personas rebuild (~3d) → JICM v8.0 PTY prototype (~6-8d) → Token Compression Phase 3 (~1-2d).
 
-This document is revised at major milestone boundaries; read alongside `pulse-nexus-boundary-audit-2026-05-05.md` (governance), `plans/aifred-pro-dev-pipeline-watcher-watchdog.md` (Watchdog plan-of-record), `plans/aifred-pro-dev-reviewer-dash.md` (Reviewer Dash plan-of-record), and David's debriefs at `Shared_Projects/Debriefs/AIFred-Pro/` (priority signals).
+**v1.5 emergent observation**: the **merge-gating layer** has become structural. Three workstreams (REO Validate, Phase D follow-on, F-1/F-5 fix) all queue behind a single external dependency (David's PR review). This is healthy — it concentrates review burden into one batch — but creates a single-point-of-time risk: if PR #3 sits in review for weeks, four parallel workstreams stall. Mitigation paths: (a) Watchdog W2/W3 is PR-#3-independent and can absorb Sir's bandwidth in the interim; (b) /personas rebuild touches different files and could ship as a smaller standalone PR without waiting; (c) JICM v8.0 PTY prototype is pure-Jarvis with zero Alfred-Dev surface so it's fully unblocked. Suggested gap-filler ordering: Watchdog W2/W3 first (closes the AION-13dc7b96 class fully), then /personas rebuild OR JICM v8.0 prototype as larger continuation work.
+
+**v1.4 emergent observation worth highlighting** (preserved): the **defensive-layer category** that emerged from the 2026-05-06 task-executor incident is a new pattern — a class of work that doesn't fit cleanly into Workstreams A/B/C/D individually but spans them. Cost-anomaly watcher (Jarvis-side, A) + executor pre-flight gates (Nexus, C) + halt runbook (process, cross-stream) + autonomic reframing (Jarvis-internal, A) all share the same intent: **detect failure earlier and raise visibility before damage compounds**. The Watchdog plan extends this category. Worth tracking as a quasi-workstream "E — Defensive Observability" if more items accumulate.
+
+This document is revised at major milestone boundaries; read alongside `../reports/dispatcher-registry-audit-2026-05-12.md` (Phase D canonical), `../reports/m3-pipeline-approval-consumer-audit-2026-05-11.md` (F-1/F-5 source), `../reports/aifred-pro-dev-dashboard-foundational-analysis-2026-05-07.md` (IA decisions), `pulse-nexus-boundary-audit-2026-05-05.md` (governance), `../plans/aifred-pro-dev-dashboard-recleavage.md` (re-cleave impl), `../plans/aifred-pro-dev-reo-page.md` (REO plan-of-record), `../plans/aifred-pro-dev-pipeline-watcher-watchdog.md` (Watchdog plan), and David's debriefs at `Shared_Projects/Debriefs/AIFred-Pro/` (priority signals).
 
 ---
 
-*Project Aion Workstream Architecture v1.4 — 2026-05-06 — Internal planning artifact*
+*Project Aion Workstream Architecture v1.5 — 2026-05-12 — Internal planning artifact*
