@@ -1,9 +1,10 @@
 # Pipeline-Watcher Watchdog — Implementation Plan
 
-**Status**: drafted, not started
+**Status**: W1 SHIPPED 2026-05-07 (commit `f511e16` on Alfred-Dev `nate-dev`); W2 + W3 pending (PR-#3-independent — can resume anytime)
 **Target repo**: Alfred-Dev (`nate-dev` branch)
-**Effort**: 2-3 days across 3 phases
+**Effort**: 2-3 days across 3 phases (W1 used ~0.5d)
 **Created**: 2026-05-06
+**Last updated**: 2026-05-12
 **Tag**: `[Nexus]` (modifies `.claude/jobs/pipeline-watcher.py` + dashboard `/health` panel)
 
 ---
@@ -51,7 +52,9 @@ Two independent failure-detection paths, each with its own alert channel and ded
 
 ## 4. Phases
 
-### W1 — Cycle-error-rate alert (0.5-1d)
+### W1 — Cycle-error-rate alert (0.5-1d) — **SHIPPED 2026-05-07 (commit `f511e16` on nate-dev)**
+
+Smoke-validated 4 assertions; consecutive-cycle-error alert + sentinel dedup wired. Activates the durable watcher-side health signal that AION-13dc7b96 demonstrated was missing.
 
 **Deliverables**:
 - New module-level counter `_consecutive_cycle_errors: int = 0` in `pipeline-watcher.py`

@@ -1,10 +1,16 @@
 # Reviewer Dash — Implementation Plan
 
-**Status**: drafted, not started
+**Status**: **SUPERSEDED 2026-05-07** by REO plan (`aifred-pro-dev-reo-page.md`) per Sir's critical re-think directive. R1 backend (commit `fcb282a`) + R2 frontend (commit `abebfc0`) on `nate-dev` were salvaged into REO Build phase (~75% reuse: R1 endpoints kept, R2 frontend generalized + renamed `/reviewer-dash` → `/reo` in commit `54d890a`). This plan is preserved intact below as the architectural antecedent and as the source of two factual errors caught by `reviewer-foundational-reexamination-2026-05-07.md`.
 **Target repo**: Alfred-Dev (`nate-dev` branch)
-**Effort**: 2 days across 4 phases
+**Effort**: 2 days across 4 phases (now obsolete — REO plan replaces)
 **Created**: 2026-05-06
+**Superseded by**: `aifred-pro-dev-reo-page.md`
+**Reframe analysis**: `../reports/reviewer-foundational-reexamination-2026-05-07.md`
 **Tag**: `[Boundary]` (adds Pulse READ endpoints + new dashboard tab)
+
+---
+
+> **⚠ HISTORICAL**: Content below preserved verbatim. Two factual errors (reviewer.py does NOT emit `decision_events` initially; the four `*-reviewer` personas share only a suffix, not a schema) were caught during the 2026-05-07 reframe. Read `reviewer-foundational-reexamination-2026-05-07.md` for the correction trail and the resulting REO plan for the current direction.
 
 ---
 

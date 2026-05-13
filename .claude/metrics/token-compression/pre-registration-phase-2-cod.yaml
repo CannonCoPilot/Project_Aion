@@ -215,18 +215,30 @@ rollback:
 # === OUTCOME ===
 
 outcome:
-  status: STAGE_1_DEPLOYED                # cod-inject.sh registered in UPS chain 2026-05-04T00:09:29Z
-  result_report: TBD                      # set when Stage-1 verdict drafted
-  closed_at: null
+  status: STAGE_2_NO_DATA                 # closed early 2026-05-12 per Sir's directive to end Stage Verdict gating
+  result_report: projects/project-aion/reports/phase-2-cod-stage-2-data-report-2026-05-12.md
+  closed_at: 2026-05-12
   reason: |
-    Filed pre-deploy 2026-05-03. Stage-1 deploy occurred 2026-05-04T00:09:29Z
-    via cod-inject.sh registration in .claude/settings.json UPS chain
-    (position #2, immediately after jicm-gate.sh). 48h regression-catch window
-    runs through 2026-05-06T00:09:29Z; Stage-2 14d formal sign-off window
-    runs through 2026-05-18T00:09:29Z. Tasks 2.1.b (single-line CoD validation),
-    2.2 (per-task-type fewshots), 2.4.c (cache-telemetry-extractor extension
-    for usage.thinking_tokens), and 2.5 (CoD vs baseline benchmark) remain
-    pending; Stage-2 verdict computation requires 2.4.c at minimum.
+    Filed pre-deploy 2026-05-03; deployed 2026-05-04T00:09:29Z; closed early
+    2026-05-12 per Sir's directive ("cut short any Stage Verdict gating,
+    ending them as of now, with reports produced from data as-is"). 8 days
+    of deployment yielded ZERO in-vivo production invocations of CoD — the
+    cod-inject.log contains only 16 entries from 2026-05-03T23:09Z to
+    2026-05-04T00:27Z, all explicitly marked session=smoke-* or session=diag
+    (wiring-validation traffic). Root cause: the deployed hook uses prefix-tag
+    opt-in gating (`[task: <type>]` prefix required) which is safety-first
+    but data-poor; no end-user prompt across the window carried the prefix.
+    The intended Stage-2 instrumentation (Tasks 2.1.b smoke-extension, 2.2
+    per-task-type fewshots, 2.4.c usage.thinking_tokens extractor extension,
+    2.5 CoD vs baseline benchmark) was sequenced behind Stage-1 verdict
+    which never wrote, so the evidence-gathering path stalled. cod-inject.sh
+    removed from settings.json UPS chain 2026-05-12 (backup at
+    .claude/settings.json.pre-cod-disable-2026-05-12); hook source preserved
+    at .claude/hooks/cod-inject.sh as deployed-but-disabled artifact for
+    future re-enablement during Phase 2 Token Compression workstream resumption.
+    Hypotheses untested but not invalidated; queued forward to tail-end of
+    Phase 2 with a different gating mechanism (automatic task-type detection
+    replacing prefix-tag opt-in).
 
 # === CROSS-REFERENCES ===
 
