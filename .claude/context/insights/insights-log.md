@@ -7166,3 +7166,51 @@ The design surfaces an architecturally significant consolidation: the `/personas
 ### 2026-05-13 [847aa4a5fc79]
 
 The four-version evolution of this doc (brainstorm → audit-corrected → scope-expanded-per-directive → tier-finalized-and-audit-integrated) illustrates a working pattern: each round narrowed the design surface by eliminating ambiguity, not by adding constraints. v4's tier list (4/2/1/25) has fewer locked personas than v3's (14/1/6/11) yet stronger semantics — because the boundary is mechanically derived from "exclusively internal" code analysis rather than name-pattern intuition. Similarly, the audit-grounded tech stack (Canvas + d3-force + CSS sprites) replaces v3's tentative library names with patterns that 8 production repos have already validated. The 10-tab "overbuild" is risky — Sir explicitly invited it, and sub-phased build gates mean any subset can ship if scope tightens during execution.
+
+### 2026-05-13 [03c2459bdd10]
+
+Two architectural patterns proved out this session worth noting: (1) **Substrate-enforced tier-gating via Axiom A** — UI affordances reflect tier but the DB+API layer refuses violations regardless of UI state, making security a property of the system rather than a property of the UI. Smoke-tested with `curl -X PUT .../personas/autofix-executor/prompt` returning HTTP 403 "Tier A read-only" with no UI involvement. (2) **Boundary-preserving event flow** — the observation tunnel writes through `POST /api/v1/observations` rather than direct DB access, even though it lives in the same workspace as Pulse. This means the tunnel can be redeployed independently and the boundary contract is documented in the audit-log of HTTP calls, not in shared schema knowledge.
+
+### 2026-05-13 [443e1c65b9e5]
+
+Item 7 (F-2 dashboard refactor) turning out to be already-shipped from commit `66885bb` (P1.B1.1 workstream) is a useful pattern lesson: before doing infrastructure refactoring work, grep first. The active-plan had noted `66885bb` as "SHIPPED in prior session" — I read past that signal when first listing the 8 Phase 1.1 items. A 30-second `grep -rln "pg.Pool"` would have caught this earlier. Filing under "verify state before committing to work" — connects to the 2026-05-06 self-correction on plan-of-record codifying stale mental models.
+
+### 2026-05-13 [bd565c590c24]
+
+**Tier-gating verification PASSED end-to-end via the proxy chain (vite → dashboard → pulse → DB)**. Both Tier A and Tier B return HTTP 403 with the exact substrate-enforced message ("Tier X personas are read-only for field 'prompt'. Edit filesystem + git commit instead."). Tier C accepts the write and returns version_id=2 with fs_synced=true — meaning the bind-mount is doing its job. **One side-effect to address**: I just wrote a smoke prompt to librarian as the active version. Need to either restore the original or document this as the new state.
+
+### 2026-05-14 [4522805caf89]
+
+**Five distinct Phase 1.2 milestones shipped this session in a single autonomic continuation**: the resume protocol caught a JICM compressor hallucination (claimed "complete" when Phase 1.2 hadn't started), pre-work for the substrate (volume mount + 29-persona schema migration + cron disable + executor verification) anchored on the bind-mount architecture, four feature commits built the Core surfaces (List + Detail Panel + Matrix + Graph + +New) against an enriched detail endpoint, and tier-gating substrate-enforcement was end-to-end-verified (Tier A/B → 403, Tier C → 200). The architectural pattern of **single fat-GET detail endpoint** (one TanStack Query hydrates 8 sub-tabs vs N parallel queries) and the **dashboard catch-all proxy** (`/api/v1/*` → pulse passthrough, preserving the dashboard ↔ pulse boundary even when most logic lives in pulse) are both worth carrying forward to future surfaces. The Canvas+d3-force-bloom deferral (using @xyflow/react for now) is the right pragmatic call — Phase 1.2 ships at the §8.3 gate with React Flow; the bloom-renderer can be a fidelity-not-function polish later.
+
+### 2026-05-14 [4902cdeafce2]
+
+**The WebSocket routing decision is the only non-trivial architectural choice remaining**. The dev-pragmatic path (direct-to-pulse + CORS allowlist) ships in ~15 min but creates a transient boundary-violation that needs cleanup before prod. The boundary-preserving path (vite `ws: true` + dashboard fastify WS proxy + dashboard-to-pulse WS forward) takes ~45-60 min but ships clean. **My ratified call: dev-pragmatic now, queue the dashboard WS proxy as a Phase 1.4 cleanup item alongside the Canvas+d3-force-bloom migration**. This matches the pattern we've already accepted for permissions backfill and ruamel.yaml migration — known trade-offs documented, recovery path queued.
+
+### 2026-05-14 [8bf1834e0c86]
+
+**The procedural asymmetry working in your favor.** UI investigators code aggressively because their workflow expects you to respond to the RFI and explain. When you don't respond (whatever the reason — Message Center wasn't checked, no email alert arrived), the determination issues on the **worst presumption available**. The appeal exists precisely to put back what the missed RFI would have explained. The ALJ applies the regulation, not the investigator's gut.
+
+### 2026-05-14 [65b5cd5a3886]
+
+**Why hearings are phone-only but in-person attempts still help.** UI hearings moved to phone-only years ago for cost and statewide caseload reasons. But the ALJ reads the full case file before the hearing — including contact logs showing in-person Employment Center visits, calls to ULS, calls to the investigator. Those entries paint a picture of a claimant engaging in good faith. That picture matters specifically because the question at issue is **intent**.
+
+### 2026-05-14 [b6c36da2693b]
+
+**The most important shift in your case from this new information**: the $350 figure was NOT a misreport of historical wages — it was a projection of *future* wages for a partial week you hadn't yet finished working, calculated on the day you filed (11/7, before the week was over). You correctly estimated a daily rate × 3 days, then made a transcription error entering just the daily figure instead of the multiplied total. That is the textbook definition of "inadvertent error" — the exact carve-out language in R994-406-401. This is materially stronger than a generic "I reported in good faith" defense because the mechanism of the error is concrete, documented, and arithmetically transparent.
+
+### 2026-05-14 [373f01b1c702]
+
+**The most important structural improvement**: the original framing put weight on TSG's $1,706 being potentially over-reported. You correctly pushed back that this is unlikely to yield material relief. The revised framing puts the weight where the regulation actually opens the door — the inadvertent-error carve-out at R994-406-401. Your projection-error story fits that language unusually well because (a) you were projecting future wages, not misreporting historical ones, (b) you had a transparent and rational calculation method, (c) the error was arithmetic/transcription, and (d) no concealment motive is supported by your actual claiming behavior. This shifts the appeal from "challenge the overpayment" (hard) to "challenge the intent designation" (achievable).
+
+### 2026-05-14 [34e87d186628]
+
+**Why I recommend BYU tonight even though UI may not be their primary area.** Law-student-staffed clinics often have a wider range of supervising attorneys than their website lists. The Thursday 5/15 window is your only pre-deadline opportunity to get any free legal eyes on this without paying. Even if they can't represent you at the hearing, they can: (a) help you sharpen the appeal narrative before you file Monday, (b) refer you to the right UI practitioner if ULS declines, (c) confirm whether private flat-fee representation is worth pursuing. The downside of attending is ~2 hours of your evening. The downside of skipping is leaving a free legal channel on the table.
+
+### 2026-05-14 [92adc5cee33d]
+
+**Empirical contradiction**: Direct curl with `Origin: http://localhost:8702` + WS upgrade headers got `HTTP/1.1 101 Switching Protocols` + `connected` event. The agent's "HTTP 403" observation was almost certainly a `fetch()`-vs-`new WebSocket()` conflation: `fetch('ws://...')` returns failure at client level (not 403 from server), and the agent likely tested via `fetch` for diagnostic purposes. Pulse-side WS handshake is permissive — no Origin check, no auth required. My hook should work in browser. Verifying via pulse logs to be certain.
+
+### 2026-05-14 [04a81b73f79e]
+
+**Diagnosis confirmed**: Plain GET (no Upgrade headers) to `/api/v1/socket` returns 404, not 403. WS upgrade with proper headers returns 101. Pulse logs show WS connections "[accepted]" — no rejections logged. The agent's "HTTP 403" finding was a misattribution — likely from a browser-context test that conflated some other 403 (perhaps from a fetch shim on an unrelated route). The frontend hook should work in browser. Recording for the AC-03 review packet so the next reviewer doesn't chase a phantom bug.
