@@ -7214,3 +7214,23 @@ Item 7 (F-2 dashboard refactor) turning out to be already-shipped from commit `6
 ### 2026-05-14 [04a81b73f79e]
 
 **Diagnosis confirmed**: Plain GET (no Upgrade headers) to `/api/v1/socket` returns 404, not 403. WS upgrade with proper headers returns 101. Pulse logs show WS connections "[accepted]" — no rejections logged. The agent's "HTTP 403" finding was a misattribution — likely from a browser-context test that conflated some other 403 (perhaps from a fetch shim on an unrelated route). The frontend hook should work in browser. Recording for the AC-03 review packet so the next reviewer doesn't chase a phantom bug.
+
+### 2026-05-14 [acf66b3d19ca]
+
+**Why this email is structured the way it is.** Legal clinics and pro bono intake systems triage in the order: (1) does this fit our practice area, (2) is the deadline actually urgent, (3) is the requester organized enough to be helpable, (4) is the matter winnable. I'm front-loading all four signals in the first paragraph: the matter (UI fraud appeal), the deadline (concrete date), your organization (you have documents and a written narrative), and the legal hook (inadvertent-error carve-out). Supervising attorneys read 30+ intake emails per week; an organized one stands out and gets booked. Wandering "please help me" emails get backburnered.
+
+### 2026-05-14 [81b8e03e32f2]
+
+**Why the family-of-7 framing isn't in this email but should be in the ULS call tomorrow.** BYU Clinic is triaging on legal merit and capacity — your household composition isn't a factor in whether they help. ULS is triaging on income eligibility and capacity — your household composition is *directly* a factor (it shifts the FPL threshold from ~$15K single to ~$60K family of 7). Match the framing to the gatekeeping criteria of the channel you're using. Same matter, different framings depending on what the recipient actually evaluates.
+
+### 2026-05-14 [584d70daa37a]
+
+**The strategic frame for this call.** Ryan has already made his determination — the F coding is in the system, the letter has issued. He almost certainly will NOT reverse himself on this call. So the goal is NOT to win the case here. The goal is to: (a) plant your inadvertent-error narrative in the case file before the appeal, (b) probe procedural questions (opt-out, email notification) on the record, (c) gather information about the source/composition of the $1,706 figure that you'll need at the hearing, and (d) leave Ryan with a clear impression of a good-faith, organized claimant. Anything you say to Ryan can be cited at the appeal hearing — by either side. Treat it as testimony.
+
+### 2026-05-14 [63ef19950df4]
+
+**The hidden value of this call is what shows up at the hearing.** ALJs are required to consider "the conduct of the parties" when evaluating credibility on intent. A claimant who, post-determination, calls the investigator, asks careful questions, follows up with a written statement, attends legal aid, and files a timely appeal is presenting a different credibility profile than a claimant who only surfaces when subpoenaed. None of these things prove your innocence — but they substantially shape the ALJ's read on whether you were operating in bad faith. Be the organized, good-faith claimant. The call records that.
+
+### 2026-05-14 [47d2181c2a9c]
+
+**Why the post-call written statement matters more than the call itself.** Phone conversations are interpreted by everyone present through their own lens; written statements are interpreted only by their text. When the ALJ reads your case file before the hearing, the written statement is what they see — not whatever Ryan wrote down about your phone conversation. A clean, neutral, regulatory-cite-loaded written statement framed as testimony is far more impactful than the best phone call. The call's primary purpose is to *create the opening* for the written statement to be added. The statement does the actual work.
