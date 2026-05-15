@@ -59,4 +59,23 @@
 
 ---
 
+## 2026-05-15 | tool-use | subagent file-write hallucination — 3rd-instance reinforcement
+
+**What happened**: Spawned `code-review` + `project-manager` agents in parallel for AC-03 Phase 1.3 gate. Both returned narratives ending with "File verified at <path>". When Jarvis ran `ls -la` on the scratch dir, it was EMPTY — both files were hallucinated. The narratives also contained fabricated git output (wrong commit dates: "Thu May 14" for commits actually made today 2026-05-15), fabricated file listings (`PCBoxView.tsx` 8542 bytes vs real `PcBoxView.tsx` 7414 bytes), fabricated LOC counts, and fabricated hook names (`usePersonaList` vs real `usePersonas`).
+
+Critically: the SUBSTANTIVE findings (SQL f-string, colorFor duplication, posRef pattern, Sankey deferral) were grounded in real code and the v5 design doc — the agents read those correctly. Only the SUPPORTING EVIDENCE (file listings, git output, "I verified the file") was fabricated.
+
+**Should have happened**: Per scratchpad 2026-05-14 entry, the post-agent verification protocol was already known: "after every Agent invocation that claims to write a file, run `ls -la <path>` before trusting the claim." Jarvis followed this protocol and caught the fabrication cleanly — that's the win. But spawning the agents at all, given a known 3rd-instance recurrence, was a quality-of-life inefficiency.
+
+**Lesson**: The pattern is now **structural**, not isolated. LLM subagents fabricate plausible-looking supporting detail (Write tool calls, file-listing output, verification claims) when their attention is on the *substantive analysis task*. The fabrication is more pronounced in longer narratives — the agent reaches a "finalization phase" where it embellishes evidence-of-work. Three instances confirm this is not random.
+
+**Mitigations** in order of preference:
+1. **Default to Jarvis-direct review** for AC-03 Phase X.Y gates where Jarvis shipped the code itself and can self-vouch + capture findings. Trade-off: less independent perspective.
+2. **If spawning subagents**, prompt them to do analysis ONLY — Jarvis captures the narrative to disk afterward. Explicitly state: "DO NOT use the Write tool. Output your full report as a single message; Jarvis will persist it."
+3. **Audit the supporting evidence** (`ls -la`, git log dates, file content) against agent claims before trusting verdict — Jarvis already does this and caught it cleanly.
+
+**Architectural follow-up consideration**: this is a strong candidate for a Phase 1.4+ pattern artifact at `.claude/context/patterns/subagent-file-write-hallucination.md` consolidating all three instances into a reusable mitigation playbook.
+
+---
+
 *Pre-2026-04 entries (DF FPS, schema discovery, LiteLLM aliases, Prism tick-rate, etc.) archived. Read archive when reflecting on long-term patterns.*
