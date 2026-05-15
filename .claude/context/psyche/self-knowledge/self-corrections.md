@@ -72,11 +72,20 @@
 2. Wrote `.claude/scripts/validate-agent-schemas.sh` — detects malformed `tools:` values across all agent dirs; passes 17/17 files post-fix.
 3. Pattern documented at `.claude/context/patterns/subagent-output-fidelity.md` with canonical schema reference + validation procedure.
 
-**Validation status**: PENDING session restart. Claude Code's harness caches agent definitions at session start; in-session disk edits don't propagate. Next session start should re-read the fixed YAML and grant proper tools.
+**Validation status (initial framing, 2026-05-15 PM)**: PENDING session restart. Claude Code's harness caches agent definitions at session start; in-session disk edits don't propagate.
+
+**Validation status (Phase E-3 outcome, 2026-05-15 evening — CORRECTED)**: RESOLVED + cache scope refined. Two follow-on findings:
+
+- **Secondary root cause (Phase E)**: cross-workspace shadow definitions. `/Users/nathanielcannon/Claude/Jarvis-Dev/` is an additionalDirectory in this workspace; its older Apr-21 `tools: All tools` agent definitions silently shadowed the Jarvis-side fix. Fixed at Jarvis-Dev commit `6601d6d` on `dev`.
+- **Tertiary finding (Phase E-3)**: cache scope is process-level, NOT session-level. `/clear` resets conversation context but does NOT reload agent YAML from disk. Only a full Claude Code CLI process restart refreshes the agent-definition cache. Empirically validated by parallel-process comparison: W0 (original process, started before disk fix) returned `tool_uses: 0` + confabulation; W8 (fresh process launched in tmux window 8, identical disk state and workspace config) returned `tool_uses: 2` + real host-fs file (`EXP-RESTART-3.md` @ 30 bytes, mtime 15:47).
+
+**Pre-flight diagnostic going forward**: a session's own system-prompt Agent tool listing IS the ground truth. Grep for `(Tools: All, tools)` against the in-context Agent block — any hit means the running process has cached broken YAML, regardless of disk state. Asymmetric rendering between never-broken agents (`deep-research`, renders correctly) and previously-broken specialists (`code-review` et al., still showing the comma-split artifact) is the visible signal that should have been noticed months ago.
 
 **Lesson**: Schema bugs in declarative configs can produce silent functional failures with plausible-looking outputs. The agent doesn't error or warn that it has no tools — it just generates text that looks like it used tools. The detection signal is in the `tool_uses` metadata count, not in the response content. Future agent definitions: always validate `tools:` field against canonical tool registry; never use English-prose values like "All tools" or "all".
 
 **Architectural takeaway**: This problem persisted for months because the failure mode was disguised as content fabrication rather than tool injection failure. The mitigation literature in self-corrections / insights-log accumulated workarounds ("verify-against-host-fs", "Jarvis-direct review") without identifying the underlying schema bug. Future debug protocol: when an agent's narrative diverges from host fs, check `tool_uses` count BEFORE concluding model misbehavior — zero tool uses with a tool-claiming narrative is a strong signal of tool-injection failure, not LLM confabulation.
+
+**Cache-scope architectural takeaway (Phase E-3 contribution)**: when remediating any harness-cached config (agent definitions, MCP server lists, slash command registrations, hook scripts), the validation step MUST be performed in a fresh process. A common operator mistake is to treat `/clear` as a refresh primitive; it is not. The cleanest validation pattern is the parallel-process technique: keep the original session running for context preservation, launch a fresh CLI in a separate tmux window, run the diagnostic there, and compare metadata. This avoids the gambling-with-session-state failure mode of "restart and hope".
 
 ---
 
