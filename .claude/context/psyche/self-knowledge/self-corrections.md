@@ -59,22 +59,24 @@
 
 ---
 
-## 2026-05-15 | tool-use | subagent file-write hallucination — 3rd-instance reinforcement
+## 2026-05-15 | architecture | subagent hallucination root-caused to YAML schema bug
 
-**What happened**: Spawned `code-review` + `project-manager` agents in parallel for AC-03 Phase 1.3 gate. Both returned narratives ending with "File verified at <path>". When Jarvis ran `ls -la` on the scratch dir, it was EMPTY — both files were hallucinated. The narratives also contained fabricated git output (wrong commit dates: "Thu May 14" for commits actually made today 2026-05-15), fabricated file listings (`PCBoxView.tsx` 8542 bytes vs real `PcBoxView.tsx` 7414 bytes), fabricated LOC counts, and fabricated hook names (`usePersonaList` vs real `usePersonas`).
+**What happened (initial framing)**: Subagents (`code-review`, `project-manager`, `code-analyzer`, `code-implementer`, `code-tester`) repeatedly fabricated tool outputs and "File verified at <path>" claims across at least 8 instances over months. Earlier this session, AC-03 Phase 1.3 review agents both fabricated entire reports while claiming the files existed on disk.
 
-Critically: the SUBSTANTIVE findings (SQL f-string, colorFor duplication, posRef pattern, Sankey deferral) were grounded in real code and the v5 design doc — the agents read those correctly. Only the SUPPORTING EVIDENCE (file listings, git output, "I verified the file") was fabricated.
+**What actually happened (root cause, confirmed 2026-05-15)**: The Claude Code harness parses agent YAML frontmatter's `tools:` field by comma-splitting. The literal value `tools: All tools` (English prose used in five Jarvis agent definitions) is parsed as a list of two phantom tool names — `["All", "tools"]`. Neither exists in the tool registry, so the agent is granted **zero tools** at session start. Without tools the model has no Write, Bash, Read, or Edit access; its long prescriptive prompt biases it toward "perform the workflow as text" rather than honest refusal, producing fabricated tool-call rendering placeholders and confabulated supporting detail (file sizes, dates, ls output).
 
-**Should have happened**: Per scratchpad 2026-05-14 entry, the post-agent verification protocol was already known: "after every Agent invocation that claims to write a file, run `ls -la <path>` before trusting the claim." Jarvis followed this protocol and caught the fabrication cleanly — that's the win. But spawning the agents at all, given a known 3rd-instance recurrence, was a quality-of-life inefficiency.
+**Diagnostic evidence**: 9-test controlled experiment at `.claude/scratch/hallucination-experiment/`. Key signals: every specialist-agent invocation returned `tool_uses: 0` in response metadata; `general-purpose` agent on the same tasks returned `tool_uses: 1-8` and produced accurate verbatim output. The system-prompt Agent tool description for `code-review` shows "(Tools: All, tools)" — the comma-split parsing visible in plain text.
 
-**Lesson**: The pattern is now **structural**, not isolated. LLM subagents fabricate plausible-looking supporting detail (Write tool calls, file-listing output, verification claims) when their attention is on the *substantive analysis task*. The fabrication is more pronounced in longer narratives — the agent reaches a "finalization phase" where it embellishes evidence-of-work. Three instances confirm this is not random.
+**Functional fix (applied 2026-05-15)**:
+1. Replaced `tools: All tools` with canonical comma-separated tool lists + `model: sonnet` in 5 agent definitions (code-review, code-analyzer, code-implementer, _disabled/code-tester, _disabled/project-manager).
+2. Wrote `.claude/scripts/validate-agent-schemas.sh` — detects malformed `tools:` values across all agent dirs; passes 17/17 files post-fix.
+3. Pattern documented at `.claude/context/patterns/subagent-output-fidelity.md` with canonical schema reference + validation procedure.
 
-**Mitigations** in order of preference:
-1. **Default to Jarvis-direct review** for AC-03 Phase X.Y gates where Jarvis shipped the code itself and can self-vouch + capture findings. Trade-off: less independent perspective.
-2. **If spawning subagents**, prompt them to do analysis ONLY — Jarvis captures the narrative to disk afterward. Explicitly state: "DO NOT use the Write tool. Output your full report as a single message; Jarvis will persist it."
-3. **Audit the supporting evidence** (`ls -la`, git log dates, file content) against agent claims before trusting verdict — Jarvis already does this and caught it cleanly.
+**Validation status**: PENDING session restart. Claude Code's harness caches agent definitions at session start; in-session disk edits don't propagate. Next session start should re-read the fixed YAML and grant proper tools.
 
-**Architectural follow-up consideration**: this is a strong candidate for a Phase 1.4+ pattern artifact at `.claude/context/patterns/subagent-file-write-hallucination.md` consolidating all three instances into a reusable mitigation playbook.
+**Lesson**: Schema bugs in declarative configs can produce silent functional failures with plausible-looking outputs. The agent doesn't error or warn that it has no tools — it just generates text that looks like it used tools. The detection signal is in the `tool_uses` metadata count, not in the response content. Future agent definitions: always validate `tools:` field against canonical tool registry; never use English-prose values like "All tools" or "all".
+
+**Architectural takeaway**: This problem persisted for months because the failure mode was disguised as content fabrication rather than tool injection failure. The mitigation literature in self-corrections / insights-log accumulated workarounds ("verify-against-host-fs", "Jarvis-direct review") without identifying the underlying schema bug. Future debug protocol: when an agent's narrative diverges from host fs, check `tool_uses` count BEFORE concluding model misbehavior — zero tool uses with a tool-claiming narrative is a strong signal of tool-injection failure, not LLM confabulation.
 
 ---
 

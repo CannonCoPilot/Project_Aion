@@ -1,7 +1,8 @@
 ---
 name: code-implementer
 description: Write, modify, and refactor code following established patterns with full git workflow
-tools: All tools
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch
+model: sonnet
 ---
 
 # Agent: Code Implementer
