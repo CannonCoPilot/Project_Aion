@@ -7234,3 +7234,10 @@ Item 7 (F-2 dashboard refactor) turning out to be already-shipped from commit `6
 ### 2026-05-14 [47d2181c2a9c]
 
 **Why the post-call written statement matters more than the call itself.** Phone conversations are interpreted by everyone present through their own lens; written statements are interpreted only by their text. When the ALJ reads your case file before the hearing, the written statement is what they see — not whatever Ryan wrote down about your phone conversation. A clean, neutral, regulatory-cite-loaded written statement framed as testimony is far more impactful than the best phone call. The call's primary purpose is to *create the opening* for the written statement to be added. The statement does the actual work.
+
+### 2026-05-14 [db2b023c7727]
+
+**Key plan revisions vs §5 default order**:
+(1) Mission Control hoisted to #1 — the WebSocket hook from Task 5.1 already subscribes to one channel; generalizing it to multi-channel is the minimum-viable shared infrastructure for §5.4/§5.5/§5.4. Land that early so other surfaces inherit it.
+(2) Village + PC Box sequenced together (5→6) — they share the sprite engine. Cuts repeat work in half.
+(3) Branch strategy: continue on `feature/personas-rebuild` (not a new branch) — Phase 1.3 is the same workstream, and CannonCoPilot/Alfred:main FF already includes Phase 1.0-1.2.
