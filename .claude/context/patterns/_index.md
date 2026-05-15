@@ -55,6 +55,7 @@ Patterns for choosing the right tool, agent, or approach.
 |---------|---------|-------------|
 | [selection-intelligence-guide](selection-intelligence-guide.md) | Quick tool/agent selection reference | Before any task |
 | [agent-selection-pattern](agent-selection-pattern.md) | Detailed agent vs skill vs tool decision | Complex routing decisions |
+| [subagent-output-fidelity](subagent-output-fidelity.md) | Empirical reliability per agent type — specialist agents fabricate, `general-purpose` works (2026-05-15 diagnosis) | **Every Agent tool invocation** |
 | [tool-selection-intelligence](tool-selection-intelligence.md) | Research-backed tool precedence theory | Research/exploration tasks |
 | [selection-validation-tests](selection-validation-tests.md) | 10 test cases for selection accuracy | Validating selection logic |
 

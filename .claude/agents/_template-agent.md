@@ -72,8 +72,12 @@ You are a specialized agent for [specific purpose]. You work independently with 
 |-------|----------|-------------|
 | `name` | Yes | Agent identifier (matches filename without .md) |
 | `description` | Yes | One-line purpose description |
-| `tools` | Yes | Comma-separated tool list, or "All tools" |
-| `model` | No | `sonnet` (default), `haiku` (lightweight), `opus` (complex) |
+| `tools` | Yes | Comma-separated tool list of canonical tool names. **DO NOT use English prose** like `All tools` — the harness parses by comma-split and treats `All tools` as two phantom tools `["All", "tools"]`, granting zero tools and producing fabricated outputs. Omit the field to inherit all tools instead. See `.claude/context/patterns/subagent-output-fidelity.md`. |
+| `model` | Recommended | `sonnet` (default), `haiku` (lightweight), `opus` (complex) |
+
+**Canonical tool names**: `Read`, `Write`, `Edit`, `Glob`, `Grep`, `LS`, `Bash`, `BashOutput`, `KillShell`, `WebFetch`, `WebSearch`, `TodoWrite`, `NotebookRead`, `NotebookEdit`, `Skill`, `ToolSearch`, `Agent`, `Task*`, `EnterPlanMode`/`ExitPlanMode`, `EnterWorktree`/`ExitWorktree`, `ScheduleWakeup`, `AskUserQuestion`, `Monitor`, `LSP`, `Cron*`, `PushNotification`, `RemoteTrigger`, `ListMcpResourcesTool`, `ReadMcpResourceTool`.
+
+**Pre-flight validation**: Run `bash .claude/scripts/validate-agent-schemas.sh` after editing any agent file. It catches malformed `tools:` values + unknown tool names.
 
 ## Notes
 [Additional context, limitations, considerations]

@@ -1,7 +1,8 @@
 ---
 name: code-tester
 description: Validate code changes through automated tests, Playwright user flows, and screenshot capture
-tools: All tools
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch
+model: sonnet
 ---
 
 # Agent: Code Tester

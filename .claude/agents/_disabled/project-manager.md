@@ -1,7 +1,8 @@
 ---
 name: project-manager
 description: Progress and alignment review for milestone/PR validation
-tools: All tools
+tools: Read, Glob, Grep, Bash, TodoWrite, WebFetch
+model: sonnet
 ---
 
 # Agent: Project Manager

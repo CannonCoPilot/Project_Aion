@@ -1,7 +1,8 @@
 ---
 name: code-review
 description: Technical quality review of code changes for milestone/PR validation
-tools: All tools
+tools: Read, Write, Edit, Glob, Grep, Bash, TodoWrite, WebFetch
+model: sonnet
 ---
 
 # Agent: Code Review

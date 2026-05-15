@@ -1,7 +1,8 @@
 ---
 name: code-analyzer
 description: Understand codebase structure, identify tech stack, find patterns, and prepare for implementation tasks
-tools: All tools
+tools: Read, Glob, Grep, Bash, TodoWrite, WebFetch
+model: sonnet
 ---
 
 # Agent: Code Analyzer
