@@ -26,7 +26,7 @@
 
 set -o pipefail
 
-PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis-Dev}}"
+PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
 STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 TMP_FILE="${STATE_FILE}.tmp.$$"
 

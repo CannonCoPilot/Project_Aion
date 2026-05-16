@@ -504,8 +504,45 @@ Present status and offer to continue with pending work."
         }
       }'
 
+elif [[ "$SOURCE" == "compact" ]]; then
+    # Native autocompact fired — Claude Code summarized old context, new window starts.
+    # Inject compressed context + scratchpad pointer so Claude can recover orientation.
+    COMPACT_CONTEXT=""
+    if [[ -f "$V6_COMPRESSED" ]]; then
+        COMPACT_CONTEXT=$(cat "$V6_COMPRESSED")
+    fi
+
+    RECENT_ARCHIVES=$(gather_recent_archives)
+
+    MESSAGE="Context compacted by Claude Code.$ENV_STATUS"
+    CONTEXT="AUTOCOMPACT — Claude Code's native compaction ran.
+Context was summarized, NOT cleared. Your conversation summary is above this block.
+Current datetime: $LOCAL_DATE at $LOCAL_TIME
+
+Check .claude/context/.scratchpad.md for transient session details (force-loaded).
+${COMPACT_CONTEXT:+
+Last JICM checkpoint (may be stale — prefer your conversation summary):
+$COMPACT_CONTEXT
+}${RECENT_ARCHIVES:+
+Recent Archives:
+$RECENT_ARCHIVES
+}Resume from your conversation summary above. Do NOT re-greet."
+
+    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"restart_type\": \"compact\"}" > "$STATE_DIR/AC-01-launch.json"
+
+    jq -n \
+      --arg msg "$MESSAGE" \
+      --arg ctx "$CONTEXT" \
+      '{
+        "systemMessage": $msg,
+        "hookSpecificOutput": {
+          "hookEventName": "SessionStart",
+          "additionalContext": $ctx
+        }
+      }'
+
 else
-    # Compact or other - minimal output
+    # Unknown source - minimal output
     echo "{}"
 fi
 

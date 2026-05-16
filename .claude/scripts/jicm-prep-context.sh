@@ -452,11 +452,13 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
                 echo ""
             fi
 
-            # Plan status (current-plans.md shows Active vs Recently Completed)
+            # Plan status — extract ONLY phase progress table + current phase.
+            # Full current-plans.md contains DB creds, dev rules, infrastructure
+            # details that confuse the 8B model and cause workstream hallucination.
             CURRENT_PLANS_FILE="$PROJECT_DIR/.claude/context/current-plans.md"
             if [[ "$INCLUDE_PLAN" == "true" ]] && [[ -f "$CURRENT_PLANS_FILE" ]]; then
-                echo "## Plan Status"
-                cat "$CURRENT_PLANS_FILE"
+                echo "## Plan Status (trimmed — phase table only)"
+                sed -n '/^## Phase Progress/,/^---$/p' "$CURRENT_PLANS_FILE" 2>/dev/null | head -15
                 echo ""
             fi
 

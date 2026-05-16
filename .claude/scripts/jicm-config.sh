@@ -13,31 +13,30 @@
 #   - JICM_RESUME_SIGNAL:   written by session-start.sh on resume injection
 #
 # All paths are relative to PROJECT_DIR which each consumer may override
-# before sourcing (defaults to $CLAUDE_PROJECT_DIR or $HOME/Claude/Jarvis-Dev).
+# before sourcing (defaults to $CLAUDE_PROJECT_DIR or $HOME/Claude/Jarvis).
 # ============================================================================
 
 # Project root
-PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis-Dev}}"
+PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
 
 # --- v7.9 signal protocol (per roadmap §4.2) --------------------------------
 JICM_STATE_HOOK_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 JICM_CLEAR_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-clear-now.signal"
 JICM_RESUME_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
 
-# --- Carried forward from v7.x ----------------------------------------------
+# --- Active state files -------------------------------------------------------
 JICM_COMPRESSED_FILE="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
 JICM_COMPRESSION_SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
 JICM_COMPRESSION_GUARD="$PROJECT_DIR/.claude/context/.compression-in-progress"
-JICM_STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state"            # legacy v7.x state (text)
 JICM_EXIT_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal"
-JICM_SLEEP_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-sleep.signal"
+JICM_SLEEP_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-sleep.signal"   # written by AC-10 Ulfhedthnar to suppress JICM
 JICM_PID_FILE="$PROJECT_DIR/.claude/context/.jicm-watcher.pid"
+JICM_STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state"            # read by HUD (jicm-watcher-hud.sh)
 
 # --- Session state files (read by prep script) -------------------------------
 JICM_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 JICM_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"
 JICM_ACTIVE_PLAN="$PROJECT_DIR/.claude/context/.active-plan"
-JICM_ACTIVE_TASKS="$PROJECT_DIR/.claude/context/.active-tasks.txt"
 
 # --- Scripts -----------------------------------------------------------------
 JICM_PREP_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
@@ -68,5 +67,9 @@ JICM_TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 JICM_TMUX_SESSION="${TMUX_SESSION:-jarvis}"
 JICM_TMUX_TARGET="${JICM_TMUX_TARGET:-${JICM_TMUX_SESSION}:0}"
 
-# --- Injection backend (default tmux; v8.0 will offer pty) ------------------
+# --- Injection backend -------------------------------------------------------
+# tmux:  v7.9 default — send-keys via $HOME/bin/tmux
+# pty:   v8.0 planned — Unix socket injection via pty-wrapper.py
+#        Validated 2026-05-15 (6/6 tests PASS). See .claude/scratch/pty-tests/
 JICM_INJECTION_BACKEND="${JICM_INJECTION_BACKEND:-tmux}"
+JICM_PTY_SOCKET="${JICM_PTY_SOCKET:-$PROJECT_DIR/.claude/context/.pty-inject.sock}"

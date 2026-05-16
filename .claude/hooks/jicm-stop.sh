@@ -33,7 +33,7 @@ if ! command -v jq >/dev/null 2>&1; then
     exit 0
 fi
 
-PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis-Dev}}"
+PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
 STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 SIGNAL_FILE="$PROJECT_DIR/.claude/context/.jicm-clear-now.signal"
 STATE_UPDATE="$PROJECT_DIR/.claude/scripts/jicm-state-update.sh"
