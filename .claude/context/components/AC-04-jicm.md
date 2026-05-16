@@ -1,9 +1,9 @@
 # AC-04 JICM — Autonomic Component Specification
 
 **Component ID**: AC-04
-**Version**: 7.3.0
+**Version**: 7.9.1
 **Status**: active
-**Last Modified**: 2026-04-24
+**Last Modified**: 2026-05-15
 
 ---
 
@@ -38,14 +38,17 @@ WATCHING → HALTING → COMPRESSING → CLEARING → RESTORING → WATCHING
 | `/jicm` command | `.claude/commands/jicm.md` | Manual JICM cycle (user-facing) |
 | `/intelligent-compress` | `.claude/commands/intelligent-compress.md` | Silent compression (watcher calls) |
 
-### Signal Files
+### Signal Files (v7.9)
 | File | Purpose | Created By | Consumed By |
 |------|---------|------------|-------------|
-| `.compressed-context-ready.md` | Compressed context checkpoint | Prep script | session-start.sh hook |
+| `.jicm-state-hook.json` | Token count + burn rate (v7.9 canonical) | jicm-gate.sh (UPS hook) | Watcher, HUD |
+| `.jicm-clear-now.signal` | Watcher-to-hook: active cycle marker | Watcher (pre-/clear) | session-start.sh |
+| `.jicm-resume-complete.signal` | Hook-to-watcher: resume injection done | session-start.sh | Watcher |
+| `.compressed-context-ready.md` | Compressed context checkpoint | Prep script | session-start.sh |
 | `.compression-done.signal` | Prep script completion marker | Prep script | Watcher |
 | `.compression-in-progress` | Guard against double compression | /intelligent-compress | session-start.sh |
-| `.jicm-state` | Watcher state (tokens, pct, burn rate, ETA) | Watcher | Ennoia, hooks |
-| `.jicm-last-compression.json` | Compression metadata (timing, method, sizes) | Prep script | Watcher (post-cycle log) |
+| `.jicm-state` | Legacy text state (tokens, pct, burn rate) | Watcher | HUD only |
+| `.jicm-last-compression.json` | Compression metadata (timing, method, sizes) | Prep script | Watcher |
 | `.jicm-exit-mode.signal` | Suppress JICM during /end-session | end-session command | Watcher |
 | `.jicm-sleep.signal` | Ulfhedthnar suppresses threshold checks | ulfhedthnar hook | Watcher |
 
@@ -94,14 +97,19 @@ All signal files live in `.claude/context/` and are gitignored.
 ## 5. Resume Flow
 
 ```
-1. Watcher sends /clear via tmux
+1. Watcher sends /clear via tmux (v7.9) or socket injection (v8.0 PTY)
 2. /clear triggers session-start.sh hook (source=clear)
-3. Hook detects .jicm-state with state=CLEARING
+3. Hook detects .jicm-clear-now.signal (v7.9 cycle marker)
 4. Hook reads .compressed-context-ready.md
 5. Hook injects content as additionalContext
-6. Claude receives compressed context immediately
-7. Watcher detects Claude active → transitions to WATCHING
+6. Hook writes .jicm-resume-complete.signal
+7. Claude receives compressed context immediately
+8. Watcher detects resume signal → transitions to WATCHING
 ```
+
+**Compact fallback** (v7.9.1): When source=compact (native autocompact), the hook
+injects available compressed context + scratchpad pointer so Claude can recover
+orientation. Previously returned empty JSON.
 
 No keystroke injection, no idle-hands monitoring, no continuation verifier.
 
@@ -169,9 +177,20 @@ Lockout ceiling:  ~78.5% ((window - output_reserve - compact_buffer) / window)
 |-------|-----------|----------|
 | Full | All systems operational | LLM-enriched checkpoint + hook resume |
 | Partial | LLM unavailable | Tier 1 bash checkpoint + hook resume |
+| Partial | Native autocompact | Compact handler injects last checkpoint + scratchpad pointer |
 | Partial | Watcher not running | Manual `/jicm` + `/clear` required |
 | Minimal | tmux unavailable | No automated JICM; manual context management |
 
 ---
 
-*AC-04 JICM v7.3.0 — Two-Tier Compression with Token-Aware Monitoring*
+## 10. Future: JICM v8.0 PTY Backend
+
+Validated 2026-05-15 (6/6 tests PASS). PTY wrapper replaces tmux send-keys:
+- Unix socket injection delivers bytes indistinguishable from keyboard input
+- Eliminates tmux dependency for actuation
+- Artifacts: `.claude/scratch/pty-tests/` (test suite + wrapper prototype)
+- Target: Phase 3A (`feature/jicm-v8-pty-backend`)
+
+---
+
+*AC-04 JICM v7.9.1 — Two-Tier Compression with Token-Aware Monitoring*
