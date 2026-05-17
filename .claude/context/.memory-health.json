@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-17T00:21:01.853Z",
+  "timestamp": "2026-05-17T00:31:55.893Z",
   "layers": {
     "L1_sensory": {
       "status": "warn",
@@ -9,20 +9,20 @@
       "jsonl_sessions": 103
     },
     "L2_working": {
-      "status": "warn",
+      "status": "ok",
       "scratchpad_lines": 100,
-      "session_state_age_min": 1476
+      "session_state_age_min": 10
     },
     "L3_shortterm": {
       "status": "ok",
-      "checkpoint_age_min": 0,
+      "checkpoint_age_min": 11,
       "checkpoint_bytes": 12451,
       "archive_count": 0
     },
     "L4_declarative": {
       "status": "ok",
-      "last_ingest_at": "2026-05-16T22:35:20.091994+00:00",
-      "last_ingest_chunks": 901,
+      "last_ingest_at": "2026-05-17T00:21:07.170292+00:00",
+      "last_ingest_chunks": 904,
       "dedup_threshold": 0.95,
       "collection": "jarvis-context"
     },
@@ -32,18 +32,17 @@
       "reference_count": 11
     },
     "L6_meta": {
-      "status": "warn",
-      "tokens": 273336,
-      "used_pct": 27,
-      "action": "SOFT_NUDGE",
-      "cache_hit_rate": 0.9977,
+      "status": "ok",
+      "tokens": 72259,
+      "used_pct": 7,
+      "action": "WATCHING",
+      "cache_hit_rate": 0,
       "hard_threshold": 300000,
       "state_age_min": 0
     }
   },
   "overall": "warn",
   "warnings": [
-    "L1: insights-log at 1156 lines (cap: 200)",
-    "L6: Context at 273k — approaching threshold"
+    "L1: insights-log at 1156 lines (cap: 200)"
   ]
 }
