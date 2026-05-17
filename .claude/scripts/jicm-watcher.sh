@@ -199,15 +199,82 @@ actuate_jicm_cycle() {
     fi
 
     # 5.6. L1 Sensory capture: preserve tmux scrollback before /clear erases it
-    local scrollback_file="$PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
+    #      Phase 2C: expanded to 1000 lines (was 200) for richer context recovery
+    local scrollback_raw="$PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
+    local scrollback_summary="$PROJECT_DIR/.claude/context/.pre-clear-scrollback-summary.md"
     if [[ -x "$JICM_TMUX_BIN" ]]; then
         {
             echo "# Pre-/clear Scrollback Capture"
             echo "# Captured: $(date -u +%Y-%m-%dT%H:%M:%SZ) | Session: $(jq -r '.session_id // "unknown"' "$JICM_STATE_HOOK_FILE" 2>/dev/null)"
             echo ""
-            "$JICM_TMUX_BIN" capture-pane -t "$JICM_TMUX_TARGET" -p -S -200 2>/dev/null
-        } > "$scrollback_file"
-        log "cycle: scrollback captured ($(wc -l < "$scrollback_file" | tr -d ' ') lines)"
+            "$JICM_TMUX_BIN" capture-pane -t "$JICM_TMUX_TARGET" -p -S -1000 2>/dev/null
+        } > "$scrollback_raw"
+        log "cycle: scrollback captured ($(wc -l < "$scrollback_raw" | tr -d ' ') lines)"
+    fi
+
+    # 5.6b. NLP-compress scrollback → dense summary for BOOT injection
+    local nlp_script="$PROJECT_DIR/.claude/scripts/compress-input.py"
+    if [[ -f "$scrollback_raw" ]] && [[ -f "$nlp_script" ]]; then
+        if python3 "$nlp_script" --mode aggressive --input "$scrollback_raw" > "$scrollback_summary" 2>/dev/null; then
+            local raw_bytes=$(wc -c < "$scrollback_raw" | tr -d ' ')
+            local sum_bytes=$(wc -c < "$scrollback_summary" | tr -d ' ')
+            log "cycle: scrollback NLP-compressed ($raw_bytes → $sum_bytes bytes)"
+        else
+            cp "$scrollback_raw" "$scrollback_summary"
+            log "cycle: scrollback NLP compression failed — using raw"
+        fi
+    else
+        [[ -f "$scrollback_raw" ]] && cp "$scrollback_raw" "$scrollback_summary"
+    fi
+
+    # 5.6c. Scrollback summary → RAG ingest (async, non-blocking)
+    if [[ "${JICM_RAG_ENABLED:-true}" == "true" ]] && [[ -f "$scrollback_summary" ]] && [[ -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
+        local ingest_python="$PROJECT_DIR/infrastructure/.venv/bin/python"
+        if [[ -x "$ingest_python" ]]; then
+            (
+                export PROJECT_DIR JICM_RAG_COLLECTION="sessions" \
+                       JICM_RAG_DEDUP_THRESHOLD JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
+                export JICM_COMPRESSED_FILE="$scrollback_summary"
+                export JICM_SESSION_ID=$(jq -r '.session_id // "unknown"' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+                "$ingest_python" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+            ) &
+            log "cycle: scrollback → RAG ingest launched (PID $!)"
+        fi
+    fi
+
+    # 5.7. L1→L4 Consolidation: rotate insights-log + consolidate corrections
+    #      Phase 2C: MOVED here from session-start.sh (fire BEFORE /clear)
+    local consolidate_script="$PROJECT_DIR/.claude/scripts/memory-consolidation.sh"
+    if [[ -x "$consolidate_script" ]]; then
+        CLAUDE_PROJECT_DIR="$PROJECT_DIR" "$consolidate_script" >> "$JICM_LOG_FILE" 2>&1 &
+        log "cycle: memory consolidation launched (PID $!)"
+    fi
+
+    # 5.8. L2 Anti-Hyperthymesia: rotate scratchpad (moved from session-start.sh)
+    local rotate_script="$PROJECT_DIR/.claude/hooks/scratchpad-rotate.sh"
+    if [[ -x "$rotate_script" ]]; then
+        CLAUDE_PROJECT_DIR="$PROJECT_DIR" "$rotate_script" >> "$JICM_LOG_FILE" 2>&1
+        log "cycle: scratchpad rotated"
+    fi
+
+    # 5.9. L3→L5 Graphiti episode: ingest checkpoint to knowledge graph (async)
+    local graphiti_script="$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py"
+    if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" ]]; then
+        local ingest_python="$PROJECT_DIR/infrastructure/.venv/bin/python"
+        if [[ -x "$ingest_python" ]] && [[ -f "$graphiti_script" ]]; then
+            (
+                export PROJECT_DIR JICM_COMPRESSED_FILE
+                "$ingest_python" "$graphiti_script" >> "$JICM_LOG_FILE" 2>&1
+            ) &
+            log "cycle: Graphiti episode ingest launched (PID $!)"
+        elif [[ -x "$ingest_python" ]] && [[ -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
+            # Fallback: use prepopulate script in single-file mode
+            (
+                "$ingest_python" "$PROJECT_DIR/.claude/scripts/graphiti-prepopulate.py" \
+                    --file "$JICM_COMPRESSED_FILE" >> "$JICM_LOG_FILE" 2>&1
+            ) &
+            log "cycle: Graphiti episode via prepopulate fallback (PID $!)"
+        fi
     fi
 
     # 6. /clear injection — defensive sequence to prevent HALT/clear concatenation:
