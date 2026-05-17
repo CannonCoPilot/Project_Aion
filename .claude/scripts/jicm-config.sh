@@ -89,6 +89,28 @@ JICM_RAG_COLLECTION="${JICM_RAG_COLLECTION:-sessions}"
 JICM_RAG_DEDUP_THRESHOLD="${JICM_RAG_DEDUP_THRESHOLD:-0.92}"
 JICM_RAG_QDRANT_URL="${JICM_RAG_QDRANT_URL:-http://localhost:6333}"
 JICM_RAG_EMBED_URL="${JICM_RAG_EMBED_URL:-http://localhost:8000}"
-JICM_GRAPHITI_ENABLED="${JICM_GRAPHITI_ENABLED:-false}"
+JICM_GRAPHITI_ENABLED="${JICM_GRAPHITI_ENABLED:-true}"
 JICM_AUTO_INGEST_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-auto-ingest.py"
+JICM_GRAPHITI_INGEST_SCRIPT="$PROJECT_DIR/.claude/scripts/graphiti-prepopulate.py"
 JICM_INGEST_LOG="$PROJECT_DIR/.claude/logs/jicm-auto-ingest.log"
+
+# --- Memory System: NLP Compression (Phase 2C — repaired pipeline position) ----
+# NLP compression processes RAW inputs (scrollback, JSONL messages) BEFORE
+# Tier 1 structuring. Was disabled in Phase 2B (0.99 ratio on structured output);
+# repositioned in 2C to process naturally-redundant raw data (30-50% reduction).
+JICM_NLP_ENABLED="${JICM_NLP_ENABLED:-true}"
+JICM_NLP_SCROLLBACK_MODE="${JICM_NLP_SCROLLBACK_MODE:-aggressive}"
+JICM_NLP_MESSAGES_MODE="${JICM_NLP_MESSAGES_MODE:-standard}"
+JICM_NLP_SCRIPT="$PROJECT_DIR/.claude/scripts/compress-input.py"
+
+# --- Memory System: Scrollback Capture (Phase 2C — expanded) -------------------
+# Capture 1000 lines of tmux scrollback (was 200). At ~80 chars/line ≈ 80KB raw.
+# NLP compression reduces to ~40KB; LLM summarization further to 2-5KB.
+JICM_SCROLLBACK_LINES="${JICM_SCROLLBACK_LINES:-1000}"
+
+# --- Memory System: REST Stage (Phase 2C — idle/high-activity triggers) --------
+# REST functions fire when session is idle (no user prompt for threshold seconds)
+# OR when tool activity exceeds threshold since last REST cycle.
+JICM_REST_IDLE_THRESHOLD="${JICM_REST_IDLE_THRESHOLD:-1800}"     # 30 minutes
+JICM_REST_TOOL_THRESHOLD="${JICM_REST_TOOL_THRESHOLD:-50}"       # 50 tool uses
+JICM_REST_MARKER="$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)"

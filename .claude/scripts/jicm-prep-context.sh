@@ -61,7 +61,7 @@ LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13
 LLM_MODEL="qwen3:8b"
 LLM_TIMEOUT=45            # Max seconds for LLM call (32B models need ~28s cold load)
 LLM_MAX_TOKENS=2000       # Output token cap (was 400 — caused truncation)
-NLP_COMPRESS=false        # DISABLED Phase 2B: 0.99 ratio on pre-structured output = no-op
+NLP_COMPRESS=true         # Phase 2C: RE-ENABLED — repositioned to process RAW messages before structuring
 NLP_COMPRESS_MODE="standard"  # standard | aggressive | minimal (unused while disabled)
 
 # ============================================================================
@@ -265,6 +265,33 @@ if [[ -n "$TODOS_RAW" ]] && [[ "$TODOS_RAW" != "[]" ]]; then
 fi
 
 # ============================================================================
+# Step 2d: NLP pre-compress raw messages (Phase 2C — repositioned)
+# ============================================================================
+# NLP compression now runs on RAW extracted messages BEFORE Tier 1 structuring.
+# Raw messages contain tool-result verbosity, repeated prompts, system boilerplate
+# that dedup/whitespace-collapse can reduce 30-50%. Previously this ran AFTER
+# Tier 1 (achieving 0.99 ratio = useless on already-clean structured output).
+
+NLP_SCRIPT="$PROJECT_DIR/.claude/scripts/compress-input.py"
+if [[ "$NLP_COMPRESS" == "true" ]] && [[ -f "$NLP_SCRIPT" ]] && [[ -n "$USER_MSGS" ]]; then
+    # Compress user messages
+    COMPRESSED_USER=$(echo "$USER_MSGS" | python3 "$NLP_SCRIPT" --mode "$NLP_COMPRESS_MODE" 2>/dev/null)
+    if [[ -n "$COMPRESSED_USER" ]] && [[ ${#COMPRESSED_USER} -gt 50 ]]; then
+        local_ratio=$(echo "scale=2; ${#COMPRESSED_USER} * 100 / ${#USER_MSGS}" | bc 2>/dev/null || echo "?")
+        echo "NLP pre-compress (user msgs): ${#USER_MSGS} → ${#COMPRESSED_USER} chars (${local_ratio}%)" >&2
+        USER_MSGS="$COMPRESSED_USER"
+    fi
+
+    # Compress assistant messages
+    if [[ -n "$ASST_MSGS" ]]; then
+        COMPRESSED_ASST=$(echo "$ASST_MSGS" | python3 "$NLP_SCRIPT" --mode "$NLP_COMPRESS_MODE" 2>/dev/null)
+        if [[ -n "$COMPRESSED_ASST" ]] && [[ ${#COMPRESSED_ASST} -gt 50 ]]; then
+            ASST_MSGS="$COMPRESSED_ASST"
+        fi
+    fi
+fi
+
+# ============================================================================
 # Step 3: Build Tier 1 compressed context checkpoint
 # ============================================================================
 
@@ -359,46 +386,16 @@ fi
 } > "$OUTPUT"
 
 # ============================================================================
-# Step 3b: NLP pre-compression (reduces LLM input tokens)
+# Step 3b: NLP post-compression REMOVED (Phase 2C)
 # ============================================================================
-# Run compress-input.py in standard mode on the Tier 1 output to reduce
-# token count before feeding to the LLM. Falls back gracefully if unavailable.
-
-NLP_META_FILE="$PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
-NLP_SCRIPT="$PROJECT_DIR/.claude/scripts/compress-input.py"
+# The old Step 3b ran compress-input.py on the STRUCTURED Tier 1 output —
+# achieving 0.99 ratio (useless). NLP compression is now repositioned to
+# Step 2d where it processes RAW messages before structuring (30-50% reduction).
+# Metadata variables preserved for backward-compat with metrics output.
 NLP_APPLIED=false
 NLP_TOKENS_BEFORE=0
 NLP_TOKENS_AFTER=0
 NLP_RATIO=1.0
-
-if [[ "$NLP_COMPRESS" == "true" ]] && [[ -f "$NLP_SCRIPT" ]]; then
-    TIER1_BYTES=$(wc -c < "$OUTPUT" | tr -d ' ')
-    NLP_TOKENS_BEFORE=$(( TIER1_BYTES / 4 ))
-
-    NLP_COMPRESSED=$(python3 "$NLP_SCRIPT" \
-        --mode "$NLP_COMPRESS_MODE" \
-        --input "$OUTPUT" \
-        --meta-output "$NLP_META_FILE" 2>/dev/null) || NLP_COMPRESSED=""
-
-    if [[ -n "$NLP_COMPRESSED" ]] && [[ ${#NLP_COMPRESSED} -gt 100 ]]; then
-        echo "$NLP_COMPRESSED" > "$OUTPUT"
-        NLP_APPLIED=true
-        NLP_TOKENS_AFTER=$(wc -c < "$OUTPUT" | tr -d ' ')
-        NLP_TOKENS_AFTER=$(( NLP_TOKENS_AFTER / 4 ))
-        if [[ $NLP_TOKENS_BEFORE -gt 0 ]]; then
-            NLP_RATIO=$(echo "scale=2; $NLP_TOKENS_AFTER / $NLP_TOKENS_BEFORE" | bc 2>/dev/null || echo "1.0")
-        fi
-        echo "NLP compression applied (${NLP_COMPRESS_MODE}): ${NLP_TOKENS_BEFORE} → ${NLP_TOKENS_AFTER} tokens (ratio=${NLP_RATIO})" >&2
-    else
-        echo "NLP compression skipped or failed — using raw Tier 1 output" >&2
-    fi
-else
-    if [[ "$NLP_COMPRESS" != "true" ]]; then
-        echo "NLP compression disabled (NLP_COMPRESS=false)" >&2
-    elif [[ ! -f "$NLP_SCRIPT" ]]; then
-        echo "NLP compression script not found: $NLP_SCRIPT" >&2
-    fi
-fi
 
 # ============================================================================
 # Step 4: Tier 2 — Local LLM narrative summarization
