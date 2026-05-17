@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-05-17T00:21:01.853Z",
+  "layers": {
+    "L1_sensory": {
+      "status": "warn",
+      "insights_bytes": 214629,
+      "insights_lines": 1156,
+      "corrections_lines": 2,
+      "jsonl_sessions": 103
+    },
+    "L2_working": {
+      "status": "warn",
+      "scratchpad_lines": 100,
+      "session_state_age_min": 1476
+    },
+    "L3_shortterm": {
+      "status": "ok",
+      "checkpoint_age_min": 0,
+      "checkpoint_bytes": 12451,
+      "archive_count": 0
+    },
+    "L4_declarative": {
+      "status": "ok",
+      "last_ingest_at": "2026-05-16T22:35:20.091994+00:00",
+      "last_ingest_chunks": 901,
+      "dedup_threshold": 0.95,
+      "collection": "jarvis-context"
+    },
+    "L5_procedural": {
+      "status": "ok",
+      "pattern_count": 57,
+      "reference_count": 11
+    },
+    "L6_meta": {
+      "status": "warn",
+      "tokens": 273336,
+      "used_pct": 27,
+      "action": "SOFT_NUDGE",
+      "cache_hit_rate": 0.9977,
+      "hard_threshold": 300000,
+      "state_age_min": 0
+    }
+  },
+  "overall": "warn",
+  "warnings": [
+    "L1: insights-log at 1156 lines (cap: 200)",
+    "L6: Context at 273k — approaching threshold"
+  ]
+}

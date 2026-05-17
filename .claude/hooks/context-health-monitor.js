@@ -1,23 +1,34 @@
 #!/usr/bin/env node
 /**
- * Context Health Monitor — B.4 Phase 4
+ * Context Health Monitor — Phase 2B Full Memory Layer Survey
  *
- * UserPromptSubmit hook that tracks context quality signals.
- * Detects context poisoning patterns:
- *   1. Repeated file re-reads (compression lost path)
- *   2. Tool call loops (same tool+args 3+ times)
- *   3. Confidence decay (uncertainty phrases increasing)
+ * UserPromptSubmit hook that surveys all 6 memory layers and emits:
+ * 1. Structured telemetry to .memory-health.json (for HUD/Dashboard)
+ * 2. additionalContext warnings when layers are degraded
+ * 3. Event log for historical tracking
  *
- * Emits warnings when thresholds crossed.
- * Integrates with JICM telemetry for AC-04 metrics.
+ * Memory System role:
+ *   Layer: L6 (Meta-Memory) → L2 (Working Memory)
+ *   Process: Retrieve (health signals into context when actionable)
  *
- * NOTE: This hook runs on UserPromptSubmit (not PostToolUse) to avoid
- * per-tool-call overhead. It reads the watcher status file for context
- * level and checks session observation history.
+ * Layers monitored:
+ *   L1 Sensory: insights-log size, corrections count, JSONL sessions
+ *   L2 Working: scratchpad lines, session-state age
+ *   L3 Short-Term: checkpoint freshness, archive count
+ *   L4 Declarative: RAG/Graphiti availability (file-based check only)
+ *   L5 Procedural: pattern count, reference count
+ *   L6 Meta-Memory: jicm-state age, this monitor's own health
+ *
+ * Latency budget: <200ms (all local file ops, no network calls)
  */
 
 const fs = require("fs");
 const path = require("path");
+
+const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const HEALTH_FILE = path.join(PROJECT_DIR, ".claude/context/.memory-health.json");
+const TELEMETRY_DIR = path.join(PROJECT_DIR, ".claude/logs/telemetry");
+const STATE_HOOK = path.join(PROJECT_DIR, ".claude/context/.jicm-state-hook.json");
 
 let input = "";
 process.stdin.setEncoding("utf8");
@@ -27,174 +38,199 @@ process.stdin.on("end", () => {
     const hookData = JSON.parse(input);
     main(hookData);
   } catch (e) {
-    output({ continue: true });
+    console.log(JSON.stringify({ continue: true }));
   }
 });
 
 function main(hookData) {
-  const projectDir = process.env.CLAUDE_PROJECT_DIR || process.cwd();
   const warnings = [];
+  const health = {
+    timestamp: new Date().toISOString(),
+    layers: {}
+  };
 
-  // 1. Check context level from watcher status
-  const watcherStatus = readWatcherStatus(projectDir);
-  const contextPct = watcherStatus.percentage || 0;
+  // ═══════════════════════════════════════════════════════════════════════════
+  // L1: Sensory Register
+  // ═══════════════════════════════════════════════════════════════════════════
+  const insightsLog = path.join(PROJECT_DIR, ".claude/context/insights/insights-log.md");
+  const correctionsFile = path.join(PROJECT_DIR, ".claude/logs/corrections.jsonl");
+  const projectsDir = path.join(process.env.HOME, ".claude/projects/-Users-nathanielcannon-Claude-Jarvis");
 
-  // 2. Check session observations for tool call patterns
-  const sessionId = readCurrentSessionId(projectDir);
-  if (sessionId) {
-    const observations = readObservations(projectDir, sessionId);
-
-    // Detect repeated tool calls (same tool 5+ times in observations)
-    const toolCounts = {};
-    for (const obs of observations) {
-      const key = obs.tool || "unknown";
-      toolCounts[key] = (toolCounts[key] || 0) + 1;
+  const l1 = { status: "ok" };
+  try {
+    const insightsStats = fs.statSync(insightsLog);
+    l1.insights_bytes = insightsStats.size;
+    l1.insights_lines = countLines(insightsLog);
+    if (l1.insights_lines > 500) {
+      l1.status = "warn";
+      warnings.push(`L1: insights-log at ${l1.insights_lines} lines (cap: 200)`);
     }
+  } catch { l1.insights_bytes = 0; l1.insights_lines = 0; }
 
-    for (const [tool, count] of Object.entries(toolCounts)) {
-      if (count > 20) {
-        warnings.push(
-          `High tool usage: ${tool} called ${count} times this session`
-        );
-      }
-    }
+  try {
+    l1.corrections_lines = countLines(correctionsFile);
+  } catch { l1.corrections_lines = 0; }
 
-    // Detect large observation accumulation
-    const largeObs = observations.filter((o) => o.large === true);
-    if (largeObs.length > 10) {
-      warnings.push(
-        `${largeObs.length} large tool outputs this session — context pressure building`
-      );
+  try {
+    l1.jsonl_sessions = fs.readdirSync(projectsDir).filter(f => f.endsWith(".jsonl")).length;
+  } catch { l1.jsonl_sessions = 0; }
+
+  health.layers.L1_sensory = l1;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // L2: Working Memory
+  // ═══════════════════════════════════════════════════════════════════════════
+  const scratchpad = path.join(PROJECT_DIR, ".claude/context/.scratchpad.md");
+  const sessionState = path.join(PROJECT_DIR, ".claude/context/session-state.md");
+
+  const l2 = { status: "ok" };
+  try {
+    l2.scratchpad_lines = countLines(scratchpad);
+    if (l2.scratchpad_lines > 120) {
+      l2.status = "warn";
+      warnings.push(`L2: scratchpad at ${l2.scratchpad_lines} lines (limit: 120)`);
     }
+  } catch { l2.scratchpad_lines = 0; }
+
+  try {
+    const ssStats = fs.statSync(sessionState);
+    l2.session_state_age_min = Math.round((Date.now() - ssStats.mtimeMs) / 60000);
+    if (l2.session_state_age_min > 360) {
+      l2.status = l2.status === "warn" ? "critical" : "warn";
+    }
+  } catch { l2.session_state_age_min = -1; }
+
+  health.layers.L2_working = l2;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // L3: Short-Term Memory
+  // ═══════════════════════════════════════════════════════════════════════════
+  const checkpoint = path.join(PROJECT_DIR, ".claude/context/.compressed-context-ready.md");
+  const archiveDir = path.join(PROJECT_DIR, ".claude/logs/jicm/archive");
+
+  const l3 = { status: "ok" };
+  try {
+    const cpStats = fs.statSync(checkpoint);
+    l3.checkpoint_age_min = Math.round((Date.now() - cpStats.mtimeMs) / 60000);
+    l3.checkpoint_bytes = cpStats.size;
+  } catch { l3.checkpoint_age_min = -1; l3.checkpoint_bytes = 0; }
+
+  try {
+    l3.archive_count = fs.readdirSync(archiveDir).filter(f => f.startsWith("compressed-")).length;
+  } catch { l3.archive_count = 0; }
+
+  health.layers.L3_shortterm = l3;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // L4: Long-Term Declarative (file-based availability check)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const lastIngest = path.join(PROJECT_DIR, ".claude/context/.jicm-last-ingest.json");
+
+  const l4 = { status: "ok" };
+  try {
+    const ingestData = JSON.parse(fs.readFileSync(lastIngest, "utf8"));
+    l4.last_ingest_at = ingestData.timestamp;
+    l4.last_ingest_chunks = ingestData.chunks_ingested;
+    l4.dedup_threshold = ingestData.dedup_threshold;
+    l4.collection = ingestData.collection;
+  } catch {
+    l4.last_ingest_at = null;
+    l4.status = "unknown";
   }
 
-  // 3. Check if context is in warning zone (token-based, reads threshold from watcher state)
-  const contextTokens = parseInt(watcherStatus.context_tokens) || 0;
-  const tokenThreshold = parseInt(watcherStatus.token_threshold) || 300000;
-  const warnAt = Math.round(tokenThreshold * 0.8);   // 80% of threshold
-  const criticalAt = Math.round(tokenThreshold * 0.95); // 95% of threshold
+  health.layers.L4_declarative = l4;
 
-  if (contextTokens >= criticalAt) {
-    warnings.push(
-      `Context at ${Math.round(contextTokens/1000)}k tokens — CRITICAL: ${Math.round(tokenThreshold/1000)}k threshold imminent`
-    );
-  } else if (contextTokens >= warnAt) {
-    warnings.push(
-      `Context at ${Math.round(contextTokens/1000)}k tokens — approaching ${Math.round(tokenThreshold/1000)}k compression threshold`
-    );
+  // ═══════════════════════════════════════════════════════════════════════════
+  // L5: Long-Term Procedural
+  // ═══════════════════════════════════════════════════════════════════════════
+  const patternsDir = path.join(PROJECT_DIR, ".claude/context/patterns");
+  const referenceDir = path.join(PROJECT_DIR, ".claude/context/reference");
+
+  const l5 = { status: "ok" };
+  try {
+    l5.pattern_count = fs.readdirSync(patternsDir).filter(f => f.endsWith(".md")).length;
+  } catch { l5.pattern_count = 0; }
+  try {
+    l5.reference_count = fs.readdirSync(referenceDir).filter(f => f.endsWith(".md")).length;
+  } catch { l5.reference_count = 0; }
+
+  health.layers.L5_procedural = l5;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // L6: Meta-Memory (JICM state + context pressure)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const l6 = { status: "ok" };
+  try {
+    const stateData = JSON.parse(fs.readFileSync(STATE_HOOK, "utf8"));
+    l6.tokens = stateData.tokens || 0;
+    l6.used_pct = stateData.used_percentage || 0;
+    l6.action = stateData.action || "UNKNOWN";
+    l6.cache_hit_rate = stateData.cache_hit_rate || 0;
+    l6.hard_threshold = stateData.hard_threshold_tokens || 300000;
+
+    const stateAge = Math.round((Date.now() - new Date(stateData.ts).getTime()) / 60000);
+    l6.state_age_min = stateAge;
+
+    // Context pressure warnings
+    const warnAt = Math.round(l6.hard_threshold * 0.8);
+    const criticalAt = Math.round(l6.hard_threshold * 0.95);
+    if (l6.tokens >= criticalAt) {
+      l6.status = "critical";
+      warnings.push(`L6: Context at ${Math.round(l6.tokens/1000)}k — CRITICAL (threshold: ${Math.round(l6.hard_threshold/1000)}k)`);
+    } else if (l6.tokens >= warnAt) {
+      l6.status = "warn";
+      warnings.push(`L6: Context at ${Math.round(l6.tokens/1000)}k — approaching threshold`);
+    }
+  } catch {
+    l6.tokens = 0; l6.used_pct = 0; l6.action = "UNKNOWN";
   }
 
-  // 4. Emit telemetry if warnings found
+  health.layers.L6_meta = l6;
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // Overall status
+  // ═══════════════════════════════════════════════════════════════════════════
+  const statuses = Object.values(health.layers).map(l => l.status);
+  health.overall = statuses.includes("critical") ? "critical" :
+                   statuses.includes("warn") ? "warn" : "ok";
+  health.warnings = warnings;
+
+  // Write structured telemetry for HUD/Dashboard
+  try {
+    fs.writeFileSync(HEALTH_FILE, JSON.stringify(health, null, 2));
+  } catch (e) { /* non-critical */ }
+
+  // Append to daily event log
+  try {
+    fs.mkdirSync(TELEMETRY_DIR, { recursive: true });
+    const eventFile = path.join(TELEMETRY_DIR, `memory-health-${new Date().toISOString().slice(0, 10)}.jsonl`);
+    fs.appendFileSync(eventFile, JSON.stringify({
+      ts: health.timestamp,
+      overall: health.overall,
+      l1_insights: l1.insights_lines,
+      l2_scratchpad: l2.scratchpad_lines,
+      l3_checkpoint_age: l3.checkpoint_age_min,
+      l6_tokens: l6.tokens,
+      warnings: warnings.length
+    }) + "\n");
+  } catch (e) { /* non-critical */ }
+
+  // Inject warnings into context only if actionable
   if (warnings.length > 0) {
-    const telemetryEntry = JSON.stringify({
-      component: "AC-04",
-      event_type: "context_health_warning",
-      data: {
-        context_pct: contextPct,
-        warnings: warnings,
-        session_id: sessionId || "unknown"
-      }
-    });
-
-    const eventsFile = path.join(
-      projectDir,
-      `.claude/logs/telemetry/events-${new Date().toISOString().slice(0, 10)}.jsonl`
-    );
-
-    try {
-      fs.appendFileSync(eventsFile, telemetryEntry + "\n");
-    } catch (e) {
-      // Non-critical
-    }
-  }
-
-  // Only inject context if there are actionable warnings
-  if (warnings.length > 0 && contextPct >= 50) {
-    output({
+    console.log(JSON.stringify({
       continue: true,
-      additionalContext: `[JICM Health] ${warnings.join("; ")}`
-    });
+      additionalContext: `[Memory Health: ${health.overall.toUpperCase()}] ${warnings.join("; ")}`
+    }));
   } else {
-    output({ continue: true });
+    console.log(JSON.stringify({ continue: true }));
   }
 }
 
-/**
- * Read watcher status file for context percentage
- */
-function readWatcherStatus(projectDir) {
-  const statusFile = path.join(
-    projectDir,
-    ".claude/context/.jicm-state"
-  );
+function countLines(filePath) {
   try {
-    const content = fs.readFileSync(statusFile, "utf8");
-    const result = {};
-    for (const line of content.split("\n")) {
-      const match = line.match(/^(\w+):\s*(.+)$/);
-      if (match) {
-        const val = match[2].trim();
-        result[match[1]] = val.endsWith("%")
-          ? parseInt(val)
-          : val;
-      }
-    }
-    return result;
-  } catch (e) {
-    return {};
+    const content = fs.readFileSync(filePath, "utf8");
+    return content.split("\n").length;
+  } catch {
+    return 0;
   }
-}
-
-/**
- * Read current JICM session ID
- */
-function readCurrentSessionId(projectDir) {
-  const idFile = path.join(
-    projectDir,
-    ".claude/context/jicm/.current-session-id"
-  );
-  try {
-    return fs.readFileSync(idFile, "utf8").trim();
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Read session observations YAML (simple line parser)
- */
-function readObservations(projectDir, sessionId) {
-  const obsFile = path.join(
-    projectDir,
-    `.claude/context/jicm/sessions/${sessionId}/observations.yaml`
-  );
-  try {
-    const content = fs.readFileSync(obsFile, "utf8");
-    const observations = [];
-    let current = null;
-
-    for (const line of content.split("\n")) {
-      const toolMatch = line.match(/^\s*-\s*tool:\s*"?(\w+)"?/);
-      if (toolMatch) {
-        if (current) observations.push(current);
-        current = { tool: toolMatch[1] };
-      }
-      const tokensMatch = line.match(/^\s*tokens_est:\s*(\d+)/);
-      if (tokensMatch && current) {
-        current.tokens_est = parseInt(tokensMatch[1]);
-      }
-      const largeMatch = line.match(/^\s*large:\s*(true|false)/);
-      if (largeMatch && current) {
-        current.large = largeMatch[1] === "true";
-      }
-    }
-    if (current) observations.push(current);
-    return observations;
-  } catch (e) {
-    return [];
-  }
-}
-
-function output(result) {
-  console.log(JSON.stringify(result));
 }

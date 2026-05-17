@@ -363,6 +363,19 @@ V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.comp
 if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
     V6_STATE="JICM_CYCLE_ACTIVE"
     echo "$TIMESTAMP | SessionStart | JICM v7.9: Detected active cycle (signal present)" >> "$LOG_DIR/session-start-diagnostic.log"
+
+    # L2 Anti-Hyperthymesia: rotate scratchpad BEFORE loading into new session
+    ROTATE_SCRIPT="$CLAUDE_PROJECT_DIR/.claude/hooks/scratchpad-rotate.sh"
+    if [[ -x "$ROTATE_SCRIPT" ]]; then
+        "$ROTATE_SCRIPT" >> "$LOG_DIR/session-start-diagnostic.log" 2>&1
+    fi
+
+    # L1→L4 Consolidation: rotate insights-log + consolidate corrections (async)
+    CONSOLIDATE_SCRIPT="$CLAUDE_PROJECT_DIR/.claude/scripts/memory-consolidation.sh"
+    if [[ -x "$CONSOLIDATE_SCRIPT" ]]; then
+        "$CONSOLIDATE_SCRIPT" >> "$LOG_DIR/session-start-diagnostic.log" 2>&1 &
+    fi
+
     if true; then
 
         V6_CONTEXT=""
@@ -381,6 +394,14 @@ if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
         # It is stale during active work. Compressed context contains current state.
         # Session-state is for NEW session starts only (created at session end).
 
+        # L1 retrieval: include pre-/clear scrollback if captured (last 50 lines)
+        SCROLLBACK_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
+        SCROLLBACK_EXCERPT=""
+        if [[ -f "$SCROLLBACK_FILE" ]]; then
+            SCROLLBACK_EXCERPT=$(tail -50 "$SCROLLBACK_FILE")
+            echo "$TIMESTAMP | SessionStart | JICM v7: Scrollback captured ($(wc -l < "$SCROLLBACK_FILE" | tr -d ' ') lines)" >> "$LOG_DIR/session-start-diagnostic.log"
+        fi
+
         MESSAGE="JICM v7: Context compressed and cleared.$ENV_STATUS"
         CONTEXT="JICM v7 CONTEXT RESTORATION — NOT a new session.
 You are Jarvis. Context was cleared via stop-and-wait JICM cycle.
@@ -393,8 +414,11 @@ $V6_CONTEXT
 ${RECENT_ARCHIVES:+
 Recent Archives (for additional continuity):
 $RECENT_ARCHIVES
+}${SCROLLBACK_EXCERPT:+
+Terminal Scrollback (last 50 lines before /clear — use for context recovery):
+$SCROLLBACK_EXCERPT
 }
-Resume: Parse the compressed context above, check the active plan referenced in CLAUDE.md, then continue from the interruption point."
+Resume: Parse the compressed context above, check .scratchpad.md (force-loaded), and if needed use tmux capture-pane for additional scrollback. Continue from the interruption point."
 
         # Write state file (AC-01)
         echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"compression_type\": \"jicm_v6\", \"restart_type\": \"v6_stop_and_wait\"}" > "$STATE_DIR/AC-01-launch.json"

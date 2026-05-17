@@ -1,0 +1,7 @@
+{
+  "injected": [
+    ".claude/context/patterns/parallelization-strategy.md",
+    ".claude/context/reference/bash-gotchas.md"
+  ],
+  "session_start": 1778970896569
+}

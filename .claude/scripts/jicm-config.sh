@@ -73,3 +73,22 @@ JICM_TMUX_TARGET="${JICM_TMUX_TARGET:-${JICM_TMUX_SESSION}:0}"
 #        Validated 2026-05-15 (6/6 tests PASS). See .claude/scratch/pty-tests/
 JICM_INJECTION_BACKEND="${JICM_INJECTION_BACKEND:-tmux}"
 JICM_PTY_SOCKET="${JICM_PTY_SOCKET:-$PROJECT_DIR/.claude/context/.pty-inject.sock}"
+
+# --- Memory System: L4 Auto-Consolidation (Phase 2B) --------------------------
+# After each JICM compression, auto-ingest the checkpoint to RAG (sessions
+# collection) for long-term semantic retrieval. Graphiti extracts entities.
+#
+# SIMILARITY DIAL: Controls deduplication threshold. Range [0.0, 1.0].
+#   0.0  = always ingest (no dedup, risks Hyperthymesia)
+#   0.92 = default — skip if a very similar checkpoint already exists
+#   1.0  = only skip exact duplicates (aggressive ingestion)
+# Tune this based on observed collection growth vs retrieval quality.
+# Monitor via: curl localhost:6333/collections/sessions | jq .result.points_count
+JICM_RAG_ENABLED="${JICM_RAG_ENABLED:-true}"
+JICM_RAG_COLLECTION="${JICM_RAG_COLLECTION:-sessions}"
+JICM_RAG_DEDUP_THRESHOLD="${JICM_RAG_DEDUP_THRESHOLD:-0.92}"
+JICM_RAG_QDRANT_URL="${JICM_RAG_QDRANT_URL:-http://localhost:6333}"
+JICM_RAG_EMBED_URL="${JICM_RAG_EMBED_URL:-http://localhost:8000}"
+JICM_GRAPHITI_ENABLED="${JICM_GRAPHITI_ENABLED:-false}"
+JICM_AUTO_INGEST_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-auto-ingest.py"
+JICM_INGEST_LOG="$PROJECT_DIR/.claude/logs/jicm-auto-ingest.log"
