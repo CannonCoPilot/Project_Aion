@@ -61,8 +61,8 @@ LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13
 LLM_MODEL="qwen3:8b"
 LLM_TIMEOUT=45            # Max seconds for LLM call (32B models need ~28s cold load)
 LLM_MAX_TOKENS=2000       # Output token cap (was 400 — caused truncation)
-NLP_COMPRESS=true         # Enable NLP pre-compression before LLM enrichment
-NLP_COMPRESS_MODE="standard"  # standard | aggressive | minimal
+NLP_COMPRESS=false        # DISABLED Phase 2B: 0.99 ratio on pre-structured output = no-op
+NLP_COMPRESS_MODE="standard"  # standard | aggressive | minimal (unused while disabled)
 
 # ============================================================================
 # Override support (for experiments / treatment variations)

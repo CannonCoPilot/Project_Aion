@@ -181,6 +181,35 @@ actuate_jicm_cycle() {
         log "cycle: prep timeout (${JICM_PREP_TIMEOUT}s) — proceeding with possibly stale checkpoint"
     fi
 
+    # 5.5. L4 Auto-consolidation: ingest checkpoint to RAG (async, non-blocking)
+    if [[ "${JICM_RAG_ENABLED:-true}" == "true" ]] && [[ -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
+        local ingest_python="$PROJECT_DIR/infrastructure/.venv/bin/python"
+        if [[ -x "$ingest_python" ]]; then
+            (
+                export PROJECT_DIR JICM_COMPRESSED_FILE JICM_RAG_COLLECTION \
+                       JICM_RAG_DEDUP_THRESHOLD JICM_RAG_QDRANT_URL \
+                       JICM_RAG_EMBED_URL JICM_INGEST_LOG
+                export JICM_SESSION_ID=$(jq -r '.session_id // "unknown"' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+                "$ingest_python" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+            ) &
+            log "cycle: L4 auto-ingest launched (PID $!)"
+        else
+            log "cycle: L4 auto-ingest skipped (venv python not found)"
+        fi
+    fi
+
+    # 5.6. L1 Sensory capture: preserve tmux scrollback before /clear erases it
+    local scrollback_file="$PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
+    if [[ -x "$JICM_TMUX_BIN" ]]; then
+        {
+            echo "# Pre-/clear Scrollback Capture"
+            echo "# Captured: $(date -u +%Y-%m-%dT%H:%M:%SZ) | Session: $(jq -r '.session_id // "unknown"' "$JICM_STATE_HOOK_FILE" 2>/dev/null)"
+            echo ""
+            "$JICM_TMUX_BIN" capture-pane -t "$JICM_TMUX_TARGET" -p -S -200 2>/dev/null
+        } > "$scrollback_file"
+        log "cycle: scrollback captured ($(wc -l < "$scrollback_file" | tr -d ' ') lines)"
+    fi
+
     # 6. /clear injection — defensive sequence to prevent HALT/clear concatenation:
     #    PRE-STEP: wait_for_idle. tmux send-keys does NOT distinguish Claude-busy
     #       from Claude-idle. If we inject /clear while Claude is still streaming
