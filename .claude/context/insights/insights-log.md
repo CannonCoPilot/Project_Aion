@@ -1173,3 +1173,23 @@ The Jarvis-Dev fix was pushed AFTER this Claude Code CLI process started. `/clea
 ### 2026-05-18 [4f979b33a169]
 
 **The saturation was caused by concurrent LLM+embedding requests from 5 Graphiti processes, all routing through the same single-threaded Ollama inference.**
+
+### 2026-05-18 [409832e8fbf5]
+
+The qwen3 JICM compressor reports Phases IV/VI/VII as TODO, but the scratchpad (force-loaded, written at session-end) reports all 7 phases implemented and pending commit+push. This is the **2026-05-06 self-corrections pattern** verbatim: low-tier compression models read commit cadence as forward momentum and miss reframe turns at session-end. Trust the scratchpad for near-term work-state; the checkpoint is background only.
+
+### 2026-05-18 [d5ba38cef3a4]
+
+This is the **2026-05-06 architectural pattern** repeating: low-tier (qwen3:8b) JICM compressors extrapolate forward from commit cadence and miss session-end reframes. The compressor's snapshot was taken at 21:10Z when only `9fe5bfa` had landed; the four subsequent commits (`a3ae16f`, `a508cc1`, `0952fa7`, `aaf720c`) all post-date its checkpoint but pre-date this resume. The fix is exactly what just happened — scratchpad + git log cross-check before acting on checkpoint guidance.
+
+### 2026-05-18 [913b065a86ef]
+
+The Stage-2 closure exposes a methodological principle worth naming: **opt-in safety gating produces no falsification signal**. The prefix-tag was designed to eliminate misapplied-CoD risk (arxiv's -4% on math), but it eliminated the data path along with the risk. Replacement gating must satisfy both invariants: (a) skip-rule compliance stays 100%, and (b) at least one fire per qualifying prompt occurs without user-side opt-in. **Automatic task-type detection** is the named replacement — heuristic ensemble on prompt-surface signals, or a small LLM classifier on the first 200 chars of the prompt.
+
+A second principle: **per-prompt interventions need per-prompt eval substrate**, not session-aggregate metrics. The pre-reg axes (`per_task_type_thinking_reduction`) are inherently per-turn; the extractor that would compute them never landed. Re-running the experiment without first fixing Task 2.4.c just relocates the no-data failure.
+
+### 2026-05-18 [a941320ea698]
+
+**Caveat — Haiku 4.5 extended thinking**: The CoD intervention shapes `thinking_tokens` specifically. Haiku 4.5 historically has limited or no extended-thinking support depending on the API surface. If Haiku returns no `thinking_tokens` field, the primary pre-reg axis (`per_task_type_thinking_reduction`) is mechanically unmeasurable on the Haiku arm — we can still measure `output_tokens`, `latency`, and quality rubric, which is informative for the **routing question** (when does compression help the cheap tier?). I'll verify Haiku's thinking support during harness build and report; if absent, the Haiku arm shifts to an output-only ablation rather than dropping. Worth knowing up front: the Haiku data may be qualitatively different from Sonnet/Opus, not directly comparable.
+
+**Caveat — judge model independence**: cc-compression-bench's rubric uses Sonnet 4.6 as judge. On the Sonnet 4.6 *subject* arm, judge = subject (self-judging bias risk per Zheng et al. 2024 LLM-as-Judge literature). Mitigation: use Opus 4.7 as judge for the Sonnet subject arm, Sonnet 4.6 as judge for the Opus and Haiku subject arms. Disclosed in the report.
