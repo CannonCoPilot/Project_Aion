@@ -387,6 +387,24 @@ refresh_state_from_jsonl() {
     else
         rm -f "$tmpfile"
     fi
+
+    # Telemetry enrichment: append high-frequency token snapshot every 30s (~2880/day)
+    # Enables dense time-series for Context Window Timeline chart
+    TELEMETRY_COUNTER=$(( ${TELEMETRY_COUNTER:-0} + 1 ))
+    if [[ "$TELEMETRY_COUNTER" -ge 6 ]] && [[ "$tokens" -gt 0 ]]; then
+        TELEMETRY_COUNTER=0
+        local telem_dir="$PROJECT_DIR/.claude/logs/telemetry"
+        local telem_file="$telem_dir/context-tokens-$(date +%Y-%m-%d).jsonl"
+        mkdir -p "$telem_dir"
+        local cache_hr=0
+        if [[ "$(( input_t + cache_r + cache_c ))" -gt 0 ]]; then
+            cache_hr=$(( cache_r * 10000 / (input_t + cache_r + cache_c) ))
+        fi
+        local burn_rate
+        burn_rate=$(jq -r '.burn_rate_tpm // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+        printf '{"ts":"%s","tokens":%d,"used_pct":%d,"cache_hr":%d,"burn_rate":%s}\n' \
+            "$now_iso" "$tokens" "$used_pct" "$cache_hr" "${burn_rate:-0}" >> "$telem_file"
+    fi
 }
 
 # --- Phase IV: REST stage — idle/high-activity triggered micro-meditation -----
@@ -639,6 +657,7 @@ check_identity_changes() {
 # --- Main loop --------------------------------------------------------------
 log "main loop (poll ${JICM_POLL_INTERVAL}s, target $JICM_TMUX_TARGET, backend $JICM_INJECTION_BACKEND)"
 declare -i REFRESH_COUNTER=0
+declare -i TELEMETRY_COUNTER=0
 REFRESH_EVERY=5   # poll-iterations between state-file refreshes
 while true; do
     if [[ -f "$JICM_EXIT_SIGNAL" ]] || [[ -f "$JICM_SLEEP_SIGNAL" ]]; then
