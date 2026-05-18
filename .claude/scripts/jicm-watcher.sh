@@ -389,6 +389,232 @@ refresh_state_from_jsonl() {
     fi
 }
 
+# --- Phase IV: REST stage — idle/high-activity triggered micro-meditation -----
+# Fires once per day when session has been idle for REST_IDLE_THRESHOLD seconds
+# or when tool activity exceeds REST_TOOL_THRESHOLD since last REST cycle.
+# Runs Store + Curate functions autonomically (no Claude involvement for R1/R2/R4).
+# R3/R5 inject prompts via tmux (require LLM judgment).
+REST_LAST_PROMPT_EPOCH=0
+REST_TOOL_COUNT=0
+REST_TOOLS_AT_LAST_REST=0
+
+get_last_prompt_epoch() {
+    [[ -f "$JICM_STATE_HOOK_FILE" ]] || return
+    jq -r '.ts_epoch // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null
+}
+
+get_tool_count_from_jsonl() {
+    local transcript
+    transcript=$(jq -r '.transcript_path // empty' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+    [[ -n "$transcript" && -f "$transcript" ]] || { echo 0; return; }
+    jq -s '[.[] | select(.type=="assistant" and .message.stop_reason=="tool_use")] | length' "$transcript" 2>/dev/null || echo 0
+}
+
+rest_should_trigger() {
+    local rest_marker="${JICM_REST_MARKER:-$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)}"
+    [[ -f "$rest_marker" ]] && return 1
+
+    local now last_prompt idle_sec tool_delta
+    now=$(date +%s)
+    last_prompt=$(get_last_prompt_epoch)
+    last_prompt=${last_prompt:-$now}
+    idle_sec=$(( now - last_prompt ))
+
+    if [[ "$idle_sec" -ge "${JICM_REST_IDLE_THRESHOLD:-1800}" ]]; then
+        return 0
+    fi
+
+    REST_TOOL_COUNT=$(get_tool_count_from_jsonl)
+    tool_delta=$(( REST_TOOL_COUNT - REST_TOOLS_AT_LAST_REST ))
+    if [[ "$tool_delta" -ge "${JICM_REST_TOOL_THRESHOLD:-50}" ]]; then
+        return 0
+    fi
+
+    return 1
+}
+
+actuate_rest_stage() {
+    log "rest: start (idle detection triggered)"
+    local ingest_python="$PROJECT_DIR/infrastructure/.venv/bin/python"
+    local rest_marker="${JICM_REST_MARKER:-$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)}"
+
+    # R1: Session summary → RAG ingest (async, no Claude)
+    if [[ "${JICM_RAG_ENABLED:-true}" == "true" ]] && [[ -x "$ingest_python" ]] && [[ -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
+        if [[ -f "$JICM_COMPRESSED_FILE" ]]; then
+            (
+                export PROJECT_DIR JICM_COMPRESSED_FILE JICM_RAG_COLLECTION \
+                       JICM_RAG_DEDUP_THRESHOLD JICM_RAG_QDRANT_URL \
+                       JICM_RAG_EMBED_URL JICM_INGEST_LOG
+                export JICM_SESSION_ID=$(jq -r '.session_id // "unknown"' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+                "$ingest_python" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+            ) &
+            log "rest: R1 checkpoint → RAG ingest launched (PID $!)"
+        fi
+    fi
+
+    # R2: Session episode → Graphiti (async, no Claude)
+    local graphiti_script="$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py"
+    if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" ]] && [[ -x "$ingest_python" ]] && [[ -f "$graphiti_script" ]]; then
+        if [[ -f "$JICM_COMPRESSED_FILE" ]]; then
+            (
+                export PROJECT_DIR JICM_COMPRESSED_FILE
+                "$ingest_python" "$graphiti_script" >> "$JICM_LOG_FILE" 2>&1
+            ) &
+            log "rest: R2 checkpoint → Graphiti ingest launched (PID $!)"
+        fi
+    fi
+
+    # R4: Log rotation if logs exceed 100MB (async, no Claude)
+    local rotate_script="$PROJECT_DIR/.claude/scripts/log-rotation.sh"
+    local total_log_bytes=0
+    if [[ -d "$PROJECT_DIR/.claude/logs" ]]; then
+        total_log_bytes=$(du -sk "$PROJECT_DIR/.claude/logs" 2>/dev/null | awk '{print $1}')
+        total_log_bytes=${total_log_bytes:-0}
+    fi
+    if [[ "$total_log_bytes" -gt 102400 ]] && [[ -x "$rotate_script" ]]; then
+        CLAUDE_PROJECT_DIR="$PROJECT_DIR" "$rotate_script" >> "$JICM_LOG_FILE" 2>&1 &
+        log "rest: R4 log rotation launched (logs=${total_log_bytes}KB, PID $!)"
+    fi
+
+    # R3: MEMORY.md micro-audit — prompt injection (requires LLM judgment)
+    local today_commits
+    today_commits=$(git -C "$PROJECT_DIR" log --since="midnight" --oneline 2>/dev/null | wc -l | tr -d ' ')
+    if [[ "${today_commits:-0}" -gt 0 ]]; then
+        local r3_prompt="Watcher here. Session has been idle for a while. Please review MEMORY.md for entries that may be stale given today's work, update if needed, then reply Done."
+        inject clear-input
+        sleep 0.3
+        inject text "$r3_prompt"
+        sleep 0.5
+        inject submit
+        log "rest: R3 MEMORY.md micro-audit prompt injected (${today_commits} commits today)"
+        sleep 3
+    fi
+
+    # R5: Scratchpad prune — prompt injection (requires LLM judgment)
+    local sp_lines=0
+    if [[ -f "$JICM_SCRATCHPAD" ]]; then
+        sp_lines=$(wc -l < "$JICM_SCRATCHPAD" | tr -d ' ')
+    fi
+    if [[ "$sp_lines" -gt 60 ]]; then
+        wait_for_idle 30
+        local r5_prompt="Watcher here. Scratchpad is at ${sp_lines} lines (limit 80). Please prune stale entries, then reply Done."
+        inject clear-input
+        sleep 0.3
+        inject text "$r5_prompt"
+        sleep 0.5
+        inject submit
+        log "rest: R5 scratchpad prune prompt injected (${sp_lines} lines)"
+    fi
+
+    REST_TOOLS_AT_LAST_REST=$REST_TOOL_COUNT
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$rest_marker"
+    log "rest: complete (marker written)"
+}
+
+# --- Phase VII: MAINTAIN stage — periodic health pings + monitoring -----------
+# Fires every MAINTAIN_EVERY polls (~100s). Lightweight meta-memory operations:
+# M2: service health pings, M3: RAG collection size, M4: identity file changes.
+MAINTAIN_EVERY=100
+MAINTAIN_COUNTER=0
+LAST_PSYCHE_CHECK_EPOCH=0
+
+check_service_health() {
+    local health_file="$PROJECT_DIR/.claude/context/.memory-health.json"
+    local alert_file="$PROJECT_DIR/.claude/context/.memory-health-alert"
+    local qdrant_ok="false" mlx_ok="false" neo4j_ok="false"
+    local qdrant_ms=0 mlx_ms=0 neo4j_ms=0
+
+    local start_ms end_ms
+
+    # M2: Qdrant
+    start_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo 0)
+    if curl -sf --max-time 2 "http://localhost:6333/collections" >/dev/null 2>&1; then
+        qdrant_ok="true"
+    fi
+    end_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo 0)
+    qdrant_ms=$(( end_ms - start_ms ))
+
+    # M2: MLX Embed
+    start_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo 0)
+    if curl -sf --max-time 2 "http://localhost:8000/health" >/dev/null 2>&1; then
+        mlx_ok="true"
+    fi
+    end_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo 0)
+    mlx_ms=$(( end_ms - start_ms ))
+
+    # M2: Neo4j
+    start_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo 0)
+    if curl -sf --max-time 2 "http://localhost:7474" >/dev/null 2>&1; then
+        neo4j_ok="true"
+    fi
+    end_ms=$(python3 -c 'import time; print(int(time.time()*1000))' 2>/dev/null || echo 0)
+    neo4j_ms=$(( end_ms - start_ms ))
+
+    # M3: RAG collection size monitoring
+    local sessions_count=0
+    sessions_count=$(curl -sf --max-time 2 "http://localhost:6333/collections/sessions" 2>/dev/null \
+        | jq -r '.result.points_count // 0' 2>/dev/null || echo 0)
+
+    local rag_warning=""
+    if [[ "${sessions_count:-0}" -gt 10000 ]]; then
+        rag_warning="sessions collection exceeds 10000 points (${sessions_count}) — consider decay pruning"
+    fi
+
+    # Write health JSON
+    cat > "$health_file" <<HEALTH_EOF
+{
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "services": {
+    "qdrant": {"up": $qdrant_ok, "latency_ms": $qdrant_ms},
+    "mlx_embed": {"up": $mlx_ok, "latency_ms": $mlx_ms},
+    "neo4j": {"up": $neo4j_ok, "latency_ms": $neo4j_ms}
+  },
+  "collections": {
+    "sessions_points": $sessions_count
+  },
+  "warnings": $(if [[ -n "$rag_warning" ]]; then echo "\"$rag_warning\""; else echo "null"; fi)
+}
+HEALTH_EOF
+
+    # Write alert file if any service is down (consumed by context-health-monitor.js)
+    if [[ "$qdrant_ok" != "true" ]] || [[ "$mlx_ok" != "true" ]] || [[ "$neo4j_ok" != "true" ]]; then
+        local down_services=""
+        [[ "$qdrant_ok" != "true" ]] && down_services="${down_services}Qdrant "
+        [[ "$mlx_ok" != "true" ]] && down_services="${down_services}MLX-Embed "
+        [[ "$neo4j_ok" != "true" ]] && down_services="${down_services}Neo4j "
+        echo "Memory services DOWN: ${down_services}— L4/L5 operations may fail" > "$alert_file"
+        log "maintain: health alert — services down: ${down_services}"
+    else
+        rm -f "$alert_file"
+    fi
+}
+
+check_identity_changes() {
+    # M4: Detect psyche/ file modifications since last Graphiti ingestion
+    local marker="$PROJECT_DIR/.claude/context/.graphiti-prepopulate-ran"
+    [[ -f "$marker" ]] || return 0
+    local marker_mtime
+    marker_mtime=$(stat -f %m "$marker" 2>/dev/null) || return 0
+
+    local changed_files=""
+    local psyche_dir="$PROJECT_DIR/.claude/context/psyche"
+    [[ -d "$psyche_dir" ]] || return 0
+
+    while IFS= read -r f; do
+        local fmtime
+        fmtime=$(stat -f %m "$f" 2>/dev/null) || continue
+        if [[ "$fmtime" -gt "$marker_mtime" ]]; then
+            changed_files="${changed_files}$(basename "$f") "
+        fi
+    done < <(find "$psyche_dir" -name "*.md" -o -name "*.yaml" 2>/dev/null)
+
+    if [[ -n "$changed_files" ]]; then
+        local queue_file="$PROJECT_DIR/.claude/context/.graphiti-reindex-queue"
+        echo "$changed_files" > "$queue_file"
+        log "maintain: M4 identity changes detected: ${changed_files}— queued for re-ingestion"
+    fi
+}
+
 # --- Main loop --------------------------------------------------------------
 log "main loop (poll ${JICM_POLL_INTERVAL}s, target $JICM_TMUX_TARGET, backend $JICM_INJECTION_BACKEND)"
 declare -i REFRESH_COUNTER=0
@@ -401,10 +627,26 @@ while true; do
     if [[ -f "$JICM_CLEAR_SIGNAL" ]]; then
         actuate_jicm_cycle
     fi
+
+    # Periodic state refresh (every 5 polls ≈ 5s)
     REFRESH_COUNTER=$(( REFRESH_COUNTER + 1 ))
     if [[ "$REFRESH_COUNTER" -ge "$REFRESH_EVERY" ]]; then
         refresh_state_from_jsonl
         REFRESH_COUNTER=0
     fi
+
+    # Phase VII: MAINTAIN health pings (every 100 polls ≈ 100s)
+    MAINTAIN_COUNTER=$(( MAINTAIN_COUNTER + 1 ))
+    if [[ "$MAINTAIN_COUNTER" -ge "$MAINTAIN_EVERY" ]]; then
+        check_service_health
+        check_identity_changes
+        MAINTAIN_COUNTER=0
+    fi
+
+    # Phase IV: REST stage detection (idle or high-activity threshold)
+    if rest_should_trigger; then
+        actuate_rest_stage
+    fi
+
     sleep "$JICM_POLL_INTERVAL"
 done

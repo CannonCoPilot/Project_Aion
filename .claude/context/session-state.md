@@ -5,9 +5,9 @@
 
 ---
 
-**Status**: **PHASE 2B MEMORY SYSTEM — 12/12 TASKS SHIPPED — 2026-05-16**. Full autonomic memory pipeline + /jarvis-memory dashboard live. Deliverables: (α) jicm-auto-ingest.py L3→L4 consolidation, relevance-retrieval.js L5→L2 recall, scratchpad rotation, memory-consolidation.sh, log-rotation.sh, context-health-monitor.js rewrite (6 layers), design doc; (β) JarvisMemoryPage.tsx on Alfred-Dev, pre-compact archive, tmux scrollback capture. Dashboard streaming at localhost:8702/jarvis-memory. Pending: commit + push.
-**Date**: 2026-05-16
-**Version**: v5.11.0
+**Status**: **PHASE 2C MEMORY SYSTEM WIRING — 7/7 PHASES COMPLETE — 2026-05-18**. All session stages implemented: BOOT (B1-B6), TURN (T1-T5), COMPRESS (W1-W16), REST (R1-R5), MAINTAIN (M1-M4). New: graphiti-auto-ingest.py (L3→L5), REST idle detection in watcher, MAINTAIN health pings (Qdrant/MLX/Neo4j), T4 MCP search injection (5 signal types in relevance-retrieval.js). Watcher PID 13001 running new code. Graphiti 34/34 files ingested. Pending: commit + push.
+**Date**: 2026-05-18
+**Version**: v5.12.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis. At `09b1e07` (pre-Phase-2B commit).
 **Last commit (Jarvis)**: `09b1e07` (fix(jicm): Phase 2A remediation — 6 audit findings + PROJECT_DIR defaults).
 **Last commit (Alfred-Dev)**: `201b198` on feature/personas-rebuild (PUSHED to CannonCoPilot/Alfred). 15-commit Phase 1.2+1.3+1.4 chain. main on CannonCoPilot/Alfred at `89d4374` (Phase 1.3 FF); Phase 1.4 FF pending.
