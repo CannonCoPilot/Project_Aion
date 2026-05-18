@@ -1,48 +1,12 @@
 {
-  "timestamp": "2026-05-18T18:49:34.471Z",
-  "layers": {
-    "L1_sensory": {
-      "status": "warn",
-      "insights_bytes": 216301,
-      "insights_lines": 1168,
-      "corrections_lines": 2,
-      "jsonl_sessions": 104
-    },
-    "L2_working": {
-      "status": "ok",
-      "scratchpad_lines": 44,
-      "session_state_age_min": 3
-    },
-    "L3_shortterm": {
-      "status": "ok",
-      "checkpoint_age_min": 12,
-      "checkpoint_bytes": 15674,
-      "archive_count": 0
-    },
-    "L4_declarative": {
-      "status": "ok",
-      "last_ingest_at": "2026-05-18T18:42:50.244587+00:00",
-      "last_ingest_chunks": 22,
-      "dedup_threshold": 0.92,
-      "collection": "sessions"
-    },
-    "L5_procedural": {
-      "status": "ok",
-      "pattern_count": 57,
-      "reference_count": 11
-    },
-    "L6_meta": {
-      "status": "ok",
-      "tokens": 146913,
-      "used_pct": 14,
-      "action": "WATCHING",
-      "cache_hit_rate": 0,
-      "hard_threshold": 300000,
-      "state_age_min": 0
-    }
+  "timestamp": "2026-05-18T18:55:06Z",
+  "services": {
+    "qdrant": {"up": true, "latency_ms": 27},
+    "mlx_embed": {"up": true, "latency_ms": 29},
+    "neo4j": {"up": true, "latency_ms": 30}
   },
-  "overall": "warn",
-  "warnings": [
-    "L1: insights-log at 1168 lines (cap: 200)"
-  ]
+  "collections": {
+    "sessions_points": 53
+  },
+  "warnings": null
 }

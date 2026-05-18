@@ -401,6 +401,13 @@ if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
             echo "$TIMESTAMP | SessionStart | JICM v7: Scrollback raw fallback (last 100 lines)" >> "$LOG_DIR/session-start-diagnostic.log"
         fi
 
+        # B3/B4: Extract task keywords from checkpoint for targeted MCP searches
+        TASK_KEYWORDS=""
+        if [[ -n "$V6_CONTEXT" ]]; then
+            TASK_KEYWORDS=$(echo "$V6_CONTEXT" | grep -A2 '## Current Task' 2>/dev/null | tail -1 | sed 's/[^a-zA-Z0-9 _-]//g' | head -c 80 | xargs)
+        fi
+        TASK_KEYWORDS="${TASK_KEYWORDS:-current session work}"
+
         MESSAGE="JICM v7: Context compressed and cleared.$ENV_STATUS"
         CONTEXT="JICM v7 CONTEXT RESTORATION — NOT a new session.
 You are Jarvis. Context was cleared via stop-and-wait JICM cycle.
@@ -418,8 +425,8 @@ Terminal Scrollback (last 50 lines before /clear — use for context recovery):
 $SCROLLBACK_EXCERPT
 }
 MANDATORY CONTEXT RETRIEVAL — Execute these two searches BEFORE any other work:
-1. Call mcp__jarvis-rag__search with query derived from the Current Task above, collection=\"sessions\", limit=3
-2. Call mcp__jarvis-graphiti__search with query derived from the Current Task above
+1. Call mcp__jarvis-rag__search with query=\"$TASK_KEYWORDS\", collection=\"sessions\", limit=3
+2. Call mcp__jarvis-graphiti__search with query=\"$TASK_KEYWORDS\"
 Integrate any relevant findings into your understanding. If either returns no results, proceed without.
 Do NOT skip these searches — they connect you to prior session knowledge.
 

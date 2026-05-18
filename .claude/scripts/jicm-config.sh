@@ -113,4 +113,4 @@ JICM_SCROLLBACK_LINES="${JICM_SCROLLBACK_LINES:-1000}"
 # OR when tool activity exceeds threshold since last REST cycle.
 JICM_REST_IDLE_THRESHOLD="${JICM_REST_IDLE_THRESHOLD:-1800}"     # 30 minutes
 JICM_REST_TOOL_THRESHOLD="${JICM_REST_TOOL_THRESHOLD:-50}"       # 50 tool uses
-JICM_REST_MARKER="$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)"
+JICM_REST_MARKER_DIR="$PROJECT_DIR/.claude/context"
