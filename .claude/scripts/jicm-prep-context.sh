@@ -214,6 +214,34 @@ if [[ -z "$JSONL" ]]; then
 fi
 
 # ============================================================================
+# Step 1b: Stage 1 JSONL pre-compression (Phase 2C)
+# ============================================================================
+# Domain-specific compression BEFORE JQ extraction: type filtering (attachments,
+# metadata), tool result dedup (hash-based), tool output truncation (>2KB),
+# assistant compaction (tool_use→placeholder, thinking→dropped).
+# Achieves ~45-55% reduction on raw JSONL; output remains valid JSONL for JQ.
+
+JSONL_COMPRESS_SCRIPT="$PROJECT_DIR/.claude/scripts/compress-jsonl.py"
+if [[ -f "$JSONL_COMPRESS_SCRIPT" ]] && [[ -n "$JSONL" ]]; then
+    JSONL_COMPRESSED="${JSONL}.stage1.tmp"
+    JSONL_STATS="${PROJECT_DIR}/.claude/context/.jsonl-compression-stats.json"
+    if python3 "$JSONL_COMPRESS_SCRIPT" \
+        --input "$JSONL" \
+        --output "$JSONL_COMPRESSED" \
+        --tail "$JSONL_TAIL_LINES" \
+        --stats \
+        --stats-json "$JSONL_STATS" 2>&1 | head -3 >&2; then
+        if [[ -s "$JSONL_COMPRESSED" ]]; then
+            JSONL="$JSONL_COMPRESSED"
+            JSONL_TAIL_LINES=99999  # Already tailed by Stage 1
+            echo "Stage 1 pre-filter applied — using compressed JSONL" >&2
+        fi
+    else
+        echo "Stage 1 pre-filter failed — using raw JSONL" >&2
+    fi
+fi
+
+# ============================================================================
 # Step 2: Extract recent user messages from JSONL transcript
 # ============================================================================
 
@@ -730,5 +758,8 @@ CW_FILES_STAGED=$(git -C "$PROJECT_DIR" diff --cached --name-only 2>/dev/null | 
 
 mkdir -p "$(dirname "$METRICS_FILE")"
 echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"trigger\":\"jicm-compression\",\"tokens\":${CW_TOKENS:-0},\"burn_rate_tpm\":${CW_BURN_RATE:-0},\"compression_method\":\"$COMP_METHOD\",\"compression_duration_s\":$PREP_DURATION,\"checkpoint_lines\":$OUTPUT_LINES,\"checkpoint_bytes\":$OUTPUT_BYTES,\"files_modified\":$CW_FILES_MODIFIED,\"files_staged\":$CW_FILES_STAGED,\"stale_minutes\":${STALE_MINS:-0}}" >> "$METRICS_FILE"
+
+# Cleanup Stage 1 temp file
+rm -f "${JSONL_COMPRESSED:-/dev/null}" 2>/dev/null
 
 echo "Context prepared: ${OUTPUT_LINES} lines, ${OUTPUT_BYTES} bytes, ${PREP_DURATION}s (${COMP_METHOD})" >&2
