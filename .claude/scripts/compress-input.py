@@ -154,19 +154,38 @@ def compress_standard(text: str) -> str:
     return "\n".join(final)
 
 
+SCROLLBACK_NOISE_PATTERNS = [
+    re.compile(r"^\s*⎿\s+Async hook \w+ completed\s*$"),
+    re.compile(r"^\s*⎿\s+Took \d+ms\s*$"),
+    re.compile(r"^\s*⎿\s+Async hook \w+ hook success:.*$"),
+    re.compile(r"^\s*<system-reminder>.*$"),
+    re.compile(r"^\s*</system-reminder>\s*$"),
+    re.compile(r"^⏺ (?:Read|Write|Edit|Bash|Agent|Glob|Grep)\(.*\)\s*$"),
+    re.compile(r"^\s*\[▒░│┃╿\s\d%]+.*tokens\s*$"),  # HUD/statusline
+    re.compile(r"^\s*🟢.*opus.*Project_Aion.*$"),      # Status line
+    re.compile(r"^─{20,}\s*$"),                         # Long horizontal dividers
+    re.compile(r"^━{20,}\s*$"),                         # Heavy horizontal dividers
+]
+
+SCROLLBACK_COLLAPSE_PATTERNS = [
+    (re.compile(r"^\s*⎿\s+\d+ lines? (read|written|edited)\s*$"), "[tool output summary]"),
+]
+
+
 def compress_aggressive(text: str) -> str:
     """
-    Aggressive mode: standard + truncate non-code-block lines > 300 chars.
-    Code blocks (``` ... ```) are preserved in full.
+    Aggressive mode: standard + domain-specific Claude Code TUI patterns.
+    Targets hook notifications, tool-call rendering chrome, permission prompts,
+    system-reminder fragments, and long lines outside code blocks.
     """
     text = compress_standard(text)
 
     lines = text.split("\n")
     result = []
     in_code_block = False
+    noise_stripped = 0
 
     for line in lines:
-        # Track code block boundaries
         if re.match(r"^```", line):
             in_code_block = not in_code_block
             result.append(line)
@@ -176,13 +195,41 @@ def compress_aggressive(text: str) -> str:
             result.append(line)
             continue
 
+        # Strip noise patterns (hook notifications, system-reminders, tool chrome)
+        is_noise = False
+        for pattern in SCROLLBACK_NOISE_PATTERNS:
+            if pattern.match(line):
+                is_noise = True
+                noise_stripped += 1
+                break
+        if is_noise:
+            continue
+
+        # Collapse verbose tool output summaries
+        for pattern, replacement in SCROLLBACK_COLLAPSE_PATTERNS:
+            if pattern.match(line):
+                line = replacement
+                break
+
         # Truncate long lines outside code blocks
         if len(line) > 300:
             result.append(line[:300] + "[...]")
         else:
             result.append(line)
 
-    return "\n".join(result)
+    # Final pass: collapse runs of 3+ blank lines that noise removal may create
+    final = []
+    blank_run = 0
+    for line in result:
+        if line.strip() == "":
+            blank_run += 1
+            if blank_run <= 1:
+                final.append("")
+        else:
+            blank_run = 0
+            final.append(line)
+
+    return "\n".join(final)
 
 
 def main() -> int:

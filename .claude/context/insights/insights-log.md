@@ -1165,3 +1165,11 @@ The Jarvis-Dev fix was pushed AFTER this Claude Code CLI process started. `/clea
 ### 2026-05-18 [3f4a1dd447ab]
 
 **The session completed 5 of 7 implementation phases before hitting context pressure at 258K tokens.** The 3 remaining phases (REST idle detection, TURN mid-session retrieval, MAINTAIN health pings) are all additive — they don't depend on the phases already implemented. The core architectural changes (consolidation moved to watcher, NLP repositioned, Graphiti enabled, BOOT strengthened) are committed and will be active on next watcher restart. The Graphiti pre-population script is still running async, ingesting the 34-file identity corpus into Neo4j — that work completes independently of the CLI session.
+
+### 2026-05-18 [e7cbc5c1beb9]
+
+**Concurrent Graphiti ingestion jobs can saturate Ollama to the point of unresponsiveness.** Each `graphiti-core` `add_episode` call generates multiple LLM requests for entity extraction, relationship building, and summarization. Five simultaneous processes exhausted the LLM's capacity, causing all requests (including health checks) to time out. Future improvement: the watcher should serialize Graphiti ingestion or cap concurrent jobs to 1. The REST and COMPRESS stages already serialize (one background job each), but the manual re-ingestion of 3 files in parallel was the trigger.
+
+### 2026-05-18 [4f979b33a169]
+
+**The saturation was caused by concurrent LLM+embedding requests from 5 Graphiti processes, all routing through the same single-threaded Ollama inference.**
