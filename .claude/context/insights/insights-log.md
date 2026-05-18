@@ -1153,3 +1153,15 @@ The Jarvis-Dev fix was pushed AFTER this Claude Code CLI process started. `/clea
 ### 2026-05-17 [9d1f1d7e897b]
 
 **85KB of force-loaded content = 21,819 tokens (~2.2% of the 1M window) permanently consumed before any work begins.** The largest consumers are `.active-plan` (23.5KB — contains full historical workstream state) and `CLAUDE.md` (12.3KB — operational instructions). This is the "always-on memory tax" that Phase 2B's context-budget pattern was designed to make visible. The dashboard now surfaces this cost in real-time, making future optimization decisions data-driven rather than guessed.
+
+### 2026-05-17 [67526c615b17]
+
+**The audit reveals a clear pattern: JICM's stop-and-wait cycle is the ONLY autonomic trigger point for most Store/Curate functions.** Native autocompact (Claude Code's built-in 70% threshold) fires `jicm-precompact.sh` which writes a checkpoint, but does NOT trigger L4 ingest, insights rotation, or corrections consolidation. This means the most common context-pressure event silently bypasses the consolidation pipeline.
+
+### 2026-05-17 [f1a106fde6c2]
+
+**The NLP compression failure reveals a pipeline ordering bug, not a fundamental limitation.** The script deduplicates paragraphs, collapses whitespace, and removes repeated sections — operations that yield nothing on already-structured output. Applied to the RAW scrollback (200 lines of terminal output with prompt repetition, status lines, and tool-call rendering) or raw JSONL messages (with verbose tool results), the same techniques would achieve 30-50% reduction. The compression step is in the wrong position in the pipeline.
+
+### 2026-05-18 [3f4a1dd447ab]
+
+**The session completed 5 of 7 implementation phases before hitting context pressure at 258K tokens.** The 3 remaining phases (REST idle detection, TURN mid-session retrieval, MAINTAIN health pings) are all additive — they don't depend on the phases already implemented. The core architectural changes (consolidation moved to watcher, NLP repositioned, Graphiti enabled, BOOT strengthened) are committed and will be active on next watcher restart. The Graphiti pre-population script is still running async, ingesting the 34-file identity corpus into Neo4j — that work completes independently of the CLI session.

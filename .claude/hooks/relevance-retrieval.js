@@ -25,6 +25,7 @@ const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || path.join(process.env.HOME
 const STATE_FILE = path.join(PROJECT_DIR, ".claude/context/.retrieval-state.json");
 const CAP_MAP = path.join(PROJECT_DIR, ".claude/context/psyche/capability-map.yaml");
 const MAX_INJECT_CHARS = 800;
+const MAX_MCP_INJECT_CHARS = 200;
 
 // Keyword → file mapping extracted from capability-map.yaml patterns section
 // (Statically defined for speed; update when capability-map changes)
@@ -92,11 +93,79 @@ const QUESTION_SIGNALS = [
   /\bhow does .* work\b/i,
 ];
 
+// T4: MCP search signals — trigger RAG/Graphiti searches via instruction injection
+const MCP_SEARCH_SIGNALS = {
+  domain_shift: {
+    projects: ["chronicler", "aifred", "pulse", "nexus", "jarvis-dev", "dwarf", "dwarfcron", "dashboard", "reo"],
+    detect(prompt, state) {
+      const mentioned = this.projects.filter(p => prompt.toLowerCase().includes(p));
+      const recent = state.recent_projects || [];
+      const novel = mentioned.filter(p => !recent.includes(p));
+      return novel.length > 0 ? novel[0] : null;
+    },
+    inject(topic) {
+      return `[MEMORY RETRIEVAL: Call mcp__jarvis-rag__search query="${topic}" collection="sessions" limit=2. Apply context from results.]`;
+    }
+  },
+  recall: {
+    patterns: [/what did we .{3,30}(about|for|with)/i, /how did we .{3,30}/i, /remember when/i, /last time we/i, /what was the .{3,30}(we|you)/i],
+    detect(prompt) {
+      for (const re of this.patterns) {
+        const m = prompt.match(re);
+        if (m) return m[0].substring(0, 60);
+      }
+      return null;
+    },
+    inject(topic) {
+      return `[MEMORY RETRIEVAL: Call mcp__jarvis-rag__search query="${topic}" collection="sessions" limit=3 AND mcp__jarvis-graphiti__search query="${topic}". Synthesize findings.]`;
+    }
+  },
+  methodology: {
+    patterns: [/\bpattern\b.{0,20}(for|to|when)/i, /best practice/i, /how should (I|we) approach/i, /what.s the (right|correct) way/i],
+    detect(prompt) {
+      for (const re of this.patterns) {
+        const m = prompt.match(re);
+        if (m) return m[0].substring(0, 60);
+      }
+      return null;
+    },
+    inject(topic) {
+      return `[MEMORY RETRIEVAL: Call mcp__jarvis-graphiti__search query="${topic} methodology". Apply if relevant.]`;
+    }
+  },
+  error_debug: {
+    patterns: [/(error|fail|broke|crash|exception).{0,50}(\/Users|\.claude|\.\/)/i],
+    detect(prompt) {
+      for (const re of this.patterns) {
+        const m = prompt.match(re);
+        if (m) return m[0].substring(0, 80);
+      }
+      return null;
+    },
+    inject(topic) {
+      return `[MEMORY RETRIEVAL: Call mcp__jarvis-rag__search query="${topic}" collection="codebase". Check for prior solutions.]`;
+    }
+  },
+  reference_lookup: {
+    patterns: [/where is .{3,40}(defined|located|stored|configured)/i, /which file .{3,40}(has|contains|defines)/i, /find the .{3,40}(file|config|setting)/i],
+    detect(prompt) {
+      for (const re of this.patterns) {
+        const m = prompt.match(re);
+        if (m) return m[0].substring(0, 60);
+      }
+      return null;
+    },
+    inject(topic) {
+      return `[MEMORY RETRIEVAL: Call mcp__jarvis-graphiti__search query="${topic}". Apply entity info.]`;
+    }
+  }
+};
+
 function loadState() {
   try {
     return JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
   } catch {
-    return { injected: [], session_start: Date.now() };
+    return { injected: [], mcp_injected: [], recent_projects: [], session_start: Date.now() };
   }
 }
 
@@ -181,17 +250,60 @@ function main() {
         }
       }
 
+      // T3: File-excerpt injection (existing)
+      let additionalParts = [];
+
       if (bestMatch) {
         const excerpt = getExcerpt(bestMatch.file);
         if (excerpt) {
           state.injected.push(bestMatch.file);
-          saveState(state);
-
-          output({
-            additionalContext: `[Memory L5→L2 retrieval: ${bestMatch.label}]\n${excerpt}`
-          });
-          return;
+          additionalParts.push(`[Memory L5→L2 retrieval: ${bestMatch.label}]\n${excerpt}`);
         }
+      }
+
+      // T4: MCP search signal injection (Phase 2C)
+      // Max 1 MCP instruction per prompt; session dedup prevents re-injection
+      if (!state.mcp_injected) state.mcp_injected = [];
+      if (!state.recent_projects) state.recent_projects = [];
+
+      let mcpInstruction = null;
+      let mcpSignalName = null;
+      let mcpTopic = null;
+
+      for (const [name, signal] of Object.entries(MCP_SEARCH_SIGNALS)) {
+        const topic = signal.detect(prompt, state);
+        if (!topic) continue;
+
+        const dedupKey = `${name}:${topic.substring(0, 30)}`;
+        if (state.mcp_injected.includes(dedupKey)) continue;
+
+        mcpInstruction = signal.inject(topic);
+        mcpSignalName = name;
+        mcpTopic = topic;
+        state.mcp_injected.push(dedupKey);
+
+        // Track project mentions for domain_shift detection
+        if (name === "domain_shift") {
+          if (!state.recent_projects.includes(topic)) {
+            state.recent_projects.push(topic);
+            if (state.recent_projects.length > 10) state.recent_projects.shift();
+          }
+        }
+        break;
+      }
+
+      if (mcpInstruction) {
+        const capped = mcpInstruction.length > MAX_MCP_INJECT_CHARS
+          ? mcpInstruction.substring(0, MAX_MCP_INJECT_CHARS)
+          : mcpInstruction;
+        additionalParts.push(`[Memory L4/L5→L0 retrieval signal: ${mcpSignalName}]\n${capped}`);
+      }
+
+      saveState(state);
+
+      if (additionalParts.length > 0) {
+        output({ additionalContext: additionalParts.join("\n\n") });
+        return;
       }
 
       output({});
