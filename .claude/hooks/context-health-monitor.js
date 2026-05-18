@@ -188,6 +188,17 @@ function main(hookData) {
   health.layers.L6_meta = l6;
 
   // ═══════════════════════════════════════════════════════════════════════════
+  // Watcher health alert (fast-path from MAINTAIN stage M2)
+  // ═══════════════════════════════════════════════════════════════════════════
+  const alertFile = path.join(PROJECT_DIR, ".claude/context/.memory-health-alert");
+  try {
+    if (fs.existsSync(alertFile)) {
+      const alertMsg = fs.readFileSync(alertFile, "utf8").trim();
+      if (alertMsg) warnings.push(alertMsg);
+    }
+  } catch (e) { /* non-critical */ }
+
+  // ═══════════════════════════════════════════════════════════════════════════
   // Overall status
   // ═══════════════════════════════════════════════════════════════════════════
   const statuses = Object.values(health.layers).map(l => l.status);

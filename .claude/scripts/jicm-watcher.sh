@@ -411,7 +411,7 @@ get_tool_count_from_jsonl() {
 }
 
 rest_should_trigger() {
-    local rest_marker="${JICM_REST_MARKER:-$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)}"
+    local rest_marker="${JICM_REST_MARKER_DIR:-$PROJECT_DIR/.claude/context}/.rest-ran-$(date +%Y-%m-%d)"
     [[ -f "$rest_marker" ]] && return 1
 
     local now last_prompt idle_sec tool_delta
@@ -436,7 +436,7 @@ rest_should_trigger() {
 actuate_rest_stage() {
     log "rest: start (idle detection triggered)"
     local ingest_python="$PROJECT_DIR/infrastructure/.venv/bin/python"
-    local rest_marker="${JICM_REST_MARKER:-$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)}"
+    local rest_marker="${JICM_REST_MARKER_DIR:-$PROJECT_DIR/.claude/context}/.rest-ran-$(date +%Y-%m-%d)"
 
     # R1: Session summary → RAG ingest (async, no Claude)
     if [[ "${JICM_RAG_ENABLED:-true}" == "true" ]] && [[ -x "$ingest_python" ]] && [[ -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
@@ -464,7 +464,26 @@ actuate_rest_stage() {
         fi
     fi
 
-    # R4: Log rotation if logs exceed 100MB (async, no Claude)
+    # R2b: M4 queue consumer — re-ingest changed identity files (async, no Claude)
+    local reindex_queue="$PROJECT_DIR/.claude/context/.graphiti-reindex-queue"
+    if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" ]] && [[ -f "$reindex_queue" ]] && [[ -x "$ingest_python" ]]; then
+        local prepop_script="$PROJECT_DIR/.claude/scripts/graphiti-prepopulate.py"
+        if [[ -f "$prepop_script" ]]; then
+            local changed_file
+            while read -r changed_file; do
+                [[ -z "$changed_file" ]] && continue
+                local full_path="$PROJECT_DIR/.claude/context/psyche/$changed_file"
+                [[ -f "$full_path" ]] || continue
+                (
+                    "$ingest_python" "$prepop_script" --file "$full_path" >> "$JICM_LOG_FILE" 2>&1
+                ) &
+                log "rest: R2b re-ingesting changed identity file: $changed_file (PID $!)"
+            done < "$reindex_queue"
+            rm -f "$reindex_queue"
+        fi
+    fi
+
+    # R4: Log rotation if logs exceed 100MB — du -sk returns KB (async, no Claude)
     local rotate_script="$PROJECT_DIR/.claude/scripts/log-rotation.sh"
     local total_log_bytes=0
     if [[ -d "$PROJECT_DIR/.claude/logs" ]]; then
@@ -477,9 +496,11 @@ actuate_rest_stage() {
     fi
 
     # R3: MEMORY.md micro-audit — prompt injection (requires LLM judgment)
+    #     Guard: wait_for_idle ensures Claude isn't mid-conversation
     local today_commits
     today_commits=$(git -C "$PROJECT_DIR" log --since="midnight" --oneline 2>/dev/null | wc -l | tr -d ' ')
     if [[ "${today_commits:-0}" -gt 0 ]]; then
+        wait_for_idle 30
         local r3_prompt="Watcher here. Session has been idle for a while. Please review MEMORY.md for entries that may be stale given today's work, update if needed, then reply Done."
         inject clear-input
         sleep 0.3
