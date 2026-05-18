@@ -3,7 +3,8 @@
     ".claude/context/patterns/parallelization-strategy.md",
     ".claude/context/reference/bash-gotchas.md",
     ".claude/context/patterns/jicm-pattern.md",
-    ".claude/context/patterns/mcp-loading-strategy.md"
+    ".claude/context/patterns/mcp-loading-strategy.md",
+    ".claude/context/patterns/context-budget-management.md"
   ],
   "session_start": 1778970896569,
   "mcp_injected": [
