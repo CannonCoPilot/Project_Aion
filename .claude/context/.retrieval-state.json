@@ -4,7 +4,8 @@
     ".claude/context/reference/bash-gotchas.md",
     ".claude/context/patterns/jicm-pattern.md",
     ".claude/context/patterns/mcp-loading-strategy.md",
-    ".claude/context/patterns/context-budget-management.md"
+    ".claude/context/patterns/context-budget-management.md",
+    ".claude/context/patterns/observation-masking-pattern.md"
   ],
   "session_start": 1778970896569,
   "mcp_injected": [
@@ -13,7 +14,8 @@
     "recall:remember when",
     "methodology:how should we approach",
     "error_debug:error in /Users/nathanielcanno",
-    "recall:What did we do about"
+    "recall:What did we do about",
+    "methodology:best practice"
   ],
   "recent_projects": [
     "chronicler",

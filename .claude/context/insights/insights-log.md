@@ -5,175 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-05-04 [2c3a9a7c1f68]
-
-- **The note "directly, reviewed Liaison draft" is significant**: Liaison is David's auto-answer persona. Liaison drafted a response and David replaced it with his direct answers. That means every word in the answer block is David's actual position, not algorithmic. A1's framing carries the weight of explicit human attention, not a routed automated response.
-- **The "one persona done well" instruction is a methodology lock**, not an aesthetic preference. It rules out a tempting alternative — "scaffold a generic Personas page, fill in AI Reviewer first, others later." That alternative would be cheaper per line of code but produces a worse first iteration. The document's narrative tells you *why* one-deep beats five-shallow: signal density per engineering hour.
-
-### 2026-05-04 [1f9e5da429bd]
-
-- **Read this debrief to understand *why the question was asked*** — the vision was Anthropic-API observability (UsagePage). David's 04-25 answer accepted that vision, then *added* persona-level observability as the natural next layer. A1 is a vertical extension of the same observability ladder, not a side quest. That framing matters when scoping: the AI Reviewer page should *feel like* a sibling to UsagePage, sharing visual language and panel grammar.
-
-### 2026-05-04 [2cba855d6994]
-
-- **A "detailed review of source documents" reveals A1 is more design-thin than P1's other half (B1)**. B1 cherry-picks an existing 8-file change with a documented commit message, known limitations flagged, and architecture already proven. A1 is a directive + a target persona + raw log data — no design exists. That asymmetry suggests starting with B1's cherry-pick (low-design-risk, well-specified) and using its decision-event schema to *inform* A1's design doc, rather than the other way around.
-- **The decision document hierarchy matters for accountability**: if I'm asked "why are we doing this?" the answer chain is Doc 4 (David's direct answer) → Doc 2 (the original vision) → Doc 1 (David's open question). The comprehensive review (Doc 5) is *Jarvis's* synthesis and must defer to Doc 4 if they ever conflict. They don't appear to conflict, but it's worth knowing which document trumps which under future drift.
-- **None of these docs specify acceptance criteria**. There is no "A1 is done when..." statement anywhere in the source material. Before significant coding, we should propose acceptance criteria — likely framed against David's four signal classes — and either send to him via Questions/ or proceed with a first cut and ask for feedback. The latter is faster but risks rework.
-
-### 2026-05-04 [c24cb062d63c]
-
-- **Reference docs and plan docs serve different audiences and decay differently.** A reference doc points at *sources* (which David authored and own their own freshness — when David updates them, this doc just lists newer paths). A plan doc owns *intent* (which we author and must keep in sync as implementation progresses). Filing in `reports/` signals "this consolidates external truths" while `plans/` would signal "this commits us to a path." Today's artifact only does the former.
-- **The "Update this document if/when..." footer is a deliberate maintenance hook**, not boilerplate. The doc lists three concrete update triggers (Doc 7 sampled, David ranks signal classes, B1 lands) — each makes specific sections of the doc obsolete. Future Jarvis instances opening this file will know exactly what's stale and what's still load-bearing without rereading source material.
-- **Pre-flight checklist as a deliberate cognitive offload**: instead of rediscovering "what did we know going in?" each time we resume A1, the checklist captures the entry-criteria once. This is the same pattern as JICM's `.compressed-context-ready.md` — write the resume state when you have it, read it when you need it.
-
-### 2026-05-05 [d3d291ac9070]
-
-- **The methodology.yaml is the philosophical center of gravity.** It's the file that distinguishes "ai-reviewer" from "task-evaluator" from "security-reviewer" semantically — config.yaml differs only in budget/model, prompt.md is workflow, but methodology.yaml encodes the *kind of mind* the persona is supposed to be. AI Reviewer's `identity.goal` reads "Make decisions the user would make, at their quality bar." That's a *value statement*, not a job description. Without methodology.yaml, the system would have prompts but no shared shape for personhood.
-- **The "blindspots" field is unusual and load-bearing.** AI Reviewer explicitly declares it doesn't assess code quality, doesn't see cross-project dependencies, doesn't handle creative judgment, doesn't know external context. This is a *contract* — it tells other components (and the dashboard) where the persona will silently underperform. Surfacing escalation-rate-by-blindspot would be a real-time check that the contract is honored.
-
-### 2026-05-05 [b6e319e02333]
-
-- **Pipeline-v2 + decision-rationale = personas became measurable.** Before these changes, "is AI Reviewer doing well?" was a vibes question. After, it's queryable: decision_events table joined to subsequent task closures gives you per-pattern accuracy, per-confidence-tier outcome distributions, drift over time. A1 isn't just "show what AI Reviewer does" — it's **the first dashboard that can show *whether AI Reviewer is good at its job***.
-- **B1 isn't a side task — it's a precondition for A1's most valuable panels.** Without the structured decision events, A1 can show throughput and outcomes (close rate, timing) but can't show *quality* (confidence calibration, pattern hit rate, alternatives considered). That's why the comprehensive review bundled them into P1: doing A1 alone produces a thinner dashboard than doing both.
-- **The vestigial-persona problem** — surfaced in the design doc lines 85-93 — is real and constrains A1. `task-evaluator` exists as files but has no registered job. `task-research`, `task-executor-infra`, `bug-fixer`, `security-reviewer` are defined in routing rules but not wired in dev. The dashboard must distinguish **"this persona has been instrumented"** from **"this persona is actually running."** A panel that says "task-evaluator: 0 decisions ever" could mean either "broken" or "vestigial" — those need to read differently in the UI.
-
-### 2026-05-05 [3115a1d131b9]
-
-- **The B1 commit isn't a single feature — it's the whole reason David's branch is named `nexus-sync-2026-04`.** Looking at the 21 commits, three are foundational rebrands ("rebrand Headless Claude Jobs Framework to Nexus", "comprehensive Nexus sync", "bundle Pulse Dashboard as Docker service") and the rest are observability layers (Phases 5.0–5.8) building on that foundation. Cherry-picking `93f5320` alone strips it from a stack of 8+ commits it depends on. That's why the comprehensive review classed B1 as "ADOPT/ADAPT classification per nexus-sync commit" rather than a clean lift.
-- **The 30+21 divergence is mostly orthogonal**, but the overlap zones are exactly the dashboard surface. Both sides touched dashboard code without coordination — nexus-sync's three dashboard fixes (`1e618ef`, `f5f98ea`, `40290c4`) and nate-dev's pipeline-v2 dashboard work (`b86b46c`, `811734d`, `d45e943`, `8ee3f37`) likely conflict at the file level. Resolving this is a code-merge problem with a known mitigation surface, not an open-ended design problem.
-- **PersonasPage.tsx exists in nate-dev** but I haven't confirmed whether it's broken because of missing data (nexus-sync side) or missing UI plumbing (nate-dev side). That's the first read after this turn.
-
-### 2026-05-05 [f3a629b665fb]
-
-- **The pipeline-vs-task distinction implies a missing config primitive**. Right now `routing-rules.yaml` mixes both kinds — `task-evaluator` is described as both a stage handler AND a routing target. The cleaner architecture (which your reframing implies) is two registries: `pipeline-stage-bindings.yaml` (immutable 1:1 stage↔persona map) and `task-personas.yaml` (the pool of dynamically-assignable personas with capability tags). The current mixed state is part of why pipeline-v2 design has the "designed vs running" gap on lines 85-93.
-- **"For every persona we might well ask 'does other AIFred-Pro architecture also need this persona?'"** — this is a sharp lens. The answer for pipeline personas is "yes by definition, the pipeline depends on them"; for task personas it's "depends on whether they're pulsar-bound or task-only." The design question is *whether a persona that no architecture depends on should exist at all*. If the answer is "no, every persona must be wired," the persona library shrinks; if "yes, we keep latent personas for future jobs," the library grows. Your earlier observation about vestigial personas (`task-evaluator` etc.) gets clarified by this lens.
-
-### 2026-05-05 [e9894520ef26]
-
-- **The schema-gap discovery validates your "verify NOW" instinct on Q4.** Finding this in R5/R6 would have meant a 3-4 hour sunk cost before realising audit-ingest can't function — and the "no REJECT" mandate makes silent skipping of the migration unacceptable. Surfacing it now lets us treat the schema as a first-class deliverable, derive it cleanly from audit-ingest's INSERT statements, and integrate it as part of the supplant rather than as a follow-up surprise.
-- **The adapt-absorb-replace mandate transforms the supplant's authorship signature.** Original lift would have been ~21 cherry-picks (David authored, us committed). Now it's ~21 cherry-picks + ~7-8 follow-up commits in our authorship that complete the python parity. When David reviews to merge nate-dev → main, he sees: his original work intact (he can recognise it commit-by-commit) PLUS our adapt-absorb commits documenting the bridging work. That's a cleaner story than a single "merge with conflict resolution" mega-commit and is also a clearer artifact for any future "why did Sir do X" question.
-- **The shell-script-isolation step is the architecturally interesting commit.** Most R5 commits move code; the final rewire commit moves *control*. Its diff will be small (likely a handful of dispatcher.sh / event-watcher.sh lines), but it's the moment when the live system stops depending on shell paths. Worth explicit documentation in R7's debrief.
-
-### 2026-05-05 [8f98f3ddaa24]
-
-- **Why this checkpoint is natural**: cherry-picks are conceptually distinct from the remaining R5-final work (writing new python service code in `services/observability/`, porting executor.sh deltas to `services/executor.py`, rewiring callers). The lift phase preserves David's authorship verbatim; the port phase is *our* engineering work and benefits from a fresh session with focused attention on `services/` architecture.
-- **Two minor smoke observations to defer to R6**: (a) `dispatcher --list` now shows 2 jobs instead of 4 — `task-score` and `task-investigator` got removed somewhere in commits 6-21 (likely intentional registry cleanup; verify in R6). (b) The `--list` header still says "Headless Claude Job Registry" — David's rebrand pass missed that string. Both are cosmetic, neither blocks runtime.
-- **Branch hygiene**: `nate-dev-supplant-2026-05-04` is local-only; no push. The `pre-supplant-baseline-2026-05-04` tag is on David's origin as our rollback insurance. R7 will fast-forward `nate-dev` → supplant-branch HEAD and push only after R6 smoke passes.
-
-### 2026-05-05 [d911e04988e5]
-
-- **R5.5 was lighter than the original 4-hour estimate** because the right ports were the small-and-strategic ones (3 logger modules + thread_id helper + 6 service entry-point wirings = 653 LOC total) rather than the deep stream-json/budget-enforcement port. Pipeline-v2 already runs python natively; David's stream-json infrastructure remains in `executor.sh` for the shell path that's now disconnected.
-- **R6's interesting wrinkle**: `aifred-dev-postgres` has no host port mapping (only on `aifred-dev-network`), so audit-ingest.py from host couldn't validate via direct connection. Pivoted to the schema validation pattern that actually mattered — INSERT a swallowed-errors payload from python observability via `docker exec psql` and confirm it lands. Three tables, three INSERTs, all clean. Cross-schema thread_id correlation verified.
-- **Why R7 was the smallest stage**: fast-forward + push + debrief is mechanical when R5/R5.5/R6 all passed smoke. The biggest risk in R7 is git-mechanical (fast-forward eligibility) — `git merge-base --is-ancestor` confirmed before pulling the trigger.
-
-### 2026-05-05 [9421c840d8b5]
-
-- **Hook end-to-end works**: fixture-driven invocation emitted exactly 2 decisions, with correct actor formatting (`persona:<name>`), decision_type/outcome propagation, and confidence preservation. The synthetic fixture proves the parser is robust to arbitrary persona outputs without needing a real SDK persona run.
-- **Mtime-window fidelity**: the hook's `exec_start_ts` filter is the right safety primitive — it prevents double-emission when an executor runs against a persona whose old reports linger in `agent-output/`. By passing `exec_start = now - 5s`, the just-written file is the only candidate.
-- **Thread correlation precedence**: the fixture used a fresh `NEXUS_THREAD_ID` env var (different from the smoke task's auto-generated id), so the 2 fixture decisions correlate to a separate thread. This is intentional — the hook reports decisions made *during* a persona's execution, so they should share that execution's thread, not the parent's.
-
-### 2026-05-05 [5c0a8b44ff7a]
-
-- **All three retry branches behave correctly**: (1) `exec_attempts=2` → emits `retry/retry` decision + `job.retrying` audit + dispatches executor; (2) `exec_attempts=3` → emits `retry/give_up` decision + `task.blocked` audit + blocks via Pulse without dispatching; (3) `exec_attempts=0` → no retry decision (correct: a first dispatch isn't a retry). The branching matches executor.sh's intra-loop semantics translated to inter-cycle orchestration.
-- **The synthetic harness pattern was the right approach**: mocking `launch_service`, `conditional_claim`, `pulse_post`, `count_active_executors`, and `chain_predecessor_done` at the module level isolated the decision logic from network/process side effects. This let me test all three branches in <1 second without spinning up real executors. Same technique works for testing any of pipeline-watcher's other branches in the future.
-- **Architectural relocation worked cleanly**: executor.sh's intra-loop retry decisions (which fired *during* a single execution attempt) became pipeline-watcher's inter-cycle decisions (which fire *between* attempts). The semantics map: each executor.py invocation is one "attempt" in pipeline-watcher's view. Storyline correlation across attempts of the same task is preserved via task_id (the dashboard's primary join key).
-
-### 2026-05-05 [84393efeab42]
-
-- **Too-broad agent scope = low-fidelity output**: Asking one agent to audit ~50 files across three subsystems for 7 different concern types (stubs / shims / dead code / migrations / inconsistencies / error handling / duplication) appears to push the agent past what it can verify-as-it-reports. The result is a confident-sounding report with file:line precision that *looks* actionable but contains substantial hallucination. I should have caught this earlier — the first "P0" finding I checked (cost endpoint mismatch) didn't survive a 30-second grep.
-- **The verify-before-acting instinct paid off**: I was about to hand the user a "fix these P0 issues" list. Spot-checking F-001 against the actual `lib/cost-log.sh` (correct endpoint), then F-005 (dispatcher.sh has 1 `--job)` not 6), revealed the pattern. Three more checks confirmed the report wasn't trustworthy. Pre-acting verification on agent output is non-negotiable for surface-area-large findings.
-- **What the agent got *conceptually* right** isn't useless: PULSE_URL/PULSE_BASE/PULSE_API_URL env name divergence IS real (multiple names in use across files); 17 hardcoded `localhost:8700` references DO exist (most in `${VAR:-default}` fallback form, which is acceptable defensive defaulting). The agent's *architectural* concerns survived; its *specific file:line claims* did not.
-
-### 2026-05-05 [568f9953e3b0]
-
-- **The autonomy invariant is the load-bearing JICM constraint, surfaced retrospectively**: The original `jicm-portable-architecture.md` (2026-05-01) was written with rigorous architectural reasoning — but missed that hooks alone cannot submit `/clear` to their host process. The 2026-05-02 reframing (`jicm-roadmap-v7-9-to-v8.md`) caught this, decomposed hardening from portability, and made the autonomy invariant explicit as the gating property. This document's §3.1 captures the pivot for future readers — without that framing, the v8 design would have shipped silently regressing the property that makes JICM useful.
-- **The Pulse/Nexus boundary tagging convention is the highest-leverage governance change in the window**: Within 24 hours of articulating the axis, F-1 was identified, queued (P1.B1.1), repaired, and verified. The convention forces architectural classification at *planning* time, not after the fact. This means future workstreams describe themselves in terms that make boundary violations *visible* rather than discoverable only via spot-checking — which is exactly the failure mode the boundary audit was responding to (the dashboard's `pg.Pool` was working code that had been merged for ~24 hours before anyone realized it bypassed Pulse's API contract).
-- **The strategic-convergence question is genuinely open and should stay that way until JICM v8.0 ships**: Three signals point inward (Path A: Jarvis-into-Alfred-Dev); two signals point toward parity (Path B: joint Project-Archon suite); Path C (status quo) is workable indefinitely. Critically, Path A is *technically blocked* by JICM's tmux-substrate dependency — Jarvis cannot run in a Docker container or on a non-tmux host until v8.0 ships the PTY backend. So even if the operator decided to pursue Path A today, the merge couldn't happen yet. This is a useful architectural decoupling: the question of *whether to merge* doesn't need to be answered until the question of *can we merge* is unblocked, and JICM v8.0 is the work that unblocks it. The recommendation in §9.3 is therefore **stay on Path C; revisit when JICM v8.0 ships**.
-
-### 2026-05-06 [9e6533f7c0f9]
-
-- **Compression with addition is the right test of restructuring quality.** The doc lost 439 lines while adding (1) a Jarvis primer for David, (2) a 7-point connection-points network diagram, (3) a dual-write-loop fate explanation, (4) JICM cross-edges in the dependency graph, and (5) a gantt that extends into the future. The compression came from deleting redundant Validation/Parallel-Tracks content and from collapsing the unresolved-work table — the new structure foregrounds *what's next* rather than rehearsing *what's done*.
-- **The §1.3 Jarvis primer is the single most important change for David's readability.** The original document assumed shared vocabulary (JICM, Aion Quartet, Hippocrenae, AC-01..10) that David would have no reason to know. Defining these once at the top with a one-line role per system makes the rest of the document readable without backtracking. Worth replicating this pattern in any future cross-Archon artifact.
-- **§4.1 dual-write fate is load-bearing for migration planning.** The "30-day clean window" criterion turns a scaffolding decision into a measurable one — today's swallowed-errors.jsonl=0 starts the clock. That clock is now a planning anchor: by 2026-06-04, if the clock holds, dual-write can begin sunsetting. Without that criterion the migration would have stayed open indefinitely.
-
-### 2026-05-06 [9bb1f4871de7]
-
-- **Two-file-per-major-artifact pattern is the right ProjectIntel convention.** Long synthesis docs are unwieldy as standalone debriefs because the template's narrative sections (What We're Building Toward / Why This Matters Now / Key Decisions / Where This Leads) get drowned out by the artifact's own structure. Splitting into (a) the artifact with `type: artifact` frontmatter and (b) a compact debrief with `type: debrief` frontmatter and a `companion_artifact:` field preserves both — David can read the debrief in two minutes or dive into the full artifact when ready.
-- **The `commits:` frontmatter field threads ProjectIntel back to the git repo without coupling.** The debrief lists `057195f` so a future investigation (David's, mine, or another agent's) can `git show 057195f` to retrieve the exact code state, but neither the debrief nor the synthesis depends on the commit existing — they survive a force-rewrite of branch history. This is the pattern the projectintel-ops skill recommends and it's worth using for any artifact-heavy debrief going forward.
-- **Notice what was *not* committed**: the scratchpad and insights-log changes stayed unstaged. Those are session-state mutations that auto-rotate; bundling them into the architectural-doc commit would have made the diff noisy and the commit message dishonest. CLAUDE.md's "stage specific files by name" guidance pays off precisely when there's a meaningful diff to ship and a pile of routine session-state changes to leave behind.
-
-### 2026-05-06 [0ae193cd12ff]
-
-- **Scope crept appropriately, not destructively.** What started as "wire pipeline-v2 to msgbus" expanded to include `decision-log.sh` + `cost-log.sh` tautology fixes when verification surfaced a hidden multiplier on the same delivery break. Including the lib/ fixes in the same commit kept the deliverable atomic — without them, the wire-up looked correct in code review but produced zero Telegram pages in dev. The discipline lesson: when verification reveals an adjacent blocker that's a 1-line fix on the same alert chain, fold it in; when it reveals a 1-day blocker, defer with documentation. The 6-file commit was the right call for the 1-day estimate.
-- **The systemic finding deserves its own [Nexus] cleanup workstream.** `grep -rn '${PROJECT_DIR:-${PROJECT_DIR}}'` should return zero. Adding it to a future audit pass (or a simple shellcheck rule) would prevent a recurrence — this is the kind of typo that no human review catches reliably because the broken pattern looks structurally identical to the working one. Logged in the scratchpad for the next [Nexus] cleanup.
-
-### 2026-05-06 [3b88afb3a3dd]
-
-- **The metadata header-fallback validates with a deliberately-failed auth.** Sending an invalid API key through the proxy produces a 401 response from Anthropic, but the row in `api_requests` still gets written with `agent_name='smoke-test-metadata-fallback'`, `session_id='telegram-restoration-2026-05-05'`, `project='project-aion'` — all three from x-aion-* headers, none from the body. This is the cleanest possible smoke: the upstream call failed but the attribution-capture path succeeded independently. It also proves the path doesn't depend on Anthropic's cooperation — the proxy reads its inputs before forwarding.
-- **The /usage row filter (`http_status = 200`) automatically excludes smoke-test pollution.** My 401-test row exists in `api_requests` but won't appear in `/api/v1/usage/session-spend-dollars` results. Convenient: I can leave the row as evidence without polluting Cost-card numbers. (For real anomaly investigations, this filter is a feature too — failed requests are tracked separately via the `rejection-events` endpoint.)
-
-### 2026-05-06 [8e4539de4a21]
-
-- **The expanded scope earned its keep.** The half-day metadata header-fallback was the highest-leverage of the earmarks I evaluated, and the smoke proved it: an invalid-auth request through the proxy with `x-aion-*` headers landed a fully-attributed row in `api_requests` even though the upstream call failed. That single proxy patch unblocks per-source attribution for *every future caller* — Jarvis subagents, AIFred personas, dispatcher-run jobs, all without needing changes on their side. Without it, the Cost card would have stayed perpetually `agent_name=unattributed` no matter how many wires we ran downstream.
-- **The design doc is a load-bearing artifact, not paperwork.** I ship-counted 12 future-wiring earmarks (§10 of the doc) — none of which are in this commit. Those would have evaporated into the conversation if I'd skipped the doc. Now they have a cross-referenced home. Future sessions can `grep designs/ -lE "earmark|ear-mark"` to find pending work; the v1.3 workstream architecture doc already references this design as a "successor" pattern. The audit trail stays coherent across /clear cycles because it lives on disk, not in context.
-- **`aifred-pro-nexus-dashboard:latest` vs `aifred-pro-dev-nexus-dashboard:latest`** — compose project naming injected the `-dev-` infix when I built without specifying the project. Required a `docker tag` step to make the dev container pick up the fresh build. This is the kind of papercut that is invisible until your second container rebuild after fresh-rebooting Docker; worth noting in the next [Nexus] cleanup as a `docker compose --project-name aifred-pro` discipline pattern.
-
-### 2026-05-06 [72c6a65e111b]
-
-- **Your hypothesis is correct, sir, and the gap is measurable.** Last 24h sources flowing through `:9800` = exactly **2 distinct callers**: 565 rows from one un-attributed source (this Jarvis session) + 1 row from my smoke test. AIfred Nexus dispatcher, the 24+ AIfred personas, additional Jarvis instances, and any standalone `claude -p` not configured with `ANTHROPIC_BASE_URL=http://localhost:9800` are **NOT** captured. Latest 5h utilization 37.43% — Anthropic's view of total spend across the *entire account* — vs proxy-summed cost $90.18 covering only this one Jarvis session.
-- **Two distinct quantities the system tracks, and we've been conflating them.** `unified_5h_utilization` (from response headers) is **truth from Anthropic** — every API call from this account contributes regardless of which client made it; the value reflects the whole account's 5h spend. `cost_usd` (computed from response body usage) is **proxy-attributed only** — sums only what flowed through `:9800`. The Cost card I just shipped uses the latter, so it understates total account spend by exactly the volume of unrouted traffic.
-- **Cache reads make this harder to verify than first appears.** Recent rows show requests with `cache_read=313K, input=2K, output=700` — Anthropic charges cache reads at 0.1× input rate, so a 313K cache_read counts as ~31K input-token-equivalent for budget purposes. The `cost_usd` math accounts for this, but utilization headers count something else entirely (Anthropic's internal weighting). Comparing them precisely is non-trivial — but the *direction* of any gap is informative.
-
-### 2026-05-06 [0a5465bc0cd6]
-
-- **Discovered + fixed a latent bug from the prior session**: the dashboard server's `routes/usage.ts` was missing the `/api/usage/session-spend-dollars` proxy line. The Pulse endpoint and the frontend hook were both shipped in `935572c`, but the *server-side proxy bridge between them* was overlooked. This was invisible until I tried to render the BudgetPage in this rebuild — Wire E couldn't fetch its data, and the trace led directly to the gap. A 1-line fix, but a useful example of why end-to-end smokes catch what unit-level rebuilds miss.
-- **The plist `bootout` "No such process" is the happy path here**: with `RunAtLoad: false` + `StartInterval: 300`, the dispatcher only runs in 1-second bursts every 5 minutes. Between cycles, no process exists — bootout has nothing to kill. That's not an error; it's the cleanest possible reload (no signal, no timing window, just a registration refresh). Compare to KeepAlive services where you'd need `kickstart` to force-restart.
-- **The Wire E coverage dot is mathematically sound but assumption-bounded**: the green/amber/red thresholds answer "what fraction of account spend does the proxy see?" only as well as the 250M-token reference budget approximation. As Route 1's effect propagates over the next 5h window — dispatcher → 24+ personas → cortex → executor all emitting through `:9800` — the proxy share will climb. The dot will *measurably* shift toward green as a behavioral indicator that the rollout took effect. That's its real telemetry value.
-
-### 2026-05-06 [ef0f8f717a37]
-
-- **The signature distinguishes jobs from interactive turns**: input=1 token + cache_read≈207K + output=150-460 tokens is the unmistakable shape of a *conversation continuation* — model receives one tool result, reads the entire conversation history from cache, emits one tool call or short text response. A *job* would show the opposite: large input (full prompt, 30-100K tokens), small cache_read (cold start), variable output. So the question "what jobs are firing?" has a precise answer: **none of these are jobs**. They're tool-loop turns, almost certainly mine answering your question right now.
-- **The 4-7 second cadence between rows is single-session tool-loop frequency**, not many concurrent sessions. Each tool I invoke closes a round-trip and immediately opens the next (Claude reads tool result, plans next action, calls next tool). Consecutive ~4s gaps with monotonically increasing cache_read tokens (202K → 208K) means **one** conversation accumulating, not parallel callers competing.
-- **All 226 of 227 rows in this 5h window are `<unattributed>`**: claude-code's SDK doesn't inject `x-aion-{session-id,agent-name,project,task-id}` headers natively. The header-fallback we built into the proxy in `935572c` works fine, but only when the client explicitly sets those headers. Standalone claude-code runs raw — so `agent_name` and `session_id` come back null and rows fall into the `<unattributed>` bucket.
-
-### 2026-05-06 [416142676c0c]
-
-- **Two endpoints, two scopes**: `/api/usage/session-tokens` returns the current 5h window only (`request_count=215`), while `/api/usage/cache-effectiveness` aggregates across all proxy-captured rows (`request_count=7924`, going back to 2026-04-26). Same database, but the cache-effectiveness query has no window predicate. Reasonable backend choice — cache trends benefit from long history — but the hero card label "Cache This Window" would lie if it consumed the wrong endpoint.
-- **`useSessionTokens` exposes everything we need**: `input_tokens`, `cache_read_tokens`, `cache_write_tokens` are all window-scoped already. Hit ratio = `cache_read / (input + cache_read)` is a one-line derivation client-side. Savings factor = `(input + cache_read) / (input + 0.1*cache_read)` falls out of Anthropic's 10×-discount cache pricing. So the hero card needs zero new endpoints — it's pure derivation from data already on the page.
-- **Why deriving in the component beats adding a backend route**: the savings formula could shift if Anthropic changes cache pricing, but the *raw token counts* are stable telemetry. Keeping derivation in the UI means a pricing change is a one-line frontend edit, not a coordinated backend migration. Backend stays neutral; UI owns the interpretation.
-
-### 2026-05-06 [4f3122b40ea3]
-
-- **The card answers the question your last analysis raised**: the row pattern (input=1, cache_read≈207K per row) was telling us the workload is dominated by cache reads. This card surfaces that directly — at 100% hit ratio, every conversation continuation is reading from cache rather than re-billing the full prompt. That's what makes the 5h window survivable: 43M raw cache-read tokens cost ~4.3M billable-equivalent (10× savings).
-- **The card's color encodes a regression alarm**: emerald above 90% is the steady state for claude-code workloads (huge stable system prompt, conversation continuation). If the headline goes amber, something has changed — model swap (cache invalidates per-model), prompt mutation (cache invalidates per-prefix), or fresh job-style cold-start traffic flooding the window. So the color isn't decorative — it's a "your workload changed" signal.
-- **Why I dropped Cost from the hero entirely rather than relegating it to a smaller card**: the `BudgetPage` ApiSpendCard already shows cost prominently with the coverage-quality dot, account-wide utilization annotation, and reconciliation footnote — far richer framing than a hero tile could give. Two competing displays of the same number invites drift; a single canonical surface (BudgetPage) is cleaner.
-
-### 2026-05-06 [8b00f35ade78]
-
-- **The model-swap signal turned out richer than I expected**: claude-code's SDK appears to use `claude-sonnet-4-6` for short status/utility calls (status line refreshes? title generation?) while the main thread runs on `claude-opus-4-7`. Every transition between them triggers a fresh cache prefix lookup — no cache state crosses model boundaries because Anthropic's cache is keyed per-model. In a 50-request sample we saw 5 transitions, which means the cache is invalidating roughly every 10 calls just from model alternation alone. The chart will surface this as a periodic pulsation of orange annotations, which is itself a finding: the workload's effective cache hit rate is being under-realized by the SDK's model-mixing pattern.
-- **The log-scale right Y axis tells you something different from the left axis**: left (linear, 0-100%) shows hit *rate*; right (log) shows hit *volume*. They can disagree informatively — a 100% hit rate with tiny cache reads (1KB, log-scale near floor) means "we're hitting cache but cache is small" (early in a session before context grows). A 100% hit rate with huge reads (100M+, log-scale near top) means "deep into a long session, all of it cached." Same hit rate, completely different meaning. Two axes catch what one wouldn't.
-- **The slider's hours unit is doubly correct**: cache patterns happen on minutes-to-hours scales (a single conversation lasts ~hour, a workday ~8h, a debugging session ~few hours), so users naturally think in hours. And it composes nicely with the 5h Anthropic window — default 5h shows exactly one Anthropic session window's worth of cache history. Other unit choices (sessions, requests, days) would either be too coarse or too data-structural.
-
-### 2026-05-06 [6789fcc1ec7f]
-
-- **The five cold-starts visible right now are themselves a finding**: in the trailing 50 requests you saw the SDK alternate sonnet-4-6 ↔ opus-4-7 five times. Each alternation invalidates cache (it's keyed per-model), so the effective hit rate is being *under-realized* by claude-code's model-mixing — the rolling-avg line will dip to 0%, then climb as cache rebuilds, then dip again on the next alternation. This is a *behavioral* observation the previous chart couldn't have surfaced because it had no model dimension and no temporal axis.
-- **Why I kept the rolling-avg as the headline, not the per-call dots**: per-call hit rate in this workload is near-binary (0% or 100% — the full prompt either matched cache or didn't). A solid line through binary data zigzags violently and obscures the trend. Translucent dots preserve the per-call detail for those who want it, while the rolling avg carries the actual story. This is a general principle for noisy time-series: smooth as the foreground, raw as the texture.
-- **The slider and window-scoped stats compose better than they appear**: dragging from 5h down to 1h doesn't just zoom the chart — the three stat boxes recompute against the visible window. So you can debug a specific incident ("what was the cache state during that 30-minute spike at 04:30?") by sliding to 1h and centering — stats reflect *exactly* what the chart shows. The previous design's stat boxes were always lifetime aggregates, which made them mostly decorative.
-- **The hours unit was a deliberate divergence from Wire D's window-count slider**: Wire D's burn-rate is per-window (5h windows are the natural unit for utilization-vs-time). Cache patterns happen on a different timescale — within a session, across model swaps, between conversations. Hours is the correct atomic unit there, even though it makes the two sliders speak different languages. Consistency-for-its-own-sake would have hidden the right scale.
-
-### 2026-05-06 [0f96135591e8]
-
-- **Why a single regression across windows is the right framing**: each window starts fresh (utilization 0% at t=0) and ends at whatever final-utilization Anthropic decided. The slope of the best fit through *all* visible windows answers "what's my average burn rate per hour?" — a single scalar number that abstracts away per-window noise. If the slope is 14%/h, your typical session is consuming 14 percentage points of the 5h budget per hour, projecting to 70% utilization at reset. That's an actionable forecast you can't get from any single window's curve.
-- **The flex-1 + min-height pattern is the right way to fill empty grid space**: setting `height="100%"` on `ResponsiveContainer` requires a parent with a defined height. Wrapping it in `<div className="flex-1 min-h-[300px]">` inside a `flex flex-col` card lets the chart claim *exactly* the remaining vertical space after header/slider, with a sensible floor for narrow viewports. The card itself needs `h-full` so the grid row's auto-stretch fills the cache-panel height alongside it.
-- **No memoization needed for the regression here**: a few hundred points × ~7 windows = ~2000 (x,y) pairs. Sum-XY, sum-X², etc. are all O(n) over numbers — fully recomputed regression on every render is sub-millisecond. Adding `useMemo` would protect against an irrelevant micro-cost while introducing a stale-data risk if the dependency array drifted. Pure-compute is simpler and safer.
-
-### 2026-05-06 [0fee3c02884d]
-
-- **The regression revealed something the previous chart hid**: slope +21.1%/h, projection 100% at reset — your typical session is **saturating the 5h budget**. The eye couldn't pull that average out of seven overlaid curves; a single number does. This is exactly why best-fit lines earn their keep on noisy multi-series data — they collapse a population of trajectories into one scalar that predicts.
-- **The intercept tells you the fit's limitation**: best-fit y-intercept is ~13%, but real burn always starts at 0% at t=0. That gap between "linear says 13% at start" and "reality says 0% at start" *is* the curvature — burn is concave (front-loaded: heavy early, plateaus late). The slope is still honest as a trend metric (rate per hour averaged across the window), but if you want session *shape* prediction you'd want a polynomial or log fit. The honest framing in the subtitle ("Best-fit slope · projects to X%") names the slope as the headline rather than implying the line is the model.
-- **Why no useMemo on the regression**: the dependency would be `[windows, count]`, but `windows` is itself derived from `count` and `data` on every render. So `useMemo([windows, count])` would recompute on every render anyway — the memo overhead would *cost* more than it saves. For O(n) computations on n≤2000 numerical pairs, pure-compute in the render path is the right tool. Memoization is for *expensive* derivations or *referentially-stable* dependencies; this is neither.
-- **The flex-1 + min-h-[300px] pattern is doing two jobs**: `flex-1` lets the chart claim available vertical space when the row is tall (alongside the redesigned cache panel); `min-h-[300px]` prevents collapse on narrow viewports where the row might be short. Both behaviors needed — neither alone is enough. Tailwind's `min-h-[300px]` arbitrary-value syntax is the cleanest way to pin a floor without a custom CSS class.
-
 ### 2026-05-06 [14d8834d3561]
 
 - The compressed context (qwen3:8b extraction) reflects a snapshot from before the JICM-HALT mid-session — its "Next Step: implement the burn-rate slider" is **stale by 4 commits**. The scratchpad and git log are authoritative; the LLM-enriched checkpoint is a fallback when conversation is sparse. My self-correction note from 2026-04-24 about "stale Current Task inference from session-state.md" applies directly here — same failure mode, different artifact.
@@ -1193,3 +1024,246 @@ A second principle: **per-prompt interventions need per-prompt eval substrate**,
 **Caveat — Haiku 4.5 extended thinking**: The CoD intervention shapes `thinking_tokens` specifically. Haiku 4.5 historically has limited or no extended-thinking support depending on the API surface. If Haiku returns no `thinking_tokens` field, the primary pre-reg axis (`per_task_type_thinking_reduction`) is mechanically unmeasurable on the Haiku arm — we can still measure `output_tokens`, `latency`, and quality rubric, which is informative for the **routing question** (when does compression help the cheap tier?). I'll verify Haiku's thinking support during harness build and report; if absent, the Haiku arm shifts to an output-only ablation rather than dropping. Worth knowing up front: the Haiku data may be qualitatively different from Sonnet/Opus, not directly comparable.
 
 **Caveat — judge model independence**: cc-compression-bench's rubric uses Sonnet 4.6 as judge. On the Sonnet 4.6 *subject* arm, judge = subject (self-judging bias risk per Zheng et al. 2024 LLM-as-Judge literature). Mitigation: use Opus 4.7 as judge for the Sonnet subject arm, Sonnet 4.6 as judge for the Opus and Haiku subject arms. Disclosed in the report.
+
+### 2026-05-18 [ab389841246d]
+
+**Phase B exit-gate: PASS — but two contamination findings worth surfacing before Phase C.**
+
+The smoke cell ran end-to-end. Every telemetry field needed by the pre-reg axes was captured cleanly, the rubric is computable from the `result` text (all 4 pre-authored `key_points` for cr_03 are present in the baseline output, both `must_use_terms` hit, no `must_avoid` triggered — this baseline would score ~1.0 on the rubric). JSONL resume logic verified — `existing_cells()` correctly skips already-completed cell keys.
+
+**Contamination finding 1 — output style leak**: The baseline response includes literal `★ Insight
+
+### 2026-05-18 [f55467640952]
+
+**Phase B core deliverable shipped**: the harness is feature-complete and validated end-to-end against one cell. The calibration run is the empirical sanity-check before authorizing the full $135 run — by stratifying across all 36 (model × condition × layer) combos plus high-cost Opus padding, it will yield:
+- Per-model cost distribution (Sonnet vs Opus vs Haiku) — Opus is the dominant cost driver and the biggest unknown
+- Per-condition output-token distribution (baseline vs single_line vs fewshot vs jeeves_cod) — the first real signal of whether CoD actually compresses Jarvis-class outputs
+- Per-layer cost variance (L1 vs L2 vs L3) — agent-dispatch and persona-replacement should each have a different cache footprint
+- Cost extrapolation: if calibration $/cell holds, full Phase C cost is `(50 sample mean × 1044 cells)`; if Opus is higher than expected, we'll see it here before committing
+- Concurrent-write integrity: ThreadPoolExecutor + file lock can be unit-tested by checking the JSONL line count matches the cell count
+
+If calibration reveals an unexpected failure mode — broken JSON, rate limits at 4-way, cost overrun, persistent contamination — Phase C decisions change before the larger spend.
+
+### 2026-05-19 [a9c548663a37]
+
+**Calibration has produced a striking preliminary finding worth surfacing BEFORE committing to the full $200+ run.** The output-token means by condition (n=8-15 per cell):
+
+| Condition | mean output_tokens | Δ vs baseline |
+|---|---|---|
+| baseline | 2,718 | — |
+| single_line CoD | 2,767 | **+1.8%** |
+| fewshot CoD | 2,874 | **+5.7%** |
+| jeeves_cod (stacked) | 2,376 | **−12.6%** |
+
+**Single-line CoD and fewshot CoD show no compression effect — and fewshot may even *increase* output.** The only reduction comes from the stacked `jeeves_cod` condition, where Jeeves-Brief (output-side directive) is likely doing all the work and CoD is contributing nothing or actively interfering. The pre-reg's `-50% expected` on thinking-token reduction is **not visible** in total output tokens at n=47.
+
+Three plausible mechanisms:
+1. **CoD does compress thinking but `claude -p` rolls thinking into total output** — so a 50% thinking reduction becomes invisible if visible output expanded to compensate.
+2. **CoD doesn't compress on Jarvis-class tasks** — the arxiv paper's 92.4% reduction is on GSM8k math; our prompts are code-review/diagnosis/planning which the model may not treat as draft-compressible reasoning.
+3. **`claude -p` ignores or de-prioritizes appended CoD directives** — workspace defaults override custom system-prompt fragments.
+
+The fact that fewshot CoD actually *increases* output (+5.7%) is the most damning signal — it suggests the few-shot examples are being treated as input the model must engage with, not as a compression pattern to emulate.
+
+### 2026-05-19 [aa59a4937446]
+
+**L3 produces materially shorter outputs (1,931 vs ~3,050 for L1/L2)** — strong signal that the persona-replacement system prompt strips the verbose-default behavior. This is a separate finding from CoD: the *deployment surface* (pipeline-executor-style) compresses output by ~37% just by replacing the system prompt, without any CoD intervention. If true at n=1044, L3 is a more impactful compression lever than CoD itself.
+
+### 2026-05-19 [bb54e1cf5fa5]
+
+**Diagnostic complete — root cause identified.** The fewshot CoD condition produces `<draft>` tags in 88% of cells and `<answer>` tags in 69%. The format IS reaching the model. But examining the actual output reveals the failure mode:
+
+```
+<draft>
+Hypothesis 1: iteration without lock
+Evidence: background thread iterates dict; register() mutates concurrently
+Verdict: confirmed — classic race; CPython's GIL doesn't protect multi-step iteration
+...
+</draft>
+```
+
+**The model is treating the CoD format as VISIBLE OUTPUT STRUCTURE, not as a hidden thinking-compression mechanism.** The "5 words per step" constraint is being routinely violated (lines like "Verdict: confirmed — classic race; CPython's GIL doesn't protect multi-step iteration" are 12+ words). Instead of compressing internal reasoning into terse draft steps, the model expands its visible response to *include* the draft section AS WELL AS the answer section.
+
+The arxiv paper measured GSM8k math problems where thinking IS substantially the answer. For Jarvis-class tasks (code review, planning, diagnosis), the model already structures its visible output around the same reasoning steps that CoD is meant to compress — so CoD just adds a parallel structured section without reducing anything. The pre-reg's "-50% thinking reduction" cannot be observed through total output_tokens because the model isn't using CoD as a thinking shortcut; it's using it as an output-format directive.
+
+**This is the kind of finding that ONLY emerges from running actual experiments against actual prompts.** The arxiv claim is real; it just doesn't generalize the way the pre-reg assumed.
+
+### 2026-05-19 [9dc5711fa8a0]
+
+**The proxy is positioned correctly but the data we want fundamentally isn't in the response.** Confirmed by inspecting the official Anthropic SDK `Usage` type — the API never returns a `thinking_tokens` field. Fields present are: `input_tokens`, `output_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `cache_creation`, `inference_geo`, `server_tool_use`, `service_tier`. **No thinking breakdown anywhere in the official schema.**
+
+However — and this is the angle worth keeping — when extended thinking is enabled, the API response `content[]` array DOES include thinking blocks separately from text blocks (`{"type": "thinking", "thinking": "...", "signature": "..."}` vs `{"type": "text", "text": "..."}`). The proxy could be extended to tokenize thinking-block content and store it as a new column. That gives us thinking visibility WITHOUT needing a new API key — purely by observing what already flows through.
+
+**But two prerequisites must hold for this to work**:
+1. `claude -p` must actually enable extended thinking (the `--effort high` flag from your tmux launcher may or may not enable it in non-interactive mode)
+2. The proxy must capture the raw response body before forwarding — verified above; it does (`resp_body = upstream_resp.content`)
+
+Quick verification check before going deeper:
+
+### 2026-05-19 [3e8dacdb6cd2]
+
+**Sir, your instinct was correct — and the discovery is significant.** `--output-format stream-json --include-partial-messages` exposes the full `content[]` array including **thinking blocks separately from text blocks**:
+
+```json
+{"type":"content_block_start","content_block":{"type":"thinking","thinking":"","signature":""}}
+{"type":"content_block_delta","delta":{"type":"thinking_delta","thinking":"The user wants me to plan..."}}
+... (full thinking content streams here)
+{"type":"content_block_stop","index":0}
+{"type":"content_block_start","content_block":{"type":"text","text":""}}
+{"type":"content_block_delta","delta":{"type":"text_delta","text":"`★ Insight ..."}}
+... (text content streams here)
+```
+
+**We can compute thinking_tokens vs output_text_tokens separately by character-counting (or tiktoken-counting) each block type — no API key needed, no proxy modification needed.** This was sitting in front of us the whole time; the `claude -p --output-format json` mode was just hiding it for ergonomic reasons (it surfaces only the assembled text). The stream format exposes the raw content structure.
+
+For the smoke test prompt ("Plan a 3-phase rollout..."), the model produced:
+- ~290 words of internal `thinking_delta` blocks (before any visible output)
+- Then text_delta blocks for the user-facing response
+
+If we re-run the calibration with stream-json capture, we can directly measure CoD's actual claim — does it compress the thinking blocks specifically? This is what arxiv 2502.18600 measured. We were measuring the wrong thing.
+
+### 2026-05-19 [0bf271b95021]
+
+**Notable gap in the literature**: there is **no source-grounded benchmark of CoD on non-math reasoning tasks.** The arxiv paper measures GSM8k (math word problems), MultiArith (arithmetic), and a handful of commonsense benchmarks. There is no peer-reviewed evaluation of CoD on code review, planning, or diagnosis tasks. **Our calibration is effectively the first such measurement**, and it suggests CoD does NOT generalize to these task shapes. That's worth contributing back to the community as a finding regardless of how we proceed.
+
+### 2026-05-19 [8d6385f3ee17]
+
+This is the kind of investigation where the question "what data could already be flowing past us?" beats the question "what data should we go fetch?" — the reverse proxy was always seeing thinking blocks; the `claude -p --output-format json` mode was just a lossy pre-aggregation. The lesson generalizes: when an instrument seems to be missing a measurement, audit the data path end-to-end before assuming the measurement is unavailable. The measurement was 5 lines of shell-flag away.
+
+### 2026-05-19 [8d6c90f58cd8]
+
+**Smoke v3 success — and the thinking/text separation is real.** For cr_03 baseline:
+- **thinking_chars: 1704** (366 tokens via cl100k_base estimate)
+- **text_chars: 3149** (712 tokens via cl100k_base estimate)
+- Claude's `output_tokens`: 1689 (combines both)
+- Thinking is **~35% of total output** for this baseline cell
+
+The cl100k_base tokenizer is a GPT encoding, not Claude's actual tokenizer — so absolute counts are an estimate. But the **ratio between thinking and text within a cell** is the signal we need, and that's preserved. Now we can directly measure: does CoD shift the thinking/text ratio downward, even if total `output_tokens` doesn't move? The earlier deadlocks must have been transient state from prior aborted runs; this clean launch worked in 33.8s as expected.
+
+### 2026-05-19 [e304502b9517]
+
+**The signal is real on math.** From the first 4 math_01 cells:
+
+| Condition | thinking_chars | Δ vs baseline |
+|---|---|---|
+| baseline | 187 | — |
+| single_line CoD | 97 | **−48%** |
+| fewshot CoD | 96 | **−49%** |
+| jeeves_cod | 86 | **−54%** |
+
+This is **right at the arxiv-claimed -50%** reduction. CoD DOES work — we just couldn't see it through `--output-format json`. The earlier calibration's null result on Jarvis tasks may be genuinely correct: CoD is task-shape-specific (math/symbolic reasoning), not a general compressor.
+
+### 2026-05-19 [59654072ea5f]
+
+Cells 5-8 advancing — **bug confirmed fixed**. Looking at math_02 (Alice training plan, harder problem):
+
+| Condition | output_tokens |
+|---|---|
+| baseline | 405 |
+| single_line | 323 (**−20%**) |
+| fewshot | 409 (0%) |
+| jeeves_cod | 319 (**−21%**) |
+
+Math_01 was too easy (each cell ~150 tokens output) to show much variance, but math_02 shows real compression on single-line and jeeves_cod variants. The fewshot at 409 is suspicious — possibly the format spec is again causing the model to produce extra structured output even on math.
+
+### 2026-05-19 [fd28f3e3ac1f]
+
+**Math_03 (break-even analysis, harder problem) — strong CoD signal**:
+
+| Condition | output_tokens | Δ vs baseline |
+|---|---|---|
+| baseline | 680 | — |
+| single_line | 413 | **−39%** |
+| fewshot | 346 | **−49%** |
+| jeeves_cod | 387 | **−43%** |
+
+This is the arxiv-paper effect appearing in our data. **CoD works on math.** The 4 cells of math_03 took ~37s; 12 of 28 cells done in ~30s wall (concurrency=4 efficient). Should finish math arm in ~70s total.
+
+### 2026-05-19 [8c1b826b6ad0]
+
+4 claude -p subprocesses live, all working on math_06 (compound interest — the hardest math prompt). Wall is longer (~30s/cell) because the problem requires more reasoning steps. Concurrency=4 is healthy at the OS level — pipe buffers handling the stream-json volume just fine after the rate-limit fix.
+
+### 2026-05-19 [76ace35f454a]
+
+**Anomaly — math_06 fewshot produced 3,809 output tokens**, ~10× math_03's output and the longest in the run so far. The fewshot template with 4 examples may be confusing the model into producing extensive draft output even on compound-interest math. Worth investigating: baseline on same prompt is still running.
+
+### 2026-05-19 [91091a26e30b]
+
+**Math_06 jeeves_cod produced 6,780 output tokens — $0.20 single cell, 67s wall — the most extreme anti-compression in the run.** Combining Jeeves-Brief + fewshot CoD on a compound-interest problem sends the model into overdrive. The "stacked compression" intervention is causing **OUTPUT EXPLOSION** on certain prompts. The model interprets the directives as "produce extensive draft + formal answer" rather than "compress thinking." Roadmap §4.7 Rule 5 flagged this exact risk as "untested persona-leak"; now we have evidence.
+
+### 2026-05-19 [c0a1f3428613]
+
+The JICM checkpoint is written *before* /clear, so by definition it captures pre-clear state. Work done *after* resuming lands in the scratchpad but may not reach a new checkpoint if the session ends without another compression cycle. This is the structural lag documented in self-corrections 2026-05-06: the compressor "reads commit cadence as forward momentum" but can also lag when work completes in a short post-resume burst before another clear.
+
+### 2026-05-19 [66a4a1ca3a50]
+
+The three-source reconciliation pattern here mirrors the DF protocol (REFL-027/028): bridge state file ≈ scratchpad, live DFHack probes ≈ git log, DB registry ≈ JICM checkpoint. Same trust hierarchy — live objective record beats cached summary. The scratchpad's "pending commit" clause served as a useful hint that commits were imminent, even though by resume-time they were already done. This is the designed interaction: scratchpad captures intent, git captures execution.
+
+### 2026-05-19 [9e7de62510d7]
+
+The session-state survived the context clear intact via force-loading — exactly the design intent. The scratchpad's "pending commit" wording was written mid-session before the commit run and never rotated. This is the expected lag between scratchpad (written as work progresses) and session-state (updated at checkpoints). The JICM checkpoint, by contrast, was compressed at an earlier point still — before even the scratchpad's latest entry.
+
+### 2026-05-19 [e25b1984200b]
+
+**Math arm complete — 28/28 cells, $3.20, ~3.5 min wall.** And math_06 baseline came in at 11,346 tokens — turns out the compound-interest problem with extended thinking generates enormous reasoning chains naturally. CoD compression on math_06 actually IS substantial:
+
+| Condition | output_tokens | Δ vs baseline |
+|---|---|---|
+| baseline | 11,346 | — |
+| single_line | 9,434 | −17% |
+| fewshot | 3,809 | **−66%** |
+| jeeves_cod | 6,780 | **−40%** |
+
+The earlier insight about jeeves_cod "output explosion" was wrong — I didn't have the baseline yet. Fewshot CoD shows 66% compression on this problem. **Calibration-v2 now starting** — 4 subprocesses active on Jarvis-class prompts.
+
+### 2026-05-19 [b765074b94ca]
+
+The headline that came out of this analysis is sharper than the original session's framing: **CoD doesn't just fail on Jarvis tasks, it inverts**. The `single_line` directive **suppresses the thinking block entirely** (-100% thinking tokens on all 3 Jarvis pairs vs only -30% on math) but **inflates visible text by 44% median**. Net effect for Jarvis tasks: fewer total tokens routed through thinking, more tokens billed for output, no net compression. The math arm shows ~30% compression on both axes — a coherent shrinking. The Jarvis arm shows a redistribution, not a compression. That's a more interesting and more dangerous finding for any future "always-on CoD" proposal — billing impact could go the wrong direction.
+
+### 2026-05-19 [d86f23a2a23e]
+
+The Anthropic prompt-cache TTL is 5 minutes — but cache lookup is by exact-prefix hash. Two facts compound the leak here: (1) each `claude -p` boot rebuilds the system-prompt prefix from disk, and even if the bytes are identical, a fresh process gets a fresh cache key in some routing modes, so subsequent calls within the 5min window don't always hit; (2) the harness's concurrency=4 fans out parallel cold-cache calls, meaning the first cell that should "warm" the cache races with the next three — none of them benefit from each other. Serial execution would help, but only weakly compared to a session-fork approach where the prefix is provably the same conversation.
+
+### 2026-05-19 [564220398683]
+
+The `--exclude-dynamic-system-prompt-sections` flag is a strong second signal that the prompt-cache leak is real and Anthropic has shipped a mitigation for it. The flag exists for exactly this reason — sections like git-status mutate between invocations, breaking the prefix-hash cache key. Combining it with `--fork-session` may be additively beneficial: fork inherits the conversation, exclude-dynamic stabilizes the system-prompt prefix. Worth testing both in the same harness rather than just one.
+
+### 2026-05-19 [df830b317384]
+
+The cross-arm cache continuity is the more interesting signal: Arm B's seed (which has no parent — it's a fresh call) shows cache_read=26,092. That can only happen if Anthropic's edge cache layer matched the prefix across separate process invocations. So the prompt cache is **process-independent at the API edge**, not bound to a single CLI process. That overturns my mental model entirely and means the original "rebuild from scratch per cell" framing was inaccurate.
+
+### 2026-05-19 [0fc910629984]
+
+The cost numbers from the actual CoD runs corroborate this: math cells averaged $0.114, v1 Jarvis $0.228, v2 Jarvis $0.254. v2 Jarvis is ~2× math because v2 prompts are larger AND v2 baselines have extended thinking enabled (driving output tokens up). The volume problem is real; the per-call cache problem isn't.
+
+### 2026-05-19 [b4e8f13264b3]
+
+The Prompt Cache Performance panel's "Cold-start (145)" markers tell the story: every `-p` invocation registers as a cold-start event from the cache layer's perspective even when the prefix matches (cache reads still happen, but a fresh request boundary is created). At 12,297 requests captured and 145 cold-starts visible in the window, the bursts pack many requests close together — small per-call quota impact times burst-rate = the steep visible slope. The fix has to attack request *volume* or per-call *raw* input size, not the cache hit rate (which is already optimal).
+
+### 2026-05-19 [2460e5aa9653]
+
+Three arm shapes are needed to disentangle the question:
+- **Arm A (independent)** simulates today's CoD harness — fresh session per cell, baseline burn pattern
+- **Arm B (star fork)** is the proposed Option 2 refactor — N children forking from a single seed
+- **Arm C (chain fork)** is a more extreme pattern where each cell descends from the previous, testing whether context depth helps or hurts the cache. If cache_read climbs across the chain, deeper inheritance compounds the discount. If it falls, accumulated context drifts the cache key.
+
+Identical user prompts across cells maximize cache-prefix hit rate so any *difference* between arms is attributable to the fork strategy, not prompt variance.
+
+### 2026-05-19 [e1a192cd1af2]
+
+The original hypothesis behind Option 2 was that forking would preserve cache. The data shows the opposite mechanism: the Anthropic edge cache is already keyed by **prompt-prefix bytes alone**, not by session id — so independent sessions with identical prompts already cache-hit (Arm A cells 2-10 all show `cache_read=33K, cache_creation=0`). When you `--fork-session`, you create a new session boundary, which the cache layer treats as a **new cache scope** — the first fork pays a full $0.21 cache_creation to re-warm. The fork doesn't preserve cache for the workload pattern we have; it discards it.
+
+### 2026-05-19 [2c385274ee63]
+
+The smoke cell shows 23,595 tokens of cache_creation even after stripping the ~33K CC default. That residual is the *corpus prompt itself* (`cr_03` is a substantial code-review prompt with embedded code) plus the directive and style-suppression preamble. The CoD experiment intentionally uses large realistic Jarvis-shaped prompts — that's the experimental signal. The strip removed ~10K of *overhead* (Jarvis identity, capability map, hooks); what remains is the actual content under test. This is the correct trade-off: we cut overhead, not signal.
+
+### 2026-05-19 [2064acda21f0]
+
+This unlocks the right approach entirely. The Pulse API serves data **captured from Anthropic's own response headers** by the reverse proxy at :9800 — meaning the `unified_5h_utilization` value comes from Anthropic itself, sampled on every API call. We don't need to read a chart; we can query the proxy capture database directly for utilization samples across the probe windows and compute the slope ourselves. This is far more accurate than visual reading.
+
+### 2026-05-19 [6e8b8c1155cf]
+
+The token-delta column shows the most revealing detail: cum_tokens advanced **3,996 in H vs 3,926 in L** — essentially identical (1.02× ratio). Yet utilization advanced 3× more during H. That proves the proxy's `req_tokens` field (input + output, both non-cached) is NOT what Anthropic's quota counter is measuring. Anthropic must be summing something closer to billed-equivalent cost server-side, and exposing only the percentage as a public counter. The proxy can't see Anthropic's math — but our paired-burst design backs it out.
+
+### 2026-05-19 [56cb1c7a53af]
+
+Reading the calibration matrix construction reveals a deeper truth about the prior "scheduler bug": **the 50-cell calibration subset was never designed for paired analysis.** The matrix enumerates 36 unique `(model, condition, layer)` combinations with prompts cycling through — each `(prompt, layer, model)` tuple appears with only ONE condition. There's no within-cluster pairing possible by design. Math controls have proper pairing because the math corpus uses identical prompts across all conditions; the Jarvis arm would need the FULL 1,044-cell matrix to support strict-pair analysis. The "scheduler bug" framing was a misdiagnosis — it's a calibration-subset scoping limitation. Worth flagging in the consolidated findings.
