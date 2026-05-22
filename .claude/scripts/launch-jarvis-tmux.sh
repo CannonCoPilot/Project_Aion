@@ -18,12 +18,16 @@
 # ┌─────────────────────────────────────────┐
 # │            Commands (window 4)          │
 # └─────────────────────────────────────────┘
+# ┌─────────────────────────────────────────┐
+# │            HUD-live (window 7+)         │
+# └─────────────────────────────────────────┘
 #
 # Watcher (window 1): JICM v6 context monitoring + compression
 # Ennoia (window 2): Session orchestration, intent-driven wake-up
 # Virgil (window 3): Task tracking, agent monitoring, file changes
 # Commands (window 4): Signal file → command injection via send-keys
 # Jarvis-dev (window 5): Second Claude session for dev testing (--dev mode only)
+# HUD-live (window 7+): Read-only htop-style dashboard over watcher state surface
 #
 # Modes:
 #   (default)    Full Jarvis with session persistence (W0-W4, resume by UUID)
@@ -52,6 +56,7 @@ JARVIS_W0_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_W
 # W5: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
 JARVIS_W5_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
 JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
+W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
 # Find the most recent W0 session by excluding known non-W0 deterministic UUIDs.
 # JICM /clear creates new session UUIDs, so we can't pin W0 to one UUID.
@@ -419,6 +424,14 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         done
         [[ $WAITED -ge 10 ]] && echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting"
     fi
+    HUD_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
+    if [[ -x "$HUD_SCRIPT" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^HUD$"; then
+        echo "Adding HUD window to existing session..."
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "HUD" -d \
+            "cd '$PROJECT_DIR' && bash '$HUD_SCRIPT'; echo 'HUD stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} HUD-live dashboard added"
+    fi
     if [[ "$ITERM2_MODE" == "true" ]]; then
         echo "Attaching with iTerm2 integration..."
         exec "$TMUX_BIN" -CC attach-session -t "$SESSION_NAME"
@@ -479,11 +492,11 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_A
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
-# W0: effort high, bypass permissions, full Opus 1M context, exclude dynamic system prompts
+# W0: effort max, bypass permissions, full Opus 4.7 1M context, exclude dynamic system prompts
 # Permission bypass: two complementary flags
 #   --dangerously-skip-permissions: skips workspace trust dialog + enables bypass
 #   --permission-mode bypassPermissions: explicitly sets session permission mode
-CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-7[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
@@ -512,15 +525,40 @@ if [[ "$FRESH_MODE" == "true" ]]; then
         echo -e "  ${YELLOW}W0 session archived for --fresh → $ARCHIVE_NAME${NC}"
     fi
     CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+    echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
 else
-    # Default: resume most recent W0 session (excludes W5 Jarvis-dev)
-    LATEST_W0=$(find_latest_w0_session)
-    if [[ -n "$LATEST_W0" ]]; then
-        echo -e "  ${CYAN}Resuming W0 session:${NC} $LATEST_W0"
-        CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
+    # Default: resume W0 from state file, fall back to mtime heuristic
+    if [[ -f "$W0_UUID_FILE" ]]; then
+        LATEST_W0=$(cat "$W0_UUID_FILE" | tr -d '[:space:]')
+        LATEST_W0_JSONL="$JARVIS_PROJECTS_DIR/${LATEST_W0}.jsonl"
+        if [[ -n "$LATEST_W0" ]] && [[ -f "$LATEST_W0_JSONL" ]]; then
+            echo -e "  ${CYAN}Resuming W0 from state file:${NC} $LATEST_W0"
+            CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
+        else
+            echo -e "  ${YELLOW}State file UUID stale (JSONL missing), falling back to heuristic${NC}"
+            LATEST_W0=$(find_latest_w0_session)
+            if [[ -n "$LATEST_W0" ]]; then
+                echo -e "  ${CYAN}Resuming W0 session:${NC} $LATEST_W0"
+                CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
+                echo "$LATEST_W0" > "$W0_UUID_FILE"
+            else
+                echo -e "  ${CYAN}No prior W0 session found — creating new${NC}"
+                CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+                echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
+            fi
+        fi
     else
-        echo -e "  ${CYAN}No prior W0 session found — creating new${NC}"
-        CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+        # No state file yet — fall back to heuristic, seed the file
+        LATEST_W0=$(find_latest_w0_session)
+        if [[ -n "$LATEST_W0" ]]; then
+            echo -e "  ${CYAN}Resuming W0 (seeding state file):${NC} $LATEST_W0"
+            CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
+            echo "$LATEST_W0" > "$W0_UUID_FILE"
+        else
+            echo -e "  ${CYAN}No prior W0 session found — creating new${NC}"
+            CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+            echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
+        fi
     fi
 fi
 
@@ -652,6 +690,15 @@ if [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]]; then
     fi
 fi
 
+# HUD-live window — always launch (read-only dashboard, negligible resource cost)
+HUD_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
+if [[ -x "$HUD_SCRIPT" ]]; then
+    echo "Launching HUD-live dashboard in tmux window..."
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "HUD" -d \
+        "cd '$PROJECT_DIR' && bash '$HUD_SCRIPT'; echo 'HUD stopped.'; read"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
+fi
+
 # Set tmux options for better experience
 "$TMUX_BIN" set-option -t "$SESSION_NAME" mouse on 2>/dev/null || true
 "$TMUX_BIN" set-option -t "$SESSION_NAME" history-limit 10000 2>/dev/null || true
@@ -674,6 +721,7 @@ echo "  Window 4: Commands"
 [[ "$DEV_MODE" == "true" ]] && echo "  Window 5: Jarvis-dev (test driver)"
 [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : MLX-Embed (embedding server)"
 [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : LiteLLM (proxy server)"
+[[ -x "$HUD_SCRIPT" ]] && echo "  Window  : HUD (live dashboard)"
 echo ""
 echo "Services:"
 echo -n "  Docker: "; docker info &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}"

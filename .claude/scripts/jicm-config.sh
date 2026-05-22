@@ -32,6 +32,7 @@ JICM_EXIT_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal"
 JICM_SLEEP_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-sleep.signal"   # written by AC-10 Ulfhedthnar to suppress JICM
 JICM_PID_FILE="$PROJECT_DIR/.claude/context/.jicm-watcher.pid"
 JICM_STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state"            # read by HUD (jicm-watcher-hud.sh)
+W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"          # current W0 session UUID (launcher reads, session-start writes)
 
 # --- Session state files (read by prep script) -------------------------------
 JICM_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
