@@ -5,11 +5,11 @@
 
 ---
 
-**Status**: **PHASE 2D MEMORY DASHBOARD VISUALIZATION — ALL PHASES COMPLETE (3/3 verified)**. Features 1-5 fully implemented + tested: context-timeline, graphiti-overview, rag-collections, compression-gauge, layer-health-heatmap. All 5 backend endpoints operational (tested via curl). Tab navigation (overview/analytics/stores) active. Commit `185a137` (feat: 5 visualization features). Next: Phase 2B+ priorities (P1.B1.1 Pulse READ API, P2 Jarvis C1, Chronicler Phase 4).
-**Date**: 2026-05-19 (session resumed post-clear)
+**Status**: **TOKEN-COMPRESSION + CACHE-MECHANICS INVESTIGATION COMPLETE (v3 published)**. Original 5-finding debrief (2026-05-19) augmented with v3 fork-cache redesign + 6 findings (2026-05-21). v3 revises v2 F2, refutes F3, refines F4. Most actionable: **extend-then-fork** pattern (~8× per-fork cost reduction). Phase 2D (dashboard Phase 1) still pending.
+**Date**: 2026-05-21
 **Version**: v5.12.0
-**Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis. At `09b1e07` (pre-Phase-2B commit).
-**Last commit (Jarvis)**: `09b1e07` (fix(jicm): Phase 2A remediation — 6 audit findings + PROJECT_DIR defaults).
+**Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis.
+**Last commit (Jarvis)**: `b127025` (chore(jicm): post-clear artifacts) — token-compression + v3 fork-cache commit pending.
 **Last commit (Alfred-Dev)**: `201b198` on feature/personas-rebuild (PUSHED to CannonCoPilot/Alfred). 15-commit Phase 1.2+1.3+1.4 chain. main on CannonCoPilot/Alfred at `89d4374` (Phase 1.3 FF); Phase 1.4 FF pending.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)

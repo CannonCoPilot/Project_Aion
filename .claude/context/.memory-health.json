@@ -1,12 +1,12 @@
 {
-  "timestamp": "2026-05-19T15:02:29Z",
+  "timestamp": "2026-05-22T02:54:17Z",
   "services": {
-    "qdrant": {"up": true, "latency_ms": 23},
-    "mlx_embed": {"up": true, "latency_ms": 21},
-    "neo4j": {"up": true, "latency_ms": 23}
+    "qdrant": {"up": true, "latency_ms": 225},
+    "mlx_embed": {"up": true, "latency_ms": 241},
+    "neo4j": {"up": true, "latency_ms": 264}
   },
   "collections": {
-    "sessions_points": 157
+    "sessions_points": 158
   },
   "warnings": null
 }
