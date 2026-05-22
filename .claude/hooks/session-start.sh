@@ -44,6 +44,17 @@ STATE_DIR="$CLAUDE_PROJECT_DIR/.claude/state/components"
 mkdir -p "$LOG_DIR" "$STATE_DIR"
 echo "$TIMESTAMP | SessionStart | source=$SOURCE | session=$SESSION_ID | local_time=$LOCAL_TIME" >> "$LOG_DIR/session-start-diagnostic.log"
 
+# ============== W0 UUID TRACKING (Option A) ==============
+# Write current session UUID to state file so tmux launcher can resume it.
+# Only for W0 (JARVIS_WINDOW unset or "0"); skip W5 (dev) and lite sessions.
+if [[ "${JARVIS_WINDOW:-0}" == "0" ]] && [[ "$JARVIS_LITE" != "true" ]]; then
+    W0_UUID_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
+    if [[ "$SESSION_ID" != "unknown" ]]; then
+        echo "$SESSION_ID" > "$W0_UUID_FILE"
+        echo "$TIMESTAMP | SessionStart | W0 UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+fi
+
 # ============== AUTONOMY CONFIG CHECK ==============
 CONFIG_FILE="$CLAUDE_PROJECT_DIR/.claude/config/autonomy-config.yaml"
 SKIP_GREETING="false"
