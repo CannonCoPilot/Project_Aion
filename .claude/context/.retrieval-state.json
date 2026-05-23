@@ -15,10 +15,12 @@
     "methodology:how should we approach",
     "error_debug:error in /Users/nathanielcanno",
     "recall:What did we do about",
-    "methodology:best practice"
+    "methodology:best practice",
+    "domain_shift:pulse"
   ],
   "recent_projects": [
     "chronicler",
-    "dashboard"
+    "dashboard",
+    "pulse"
   ]
 }
