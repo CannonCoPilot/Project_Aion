@@ -213,7 +213,7 @@ Modal patterns observed in proxy data; use for postmortem attribution only:
 
 ## §9 Operational Rules: Efficient Multi-Task Headless
 
-1. **Extend-then-fork** (v3 finding). One `--resume` extension on the parent → N `--fork-session` children. Cache_write per child drops by ~order-of-magnitude versus forking the bare parent.
+1. **Extend-then-fork** (v3 finding, v5 H quantified). One `--resume` extension on the parent → N `--fork-session` children. v5 H measured 6.2× per-child cost reduction ($0.049 vs $0.305). Plain `--fork-session` without extension inherits conversation history but NOT cache prefix — children pay full fresh-prefix tax.
 2. **Per-cell circuit breaker**: pass `--max-budget-usd 1.50` (or similar) to every headless cell. Dollar-denominated by API contract; functions as a runaway-cell killer.
 3. **Cumulative-burn abort**: track observed Δburn weight per cell; abort harness if cumulative exceeds tolerance. API-reported `cost_usd` as fallback proxy (with §0 no-conversion caveat).
 4. **Pre-flight burn-weight check**: refuse to start a burst-style workload if util > 75%.
@@ -222,6 +222,7 @@ Modal patterns observed in proxy data; use for postmortem attribution only:
 7. **`--output-format stream-json` for tool tracking.** JSON format drops tool_use events.
 8. **85% = stop new experiments. 95% = stop everything but cleanup-and-commit.** Empirical 14-day distribution: only 0.24% of calls in `rejected`. Respect the warning band.
 9. **Plan headless bursts AFTER deliberation, not during.** Deliberation has its own sustained burn (observed range ~0.3–1.5 pp/min depending on tool density).
+10. **Resume (R) for sequential; extend-then-fork (D) for parallel.** R amortizes the prefix across a chain ($0.04/turn after first); D enables parallel fan-out at $0.05/fork. Both beat fresh calls ($0.30/child). File-pass (Y) is cache-neutral — use only when session persistence is unavailable.
 
 ---
 
@@ -275,6 +276,8 @@ Modal patterns observed in proxy data; use for postmortem attribution only:
 | v5 design doc | `projects/project-aion/designs/current/cache-mechanics-v5-arm-redesigns.md` | — |
 | v6 E/F script | `.claude/scripts/cache-mechanics-v5-strip-effect-v6.py` | — |
 | v6 findings | `projects/project-aion/reports/cache-mechanics-v5-strip-effect-v6-findings.md` | §6.1-§6.8 |
+| H arm script | `.claude/scripts/cache-mechanics-v5-arm-h.py` | — |
+| H arm findings | `projects/project-aion/reports/cache-mechanics-v5-arm-h-context-preservation-findings.md` | §5.3, §6.4-§6.5 |
 | Memory: empirical-before-claim | `~/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/memory/feedback_empirical_before_claim.md` | — |
 
 ---
