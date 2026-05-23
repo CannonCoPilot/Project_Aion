@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-05-19T15:20:03.244599+00:00",
-  "entities": 50,
-  "edges": 38,
-  "elapsed_seconds": 348.57,
-  "checkpoint_bytes": 8054,
+  "timestamp": "2026-05-23T05:53:54.620604+00:00",
+  "entities": 20,
+  "edges": 27,
+  "elapsed_seconds": 285.1,
+  "checkpoint_bytes": 8041,
   "group_id": "jarvis-core"
 }
