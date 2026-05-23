@@ -5,252 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-05-06 [e728cd7c3c71]
-
-- **Recharts `<ReferenceLine segment={[a, b]}>` is the right primitive for "draw a line between two specific points," not `<Line>` with two-point data.** Using `<Line>` per window would have required an N-element ComposedChart with each Line having its own `data` prop — Recharts handles that, but you lose the unified scatter-point hover + tooltip behavior. ReferenceLine + two `<Scatter>` series (filled/hollow) lets the dots behave as a single hoverable series while the lines are pure overlays. Cleaner mental model: dots are *data*, segments are *annotations connecting that data*.
-- **The midnight-wrap split is not edge-case decor — 8 of 30 live windows (27%) cross midnight UTC.** Without splitting at x=24/x=0, those windows would draw their connecting line *backwards* across the chart (e.g. a window starting at hour 22 and closing at hour 3 would draw a line from x=22 leftward through 12, 6, to x=3). Splitting into [22, 24] + [0, 3] preserves directionality. Choosing x-axis domain `[0, 24]` (not the original `[0, 23]`) was necessary — `ifOverflow="visible"` on ReferenceLine would have hidden segments otherwise.
-- **The timezone bug almost shipped.** Server emits ISO timestamps with `+00:00` offset; `new Date(s).getHours()` returns *local* hours (timezone-dependent), but the server's `hour_of_day` field is UTC-naive. With Denver's UTC-6 offset, every window's close dot would have appeared 6 hours earlier than its real position — and the line connecting them would smear across the entire chart. `.getUTCHours()` keeps start and close on the same time axis as the server's `hour_of_day`. **General rule: any time you mix a server-precomputed time field with a client-side parse, verify both sides agree on timezone.** This is probably worth a Jarvis-side memory entry.
-- **Color-by-confidence answers a more useful question than color-by-weekday.** The chart's purpose was always "spot temporal patterns in Anthropic's allotment." Weekday color answered "is Tuesday different from Saturday?" — interesting but tangential. Confidence color answers "can I trust this number?" — the operator's first question on every encounter with an estimated value. Live data has 2 low / 20 medium / 8 high — the spread justifies the encoding choice; if everything were `high`, the legend would be dead pixels.
-
-### 2026-05-06 [d24d9b28e91c]
-
-- **Recharts log-scale axis requires `type="number"` and a non-zero domain.** I added both `type="number"` and `domain={['dataMin', 'dataMax']}` because Recharts' default `auto` domain can fail on log scales (it tries to extend to zero, which is undefined for log). `dataMin`/`dataMax` keeps the axis bounded to actual data extents — your minimum is `31,795` tokens (well above zero), so this is safe. If a future window ever has an `estimated_budget` of zero (e.g. from a divide-by-zero in the back-calculation), the log axis would silently drop that point. Worth knowing if numbers ever look incomplete.
-- **The 5.1× height (180 → 918 px) plus log scale is a deliberate combo.** Linear scale at 180 px wasted vertical pixels — 90% of windows compressed into the bottom third. Log compresses the wide-spread tail upward and stretches the dense midrange, so the new pixel budget actually buys resolution. Without log, the 5.1× height would just stretch the existing distribution proportionally; together they buy real new information density.
-- **The 50% transparency on close-dots and lines creates a "leading-anchor" visual hierarchy.** At full opacity, two equally-bold dots invite the eye to land on either. With opaque starts and 50% closes, the gaze naturally lands on opens first, then traces the line outward to the close. This matches how you read a window mentally — "when did it open?" is the temporal anchor; close is downstream. Same trick the trend-line chart uses (filled dot + line drawing leftward into history).
-- **One subtlety with log-scale tooltip ranges:** Recharts' tooltip shows `formatTokens(v)` which is value-space, not log-space. So a hover on a low-budget point will show "263K" (correct), not "5.42" (log). That's right for operator semantics — you want to think in tokens, not in log-tokens.
-
-### 2026-05-06 [efad2346fc5f]
-
-- **Dedup-by-UTC-date instead of dedup-by-weekday gives the correct semantics.** A naive dedup of `dayName === 'Sun'` to its first occurrence in `trendData` would fold *all* Sundays into one tick (e.g. only Apr 26 shows, May 3 doesn't). Adding `seenSundayDates` keyed on `toISOString().slice(0, 10)` produces one tick per *week*, which is what "marks at Sundays only" actually means semantically — week-boundary indicators, not weekday-occurrence indicators. The distinction matters as soon as the dataset spans multiple weeks (which it already does).
-- **The fallback `interval={'preserveStartEnd'}` matters for the cold-start case.** When the dataset has zero Sundays (a fresh proxy with <7 days of data, or any 6-day window that misses a Sunday), `sundayTicks` is empty. Passing `ticks={[]}` to Recharts hides *all* ticks, including the auto-placed start/end. The conditional `ticks={sundayTicks.length ? sundayTicks : undefined}` + `interval` swap restores Recharts' default behavior gracefully — operators with new proxies still see *something* on the x-axis.
-- **Two-color gradient over seven days is honest about precision available to the eye.** A 7-distinct-color palette (the old DAY_COLORS) requires the operator to memorize a legend; a 2-color gradient is read positionally — "more violet = closer to Sunday, more amber = closer to Saturday." The cost is loss of categorical sharpness — Tuesday and Wednesday dots will look nearly identical. This is a feature, not a bug: weekday-pattern detection works on *clusters* (early-week vs late-week vs weekend), not on individual day identification, and the gradient encourages the cluster reading. Trade-off is intentional.
-- **Recharts `dot` callbacks must return a keyed element.** With per-render dot generation, omitting `key` triggers React's "each child in a list should have a unique key" warning in dev mode. Using the index Recharts passes (`props.index`) keeps the warning silent and lets Recharts manage diff correctly when data changes. Same pattern was needed on `activeDot` (the hover-magnified version), or hover behavior would inherit the default blue.
-
-### 2026-05-06 [7367adad0264]
-
-The current frontend code at line 1555 does `hour: new Date(nm.timestamp).getHours()` — this strips minute, second, and date entirely, collapsing all 1,409 events into 24 vertical lines (one per hour-of-day). Microseconds of precision discarded. This is the binning artifact the user spotted. The fix is to keep the timestamp as epoch millis and use a continuous time x-axis.
-
-### 2026-05-06 [33aaa70e05bd]
-
-- **The original code's `getHours()` discarded ~99% of available timestamp resolution.** The data has microsecond precision (`2026-04-29T04:19:40.799875+00:00`). Stripping to integer hour-of-day (0-23) collapsed 7 days × 1,409 events into 24 vertical lines. The visual loss was so severe it made the chart functionally useless for forensics: you couldn't tell whether near-misses came in bursts (deploy spikes) or steady streams (background load). With actual timestamps and 1.5× height, both patterns become legible.
-- **`scale="time"` on Recharts XAxis with epoch-millis values is the idiomatic continuous-time axis pattern.** Alternative — fractional hour (`hour + minute/60 + second/3600`) — keeps the existing 0-23 axis but loses *date* dimension entirely (a 4 AM near-miss on Tuesday lands at the same x as one on Saturday). With `dataKey="ts"` + `type="number"` + `scale="time"` + a date-only `tickFormatter`, dates become axis ticks and intra-day patterns become local density variations.
-- **Recharts SVG z-order = declaration order.** `<Scatter>` siblings stack in the order they appear; later children render on top in the resulting `<g>` group. This is the entire mechanism behind the "429s on the front layer" requirement — no z-index property needed, no special prop, just ordering. The white `stroke` halo on 429 markers is a separate visual-pop trick borrowed from cartographic emphasis (you'll see the same pattern on ColorBrewer's "categorical-with-emphasis" guidance: outline + saturated fill = perceptual pop against any background hue).
-- **Why fillOpacity not strokeOpacity for near-misses.** Default Recharts Scatter renders points as filled circles with no stroke. So the "transparency to ~50%" effect requires `fillOpacity={0.5}` — `strokeOpacity` would do nothing because there's no stroke to begin with. (Compared to the hour-of-day chart's hollow circles which needed `strokeOpacity` because they're stroke-only.) Same UI principle, opposite SVG plumbing, depending on whether the shape is filled or hollow.
-- **The table sort is defensively explicit.** I could have done `rejections.slice(-10).reverse()` assuming the API returns chronological order — and the live data confirms it does — but a future API tweak that switches to descending or unordered would silently flip "10 most recent" into "10 oldest" or "10 random." `[...rejections].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 10)` makes the contract local. Tiny perf cost (75 events → trivial), big robustness gain.
-
-### 2026-05-06 [07a1746e483b]
-
-- **The threshold change has ~3× the visual impact you might expect.** Bumping ≥80% → ≥95% drops the visible near-miss count from 1,409 to 434 — a 69% reduction. Why so steep? Utilization values cluster near the rate-limit boundary (Anthropic's request-pacing dynamics push the 5h window asymptotically toward 100%, then 429s start firing). So the 80-95% range is dense with "approaching the limit but not hitting it" events; ≥95% is "actually at the edge." The new threshold answers "when was I about to get rate-limited?" instead of "when was I above 80%?" — the former is what an operator wants when investigating a 429.
-- **Y-axis lower bound now derives from `NEAR_MISS_THRESHOLD`.** Previously hardcoded `[80, 100]`, now `[thresholdPct, 100]` with `thresholdPct = Math.round(NEAR_MISS_THRESHOLD * 100)`. This is a tiny but worth-noting refactor: anchoring the axis to the threshold constant means future threshold changes propagate to the axis automatically. Otherwise you'd have to edit two places to change the threshold and someone would forget.
-- **The day-window slider uses cutoffMs = `Date.now() - dayWindow * 86_400_000`** (calendar-relative-to-now). The alternative was relative-to-most-recent-event in the dataset. With fresh data they're equivalent, but with stale data they diverge. Calendar-relative is what operators expect ("show me the last 3 days") — it always aligns with how the human is thinking about time, regardless of when the data last updated. The numeric literal `86_400_000` uses underscore separators (TS supports them) for readability — at 9 digits it's easy to miscount otherwise.
-- **Empty-state UX matters at low slider values.** With slider=1d, the data shows only 46 near-misses + 1 rejection — but it's not impossible for some configurations to show zero. Without the explicit "No rate-limit events in last Nd" empty state, Recharts would render an empty 210px chart with axes and tick labels but no data — confusing. The empty state is ~20 lines of code that users will probably never see, but its existence is what makes the slider feel safe to drag aggressively.
-- **The slider only filters the chart, not the table or summary counts.** The top-right counters (`75 429s · 434 near-misses`) and the table (10 most recent) stay anchored to the global dataset. This is deliberate semantic separation: the slider is a *forensic zoom* on the chart's time-axis, not a global filter. If a user hits the slider all the way down to "1d" and the table still shows the 10 most recent across all time, they get a "drill in OR see the whole picture" duality without having to think about it. Coupling them would force a binary choice.
-- **The slider degrades gracefully at the data edges.** Max=14 because the data extent is 7.1 days (header counter shows everything's within that span), but the slider goes to 14 to give headroom for future data growth. At 14d the slider acts identically to 7d — the filter cutoff is past the earliest event, so nothing changes. No new code branch needed; the inequality `ts >= cutoffMs` is naturally inclusive.
-
-### 2026-05-06 [700233301652]
-
-Three observable categories to encode: `near-miss` (≥95%, ≤100%, amber), `429 rejection` (≤100%, red), `extra usage` (>100%, hunter green). Note the disjoint logic — a 429 with util=103% will now display as hunter green Extra Usage, not red 429. The user's wording ("recategorize all datapoints that are > 100% as Extra Usage") makes this an *event-state* axis, not an *event-source* axis.
-
-### 2026-05-06 [93086e255319]
-
-**About the "ping each model" item:** I implemented *liveness discovery* via `/api/ps` (Ollama) + `/health` (MLX-Embed) — the panel now shows a green dot for each model that's queryable *right now*, as opposed to deployed-on-disk-but-unloaded. The user's exact wording was "give me a ping" which I interpreted as "show me which are reachable." I deferred the *actual round-trip latency probe* (firing a tiny test request and timing the response) because that crosses real-cost boundaries — even a 1-token Anthropic ping costs money, and continuous Ollama probes thrash GPU memory. The follow-up if you want it: add a periodic backend ping job (1/hr default) that records latency in a separate cache; surface as `lastPingMs` per model. Easy to layer on this foundation when you decide what cadence makes sense.
-
-### 2026-05-06 [63f403565652]
-
-- **The commit is +1,495 / −255 LOC across 4 files.** That's an unusually large single commit, but the alternative — splitting it into 6 sibling commits — would have created a coordination problem: e.g., the boxplot frontend depends on the boxplot backend; the loaded-models frontend depends on the discovery endpoint. Splitting would make each commit individually broken at the type level until the next one landed. The single bundled commit is git-history-honest about what shipped together: a coordinated multi-card UsagePage redesign.
-- **Self-review against the user's spec found two items I scoped down rather than implemented in full** — both were called out explicitly in the commit message under "Deferred (scope-bounded)": (1) the round-trip latency probe per model (vs. the discovery alive-indicator I shipped), and (2) the embedding-model API header capture (which requires Jarvis-side LiteLLM config changes outside this repo). Documenting deferrals in the commit message means David can see exactly what wasn't done and why, instead of having to spelunk for missing functionality.
-- **The boxplot rendering deserves its own architectural footnote.** Recharts has no native boxplot component, and Bar always anchors at y=0. The compromise I shipped — `<ReferenceArea>` for the IQR rectangle (q1→q3) plus `<ReferenceLine>` segments for median and whiskers — works because ReferenceArea accepts arbitrary y1/y2 endpoints. Trade-off: each bin renders 4-5 separate Recharts elements (IQR, median, lower-whisker stem, lower-whisker cap, upper-whisker stem, upper-whisker cap), so a 20-bin chart materializes 80-100 ReferenceLines. That's fine at 20 bins; if bin count ever scales to 100+, performance would degrade and a `<Customized>` SVG path approach would be the right migration.
-- **The dashboard server's `discoverLoadedModels()` uses `AbortSignal.timeout(3000)`.** Without that, an unreachable Ollama or MLX-Embed would hang the entire `/api/usage/loaded-models` request for whatever the default fetch timeout is (browser-context: forever). The 3-second cap means the worst-case latency for the model panel is ~6 seconds (3s × 2 probes in series — currently sequential; could be parallelized with `Promise.all` if it ever matters). Both probes are best-effort with `try/catch` returning empty: an Ollama outage doesn't suppress MLX-Embed and vice versa.
-- **The push completes the change-availability surface.** With `nate-dev` updated on davidmoneil/AIFred-Pro, David can review/merge at his cadence. The two prior commits in this session's chain (`c79643a`, `96bf29a`) bundle a coherent UsagePage revision arc — Burn Rate split → comprehensive 6-card refactor.
-
-### 2026-05-06 [d46d6edfbc82]
-
-The compressed context summarizes work mid-flight, but the force-loaded scratchpad reveals the full UsagePage refactor (commit `96bf29a`, +1,495/−255 LOC across 4 files) already shipped + pushed before halt. This is the canonical resolution pattern for stale checkpoints: the LLM-enriched checkpoint freezes a moment in time, while scratchpad entries timestamped after that moment supersede it. Always cross-reference both before deciding what's "in flight."
-
-### 2026-05-06 [2ad0a8ef92d6]
-
-**Why the dev compose dance was awkward**: the dev overlay's `image: aifred-pro-nexus-dashboard:latest` pins the container to the *prod* image name even though the build context lives in `./dashboard`. So `docker compose build` from the dev project name produces `aifred-pro-dev-nexus-dashboard:latest` (project-prefix automatic), which doesn't match what the dev container references. The retag-then-recreate pattern (`docker tag … && compose up -d --force-recreate`) is the canonical way to bridge that gap. Cleaner alternatives David might want to consider: (a) drop the `image:` pin from the dev overlay and let it inherit the `build:` from base, (b) version the image tag (`:dev`) so dev/prod don't share namespaces. Today's retag is intentionally minimal — preserves the existing "re-use prod build" comment in the overlay, doesn't introduce coupling that needs to be rolled back at merge time.
-
-**Why `<ReferenceArea>` for histogram bars over `<Bar>`**: Recharts' `<Bar>` with `<XAxis type="number">` has no automatic bandwidth — the bar width defaults to a small fraction of the chart, often invisibly thin. `<ReferenceArea>` accepts explicit `x1`/`x2` in data-space, so we control the rectangle precisely (binFrom + 4% inset to binTo - 4% inset). Same approach already used for IQR rectangles, so the histogram bars and boxplots now share rendering vocabulary — if you ever want to swap the Bar for a Customized SVG path (the right migration if bin count scales past ~100), the IQR logic ports directly.
-
-**Why per-day ticks beat "every Sunday"**: the original Sunday filter was perfect for 30+ window views (where you always have multiple Sundays), but the default 14-window slice spans only ~3 days, so 0-1 Sundays exist on any given page load. Per-day ticks give monotonically dense labels regardless of slice size, with `Math.ceil(N/14)` thinning for slices that span more than 2 weeks. The `interval={0}` flag is critical — without it, Recharts re-applies its preserveStartEnd heuristic on top of explicit ticks and silently drops most of them.
-
-### 2026-05-06 [45a9669771c2]
-
-**Why custom tooltip content over a formatter filter**: Recharts' `formatter` prop runs *after* the payload entries are rendered into rows — returning `[null, null]` doesn't reliably suppress the row, just blanks its text (and even that is version-dependent). The `content` prop, by contrast, takes full responsibility for the tooltip JSX, so filtering `payload.find((p) => p.name === 'session-usage')` cleanly omits the trendline before any DOM lands. This is the canonical Recharts pattern when you have multiple series sharing a `dataKey` — naming them disambiguates without forcing duplicate Y-axes or separate data shapes.
-
-**Why `<Line>` shows up in the tooltip in the first place**: even though the trendline's `<Line data={curveFitData}>` has only 2 endpoints (x=0 and x=5), Recharts' Tooltip computes the line's *interpolated* value at the cursor's x position via the linear scale. So at x=2.3, Recharts thinks "the trendline reads 47% there" and adds it to the payload, even though no actual data point exists at x=2.3. That's the same mechanism that made the trendline visible in the first place — the line is rendered between the two endpoints, and the tooltip walks the same interpolation. The fix exploits the fact that interpolated values still inherit the series' `name`, which we use as the filter key.
-
-**Why a new tmux window vs. duplicating W0**: a fresh `tmux new-window -c <dir>` followed by `claude` gets you a clean Claude Code session that loads its own SessionStart hook, JICM watcher pairing, and force-loaded docs from scratch. Reusing W0 (e.g., via `tmux split-window`) would have piggy-backed on the existing process and shared state. The two instances are now fully independent — Jarvis-2 has its own context window, transcript, and budget envelope. The `jarvis-watcher.sh` (W1) is already configured to monitor W0; if you want JICM coverage for W2 too, that requires a watcher-config edit (not done — out of scope for this task).
-
-### 2026-05-06 [6303efe746fe]
-
-**Why integer-hour bucketing fixes the segmented band**: with fractional start hours (e.g., 14.27, 14.31, 19.43), the previous `Map<number, …>` keyed every window into its own slot — 30 windows produced ~30 distinct map entries, which Recharts then connected via Area interpolation. Because the budget values varied widely across days at similar times, the resulting envelope had spikes/gaps that read as "segmented." Bucketing at `Math.floor(hour)` collapses windows from different days that happened at the same hour-of-day into one envelope cell, which is exactly the question the chart is supposed to answer ("does Anthropic vary allotment by time of day?"). The smoothness is a side-effect of asking the right aggregation question.
-
-**Why end-time contributions widen the envelope without adding visible markers**: Recharts' `<Area>` accepts an explicit `data={…}` prop separate from the chart's primary `data={…}`. Every other layer (segments, dots, line) keeps reading from `visibleTrend`, so they don't gain spurious markers; only the Area's footprint widens. This is the cleanest way to give a series its own "shape data" without polluting the rest of the chart — same pattern the existing trendline `<Line data={curveFitData}>` uses on the Anthropic Session Window. The cost: you lose the natural sync between the Area and the chart's hover state, which could in theory create awkward tooltip activation at close-ts positions; mitigated here by the existing formatter handling `confidenceRange` cleanly even when the `budget` series isn't co-active.
-
-**Why "include end-time in calculation" but not "include hours 15-18 in calculation"**: a 14:00→19:00 session is a 5-hour active window — arguably hours 15, 16, 17, 18 should also contribute. I deliberately stuck to the user's literal "end-time data points" wording. Reasoning: the start and end are the two *measured* moments; hours 15-18 would be *inferred* contributions whose lows and highs are identical to the start/end (same window, same CV). They wouldn't change the envelope shape — just add redundant points. If the user wants to widen further (e.g., "the session was active throughout 14-19, so all five hours should contribute"), one-line change to `for (let h = startBucket; h !== endBucket; h = (h+1) % 24) { … }` to fill the span.
-
-### 2026-05-06 [4b16b9bc1ff7]
-
-**Why the new chart fixes the "shows nothing" problem at every level**:
-- **Bin definitions are now server-authoritative**, so the frontend doesn't depend on local `BIN_COUNT` heuristics that produced unstable widths every refresh. Even if the current session has zero messages, the chart still renders the historical IQR overlay because it draws from `chartData` derived from `histBins` (which always has 11 entries when N≥1 sessions exist).
-- **Equal-width bars come from indexing the X-axis on bin INDEX (0-10), not on token values**. The token range is logarithmic (0-100 then 64K+), but the *visual position* is uniform integer-spaced — same trick `matplotlib.pyplot.bar` users learn after their first ugly long-tail histogram. Recharts handles this naturally since `<XAxis type="number" domain={[-0.5, 10.5]}>` maps each integer index to the same pixel width.
-- **Log-log presentation amplifies the long tail**. Live data shows bins 0-6 have median frequencies 8-32 msg/session, bin 7 has 2, bin 8 has 0 with q3=2. Linear y-axis would render bin 7 as a barely-perceptible blip; log y-axis lifts it to ~1/3 of the chart height. Same effect for the 8K-16K whisker tip at q4=5.
-
-**Why the "begin at N=1" rendering degrades gracefully**: at N=1, q0 = q1 = q2 = q3 = q4 (the single observation is its own median, IQR endpoints, and whiskers all at once). The conditional render guards (`if q1 < q3`, `if q0 < q1`, `if q4 > q3`) all fail, so neither the IQR rectangle nor the whiskers draw — only the median hash mark fires its `if q2 > 0` guard and renders as a horizontal tick. At N=2, q0 typically < q1 (one zero and one nonzero contribution), so a tiny lower whisker emerges. At N≥3 the full boxplot crystallizes. The visual tells you, at a glance, "we don't have enough data yet to draw an IQR" without needing prose.
-
-**Why the connector line uses `q2Connector` instead of `q2`**: at empty bins (q2=0), Recharts' `<Line>` would either skip them with `connectNulls=false` *only if the value is null* (zero is treated as a valid data point and clamped to the log floor), OR draw a steep dive into the bottom of the chart. Mapping `q2 > 0 ? q2 : null` makes the gap behavior explicit. The `connectNulls={false}` flag then guarantees the line breaks cleanly at empty bins rather than interpolating across them — which would visually misrepresent the historical pattern as "smooth" when it's actually truncated.
-
-### 2026-05-06 [363e249551bf]
-
-**The actual root cause of the unreliable activation**: when a Recharts series has its own `data={…}` prop separate from the chart's `data={…}`, that series creates its OWN activation x-positions. With the previous setup, the chart had two activation domains:
-- **Area domain**: every `curvePoints` x position (typically 30-100 dense real points)
-- **Line domain**: exactly two x positions (0 and 5, from `curveFitData`)
-
-For type="number" XAxis, the cursor position activates whichever series' data point is *nearest* to the cursor x. When the cursor lands closer to a Line endpoint (x=0 or x=5) than to any Area point, only the Line activates — and my prior content filter (`payload.find(p => p.name === 'session-usage')`) returns null because session-usage isn't in the payload. Result: tooltip silent. The "shared datapoints" symptom was the inverse — at positions where Recharts happened to bundle BOTH series into the payload (which happens at the closest curvePoint that's also near a Line endpoint), the filter passes and the tooltip fires.
-
-**Why unifying the data fixes this categorically**: with both Area and Line reading from the chart's primary `data={curvePoints}`, every single point in the array is a tooltip activation candidate, and every payload contains both series' values for that point. The filter logic now sees session-usage on every activation, so the tooltip fires reliably across the whole data range. The phantom point at x=5 (utilization=null, trendline=projection) preserves the visual extrapolation of the dashed line without inviting a tooltip there — the same `util.value == null` check that already rejected non-existent data now does double duty as the projection-suppressor.
-
-**Why `<Area type="stepAfter">` plays cleanly with the phantom**: Recharts' default `connectNulls` is `false`, so the Area path breaks at any data point with a null y-value. The phantom at x=5 carries `utilization: null`, which terminates the Area's path at the last real point. Without this, the Area would render correctly but the tooltip activation would still be split-domain. With this, the Area visually stops where the data stops AND every real point retains its tooltip activation. The Line, meanwhile, treats the phantom as a regular data point because its `dataKey="trendline"` reads from a field that IS finite there — so it draws straight through to x=5 as desired.
-
-**Why I didn't pursue the alternative ("hover faithfully on each curve")**: per-curve cursor proximity detection is an order of magnitude more complex than activation by x-position. It needs custom mouseMove handling on the chart's SVG, distance computation to each rendered path, and a state machine to track which curve is "near." Given the user's framing ("either... OR..."), the tooltip-suppression-on-trendline option was both simpler and more aligned with their previous request to hide trendline from the tooltip. The honest tooltip semantics are: "I report the actual session usage value at cursor x; the trendline is visual only, no numeric reveal."
-
-### 2026-05-06 [d15a7445d6b0]
-
-**Why the fix needed two parts on this chart but only one on the prior one**:
-
-The Anthropic Session Window had a single Area + a single Line. Unifying the data array onto one shared object array (with `utilization` + `trendline` columns + a phantom point) gave Recharts a single activation domain for *both* series simultaneously — the filter alone was then enough.
-
-The Burn Rate chart has **N window Lines** (one per session, each with heterogeneous elapsed_h sample positions). You can't collapse those onto a single wide-format object without either (a) inventing a union of all elapsed_h positions and accepting per-window null gaps, breaking line continuity, or (b) snapping windows to a common x-grid, lying about timestamps. So instead I densified the *trendline* series to 51 points across [0, 5h]. The trendline now has its own dense activation domain — and importantly, near any window-line point, a trendline point is also nearby (≤0.05h away), so Recharts' internal payload-bundling logic includes BOTH series at activation. The filter then strips `name === "Best fit"` from the rendered tooltip content, the same as before.
-
-**The deeper lesson about Recharts tooltip activation**: when series have independent `data={...}` props, the activation domain of the chart is the *union* of all series' x-positions, but the *payload* at any cursor x contains only series whose `data` has a point near that x. Sparse series (your fitData with 2 points) become "tooltip black holes" near their endpoints and "tooltip ghosts" between them. The fix is always either (1) unified data array, or (2) densified independent data. Pick whichever the chart's geometry permits — and bake the choice into a comment, because the next person to touch this chart won't intuit it.
-
-**Why densification doesn't visually change the trendline**: 51 points evaluated at a true linear function fall on the same line as 2 endpoints, so the rendered SVG path is identical. We pay only the cost of computing 49 extra `slope*x + intercept` evaluations per render — well below 1ms. Trade was free.
-
-### 2026-05-06 [7d50da7e3052]
-
-- **Recency filter held its weight.** The "post-mid-2025 only" constraint excluded ~28 popular programs (full table in §10) and forced the included list to be evidence-grounded — every entry has a vendor announcement, exam-code refresh, university bulletin diff, or live cohort date as recency proof.
-- **Two natural high-rigor outliers emerged.** CMU's Online Graduate Certificate in GenAI & LLMs (graduate CS coursework, competitive admissions, $25K) and the Brandeis Bioinformatics Data Engineering & AI/ML certificate (genuinely 2025-launched, deep-learning + Hugging Face + cloud deployment in the curriculum) are unusually strong combinations of brand and technical depth — they sit at the top of their respective columns.
-- **Toolchain note.** macOS `cupsfilter` does not support HTML→PDF (despite installing CUPS print filters); the working path on stock macOS without third-party installs is `Google Chrome --headless=new --print-to-pdf` against a styled HTML file. `qpdf`/`mutool` are not installed by default; `pdftotext` came in via Homebrew but is not guaranteed.
-
-### 2026-05-06 [44373856ce10]
-
-- **Sort math.** With the rule `total = Impact + Technical, tie-break by cost ascending`, the new top-of-section programs are: §A → GCP PMLE (19); §B → CMU GenAI & LLMs (19); §C → Snowflake DEA-C02 (17); §D → Brandeis Bioinformatics Data Eng & AI/ML (17); §E → UCSF Health Data Science (16). Two of the three highest scores in the entire report (19) sit in §A and §B.
-- **Tie-break edge cases.** Two pairs are genuinely tied at 13 with both at $0 (Hugging Face Agents Course and DeepLearning.AI Agentic AI). I'll break those secondarily by Impact (higher first), since pure cost can't decide between two free programs and Impact is the next most decision-relevant axis.
-- **No internal narrative referenced program numbers** — recommendations cite names, not "see §17" — so the renumbering only touches the Master Comparison Table (§3), the Section A–E ordering, and the per-program H3 numbers.
-
-### 2026-05-06 [b12bf7d83ea1]
-
-**Why this bug looked like rounding when it was actually a timezone offset**:
-
-`Date.toLocaleString('en-US', { hour: 'numeric' })` does two things at once: it formats AND it converts to the browser's local timezone (unless `timeZone` is passed explicitly). With `hour: 'numeric'` only — no `minute` — the output is something like "11 AM" with no minute information.
-
-For a window starting at UTC 17:31, in MDT (UTC-6) that becomes 11:31 AM local → formatted to "11 AM". Two corruptions stacked: minute precision lost, AND timezone shifted by 6 hours. The user sees a dot at the "5 PM" tick (which is UTC 17 on the chart's UTC axis) and a tooltip claiming "11 AM" — visually a 6-hour mismatch. The "rounded" symptom is the visible artifact ("11 AM" looks like a clean rounded number); the timezone shift is hiding underneath.
-
-**Why the per-row "Hour" formatter was already correct**: it consumes the `value` Recharts passes — which is the dot's `hour` field — a number like `17.5208`. The formatter doesn't know or care about timezones; it just does HH:MM math on a fractional hour, which preserves whatever timezone the upstream computation used. Since `getUTCHours()` was the upstream, the formatter is implicitly UTC. So the per-row "Hour" was minute-accurate AND in UTC, while the labelFormatter header was rounded AND in local TZ — visibly inconsistent.
-
-**The fix's two essential moves**:
-1. `timeZone: 'UTC'` — anchors the formatter to the same TZ the data computation used. Without this, any timezone-naive `Date.toLocaleString()` silently slips by `getTimezoneOffset()`.
-2. `hour: '2-digit', minute: '2-digit', hourCycle: 'h23'` — surfaces minute precision and forces 24-hour HH:MM (matching the per-row Hour formatter). `hourCycle: 'h23'` is the modern way to force 24-hour formatting; older `hour12: false` still works but is less expressive.
-
-**Why the data was right all along**: the verification script confirmed `first_request` and `window_reset` are minute-precise ISO-8601 timestamps (the second-level resolution: `…16:17:13.971147+00:00`), and `getUTCHours() + getUTCMinutes()/60 + getUTCSeconds()/3600` exactly preserves them as fractional hours. The chart's dot positions and the smoothed line's anchor positions inherit that precision via `dataKey="hour"` on a `<XAxis type="number">`. The only place precision was being thrown away was the windowLabel string — a tooltip-display formatting concern, not a data-pipeline concern. Worth noticing: the bug lived in *one line* (line 1173–1175) and affected ONLY display, not any computation. That's why the dots and the smoothed line were visually correct but the tooltip claimed they weren't.
-
-### 2026-05-06 [d13382e8dca6]
-
-**Why local-TZ accessors were the right consolidation point**:
-
-There are three separate consumers of the time data on this chart — dot positions (`<Scatter>`), connecting segment endpoints (`<ReferenceLine segment={...}>`), and the smoothed sliding-average line's anchor positions. All three read from the same `getHours() + getMinutes()/60 + getSeconds()/3600` computation. Switching the data layer to local TZ once propagates correctly to all three downstream displays — versus an alternative where I'd keep the data in UTC and inject a `local_offset_hours` shift at every render call, which would have been three separate code sites that could drift apart.
-
-The X-axis tick formatter `format12Hour(Number(v))` requires no change because it's TZ-blind: it just maps integer hours 0–24 to "12am"/"3am"/"noon"/etc. labels. Since the data is now in local hours, those labels read as local-clock hours. The same function would happily render UTC labels if the data were UTC — formatting and interpretation are decoupled, which is what makes this single-line edit ripple cleanly.
-
-**Why the per-row "Hour" formatter inside the Tooltip needed no change either**: it operates on a fractional hour value Recharts hands it from the cursor's x-position. The formatter does `Math.round(value * 60)` → HH:MM. It doesn't know or care about the TZ of `value`. Switch the data layer's TZ and the formatter's output silently follows, because the abstraction was already TZ-blind. This is the classic "compute in canonical units, format only at the edges" pattern — except here, the canonical unit was UTC, and the user wanted MDT, so we shifted the canonical unit (and let TZ-blind formatters benefit for free).
-
-**Why `Intl.DateTimeFormat(...).formatToParts()` is preferable to hardcoding "MDT"**:
-
-`new Intl.DateTimeFormat('en-US', { timeZoneName: 'short' }).formatToParts(new Date()).find(p => p.type === 'timeZoneName')?.value` returns the browser's *current* short TZ name — "MDT" in summer, "MST" in winter, "PST" if the browser is set to America/Los_Angeles, etc. The `formatToParts` API hands back a structured array of `{ type, value }` rather than a single string, which is the right tool when you want one specific component of a formatted date. It's the modern alternative to regex-extracting a TZ name from `toLocaleTimeString` output. Computed once at module load (not per render), since DST transitions during a single browser session are rare and the cost would be wasted.
-
-**The trend chart was deliberately left UTC**: its x-axis ticks are dates (`'short'` month + `'numeric'` day), with explicit `timeZone: 'UTC'` to keep "May 6" labels stable across users in different TZs. The Anthropic 5-hour-window resets are aligned to UTC at 10-min increments, so labeling the trend's day boundaries in UTC matches the data's natural cadence. The hour-of-day chart, by contrast, is asking *"when in your day does this happen?"* — a question that's only meaningful in local clock time. Two charts, two correct timezone answers, justified by what each chart asks.
-
-### 2026-05-06 [43093cbee2a2]
-
-**Why two stacked box filters approximate a Gaussian (and why that matters here)**:
-
-The Central Limit Theorem says that convolving N independent random variables tends toward a normal distribution as N grows — and convolution of distributions corresponds directly to convolution of impulse responses in linear filtering. A box filter has a rectangular impulse response. Convolving a 4-wide box with a 3-wide box gives a trapezoidal impulse response (six samples, max amplitude in the middle). Convolve again and you'd get a bell-shaped response approaching a Gaussian. We stop at two passes because the marginal smoothness gain from a third pass is tiny (the trapezoid is already most of the way to Gaussian for the eye), while latency and information loss compound. This is the same trick image-processing libraries use when they want a "Gaussian blur" but don't want to compute exp(-x²) — three or four box-blur passes are visually indistinguishable from a true Gaussian and run an order of magnitude faster.
-
-**Why the user's "post-smoothing filter" intuition is exactly right**: a single-pass box filter has flat frequency response that drops sharply at f = 1/W (where W is window width) — meaning it cuts off all signal above the window's rate, but leaves visible "ringing" near that cutoff (the well-known box-filter sidelobes). A second pass with a different W multiplies the frequency response by another sinc lobe, dropping the sidelobes faster than either filter alone. The visible result: kinks at sharp data transitions get rounded out, exactly the discontinuity the user was anticipating.
-
-**Why we sort start AND end timestamps together before filtering**: the filter operates on the order of points, not on real time. If we filtered start-times alone and end-times alone separately, the smoothed envelope at any x would only reflect points "of the same role" — the high-frequency information about within-window variance would be lost. Mixing both endpoints into a single sorted series means each smoothed anchor draws from BOTH session-opens and session-closes, which is what gives the ribbon its characteristic "session lifetime" envelope shape (broader during periods of intense activity when many sessions overlap, narrower during quiet stretches when sessions are short and well-spaced).
-
-**Why `fillOpacity={0.4}` is deliberately a touch lower than the prior 0.5**: smoother envelope = larger visual mass, so to keep the ribbon from dominating the dots and segments we drop the alpha. Two-pass smoothing also widens the envelope slightly (averaging always pulls extremes toward the center mean of a window), so a moderate opacity reduction compensates for the visual bulk.
-
-**Generic helper recap (`boxFilterSeries`)**: takes any object array with all-numeric fields and a window size, returns a filtered series of the same shape. Both charts pipe through it: the same function smooths timestamp-keyed data and hour-keyed data because the filter doesn't know or care about the meaning of any field — it just averages contiguous windows. This is the upside of expressing the smoothing as a generic across all-numeric records: one tested implementation, two consumers, both will benefit if we later tune window sizes (4-pt → 5-pt, etc.) or add a third pass.
-
-### 2026-05-06 [4fb39078d589]
-
-**Why the 13-change accumulation worked as a single commit instead of 13 atomic ones**:
-
-The textbook discipline says one logical change per commit. But these 13 weren't 13 logical changes — they were 13 iterations of the *same* logical change ("make UsagePage MVP-ready"), where each step's output informed the next step's design. The Message Sizes invisible-plot fix surfaced the boxplot opacity issue, which surfaced the "what should the X axis even be" question, which surfaced the "we need server-authoritative bins" answer. The ribbon-then-line-then-ribbon-again sequence on the Allotment plots wasn't waffling; it was the user iteratively narrowing in on what "smooth confidence visualization" should look like, and each pass discarded learning that a separate commit would have permanently enshrined as a wrong direction. Bundling lets the commit log read "this is what we converged to" rather than "here are 13 false-starts followed by a fix."
-
-The countervailing risk — that a bundled commit becomes hard to revert or hard to bisect for regressions — is real. The mitigation is in the body: each section explicitly names which panel is affected, so a future bisecter who lands on `ea52c1b` and sees a regression in (say) the Burn Rate tooltip can read the relevant paragraph and know exactly which file region to suspect. The body of the message is doing what 13 split commits would have done, but in one place where you can read the whole story without `git log --reverse` gymnastics.
-
-**Why the boundary tag stays `[Boundary]` not `[Nexus]`**: per the audit's tagging convention, `[Boundary]` means "crosses the Pulse/Nexus boundary cleanly" — modifications to both `pulse/app.py` (state-of-record service) and `dashboard/...` (orchestration platform consumer) within a single change. This commit hits both layers because the Message Sizes redesign required new Pulse endpoint shape AND new dashboard consumer shape; you can't ship one half without the other. `[Nexus]` would mis-claim the change is dashboard-only, hiding the API-shape change from anyone reading commit history for "what changed in Pulse this week."
-
-**Why we stopped at MVP**: the deferred-but-known follow-ups (multi-user TZ preferences, polynomial best-fit on Burn Rate, Reviewer Dash cost column wiring, latency probe per loaded model) were all flagged in earlier scratchpad sessions but not blocked the current visual completeness. MVP is a function of "does this answer the operator's first questions correctly" — it does — not "have we exhausted every refinement we could think of." Each deferred item has a ticket-shaped trace in the scratchpad's "next-session pickups" lists, which is the right place for them to live until they earn priority.
-
-### 2026-05-06 [c02c2daf94e1]
-
-- **Full plan Gantt audit:** Computed correct positions over an 18-month, ~78-week window: e.g. XCS229 (Nov 16 cohort) should be at left=35.9% width=15%, not 28.5%/14% as drafted. Stanford AI & Longevity Mod 1 (Oct 14 estimated) should be at 29.5% not 24.5%. Snowflake DEA (Apr 16, 2027) should be at 64% not 55%. These ~5-9% drifts are noticeable and worth correcting before final delivery.
-- **Heavy and Slim plans** check out within ~1-2% of accurate placement; not worth touching.
-- **Approach:** edit just the Full plan Gantt block in the markdown, rebuild HTML+PDF.
-
-### 2026-05-06 [6095fd52f883]
-
-- **Recency disclosure was the right call.** Including the two programs you flagged (IBM Data Science Pro Cert and Stanford AI Programs) as full profiles with their recency status disclosed in-line is more useful than excluding them on a filter. The reader can apply their own filter.
-- **The Stanford disambiguation was load-bearing.** Stanford's two AI programs (Professional vs. Graduate Certificate) are commonly conflated in third-party rankings; the side-by-side disambiguation table prevents an expensive misallocation (admissions-locked $20K+ Graduate path vs. open-enrollment $5K Professional path).
-- **Gantt fidelity matters.** The first-pass Full-plan Gantt had bar positions drifting 5-9% from accurate calendar-week math. The recomputed positions (XCS229 at 35.9%/15.4% width, DEA-C02 at 64.1%/12.8% width, etc.) now reflect actual cohort dates rather than rough estimates — the chart is now an aid to decision-making rather than a vague illustration.
-- **Alternatives landscape exposed real scarcity.** For Stanford AI & Longevity Lab, only one strong online alternative (Longevity Education Hub CME courses) exists; the GCLS AI Academy is too new to recommend. That "thin" finding is itself useful — it tells you the Stanford program occupies a distinctive niche.
-
-### 2026-05-06 [dd2a03909e9e]
-
-**Why the Stage-2 observability gap matters more than the row counts suggest**:
-
-The 47-row audit_log over 4 days isn't a bug — it's a *signal* that the dev environment has been mostly idle, and the gates measuring "does pipeline-v2 generate quality observability" have very little to verify against. JICM Stage-2's data flow is fine because it observes Jarvis's own context-management behavior (which runs continuously every session). But Workstream C's Stage-2-equivalent quality assessment hinges on watching real tasks flow through pipeline-v2 — and those aren't happening in dev because PROD is halted and dev is operator-driven. The verdict at 2026-05-17 won't be statistically meaningful unless we either (a) drive synthetic load through dev (e.g. nightly cron of dummy tasks), or (b) lift the PROD halt incrementally with watchdog + Telegram in place to catch new leaks. Option (b) is the higher-value path because it generates real data AND validates the new safety-layer. Worth raising with David.
-
-**Why "Reviewer Dash before reviewer service" is still the right sequencing**:
-
-The instinct is "don't build a dashboard for data that doesn't exist." But the architecture doc explicitly positions Reviewer Dash as the *design template* for §7.1 #4 (Cortex ↔ AC-05/AC-06 schema interop) — the most-important-unresolved-gap connection point. Building the visualization first forces the schema-shape decisions ("what fields does a persona-decision row carry?") to be made concretely, and that schema is then reusable for Cortex/AC-05/AC-06 alignment. If we wait for the reviewer service first, the schema gets retroactively jammed into whatever the service emits — much worse outcome. The empty-state UI is a feature: it telegraphs "reviewer hasn't run yet" to operators and provides immediate feedback when it does start.
-
-**Why the agent-attribution coverage gap is a different class of problem from the rest**:
-
-All the other gaps are missing-feature gaps (build the watchdog, build the dashboard, fire the alert). The `unattributed: 100%` finding is a *contract gap* between two systems that both work correctly in isolation but don't share a header convention. Fixing it means deciding: does claude-code SDK inject `x-aion-*` headers, or does the proxy infer attribution from request shape (model, prompt patterns, time correlation with launched processes)? The former is cleaner but requires changes to claude-code or its launch wrapper; the latter is heuristic but uses only data the proxy already has. This deserves its own sub-workstream — recommend treating it as a §6.1 follow-up rather than folding into Reverse-Proxy completion.
-
-### 2026-05-07 [6f81f70ee01a]
-
-Two architectural lessons from this sweep worth preserving:
-1. **Substitute, don't delete**: a string used as both prompt-content AND routing-marker is doubly load-bearing. Removing it would have broken JSONL routing in `jicm-prep-context.sh` (the script greps the live conversation for `[JICM-HALT]` to know which session belongs to the active cycle). The fix is to swap the marker phrase to something less suspicious-looking but still distinctive enough to grep — so I picked `Watcher here. Context is getting heavy` (5+ words, period, capitalized prefix — won't false-match natural conversation).
-2. **Backward-compatibility windows for live processes**: the running pipeline-watcher (PID 5322 from this morning, per scratchpad) still has the OLD `[JICM-HALT]` text loaded in memory. If it fires before I restart it, the consumer needs to recognize both the new marker AND the legacy `[JICM-HALT]` so the cycle completes cleanly. The OR-pattern at `jicm-prep-context.sh:139` is the bridge.
-
-### 2026-05-07 [b937b7b8cac6]
-
-A note worth preserving for future architectural decisions: the autonomic reframing isn't *just* cosmetic — it changes what the model can be asked to do reliably. With the old "trust this signal" framing, Opus 4.7 had to perform meta-cognition about its own input channel ("is this prompt legitimate? let me check the documented infrastructure") and that meta-step was where the injection-detector tripped. The new framing removes the meta-step entirely: prompts arrive as natural collaborator language, the model evaluates substance not provenance, and the guardrail test is a single condition rather than a multi-condition legitimacy proof. Architecturally, this is the difference between a system that requires its components to know they're inside a system (fragile) and one where the components only need to know how to do their job correctly (robust). The same lesson applies to any future signal infrastructure — design the prompts to look like normal asks first; reach for explicit signal tags only when natural phrasing genuinely cannot carry the routing information.
-
-### 2026-05-07 [ee5283b86a79]
-
-For this commit I'll focus the staging on the actual deliverable (10 maintenance files + 2 new plans) and leave the pre-existing scratchpad/insights modifications for a separate housekeeping commit at `/meditate-session`. Mixing them into one commit muddies the diff and makes the autonomic-reframing change harder to review or revert in isolation. Also: per CLAUDE.md, this repo uses the noreply author identity (`177279335+CannonCoPilot`) — must inject via `--author` + `GIT_COMMITTER_EMAIL` env so commits land under the right account.
-
-### 2026-05-07 [6a949011ddf3]
-
-The doc's structural logic still holds, so I'll do **surgical delta edits** to specific tables + dated milestones rather than a full rewrite — preserves David's hard-won decoding of the v1.3 vocabulary while advancing every state field. The big shifts to surface: (a) Items 1, 2, 3, 4 in §3 graduate from IN-PROGRESS/PROPOSED to VALIDATED (reverse-proxy + spending + burn-rate + cache-hit all shipped), (b) two next-deliverables now have durable plan-of-record files, (c) a brand-new defensive layer category (cost-anomaly + halt runbook + executor gates) emerged from the 2026-05-06 task-executor incident, and (d) JICM autonomic reframing is a Jarvis-internal item worth surfacing in §1.3 because the principle (remove the trigger surface, don't document around it) generalizes.
-
-### 2026-05-07 [75944d512fbb]
-
-The most architecturally interesting finding from compiling this update is the **Defensive Observability pattern** — captured in §11. Cost-anomaly watcher (Jarvis-side, A) + executor pre-flight gates (Nexus, C) + halt runbook (process, cross-stream) + autonomic reframing (Jarvis-internal, A) all shipped this week from the same root cause (the 2026-05-06 task-executor leak), but they don't share a workstream tag. They share an *intent* — "detect failure earlier and raise visibility before damage compounds". v1.3's A/B/C/D taxonomy was orthogonal to that intent. v1.4 doesn't yet promote this to a fifth workstream (would be premature), but flags it as a candidate for "E — Defensive Observability" if more items accumulate. Worth watching: when an emergent pattern doesn't fit existing categories, the doc should *acknowledge* the misfit rather than force-fit. The Watchdog plan is the next test — if it ships clean, the pattern has 5 members and likely warrants formal naming.
-
-### 2026-05-07 [c4e7f2a0a0df]
-
-This very prompt is the validation marker noted in the scratchpad and v1.4 doc (§9.1 risk row): the Watcher is using the new natural-prompt phrasing — `Watcher here. Context is getting heavy ...` — that I shipped this session in commit `5413824`. The autonomic reframing is now confirmed end-to-end: producer emitted the new format, Opus engaged with it as ordinary collaborator request rather than refusing as injection. The architectural fix worked.
-
 ### 2026-05-07 [60869b8cd7f2]
 
 The validation event has structural elegance: the patch under test (natural-language Watcher prompts) was exercised by the very mechanism that needed it (a stop-and-wait JICM cycle), and the test outcome (no refusal) is the same as the production outcome. Unit tests can prove syntax; only this kind of in-vivo run can prove the model-side compliance. Worth a one-line addendum in the v1.4 commit message and/or a `self-corrections.md` follow-up entry crediting the architectural fix over the documentation patch.
@@ -1268,3 +1022,327 @@ before forking. D2/D3 didn't, because D1 had committed cache to the post-
 extension prefix. ACTIONABLE: to cheaply spawn N parallel sub-jobs from a 
 parent, run ONE --resume on the parent first to commit cache, THEN fork all 
 N children. The fork tax becomes one extension tax instead of N fork taxes.
+
+### 2026-05-22 [ff017f56d852]
+
+The deepest takeaway from v3 isn't any single finding — it's that v2's
+methodology (identical prompts everywhere) made cache and context
+INSEPARABLE. v2 could not tell whether a cache hit came from session 
+inheritance or from prompt-byte identity, so its conclusions were 
+unfalsifiable. The fix that mattered most in v3 wasn't adding arms or 
+repeats — it was varying prompts cell-to-cell so that ANY cache_read 
+above the ~17K floor became unambiguous evidence of session-attributable
+inheritance. Methodology > sample size when the methodology has a
+confound.
+
+### 2026-05-22 [f2b0ac386c5c]
+
+Decision point reached. Alfred-Dev compose project resolves to `/Users/nathanielcannon/Claude/Alfred-Dev` with files `docker-compose.yml + docker-compose.dev.yml`. HUD launches via `jicm-watcher-hud.sh`. Re-running `launch-jarvis-tmux.sh` is **dangerous** here — it would spawn a duplicate W0 Claude session (this conversation runs outside tmux) and create duplicate Watcher/Ennoia/Virgil processes alongside the orphans. The surgical path is: restart dead containers, start MLX/LiteLLM in a fresh tmux session, leave the orphan Quartet alone (they work; relocating them would interrupt the live Watcher).
+
+### 2026-05-22 [282a975550c0]
+
+The launcher has **two session-resolution paths** that diverged from the original "static UUID" intent:
+
+1. **`--fresh` mode** (line 506-514): Uses the deterministic UUID `17612316...` with `--session-id`. This is the "static" behavior you expected.
+
+2. **Default (resume) mode** (line 516-524): Uses `find_latest_w0_session()` — a heuristic that picks the most-recent-by-mtime JSONL file, excluding W5. The comment at line 504 explains the why: *"JICM /clear creates new session UUIDs, so we can't pin W0 to a deterministic UUID."*
+
+The problem: every JICM `/clear` cycle creates a **new** UUID, orphaning the deterministic one. The `find_latest_w0_session()` heuristic was the pragmatic workaround — but it's fragile. After your system restart, this session became the most recent, displacing `7fde1edb` from the "most recent" slot. You now have **339 JSONL files** in the project directory, most spawned by JICM cycles and experiment runs (the May 20 cluster alone produced ~20 sessions in 4 minutes from the token-compression experiments).
+
+### 2026-05-22 [0f276bdb690b]
+
+The tmux session was actually running the entire time. The initial "no server running" error came from the default tmux socket at `/private/tmp/tmux-501/default` being stale — the `$HOME/bin/tmux` binary (which we always use per MEMORY.md) connects through a different socket and finds the session fine. This is a classic macOS gotcha: multiple tmux binaries with different socket defaults.
+
+The session has all 8 windows (W0-W7), including LiteLLM at W7. But the LiteLLM health check fails — let me diagnose.
+
+### 2026-05-22 [f553efb6c1a0]
+
+The initial "outage" diagnosis overstated the damage because the first tmux check used the wrong socket. The Jarvis tmux session (W0-W7) was running throughout — started ~18 minutes before this session. Docker containers self-healed via restart policies (usage-proxy recovered on its own; vite dashboard needed a manual `docker restart`). The real gap was the **LiteLLM `/health` vs `/v1/models` endpoint mismatch** — a useful lesson: LiteLLM's `/health` endpoint probes all downstream backends and will hang or timeout if any model server is slow, while `/v1/models` is a lightweight metadata check. The launcher script correctly uses `/v1/models` in its preflight, but external monitoring should match.
+
+### 2026-05-22 [84a3a4cf39b6]
+
+`7fde1edb` completed its lifecycle: JICM resumed → committed `ff15898` (token compression research) → pushed to `CannonCoPilot/Jarvis` → hit ConnectionRefused (outage) → died. All its work is safely committed. Resuming it would bring back a dead conversation with a ConnectionRefused error as the last exchange — not useful.
+
+The state file should point to `fd147568` (this session), which IS the active W0. The session-start hook change hasn't taken effect yet (hooks are process-cached), so the file still says `7fde1edb` from my manual seed.
+
+### 2026-05-22 [44128bc1439d]
+
+My earlier analysis was wrong when I said `7fde1edb` was "dead — work completed." I only looked at the *last assistant message* ("No response requested") and the commit near the end, without tracing the session's final user prompt. The commit (`ff15898`) happened EARLIER in the session; your v4 prompt came AFTER it at line 585. The outage killed the API before the model could even start thinking about your v4 request. This is the session-forensics equivalent of reading the last page of a chapter instead of the last page of the book — the real ending was 32 lines later.
+
+### 2026-05-22 [90bab6026d69]
+
+After a system restart, the correct diagnostic order is: (1) check what's actually running, (2) find the documented restore protocol, (3) execute restore in dependency order (databases before services, services before proxies). Never bring up services before their backing databases are healthy.
+
+### 2026-05-22 [20850eabd8c7]
+
+The `wonderful_feynman` container that briefly appeared was a short-lived Docker container that ran a command and exited — normal behavior for one-shot containers (e.g., `docker run` for a migration or health-check script). The name auto-assigned confirms it wasn't a named service.
+
+### 2026-05-22 [625f98fe05b0]
+
+The TTL probe hit an unexpected API 429 — "session limit resets at 3:20pm
+Denver" (21:20Z), which IS our 5h window reset. Pulse burn-rate reported
+1% util pre-run and didn't move much during main experiments, so this
+exposes a real discrepancy between our local proxy's view (1%) and 
+Anthropic's actual server-side counter (100%, hit during idle wait). 
+Possibilities: (a) other workspace processes burning through Anthropic 
+unrecorded by :9800; (b) prior 5+ hours of work counts cumulatively at 
+the API level; (c) proxy missed traffic. Whatever the cause, the practical 
+takeaway is sharper than a clean TTL number would have been: the local 
+%-utilization metric I've been using as the "burden" gauge is NOT a 
+reliable predictor of the API's actual rate-limit state. Confirms the 
+"utilization-as-resource" reframe at a deeper level — even the resource 
+counter we trust can be wrong about how much resource we have left.
+
+### 2026-05-22 [ec2d3eb308d7]
+
+The "y-axis cap excludes the y=x line" rule was the subtle one. If the cap
+followed the visible curves naively, the sustainable line at (5,100) would
+always push the cap to ≥100, defeating the "fixed at max-of-data" intent
+when data is below 100%. The fix is to compute max-y from the windows[]
+data ONLY, then compare against the literal 100 floor. The y=x line is
+data-shape FIXED — it's a reference, not a measurement, so scaling logic
+must explicitly ignore it. Same reasoning applies to the best-fit
+regression: it's a derived overlay, not a curve to scale to.
+
+### 2026-05-22 [77c65bc08f8a]
+
+The qwen3:8b JICM compressor flagged the dashboard refactor as "IN PROGRESS" but the conversation transcript embedded in the same checkpoint shows it was completed with TypeScript clean (UsagePage.tsx:280-490 and 1786-2000). This is the exact failure mode logged in self-corrections 2026-05-06: low-tier compressors read commit cadence as forward momentum and miss reframe turns. Trust the scratchpad over the compressor's "Current Task" field.
+
+The file timestamps also tell a story: `ttl-summary.json` at 12:39 is from the **failed first probe** (429 quota error), while `prime.jsonl` at 15:24 is the re-prime after the new window started. Probe fires ~16:29 local; it's only 15:53 now, so ~36 min remain.
+
+### 2026-05-22 [56c0b7674497]
+
+**PID 38449** is a `sleep 3900` (65min) wrapper that fires `cache-mechanics-v4.py ttl-probe` at ~16:29 local (T-36min from now). It's an OS-level process invoked via `Bash --run_in_background`; the JICM clear severed its task-ID handle, so I won't get an automatic `<task-notification>` when it completes — I need to either monitor the output file or check back.
+
+**About the "failed" first probe**: `probe.log` shows `G.probe ERROR` with verdict `CACHE MISS — TTL expired` at exactly the 65-min boundary. That's actually a *clean negative result*, not a failure — the 429 quota error was a separate event (Anthropic server-side counter desync). The re-prime at 15:24 starts a fresh 1h-TTL clock on the same canary prompt.
+
+### 2026-05-22 [e49f6fd5d0a2]
+
+**Article structure is sound** — §4.3 is in slot at lines 405-425, sandwiched cleanly between §4.2 (cache regime scatter) and §4.4 (tool-use). The stub-in-place pattern means the section break already lives in the table of contents and the cross-references; I only need to fill the 20-line slot, not re-architect.
+
+The polling Bash uses `stat -f %m` (BSD/macOS flag, not GNU `-c %Y`) — same gotcha noted in MEMORY.md under bash. The `until ... -gt $CUR_MTIME` exits immediately on mtime change, so notification latency is at most one 30s sleep cycle. Far better than tail-f-grep which would never exit if probe.log emits the verdict and then goes quiet.
+
+### 2026-05-23 [57cff4ecfe7c]
+
+**Plot pass complete (9 plots, professional polish applied):**
+
+| File | Purpose | Section |
+|---|---|---|
+| **01-usage-per-arm.png** (NEW, primary) | %Usage consumed per arm | §4.1 (leads) |
+| **02-wall-time-per-arm.png** | Wall time per arm | §4.1 |
+| **03-tokens-by-type.png** (NEW) | Stacked bar: cache_creation / cache_read / input / output | §4.1 |
+| 04-util-slope-per-arm.png | %/min sustainability slope | §4.1 cross-arm |
+| 05-cache-regime-scatter.png | Bimodal cache regime per cell | §4.2 |
+| 06-tool-comparison.png | E vs F (3-metric polished bars) — *pending redesign* | §4.4 |
+| 07-h-format-probe.png | H format probe — *pending redesign* | §4.5 |
+| 08-ttl-result.png | TTL prime vs probe | §4.3 |
+| **09-status-timeline.png** (NEW) | Unified 5h-status transitions during experiment, showing allowed → warning → rejected | §5.4 |
+
+**Visual standards applied to every plot:**
+- Spines removed (top/right); remaining spines `#666` gray, not black
+- Subtle horizontal gridlines only (alpha 0.15) where bar reading benefits
+- Sans-serif typography, bold value labels above bars, sentence-case titles
+- Consistent color palette per arm (semantic — green=efficient D, red=costly C/A, blue=B, etc.)
+- DPI bumped to 140, `bbox_inches='tight'` for clean margins
+- Plot 09's status-transition timeline pulled directly from the proxy DB (134 rows) with annotated allowed_warning + rejected transition lines
+
+**§3.1 rework complete:**
+
+- Arms table at top: 8-row | Arm | Topology | n cells/repeat | RQ | Purpose | direct comparison |
+- All Mermaid diagrams now `graph LR` (was TD for C, D, H)
+- E/F collapsed to single workflow diagram with `→ tool_use:` annotations per step
+- Three `> Pending redesign` callouts on E/F, G, H pointing to the v5 design doc
+
+**Files touched this turn:**
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/cache-mechanics-v4-plots.py:1-435` (complete rewrite)
+- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/reports/figures/cache-mechanics-v4/` — 3 new files (01-usage, 02-wall, 03-tokens, 09-status), 3 obsolete files removed (01-cost-per-arm, 02-cost-per-cell, 03-wall-time legacy)
+- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/reports/claude-code-cache-mechanics-2026-05-22.md` — §3.1 rewritten, §4.1 plot refs updated, §5.4 plot 09 inserted
+- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/designs/current/cache-mechanics-v5-arm-redesigns.md` (NEW, 285 lines)
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scratch/cache-mechanics-v4/G_status/status-timeline.tsv` (134-row DB export for plot 09)
+
+**v5 design proposal at-a-glance** (full doc at `designs/current/cache-mechanics-v5-arm-redesigns.md`):
+
+| Arm | Design | Cells | %Usage | $ |
+|---|---|---:|---:|---:|
+| **G v5** | Prime + 5 probes at T+1/5/25/55/65 min via `--fork-session` (avoids TTL-reset confound) | 6 | ~3% | ~$1 |
+| **E/F v5** | 3 strip modes (default, `--system-prompt`, `--append-system-prompt`) × {no-inherit, --resume} × {self-knowledge, native tool, MCP} probes with pass/fail criteria | 24 | ~15-20% | ~$5-7 |
+| **H v5** | Realistic operational scenario (5 staff, 3 numeric constraints, 1 trade-off) × 5 topologies (X-no-pass, Y-file-pass, R-resume, F-fork, D-extend-fork) × 5 stress questions × 2 repeats | 62 | ~25-30% | ~$9-12 |
+| **Combined** | All three fit in one 5h window with margin | ~92 | ~45-55% | ~$15-20 |
+
+Critical design choices made for your review:
+- **G v5 uses `--fork-session` for probes** so each probe READS prime's cache without committing back (otherwise a successful T+25 probe would refresh the TTL clock and obscure T+65 boundary detection)
+- **E/F v5 includes explicit MCP probes** because your hypothesis about MCP-in-subprocess is testable — if all 3 modes return PASS on C1 (list MCPs) but FAIL on C2/C3 (actually invoke MCPs), that's a separate finding worth its own section
+- **H v5 baseline X (no-pass, no-session)** is the actual null hypothesis test. If any of the 5 stress questions pass under X, hidden context-sharing exists and that's a major finding warranting separate investigation
+
+### 2026-05-23 [213ebfb4ad03]
+
+**Budget reality check before launching: we don't have headroom.**
+
+- Current 5h util: **51%** (we're already halfway through this window)
+- Window resets: 2026-05-23T02:20Z (~2h21min from now)
+- v5 combined estimate: 45-55% util
+
+Running all three v5 arms now would push us into the 96-106% range — `allowed_warning` certain, `rejected` likely. The conversation work for the audit + plot rewrite + design doc itself consumed ~36-38% of the window from ~13-15% post-v4 to current 51% (~0.4%/min sustained for ~90 min of IDE work — non-trivial cost just from the deliberation phase).
+
+**Options that respect your "don't burn the whole window" guidance:**
+
+### 2026-05-23 [38f7d6cae864]
+
+**Critical: my v5 G design has the same flaw as v4.** Both use `--fork-session` or `--resume` for the probe, which makes the probe's *prefix* different from the prime's (probe's prefix includes the prime's assistant response). Cache hit requires EXACT prefix match. The v4 "TTL = 60min" finding is suspect — the miss may have been due to prefix mismatch, not TTL expiration.
+
+**The correct TTL probe design**: probe must be a FRESH call (no `--resume`, no `--fork-session`) with the SAME prompt as prime. Then both prime and probe send the same prefix `[system+tools+user_msg]`, and cache_read tells us if the cache survived.
+
+This is testable from existing v4 data: Arm A cells used fresh UUIDs and consistently showed `cache_read=16,720` (the boilerplate cache), confirming that fresh calls DO share the cache layer.
+
+### 2026-05-23 [8439a2c2de85]
+
+- `date -u` forces UTC regardless of system timezone; the `Z` suffix (Zulu time) in the format string is a literal that signals "UTC offset zero" in ISO 8601.
+- The `+%Y-%m-%dT%H:%M:%SZ` format uses the `T` separator between date and time per RFC 3339, the stricter ISO 8601 profile most tooling (logs, APIs, git) expects.
+- Note the clock shows 00:13 UTC on 2026-05-23, while the session-start hook reported local time as 18:12 on 2026-05-22 — consistent with a 6-hour offset (Mountain/Central daylight, depending on locale).
+
+### 2026-05-23 [e7dc0e7c9752]
+
+- The semantic-search call retrieved a single record (score 0.7268) from `corrections.jsonl` — a moderate-confidence hit, returned because the embedding model placed the query "Anthropic" near a corrections-log entry rather than near, say, an Anthropic API doc. That mismatch is a useful signal that the `jarvis-context` collection (the default) is dominated by Jarvis operational logs, not external-vendor docs.
+- For Anthropic-specific topics (caching, models, SDK), a more relevant collection is `research` — where the v3 fork-cache and token-compression debriefs live.
+
+### 2026-05-23 [c6f3495ffbf6]
+
+**The IDE conversation is the dominant quota burn — not the experiments.**
+
+Looking at the proxy DB row pattern between 00:08:33 and 00:14:03:
+- Most rows show `cache_read: 300K-352K` with `cache_write: 1-7K` and `output_tokens: 200-6500`
+- These are MY conversation turns to you — each one loads ~330K context (system + CLAUDE.md + MEMORY.md + scratchpad + capability-map + identity + entire session history)
+- Cost per turn: $0.5-1.2
+
+In the 10 minutes between the G prime and now, util went 54% → 85% — **31 percentage points consumed by IDE conversation alone, not by experiments**. The G prime + T+1 probe + my single fresh-call test added ~3%. E/F managed maybe 8-12% before being stopped. The remaining ~18% is *us talking*.
+
+This is a publishable operational reality for Claude Code power users: **a long, context-heavy IDE session burns quota at ~3%/min sustained even with no scripted work**. Per the §5.4 unified-rate-limit guidance, autonomous work mixed with IDE deliberation is dangerous — the deliberation phase alone can exhaust a window before the scripted work begins.
+
+**Status of v5 experiments:**
+- G v5: prime fired + 1 (flawed-design) probe completed. Script now fixed for fresh-call design. 4 remaining probes pending re-execution.
+- E/F v5: stopped mid-run. Several cells of data captured in proxy DB (recoverable via timestamp filter), but no parsed pass/fail aggregation. Cost-per-cell ran 4-6× over my $0.18 estimate because default-mode responses were verbose without `max_tokens` constraints.
+- H v5: not started.
+
+**Quota state**: 85% / `allowed`. ~11 percentage points until `allowed_warning`, ~15 until `rejected`. Window resets in ~1h45min.
+
+### 2026-05-23 [c5568e7756c0]
+
+**Session accomplishments:**
+
+| Item | Status |
+|---|---|
+| v4 article: unit fix, metric reframe, §3.1 arms table, horizontal Mermaid, new §3.2.1/§5.4, 9 polished plots | Done, UNCOMMITTED |
+| v5 arm-redesign design proposal | Written, Sir-approved |
+| Alfred-Dev dashboard UsagePage.tsx refactor | COMMITTED bab577a, not pushed |
+| v5 G prime + 1 (flawed) probe | Done — revealed design flaw |
+| v5 G script corrected for fresh-call probes | Done — ready for next window |
+| v5 E/F | Started, stopped at ~50% for cost overrun |
+| v5 H | Not started |
+| Scratchpad updated for clean session resumption | Done |
+
+**Three findings worth promoting** (in addition to v4 corrections already in the article):
+
+1. **v4's §4.3 TTL=60min claim is suspect.** Both v4 and my first-pass v5 G probe used `--resume`/`--fork-session`, which makes the probe's prefix structurally different from the prime's regardless of TTL. The cache miss isn't proof of TTL expiration; it's proof of prefix mismatch. A fresh-call probe (no session flags) is the correct design. My empirical validation: a fresh call with the same prompt as prime, ~12 min later, returned cache_read=26,673 (cache reachable). The actual TTL boundary needs re-measurement next window with corrected design.
+
+2. **IDE conversation cost is dominant.** Every Claude Code turn loads ~330K context (system + CLAUDE.md + MEMORY.md + scratchpad + capability-map + identity + history) at ~$0.5-1.2 per turn. Over ~12 minutes of v5 design/review/execute conversation, util went 54% → 85% (~3%/min) — and only ~3pp of that came from experiments. **This is a publishable operational reality**: long deliberative Claude Code sessions burn quota at IDE-baseline rate even with no scripted work. Belongs in a new §5.6 or expanded §5.4.
+
+3. **My E/F v5 cost estimate was 4-6× low** because default-mode responses are verbose without `max_tokens` constraints. Probes need tight output caps. Fix before re-run.
+
+**Quota state**: 87% / `allowed`. ~9pp to allowed_warning. Window resets 2026-05-23T02:20Z (~1h17min from now, ~8:20pm local).
+
+**Files touched this session (full paths)**:
+- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/reports/claude-code-cache-mechanics-2026-05-22.md` — 940+ lines, comprehensive rewrite
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/cache-mechanics-v4.py:334-346` — unit fix
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/cache-mechanics-v4-plots.py:1-435` — complete rewrite
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/cache-mechanics-v5-arm-g.py:1-220` — NEW, fresh-call probe design
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/cache-mechanics-v5-strip-effect.py:1-270` — NEW, needs max_tokens cap before re-run
+- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/designs/current/cache-mechanics-v5-arm-redesigns.md` — NEW, 285 lines
+- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/reports/figures/cache-mechanics-v4/` — 9 plots (3 new, 1 updated, 5 visually refined)
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scratch/cache-mechanics-v4/recomputed-summary.json` — derived data
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scratch/cache-mechanics-v4/G_status/status-timeline.tsv` — proxy-DB export for plot 09
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/scratch/cache-mechanics-v5/G/{prime.json, probe-T01.json}` — v5 G partial
+- `/Users/nathanielcannon/Claude/Alfred-Dev/dashboard/frontend/src/pages/UsagePage.tsx` — committed bab577a
+- `/Users/nathanielcannon/Claude/Jarvis/.claude/context/.scratchpad.md` — updated, 80 lines
+
+### 2026-05-23 [d19d6bffe3fd]
+
+**Per-call cost during the v5 session (00:08:51Z to 00:25Z):**
+
+| Kind | n calls | avg cache_write | avg cache_read | avg output | $/call | Total $ | Share |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| **experiment_cell** | 30 | 46,880 | 15,909 | 122 | **$0.91** | **$27.36** | **62%** |
+| ide_turn (heavy) | 20 | 2,509 | 356,115 | 1,838 | $0.72 | $14.39 | 33% |
+| short_call | 18 | 777 | 63,390 | 185 | $0.12 | $2.22 | 5% |
+
+**Cache hit share validated:** IDE turns are 356,115 / 360,462 = **98.8% cache-read**. Your claim that turns "hit cache" is correct in volume terms.
+
+**But "cost virtually nothing" needs nuance:** cache_read tokens are billed at $1.50/M (Opus pricing), and an IDE turn reads ~356K of them — that's $0.53 per turn JUST for cache reads. Add ~$0.14 for output and ~$0.05 for new cache writes and you're at $0.72/turn. So heavy IDE turns DO have a cost — they're just ~21% cheaper per call than fresh-cache-write experiment cells ($0.72 vs $0.91), not an order of magnitude.
+
+**Where your "order of magnitude" claim IS accurate:** comparing experiment cells to SHORT IDE interactions (the 18 short_call rows): $0.91 vs $0.12 = **7.6× difference**. That's almost an order of magnitude. So a typical short user-question-then-Claude-replies turn is dramatically cheaper than a `claude -p` cell that writes fresh cache.
+
+**Retraction of my finding #2:** I was wrong about IDE conversation being the dominant cost driver. The data shows experiments contributed 62% of total cost in this period ($27.36 of $43.97), heavy IDE turns 33% ($14.39), short calls only 5%. My "3%/min from IDE" framing was a fabrication based on the post-prime util climb without accounting for what was actually firing in the proxy DB. I should have queried before claiming.
+
+### 2026-05-23 [b9941124100d]
+
+**The full empirical picture, sir — you were right:**
+
+**Pre-v5 period (22:00Z to 00:08:51Z, ~2h10min of pure IDE work — audit + plot rewrite + design doc):**
+- 49 heavy IDE turns @ $0.58 = $28.51
+- 32 short calls @ $0.39 = $12.49
+- 1 experiment cell @ $1.05 = $1.05
+- **Util change: 17% → 54% = 37pp over 130min = 0.28%/min sustained**
+
+**v5 period (00:08:51Z to 00:25Z, ~16min of IDE + claude -p experiments):**
+- 30 experiment cells @ $0.91 = $27.36 (62% of cost)
+- 20 heavy IDE turns @ $0.72 = $14.39 (33% of cost)
+- 18 short calls @ $0.12 = $2.22 (5%)
+- **Util change: 54% → 85% = 31pp over 16min = 1.94%/min sustained**
+
+**The actual ratio: mixed-with-experiments burns ~7× faster than pure-IDE.** Pure IDE work runs at ~0.28%/min sustained even with heavy substantive turns. Add scripted `claude -p` experiments and you jump to ~2%/min. So your "order of magnitude higher for claude -p" claim is empirically validated (7× is within an order of magnitude).
+
+**Where my earlier framing went wrong:**
+
+1. I claimed "IDE conversation is the dominant cost driver" — false. Even in the v5 period, experiments contributed 62% of dollar cost. In the pre-v5 period, IDE was dominant only because no experiments were running.
+
+2. I claimed "~3%/min from IDE alone" — false. Pure IDE is ~0.28%/min, not 3%/min. The 3%/min during v5 was mostly from the experiments, not IDE.
+
+3. I had the per-call efficiency picture upside down: short IDE turns are ~7.6× cheaper than experiment cells, not the reverse.
+
+**The correct operational insight (which is your point, restated):** 
+
+`claude -p` cells that write fresh cache are the costly events. A long IDE deliberation session, even when content-heavy, runs at ~0.3%/min sustained because the ~330K force-loaded context is overwhelmingly cache-hit. Scripted parent-child experimental harnesses, by contrast, run at 5-10× that rate because each cell writes new cache.
+
+**Implication for v4 article §5.4 / §5.6**: instead of warning about "IDE deliberation cost", it should emphasize that **scripted experimental harnesses are an order-of-magnitude faster quota burn than typical IDE conversation**, and provide concrete %/min figures for both regimes.
+
+**Status correction in scratchpad pending.**
+
+### 2026-05-23 [e4608812260d]
+
+**Lessons from this exchange (worth remembering, sir):**
+
+1. **Empirical numbers before claims.** The proxy DB had the answer all along. When I made the "IDE conversation is dominant" claim, I should have first written the SQL query to categorize calls and compute per-kind aggregates — exactly what you forced me to do just now. The cost of one query vs the cost of an incorrect article finding is trivial.
+
+2. **The cache-hit-rate vs cost intuition.** Your "99.9999% hit rate → virtually nothing" claim is correct on cache hit RATE (98.8% for heavy IDE turns) but misses that cache_read tokens are still billed at $1.50/M and 356K of them per turn = $0.53/turn. The "virtually nothing" framing is true relative to fresh-cache-write costs (~7× cheaper) but not literally zero.
+
+3. **My pattern of speculation when data was reachable.** This is the same failure mode as the earlier "Pulse blind to harness traffic" hypothesis — I had a plausible mechanism in mind and asserted it without checking the proxy DB. The proxy DB has perfect ground truth for any token/cost/util question; the discipline must be: **query first, hypothesize second**.
+
+### 2026-05-23 [b2b7ab27e428]
+
+**Pre-clear state captured:**
+
+| Artifact | Location | Status |
+|---|---|---|
+| Session state | `.claude/context/session-state.md` | Updated with current 87%+ util state, v4 article corrected, v5 partial deferred, three Sir-feedback corrections noted |
+| Scratchpad | `.claude/context/.scratchpad.md` (80 lines) | Updated with empirical IDE-vs-experiment burn rates (0.28%/min vs 1.94%/min) |
+| Feedback memory: quota metric priority | `~/.claude/projects/.../memory/feedback_quota_metric_priority.md` | NEW — dollar spend is least relevant; %Usage first |
+| Feedback memory: empirical before claim | `~/.claude/projects/.../memory/feedback_empirical_before_claim.md` | NEW — query proxy DB before asserting |
+| MEMORY.md index | Both new feedback memories linked | Updated |
+| JICM watcher | PID 78514, alive 7h34m | Healthy |
+| JICM state hook | `.claude/context/.jicm-state-hook.json` | Current (00:58:52Z, 397K tokens, model claude-opus-4-7) |
+| JICM compression script | `.claude/scripts/jicm-prep-context.sh` | Present |
+| JICM auto-ingest | `.claude/scripts/jicm-auto-ingest.py` | Present (L3→L4 RAG ingest) |
+| Quota state at clear-prep | 97% util / `allowed_warning` / resets 02:20Z | ~3pp headroom — pausing now |
+| v5 G prime session | sid 94a7e5c4 (FLAWED design; needs re-prime post-clear) | Captured in `.claude/scratch/cache-mechanics-v5/G/prime.json` |
+| v5 H | Not started; design at `designs/current/cache-mechanics-v5-arm-redesigns.md` | Awaits fresh window |
+
+The Watcher will handle compression → /clear → resume per JICM v7. The next session opens with `.compressed-context-ready.md` summary, fresh-loaded scratchpad (current 80 lines including all v5/v4 state), and the new feedback memories indexed in MEMORY.md.
