@@ -196,8 +196,9 @@ Modal patterns observed in proxy data; use for postmortem attribution only:
 2. **Tool propagation unreliable with `--output-format json`** — drops `tool_use` blocks. Use `--output-format stream-json` to verify tool calls happened.
 3. **Concurrent bursts compound linearly.** N parallel cells = N parallel cache_writes; the proxy does not dedupe shared prefixes across concurrent calls.
 4. **No automatic pacing.** Bash spawns as fast as it can; a 30-cell harness in 4 min has been observed to move burn weight ~27pp.
-5. **`--system-prompt` does NOT strip what you'd hope.** Empirical: M-D / M-S / M-A modes show near-identical token signature; project `@`-imports happen in-process, outside the system-prompt override.
-6. **Subprocess inheritance is opaque.** MCPs, hooks, env may or may not propagate. Verify per-experiment.
+5. **`--system-prompt` and `--system-prompt-file` strip ~27K cache_write of Anthropic-side content** (system prompt + CC tool catalog), but `@`-imported project content (CLAUDE.md, MEMORY.md, scratchpad, psyche/) survives — it's merged BEFORE the system-prompt boundary by the CC harness. Per-cell cost savings: ~32%. Functional consequences: NONE for governance/identity/MCP awareness (v6 probes A1-A5, C1 all preserved). `--append-system-prompt` adds content WITHOUT replacing, so cache footprint is unchanged from default.
+6. **Subprocess inheritance: MCPs propagate and are invocable; plugins do not.** v6 C1 evidence: all four functional strip modes passed MCP-invocation test (`mcp__jarvis-rag__search` via `ToolSearch` deferred-load). Plugin awareness (P1) uniformly fails — including M-D control — so plugins are structurally invisible in `claude -p`, not a strip-mode effect. Hooks and env propagation not yet tested.
+7. **`--bare` strips the authentication chain, not just content.** Every `--bare` cell returns `"Not logged in · Please run /login"` at $0 cost with zero tokens. Use only as a capability-ceiling test (what fails when EVERYTHING is gone), not as a content-strip baseline. For content-strip comparisons, use `--system-prompt` or `--system-prompt-file`.
 
 ---
 
@@ -272,6 +273,8 @@ Modal patterns observed in proxy data; use for postmortem attribution only:
 | v5 G script | `.claude/scripts/cache-mechanics-v5-arm-g.py` | — |
 | v5 E/F script | `.claude/scripts/cache-mechanics-v5-strip-effect.py` | — |
 | v5 design doc | `projects/project-aion/designs/current/cache-mechanics-v5-arm-redesigns.md` | — |
+| v6 E/F script | `.claude/scripts/cache-mechanics-v5-strip-effect-v6.py` | — |
+| v6 findings | `projects/project-aion/reports/cache-mechanics-v5-strip-effect-v6-findings.md` | §6.1-§6.8 |
 | Memory: empirical-before-claim | `~/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/memory/feedback_empirical_before_claim.md` | — |
 
 ---
