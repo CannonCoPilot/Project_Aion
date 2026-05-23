@@ -5,84 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-05-07 [60869b8cd7f2]
-
-The validation event has structural elegance: the patch under test (natural-language Watcher prompts) was exercised by the very mechanism that needed it (a stop-and-wait JICM cycle), and the test outcome (no refusal) is the same as the production outcome. Unit tests can prove syntax; only this kind of in-vivo run can prove the model-side compliance. Worth a one-line addendum in the v1.4 commit message and/or a `self-corrections.md` follow-up entry crediting the architectural fix over the documentation patch.
-
-### 2026-05-07 [fa16beeb6621]
-
-The architectural deviation in R2 (standalone route vs in-place tab) is a load-bearing choice worth examining: the plan's "tab integration" was a UX target, but KanbanPage's viewMode threading turned out to be a 800-LOC attractor that would have eaten the R2 budget. Choosing the simpler route preserves the deliverable shape (a working timeline page) while sidestepping a refactor that doesn't pay back until someone actually wants the unified `/board` UX. This is the *defer-the-coupling* pattern: when a consumer's surface area is large and well-tested, attach to it externally first; if usage proves the value, fold in later. The follow-up wiring is ~10 LOC.
-
-### 2026-05-07 [56f06d21dfc4]
-
-Two surprises that re-frame everything: (1) `services/reviewer.py` is fully implemented and running as a pipeline-v2 service — the plan-of-record's "the reviewer service hasn't been built yet" was wrong; (2) it emits decision_events with `actor="reviewer"` (no `persona:` prefix), so the "zero rows" assertion was based on filtering against the wrong string. There's also an existing 1842-LOC ReviewPage at `/reviews` and a 1206-LOC DecisionsPage at `/decisions` (P1.B1, commit `042247b`) — the design space is more crowded than I treated it.
-
-### 2026-05-07 [8e1b49e54d68]
-
-The qwen3:8b-generated checkpoint at `.compressed-context-ready.md:6` says *"Reviewer Dash IN PROGRESS — implementing persona-agnostic decision timeline"* and recommends I continue building. The scratchpad entry `2026-05-06 ~21:30 MDT — Stack execution + Reviewer Dash critical re-think (HALT mid-stream)` says the opposite: I shipped R1+R2, then your prompt ("What is the Reviewer? Be critical, push back on yourself") triggered an analysis that called the entire deliverable into question, and the session ended *pending your strategic call*, not in an "implement next" posture. The compressor extrapolated forward from the last commit signal and missed that the analysis-at-the-end was a reframe, not a continuation. This is a recurring JICM-compression failure mode worth noting: low-tier models read commit cadence as forward momentum and elide the "but actually let's stop" turn.
-
-### 2026-05-07 [89a0ccfe8c46]
-
-The reason Option 2 has the longest ETA isn't UI complexity — it's that the Reviewer Operations Center requires *new aggregations Pulse doesn't expose yet* (confidence histograms across 24h windows, engine A/B variance, issue-taxonomy clustering). That's 1-2d of Pulse READ API work *before* the dashboard layer exists. The R1 backend I shipped (3 endpoints: storyline, persona-aggregates, recent-decisions) is the foundation but doesn't carry the operational lens David's writings imply.
-
-### 2026-05-07 [03c89009e094]
-
-**Two ground-truth corrections that reframe the analysis:**
-
-1. **Reviewer service does NOT emit `decision_events`.** It emits `log_activity` entries only — diagnose.py is what calls `log_decision(actor="system:diagnose", decision_type="diagnose_outcome", ...)`. My prior scratchpad note ("Reviewer emits actor='reviewer' decision_events") was wrong. The "0 rows for actor='persona:reviewer'" wasn't a string-match error on my part — it was correct because reviewer.py never wrote that row in the first place. The actual missing wire is `reviewer.py` → `log_decision()`.
-
-2. **The four "reviewer personas" are four entirely different things, not four flavors of the same review concept.** The plan-of-record I wrote conflated them:
-   - `ai-reviewer/` is actually `persona: ai-david` — David's autonomous-approval proxy for `waiting:david` tasks
-   - `pipeline-reviewer/` is a meta-reviewer of the **watchdog's** label-fixing actions (not task execution)
-   - `security-reviewer/` is a Semgrep+manual security auditor
-   - `test-reviewer/` is a quality-checklist verifier
-   
-   They share the suffix "-reviewer" but no schema, no data model, no domain. Treating them as a class is a category error.
-
-### 2026-05-07 [665c8c7035d0]
-
-This is the *symmetry* of pipeline-v2's gating model:
-- `evaluate.py` is the **pre-execution gate** — safety, feasibility, decomposition
-- `reviewer.py` is the **post-execution gate** — verification, confidence, issue capture
-
-Both wrap LLM calls around structured task state. Both can route to retry. Both currently under-instrument their decisions (`evaluate.py` also doesn't emit `decision_events` cleanly). The "why does Reviewer get a dashboard" question has a structural counterpart: "why doesn't Evaluator?" That symmetry suggests the right answer is *neither does, in isolation* — they both feed a **persona decision-stream** view.
-
-### 2026-05-07 [df72bba464f3]
-
-The category error in my prior framing was treating "Reviewer's own dashboard" as a *product question* (what does the page show?) when it's actually an *infrastructure question* (we need observable decision-streams for every pipeline service, and Reviewer is the test case). Once you reframe it that way, the page isn't "Reviewer Dashboard" — it's "Persona Decision Stream Pattern, Reviewer Instance v1."
-
-This is exactly what David said in his 2026-05-06 debrief: *"the vertical-timeline-with-drawer pattern proves out the UX for displaying any persona's decision-stream — when the Cortex (Jarvis-side AC-05/06 reflection consumer) needs to show its own decision timeline, it inherits this pattern."*
-
-I missed the load-bearing word "*pattern*" in his writing. He's not building a Reviewer page; he's building a template, with Reviewer as the first instance.
-
-### 2026-05-07 [d528581b5304]
-
-The deepest insight from this exercise: **the question "what should this page do?" was the wrong frame.** The right frame is "what infrastructure does the review system need, and which UI surfaces fall out of that?" Once you wire `reviewer.py → decision_events`, the *minimum-viable answer* becomes "DecisionsPage already does it, just filter for `actor='persona:reviewer'`." Anything beyond that is making a *deliberate UX bet* that Reviewer warrants more than DecisionsPage gives — and that bet should be conscious, not inherited from a plan-of-record that was written before we understood the data flow.
-
-This is also a meta-lesson about plans-of-record: writing one before doing the deep investigation can lock in misconceptions. My `aifred-pro-dev-reviewer-dash.md` codified two factual errors (reviewer emits decision_events; "personas" share a schema) that then propagated through R1+R2 implementation and the prior compressor's checkpoint. The investigation should have come first.
-
-### 2026-05-07 [3ffc6f9a57cc]
-
-The REO reframe doesn't *refine* the prior analysis — it *dissolves* the central question. The "Reviewer Dashboard" construct was load-bearing on a singular concept (AI-David as a unitary pre-launch reviewer) that the system **no longer instantiates**. Once you split that role across evaluate/orchestrate/execute/review, naming a page after one of the four shards is arbitrary. REO captures the right typology — review-reflect-decide-tag — at the level of pipeline activity itself, not any single service. All four candidate visions (A/B/C/D) from the saved report collapse into a single coherent thing: a decision-history system for the pipeline as a whole.
-
-### 2026-05-07 [7a2a8ebec804]
-
-The other thing this clarifies is an **information-architecture distinction I had been blurring**: filing systems and dashboards are not the same primitive.
-- **Dashboards** answer *"is it healthy now?"* — KPI cards, live charts, color-coded status, ops-metrics shape. Optimized for at-a-glance health.
-- **Filing systems** answer *"what happened, and why?"* — search, browse, retrieve, case-file shape. Optimized for investigation.
-
-These have different navigation models (filtering+search vs hierarchies of summary→detail), different update cadences (browse-driven vs push-driven), different memory models (archived state vs live state). Trying to put both on one page produces a confused IA where neither use case is well-served. Your REO+Board v2 split is correct precisely because it gives each its own primitive.
-
-### 2026-05-07 [c95affe86045]
-
-The distinction "filing system for decisions" vs "dashboard of components" maps cleanly to a known UX pattern split: it's the difference between **a court reporter's transcript archive** and **a courtroom security monitor**. The transcript archive cares about *what was said and decided*, indexed for retrospective query — chronology, search, complete record. The security monitor cares about *who is in the room right now and is anyone making trouble* — live status, current state, alerting. Both are essential; they don't share a screen because their interaction patterns conflict. REO is the transcript archive. Board v2 is the security monitor.
-
-Your framing also resolves a tension I'd been unconsciously holding: I kept reaching for ops-metrics shapes (pass/fail rates, confidence histograms, engine A/B) and they kept feeling like the wrong fit for a page named "Reviewer Dashboard" but the right fit *for some surface*. The right surface is Board v2, not REO. REO doesn't aggregate — it preserves and surfaces individual reasoning artifacts. Aggregations belong on Board v2.
-
-### 2026-05-07 [3bcba0238184]
-
-A useful question to ask of any plan-of-record before commiting code to it: *what concept is load-bearing in the name?* The original Reviewer Dash plan had "Reviewer" load-bearing — meaning if the Reviewer concept dissolved, the plan dissolved with it. That's exactly what's happened. By contrast, "REO" is load-bearing on *typology of decision moments*, which is a more durable concept. Even if R/E/O get renamed or extended later (say to "REOD" with Diagnose as a fourth class), the underlying filing-system-of-decisions IA holds. So this reframe doesn't just produce a better plan — it produces a more *durable* plan.
-
 ### 2026-05-07 [4df66b2f039e]
 
 The user-feedback-connector + lessons-learned wire is architecturally significant beyond just being a UI feature. It turns REO from a passive *observability* surface into an active *reinforcement* surface. The pipeline emits decisions; the user judges them; the judgments become persona context; future decisions improve. That's a closed loop with the user as the outer-loop optimizer — essentially RLHF without the gradient-descent step, using prompt-context retrieval as the update mechanism. This is why getting the schema right matters: a sloppy `feedback.right_or_wrong` boolean leaks through into persona prompts as low-signal noise; a well-structured `{verdict, comment, suggested-correction, context-shape}` distills into actionable lesson entries. I want to spec this carefully in the plan, marked DRAFT pending your review and David's input on whether existing infrastructure exists.
@@ -1346,3 +1268,158 @@ This is a publishable operational reality for Claude Code power users: **a long,
 | v5 H | Not started; design at `designs/current/cache-mechanics-v5-arm-redesigns.md` | Awaits fresh window |
 
 The Watcher will handle compression → /clear → resume per JICM v7. The next session opens with `.compressed-context-ready.md` summary, fresh-loaded scratchpad (current 80 lines including all v5/v4 state), and the new feedback memories indexed in MEMORY.md.
+
+### 2026-05-23 [a6204f6a63c2]
+
+**JICM resume protocol decision tree:**
+
+The scratchpad's Resume Protocol has 6 items. Items 1-4 are `claude -p` experiments — empirically established at ~1.94%/min burn rate. The quota window doesn't reset for ~78 min. Items 5-6 are pure-local git operations: ~0.28%/min IDE-baseline burn. Running experiments now would risk exhausting the window before reset; deferring them respects Sir's explicit "next window" guidance.
+
+**Safe path now**: items 5 + 6 (commit and push the v4 article + v5 harness + plots, push Alfred-Dev dashboard). Local IDE work only, ~3-5 conversation turns, well within headroom.
+
+### 2026-05-23 [cd1fe6925aee]
+
+**Commit scoping decision:**
+
+The dirty tree has two distinct classes of changes: (a) substantive research artifacts (v4 article + v5 design + 9 plots + 4 harness scripts), and (b) auto-generated state (`.pre-clear-*`, `.rest-ran-*`, `.memory-health.json`, etc.). Bundling them would muddy the history and pull in churn that's already managed by JICM hooks. Following commit `ff15898`'s pattern (one research commit per investigation arc), I'll stage by explicit path lists rather than `git add -A`.
+
+### 2026-05-23 [661cf4e4c9b4]
+
+**Important correction to my prior session-window claim:**
+
+The watcher snapshot shows `util_5h: 0.03` (3%) — the Anthropic unified-5h window has ALREADY RESET. My earlier statement that "window resets 02:20Z, ~76 min from now" was wrong: I quoted the scratchpad's pre-clear value (`Quota state: 85% / window resets 02:20Z`) without checking the live state. Per `MEMORY.md`'s "Empirical Before Claim" feedback memory: query first, claim second. I should have run the watcher BEFORE making the prior turn's window-boundary claim.
+
+The current state: **3% util, allowed, full headroom**. Items 1-4 are safe to execute now.
+
+The `elapsed_seconds: 16924` field is the cost-watcher's *own* rolling 5h analysis window (for anomaly detection on bursts), not the Anthropic window — different concept; my reading would have confused them without verifying.
+
+### 2026-05-23 [1104721cf178]
+
+**Second correction — window reset is 07:20Z, not 02:20Z:**
+
+The raw `unified_5h_reset` headers consistently show `2026-05-23T07:20:00Z`. The scratchpad's "02:20Z" was the *prior* window's reset time; that window has rolled. Current state:
+- **status: allowed**
+- **util: 4%** (~96pp headroom)
+- **reset: 2026-05-23T07:20:00Z** (~4h52min from now)
+- Recent turn cost: $0.20–$0.31
+
+This gives me full bandwidth to execute items 1-4 cleanly rather than racing a deadline. Both prior assumptions ("02:20Z deadline" and "76 min remaining") were wrong because I trusted the scratchpad over the live headers.
+
+### 2026-05-23 [ae12510b9983]
+
+**Why `--max-budget-usd` and not output-token limit:**
+
+The proxy DB showed last night's M-D cell cost is 96%+ from cache_write (~40K project context × $18.75/M = $0.75). Output was 50-300 tokens at $75/M = $0.005. A token cap on output would shave ~1¢ per cell, an unnoticeable fraction. The dollar-budget circuit-breaker actually constrains the dominant cost driver. Set per-cell to $1.50 (covers worst-seen $1.25 + buffer) and cumulative abort at $18.
+
+### 2026-05-23 [5089da6ea57b]
+
+- The `top_k=1` parameter caps results; the actual corpus likely contains many "Anthropic" matches, but the query intentionally returns just the highest-scoring chunk (score 0.7268 here, a moderate semantic-similarity hit).
+- The returned record is from `corrections.jsonl` — Jarvis's auto-captured correction-detection log — not an Anthropic-domain document. Semantic search ranked it top because no closer matches exist in the default `jarvis-context` collection; the `research` collection would likely surface cache-mechanics articles instead.
+
+### 2026-05-23 [9f0f67096d3e]
+
+- The jarvis-rag `search` tool defaults to the `jarvis-context` collection (one of four: jarvis-context, codebase, research, sessions) — since no `collection` arg was passed, the result came from that default.
+- The match scored 0.7268 cosine similarity against Qwen3-Embedding-4B (2560-dim) vectors in Qdrant — moderate semantic relevance rather than a literal "Anthropic" keyword hit; the corrections.jsonl entry was ranked top because the embedding space colocates Claude/Anthropic-related session artifacts.
+- For literal text matches, RAG is the wrong tool — this is a semantic retrieval system, not a full-text index; `Grep` against `.claude/logs/` would be the right primitive for keyword-exact lookups.
+
+### 2026-05-23 [d22077162b40]
+
+**Findings from E/F (preliminary):**
+
+1. **Pass-rate matrix is uniform across modes** — A1/A2/C1 pass everywhere; B1/C2 fail everywhere. `tools=[]` recorded in every cell, suggesting `--output-format json` doesn't expose `tool_uses` the way the script's parser expects (`response.messages[].content[].tool_use` or `response.tool_uses`). Would need `stream-json` to capture tool invocations.
+
+2. **Cost differential is smaller than hypothesized**: M-D avg $0.38, M-S avg $0.32, M-A avg $0.41. If `--system-prompt` truly stripped 330K of project context, M-S should be dramatically cheaper. The narrow gap suggests `--system-prompt` may NOT replace CLAUDE.md/MEMORY.md content the way the design doc hypothesized — or both modes are hitting prior cache.
+
+Both findings are themselves article-worthy: the methodology limitation (json vs stream-json for tool capture) is publishable operational guidance.
+
+### 2026-05-23 [b9a9a8370b06]
+
+**Why those derivations are wrong (acknowledging your point):**
+
+1. **$-to-token "rates" are not constant.** The reported cost_usd field in api_requests is the API's per-call settlement, which depends on token-class mix, model tier, time-of-day pricing adjustments, and the `unified_fallback_pct` discount factor (currently 0.5 on Max, but plan-tier dependent). Dividing dollars by tokens to back-compute "$ per token" gives a ratio that's only valid for that specific call's mix.
+
+2. **Tokens-to-burn-weight is not linear.** Anthropic's unified-util formula is composite — token volume AND request count AND apparently other factors (since two 100%-util windows can differ by 3× in total tokens, per §1.3 of the doc). A 1M cache_read in one big call ≠ 1M cache_read split across 200 small calls in terms of util consumed.
+
+3. **The $9 → 27pp pairing is one session, not a rate.** It's a true fact about what happened during E/F. It is NOT a conversion factor I can apply to estimate next session's burn. The next experiment with different cell composition + different starting util + different window crowd would consume differently.
+
+**Right discipline (which you're enforcing):**
+- PRIMARY: burn weight (Δ unified_5h_utilization)
+- SECONDARY: token volumes by type (descriptive of what happened)
+- TERTIARY: dollar cost (API contract artifact; do not convert)
+- NEVER derive one from another. Each metric stands alone, observed empirically.
+
+Re-doing the audit on those principles now — adding a §1.5 First Principles section that enshrines the no-conversion rule, then reverting the back-calculated reframings I just made to use plain token volumes + the API's own cost_usd attribution (where it's literally the field in the DB, not a derivation).
+
+### 2026-05-23 [c9377dc51253]
+
+**What I'd add to my own self-knowledge if you approve the commit:**
+
+A feedback-type memory `feedback_no_metric_conversion` capturing the rule "never derive across the three metric tiers; treat each as independently observable only" with the cross-link to `[[feedback_empirical_before_claim]]`. This is a meta-level reasoning discipline that should govern my behavior beyond just this doc — anytime I'm tempted to translate one of {burn weight, tokens, $} into another, I should pause.
+
+### 2026-05-23 [3e41053a743c]
+
+**Companion memory I'd write on your nod:**
+
+`~/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/memory/feedback_empirical_grounding_for_claims.md` — a feedback-type memory that captures the same rule for cross-conversation persistence. Frontmatter: name, description, type:feedback. Body: rule + Why (your 2026-05-23 correction after I did two back-calculations from $9-to-27pp pairing) + How to apply + what-doesn't-count list + link to `[[feedback_empirical_before_claim]]` and `[[api_aware]]`. Plus a one-line index entry in MEMORY.md.
+
+This way the rule persists in two places: force-loaded in api_aware.md §10.1 (always in context) AND in the linked-memory layer (recallable cross-session). The dual anchor reduces drift risk.
+
+### 2026-05-23 [fe00cac342f5]
+
+**Why these three changes cohere as one commit**: api_aware.md §9 rule #2 prescribes `--max-budget-usd 1.50` as a per-cell circuit breaker. The strip-effect.py modification IS that rule's first enforcement. Co-landing keeps doctrine and live application in lockstep — splitting them risks landing the rule without its first user, or vice versa.
+
+**Why the empirical-grounding amendment (§10.1) matters force-loaded**: it generalizes [[feedback_empirical_before_claim]] from "cost/util/cache assertions" to ALL behavior-shaping claims — which is the class of error that produced the dollar-to-burn-weight back-derivation that triggered the rewrite in the first place. Force-loading puts the guard ahead of the next instance of the same failure mode.
+
+### 2026-05-23 [d3ddf4506056]
+
+**The autonomous-loop architecture I just chose has a self-correcting safety property**: the wakeup fires me, but the EXECUTION is gated by the script's own pre-flight (which I cannot bypass without editing the script). So if util stays elevated through multiple wakeups, the system idles harmlessly until conditions are right. The script can't run me into a wall; only my judgment-when-conditions-allow can move work forward. This is the api_aware.md §9 rule #4 enforced architecturally, not just by my discipline.
+
+**What the new commit `008e413` revealed empirically (worth noting in the v4 article)**: force-loading api_aware.md added ~34K cache_create tokens per fresh subprocess call, doubling the baseline subprocess cost from ~$0.26 to ~$0.46. This is the trade for force-loaded self-awareness — every headless cell pays the awareness tax. The §10.1 discipline (verify-before-claim) buys correctness; the cost is denominated in burn weight, not seconds.
+
+### 2026-05-23 [d626db2753b8]
+
+**Observation about the rolling 5h window**: `rate_5min` shows $0 / 0 requests — no proxy traffic in the last 5min. Yet util rose 90% → 96% between wakeups. The rise is from earlier in this conversation aging INTO the trailing-5h window's earliest minute, while late-trailing activity hasn't yet aged OUT. The window is "rolling" but not symmetric — it's a fixed-width slice that drifts forward, and burn weight tracks whatever activity falls inside it RIGHT NOW.
+
+**Implication for the timing model**: I should not expect util to drop monotonically until the original 02:20Z-window activity ages out. The first major drop will arrive when activity from ~00:43Z onward starts falling out of the trailing 5h window. That's ~05:43Z + 5h = 10:43Z for the LAST burn-period activity to clear, but earlier calls clear earlier. The 07:20Z "window_reset" is the formal boundary that Anthropic uses for status changes, not necessarily where util drops sharply.
+
+### 2026-05-23 [1eef9ca61b0e]
+
+The JICM refresh kicked me before the previously-armed 00:19 wakeup fires — that's fine, the loop's gating logic is idempotent. The script's own pre-flight (50% util threshold) is the architectural backstop; my role is to query, decide, and either execute or re-arm.
+
+### 2026-05-23 [ef519dfb0354]
+
+**Util trending wrong direction**: 90% → 96% → 98% across the last three checkpoints. The rolling 5h window is still accumulating from this session's JICM cycle activity. Pre-flight will refuse. Architectural backstop intact — re-arming the loop.
+
+### 2026-05-23 [6c72b6be3fdd]
+
+**Schema discovery**: `total_windows: 58` means the endpoint returns ALL historical windows, with the CURRENT one being the LAST array element. My earlier query `windows[-1]` had been correctly fetching the active window — but the active window changed between queries because we crossed 07:20Z. The 99% was the old window's tail; the 26% is the new window's still-young state.
+
+**Operational lesson**: never trust a util reading without checking which `window_reset` it belongs to. Cross-boundary queries can swap "current" without warning.
+
+### 2026-05-23 [9ca2e4221cb0]
+
+**Different abort path**: util gate passed (27% < 50%), but the **projection vs cumulative-cap** guard fired. Projected $10.35 vs 0.85 × $12 cap = $10.20 — fail by 15¢. The 85% safety multiplier was calibrated for v5's 24-cell design; v6 has 31 cells, so projection naturally exceeds.
+
+**Two architectural options**: (1) bump cap to $13 (recalibrate safety margin), or (2) drop a probe to lower projection. Option 1 preserves experimental coverage and is the conservative move — the per-cell guard and cumulative-abort still fire on actual overspend.
+
+### 2026-05-23 [52ff29c37ea8]
+
+Script is alive (PID 36438) with claude subprocess executing M-S/A3 cell. Log is empty because Python buffers stdout — output flushes at script exit, not per-print. The `ps` snapshot is my real-time progress signal until the run completes.
+
+### 2026-05-23 [0f88b193fada]
+
+**v5 probe-set audit revealed a hidden naming-mismatch trap**: v5 used `TR1/TR2/TR3` IDs for T-R cells (probing MCP catalog + invocation, NOT A1/A2 identity/CLAUDE.md as the v6 fold-in plan assumed). The `T-N` cells in v5 DO have A1/A2 IDs and serve as valid fold-in. Had I trusted Sir's "fold in M-D/M-S/M-A A1+A2" directive without checking, the synthesis would have either (a) silently used wrong data, or (b) failed to find A1/A2 cells in T-R and missed the fold-in entirely.
+
+**Lesson generalized**: cross-version data fold-ins need a probe-ID audit before the merge step, not after.
+
+### 2026-05-23 [94ab4b4b440f]
+
+The launcher diff reveals two significant changes from the last committed state (`0a8742f`):
+1. **Model downgrade**: Opus 4.7 → Opus 4.6 (1M) — dropped `--effort max`
+2. **Thinking controls added**: `CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 MAX_THINKING_TOKENS=16000` + output bumped to 64K
+
+These are uncommitted changes to the launcher script, meaning you manually edited it since the last session.
+
+### 2026-05-23 [a5355d9b6248]
+
+**The resume logic worked correctly — the problem is upstream of it.** The launcher's default path (line 532–551) reads `.current-w0-uuid`, finds the JSONL, and passes `--resume <uuid>`. But `--resume` ties to a specific model. When you changed the `CLAUDE_BASE` from `claude-opus-4-7[1M]` to `claude-opus-4-6[1M]`, Claude Code cannot resume a session started on a different model — it silently creates a new session instead, which generates a new UUID, which then gets written to `.current-w0-uuid` by the restart loop or by Claude Code itself.

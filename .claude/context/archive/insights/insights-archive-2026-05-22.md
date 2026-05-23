@@ -253,3 +253,87 @@ The most architecturally interesting finding from compiling this update is the *
 
 This very prompt is the validation marker noted in the scratchpad and v1.4 doc (§9.1 risk row): the Watcher is using the new natural-prompt phrasing — `Watcher here. Context is getting heavy ...` — that I shipped this session in commit `5413824`. The autonomic reframing is now confirmed end-to-end: producer emitted the new format, Opus engaged with it as ordinary collaborator request rather than refusing as injection. The architectural fix worked.
 
+# Insights Archive — 2026-05-22
+# Rotated: 2026-05-23T03:52:04Z (10 entries)
+
+### 2026-05-07 [60869b8cd7f2]
+
+The validation event has structural elegance: the patch under test (natural-language Watcher prompts) was exercised by the very mechanism that needed it (a stop-and-wait JICM cycle), and the test outcome (no refusal) is the same as the production outcome. Unit tests can prove syntax; only this kind of in-vivo run can prove the model-side compliance. Worth a one-line addendum in the v1.4 commit message and/or a `self-corrections.md` follow-up entry crediting the architectural fix over the documentation patch.
+
+### 2026-05-07 [fa16beeb6621]
+
+The architectural deviation in R2 (standalone route vs in-place tab) is a load-bearing choice worth examining: the plan's "tab integration" was a UX target, but KanbanPage's viewMode threading turned out to be a 800-LOC attractor that would have eaten the R2 budget. Choosing the simpler route preserves the deliverable shape (a working timeline page) while sidestepping a refactor that doesn't pay back until someone actually wants the unified `/board` UX. This is the *defer-the-coupling* pattern: when a consumer's surface area is large and well-tested, attach to it externally first; if usage proves the value, fold in later. The follow-up wiring is ~10 LOC.
+
+### 2026-05-07 [56f06d21dfc4]
+
+Two surprises that re-frame everything: (1) `services/reviewer.py` is fully implemented and running as a pipeline-v2 service — the plan-of-record's "the reviewer service hasn't been built yet" was wrong; (2) it emits decision_events with `actor="reviewer"` (no `persona:` prefix), so the "zero rows" assertion was based on filtering against the wrong string. There's also an existing 1842-LOC ReviewPage at `/reviews` and a 1206-LOC DecisionsPage at `/decisions` (P1.B1, commit `042247b`) — the design space is more crowded than I treated it.
+
+### 2026-05-07 [8e1b49e54d68]
+
+The qwen3:8b-generated checkpoint at `.compressed-context-ready.md:6` says *"Reviewer Dash IN PROGRESS — implementing persona-agnostic decision timeline"* and recommends I continue building. The scratchpad entry `2026-05-06 ~21:30 MDT — Stack execution + Reviewer Dash critical re-think (HALT mid-stream)` says the opposite: I shipped R1+R2, then your prompt ("What is the Reviewer? Be critical, push back on yourself") triggered an analysis that called the entire deliverable into question, and the session ended *pending your strategic call*, not in an "implement next" posture. The compressor extrapolated forward from the last commit signal and missed that the analysis-at-the-end was a reframe, not a continuation. This is a recurring JICM-compression failure mode worth noting: low-tier models read commit cadence as forward momentum and elide the "but actually let's stop" turn.
+
+### 2026-05-07 [89a0ccfe8c46]
+
+The reason Option 2 has the longest ETA isn't UI complexity — it's that the Reviewer Operations Center requires *new aggregations Pulse doesn't expose yet* (confidence histograms across 24h windows, engine A/B variance, issue-taxonomy clustering). That's 1-2d of Pulse READ API work *before* the dashboard layer exists. The R1 backend I shipped (3 endpoints: storyline, persona-aggregates, recent-decisions) is the foundation but doesn't carry the operational lens David's writings imply.
+
+### 2026-05-07 [03c89009e094]
+
+**Two ground-truth corrections that reframe the analysis:**
+
+1. **Reviewer service does NOT emit `decision_events`.** It emits `log_activity` entries only — diagnose.py is what calls `log_decision(actor="system:diagnose", decision_type="diagnose_outcome", ...)`. My prior scratchpad note ("Reviewer emits actor='reviewer' decision_events") was wrong. The "0 rows for actor='persona:reviewer'" wasn't a string-match error on my part — it was correct because reviewer.py never wrote that row in the first place. The actual missing wire is `reviewer.py` → `log_decision()`.
+
+2. **The four "reviewer personas" are four entirely different things, not four flavors of the same review concept.** The plan-of-record I wrote conflated them:
+   - `ai-reviewer/` is actually `persona: ai-david` — David's autonomous-approval proxy for `waiting:david` tasks
+   - `pipeline-reviewer/` is a meta-reviewer of the **watchdog's** label-fixing actions (not task execution)
+   - `security-reviewer/` is a Semgrep+manual security auditor
+   - `test-reviewer/` is a quality-checklist verifier
+   
+   They share the suffix "-reviewer" but no schema, no data model, no domain. Treating them as a class is a category error.
+
+### 2026-05-07 [665c8c7035d0]
+
+This is the *symmetry* of pipeline-v2's gating model:
+- `evaluate.py` is the **pre-execution gate** — safety, feasibility, decomposition
+- `reviewer.py` is the **post-execution gate** — verification, confidence, issue capture
+
+Both wrap LLM calls around structured task state. Both can route to retry. Both currently under-instrument their decisions (`evaluate.py` also doesn't emit `decision_events` cleanly). The "why does Reviewer get a dashboard" question has a structural counterpart: "why doesn't Evaluator?" That symmetry suggests the right answer is *neither does, in isolation* — they both feed a **persona decision-stream** view.
+
+### 2026-05-07 [df72bba464f3]
+
+The category error in my prior framing was treating "Reviewer's own dashboard" as a *product question* (what does the page show?) when it's actually an *infrastructure question* (we need observable decision-streams for every pipeline service, and Reviewer is the test case). Once you reframe it that way, the page isn't "Reviewer Dashboard" — it's "Persona Decision Stream Pattern, Reviewer Instance v1."
+
+This is exactly what David said in his 2026-05-06 debrief: *"the vertical-timeline-with-drawer pattern proves out the UX for displaying any persona's decision-stream — when the Cortex (Jarvis-side AC-05/06 reflection consumer) needs to show its own decision timeline, it inherits this pattern."*
+
+I missed the load-bearing word "*pattern*" in his writing. He's not building a Reviewer page; he's building a template, with Reviewer as the first instance.
+
+### 2026-05-07 [d528581b5304]
+
+The deepest insight from this exercise: **the question "what should this page do?" was the wrong frame.** The right frame is "what infrastructure does the review system need, and which UI surfaces fall out of that?" Once you wire `reviewer.py → decision_events`, the *minimum-viable answer* becomes "DecisionsPage already does it, just filter for `actor='persona:reviewer'`." Anything beyond that is making a *deliberate UX bet* that Reviewer warrants more than DecisionsPage gives — and that bet should be conscious, not inherited from a plan-of-record that was written before we understood the data flow.
+
+This is also a meta-lesson about plans-of-record: writing one before doing the deep investigation can lock in misconceptions. My `aifred-pro-dev-reviewer-dash.md` codified two factual errors (reviewer emits decision_events; "personas" share a schema) that then propagated through R1+R2 implementation and the prior compressor's checkpoint. The investigation should have come first.
+
+### 2026-05-07 [3ffc6f9a57cc]
+
+The REO reframe doesn't *refine* the prior analysis — it *dissolves* the central question. The "Reviewer Dashboard" construct was load-bearing on a singular concept (AI-David as a unitary pre-launch reviewer) that the system **no longer instantiates**. Once you split that role across evaluate/orchestrate/execute/review, naming a page after one of the four shards is arbitrary. REO captures the right typology — review-reflect-decide-tag — at the level of pipeline activity itself, not any single service. All four candidate visions (A/B/C/D) from the saved report collapse into a single coherent thing: a decision-history system for the pipeline as a whole.
+
+# Insights Archive — 2026-05-22
+# Rotated: 2026-05-23T05:49:08Z (3 entries)
+
+### 2026-05-07 [7a2a8ebec804]
+
+The other thing this clarifies is an **information-architecture distinction I had been blurring**: filing systems and dashboards are not the same primitive.
+- **Dashboards** answer *"is it healthy now?"* — KPI cards, live charts, color-coded status, ops-metrics shape. Optimized for at-a-glance health.
+- **Filing systems** answer *"what happened, and why?"* — search, browse, retrieve, case-file shape. Optimized for investigation.
+
+These have different navigation models (filtering+search vs hierarchies of summary→detail), different update cadences (browse-driven vs push-driven), different memory models (archived state vs live state). Trying to put both on one page produces a confused IA where neither use case is well-served. Your REO+Board v2 split is correct precisely because it gives each its own primitive.
+
+### 2026-05-07 [c95affe86045]
+
+The distinction "filing system for decisions" vs "dashboard of components" maps cleanly to a known UX pattern split: it's the difference between **a court reporter's transcript archive** and **a courtroom security monitor**. The transcript archive cares about *what was said and decided*, indexed for retrospective query — chronology, search, complete record. The security monitor cares about *who is in the room right now and is anyone making trouble* — live status, current state, alerting. Both are essential; they don't share a screen because their interaction patterns conflict. REO is the transcript archive. Board v2 is the security monitor.
+
+Your framing also resolves a tension I'd been unconsciously holding: I kept reaching for ops-metrics shapes (pass/fail rates, confidence histograms, engine A/B) and they kept feeling like the wrong fit for a page named "Reviewer Dashboard" but the right fit *for some surface*. The right surface is Board v2, not REO. REO doesn't aggregate — it preserves and surfaces individual reasoning artifacts. Aggregations belong on Board v2.
+
+### 2026-05-07 [3bcba0238184]
+
+A useful question to ask of any plan-of-record before commiting code to it: *what concept is load-bearing in the name?* The original Reviewer Dash plan had "Reviewer" load-bearing — meaning if the Reviewer concept dissolved, the plan dissolved with it. That's exactly what's happened. By contrast, "REO" is load-bearing on *typology of decision moments*, which is a more durable concept. Even if R/E/O get renamed or extended later (say to "REOD" with Diagnose as a fourth class), the underlying filing-system-of-decisions IA holds. So this reframe doesn't just produce a better plan — it produces a more *durable* plan.
+

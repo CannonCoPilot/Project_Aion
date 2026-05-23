@@ -488,7 +488,8 @@ JARVIS_SESSION_UUID="${JARVIS_SESSION_UUID:-$(uuidgen)}"
 W0_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-w0,x-aion-session-id: $JARVIS_SESSION_UUID"
 DEV_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-session-id: $JARVIS_SESSION_UUID"
 
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
+#CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 MAX_THINKING_TOKENS=16000"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
@@ -496,7 +497,8 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_A
 # Permission bypass: two complementary flags
 #   --dangerously-skip-permissions: skips workspace trust dialog + enables bypass
 #   --permission-mode bypassPermissions: explicitly sets session permission mode
-CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-7[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+#CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-7[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
