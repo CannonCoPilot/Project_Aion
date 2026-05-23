@@ -113,8 +113,13 @@ def mode_flags(mode: str) -> list[str]:
     raise ValueError(f'unknown mode: {mode}')
 
 
+PER_CELL_BUDGET_USD = 1.50  # circuit-breaker per call (M-D cells avg $0.85, max seen $1.25)
+TOTAL_BUDGET_USD = 18.0     # cumulative abort threshold across the run
+
+
 def run_one(args: list[str], prompt: str, timeout: int = 90) -> dict[str, Any]:
-    cmd = ['claude', *args, '--output-format', 'json', '-p', prompt]
+    cmd = ['claude', *args, '--max-budget-usd', str(PER_CELL_BUDGET_USD),
+           '--output-format', 'json', '-p', prompt]
     t0 = time.time()
     try:
         proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
@@ -175,14 +180,18 @@ def evaluate(probe_id: str, result: dict[str, Any]) -> dict[str, Any]:
                                        for k, p, c in checks]}
 
 
-def run_tn_matrix() -> list[dict[str, Any]]:
-    """T-N: 3 modes × 5 probes = 15 cells, fresh UUID each."""
+def run_tn_matrix(running_total_ref: list[float]) -> list[dict[str, Any]]:
+    """T-N: 3 modes × 5 probes = 15 cells, fresh UUID each. Aborts at TOTAL_BUDGET_USD."""
     cells = []
     for mode in ['M-D', 'M-S', 'M-A']:
         flags = mode_flags(mode)
         for probe_id, probe in PROBES.items():
+            if running_total_ref[0] >= TOTAL_BUDGET_USD:
+                print(f"  ABORT: cumulative ${running_total_ref[0]:.2f} >= ${TOTAL_BUDGET_USD}")
+                return cells
             pre = snapshot_util()
             r = run_one(flags, probe['prompt'])
+            running_total_ref[0] += (r.get('cost_usd') or 0)
             ev = evaluate(probe_id, r)
             rec = {
                 'mode': mode, 'topology': 'T-N',
@@ -193,22 +202,27 @@ def run_tn_matrix() -> list[dict[str, Any]]:
             cells.append(rec)
             print(f"  [{mode}/{probe_id}] {'PASS' if ev['pass'] else 'FAIL'} "
                   f"({r.get('elapsed_s', '?')}s, ${r.get('cost_usd', 0):.3f}, "
+                  f"cum=${running_total_ref[0]:.2f}, "
                   f"tools={r.get('tool_uses', [])}, util={pre.get('util_pct')}%)")
     return cells
 
 
-def run_tr_chain() -> list[dict[str, Any]]:
-    """T-R: 3 modes × 3 cells via --resume chain."""
+def run_tr_chain(running_total_ref: list[float]) -> list[dict[str, Any]]:
+    """T-R: 3 modes × 3 cells via --resume chain. Aborts at TOTAL_BUDGET_USD."""
     cells = []
     for mode in ['M-D', 'M-S', 'M-A']:
         flags = mode_flags(mode)
         sid = None
         for idx, (probe_id, prompt, regex) in enumerate(TR_PROBES):
+            if running_total_ref[0] >= TOTAL_BUDGET_USD:
+                print(f"  ABORT (TR): cumulative ${running_total_ref[0]:.2f} >= ${TOTAL_BUDGET_USD}")
+                return cells
             pre = snapshot_util()
             args = list(flags)
             if sid is not None:
                 args += ['--resume', sid]
             r = run_one(args, prompt)
+            running_total_ref[0] += (r.get('cost_usd') or 0)
             # Custom eval for TR probes (mix of regex + tool prefix)
             tools = r.get('tool_uses', [])
             response = r.get('response', '')
@@ -240,10 +254,15 @@ def main() -> None:
     started = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     pre_run = snapshot_util()
     print(f"Started: {started}  pre_run util: {pre_run.get('util_pct')}%")
+    print(f"  Per-cell budget: ${PER_CELL_BUDGET_USD}; cumulative abort: ${TOTAL_BUDGET_USD}")
+    if (pre_run.get('util_pct') or 0) > 75:
+        print(f"PRE-FLIGHT ABORT: util {pre_run.get('util_pct')}% > 75%; refusing to start.")
+        sys.exit(1)
+    running_total_ref = [0.0]
     print('\n=== T-N matrix (15 cells) ===')
-    tn_cells = run_tn_matrix()
+    tn_cells = run_tn_matrix(running_total_ref)
     print('\n=== T-R chains (9 cells) ===')
-    tr_cells = run_tr_chain()
+    tr_cells = run_tr_chain(running_total_ref)
     post_run = snapshot_util()
     ended = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime())
     summary = {

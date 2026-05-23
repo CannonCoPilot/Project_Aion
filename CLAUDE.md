@@ -166,6 +166,9 @@ Lean by design (post-2026-05-04 context-budget audit). Anything heavy or domain-
 @.claude/context/psyche/capability-map.yaml
 @.claude/context/psyche/self-knowledge/self-corrections.md
 
+### Platform infrastructure awareness
+@.claude/context/psyche/api_aware.md
+
 (Note: `@.claude/context/.active-plan` and `@.claude/context/current-plans.md` are force-loaded from the Planning systems section above; do not re-import here.)
 
 ---
