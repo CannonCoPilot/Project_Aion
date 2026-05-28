@@ -88,6 +88,8 @@ FRESH_MODE=false
 DEV_MODE=false
 LITE_MODE=false
 SKIP_PREFLIGHT=false
+HEALTH_CHECK_ONLY=false
+RESTART_COMPONENT=""
 while [[ $# -gt 0 ]]; do
     case $1 in
         --iterm2|-i) ITERM2_MODE=true; shift ;;
@@ -95,6 +97,8 @@ while [[ $# -gt 0 ]]; do
         --dev|-d) DEV_MODE=true; shift ;;
         --lite|-l) LITE_MODE=true; shift ;;
         --skip-preflight|-s) SKIP_PREFLIGHT=true; shift ;;
+        --health|-h) HEALTH_CHECK_ONLY=true; shift ;;
+        --restart|-r) RESTART_COMPONENT="${2:-all}"; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -313,21 +317,70 @@ preflight_services() {
         LITELLM_STARTED_BY_PREFLIGHT=true
     fi
 
-    # 6. Pulse API (AIfred-Pro Operations Archon)
-    if curl -sf --max-time 2 http://localhost:8700/api/v1/health >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Pulse API (AIfred-Pro, port 8700)"
-    else
-        echo -e "  ${YELLOW}!${NC} Pulse API — not running (start: bash ~/Claude/AIFred-Pro/pulse/start-pulse.sh --background)"
+    # 6. Alfred-Dev Compose stack (pulse, proxy, dashboard, pipeline)
+    local aifred_dev_dir="$HOME/Claude/Alfred-Dev"
+    if [[ -f "$aifred_dev_dir/docker-compose.yml" ]]; then
+        local dev_running
+        dev_running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -c 'aifred-dev-' || true)
+        if [[ "$dev_running" -ge 4 ]]; then
+            echo -e "  ${GREEN}✓${NC} Alfred-Dev Compose stack ($dev_running containers)"
+        else
+            echo -e "  ${YELLOW}✗${NC} Alfred-Dev Compose stack ($dev_running running) — starting..."
+            (cd "$aifred_dev_dir" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d 2>/dev/null)
+            local waited=0
+            while [[ $waited -lt 45 ]]; do
+                dev_running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -c 'aifred-dev-' || true)
+                if [[ "$dev_running" -ge 4 ]]; then break; fi
+                sleep 3
+                waited=$((waited + 3))
+            done
+            if [[ "$dev_running" -ge 4 ]]; then
+                echo -e "  ${GREEN}✓${NC} Alfred-Dev Compose stack ($dev_running containers — started)"
+            else
+                echo -e "  ${RED}✗${NC} Alfred-Dev Compose stack ($dev_running after ${waited}s)"
+                failures=$((failures + 1))
+            fi
+        fi
     fi
 
-    # 7. Pipeline Watcher (Pulse-Nexus Pipeline — Docker container or process)
+    # 7. Pulse API (Alfred-Dev, canonical)
+    if curl -sf --max-time 2 http://localhost:8800/api/v1/health >/dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Pulse API (localhost:8800)"
+    else
+        echo -e "  ${YELLOW}!${NC} Pulse API — not reachable on :8800"
+    fi
+
+    # 8. Usage Proxy + failover logic
+    if curl -sf --max-time 2 http://localhost:9800/health >/dev/null 2>&1; then
+        echo -e "  ${GREEN}✓${NC} Usage Proxy (localhost:9800)"
+        export ANTHROPIC_BASE_URL="http://localhost:9800"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Usage Proxy DOWN — Claude Code will route direct to Anthropic (telemetry offline)"
+        unset ANTHROPIC_BASE_URL
+        PROXY_OFFLINE=true
+    fi
+
+    # 9. Pipeline Watcher (Docker container)
     if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^aifred-dev-pipeline$'; then
         echo -e "  ${GREEN}✓${NC} Pipeline Watcher (Docker: aifred-dev-pipeline)"
-    elif pgrep -f 'pipeline-watcher.py' >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Pipeline Watcher (process: pipeline-watcher.py)"
     else
         echo -e "  ${YELLOW}!${NC} Pipeline Watcher — not running"
     fi
+
+    # 10. Nexus launchd agents (DEV only)
+    local dev_agents_loaded=0
+    for agent in com.aion.nexus-dev-dispatcher com.aion.nexus-dev-event-watcher com.aion.nexus-dev-watchdog; do
+        if launchctl list "$agent" &>/dev/null; then
+            dev_agents_loaded=$((dev_agents_loaded + 1))
+        else
+            local plist_path="$HOME/Library/LaunchAgents/${agent}.plist"
+            if [[ -f "$plist_path" ]]; then
+                launchctl load "$plist_path" 2>/dev/null
+                dev_agents_loaded=$((dev_agents_loaded + 1))
+            fi
+        fi
+    done
+    echo -e "  ${GREEN}✓${NC} Nexus launchd agents ($dev_agents_loaded/3 loaded)"
 
     if [[ $failures -gt 0 ]]; then
         echo -e "${RED}Pre-flight: $failures critical service(s) failed. Continuing anyway...${NC}"
@@ -340,6 +393,72 @@ preflight_services() {
 # Track whether services need starting (set by preflight, used during window creation)
 MLX_STARTED_BY_PREFLIGHT=false
 LITELLM_STARTED_BY_PREFLIGHT=false
+PROXY_OFFLINE=false
+
+# ─── Health Check Mode ──────────────────────────────────────────────────────
+if [[ "$HEALTH_CHECK_ONLY" == "true" ]]; then
+    preflight_services
+    echo ""
+    echo -e "${CYAN}Health check complete. Exiting.${NC}"
+    exit 0
+fi
+
+# ─── Restart Mode ────────────────────────────────────────────────────────────
+if [[ -n "$RESTART_COMPONENT" ]]; then
+    AIFRED_DEV_DIR="$HOME/Claude/Alfred-Dev"
+    case "$RESTART_COMPONENT" in
+        infra)
+            echo "Restarting infrastructure compose..."
+            (cd "$PROJECT_DIR/infrastructure" && docker compose restart)
+            ;;
+        pulse)
+            echo "Restarting Pulse..."
+            docker stop aifred-dev-pulse 2>/dev/null; docker rm aifred-dev-pulse 2>/dev/null
+            (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d --no-deps pulse 2>/dev/null)
+            ;;
+        proxy)
+            echo "Restarting Usage Proxy..."
+            docker stop aifred-dev-usage-proxy 2>/dev/null; docker rm aifred-dev-usage-proxy 2>/dev/null
+            (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d --no-deps usage-proxy 2>/dev/null)
+            ;;
+        dashboard)
+            echo "Restarting Dashboard..."
+            docker stop aifred-dev-dashboard aifred-dev-dashboard-vite 2>/dev/null
+            docker rm aifred-dev-dashboard aifred-dev-dashboard-vite 2>/dev/null
+            (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d --no-deps nexus-dashboard dashboard-dev 2>/dev/null)
+            ;;
+        pipeline)
+            echo "Restarting Pipeline Watcher..."
+            docker stop aifred-dev-pipeline 2>/dev/null; docker rm aifred-dev-pipeline 2>/dev/null
+            (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d --no-deps pipeline 2>/dev/null)
+            ;;
+        watcher)
+            echo "Restarting JICM Watcher (W1)..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:1" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:1" "$WATCHER_SCRIPT" Enter 2>/dev/null
+            ;;
+        hud)
+            echo "Restarting HUD (W8)..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:8" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:8" "$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh" Enter 2>/dev/null
+            ;;
+        all)
+            echo "Full restart..."
+            (cd "$PROJECT_DIR/infrastructure" && docker compose restart 2>/dev/null)
+            (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d 2>/dev/null)
+            echo "Docker stacks restarted. tmux processes unchanged."
+            ;;
+        *)
+            echo "Unknown component: $RESTART_COMPONENT"
+            echo "Available: infra, pulse, proxy, dashboard, pipeline, watcher, hud, all"
+            exit 1
+            ;;
+    esac
+    echo "Restart complete."
+    exit 0
+fi
 
 if [[ "$SKIP_PREFLIGHT" == "true" ]]; then
     echo -e "${YELLOW}Skipping pre-flight checks (--skip-preflight)${NC}"
