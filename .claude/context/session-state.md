@@ -5,13 +5,13 @@
 
 ---
 
-**Status**: **CACHE-MECHANICS v4 ARTICLE CORRECTED; v5 EXPERIMENTS PARTIAL (deferred to next window)**. v4 article (`projects/project-aion/reports/claude-code-cache-mechanics-2026-05-22.md`, 940+ lines) substantially corrected post-Sir-review: unit fix (×100 fraction→percent), metric reframe (%Usage > time > tokens > $), §3.1 arms table + horizontal Mermaid, new §3.2.1 (unified rate-limit header surface), new §5.4 (15-field signaling table + status transitions). 9 plots refreshed with professional polish + new plot 09 status-timeline. Article UNCOMMITTED. v5 G prime fired + design flaw discovered + script fixed for fresh-call probes. v5 E/F started + stopped at ~50% for cost overrun. v5 H not started. Three v5 arms approved by Sir; deferred to fresh window (next window: 2026-05-23T02:20Z). v4 §4.3 TTL=60min claim now SUSPECT pending v5 G re-run. Three feedback corrections from Sir in this session: (a) dollar spend is NOT the relevant metric (%Usage is); (b) IDE conversation is NOT dominant cost driver (experiments are 7× faster burn); (c) query the proxy DB before claiming (not speculate).
-**Date**: 2026-05-23
+**Status**: **SYSTEM DESIGN REVIEW COMPLETE; PIPELINE EXECUTOR BLOCKED ON AUTH**. Full infrastructure audit committed to `Alfred-Dev/docs/system-design-review-2026-05-28.md` (629 lines, 10 sections, 7 design principles, 5-phase roadmap). Earlier this session: phantom traffic forensic (4 phases DONE, 3241 runaway executions fixed), full Ollama migration (7/8 registry jobs → Ollama, Claude reduced to event-driven fallback), pipeline Dockerfile non-root fix. 32 tasks unblocked + 12 executor_attempts reset. Pipeline-watcher container STOPPED pending executor auth redesign (Claude Code can't auth in Docker on Max plan — needs signal-file delegation to host-side claude-interactive engine). PROD stack identified for shutdown (0 tasks). Next: Phase A cleanup (unload dead launchd, stop PROD, prune Docker), then Phase B self-healing ticket FSM.
+**Date**: 2026-05-28
 **Version**: v5.12.0
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis.
-**Last commit (Jarvis)**: `b127025` (chore(jicm): post-clear artifacts) — v4 article + v5 harness + new plots all PENDING commit.
-**Last commit (Alfred-Dev)**: `bab577a` on feature/personas-rebuild (UsagePage.tsx tiered y-axis + through-origin regression). NOT YET PUSHED upstream.
-**Quota at pre-clear**: 87% util / `allowed` status / window resets 2026-05-23T02:20Z (~1h15min from clear time).
+**Last commit (Jarvis)**: `9388a88` (chore: scratchpad update).
+**Last commit (Alfred-Dev)**: `1fde294` on feature/personas-rebuild (Ollama migration + pipeline fixes + non-root container). NOT YET PUSHED upstream.
+**Quota**: active session.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
 Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.md`:

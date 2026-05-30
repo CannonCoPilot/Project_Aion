@@ -367,9 +367,22 @@ preflight_services() {
         echo -e "  ${YELLOW}!${NC} Pipeline Watcher — not running"
     fi
 
-    # 10. Nexus launchd agents (DEV only)
+    # 10. Host Executor Bridge (replaces event-watcher for signal-file processing)
+    local bridge_heartbeat="$HOME/Claude/Alfred-Dev/.claude/jobs/state/.bridge-heartbeat"
+    if [[ -f "$bridge_heartbeat" ]]; then
+        local bridge_age=$(( $(date +%s) - $(date -r "$bridge_heartbeat" +%s 2>/dev/null || echo 0) ))
+        if [[ "$bridge_age" -lt 30 ]]; then
+            echo -e "  ${GREEN}✓${NC} Host Executor Bridge (heartbeat ${bridge_age}s ago)"
+        else
+            echo -e "  ${YELLOW}!${NC} Host Executor Bridge (stale heartbeat: ${bridge_age}s)"
+        fi
+    else
+        echo -e "  ${YELLOW}!${NC} Host Executor Bridge — not running"
+    fi
+
+    # 11. Nexus launchd agents (DEV — dispatcher + watchdog only, event-watcher superseded by Bridge)
     local dev_agents_loaded=0
-    for agent in com.aion.nexus-dev-dispatcher com.aion.nexus-dev-event-watcher com.aion.nexus-dev-watchdog; do
+    for agent in com.aion.nexus-dev-dispatcher com.aion.nexus-dev-watchdog; do
         if launchctl list "$agent" &>/dev/null; then
             dev_agents_loaded=$((dev_agents_loaded + 1))
         else
@@ -380,7 +393,7 @@ preflight_services() {
             fi
         fi
     done
-    echo -e "  ${GREEN}✓${NC} Nexus launchd agents ($dev_agents_loaded/3 loaded)"
+    echo -e "  ${GREEN}✓${NC} Nexus launchd agents ($dev_agents_loaded/2 loaded)"
 
     if [[ $failures -gt 0 ]]; then
         echo -e "${RED}Pre-flight: $failures critical service(s) failed. Continuing anyway...${NC}"
@@ -439,20 +452,33 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:1" "$WATCHER_SCRIPT" Enter 2>/dev/null
             ;;
         hud)
-            echo "Restarting HUD (W8)..."
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:8" C-c 2>/dev/null
+            echo "Restarting HUD..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:HUD" C-c 2>/dev/null
             sleep 1
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:8" "$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh" Enter 2>/dev/null
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:HUD" "$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh" Enter 2>/dev/null
+            ;;
+        bridge)
+            echo "Restarting Host Executor Bridge..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
+                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null \
+                || "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
+                    "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read"
             ;;
         all)
             echo "Full restart..."
             (cd "$PROJECT_DIR/infrastructure" && docker compose restart 2>/dev/null)
             (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d 2>/dev/null)
-            echo "Docker stacks restarted. tmux processes unchanged."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
+                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null || true
+            echo "Docker stacks + bridge restarted. tmux processes unchanged."
             ;;
         *)
             echo "Unknown component: $RESTART_COMPONENT"
-            echo "Available: infra, pulse, proxy, dashboard, pipeline, watcher, hud, all"
+            echo "Available: infra, pulse, proxy, dashboard, pipeline, bridge, watcher, hud, all"
             exit 1
             ;;
     esac
@@ -683,6 +709,15 @@ else
     fi
 fi
 
+# Propagate W0 session ID to Alfred-Dev pipeline state for extend-then-fork execution.
+# Executor tasks fork from this session to inherit Jarvis's warm cache prefix.
+JARVIS_SESSION_ID_FOR_PIPELINE=$(cat "$W0_UUID_FILE" 2>/dev/null | tr -d '[:space:]')
+if [[ -n "$JARVIS_SESSION_ID_FOR_PIPELINE" ]]; then
+    PIPELINE_STATE_DIR="$HOME/Claude/Alfred-Dev/.claude/jobs/state"
+    mkdir -p "$PIPELINE_STATE_DIR"
+    echo "$JARVIS_SESSION_ID_FOR_PIPELINE" > "$PIPELINE_STATE_DIR/jarvis-session-id"
+fi
+
 # Restart loop: --continue is safe here because W0's JSONL was the most recently
 # modified file (it just exited). W5 contamination only affects initial launch.
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
@@ -820,6 +855,17 @@ if [[ -x "$HUD_SCRIPT" ]]; then
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
 fi
 
+# Host Executor Bridge (signal-file daemon for Docker↔host Claude delegation)
+BRIDGE_SCRIPT="$HOME/Claude/Alfred-Dev/.claude/jobs/lib/host-executor-bridge.sh"
+if [[ -x "$BRIDGE_SCRIPT" ]] || [[ -f "$BRIDGE_SCRIPT" ]]; then
+    if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q '^Bridge$'; then
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
+            "cd '$HOME/Claude/Alfred-Dev' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Bridge stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Bridge" automatic-rename off 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} Host Executor Bridge daemon started"
+    fi
+fi
+
 # Set tmux options for better experience
 "$TMUX_BIN" set-option -t "$SESSION_NAME" mouse on 2>/dev/null || true
 "$TMUX_BIN" set-option -t "$SESSION_NAME" history-limit 10000 2>/dev/null || true
@@ -843,6 +889,7 @@ echo "  Window 4: Commands"
 [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : MLX-Embed (embedding server)"
 [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : LiteLLM (proxy server)"
 [[ -x "$HUD_SCRIPT" ]] && echo "  Window  : HUD (live dashboard)"
+[[ -f "$HOME/Claude/Alfred-Dev/.claude/jobs/lib/host-executor-bridge.sh" ]] && echo "  Window  : Bridge (executor signal daemon)"
 echo ""
 echo "Services:"
 echo -n "  Docker: "; docker info &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}"

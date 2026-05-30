@@ -90,3 +90,4 @@
 ---
 
 *Pre-2026-04 entries (DF FPS, schema discovery, LiteLLM aliases, Prism tick-rate, etc.) archived. Read archive when reflecting on long-term patterns.*
+# 2026-05-28T20:05:09Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 8345m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
