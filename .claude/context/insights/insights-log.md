@@ -5,345 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-05-07 [4df66b2f039e]
-
-The user-feedback-connector + lessons-learned wire is architecturally significant beyond just being a UI feature. It turns REO from a passive *observability* surface into an active *reinforcement* surface. The pipeline emits decisions; the user judges them; the judgments become persona context; future decisions improve. That's a closed loop with the user as the outer-loop optimizer — essentially RLHF without the gradient-descent step, using prompt-context retrieval as the update mechanism. This is why getting the schema right matters: a sloppy `feedback.right_or_wrong` boolean leaks through into persona prompts as low-signal noise; a well-structured `{verdict, comment, suggested-correction, context-shape}` distills into actionable lesson entries. I want to spec this carefully in the plan, marked DRAFT pending your review and David's input on whether existing infrastructure exists.
-
-### 2026-05-07 [6d1953f9f18f]
-
-The Question/ takes a deliberate shape worth flagging: rather than a "what should we do?" open-ended ask (which forces David to do design work), it presents a concrete proposal and asks him to accept / redirect / refine specific parts. This is the highest-leverage form of cross-stakeholder coordination — a draft memo with revisable claims, not a blank page. The five questions are scoped so that *any* answer (including silence) lets us proceed: Q1 (inventory completeness) is checkable on his next code push; Q2/Q3 (lessons-learned) are blockers only for Harden phase, not Build; Q4/Q5 are alignment questions where his preference is welcome but not required. This is why "draft → build" sequencing works even without a David response — the Build phase is fully specified by what's in the plan-of-record alone.
-
-### 2026-05-07 [53eb4f9f6e1d]
-
-**This reveals a third curation pattern I didn't have in my taxonomy**: *AI-mediated curation*. My original framing offered "human-curated" (proposals queued for review) vs "autonomic with gates" (low-confidence auto-apply). The discovered mechanism is neither — *the persona itself processes its own feedback and updates its own patterns*. Closed loop with no separate process: feedback arrives in JSONL → persona reads it on next run → persona updates its learned-patterns YAML in-place using three actions (agreed / wrong / adjusted). 7+ months of accumulation (104 agreed reinforcements, 3 wrong corrections, 13 adjustments) shows this works at sustained scale without human curation overhead. This is structurally cleaner than what I was proposing, and probably the right primitive for REO MVP.
-
-### 2026-05-07 [8b87d5a61d60]
-
-**The architecture is persona-scoped, not pipeline-wide**, with one important secondary surface for cross-cutting lessons. There's a `.claude/context/lessons/corrections.md` placeholder template referencing an unimplemented `self-correction-capture` hook — designed for human-authored pipeline-wide lessons (cross-persona patterns like "always defer destructive ops on `tag:experimental` regardless of which persona handles them"). David started this design but never wired it. The right architectural shape for REO is therefore: **per-persona `learned-patterns.yaml` (extend ai-reviewer's pattern to 5 more personas) + cross-cutting `corrections.md` hook (implement)**. REO's feedback connector routes by `decision_event.actor` — feedback on a reviewer decision goes to reviewer's feedback.jsonl; feedback on an executor decision goes to executor's feedback.jsonl. Cortex (the Meta-Learning Advisor persona) already monitors pattern-health system-wide and writes recommendations — REO could surface those too, but that's a separate question.
-
-### 2026-05-07 [880cc9557885]
-
-The canonical `log_decision()` signature lives in `diagnose.py:116-129`: positional `(actor, decision_type, outcome)` then kwargs `(rationale, confidence, downstream_effect, task_id)`. Confidence is a float 0-1, but reviewer's review_output uses string levels (`"high"|"medium"|"low"`) — I'll map them via a module-level `_CONFIDENCE_MAP = {"high": 0.9, "medium": 0.6, "low": 0.3}` constant. The `decision_type` stays `"review_outcome"` across all 5 branches; what varies is the `outcome` string (`passed | engine_failed | failed_diagnose_triggered | blocked_max_retries`). This keeps downstream queries simple — one `decision_type` filter surfaces all reviewer activity, then group by `outcome` for the actual semantics.
-
-### 2026-05-07 [b682506092ef]
-
-This workstream's plan separates per-step Build verification (curl + tsc) from end-to-end visual validation (Sir walks the UI in Phase 3). That's actually a thoughtful separation: each Bx is a small, isolated change that's easy to smoke-curl, while a single Validate pass at end-of-Build catches integration drift across all Bx pieces at once. The cost is that browser regressions slip into the Build phase undetected — but the count of Bx pieces is small enough that the trade is worth it.
-
-### 2026-05-07 [6d8699ecd62f]
-
-The pattern here is interesting: `.claude/context/.active-plan` is force-loaded via `@`-import from CLAUDE.md but gitignored. That means cross-machine sessions hydrate the active-plan content not from git but from a *snapshot in session-state.md* that gets rewritten on each meditation. session-state is the durable cross-session truth; .active-plan is a working scratchpad whose canonical source is whatever the conversation just decided. Avoids merge conflicts on tactical state, at the cost of needing discipline about updating session-state at phase boundaries.
-
-### 2026-05-07 [222582ef0ea1]
-
-Two observations from how this session went, sir. First: the JICM compressor's stale-checkpoint failure mode (Chronicler Phase 3 surfacing instead of REO Build) was caught in under a minute by the documented self-correction's cross-check discipline — the scratchpad-as-source-of-truth pattern paid back its setup cost on its first real use. Second: B7's decomposition (UI stub absorbed into B6, backend deferred to Harden H5) demonstrates a useful planning idiom — when a feature has a UI surface and a backend wire, splitting them across phases lets the UI ship in Build (where it's load-bearing for the drawer's visual completeness) while the more invasive schema/migration work waits for Harden's higher confirmation bar. Same pattern as B5 (copy-only) absorbed into B3 (rename).
-
-### 2026-05-07 [229f1cf04f29]
-
-The W1 implementation was the most architecturally interesting piece, sir. The motivating incident (AION-13dc7b96, 4466 errors over 74h with no alert) had two existing watchdog mechanisms in place that should have caught it: the sliding-window burst threshold (50 errors / 5 min) and the task-LABEL stuck-state watchdog. Both missed because the failure was *low-rate persistent* — each cycle dies the same way at ~1 error/minute, never bursts, no individual task gets stuck. W1 closes that exact gap by tracking *consecutive* cycle exceptions as a different signal type. Two independent watchdogs catching different failure surfaces is what defense-in-depth looks like in practice; the lesson is that "we already alert on errors" can hide a class of slow-fail that requires an entirely separate signal to detect.
-
-### 2026-05-07 [adde23c10332]
-
-This is a recoverable ergonomic gap, sir. Three paths from cleanest to fastest:
-
-| Path | Effort | What you get |
-|---|---|---|
-| Fix the dev compose properly | ~1-2h | Add a `dashboard-dev` service that mounts `dashboard/frontend/` source and runs `vite` with hot-reload. Preserves the unified `docker compose up` ergonomics |
-| Drop the stale `build: !reset null` | ~10min | Rebuild dashboard from source on every `docker compose up --build`. Slow (~30s vite-build per launch) but eliminates the prod/dev image divergence |
-| Status quo + manual `npm run dev` | 0 | What you've been doing. Works but adds a sidecar process that doesn't appear in `docker ps` |
-
-The middle path is the most defensible — `build: !reset null` was a workaround for a problem that no longer exists, and removing it surfaces the real Dockerfile in dev so any future drift gets caught immediately. The vite-dev-in-container path is more ergonomic for actual frontend coding (sub-second hot reload vs. 30s rebuild) but requires more compose plumbing.
-
-### 2026-05-07 [07a57c28c728]
-
-- The `!reset null` override was a documented opt-out from `docker-compose.dev.yml`'s build layer, but the *justification* (a "bd binary not shipped with upstream") no longer holds — `dashboard/bd` is a 25-byte shell script, not referenced in the Dockerfile, and `docker compose build nexus-dashboard` succeeds cleanly. This is the canonical failure mode of stale exclusions outliving their reason.
-- "Are all components wired together to auto-start" answers crisply: **yes** — the dev compose brings up all 5 services together (`postgres`, `pulse`, `nexus-dashboard`, `pipeline`, `usage-proxy`). The gap is auto-*rebuild* on source change, not auto-start.
-- Path 2 is the smallest diff that surfaces the real Dockerfile in dev. It also de-risks Path 1: if the rebuild reveals a hidden Dockerfile bug, we want to know that before investing in a hot-reload sidecar service.
-
-### 2026-05-07 [e27c9fd4991b]
-
-The "/reviews JSONL" finding reframes the whole REO Harden H5 conversation. We've been planning to build `pulse.decision_feedback` from scratch (database table + POST + lessons-learned wire), but the production feedback path already exists at the filesystem layer with a working AI-mediated curation loop on top. The optimal Harden play may be: write the DB table, BUT have the POST endpoint *also* append to the existing JSONL so existing curation scripts keep working unchanged — a parallel-write, not a cutover. Saves rewriting `learned-patterns.yaml` ingestion.
-
-### 2026-05-07 [039fab577612]
-
-The "Nexus" sidebar group is where IA collapsed. The label suggests "the orchestration platform's pages" — and that's a *technical* boundary, not a user-mode boundary. So everything Nexus-touching landed there regardless of what the user is *doing* on each page. This is exactly the "code organization leaking into UX organization" anti-pattern. The fix isn't to rename Nexus — it's to dissolve the Nexus group entirely and re-shelve every page by user mode.
-
-### 2026-05-07 [323397abadd4]
-
-The honest read of the dashboard's *intent* is in `dashboard/PLAN.md:1-3`: "Transform tasks.example.com from a basic task viewer into an actionable task management interface that handles 86+ tasks efficiently." That's a TASK MANAGEMENT INTERFACE — not the operations console for an AI organization. Everything beyond that primary intent (Nexus, Cortex, decision streams, persona configuration, observability) was bolted on later because the underlying system grew faster than the UX vocabulary to describe it. The current dashboard is a task manager that *also* shows you the AI org's internals because the AI org's internals are increasingly important. It's not an integrated console; it's a task manager + 27 ops/diagnostics/feedback pages.
-
-### 2026-05-11 [3e0819b357d2]
-
-- **Why the milestones are sized at ~1.5d each rather than e.g. one big "go"**: each milestone produces a *visible, testable* intermediate state. After M1, the sidebar is new but every page still works as before — you can use it. After M2, /decisions URLs redirect — you can verify deep-links resolve. After M3, /pipeline is monitoring-only — you can verify approvals work in their new home. If anything regresses, we catch it at the milestone boundary, not at PR assembly. This is also exactly the pattern AC-03 milestone reviews are designed for.
-- **Why the AppShell.tsx rebuild (M1) is *just* IA, no functional changes**: the most likely failure mode for this kind of work is conflating "where pages live in nav" with "what pages do". Keeping M1 nav-only de-risks both — if M1 breaks, it breaks navigation, which is loud and easy to diagnose; it can't silently break feedback persistence or task state transitions.
-- **The DecisionsPage.tsx "kept in tree" choice has a specific cost**: it creates dead code drift for one release cycle. The risk register (§6 of plan) names this explicitly and schedules its deletion in REO Phase 5.5 audit, when the parity verification will be repeated as a final check. If you'd prefer to delete it in the same PR as the redirect, that's a defensible alternative — say so and I'll revise M2.
-
-### 2026-05-11 [22029d7b3176]
-
-- **Star-count distribution is informative.** Top tier (10K+ stars): graphify (46.7K), get-shit-done (61.6K), trendradar (57.3K), claude-flow (49.1K), ccstatusline (9K), claude-context cluster, Serena (24.1K), Archon (21.3K), trycua/cua (15.9K), ccusage (14K), unity-mcp (9.5K), GhidraMCP+Ghidra (8.8K+68.3K), watchtower (24.6K), next-ai-draw-io (28.9K). The high star count rarely correlates 1:1 with AIFred-Pro fit — watchtower is archived, trendradar is Chinese-platform-only, GhidraMCP needs a domain you don't have.
-- **The three "buy without thinking" picks** are graphify (P0/P1, codebase knowledge graph + Neo4j federation candidate), Serena (P0, token-efficient symbol-graph editing), and codebase-memory-mcp (P0, zero-dependency blast-radius + ADR tooling). All three are decomposition-free, install in minutes, and fill genuine gaps in the existing stack.
-- **The "extract patterns, do not adopt wholesale" cluster** is claude-flow (210 MCP tools + HNSW memory), Archon (YAML DAG + worktree isolation), claude-octopus (PostToolUse compression hooks), and Octopoda-OS (5-signal loop detection). Each has 1-2 patterns worth extracting; each duplicates Nexus if installed whole.
-- **The DF/Chronicler cluster** (myDFHackScripts, df-sites-analyzer) carries strong relevance for the Phase 3→4 gap-1 problem — death/invasion/artifact event capture is exactly what Chronicler needs.
-- **Honest exclusions.** Out of 48 repos: 13 are P4 (skip), including watchtower (archived, dangerous for mixed-DB stack), GhidraMCP (wrong domain), bacdive-AI/agapi/genetic-inheritance (out-of-scope bio/materials science), trendradar (Chinese-platform-only + GPL), ObsidiBot (no Obsidian use), unity-mcp / one-shot-unity (no Unity project), and a handful of weak novelties.
-
-### 2026-05-12 [b818a52c2c02]
-
-- **Why the ref pattern over removing auto-flip**: I could have deleted the auto-flip useEffect entirely (simplest fix), but then deep-linking to /reo from a Slack/email link while the toggle says PROD would leave the sidebar visually incoherent until the user manually flipped. The ref pattern keeps the auto-sync UX without the revert bug. This is a textbook use of `useRef` to break dependency cycles — when you need to read state inside an effect but don't want the effect re-running when that state changes. Common cases: subscribing to external events, debouncing handlers, observers that need stable identity.
-- **Why naming changed everything visually**: "Work | Diagnose" framed the dichotomy as "active vs investigative", but most dashboard pages are passive observation of running processes — neither active work nor an investigation. "Prod | Ops" reframes it as "where the artifacts live" (production-side surface vs operations-side surface), which matches how operators actually mentally bucket dashboards. The ratification in §11.2 picked the binary dichotomy correctly; this rename refined the *names* without changing the *cut*. Worth saving as a pattern: when ratification feels right but labels feel off, the cut is usually fine — try renaming before re-cleaving.
-
-### 2026-05-12 [4a701f2c2462]
-
-- **"Default landing page" is already true mechanically**: `App.tsx` has `<Route path="/" element={<OverviewPage />} />`, so any user hitting the bare host:port lands on Dashboard. No code change needed for the routing — your instruction is enforced by the existing route table. I'll preserve this and add an explicit acceptance criterion so future-Jarvis doesn't accidentally break it during M2/M3.
-- **Why pulling Dashboard out of the cluster is structurally cleaner**: when Dashboard sat at index 0 inside PROJECTS, it was nominally a "project page" — but conceptually it's a meta-page (rollup of everything). Pinning it above the expander makes the hierarchy honest: Dashboard = global home; PROJECTS expander = project artifacts. The plain-vs-nested distinction also signals different click semantics to the user — pinned items are quick-access, nested items are sub-domain navigation.
-
-### 2026-05-12 [7b126db12c92]
-
-- **The "pinned items" pattern is reusable**: I added a single `PROD_PINNED_TOP: NavItem[]` constant and a 9-line conditional render block. If you later want pinned items in OPS mode too (e.g., a primary OPS dashboard like `/reo` or `/health`), it's a 2-line addition: `const OPS_PINNED_TOP: NavItem[] = [...]` and an `else if (activeMode === 'ops')` branch. Avoiding a generalized `pinnedTop: NavItem[]` field per-mode was deliberate — the count is small, and explicit per-mode arrays read better than a polymorphic data structure. If you ever need 3+ pinned items per mode, that's the refactor signal.
-- **Why /projects belongs at top of the PROJECTS sub-cluster**: the cluster bears its name; visitors looking for "where do I see all projects?" should hit the cluster label and find /projects as the first option. The previous order (/projects at index 5) was a historical artifact of MAIN_NAV vs NEXUS_NAV's old grouping. Index 0 within a same-named cluster is the canonical home for the "list view" of that domain — same principle that puts /tasks at index 0 of a hypothetical "Tasks" cluster, /reviews at index 0 of "Reviews", etc.
-- **Default landing page already enforced by routing**: `<Route path="/" element={<OverviewPage />} />` in `App.tsx` is the contract. There's no "default landing" config knob in Pulse — the bare URL is `/`, and `/` is bound to OverviewPage at module load. As long as that route declaration exists, Dashboard is default. The new AC in §5.1 codifies "don't accidentally delete or redirect that route" for M2/M3 self-review.
-
-### 2026-05-12 [0990eb5bcfdb]
-
-- **Why the audit-first sequence paid off**: the natural temptation is to dive into porting — "obviously ReoPage is better, just wire the redirect." But spending 30 minutes cataloguing every affordance surfaced two findings I'd have missed: (1) the confidence-bar gap was invisible until I scanned DecisionsPage's render code carefully (REO showed confidence in the drawer but not the row; for active monitoring, at-a-glance is the right signal); (2) the URL search-param translation was load-bearing in a way that wasn't obvious from the plan text — historical Slack/email links to `/decisions?actor=X` would have broken silently without the wrapper component. Both worth catching pre-redirect, not after.
-- **The 8 "intentional drops" are the canonical decision log**: when David or future-Jarvis asks "wait, /decisions used to show top-actor / per-hour rate / recent-threads — where did those go?", the answer is in the audit report. Section "Items explicitly NOT ported" gives each one a why-dropped rationale tied to either (a) REO already covers it with better UX, (b) the underlying data model changed (drawer thread_id → event_id), or (c) the original was stale (OfflineBanner PULSE_DB_* hint, superseded by P1.B1.1). Decision logs like this aren't just bureaucracy — they save future debate-cycles.
-- **The "DecisionsRedirect wrapper" pattern is a small but important react-router-v7 gotcha**: bare `<Navigate to="/reo" replace />` strips the search string. You'd discover this only by actually navigating to `/decisions?actor=X` and watching the URL bar update to `/reo` with NO params. The wrapper that calls `useLocation()` and synthesizes the `{ pathname, search }` object is the canonical fix. Worth saving as a pattern for future URL-preserving redirects in this codebase (other candidates: `/queue`, `/ready`, `/approvals` are currently using bare `Navigate` — they don't have meaningful search params today but might later).
-
-### 2026-05-12 [ae8f77c6d5d2]
-
-- **The audit-first sequence saved a day of churn**: had I dived straight into "redirect and call it done", I would have shipped a redirect that broke historical `/decisions?actor=X` deep-links silently, AND missed the confidence-bar opportunity that gives at-a-glance signal in the timeline. The audit took ~30 minutes; both portable items were the load-bearing 20% of the M2 effort. The other 80% (the redirect mechanic + deprecation hygiene + tracking docs) was straightforward execution. Worth promoting "audit-first" as a pattern for any future feature-consolidation milestones.
-- **M1 vs M2 effort comparison**: M1 was 0.5d real-time + 1 visual-validate iteration. M2 was 0.5d real-time + 0 visual-validate iterations. Same time budget, fewer iterations on M2 — not because M2 was easier but because the audit caught issues pre-impl that visual-validate would have caught post-impl. The cost of catching at audit-time is one careful read; the cost of catching at visual-time is a fix-then-recheck cycle. For UX-touching work especially, audit-first is the cheaper diagnostic loop.
-- **M3 will be different**: M1 was IA (low blast radius — CSS/layout only). M2 was URL contract (medium blast radius — affects bookmarks and external links). M3 is functional behavior (HIGH blast radius — touches the approval flow that pipeline-watcher.py depends on). The plan §6 risk register flags this; M3 should probably start with an investigation of where the approval-flow consumers actually live (sidebar banner, /pipeline page, possibly /board, possibly /tasks itself) BEFORE drafting the move. Like M2's audit, but for the consumer side rather than the affordance side.
-
-### 2026-05-12 [4fb9c06694dc]
-
-The qwen3:8b compressor checkpoint at lines 5-32 of `.compressed-context-ready.md` hallucinated the "Current Task" again — it reconstructs M1's PROJ→PROJECTS rename + dashboard-pinning work as if pending, but M1 shipped in commit `d001c75` (PROD|OPS toggle, PROJECTS rename, Dashboard pinned, /projects at top) and M2 shipped in `fc1546f` (/decisions→/reo redirect). This is exactly the failure mode logged 2026-05-06 in `self-corrections.md`: low-tier compression treats fragments of M1-iteration dialogue as forward-looking work. Scratchpad is authoritative — confirms M1+M2 both SHIPPED and the actual pause point is M3 awaiting Sir's go/no-go.
-
-Two confirmations of the architectural pattern from §11 of foundational analysis: (a) M1 (sidebar IA) and M2 (URL consolidation with 35-affordance audit) both passed AC-03 gates 4.5/5.0 with audit-first sequencing; (b) the `DecisionsRedirect` wrapper using `useLocation` + `<Navigate to={{ pathname, search }} replace />` is now the canonical react-router-v7 pattern for URL-preserving redirects in this codebase — applicable later to `/queue`, `/approvals`, `/orchestrations*`, etc. when consolidation reaches them.
-
-### 2026-05-12 [aac985eec52f]
-
-- **The complementarity hypothesis was validated.** Serena = LSP-backed edit/refactor (39 tools, no symbol graph of its own — relies on live LSP queries). codebase-memory-mcp = SQLite-backed indexed retrieval + 14 MCP tools with Cypher subset (no editing — read-only graph). graphify = on-demand NetworkX build + 7 retrieval tools + multi-format export including vis.js HTML. **They genuinely cover three distinct slices**: live edit/refactor, persistent code-graph retrieval, and visualization/exporting. None of the three duplicates more than ~25% of another.
-- **The Neo4j sharing question has a definitive answer.** graphify's `push_to_neo4j()` has NO namespace/database parameter and falls back to `Entity` label when `file_type` is absent — which would MERGE-collide with graphiti's `Entity` nodes on `id` property. **Recommendation: create a separate Neo4j database** (`CREATE DATABASE graphify_codebase`) in the existing instance — Neo4j 4.0+ supports this natively. One Neo4j daemon, two logical databases, zero schema collision.
-- **Three blocker-grade issues to flag prominently.** (1) Serena's web dashboard breaks Claude Code MCP handshake (issue #898) — must run with `web_dashboard: false`. (2) codebase-memory-mcp has open segfault bugs on 200+ file repos (issues #340, #336) — Alfred-Dev is well over 200 files; staged adoption recommended. (3) graphify's non-determinism issue #741 produces 11K-line diffs on unchanged source — gitignore `graphify-out/` rather than committing it.
-- **The UI integration verdict is asymmetric.** graphify → easy iframe embed (self-contained vis.js HTML, no headers blocking embedding). codebase-memory-mcp → must build custom panel (3D viewer has no export API, no embeddable widget). Serena → must build custom panel (dashboard at :24282 conflicts with Claude Code; poll JSON endpoints `/heartbeat`, `/get_config_overview`, `/get_tool_stats` instead).
-
-### 2026-05-12 [117fe8718fef]
-
-- **The "three tools, three slices" verdict is the load-bearing finding.** Each tool covers ≥5 capabilities the other two lack: Serena's LSP-backed live edit (rename across files, find_referencing_symbols at LSP accuracy, get_diagnostics_for_symbol) has no equivalent in the other two. codebase-memory-mcp's `detect_changes` blast-radius and Cypher-subset `query_graph` over persistent SQLite have no equivalent. graphify's Leiden community clustering + multi-format export (vis.js HTML + Obsidian vault + GraphML + Neo4j cypher.txt) have no equivalent. The overlap is real (~20-25%, mostly on basic symbol lookup) but the unique value of each is large — full installation of all three is the correct conclusion.
-- **Three operational gates dominate the risk surface.** (1) Serena's `web_dashboard: false` is mandatory when Claude Code is the consumer (issue #898 reproducibly breaks `tools/list`). (2) graphify's `graphify-out/` must be gitignored due to issue #741's 11K-line nondeterministic diffs. (3) codebase-memory-mcp's open segfault on 200+ file repos (issue #340) means Alfred-Dev indexing might crash — recommendation is to attempt, retreat to v0.5.x if needed, and not block other progress on it.
-- **The single most important infrastructure decision is the Neo4j second database.** Create `graphify_codebase` alongside the existing graphiti `neo4j` database — Neo4j 4.3+ Community supports unlimited databases on one daemon. This is ~2 minutes of setup that prevents graphify's `Entity`-label MERGE-collision from corrupting graphiti's `jarvis-core` data.
-- **Pulse UI integration is asymmetric.** graphify's vis.js → iframe embed (clean, ~2 hr backend wiring). codebase-memory-mcp's 3D viewer → must build wrapped UI (no export API). Serena's dashboard → cannot run during Claude Code; poll JSON endpoints instead. Total UI dashboard work: 16-24 hours.
-- **The 4-milestone structure naturally aligns with AC-03 review boundaries.** M1 install+smoke, M2 shared infra wired, M3 Pulse UI tab built, M4 operational glue+docs. Each ships independent value, none blocks the next.
-
-### 2026-05-12 [048f363bf14e]
-
-Investigating L1's deep-link target surfaced another schema question: `ReviewPage` (1842 LOC) doesn't currently support `?decision_id=N` filtering — it has internal filter state but doesn't read URL params on mount, and reviews are task-centric (no `decision_id` field on `Review`). Adding deep-link support would mean ~30-50 LOC + a data-model audit to confirm decision↔review linkage exists.
-
-Combined with L3's missing `/jobs/:id` route, that's two of the five cross-mode buttons with ratification debt. The remaining three (L2, L4, L5) likely have similar nuance.
-
-Stopping core M3 work here is the right call — the load-bearing taxonomy + cleanup is done. Cross-mode buttons deserve their own ratification pass before code. Running mechanical verify on what's shipped, then surfacing for Sir's visual-validate gate + cross-mode-button scope decision.
-
-### 2026-05-12 [732088081e0c]
-
-Tracing the approval-count data path surfaced a pre-existing architectural quirk worth flagging: the sidebar badge count comes from `dashboard/server/services/nexus-db.ts:getPendingApprovals` which queries `getFilteredTasks({ label: 'waiting:david', status: 'open' })` and only counts those that ALSO have `question`, `needs-input`, or `pipeline:needs-approval`. So `waiting:david` is the load-bearing label — `pipeline:needs-approval` alone won't fire the sidebar badge.
-
-This is M3-orthogonal (it's not a regression I introduced) but means the test task needs BOTH labels to exercise the full path: `pipeline:needs-approval` → `?board=approvals` taxonomy + `waiting:david` → sidebar badge count.
-
-### 2026-05-12 [228f2a0f1e4b]
-
-Architectural note about pulse_dev's task lifecycle: the Pulse API has no DELETE endpoint for tasks — only `/labels/{label}` deletion. Closing a task is an API-supported operation (POST `/tasks/{id}/close`), but DELETE-from-tasks requires direct SQL. The asymmetry makes sense — Pulse is designed around an event-sourced task lifecycle where "closed" is a terminal state and deletion is reserved for dev/admin cleanup. The related observability tables (`pulse.audit_log`, `pulse.cost_events`, `pulse.decision_events`) don't have FK constraints back to `tasks(id)`, which is why deletion was safe but also why orphaned rows in those tables remain (they reference the now-deleted task_ids). For prod, this would be a data-integrity concern; for dev pre-M3-validate, it's acceptable noise.
-
-### 2026-05-12 [e21dceb0b02a]
-
-This M3 hit three classifier layers in the same codebase — and aligning them surfaced an architectural pattern worth noting:
-
-1. **Frontend `classifyTask`** (`dashboard/frontend/src/lib/board.ts`) — already M3-D2 from prior session
-2. **Server `classifyTask`** (`dashboard/server/routes/stats.ts`) — fixed today; **had a code comment "Must match frontend lib/board.ts classifyTask exactly"** that wasn't being enforced
-3. **Badge taxonomy `BLOCKED_REASONS`** (`dashboard/frontend/src/lib/labels.ts`) — naturally ordered correctly via label-array iteration
-
-The server's drift went unnoticed because there's no test asserting the two classifiers agree. A future hardening play: a single-file `classify-task.ts` in `dashboard/shared/` that both frontend and server import from, eliminating the drift surface entirely. That's a P2 refactor, not M3 scope — but flagging it for the F-bucket alongside F-1/F-2/F-4.
-
-### 2026-05-12 [4a8daa6b193a]
-
-The observation revealed **two failures in one shot**, not just F-1:
-1. **F-1 confirmed**: T1 (with `pipeline:needs-approval` and `blocked:no`) auto-advanced from `staging:wait` through `evaluated:done` to `queued:done`. The approval label did zero work.
-2. **F-5 newly surfaced**: T1's `blocked:no` got **flipped to `blocked:yes`** by the executor mid-cycle. Combined with the same outcome for T2 and T3, this suggests the executor is auto-blocking ALL three at the claim step (likely due to dispatcher.status="unknown" or absent persona). So tasks get advanced into `queued:done` but never reach `active:running` because executor refuses to actually claim them.
-
-So F-1 enforcement is missing, AND there's a separate "auto-block-on-claim-failure" behavior that creates noise. Both belong in the same plan-of-record.
-
-### 2026-05-12 [b4010303af48]
-
-The planning-hygiene rule has a non-obvious structural consequence: when F-numbers (or any cross-cutting IDs) live in audit docs, those docs become the AUTHORITATIVE source for "what F-N means right now." Queue entries elsewhere should reference the audit doc by path + section, NOT redefine the meaning. I hit a namespace collision in this consolidation: the workstream-arch already had its own F-1/F-2 entries (Pulse/Nexus boundary leaks from the 2026-05-05 audit), distinct from the M3-audit F-1/F-2. Resolved by explicit cross-references like "M3-audit Appendix A §F-1" in the workstream-arch entry. This is a generalizable pattern: when multiple audit docs spawn F-numbers, refer to them by `<audit-name> §F-N` to avoid collisions.
-
-Saved as feedback memory `feedback_planning_doc_discipline.md` — indexed in MEMORY.md so future sessions inherit the rule rather than re-learning it.
-
-### 2026-05-12 [71db81a49fc5]
-
-The qwen3:8b compressor pulled "Nexus-Sync Supplant" as Current Task from 2026-05-04 — same compressor-extrapolation failure mode I logged at `self-corrections.md` 2026-05-06. Scratchpad cross-check is the canonical guard against this; without it I'd have wandered back to 8-day-old work. Pattern flag: low-tier LLM compressors read commit cadence as forward momentum and lose reframe/decision-point turns at session boundaries.
-
-### 2026-05-12 [2eb57ce0b49d]
-
-Two pattern flags worth filing for future sessions:
-1. **Always rev-count `main..<branch>` before PR assembly** even if conversational framing implies a smaller scope. The "5 commits" framing was the push-range this session, not the PR-range. Conflating "what was pushed" with "what's in a PR" is a structural failure mode — `git push` ranges and PR ranges are different units of work. Future-Jarvis: when the user says "PR assembly", treat `gh pr create` as a high-blast-radius action and verify scope before clicking.
-2. **`cd` persists across Bash tool calls**, contrary to my mental model that each call is a fresh shell. The `cd /Users/nathanielcannon/Claude/Alfred-Dev` for `gh pr create` leaked into the next git command and caused a "pathspec did not match" error. Defensive move: prefer `git -C <abs-path>` or chained `cd <abs> && <cmd>` to keep cwd containment per Bash-call. This is the second time this has bitten me in recent sessions — should log to self-corrections.
-
-### 2026-05-12 [70097efb48d2]
-
-The current board is **not idle Nexus cron traffic** — it's the M3 validation rig's complete decomposition lineage. T1/T2/T3 (the closed parents) spawned 4 children each via v2 pipeline decomposition between the earlier SIGCONT (15:42Z) and re-stop. This is itself an unexpected F-1 manifestation: not only did the parents auto-advance through staging→queued, they **also triggered child-task creation** by the dispatcher. The approval gate failed at *two* layers, not just one.
-
-Also notable in the decision trail: 2 `persona:reviewer review_outcome=passed` decisions — these are REO B1 (`086f08d`) firing in vivo. First time that wire's been exercised on dev data outside the smoke harness. Both reviewer decisions hit `passed` on the path that fed `system:diagnose` failure-mode analysis — so the persona-decision fanout chain works end-to-end.
-
-### 2026-05-12 [7997affeb488]
-
-The queued+blocked stall is **not permanent** — it resolves on a `risk` axis I didn't initially see. T1's lineage (`risk:safe`) processed ALL 4 children to closed+completed:done. T2/T3 lineages (`risk:moderate`) remain stuck. This rewrites the F-1/F-5 framing: the approval-gate enforcement gap *interacts with* risk classification. `risk:safe` auto-approves end-to-end; `risk:moderate` falls into the silent dependency-block that doesn't resolve. So the system has more enforcement-by-risk than I credited earlier — `pipeline:needs-approval` doesn't gate, but `risk:moderate` does (incorrectly, via blocked:yes).
-
-**Also surprising**: 6 new grandchildren spawned from AION-4698f774. The "no dispatcher daemon" finding was wrong — decomposition IS firing, just not as a separate daemon process. It's embedded in `evaluate.py` (PID 30312) or `pipeline-watcher.py`. The dispatcher review (step 3) needs to find where decomposition lives in v2.
-
-### 2026-05-12 [82969aef5091]
-
-Your rule has a non-obvious structural consequence: `task-score`, `task-investigator`, `task-executor` — three jobs that the v2 design doc treats as "registered scheduled jobs" — are actually **pipeline-ops on a 20-min cron** under the current registry.yaml. Per your new rule they must be ripped out of dispatcher and replaced with event triggers (e.g., on `task.created` → score; on `auto:candidate` → investigate; on `stage:queue` → execute). That's a significant scope item for D — not just an audit, but a refactor blueprint. I'll lay this out in the audit report.
-
-### 2026-05-12 [5e12a5b84d73]
-
-Grep confirms a structural finding: **auto:candidate / auto:ready are V1-routing labels with ZERO consumers in v2 services** (evaluate.py / executor.py / orchestrate.py / reviewer.py / stage.py / diagnose.py — none reference them). They're consumed only by legacy shell layer (event-watcher.sh, pipeline-watchdog.sh, team-runner.py, registry.yaml jobs). The v2 pipeline drives everything via staging/evaluated/queued/active/completed/blocked dimension labels — auto:* is essentially vestigial in v2.
-
-This means D.6 (`services/investigate.py`) as scoped in the audit would be a **legacy-compat service operating on labels that nothing in v2 actually reads.** Building it parallels the legacy task-investigator's behavior but produces output that no v2 service consumes.
-
-### 2026-05-12 [fc2e62357f20]
-
-**The audit-vs-reality pattern (this turn's biggest technical lesson)**. The Phase D audit doc, written 4 hours earlier from grep + reading patterns, had **5 factual misalignments** with the live codebase, each caught during implementation:
-
-1. `event_type` was bare `created`, not `task.created` (audit speculated the dotted form).
-2. event-watcher's existing `is_task_created` handler operated only via the *vestigial* `.beads/events.jsonl` path — no live Pulse-event consumption — so D.7 needed a brand-new polling block, not a "wire-up" of an existing handler.
-3. event-watcher launchd labels prefix with `com.aion.nexus-`, not bare `event-watcher` — initial `launchctl list | grep event-watcher` returned empty, falsely suggesting the script wasn't scheduled.
-4. `PULSE_API_URL` already contains `/api/v1`; appending `/api/v1/events` produced a double-prefix bug.
-5. Bare `+` in URL query strings decodes to space → HTTP 400; silent-fallback `|| echo '{"events":[]}'` masked it as "empty result."
-
-Each course-correction took 5-15 minutes during impl. Cumulative ~1 hour, integrated organically into D.7-D.9. This is the same pattern the 2026-05-06 self-correction (`plan-of-record before investigation locks in misconceptions`) describes. The durable mitigation isn't "write better audits" — it's "budget time for a reality-check pass on audit assumptions during the first implementation hour, and treat the audit as a starting hypothesis rather than ground truth."
-
-**Plan B's saved-effort** was ~3-4 hours from skipping investigate.py. Combined with Plan B's clearer event-driven semantics, total Phase D came in at ~5h actual vs ~3-4d estimate. The audit's "~3-4d" was correctly sized for the audit-default plan; Plan B + the reality-check discipline together cut it down dramatically.
-
-### 2026-05-12 [c8abaa10d0b2]
-
-**B2 is a self-imposed policy constraint, not a technical dependency.** That's the load-bearing observation behind any contingency plan. PR #3 controls only what we *publish*; the *code* for Phases B/C/E exists independently and can be developed on whichever branch makes sense. Most of the "blocked" workstreams are blocked by B2's "wait for clean linear history" preference, not by code-level dependency. The contingency plan is therefore mostly about *progressively relaxing B2* as the wait extends — converting policy patience into operational pragmatism on a defined schedule.
-
-**Many "blocked" items aren't truly blocked**: REO Validate is paused for *bundle scope clarity*, not because the validation work is impossible; Watchdog W2 is pure Jarvis-side (launchd liveness probe — no Alfred-Dev surface); Board v2 has no plan-of-record yet, so it's drafting-blocked not review-blocked. Pulling these forward maintains *forward velocity* even while PR #3 sits.
-
-### 2026-05-12 [bdd844ba366d]
-
-**Distinguishing "David updated something" from "David communicated something."** Three files in `Shared_Projects/Status/david/` have a 2026-05-12 timestamp, but all three are **auto-generated**: `nexus-sync-2026-04-recent.md` by the `com.aion.david-nexus-sync-fetch` Jarvis launchd job (every 6h), `projects-summary.md` + `loom-tasks.md` by a Pulse-API auto-generator (frontmatter says "Auto-generated from Pulse API"; the `author: David` field marks *whose* tasks are summarized, not who wrote the file). So the fresh timestamps reflect **Jarvis polling David's data**, not David typing anything. The true signal of David direct communication would be a new entry under `Debriefs/AIFred-Pro/` authored by David, a `Questions/` file with `from: David, to: Archon`, or hand-authored edits to `focus-areas.md` (last touched 2026-04-13).
-
-### 2026-05-12 [c80d6b20db86]
-
-The compressor cut off mid-sentence at "1 par." (parked) in Critical Context — small artifact of qwen3:8b's truncation behavior. More telling: the checkpoint claims the contingency plan is `[TODO]` when it's actually shipped (commit `d760e8c`, scratchpad entry, full tiered plan with trigger dates). This is the same forward-elision failure mode the 2026-05-06 self-correction catalogued — the compressor sees the QUESTION + early DISCUSSION steps and assumes the work is unfinished when the late-turn synthesis is what actually closed it. Scratchpad cross-check correctly identifies the real state.
-
-### 2026-05-12 [07a197f639ed]
-
-**Two truths surfaced by the gh check.** (1) The PR was filed without a designated reviewer — which is why ProjectIntel showed zero David acknowledgment: not "David is busy ignoring it," but "David literally hasn't been told it exists" through GitHub's notification path. (2) The >300-files threshold tripping Copilot is a hard architectural signal that this PR's *shape* (single bundle of 110 commits) is wrong for the review tools that exist in the world, independent of David's bandwidth. Even if we add him as reviewer, he sees a PR that GitHub-side tooling has already refused to engage with — a meaningful trust-loop concern.
-
-This re-frames the contingency: the "T2 → T3 → T4" tier I set assumed time was the variable. It isn't. **Structure is the variable.** T4's "split into thematic PRs" was scoped as a 14+-day fallback, but the Copilot bail-out at submission time is a same-day signal that we should be considering it now, not in two weeks.
-
-### 2026-05-12 [c9dc7b08ab81]
-
-**Two architectural truths the gh check exposed**: (1) PR #3 was filed without a reviewer assignment, so the "5+ business-day wait" tier in the original contingency was measuring against a clock that never started in David's world — `notifications/email pipeline` only fires on explicit reviewer-request, @-mention, or assignee-add. (2) GitHub Copilot bailed at 16:10:18Z (8s post-creation) on >300 files; that's a tool-level rejection of the PR's *shape*, independent of human bandwidth. Even after fixing (1), David walks into a PR that GitHub's own auto-reviewer refused to engage. The "structure is the variable, not time" reframe collapses the T2→T3→T4 schedule from weeks down to same-day.
-
-**B2 is policy, not technical dependency** — the Phase D code now lives in 3 commits (`78693a3..65e2eef`) ready to push when policy clears. Workstream momentum need not wait on it; Watchdog W2 is pure-Jarvis with zero Alfred-Dev surface and can run in parallel regardless of which decision branch you pick.
-
-### 2026-05-12 [a4af412af96e]
-
-**The constraint isn't actually a contradiction — it's a forcing function toward a healthier topology.** "Don't merge nate-dev to main" + "don't gate dev on David" can both be satisfied if we stop using `nate-dev` as a long-lived accumulator and start treating each workstream as its own branch off `origin/main`. The principle: **PR-shape independence**. PR #3 stays exactly as it is (David's call); every new workstream files its own small, thematic PR off main. We ship to main via the same mechanism we always do (David's merge button), but each PR is small enough that the review-friction cost per merge is low. The "wait for PR #3" gate dissolves because nothing downstream needs to live on nate-dev anymore.
-
-**This is also a low-trust-cost shift.** By proactively adopting small-PR discipline (rather than framing it as "PR #3 isn't getting reviewed, so we're routing around it"), we're not signaling distrust — we're signaling we recognized that 110-commit bundles were the wrong shape, and we're correcting going forward. PR #3 becomes a one-off historical artifact ("this is what 4 weeks of unbatched work looked like; we're not doing this again"), not a workaround target.
-
-### 2026-05-12 [7abb6ff07ddc]
-
-**This is the topology question, not a tactical one.** Migrating to CannonCoPilot reframes the entire collaboration model: AIFred-Pro becomes *your* primary repo with David invited as collaborator, rather than David's primary repo where you contribute through PRs. If David is winding down, this is actually the *kindest* path — it gives him a graceful exit (no longer responsible for review velocity), preserves attribution via license + commit history, and keeps the work alive under continuous stewardship. MIT-license permits the fork unilaterally; the relational move is to ask first, but you wouldn't be asking permission, just timing.
-
-**The key architectural insight is that nothing in the running stack depends on the GitHub repo home.** Pulse API runs on localhost, Nexus services run on localhost, Jarvis MCPs all point at local paths, the credentials file references `github.aifred_token` but that's just a PAT not a URL. The migration is *entirely* GitHub-side; the developer workstation, services, and tooling all continue running through the cutover without missing a beat. That's the strong signal that migration is technically low-risk.
-
-### 2026-05-12 [13bf23f32081]
-
-**The migration is mostly already done.** `CannonCoPilot/AIFred-Pro` is a registered GitHub fork (`parent: davidmoneil/AIFred-Pro`, last pushed 2026-04-23), with `main`, `nate-dev`, and `nexus-sync-2026-04` already mirrored. `main` is exactly aligned with davidmoneil. `nate-dev` is at `e136fbc` (~3 weeks stale, before the May session series). The "migration" reduces to bringing the fork current with `git push my-fork nate-dev` plus adjusting remote conventions and workspace references. The infrastructure was set up for exactly this scenario — the April-30 prior-thinking plan exists in the workspace, which suggests you anticipated this exact pivot.
-
-**Repo is technically clean for migration.** No submodules, no LFS, small (.git = 10MB, working tree = 312MB total). MIT-licensed (fork legally clean, attribution carried by LICENSE + commit history). No runtime dependency on the GitHub repo home — Pulse/Nexus services run from local paths, MCPs reference localhost. There are minor hygiene items (stash, exposed PAT in remote URL, drift on prod mirror) but none are blockers.
-
-### 2026-05-12 [9a3539206e2d]
-
-**The prior plan is the template for this one — it solves an isomorphic problem.** The April-30 plan re-pointed Jarvis origin from `davidmoneil/AIfred` → `CannonCoPilot/Jarvis`; this plan re-points Alfred-Dev origin from `davidmoneil/AIFred-Pro` → `CannonCoPilot/AIFred-Pro`. Same shape, same mechanisms. Most of my morning outline already mirrors the prior plan's stages by accident. The improvements come from extracting the prior plan's *philosophical commitments* (§5 "not our repo, not our deletion") and applying them consistently here.
-
-**The §5 principle is load-bearing for the David conversation.** The prior plan's most-considered move was *not* deleting `davidmoneil/AIfred:Project_Aion` after the Jarvis migration — kept as fossil at David's discretion. Same logic must apply to PR #3 and `davidmoneil/AIFred-Pro:nate-dev`. We do not close PR #3 unilaterally. We do not push to davidmoneil/AIFred-Pro:nate-dev after migration. We leave both as fossils — PR #3 stays open at David's discretion. This is courteous AND preserves audit trail AND avoids forcing his hand. It also gives the Question/ to David a *softer* framing: "we're shifting our work to a primary home; your repo + PR #3 are unchanged and yours to dispose of as you see fit."
-
-### 2026-05-12 [c2283ecd98a8]
-
-**Three different "scrub" surfaces, each with different reversibility.** (1) **Forward-only content scrub** — easy and recommended: change 49 tracked files (per just-completed grep) before they ever touch CannonCoPilot/Alfred. Cost: per-file judgment, ~1-2 hr. (2) **Historical commit-message scrub** — destructive: requires `git filter-repo` to rewrite every commit's SHA in the 110-commit nate-dev range plus all ancestor history. Breaks PR #3's commit links, breaks any external SHA references, breaks David's local clones, breaks reflogs. Generally a bad idea even when scrub goals are real. (3) **Username-in-absolute-paths scrub** — pervasive but local-only: `/Users/nathanielcannon/...` appears in launchd plists, JSON archives, log files, but those don't go to GitHub (since they're not in tracked source). Recommended: not in scope.
-
-**The pseudonymous author identity is already in place.** Recent commits show author = `CannonCoPilot <177279335+CannonCoPilot@users.noreply.github.com>` — already neutralized via GitHub's noreply email. No personal name in author lines on commits. **The only commit-history "Sir" references are 3 stash entries** (`On nate-dev: stash E2E executor artifacts`) which won't get pushed since stashes don't propagate. The real scrub work is the 49 tracked files.
-
-**The rename is bigger than the topology migration.** Renaming `AIFred-Pro` → `Alfred` cascades through ~10 launchd plists, Pulse runtime, dispatchers, event-watchers, watchdogs — all currently running services bound to the old path name. This requires either a maintenance window (5-15 min downtime) or symlink-bridge (zero downtime, technical debt). Worth treating as its own dedicated phase, not folded into the topology push.
-
-### 2026-05-12 [f5ea91af334e]
-
-**The Question/ is doing two jobs simultaneously: courtesy notification *and* trust-loop preservation.** A migration like this could easily be read as "I'm done with you" by David — especially the rename, which symbolically distances. The draft addresses that risk by leaning hard on optionality: he can accept admin, decline, set custom permissions; PR #3 stays open at his discretion; davidmoneil/AIFred-Pro is unchanged; reversibility called out explicitly. The "future shared Archon repo" mention is intentional — it frames the rename as forward-looking architecture, not a break.
-
-**The "no urgency" language is load-bearing.** Three places in the draft explicitly disclaim time-pressure on David's response. That's deliberate: if he's winding down, the worst experience for him is reading a Question that implies "you need to respond." The draft is designed to be acknowledgeable with a single thumbs-up reply, or to sit unread without any harm.
-
-### 2026-05-12 [cc3973102881]
-
-**`CannonCoPilot/Alfred` already exists as a separate repo**, created 2026-04-23 (~21 days ago, same day as the AIFred-Pro fork). Description: "Cloned dev version of Dave O'Neil AIfred project." Not a fork (parent=none), private. The rename command silently failed (or my JSON parser swallowed the conflict error) because GitHub doesn't allow rename to an existing name. The canonical state is now: AIFred-Pro and Alfred both still exist as distinct repos under CannonCoPilot. No data lost; no rename executed.
-
-**This is exactly the kind of gotcha that destructive-action protocols catch.** The Phase 1.1 step assumed a clean target name; reality has prior history at that name. Resolution requires checking what's in the existing Alfred repo and deciding fate (delete, rename to something else, merge content) before retrying the rename.
-
-### 2026-05-12 [52e52d61ac9a]
-
-- **W0's API path runs through the cost-attribution proxy.** Per the launch script, W0 (and W5) export `ANTHROPIC_BASE_URL=http://localhost:9800` so every Claude API call routes through `usage-proxy/proxy.py` for cost telemetry. If that proxy dies, the session gets exactly this error — the Claude CLI tries to TCP-connect to `localhost:9800` and gets `ECONNREFUSED` because nothing is listening.
-- **Other plausible failures** are LiteLLM on `:4000` (if the session routes through it instead), the MLX-Embed service on `:8000` (less likely — only affects embeddings, not chat), or a Docker network drop. Triage in order of likelihood, fastest checks first.
-- **Diagnostic order:** `lsof -iTCP -P -n` for what's actually listening; `docker ps` for container state; tmux capture of W0 to see the exact error context; then env-var inspection of W0's shell.
-
-### 2026-05-12 [db662ca68739]
-
-- The PROD `com.aion.anthropic-proxy` launchd job (PID 97735) is still alive on `:8877` — but the recent scratchpad flagged that one as an **orphan with its source file moved**. Repointing W0 to it as a quick fix is technically possible but risks routing live cost telemetry through code you've already decided to decom.
-- The session is still recoverable from inside W0 — it's at 23% context (226K tokens), idle, and just waiting on the next API response. No state is lost; you just need `:9800` back or a fresh env without `ANTHROPIC_BASE_URL`.
-- LiteLLM at `:4000` is alive and could in principle serve as a substitute API endpoint, but its config is for the Litellm-routed model fleet, not the Anthropic-direct path W0 wants. Don't repoint there.
-
-### 2026-05-12 [94c9e9c2885f]
-
-The scratchpad was *correct as of the moment it was written* but the session continued past it. Between scratchpad-save and JICM trigger, a whole topology migration began executing: PR #3 contingency → fork-rather-than-wait pivot → repo rename on GitHub (CannonCoPilot/AIFred-Pro → CannonCoPilot/Alfred; pre-existing Alfred → Alfred-prod-archive-2026-04) → 113 commits pushed to Alfred:main → maintenance window opened (Phase 2.2 service stops). The error that triggered JICM landed mid-Phase-2.2.
-
-### 2026-05-12 [79df854d87c4]
-
-**Phase 2 maintenance window CLOSED but unfinished.** Containers are back UP — but local directories were never renamed (`Alfred-Dev` still exists at the original path; no `Alfred-Dev` anywhere). The JICM-triggering error (`ConnectionRefused`) was likely an Anthropic API blip mid-Phase-2.2; *something* brought Docker back up (autorestart/manual) before the rename step. Phase 2.3-2.5 never executed. **And `aifred-dev-pipeline` is in a restart loop** — likely the Phase D event-watcher/score.py code hitting a runtime issue the direct-invocation smoke didn't catch.
-
-### 2026-05-12 [f6fad6c18e2b]
-
-**Pre-existing latent bug from 2026-04-30, NOT a Phase D regression.** Commit `77145a9` did three things together: (a) renamed `event-watcher-v2.py` → `pipeline-watcher.py` ("canonical name"), (b) added the `pipeline` Docker service, and (c) wrote the new service's `Cmd:` + healthcheck to the *old* filename. The container has been silently restart-looping for 12 days. Nobody noticed because the **host-side** `pipeline-watcher.py` (PID 15622 — killed in Phase 2.2 today) was doing all the actual orchestration work. Now PID 15622 is gone and the container has never functioned, so there's currently zero pipeline-watching happening anywhere. This is what the Wiggum-loop "Drift" check is for — the layered failures (container broken at infra + host-side killed at session-level) hid the issue until the host-side fallback was removed.
-
-### 2026-05-12 [97cdd42f60d8]
-
-**Pipeline container is healthy for the first time in 12 days.** It registered as webhook subscriber id=2 (the stale id=1 from the old host-side process is now the durable "Pulse webhook hygiene" future-work entry already in §6.2 row 445 — the symptom just got worse since both old and new subscribers now exist). It also picked up an in-flight task (AION-4c7cd284) immediately, confirming the container is doing real work, not just a healthy-no-op. Flask-poll-only mode is acceptable fallback (the heartbeat poll loop runs independently).
-
-### 2026-05-12 [bda43962ca0a]
-
-`--print` is the cleaner pick — no `send-keys` timing complexity, no multi-line gotcha, and the prompt arrives atomically as one command-line arg. The worker just becomes: spawn → run → exit → window self-kills. The trade-off is no mid-stream intervention, but that's acceptable since the recipe JSON encodes the entire decision tree upfront. Building v1 now with this design.
-
-### 2026-05-12 [0cbb793cf0c1]
-
-**Order matters for the :9800 window.** Git pushes don't route through :9800 (SSH direct to GitHub), but the *tool-result delivery* from each Bash call does. So all commits + pushes happen BEFORE the worker run (while :9800 is up), the scratchpad gets a pre-worker checkpoint, then the worker fires with `run_in_background=true` so W0's tool call returns instantly and the :9800 outage doesn't strand a pending result.
-
-### 2026-05-12 [bfa91ca30512]
-
-**Recipe completed in 101 seconds** (21:26:38Z → 21:28:19Z), with phases tracked cleanly: launching → preflight → down → repair[0..5] → wait_healthy → validate → complete. All 6 containers healthy at new path. :9800 healthy.
-
-**Two flags to inspect**: (1) `/Users/nathanielcannon/Claude/Alfred-Dev` still exists with 1 child — something recreated it after the mv (worker reported the mv succeeded). (2) `stale_refs_in_dir: 2623` — the audit found 2623 Alfred-Dev references inside `/Alfred-Dev`. Worker classified them as "caches/logs/archives, non-failing" but that count is high enough to warrant a Phase 3 inventory.
-
-### 2026-05-12 [77c0ea6d11c7]
-
-**Ghost dir explanation**: The OLD plist had `StandardOutPath`/`StandardErrorPath` pointing at `/Alfred-Dev/.claude/logs/headless/event-watcher-v2*.log`. Between `mv` (repair[0]) and `launchctl unload` (repair[1]), there was a ~6 second window where macOS's `KeepAlive: true` likely triggered a relaunch attempt — and **launchctl auto-creates parent directories** for StandardOutPath if missing, even when the program fails to start. That's the ghost. Safe to `rm -rf` now (current plist points at `/Alfred-Dev/...` per the user's intentional update I just received).
-
-**Stale refs breakdown of 673 files**: 669 are in `.claude/` (caches, archives, historical logs — informational, non-load-bearing). Only **4 files are load-bearing**: `docker-compose.dev.yml`, `usage-proxy/...`, `tests/...`, `README.dev.md`. Those need Phase 3 scrubbing.
-
-### 2026-05-12 [3750842708f3]
-
-This is the classic JICM-compressor-stale-checkpoint failure mode — qwen3:8b summarizers prioritize the highest-token-density content and overshoot when the active scratchpad is short relative to surrounding canonical docs. The scratchpad-cross-check protocol (`self-corrections.md` 2026-05-06 entry) catches it cleanly. The checkpoint here pulled Chronicler paths from an old session, but the scratchpad's `2026-05-12 (post-topology-rename)` entry is the authoritative resume target.
-
 ### 2026-05-12 [eef395340066]
 
 This is the classic "scope-creep risk vs. completeness-debt" trade-off that comes up after a partial bulk operation. The user approved scoped scrub (force-loaded files only); the broader project docs (~25 hits across 7 design/plan/report files) sit outside that scope. The honest move is to (a) surface the discovery, (b) complete E (scratchpad Alfred-Dev refs — explicitly requested), then (c) ask for scope-extension decision rather than silently extending. The user's preference for scope discipline ("Don't drift on your planning documentation") from the 2026-05-12 feedback memory argues for explicit ask.
@@ -1423,3 +1084,394 @@ These are uncommitted changes to the launcher script, meaning you manually edite
 ### 2026-05-23 [a5355d9b6248]
 
 **The resume logic worked correctly — the problem is upstream of it.** The launcher's default path (line 532–551) reads `.current-w0-uuid`, finds the JSONL, and passes `--resume <uuid>`. But `--resume` ties to a specific model. When you changed the `CLAUDE_BASE` from `claude-opus-4-7[1M]` to `claude-opus-4-6[1M]`, Claude Code cannot resume a session started on a different model — it silently creates a new session instead, which generates a new UUID, which then gets written to `.current-w0-uuid` by the restart loop or by Claude Code itself.
+
+### 2026-05-23 [9f16ba77fa57]
+
+**Critical review of H arm design before implementation:**
+
+The v5 design doc specifies 62 cells (31×2 repeats) at ~$9-12. At 62% util already, that's a potential 25-30pp addition pushing to 87-92% — right at the `allowed_warning` threshold. Three design concerns:
+
+1. **Repeat value**: Two repeats of the same scenario template adds statistical power, but the marginal information from repeat #2 is low if repeat #1 shows clear pass/fail patterns. I should implement repeat #2 as conditional — execute only if repeat #1 has ambiguous results.
+
+2. **Topology X (null baseline)** is near-zero information: children with ZERO context will obviously fail Q1-Q5. Unless a pass occurs (hidden state leak), all 5 cells produce the expected "fail" at ~$0.15 each = $0.75 for confirming the null. Worth running once but not twice.
+
+3. **`--fork-session` availability**: the v5 design assumed `--fork-session` exists. I need to verify this flag actually works in the current CLI before building cells around it.
+
+### 2026-05-23 [78a01b0da8ca]
+
+**H arm design revision (critical pre-implementation review):**
+
+The original design has 5 topologies × 5 questions × 2 repeats = ~62 cells. After critical review:
+
+1. **Topology D (extend-then-fork)** is the most interesting: it tests whether `--resume` + extension + `--fork-session` preserves context — the v3 "extend-then-fork" finding that underpins api_aware.md §9 rule #1. This is the highest-information topology.
+
+2. **The `--fork-session` flag requires `--resume` or `--continue`** — it forks from an existing session. So topologies F and D both need a parent session first.
+
+3. **Budget recalibration**: v6 showed per-cell cost of ~$0.17-0.31. H cells are simpler (factual recall, no MCP invocation) so should trend toward $0.15-0.20. 31 cells × $0.18 ≈ $5.58 for repeat 1. At 62% util, this is feasible.
+
+4. **Scenario freshness**: each repeat should use a DIFFERENT scenario to avoid confounding cache-hit with genuine context preservation. If repeat 2 uses the same prompt, the cache prefix matches and the model might "remember" from cache, not from session state.
+
+### 2026-05-23 [40a9bd221323]
+
+**Pre-execution self-review of H arm script:**
+
+1. **Topology F concern**: `--fork-session` with `--resume` forks FROM the parent session. Each child Q1-Q5 gets a fork of the same parent state. This is the correct design — each question is an independent branch, not contaminated by siblings.
+
+2. **Topology R concern**: `--resume` on the same session means Q1-Q5 are SEQUENTIAL in the same session. Q2 inherits Q1's answer. This is different from F/D where each child is independent. The design document intended this, but it means R tests "cumulative session recall" while F/D test "snapshot recall." Both are valid but different.
+
+3. **Q4 pass criterion**: For scenario 1, "will food run out?" → No (30 > 17). Pass regex is `\bno\b`. For scenario 2, "how many hours does Kim have?" → 36. Pass regex is `\b36\b`. Both are simple enough to avoid false positives.
+
+4. **Cost projection**: $0.22 × 31 = $6.82 per repeat. At 62% util, one repeat is safe (~7pp). Two repeats (~14pp) would push to ~76% — still safe below 85%.
+
+### 2026-05-23 [6b45fb0fef78]
+
+Priority triage here follows a classic life-support hierarchy: consumables → power → personnel health. Water sits above food because dehydration kills in days while caloric reserves can be stretched; power sits above the medical issue because generator failure cascades into water purification, heat, and comms loss — turning a mild case into a severe one.
+
+### 2026-05-23 [8fb17b6d7bcc]
+
+Priority ordering here follows a classic risk-triage heuristic: **time-to-failure × severity × reversibility**. Water (12d supply, irreplaceable physiology, ~6d gap if storm slips the drop) outranks power (48hr fuel BUT leak diagnosis in progress, generator is *backup*) which outranks medical (mild, monitored, trending). Note how the storm's day-10 onset compresses every timeline — it's the forcing function behind issue #1's urgency.
+
+### 2026-05-23 [1efbc6bdd62b]
+
+Triage priority follows the "what kills you first" rule: life-support failure cascades faster than supply attrition, and supply attrition faster than personnel medical issues that are already under clinical management. Generator → water → drop slip is the canonical cold-environment outpost decision tree.
+
+### 2026-05-23 [5ad3125955f8]
+
+Criticality ranking here isn't about rank or general value — it's about who holds an irreplaceable function against the next 10–14 days of failure modes. The metric is: if this person were incapacitated tomorrow, how much closer does the worst-case scenario get? Specialists owning active failure points outrank generalists; coordinators outrank those whose domain isn't currently stressed.
+
+### 2026-05-23 [a91efc02ba1d]
+
+**The cache-mechanics corpus now has two independently validated operational rules:**
+
+1. **Extend-then-fork** — v4 showed 36% window savings, H arm measured 6.2× per-child cost reduction. The mechanism: `--resume` + extension commits the prefix to cache; `--fork-session` alone creates a new prefix that doesn't inherit cache. For parallel fan-out, always extend first.
+
+2. **System-prompt strip is governance-safe** — v6 showed that `--system-prompt` removes ~27K of Anthropic boilerplate (32% per-cell savings) but leaves all project `@`-imports, MCP access, and skill awareness intact. A free optimization for cost-sensitive headless work.
+
+Both are now encoded in api_aware.md as operational rules, grounded in empirical evidence, and ready for use in future headless harness design.
+
+### 2026-05-23 [49d92a749378]
+
+**This is a fundamentally different picture than what I assumed.** Three critical observations:
+
+1. **Windows are NOT first-call-initiated.** Resets land on round timestamps (`:00`, `:10`, `:20`, `:30`, `:40`, `:50`). These are Anthropic-assigned time slots, not user-triggered.
+
+2. **Multiple models share the same window.** The 05-23 11:20 reset has BOTH `claude-opus-4-6` (first call 09:18) AND `claude-sonnet-4-6` (first call 09:33). The window is account-level, not model-level or session-level.
+
+3. **time-to-reset varies wildly** — from 1.67h to 5.00h. If the window were first-call-initiated (5h fixed), these would all be ~5.00h. Instead they range from ~1.7h to ~5.0h. The window is a **fixed server-assigned 5h slot**, and your first call can land anywhere within it.
+
+This means my original fix was actually CORRECT — `reset - 5h` IS the true window start, and `first_request` is just when the user happened to make their first call within that slot. The dashboard should show the full 5h slot, not just the portion with activity.
+
+But wait — Sir's pushback was that "5hr windows are initiated by first call." Let me verify this isn't partially true by checking if any window's first request exactly matches `reset - 5h`.
+
+### 2026-05-23 [d86b52b80f8b]
+
+**This is the smoking gun.** Consecutive windows are NOT always 5h apart. They range from exactly 5.00h to 39.17h. The pattern:
+
+- **5.00h gaps**: active continuous usage (back-to-back windows)
+- **5.17–5.67h gaps**: slight drift — window resets are on 10-minute boundaries, so if the next window's first call lands in a different 10-minute bucket, the reset shifts
+- **13–39h gaps**: overnight/idle periods — no calls were made, so the window wasn't initiated
+
+This confirms Sir's original understanding: **windows ARE first-call-initiated**, but they snap to Anthropic's 10-minute-granularity time slots. When you make your first call, Anthropic assigns you to the next available 5h slot boundary (rounded to 10-minute marks). That's why `first_request ≈ reset - 5h` for active windows (~4.9-5.0h gap) but `first_request << reset - 5h` when the window was already running from OTHER traffic (web UI, other Claude Code sessions not routed through our proxy).
+
+### 2026-05-23 [d596c8f7eb23]
+
+**The bug is on lines 305-320.** The comment says "Mirrors the BurnRatePanel pattern" but it does NOT. It uses **free-intercept OLS regression** (`y = slope * x + intercept`), while the BurnRatePanel (line 1838-1849) uses **through-origin regression** (`y = slope * x`, `slope = Σxy / Σx²`).
+
+The free-intercept formula on line 319-320:
+```
+curveSlope = (n * sumXY - sumX * sumY) / denom
+curveIntercept = (sumY - curveSlope * sumX) / n
+```
+
+This produces a non-zero `curveIntercept` which means the trendline does NOT pass through (0,0). The trendline at line 332 is rendered as `curveSlope * elapsed_h + curveIntercept`, and the phantom point at x=5 (line 338) also uses `curveSlope * 5 + curveIntercept`. **The slope visually doesn't anchor to the origin.**
+
+### 2026-05-23 [7ff34522941c]
+
+**What was actually wrong (corrected understanding):**
+
+The "slopes not respecting (0,0)" bug was the `TimePanel` regression using **free-intercept OLS** (`y = slope * x + intercept`) instead of **through-origin** (`y = slope * x`). The BurnRatePanel already used through-origin correctly — the comment "Mirrors the BurnRatePanel pattern" was a lie in the code. With a nonzero intercept, the trendline visually missed the origin, making the projected burn rate look wrong.
+
+The `elapsed_seconds` from true window start (reset - 5h) is correct because API headers are ground truth for window boundaries — they track account-level utilization, not per-session. The first proxied call may arrive after non-proxied traffic has already consumed some utilization, but the header values still correctly reflect the full window state from Anthropic's perspective.
+
+### 2026-05-24 [e8029a1867a2]
+
+The proxy returning HTTP 405 (Method Not Allowed) on a GET is correct behavior — the `/v1/messages` endpoint only accepts POST. A 405 confirms the proxy is listening and routing; a connection error or 502 would indicate a problem.
+
+### 2026-05-24 [ea16ef2d85dd]
+
+Each `claude -p` call pays a ~40K cache-write tax for project context. At 1% utilization we have ample room. The prompt is deliberately trivial ("What is 2+2?") to minimize output tokens — the point is generating proxy-recorded traffic per model, not the responses.
+
+### 2026-05-28 [4b207b217754]
+
+Three scheduling surfaces coexist on this machine, often conflated:
+- **launchd** (macOS-native, `~/Library/LaunchAgents/*.plist`) — survives reboot, has Keychain access. This is where AIFred-Pro's Nexus agents live.
+- **crontab** (legacy Unix, `crontab -l`) — survives reboot, but no GUI/Keychain context. Currently holds 1 Telegram callback + 1 stale `probe-headers` (the one your scratchpad flagged as failing).
+- **CronCreate** (Claude Code session-local) — in-memory only, dies with this REPL unless `durable:true`. Useful for "remind me in an hour" within a session.
+
+The phantom-traffic forensic in scratchpad is about the **launchd** layer, not crontab — `com.aion.nexus-event-watcher` is the 2-min poller burning the windows.
+
+### 2026-05-28 [2cb48c3ad24f]
+
+The Ollama qwen3:32b output is structurally different from Claude's — it generated a bash script-style plan rather than executing tools and producing JSON. This is expected: Ollama runs a raw prompt/response, not a Claude Code session with tool access. For pipeline scoring/routing jobs this is acceptable since they produce structured labels, not code changes. The `task-executor` (the one that actually modifies code) correctly stays on `claude-interactive` with full tool access.
+
+The jq notification failure is because the executor tries to parse `.total_cost_usd` from the JSON output, but Ollama responses use a different schema. Non-blocking — the job still completes.
+
+### 2026-05-28 [cfe5baac0a15]
+
+**The pipeline validation revealed an important architectural lesson**: Ollama (`/api/generate`) is suitable only for jobs that *analyze and report* — it generates text but cannot execute tools. Jobs that *mutate state* (apply Pulse labels, write files, run commands) need `claude-interactive` because they require the Claude Code harness with tool access. The final engine split:
+- **5 analyzer jobs → Ollama qwen3:32b** ($0/run): health-summary, persona-health-check, doc-sync-check, pipeline-review, weekly-digest
+- **7 mutator jobs → claude-interactive** (Anthropic via proxy): task-score, task-investigator, task-executor, context-maintenance, creative-think, creative-build, creative-present
+
+The `claude-interactive` engine launches each job in a temporary tmux window with a file-based prompt, polls a sentinel file for completion, and kills the window on exit. This is architecturally equivalent to `claude -p` but visible to the Watcher and properly proxied.
+
+### 2026-05-28 [9a4f7fa93efe]
+
+**The "tool use gap" is not a Qwen 3 limitation — it's an integration architecture gap.** Three compounding issues:
+
+1. **Wrong endpoint**: `/api/generate` has no `tools` parameter. It's a raw text completion endpoint. `/api/chat` is the only tool-capable endpoint.
+2. **No tool definitions passed**: Without a `tools` array, the model has no schema to signal tool invocations against.
+3. **No dispatch loop**: Even with correct tools, the LLM only *names* the function and arguments. The calling application must *execute* the command and feed results back. Our executor had no such loop.
+
+The live test just proved it: `/api/chat` with a `tools` array → Qwen 3 32b correctly returned `tool_calls: [{function: {name: "calculator", arguments: {expression: "2+2"}}}]` with empty `content`. The model knows exactly how to signal tool use — we just weren't speaking the right protocol.
+
+### 2026-05-28 [06c544d380ee]
+
+**Ollama version 0.16.2** — below the 0.17.6 threshold where the research says Qwen3 tool template bugs were fixed. Despite this, our live test shows tool calling works correctly for simple single-tool scenarios. The serialization bug (issue #14601) may only manifest with complex multi-parameter tools or multi-turn conversations. For our pipeline use case (single `run_command` tool), the current version is functional.
+
+### 2026-05-28 [7a413632def0]
+
+**What the verification pass caught**: The code-review agent cross-referenced every claim against the filesystem and found 8 issues — from a simple off-by-one (33 vs 32 personas) to a structurally incomplete dashboard table (the original covered only 55% of actual routes). The most subtle finding was the dev event-watcher's launchd config: the document said "on-demand" but the plist uses `KeepAlive: true` — a persistent daemon, not an on-demand trigger. These are exactly the kinds of errors that look plausible in text but break trust when someone acts on the document.
+
+### 2026-05-28 [907c8a491599]
+
+**The board is now surgically clean**: 6 focused tasks, all open, ordered by priority. The two Pulse databases were in different states — production (:8700) had 91 tasks (all closed, from the Multi-Space Setup plan era), and dev (:8800) had 63 tasks (mix of closed + orphaned subtasks from personas-rebuild work). Both are now cleared with JSON archives preserved. The dev board had 2,655 events and 1,341 event records referencing deleted tasks — all cleaned.
+
+### 2026-05-28 [7e6a00b20d73]
+
+**The pipeline is alive and already working.** Two things happened:
+1. **Dispatcher** is cycling every 5 min (19:30, 19:35, 19:40, 19:45, 19:49) — "10 not due" means all 10 registry jobs exist but none have hit their schedule trigger yet. The PIPE tasks on the board are *not* registry-scheduled jobs — they're Pulse task tickets that need the event-watcher → score → stage pipeline to advance them.
+2. **Event-watcher** already scored our new tasks — the log shows `risk:safe` and `risk:moderate` labels being applied to the auto-decomposed subtasks. The score service is running and processing events.
+
+### 2026-05-28 [d2366d0e247e]
+
+**The data pipeline is intact**: proxy captures headers → writes to `pulse_dev.api_requests` → Pulse API reads and returns structured JSON → dashboard proxy passes through unchanged. 233 requests in the current window, 15% utilization, 38M cache_read tokens. The `?company=platform` URL parameter has no effect — there's no company filter in the UsagePage frontend code.
+
+### 2026-05-28 [0e693de5145e]
+
+**Now the picture is clear.** The V2 pipeline IS running and has been actively processing our PIPE tasks. PIPE-02 (weekly-digest) has progressed through `staging:done → evaluated:done → queued:done` but hit `reason:max-executor-retries` — the executor tried to run it 3 times and failed. The subtask AION-c74965b9 ("Trigger pre_check activity-digest script") is at `staging:done, evaluated:done` and cycling through the orchestrate service. The pipeline services are functional — the tasks are being scored, staged, evaluated, and queued. The blockage is at the **execution** stage, where the executor service tries to actually run the task and fails.
+
+### 2026-05-28 [dc362707bc6f]
+
+This is a design tension: the V2 executor (`executor.py`) calls `claude -p` which requires either (a) a logged-in Claude Code session (`~/.claude/` auth config), or (b) an `ANTHROPIC_API_KEY` env var. Inside Docker, neither exists. The container was designed to run `pipeline-watcher.py` (which calls Pulse API + Ollama), but `executor.py` spawns Claude Code subprocesses — a completely different auth model.
+
+The cleanest fix: pass the API key from the host's credentials to the container. But first, let me check if the executor.py supports an API key env var path.
+
+### 2026-05-28 [dc95eb14d44d]
+
+**Root cause chain (3 layers deep)**:
+1. **Surface**: All pipeline tasks fail at execution stage
+2. **Layer 1** (fixed): Docker container ran as root → Claude Code refused `--dangerously-skip-permissions`
+3. **Layer 2** (fixed): Task labels `blocked:yes` + metadata `executor_attempts: 3` prevented retry → both cleared
+4. **Layer 3** (current): Claude Code inside Docker container is not authenticated. On Max plan, auth is OAuth-based (stored in macOS keychain), not API-key-based. Can't mount keychain into Docker.
+
+**The design tension**: executor.py (V2 pipeline, runs IN Docker) calls `claude -p` which needs auth. executor.sh (V1 pipeline, runs ON HOST) has the `claude-interactive` engine that uses tmux + file-based prompts, where Claude Code is already authenticated. Phase 4's migration moved recurring jobs to Ollama but left event-driven tasks to `claude-interactive` — which runs on the HOST, not in Docker.
+
+### 2026-05-28 [b6a2f09f9ddd]
+
+**What changed architecturally**: The system moved from an organic accretion of 3 execution layers with 9 overlapping responsibilities to a principled design with clear boundaries. Docker handles stateless services (data stores, APIs, pipeline orchestration). The host handles authenticated operations (Claude Code CLI, tmux, launchd scheduling). The bridge pattern (signal files on a shared volume) connects them cleanly without requiring Docker to access macOS Keychain.
+
+**The self-healing mechanism** is the most operationally significant change. The exact bug sequence that required 45 minutes of manual intervention today (label removal without replacement → task invisible → permanent block) will now auto-heal in under 30 seconds on the next watchdog cycle. The startup audit also means container restarts — previously a source of stuck-state accumulation — now trigger a full label reconciliation.
+
+### 2026-05-28 [52e5012173e9]
+
+**Root cause of ghost windows**: The host-executor-bridge doesn't clean up signal files on failure — if the Claude CLI fails quickly, the request file persists, and the next event-watcher cycle (2 min) picks it up again, creating an infinite spawn loop. The fix: the bridge must always delete the request file after processing, regardless of success or failure.
+
+**Root cause of task failures**: `max_turns: 10` in the bridge script is insufficient for most pipeline tasks. The executor.py sets `--max-turns 10` which isn't enough for tasks that require tool use (each tool call = 1 turn). These PIPE test tasks involve file reads, command execution, and verification — easily exceeding 10 turns.
+
+### 2026-05-28 [4b1b834a937e]
+
+**The deadlock mechanism**: The orchestrator on line 69-72 filters for tasks that are `evaluated:done`, `queued:no`, and NOT `blocked:yes`. That's correct. But the sibling-gating on lines 88-94 then counts how many of those *filtered* candidates share a parent. If some siblings are `blocked:yes`, they were excluded by the filter on line 72 — so the count is always less than `expected`, and the group is held forever. It's a set-theoretic bug: the denominator includes blocked siblings, but the numerator excludes them.
+
+**Three groups are deadlocked** (AION-66a90eeb, AION-af351119, AION-3fed0284): each has blocked siblings that will never pass the filter, permanently gating the unblocked ones.
+
+**Additionally**, many tasks have `queued:no` when they should have `queued:done` — the orchestrator only picks up `queued:no` tasks (line 71), but looking at the board, some unblocked tasks already have `queued:done` meaning they passed through orchestration previously but never made it to execution.
+
+### 2026-05-29 [f20ab3ffb520]
+
+**A second deadlock pattern**: 13 tasks are chain-blocked because their predecessor in the chain is `blocked:yes`. The `chain_predecessor_done()` function (line 415) only lets a task execute if its predecessor has `active:done` or `completed:done`. A blocked predecessor satisfies neither condition — so the entire chain downstream is permanently frozen.
+
+This is the chain-ordering equivalent of the sibling deadlock we just fixed: a blocked task prevents ALL subsequent tasks in its chain from ever executing.
+
+### 2026-05-29 [515fb374fbc7]
+
+**What changed architecturally:**
+
+1. **Bridge daemon (NEW)**: `host-executor-bridge.sh --daemon` runs as a standalone tmux window, polling every 5s for signal files. This replaces the dead `event-watcher.sh` as the host-side signal file processor. The bridge has a heartbeat file for health monitoring.
+
+2. **Sibling deadlock (FIXED)**: `orchestrate.py` now counts ALL evaluated siblings (including blocked ones) against the sibling_count threshold. Previously, blocked siblings were excluded from the filter, causing the count to always fall short.
+
+3. **Chain predecessor deadlock (FIXED)**: `chain_predecessor_done()` now treats a blocked predecessor as "done" — if it's permanently blocked, downstream tasks can execute independently.
+
+4. **Self-healing additions**: Two new TTL mechanisms:
+   - Diagnose exhaustion TTL (2h): tasks that exhaust `max_diagnose_attempts` auto-heal after 2h
+   - Decomposed parent staleness (1h): parents with all-terminal children auto-close after 1h
+
+5. **Flask bind fix**: Webhook server now binds to `0.0.0.0` (was `127.0.0.1`), allowing Pulse container to deliver webhooks via Docker network.
+
+6. **Score.py absorbed**: Pipeline-watcher now fires `score.py` on `task:created` webhooks, eliminating event-watcher as the intermediary.
+
+7. **Launch script unified**: Bridge daemon auto-starts with the Jarvis tmux session, has `--restart bridge` support, and appears in health checks.
+
+**What's still separate (by design)**: `dispatcher.sh` handles registry.yaml scheduled jobs (analytics, health checks, digests) — a completely different job population from the Pulse task FSM. It stays as a launchd agent.
+
+### 2026-05-29 [014bccb70321]
+
+**Why the windows look empty**: Claude CLI with `--output-format json` redirects all output to stdout (piped to a file), so the tmux pane shows nothing. The `capture-pane` command sees a blank screen, but the process tree reveals active Claude processes with full argument lists. The diagnostic signal is `ps` on `pane_pid` children, not `capture-pane` content.
+
+**Chain topology visible**: Parent tasks get `--session-id` (cold start), children get `-r <parent-session> --fork-session` (cache-efficient per api_aware.md §9.1). The extend-then-fork pattern from Phase 2 is live.
+
+### 2026-05-29 [76147260e6be]
+
+**The reviewer's perspective mismatch**: The executor runs on the host (Claude CLI via signal delegation) and creates files at host paths. The reviewer runs inside Docker (qwen3:32b via Ollama) and checks the filesystem from the container's perspective. The file at `/Users/nathanielcannon/Claude/Alfred-Dev/output/pipeline-probe/probe-test.txt` is visible on the host but inside the container it's at `/workspace/output/pipeline-probe/probe-test.txt`. The reviewer doesn't know to translate.
+
+This is the same `/workspace` ↔ host path duality but in reverse — the executor prompt was fixed, but the reviewer's filesystem verification still uses Docker-internal paths.
+
+### 2026-05-29 [8e7a984cdd15]
+
+- **Two-source cross-check is critical here**: the force-loaded `session-state.md` P-block still names P1.5/P1.6 as live, but those completed weeks ago — the *actual* current work lives in `.scratchpad.md` (2026-05-29 entry) and `.claude/plans/cozy-squishing-galaxy.md`. This is the exact failure mode self-corrections logs on 2026-04-24 and 2026-05-06: trust scratchpad + recent conversation over the older `session-state.md` paragraph.
+- **Empirical grounding paid off**: scratchpad claimed "6 active Claude CLI processes confirmed via pgrep" — that was true *hours ago*. Live `pgrep` shows zero `claude -p` processes now; the burst completed. The pipeline container itself is `Up 19 minutes (healthy)`, so it restarted recently. Per `api_aware.md §10.1`, trusting the snapshot would have produced a wrong report.
+- **The "sessions" prompt is ambiguous** — could be a stray fragment, or could be requesting the prior-session RAG roll-up. I executed both the protocol queries and a focused RAG `sessions` lookup so the answer covers either reading.
+
+### 2026-05-29 [d191c17532a7]
+
+**Fork-from-Jarvis: mixed results — cache sharing works but model inheritance is the wrong trade-off.**
+
+| Metric | v3 (cold Sonnet ×3) | v4 (fork Opus ×1) | Winner |
+|--------|
+
+### 2026-05-29 [52d056550856]
+
+**Fork-from-Jarvis with forced Sonnet: $0.30 vs $0.20 cold — 50% more expensive, but 3× faster and simpler.**
+
+The cache sharing partially worked: the fork inherited 72K cache_read from the Jarvis prefix. But it also wrote 73K cache_write — the Sonnet model's project-context registration is different from Opus's, so the prefix didn't fully transfer. This is the model-switch cache penalty the user predicted.
+
+**The critical finding**: when you fork a session and switch models (`--resume opus-session --fork-session --model sonnet`), the cache prefix from the parent is NOT reusable by the child because the model change invalidates the cache. The child pays the full cache_write tax again. The 72K cache_read seen here is likely the CC harness boilerplate (system prompt, tool catalog) that IS model-independent, not the project context.
+
+**The optimal configuration** would be: maintain a warm Sonnet session in the Alfred-Dev project specifically for pipeline forks (same model, same project = full cache reuse). The Jarvis Opus session is the wrong fork parent because of the model mismatch.
+
+### 2026-05-29 [8d74783c3602]
+
+**The test system evolved organically alongside the pipeline but never got its own architecture.** The result: 150+ files spanning 6 directories with no index, no validation tracking, and no visibility layer. 60% of tests target code that was replaced in the 2026-05-28 refactor (dispatcher.sh, executor.sh, pipeline-runner.sh, team-runner.py). The remaining 40% covers individual pipeline services but has zero coverage of the chain-executor architecture that now runs all executions.
+
+**The catalog + dashboard closes the visibility gap.** `_catalog.yaml` is both human-readable documentation and machine-readable API source. The Test Cockpit page gives operators a single view of what's tested, what's passing, what's stale, and a button to run any suite. This is the foundation for the battery of tests that will finalize the pipeline.
+
+### 2026-05-29 [022bd77ca975]
+
+**Test Suite System — Final State:**
+
+The pipeline test infrastructure went from "60% dead tests, zero visibility" to a formalized, API-driven, dashboard-visible system:
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Active suites | 1 (gospel-synopsis) | **10** |
+| Components covered | 7/19 (37%) | **17/19 (89%)** |
+| Validation records | 0 | **10** (all with timestamps + notes) |
+| Dashboard visibility | None | **Test Cockpit** (suite cards, coverage matrix, run buttons) |
+| Deprecated/archived | Mixed with active | **6 deprecated**, cataloged with reasons |
+
+**Three key findings from test execution:**
+1. **Claude instances are too smart to fail intentionally** — tasks designed to produce wrong output were corrected by the executor. Testing reviewer failure paths requires deterministic (non-LLM) fault injection, not misleading task descriptions.
+2. **The sentinel timeout mechanism works correctly** — 1-minute timeout override via `metadata.timeout_minutes` propagated through executor → bridge → sentinel wait loop. First attempt timed out, diagnose corrected, second attempt succeeded.
+3. **Chain predecessor ordering is validated** — 3-child decomposition executed sequentially (Child 1 → unblock → Child 2 → unblock → Child 3), with correct `blocked:yes/reason:dependency` labels and automatic unblocking after predecessor closure.
+
+### 2026-05-29 [06eeafb0f0a4]
+
+**Per §0 of api_aware.md**: burn weight (61%) is the primary metric. We have ~39pp of headroom before `allowed_warning` at 90%. Each probe task exercised through the pipeline costs approximately 1-2 API calls from the pipeline side (Ollama handles staging/evaluate/review), but the chain-executor forks a full Claude Code session which does use Anthropic API for execution. The baseline measurement from these manual runs will quantify the per-task burn weight delta.
+
+**For accurate baselining**: note the 61% util mark right now. After each suite run, query `unified_5h_utilization` again and take the delta. That delta — not dollars or tokens — is the meaningful cost signal for pipeline task estimation.
+
+### 2026-05-29 [cc76200db6fb]
+
+**Why only +1pp for a full pipeline run?** Most of the pipeline work (staging, evaluation, orchestration) runs through Ollama locally — zero Anthropic API cost. Only the chain-executor phase uses Claude (via the forked seed session), and with the warm-seed architecture it hits cache heavily (571K cache_read vs only 12.8K cache_write). The 9 API calls are the executor's tool-use loop (Read/Write/Bash calls), each reusing the cached conversation prefix.
+
+**Token signature**: `input_tokens: 18` confirms near-perfect cache hits — the seed session's prefix is fully cached and each continuation adds essentially nothing new to the input.
+
+### 2026-05-29 [15b37b192076]
+
+The `lifecycle-exhausted` edge case reveals a gap in the pipeline FSM: when a child task exhausts its diagnose/retry budget, it gets labeled `blocked:yes, reason:lifecycle-exhausted` but stays `status: open`. The pipeline-watcher correctly refuses to re-process it but logs about it every cycle (30s). A cleaner design would auto-close lifecycle-exhausted tasks with a terminal status, or at minimum suppress repeated logging for tasks it's already declined. Worth a ticket if this pattern recurs.
+
+### 2026-05-29 [8dd42208ca21]
+
+**Why this pattern exists and why it's common**: In event-sourced or label-based state machines, the "terminal state" is often modeled as just another state transition, not as a fundamentally different kind of operation. But terminal states ARE different — they represent the end of the entity's lifecycle. Labels that encode "where in the pipeline am I?" become noise once the answer is "nowhere — I'm done." The fix treats close as a lifecycle boundary that strips process-state labels while preserving identity-state labels. This is the same distinction as "transient vs intrinsic attributes" in entity modeling.
+
+**The `_sync_stage_label` gap was a clue**: The pipeline-watcher already had code at line 915 that *skipped* syncing `stage:*` labels for closed tasks — it knew they were irrelevant. But instead of cleaning them up, it just ignored them. The dashboard then faithfully rendered labels that the pipeline-watcher had decided not to maintain.
+
+### 2026-05-29 [b02e8ce2fc01]
+
+**The lifecycle gap is clear now.** Here's how tasks flow and where cleanup breaks:
+
+1. **executor.py** writes `execute-request-*.json` → bridge picks it up
+2. **host-executor-bridge** creates/reuses a chain window → injects prompt → waits for sentinel
+3. **Claude in the chain window** does the work → writes sentinel → bridge captures result
+4. **Bridge** writes `execute-result-*.json` → executor.py picks it up → executor sets labels
+5. **Cleanup only happens in two places:**
+   - `cleanup_chain_window()` is called for ephemeral chains (no chain_id) at line 303-304
+   - The bridge daemon's SIGTERM trap cleans all windows on shutdown at lines 334-348
+
+**What's missing**: For tasks WITH a `chain_id` (decomposed subtasks), the bridge intentionally keeps the window alive because siblings may need it. But once all siblings complete and the parent closes, nobody calls `cleanup_chain_window()`. The pipeline-watcher auto-closes the parent but doesn't signal the bridge to clean up the window.
+
+### 2026-05-29 [7bd06a8d347d]
+
+**Why a reaper is better than event-driven cleanup here**: The alternative was to have the pipeline-watcher notify the bridge when a parent task closes. But that couples two independent systems and doesn't catch all failure modes (crashed Claude, killed processes, bridge restart). The reaper operates on ground truth — "is Claude running in this window?" — and catches every scenario. It's the same pattern as process supervisors: don't trust state machines to track process lifecycle, just check if the process is alive.
+
+**The three completion signals and their relationship**: 
+- **Claude's sentinel** (file on disk) → signals the bridge that work is done
+- **Bridge's result file** (`execute-result-*.json`) → signals executor.py that output is ready
+- **Pulse labels** (`completed:done`, `status: closed`) → signals the pipeline-watcher that the task is terminal
+
+These are a relay chain, not parallel signals. Each depends on the previous. The gap was that the relay stopped at label transition — nobody relayed back to the tmux layer. The reaper short-circuits this by checking the tmux layer directly.
+
+### 2026-05-29 [6903a7d16e4d]
+
+**Timing analysis of the three-strike reaper:**
+
+| Cycle | Interval | Idle state | Action |
+|-------|
+
+### 2026-05-29 [522a4cfdcb86]
+
+**Root cause of the reaper bypass**: Claude Code hasn't actually exited. The process (PID 53571/5956) is still alive in state `Ss+` (sleeping, session leader, foreground). It has a child Docker MCP gateway container running. Claude completed the task, wrote the sentinel, and returned to its **interactive prompt** — it's sitting there waiting for the next user message. This is by design: `claude --resume --fork-session` creates an interactive session, not a one-shot.
+
+The earlier "NO CLAUDE" detection during the stale window cleanup was against windows where Claude had truly crashed or the session was much older. These fresh sessions are healthy — Claude is idle at its prompt, not dead.
+
+**This means the reaper's detection heuristic is correct**: `_claude_running_in_window` properly returns true because Claude IS running. The sessions aren't dead — they're idle but alive. The three-strike idle counter would never fire because Claude never stops running.
+
+### 2026-05-29 [5bf7ff9fbb80]
+
+**The conditional-update path was the actual production close path all along.** The reviewer uses `conditional-update` with `status: "closed"` rather than `POST /close` or a named transition. This is architecturally sound — the reviewer needs the CAS (compare-and-swap) semantics of `conditional-update` to avoid racing with the diagnose service. But it meant the close path most heavily used in production was the last one to get label cleanup. The lesson: when adding cross-cutting behavior to an API, search for ALL callers of the underlying database mutation (`status = 'closed'`), not just the endpoints that look like they should be responsible for closing.
+
+### 2026-05-29 [de20fb97276a]
+
+**Only 2 API calls** this time vs 9 earlier — the chain window forked from a warmer seed session, so the cache prefix was nearly fully reused. Cache write is just 653 tokens (vs 12.8K earlier), meaning almost everything matched cache. The +2pp burn weight delta is a cleaner baseline than the earlier +1pp reading, since that one was confounded by JICM cycle overhead.
+
+**All three fixes validated in one run**: FSM labels stripped on close (via `conditional-update`), chain window reaped by activity-timeout signal, and dashboard correctly shows the task in Completed.
+
+### 2026-05-30 [54d648b0e6d1]
+
+**The `useRef` + `useEffect` pattern for prop-driven state**: React's `useState(initialValue)` only reads the initial value on mount — subsequent prop changes are ignored. For a "default that can be overridden by user interaction but also responds to prop changes," you need to track the previous prop value via `useRef` and sync via `useEffect`. This avoids the anti-pattern of putting the prop directly in state deps (which would override user clicks). The ref tracks what the *system* last told us; the state tracks what the *user* chose. When the system changes its mind (recent-close window expires), we re-assert the default.
+
+**The 60-second window**: The dashboard refetches every 10 seconds (React Query default). After 60 seconds, the `closed_at` timestamp falls outside the threshold, `recentlyClosedGroupNames` drops the group name, `defaultCollapsed` flips to `true`, and the effect collapses the group. The user sees: task closes → group expands → ~60s passes → group quietly collapses back.
+
+### 2026-05-30 [90a9d2470537]
+
+**First call in a new window paid the cold-cache tax.** The first API call shows `cache_read: 0, cache_write: 222,677` — the full project context written to cache from scratch. Subsequent calls then hit cache normally (222K+ cache_read). This is the pattern described in `api_aware.md §7.1`: a fresh subprocess pays the cache-registration tax. Cost is $4.22 for that first call alone vs $0.35-0.41 for the follow-ups.
+
+**The $5.37 total is inflated by window position**, not suite complexity. The same suite mid-window (warm cache) would cost ~$1-2. This is why burn weight (not dollars) is the meaningful metric — the +1pp delta is the true resource cost.
+
+**No decomposition is actually a positive signal**: the orchestrator evaluated the task and determined that creating three files sequentially didn't require subtask decomposition — a single executor could handle it. This is the orchestrator working correctly for simple multi-step tasks.
+
+### 2026-05-30 [45264fcfbdc6]
+
+**Why this gap existed**: The pipeline was designed as a Docker-first system where the executor ran `claude -p` subprocesses with explicit `--model` flags. The signal-delegation architecture (bridge + chain-executor) was added later as a cost optimization — it reuses warm interactive sessions instead of cold subprocesses. But the telemetry layer was never updated to account for the indirection: executor.py still recorded what it *would have* run, not what the bridge *actually* ran. The bridge was a transparent proxy that returned results without attribution.
+
+**The structural issue remains**: there's no centralized model registry. Five services each resolve their model independently. A future improvement would be a `models.yaml` or per-task `model` field in Pulse that all services read — but that's a larger design change. Today's fix ensures the observability layer accurately reflects what happened, even if the configuration is scattered.
