@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: **SYSTEM DESIGN REVIEW COMPLETE; PIPELINE EXECUTOR BLOCKED ON AUTH**. Full infrastructure audit committed to `Alfred-Dev/docs/system-design-review-2026-05-28.md` (629 lines, 10 sections, 7 design principles, 5-phase roadmap). Earlier this session: phantom traffic forensic (4 phases DONE, 3241 runaway executions fixed), full Ollama migration (7/8 registry jobs → Ollama, Claude reduced to event-driven fallback), pipeline Dockerfile non-root fix. 32 tasks unblocked + 12 executor_attempts reset. Pipeline-watcher container STOPPED pending executor auth redesign (Claude Code can't auth in Docker on Max plan — needs signal-file delegation to host-side claude-interactive engine). PROD stack identified for shutdown (0 tasks). Next: Phase A cleanup (unload dead launchd, stop PROD, prune Docker), then Phase B self-healing ticket FSM.
-**Date**: 2026-05-28
-**Version**: v5.12.0
+**Status**: **PIPELINE v2 OPERATIONAL — TEST COCKPIT + TELEMETRY LIVE**. Chain-executor architecture replaces headless `claude -p` with managed interactive CLI sessions (125× cache_write reduction). 10 active test suites, all passing. Automated telemetry capture on task close via chain-attributed `session_id` in `api_requests`. Test Cockpit dashboard shows burn weight badges, 5hr window gauge, per-suite cost. Full parallel batch run validated (10 suites concurrent, 73pp total burn, 75% cost attribution). Usage proxy breach fixed (all chain forks now route through `:9800`).
+**Date**: 2026-06-04
+**Version**: v5.12.1
 **Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis.
-**Last commit (Jarvis)**: `9388a88` (chore: scratchpad update).
-**Last commit (Alfred-Dev)**: `1fde294` on feature/personas-rebuild (Ollama migration + pipeline fixes + non-root container). NOT YET PUSHED upstream.
+**Last commit (Jarvis)**: `aa6133a` (chore: context state update).
+**Last commit (Alfred-Dev)**: `b36fd13` on feature/personas-rebuild (telemetry capture + burn weight dashboard). Pushed to CannonCoPilot/Alfred.
 **Quota**: active session.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)
@@ -56,7 +56,18 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - Live restart still needed for pipeline-watcher PID 94229 (running pre-P1.6 code since Thursday)
 - Reports: `projects/project-aion/reports/p1-dashboard-personas-decisions-2026-05-04.md`, `pulse-nexus-boundary-audit-2026-05-05.md`
 
-### P1.B1.1 [Boundary] (NEW 2026-05-05, surfaced by audit): Pulse observability READ API
+### P1.7 [Nexus] (COMPLETE 2026-05-28→06-04): Pipeline v2 — Chain Executor + Test System
+- Signal-file delegation: executor.py writes request, host-executor-bridge.sh picks up (replaces `claude -p`)
+- Chain-executor: warm seed session → per-chain forked windows → tmux paste-buffer injection → sentinel file completion
+- 10 active test suites (P0: probe-simple, probe-file-verify, chain-decomposition; P1: reviewer-pass-fail, self-healing-cycle, sentinel-timeout, label-fsm, chain-predecessor; P2: multi-chain-parallel, gospel-synopsis)
+- Test Cockpit dashboard: `/test-cockpit` with suite cards, run button, coverage matrix, metrics panel
+- Chain-level API attribution via `x-aion-session-id` custom headers → `api_requests.session_id`
+- `test_run_telemetry` table with auto-capture hook on task close + backfill endpoint
+- Frontend: BurnBadge on cards, BurnGauge (5hr window bar), summary burn stats
+- Usage proxy breach fixed: all 4 launch points in bridge + chain-executor now export `ANTHROPIC_BASE_URL`
+- Alfred-Dev commits: `84c2810`→`b36fd13` (13 commits, feature/personas-rebuild)
+
+### P1.B1.1 [Boundary] (OPEN): Pulse observability READ API
 - Add 5 GET endpoints to pulse/app.py to symmetrize the P1.5 write API
 - Refactor dashboard/server/services/pulse-events.ts to consume Pulse API; drop pg dependency
 - ~3-4 hr. Repairs the P1.B1 boundary violation.
@@ -75,16 +86,9 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - Paused pending P1 completion
 
 ## Live processes
-- W1 Watcher: PID 5322 (with C1 fix), alive since 15:21:21
-- W7 HUD: PID 32998 (with refresh_tokens_from_jsonl)
-
-## Active gates
-See `.active-plan` `gates:` block for full schedule. Key fires:
-- 2026-05-06T00:09:29Z: Phase 2 CoD Stage-1 verdict
-- 2026-05-09: Phase 1.3.5 Stage-2 fixture tag Day 7
-- 2026-05-15: Phase 1.1 sample-sufficiency check
-- 2026-05-16: Phase 1.3.5 Stage-2 formal sign-off
-- 2026-05-18: Phase 2 CoD Stage-2 formal verdict
+- W1 Watcher: JICM v7.9
+- W9 Bridge: host-executor-bridge.sh --daemon (chain-executor dispatch)
+- AlfDev-Seed: warm Claude session for chain forks
 
 ## Notes
 - MCPs configured: 3 active (jarvis-rag, jarvis-graphiti, jarvis-pulse) + 4 disabled in `.mcp.json.disabled-2026-05-04` backup. Current session still has 7 loaded (MCP changes apply on next restart).

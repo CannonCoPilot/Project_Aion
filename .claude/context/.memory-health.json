@@ -1,21 +1,21 @@
 {
-  "timestamp": "2026-05-30T03:02:45.121Z",
+  "timestamp": "2026-06-04T19:16:35.095Z",
   "layers": {
     "L1_sensory": {
       "status": "warn",
-      "insights_bytes": 156242,
-      "insights_lines": 1478,
+      "insights_bytes": 162311,
+      "insights_lines": 1524,
       "corrections_lines": 2,
-      "jsonl_sessions": 482
+      "jsonl_sessions": 474
     },
     "L2_working": {
       "status": "warn",
       "scratchpad_lines": 60,
-      "session_state_age_min": 1808
+      "session_state_age_min": 9982
     },
     "L3_shortterm": {
       "status": "ok",
-      "checkpoint_age_min": 52,
+      "checkpoint_age_min": 8225,
       "checkpoint_bytes": 9260,
       "archive_count": 0
     },
@@ -32,17 +32,18 @@
       "reference_count": 11
     },
     "L6_meta": {
-      "status": "ok",
-      "tokens": 106183,
-      "used_pct": 10,
+      "status": "warn",
+      "tokens": 252214,
+      "used_pct": 25,
       "action": "WATCHING",
-      "cache_hit_rate": 0.9955,
+      "cache_hit_rate": 0.9967,
       "hard_threshold": 300000,
       "state_age_min": 0
     }
   },
   "overall": "warn",
   "warnings": [
-    "L1: insights-log at 1478 lines (cap: 200)"
+    "L1: insights-log at 1524 lines (cap: 200)",
+    "L6: Context at 252k — approaching threshold"
   ]
 }

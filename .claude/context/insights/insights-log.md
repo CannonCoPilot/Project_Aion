@@ -1475,3 +1475,49 @@ The earlier "NO CLAUDE" detection during the stale window cleanup was against wi
 **Why this gap existed**: The pipeline was designed as a Docker-first system where the executor ran `claude -p` subprocesses with explicit `--model` flags. The signal-delegation architecture (bridge + chain-executor) was added later as a cost optimization — it reuses warm interactive sessions instead of cold subprocesses. But the telemetry layer was never updated to account for the indirection: executor.py still recorded what it *would have* run, not what the bridge *actually* ran. The bridge was a transparent proxy that returned results without attribution.
 
 **The structural issue remains**: there's no centralized model registry. Five services each resolve their model independently. A future improvement would be a `models.yaml` or per-task `model` field in Pulse that all services read — but that's a larger design change. Today's fix ensures the observability layer accurately reflects what happened, even if the configuration is scattered.
+
+### 2026-05-30 [4bb45e50851a]
+
+**What changed**: The metrics endpoint now cross-references `api_requests` with `tasks` by time bracketing — for each closed test task, it finds the `unified_5h_utilization` immediately before and after the task's execution window, computes the delta as burn weight in percentage points, and sums cost/token volumes from API calls within that window. The frontend displays this as a second stats row (Avg Burn Weight, Total Burn Weight, Avg Cost, Total Cost) plus per-run inline details (burn delta, API calls, cost, token breakdown).
+
+**Important caveat**: The burn weight attribution is approximate because concurrent Jarvis IDE traffic shares the same util ramp. The per-run `burn_weight_pp` of 0pp for the latest self-healing-cycle run means the suite itself was lightweight enough that the util reading didn't move between pre/post readings at 1pp granularity. The earlier run (8pp, signal-delegation engine) included heavier cold-start overhead.
+
+### 2026-05-30 [7e9a865f7d77]
+
+**Root cause**: `tmux new-window` spawns a new shell that sources `~/.zshrc` but gets NO inherited environment from the parent process that called `tmux new-window`. The bridge script (`host-executor-bridge.sh`) never exports `ANTHROPIC_BASE_URL` before launching — and even if it did, `tmux new-window` with a command string runs in a fresh shell, not a child process of the bridge. The only ways to propagate are: (1) set it in the command string itself, (2) set it in `tmux set-environment`, or (3) set it in `~/.zshrc`.
+
+**Impact**: Every chain-executor and seed session run is invisible to the usage proxy. Token counts, cost, and request metadata are lost. Burn weight deltas are still observable (the Anthropic API itself tracks utilization regardless of proxy), but granular attribution is impossible.
+
+### 2026-05-30 [66b4d6c278ad]
+
+**The breach**: `tmux new-window "cd /path && claude ..."` spawns a fresh shell. Environment variables from the calling process do NOT propagate — `tmux new-window` is not `fork()`, it's a new login shell. The old `executor.sh` explicitly set `export ANTHROPIC_BASE_URL` at the top of its script (lines 22 and 1098), but when the chain-executor and bridge were written as replacements, that pattern wasn't carried forward. Every pipeline execution since the chain-executor was introduced has been invisible to the proxy.
+
+**The fix**: Inject `export ANTHROPIC_BASE_URL=http://localhost:9800 &&` into the command string passed to `tmux new-window` at all 4 launch points (2 in `chain-executor.sh`, 2 in `host-executor-bridge.sh`). The existing seed session will need to be killed and re-created to pick up the change — existing tmux windows won't retroactively gain the env var.
+
+### 2026-05-30 [36d1182bdef5]
+
+**Why the multi-chain-parallel run still showed 0 api_calls**: The bridge daemon (PID 12771) was launched before the fix and was running old code from memory. Bash reads the script once at launch — disk edits to a running daemon have no effect. The seed window WAS correctly proxy-routed (we launched it manually with the env var), but the bridge forked new chain windows from the seed using the OLD code path that omitted `ANTHROPIC_BASE_URL`. So the forked sessions went direct. Classic "daemon must be restarted after code changes" scenario.
+
+### 2026-05-30 [633d284aa821]
+
+YAML's colon-as-mapping rule is subtle: `- foo:bar` parses as the string `"foo:bar"`, but `- foo: bar` (with space after colon) parses as the mapping `{foo: "bar"}`. The FSM label entries like `staging:wait → staging:processing` survive because the colon has no trailing space before the next word. Only `stage: label progression` had the `key: value` pattern.
+
+### 2026-05-30 [5b012572bd03]
+
+**Two compounding issues**:
+1. **Executor timeout too short**: The Gospel Synopsis task involves reading multiple source files, identifying parallel passages, merging 5+ synopsis documents, and generating a master document. The 10-minute default timeout (`timeout_minutes` in executor.py) is insufficient. The chain window is actively producing output but can't finish within the deadline.
+2. **DNS loss after Pulse restart**: When I restarted the Pulse container via `docker run` (instead of compose), the pipeline container lost DNS resolution for `pulse` because Docker DNS aliases aren't retroactive — the pipeline container cached the old IP. The pipeline-watcher crashed in a DNS-failure loop at 03:00 UTC and stayed dead until I just restarted it.
+
+**The task is still executing** in `chain-eb7a573d` and should finish. Once the sentinel lands, I'll manually close the task since the pipeline has already given up on it.
+
+### 2026-05-30 [386b27ee3af5]
+
+**The attribution gap**: Claude Code creates unique session IDs internally (that's what `--fork-session` produces), but it does NOT pass that session ID through the Anthropic API's `metadata` field. The Anthropic messages API supports `metadata: { user_id: string }` but Claude Code doesn't populate it. Our proxy looks for `metadata.session_id` in the request body — it's just never there.
+
+**The fix path**: We can inject the session ID via `ANTHROPIC_CUSTOM_HEADERS` with `x-aion-session-id=<session-uuid>`. The proxy already reads that header (line 337). The bridge knows the session ID from the seed file — it just needs to set the header before launching each fork.
+
+### 2026-05-30 [ed7695b14319]
+
+**What we wired up**: `ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-<chain_id>'` is now exported in every forked Claude session. Claude Code passes custom headers through to its Anthropic API requests. The proxy extracts `x-aion-session-id` from request headers and stores it in `api_requests.session_id`. This means every API call from a chain fork is now tagged with its chain_id, enabling clean per-chain (and therefore per-suite) attribution even with concurrent overlapping execution.
+
+**The attribution chain**: Task → chain_id (in task metadata) → `session_id` in api_requests → GROUP BY session_id = per-chain cost/tokens/calls.
