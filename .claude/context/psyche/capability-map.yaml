@@ -22,9 +22,8 @@ skills:
   - {id: skill.research-ops,     model: opus,   when: "multi-source research, 15 backends",         file: .claude/skills/research-ops/SKILL.md}
   - {id: skill.knowledge-ops,    model: opus,   when: "4-tier memory: dynamic/static KG, RAG, docs", file: .claude/skills/knowledge-ops/SKILL.md}
 
-  # Tasks + collaboration
+  # Tasks
   - {id: skill.pulse-ops,        model: haiku,  when: "Pulse task create/list/update/close",         file: .claude/skills/pulse-ops/SKILL.md}
-  - {id: skill.projectintel-ops, model: haiku,  when: "ProjectIntel: debriefs, questions, status, Loom", file: .claude/skills/projectintel-ops/SKILL.md}
 
 agents:
   - {id: agent.deep-research,    model: opus,   when: "thorough research with citations",        file: .claude/agents/deep-research.md}

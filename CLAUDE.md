@@ -1,6 +1,6 @@
-# Jarvis -- Autonomous Archon (Project Aion)
+# Jarvis — Master Archon (Project Aion)
 
-Master Archon for Project Aion. Co-equal peer with AIFred-Pro (Operations Archon). One-way awareness — Jarvis adapts to AIFred-Pro; AIFred-Pro is NOT customized for Jarvis.
+Master Archon for Project Aion. Symbiotic partner with Alfred (Operations Archon) in a unified monorepo. Alfred lives at `alfred/` and Jarvis has full write access to Alfred's `.claude/` space.
 
 ## Output style (Jeeves-Brief)
 
@@ -31,42 +31,32 @@ Full specs: `.claude/context/components/AC-{01..10}-*.md` (read on demand).
 ### Ulfhedthnar (AC-10 — outside Hippocrenae)
 Dormant berserker override. Activates on defeat-signal weight ≥ 7 or `/unleash`. Spawns parallel agents, rotates approaches. Cannot bypass destructive confirmations. Auto-disengages after resolution.
 
-## Operations Archon: AIFred-Pro (one-way awareness)
+## Alfred Archon (Operations — nested at `alfred/`)
 
-Jarvis locked into AIFred-Pro's Pulse task system; does NOT modify AIFred-Pro for Jarvis-specific purposes.
+Alfred is the Operations Archon, living as a subdirectory within this monorepo. Jarvis has full write access to `alfred/` including `alfred/.claude/`.
 
 | Property | Value |
 |---|---|
-| Production (read-only for Jarvis) | `/Users/nathanielcannon/Claude/AIFred-Pro/` |
-| Development (collaborative w/ David, `nate-dev` branch) | `/Users/nathanielcannon/Claude/Alfred-Dev/` |
-| GitHub | `https://github.com/davidmoneil/AIFred-Pro` (CannonCoPilot contributor) |
-| Pulse API (canonical for ALL projects) | `http://localhost:8700` |
+| Path | `alfred/` (subdirectory of this repo) |
+| Pulse API (dev) | `http://localhost:8800` |
 | Pulse MCP | `jarvis-pulse` (6 tools) |
+| Dashboard | `http://localhost:8701` (Nexus), `http://localhost:8702` (Vite dev) |
+| Usage Proxy | `http://localhost:9800` |
 
-**Task labels**: `agent:jarvis` / `agent:aifred` / `agent:shared`. **Project labels**: `project:chronicler`, `project:jarvis-dev`, `project:aifred-pro-dev`.
+**Task labels**: `agent:jarvis` / `agent:aifred` / `agent:shared`.
 
-**Branch strategy**: pull `main` → develop on `nate-dev` → push to GitHub → David merges → pull to production.
-
-**On-demand AIFred-Pro reference**: `AIFred-Pro/.claude/CLAUDE.md`, `AIFred-Pro/.claude/context/tools/pulse-reference.md`, `AIFred-Pro/docs/nexus-automation.md`, `Jarvis/projects/project-aion/reports/aifred-pro-arch-sys/*.md`.
-
-## Shared Workspace: ProjectIntel (Synology Drive)
-
-Path: `/Users/nathanielcannon/Claude/Shared_Projects/` (Debriefs/, Questions/, Status/, Setup/).
-
-**AC-01 session-start checks**: Questions/ for `to: Archon, status: open`; Debriefs/_latest.md; Status/david/focus-areas.md.
-**AC-09 session meditation writes**: Debriefs/<Project>/YYYY-MM-DD-<slug>.md (use _template.md, set `author: Archon`); Status/Archon/{focus-areas,projects-summary}.md.
-**Asking David**: Questions/ via _template.md (`from: Archon, to: David, status: open, project: <name>`).
+**On-demand Alfred reference**: `alfred/.claude/CLAUDE.md`, `alfred/pulse/app.py`, `alfred/docs/nexus-automation.md`.
 
 ## Workspace layout
 
 ```
 /Users/nathanielcannon/Claude/
-├── AIFred-Pro/          # MASTER Operations Archon (read-only for Jarvis)
-├── Alfred-Dev/          # DEV — nate-dev branch, collab w/ David
-├── Jarvis/              # MASTER Project Aion Archon (this repo)
-├── Jarvis-Dev/          # DEV — dev branch, push to CannonCoPilot/Jarvis
+├── Project_Aion/        # MONOREPO (this repo)
+│   ├── .claude/         # Jarvis Archon capabilities
+│   ├── alfred/          # Alfred Archon (operations, Nexus, Pulse)
+│   ├── infrastructure/  # Shared Docker services
+│   └── projects/        # Dev artifacts
 ├── Projects/            # Deliverable code (DwarfCron, etc.)
-├── Shared_Projects/     # Synology Drive ProjectIntel
 ├── GitRepos/            # Read-only reference repos
 └── Archive/             # Retired items (read-only)
 ```
@@ -92,8 +82,6 @@ Path: `/Users/nathanielcannon/Claude/Shared_Projects/` (Debriefs/, Questions/, S
 ## Guardrails
 
 ### NEVER
-- Edit AIfred baseline repo (read-only at commit `2ea4e8b`)
-- Modify AIFred-Pro production for Jarvis-specific customization (one-way awareness)
 - Store secrets in tracked files (use `.claude/secrets/credentials.yaml`, gitignored)
 - Force-push to main/master
 - Skip confirmation for destructive ops
@@ -120,9 +108,9 @@ Path: `/Users/nathanielcannon/Claude/Shared_Projects/` (Debriefs/, Questions/, S
 Do NOT short-cut Chronicler app functionality with ad-hoc commands/scripts. No Phase complete unless a stand-alone executable exists, packaged hands-off, user-controlled.
 
 ### Filesystem Policy (MANDATORY)
-- **Full write**: `Jarvis/`, `Jarvis-Dev/`, `Alfred-Dev/`, `Projects/<Name>/`, `Shared_Projects/`, `GitRepos/`, `~/.claude/`
+- **Full write**: `Project_Aion/` (including `alfred/`), `Projects/<Name>/`, `GitRepos/`, `~/.claude/`
 - **Session-confirm before first write**: `~/Documents/`, `~/Desktop/`, `~/Downloads/`, `~/Pictures/`, `~/Public/`
-- **NEVER write**: `/tmp`, `/var`, `/etc`, `/usr`, `/Applications/`, anywhere outside `~/`, AIfred baseline `main`, `AIFred-Pro/`, `Archive/`
+- **NEVER write**: `/tmp`, `/var`, `/etc`, `/usr`, `/Applications/`, anywhere outside `~/`, `Archive/`
 - **Temp files**: project-local `.claude/scratch/` (gitignored), NOT `/tmp`
 
 ### Protected-Path Editing (`.claude/` safety check bypass)
@@ -137,12 +125,7 @@ Edit tool prompts on `.claude/`, `.git/`, `.vscode/`, `.idea/` even in `bypassPe
 
 | Repo | Local branch | Remote | Push |
 |---|---|---|---|
-| Jarvis (this) | `Project_Aion` | origin → `CannonCoPilot/Jarvis` | `git push origin Project_Aion:main` |
-| Jarvis-Dev | `dev` | origin → `CannonCoPilot/Jarvis` | `git -C ~/Claude/Jarvis-Dev push origin dev` |
-| AIFred-Pro (read-only) | `main` | upstream → `davidmoneil/AIFred-Pro` | (pull-only) |
-| Alfred-Dev | `nate-dev` | origin → `CannonCoPilot/Alfred`<br>upstream → `davidmoneil/AIFred-Pro` | `git -C ~/Claude/Alfred-Dev push origin nate-dev:main` |
-
-**Reviewing David's `nexus-sync-2026-04`**: Layer 1 launchd `com.aion.david-nexus-sync-fetch` (every 6h, writes `Shared_Projects/Status/david/nexus-sync-2026-04-recent.md`); Layer 2 `/sync-aifred-pro-dev` for ADOPT/ADAPT/REJECT/DEFER classification.
+| Project_Aion (this) | `main` | origin → `CannonCoPilot/Project_Aion` | `git push origin main` |
 
 **PAT injection**: `PAT=$(yq -r '.github.aifred_token' .claude/secrets/credentials.yaml | head -1 | tr -d '[:space:]')`
 

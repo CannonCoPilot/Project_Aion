@@ -23,15 +23,8 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 
 ### P0 (COMPLETE 2026-05-04): Context-Budget Optimization + Nexus-Sync Supplant
 - **Context-Budget**: Stages 1-3 force-loaded reductions (97K→15K, -84%) + Stage 4 cull (21 skills + 6 agents + 4 MCPs disabled)
-- **Nexus-Sync Supplant**: 25 commits onto nate-dev (21 David + 4 ours):
-  - R4: baseline tag pushed (`pre-supplant-baseline-2026-05-04` @ e8ccf64)
-  - R5.1-R5.4: all 21 David commits cherry-picked (with line-by-line conflict resolution per R3-Q1)
-  - 2 our-authorship in-flight fixes: jobsdb→nexusdb completion (181a742), PROJECT_DIR tautology repair (78f5b49)
-  - R5.5: NEW `services/observability/` python package (audit/decision/cost loggers + thread_id) + wired into 6 pipeline-v2 services (1983dc0)
-  - R6: `pulse/migrations/0001-phase-5-1-observability-tables.sql` applied to pulse_dev; dual-write payloads validated against schema (bb2d453)
-  - R7: fast-forward + push to davidmoneil/AIFred-Pro nate-dev complete
-- Debrief: `Shared_Projects/Debriefs/AIFred-Pro/2026-05-04-nexus-sync-supplant-completion.md`
-- Validation: `Jarvis/projects/project-aion/reports/nexus-sync-supplant-r{1,2,6}-*.md`
+- **Nexus-Sync Supplant**: 25 commits merged (upstream cherry-picks + observability package)
+- Validation: `projects/project-aion/reports/nexus-sync-supplant-r{1,2,6}-*.md`
 
 ### P1 (COMPLETE 2026-05-04): AIFred-Pro Dev — A1 + B1-rich Dashboard
 - A1 [Nexus]: /personas page wired up (stale container recreate + parseValue inline-comment fix). 32 personas surfaced cleanly. Commit f052778. Note: dashboard reads Nexus persona YAMLs from disk — boundary leak (F-2 in audit), deferred.
@@ -44,7 +37,7 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - pulse/app.py: parse_iso_ts() helper + 3 POST endpoints (+122 LOC)
 - aifred-pulse:latest rebuilt; aifred-dev-pulse recreated --no-deps
 - End-to-end validated: python log_audit() → pulse_dev row via API path → main spool → 0-byte swallowed-errors (no fail-quiet)
-- Commit Alfred-Dev `090f6ec` on nate-dev
+- Commit `090f6ec`
 - Report: `projects/project-aion/reports/p15-pulse-observability-endpoints-2026-05-04.md`
 - Followup [Boundary]: P1.B1.1 — add symmetric Pulse READ endpoints (GET /audit/events, /audit/decisions, /costs/events, /observability/storyline/{thread_id}, /observability/stats) so dashboard can drop direct-DB access. ~3-4 hr.
 
@@ -88,7 +81,7 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 
 ### P3 [Nexus]: AIFred-Pro Dev — B2+B3 exploratory sweep
 - B2: audit-ingest env adaptation + sidecar container for cron
-- B3: David's `40290c4` orchestration graph viz already lifted; build out dashboard layer
+- B3: `40290c4` orchestration graph viz already lifted; build out dashboard layer
 - ~2-3 hr each
 
 ### Suspended: Chronicler Phase 4 — Narrative Engine
