@@ -65,16 +65,26 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - `test_run_telemetry` table with auto-capture hook on task close + backfill endpoint
 - Frontend: BurnBadge on cards, BurnGauge (5hr window bar), summary burn stats
 - Usage proxy breach fixed: all 4 launch points in bridge + chain-executor now export `ANTHROPIC_BASE_URL`
-- Alfred-Dev commits: `84c2810`→`b36fd13` (13 commits, feature/personas-rebuild)
+- Alfred-Dev commits: `84c2810`→`3a540ef` (15 commits, feature/personas-rebuild)
 
-### P1.B1.1 [Boundary] (OPEN): Pulse observability READ API
-- Add 5 GET endpoints to pulse/app.py to symmetrize the P1.5 write API
-- Refactor dashboard/server/services/pulse-events.ts to consume Pulse API; drop pg dependency
-- ~3-4 hr. Repairs the P1.B1 boundary violation.
+### P1.B1.1 [Boundary] (COMPLETE 2026-06-04): Pulse observability READ API
+- 7 GET endpoints shipped in pulse/app.py (L1526-1824): audit/events, audit/decisions, costs/events, observability/storyline, decisions/stats, threads, timeline
+- pulse-events.ts rewritten as pure HTTP client (pulseGet<T>() fetch wrapper); pg dependency dropped
+- Shipped organically during P1.7; DecisionsPage.tsx deprecated (cleanup at REO Phase 5.5)
 
-### P2 [Nexus]: Jarvis — C1 Phase 4 intelligent scheduling
-- Pure-Jarvis usage-proxy work (budget gates, priority queue, Telegram)
-- 2-3 sessions
+### P1.C [Nexus] (COMPLETE 2026-06-04): Pipeline v2 Hardening
+- C1: Cross-window burn weight fix — unified_5h_reset detection + per-window segment summing; 36 rows recomputed
+- C2: Default timeout 10→15min; per-suite timeout_override_minutes + max_budget_override_usd in catalog
+- C3: Time-bounded API attribution (timestamp >= run_start AND <= run_end); eliminated cross-suite contamination
+- C4: BurnBadge window_crossed indicator (*), BurnGauge reset boundary marker
+- Commit `36251da` on feature/personas-rebuild
+
+### P2 [Nexus] (COMPLETE 2026-06-04): Intelligent Scheduling
+- B1: Pre-flight burn gate in event-watcher.sh (80% warn, 85% skip, 90% critical)
+- B2: Priority label support (priority:high/normal/low) in orchestrate.py sort keys
+- B3: System overload detector in observation_tunnel.py (30s-cached Pulse API util fetch)
+- Alerts via msgbus → Telegram (existing plumbing, no new notification infra)
+- Commit `3a540ef` on feature/personas-rebuild
 
 ### P3 [Nexus]: AIFred-Pro Dev — B2+B3 exploratory sweep
 - B2: audit-ingest env adaptation + sidecar container for cron
