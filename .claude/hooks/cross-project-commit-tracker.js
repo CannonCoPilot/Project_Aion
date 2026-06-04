@@ -31,7 +31,7 @@ const HOME = os.homedir();
 const PROJECT_MAPPINGS = [
   // Jarvis - Master Archon (Project Aion)
   {
-    pathPattern: new RegExp(`^${HOME}/Claude/Jarvis`),
+    pathPattern: new RegExp(`^${HOME}/Claude/Project_Aion`),
     name: 'Jarvis',
     github: 'Jarvis',
     type: 'archon'

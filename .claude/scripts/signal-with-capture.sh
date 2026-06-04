@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 OUTPUT_FILE="$PROJECT_DIR/.claude/context/.command-output"
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"

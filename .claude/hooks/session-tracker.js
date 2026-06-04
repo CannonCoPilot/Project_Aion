@@ -18,7 +18,7 @@ const fs = require('fs').promises;
 const path = require('path');
 
 // Configuration
-const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Jarvis');
+const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Project_Aion');
 const LOG_DIR = path.join(WORKSPACE_ROOT, '.claude/logs');
 const LOG_FILE = path.join(LOG_DIR, 'session-events.jsonl');
 

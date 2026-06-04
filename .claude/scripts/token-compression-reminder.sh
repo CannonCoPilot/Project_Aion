@@ -7,8 +7,8 @@ set -u
 
 LABEL="com.aion.token-compression-reminder"
 PLIST="$HOME/Library/LaunchAgents/${LABEL}.plist"
-TASK_DOC="/Users/nathanielcannon/Claude/Jarvis/.claude/metrics/token-compression/manual-capture-task.md"
-LOG="/Users/nathanielcannon/Claude/Jarvis/.claude/logs/token-compression-reminder.log"
+TASK_DOC="/Users/nathanielcannon/Claude/Project_Aion/.claude/metrics/token-compression/manual-capture-task.md"
+LOG="/Users/nathanielcannon/Claude/Project_Aion/.claude/logs/token-compression-reminder.log"
 
 echo "[$(date)] Reminder fired" >> "$LOG"
 

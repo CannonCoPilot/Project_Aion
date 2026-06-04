@@ -4,7 +4,7 @@
 # Usage: ./organization-auditor.sh
 # bash 3.2 compatible (macOS)
 
-JARVIS_ROOT="$HOME/Claude/Jarvis"
+JARVIS_ROOT="$HOME/Claude/Project_Aion"
 CLAUDE_DIR="$JARVIS_ROOT/.claude"
 REPORT_DIR="$CLAUDE_DIR/reports/maintenance"
 

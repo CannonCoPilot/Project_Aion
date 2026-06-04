@@ -24,7 +24,7 @@ trap 'echo "[ERR] Line $LINENO (exit $?)" >&2' ERR
 # CONFIGURATION
 # =============================================================================
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"
 TMUX_TARGET="${TMUX_SESSION}:0"

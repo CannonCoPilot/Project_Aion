@@ -22,7 +22,7 @@
 set -euo pipefail
 
 # Configuration
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 SIGNAL_FILE="$PROJECT_DIR/.claude/context/.command-signal"
 
 # Supported commands (for validation - ALLOWLIST approach for shorthand functions)

@@ -16,7 +16,7 @@
 
 set -e
 
-PROJECT_PATH="$HOME/Claude/Jarvis"
+PROJECT_PATH="$HOME/Claude/Project_Aion"
 SESSION_STATE="$PROJECT_PATH/.claude/context/session-state.md"
 CONFIG_FILE="$HOME/.claude.json"
 

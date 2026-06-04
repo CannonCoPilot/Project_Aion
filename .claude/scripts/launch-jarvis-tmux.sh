@@ -45,8 +45,8 @@
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-jarvis}"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
-# Derive Claude project directory slug from PROJECT_DIR (e.g. /Users/foo/Claude/Jarvis → -Users-foo-Claude-Jarvis)
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
+# Derive Claude project directory slug from PROJECT_DIR (e.g. /Users/foo/Claude/Project_Aion → -Users-foo-Claude-Jarvis)
 CLAUDE_PROJECT_SLUG="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
 
 # Deterministic session UUIDs — pinned per-window for --fresh mode and exclusion filtering

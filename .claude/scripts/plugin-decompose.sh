@@ -7,7 +7,7 @@
 set -euo pipefail
 
 # Configuration
-JARVIS_ROOT="$HOME/Claude/Jarvis"
+JARVIS_ROOT="$HOME/Claude/Project_Aion"
 PLUGINS_ROOT="$HOME/.claude/plugins"
 CACHE_DIR="$PLUGINS_ROOT/cache"
 MARKETPLACES_DIR="$PLUGINS_ROOT/marketplaces"

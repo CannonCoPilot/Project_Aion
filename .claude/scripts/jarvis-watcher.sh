@@ -189,7 +189,7 @@ trap 'echo "$(date +%H:%M:%S) [ERR] Script failed at line $LINENO (exit code: $?
 # CONFIGURATION
 # =============================================================================
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"
 TMUX_TARGET="${TMUX_SESSION}:0"

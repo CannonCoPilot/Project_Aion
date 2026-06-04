@@ -17,7 +17,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 CONTEXT_FILE="$PROJECT_DIR/.claude/context/.statusline-context.json"
 DISPLAY_FILE="$PROJECT_DIR/.claude/context/.context-display.txt"
 

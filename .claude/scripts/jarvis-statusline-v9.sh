@@ -56,7 +56,7 @@ echo "$$" > "$LOCK_FILE"
 trap 'rm -f "$LOCK_FILE"' EXIT INT TERM
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────
-SL_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+SL_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 SL_STATE_FILE="$SL_PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 SL_NLP_FILE="$SL_PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
 SL_PULSE_CACHE="/tmp/jarvis-statusline-pulse.cache"
@@ -122,7 +122,7 @@ DEMO STATES:
   8=tool-heavy (low API efficiency)
 
 ENV:
-  CLAUDE_PROJECT_DIR    Project root (default: \$HOME/Claude/Jarvis)
+  CLAUDE_PROJECT_DIR    Project root (default: \$HOME/Claude/Project_Aion)
   SL_PULSE_URL          Pulse API endpoint (default: localhost:8700)
 
 INSTALL:
@@ -374,8 +374,8 @@ synthesize() {
     WINDOW=1000000
     EXCEEDS_200K="false"
     SESSION_NAME=""
-    PROJECT_DIR_IN="/Users/nathanielcannon/Claude/Jarvis"
-    CWD="/Users/nathanielcannon/Claude/Jarvis"
+    PROJECT_DIR_IN="/Users/nathanielcannon/Claude/Project_Aion"
+    CWD="/Users/nathanielcannon/Claude/Project_Aion"
     OUTPUT_STYLE="Jeeves-Brief"
     VIM_MODE=""
     AGENT_NAME=""

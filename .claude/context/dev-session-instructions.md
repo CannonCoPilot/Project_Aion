@@ -35,7 +35,7 @@ You are inside a **tmux session** named `jarvis` with 6 windows:
 - **tmux binary**: `/Users/nathanielcannon/bin/tmux` — use this ABSOLUTE PATH in Bash tool calls
 - **tmux is NOT in PATH** — never use bare `tmux`, always use the full path or dev scripts
 - **CRITICAL**: `$HOME/bin/tmux` breaks when piped in zsh (`$HOME/bin/tmux ... | grep` fails). Always use `/Users/nathanielcannon/bin/tmux` or use the dev scripts (which run in bash and handle this internally)
-- **Project root**: `/Users/nathanielcannon/Claude/Jarvis`
+- **Project root**: `/Users/nathanielcannon/Claude/Project_Aion`
 - **All dev scripts** use `TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"` — they work out of the box
 - **You can capture any window**: `$HOME/bin/tmux capture-pane -t jarvis:N -p`
 - **You can send to any window**: `$HOME/bin/tmux send-keys -t jarvis:N -l "text"` then `$HOME/bin/tmux send-keys -t jarvis:N C-m`

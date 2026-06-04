@@ -13,11 +13,11 @@
 #   - JICM_RESUME_SIGNAL:   written by session-start.sh on resume injection
 #
 # All paths are relative to PROJECT_DIR which each consumer may override
-# before sourcing (defaults to $CLAUDE_PROJECT_DIR or $HOME/Claude/Jarvis).
+# before sourcing (defaults to $CLAUDE_PROJECT_DIR or $HOME/Claude/Project_Aion).
 # ============================================================================
 
 # Project root
-PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
+PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 
 # --- v7.9 signal protocol (per roadmap §4.2) --------------------------------
 JICM_STATE_HOOK_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"

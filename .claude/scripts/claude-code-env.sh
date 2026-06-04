@@ -3,7 +3,7 @@
 # Claude Code Environment Configuration
 # =============================================================================
 # Source this from your ~/.zshrc or ~/.bashrc:
-#   source ~/Claude/Jarvis/.claude/scripts/claude-code-env.sh
+#   source ~/Claude/Project_Aion/.claude/scripts/claude-code-env.sh
 #
 # These settings optimize Claude Code's context management.
 #

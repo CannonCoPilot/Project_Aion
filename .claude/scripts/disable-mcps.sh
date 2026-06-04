@@ -13,7 +13,7 @@
 
 set -e
 
-PROJECT_PATH="$HOME/Claude/Jarvis"
+PROJECT_PATH="$HOME/Claude/Project_Aion"
 CONFIG_FILE="$HOME/.claude.json"
 
 # Colors

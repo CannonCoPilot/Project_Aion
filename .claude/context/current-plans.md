@@ -5,7 +5,7 @@
 **Chronicler** is a standalone, installable, multi-platform desktop application that runs alongside a player's local Dwarf Fortress game on **Windows**, **Linux**, or **macOS** (via emulators like UTM). It is a living record and AI storyteller that transforms raw game data into browsable, cross-linked, narratively rich histories -- plus fortress management, advising, and autonomous play. The ultimate deliverable is a packaged application the User can run hands-off.
 
 **Product Code**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/`
-**Dev Artifacts**: `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/`
+**Dev Artifacts**: `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/`
 
 ### Runtime
 - **Web UI**: `http://localhost:8080/` (ALWAYS use `--reload` flag for auto-reload on code changes)

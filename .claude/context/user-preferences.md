@@ -18,7 +18,7 @@ Configured during AIfred setup on 2026-01-03.
 - GitHub Sync: yes
 
 ## Development
-- Projects Root: `/Users/nathanielcannon/Claude/Jarvis/projects`
+- Projects Root: `/Users/nathanielcannon/Claude/Project_Aion/projects`
 - Naming Convention: lowercase-with-dashes
 - Registered Projects: none yet
 

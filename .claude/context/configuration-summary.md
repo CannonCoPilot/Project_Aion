@@ -84,7 +84,7 @@ See `.claude/reports/pr-6-plugin-evaluation.md` for full list.
 ## Directory Structure
 
 ```
-/Users/nathanielcannon/Claude/Jarvis/
+/Users/nathanielcannon/Claude/Project_Aion/
 ├── .claude/
 │   ├── CLAUDE.md           # Core instructions
 │   ├── context/            # Knowledge base

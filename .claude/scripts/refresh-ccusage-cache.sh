@@ -7,7 +7,7 @@
 #
 # NOTE: Do NOT use set -e — this script must be resilient to partial failures.
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 CACHE_FILE="$PROJECT_DIR/.claude/context/.ccusage-blocks.json"
 LOCK_FILE="$PROJECT_DIR/.claude/context/.ccusage-refresh.lock"
 NPX="$HOME/.nvm/versions/node/v24.13.1/bin/npx"

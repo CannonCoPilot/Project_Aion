@@ -22,7 +22,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-JARVIS_ROOT="$HOME/Claude/Jarvis"
+JARVIS_ROOT="$HOME/Claude/Project_Aion"
 CLAUDE_ROOT="$HOME/Claude"
 
 echo "=============================================="

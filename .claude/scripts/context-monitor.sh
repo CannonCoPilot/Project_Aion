@@ -25,7 +25,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"
 CONTEXT_FILE="$PROJECT_DIR/.claude/context/.context-snapshot"

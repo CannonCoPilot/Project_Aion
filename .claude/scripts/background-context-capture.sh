@@ -9,7 +9,7 @@ set -euo pipefail
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 OUT_FILE="$PROJECT_DIR/.claude/context/.context-captured.txt"
 LOG_FILE="$PROJECT_DIR/.claude/logs/context-capture.log"
 

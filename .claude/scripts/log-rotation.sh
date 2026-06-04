@@ -12,7 +12,7 @@
 #   Layer: L1 (Sensory Register)
 #   Process: Store (anti-Hyperthymesia — pruning)
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 LOG_DIR="$PROJECT_DIR/.claude/logs"
 ARCHIVE_DIR="$LOG_DIR/jicm/archive"
 LOG="$LOG_DIR/log-rotation.log"

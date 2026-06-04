@@ -11,7 +11,7 @@
 
 set -uo pipefail
 
-JARVIS=/Users/nathanielcannon/Claude/Jarvis
+JARVIS=/Users/nathanielcannon/Claude/Project_Aion
 DEV=/Users/nathanielcannon/Claude/AIFred-Pro-Dev
 BRANCH=nexus-sync-2026-04
 REMOTE=origin

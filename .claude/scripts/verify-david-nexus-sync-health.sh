@@ -9,7 +9,7 @@
 
 set -uo pipefail
 
-JARVIS=/Users/nathanielcannon/Claude/Jarvis
+JARVIS=/Users/nathanielcannon/Claude/Project_Aion
 DEV=/Users/nathanielcannon/Claude/AIFred-Pro-Dev
 RECENT_FILE=/Users/nathanielcannon/Claude/Shared_Projects/Status/david/nexus-sync-2026-04-recent.md
 OUT="/Users/nathanielcannon/Claude/Shared_Projects/Status/david/nexus-sync-health-$(date +%Y-%m-%d).md"

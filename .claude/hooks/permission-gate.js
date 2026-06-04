@@ -27,7 +27,7 @@ const GATE_PATTERNS = [
     name: 'AIfred baseline operation',
     patterns: [
       // Anchor on the literal "baseline" or specific paths.
-      // Bare "aifred" is too broad — collides with AIFred-Pro-Dev (active development workspace).
+      // Bare "aifred" is too broad — collides with alfred/ subdirectory (active development workspace).
       /aifred.*baseline/i,
       /baseline.*aifred/i,
       /\/Users\/nathanielcannon\/Claude\/Archive\/AIfred\b/,

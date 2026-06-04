@@ -11,7 +11,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 SIGNAL_FILE="$PROJECT_DIR/.claude/context/.command-signal"
 LOG_FILE="$PROJECT_DIR/.claude/logs/command-signals.log"
 PID_FILE="$PROJECT_DIR/.claude/context/.watcher-pid"

@@ -16,7 +16,7 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || (process.env.HOME + '/Claude/Jarvis');
+const PROJECT_DIR = process.env.CLAUDE_PROJECT_DIR || (process.env.HOME + '/Claude/Project_Aion');
 const PROJECTS_DIR = path.join(process.env.HOME || process.env.HOME, ".claude/projects/-Users-nathanielcannon-Claude-Jarvis");
 const INSIGHTS_LOG = path.join(PROJECT_DIR, ".claude/context/insights/insights-log.md");
 const HASH_FILE = path.join(PROJECT_DIR, ".claude/context/insights/.captured-hashes.json");

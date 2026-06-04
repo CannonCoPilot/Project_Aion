@@ -6,7 +6,7 @@
 # Since Graphiti ingestion requires the MCP tool (add_episode), this script
 # serves as a checklist — actual ingestion happens via Claude Code MCP calls.
 
-JARVIS_ROOT="$HOME/Claude/Jarvis"
+JARVIS_ROOT="$HOME/Claude/Project_Aion"
 
 echo "=== Jarvis Self-Knowledge Reindex Queue ==="
 echo ""

@@ -264,13 +264,10 @@ async function checkBranchProtection(command) {
 
 const AIFRED_BASELINE = (process.env.HOME + '/Claude/Archive/AIfred');
 const AIFRED_PRO_PRODUCTION = (process.env.HOME + '/Claude/AIFred-Pro');
-const JARVIS_WORKSPACE = (process.env.HOME + '/Claude/Jarvis');
+const JARVIS_WORKSPACE = (process.env.HOME + '/Claude/Project_Aion');
 const AUTHORIZED_WORKSPACES = [
-  process.env.HOME + '/Claude/Jarvis',
-  process.env.HOME + '/Claude/Jarvis-Dev',
-  process.env.HOME + '/Claude/AIFred-Pro-Dev',
+  process.env.HOME + '/Claude/Project_Aion',
   process.env.HOME + '/Claude/Projects',
-  process.env.HOME + '/Claude/Shared_Projects',
 ];
 
 const FORBIDDEN_PATHS = [

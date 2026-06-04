@@ -5,7 +5,7 @@
 #
 # Usage: bash .claude/scripts/validate-phase1.sh
 
-PROJECT_DIR="$HOME/Claude/Jarvis"
+PROJECT_DIR="$HOME/Claude/Project_Aion"
 PASS=0
 FAIL=0
 WARN=0

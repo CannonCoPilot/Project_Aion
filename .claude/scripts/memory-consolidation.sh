@@ -11,7 +11,7 @@
 #   Process: Curate (rotation/pruning) + Store (RAG ingestion)
 #   Anti-Hyperthymesia: caps prevent unbounded growth
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 INSIGHTS_LOG="$PROJECT_DIR/.claude/context/insights/insights-log.md"
 INSIGHTS_ARCHIVE_DIR="$PROJECT_DIR/.claude/context/archive/insights"
 CORRECTIONS_JSONL="$PROJECT_DIR/.claude/logs/corrections.jsonl"

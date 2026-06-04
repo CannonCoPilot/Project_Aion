@@ -32,7 +32,7 @@ set -eu
 
 PREP_START_TIME=$(date +%s)
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 
 # Source shared JICM config (defines all paths)
 JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
@@ -567,7 +567,7 @@ model = os.environ["PREP_MODEL"]
 timeout = os.environ["PREP_TIMEOUT"]
 max_tokens = int(os.environ["PREP_MAX_TOKENS"])
 endpoint = os.environ["PREP_ENDPOINT"]
-project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis"))
+project_dir = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion"))
 
 try:
     content = open(input_file).read()

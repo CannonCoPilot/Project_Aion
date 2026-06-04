@@ -24,7 +24,7 @@ set -u
 QUIET=0
 [[ "${1:-}" == "--quiet" ]] && QUIET=1
 
-JARVIS_ROOT="${JARVIS_ROOT:-$HOME/Claude/Jarvis}"
+JARVIS_ROOT="${JARVIS_ROOT:-$HOME/Claude/Project_Aion}"
 AGENT_DIRS=(
   "$JARVIS_ROOT/.claude/agents"
   "$JARVIS_ROOT/.claude/agents/_disabled"

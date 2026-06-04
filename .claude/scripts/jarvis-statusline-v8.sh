@@ -41,7 +41,7 @@ set -o pipefail   # NOT -euo (per Jarvis MEMORY.md grep-exit-1 gotcha)
 INPUT="$(cat)"
 
 # ─── Paths ──────────────────────────────────────────────────────────────────
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis-Dev}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion-Dev}"
 STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 
 # ─── Required tools ─────────────────────────────────────────────────────────

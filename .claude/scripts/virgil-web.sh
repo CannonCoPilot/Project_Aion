@@ -5,7 +5,7 @@
 
 set -euo pipefail
 
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 UI_DIR="$PROJECT_DIR/.claude/virgil-ui"
 TASKS_SOURCE="$PROJECT_DIR/.claude/context/.virgil-tasks.json"
 TASKS_LINK="$UI_DIR/.virgil-tasks.json"

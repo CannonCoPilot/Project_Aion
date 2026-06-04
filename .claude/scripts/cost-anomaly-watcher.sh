@@ -35,7 +35,7 @@
 set -o pipefail
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────
-PROJECT_DIR="${PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+PROJECT_DIR="${PROJECT_DIR:-/Users/nathanielcannon/Claude/Project_Aion}"
 STATE_FILE="$PROJECT_DIR/.claude/context/.cost-state.json"
 LOG_FILE="$PROJECT_DIR/.claude/logs/cost-anomaly-watcher.log"
 ANOMALY_LOG="$PROJECT_DIR/.claude/logs/cost-anomaly-events.jsonl"
