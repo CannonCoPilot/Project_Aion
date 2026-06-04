@@ -1,0 +1,793 @@
+# AIfred Label Taxonomy — Single Source of Truth
+#
+# This file defines every valid label, its semantics, functional categories,
+# mutual exclusions, board classification rules, blocker definitions, stage
+# lifecycle, gate-stage validation, and state transitions.
+#
+# Consumers:
+#   - Dashboard classifyTask (board.ts) — derives board column from these rules
+#   - Dashboard /labels page (labels.ts, ReferencePage.tsx) — renders from this
+#   - Dashboard pipeline API (pipeline.ts) — enforces transitions
+#   - Dashboard stats API (stats.ts) — uses blocker/board definitions
+#   - Executor pre_checks (registry.yaml) — eligibility filtering
+#   - routing-rules.yaml — centralized routing decisions reference this
+#   - lib/label-ops.sh — MUTATION GATEWAY: encodes transition table, mutex groups,
+#       and deprecated list from this file. ALL label changes flow through label-ops.sh.
+#       Update BOTH this file AND label-ops.sh when adding labels or changing rules.
+#   - Persona prompts — label semantics reference
+#   - CLI (pulse ready) — label-aware readiness filtering
+#
+# When adding or changing labels, update THIS file first. All consumers derive.
+# CRITICAL: If adding/removing labels from mutual_exclusion or deprecated lists,
+# also update the corresponding arrays in lib/label-ops.sh.
+
+version: 2
+
+# =============================================================================
+# LABEL FUNCTIONS — Categorizes every label by its role in the pipeline
+# =============================================================================
+# Every label belongs to exactly one function category. This tells consumers
+# whether a label controls routing, grants permissions, gates a stage, describes
+# a property, or is purely informational.
+
+label_functions:
+  position:
+    description: "Where the task is in the pipeline (exactly one per task, mutually exclusive)"
+    labels: [stage:intake, stage:evaluate, stage:route, stage:review, stage:queue, stage:execute]
+
+  authorization:
+    description: "Permission grants that persist across stages"
+    labels: [pipeline:approved]
+    note: "Grants elevated execution rights (audio deletion, destructive ops). NOT a position marker."
+
+  gate:
+    description: "Stage-specific control signals consumed by the next handler"
+    labels:
+      review_stage: [waiting:owner, waiting:external, waiting:subtasks, waiting:session, waiting:trigger, needs-input, parked, manual-action, pipeline:needs-approval]
+      route_stage: [auto:candidate]
+      queue_stage: [auto:ready]
+    note: "Gate labels are meaningful only at their associated stage. If found at the wrong stage, it's a data integrity issue."
+
+  attribute:
+    description: "Task properties stamped during evaluation, persist across stages"
+    labels_by_prefix: [risk:*, capability:*, action:*]
+
+  metadata:
+    description: "Classification and context — no pipeline effect"
+    labels_by_prefix: [domain:*, project:*, source:*, type:*, severity:*, agent:*, parent:*, follow-up:*, orchestration:*, phase:*, approval:*]
+
+# =============================================================================
+# LABEL GROUPS
+# =============================================================================
+# Two super-groups: Execution (controls pipeline behavior) and Context (metadata)
+
+groups:
+  execution:
+    name: "Execution & Pipeline"
+    description: "Labels that control automation routing, gating, and execution"
+    prefixes: [stage, auto, risk, waiting, pipeline, action]
+    standalone: [parked, needs-input, manual-action]
+
+  context:
+    name: "Context & Metadata"
+    description: "Labels that categorize and describe tasks (no pipeline effect)"
+    prefixes: [domain, project, source, type, capability, severity, agent, parent, follow-up, orchestration, phase, approval]
+
+# =============================================================================
+# LABEL DEFINITIONS
+# =============================================================================
+
+labels:
+
+  # ---------------------------------------------------------------------------
+  # STAGE — pipeline position (exactly one per task)
+  # ---------------------------------------------------------------------------
+  stage:
+    group: execution
+    function: position
+    description: "Pipeline position — exactly one per task, mutually exclusive"
+    values:
+      intake:
+        description: "Task entered system, awaiting evaluation"
+        handler: event-watcher
+      evaluate:
+        description: "Being scored for risk, capability, and automation readiness"
+        handler: evaluator
+      route:
+        description: "Being routed to the appropriate handler"
+        handler: investigator
+      review:
+        description: "Needs human decision (approval, input, or judgment)"
+        handler: [dashboard]
+      queue:
+        description: "Approved and waiting for next execution slot"
+        handler: null
+      execute:
+        description: "Work in progress"
+        handler: [executor, executor-infra, executor-research]
+    mutual_exclusion: true
+
+  # ---------------------------------------------------------------------------
+  # AUTOMATION ROUTING — readiness level (gate labels)
+  # ---------------------------------------------------------------------------
+  auto:
+    group: execution
+    function: gate
+    description: "Automation readiness level"
+    values:
+      candidate:
+        description: "Eligible for investigation/evaluation — not yet ready to execute"
+        valid_stage: route
+        set_by: [evaluator, scoring]
+      ready:
+        description: "Evaluated, scored, and eligible for execution (subject to risk + approval gates)"
+        valid_stage: [queue, execute]
+        set_by: [evaluator, investigator, pipeline-approve-action]
+    mutual_exclusion: true  # A task is either candidate OR ready, never both
+
+  # ---------------------------------------------------------------------------
+  # RISK — safety classification for execution (attribute)
+  # ---------------------------------------------------------------------------
+  risk:
+    group: execution
+    function: attribute
+    description: "Execution risk level — determines approval requirements"
+    values:
+      safe:
+        description: "Can be auto-executed without human approval"
+        execution_rule: "stage:queue + risk:safe -> execute autonomously"
+      moderate:
+        description: "Requires explicit approval (pipeline:approved) before execution"
+        execution_rule: "stage:queue + risk:moderate + pipeline:approved -> execute"
+      destructive:
+        description: "High risk — requires explicit approval, manual review recommended"
+        execution_rule: "stage:queue + risk:destructive + pipeline:approved -> execute with caution"
+    mutual_exclusion: true  # Exactly one risk level per task
+
+  # ---------------------------------------------------------------------------
+  # PIPELINE — approval and authorization
+  # ---------------------------------------------------------------------------
+  pipeline:
+    group: execution
+    description: "Approval pipeline labels"
+    values:
+      needs-approval:
+        description: "Waiting for human approval before execution can proceed"
+        function: gate
+        valid_stage: review
+        set_by: [evaluator]
+        is_blocker: true
+        blocker_reason: "Awaiting your approval"
+      approved:
+        description: "Human-approved for execution — overrides risk gate (authorization token)"
+        function: authorization
+        set_by: [pipeline-approve-action, session-approval]
+      has-orchestration:
+        description: "An orchestration YAML exists for this task"
+        function: metadata
+        set_by: [evaluator, orchestration-plan]
+    mutual_exclusion_sets:
+      - [needs-approval, approved]  # Can't need approval AND be approved
+
+  # ---------------------------------------------------------------------------
+  # WAITING — who owns the ball right now? (gate labels)
+  # ---------------------------------------------------------------------------
+  # This is a ROUTING dimension, not just a blocker flag.
+  # Tells you at a glance whose court the task is in.
+  waiting:
+    group: execution
+    function: gate
+    description: "Routing — who currently owns forward progress on this task"
+    values:
+      owner:
+        description: "Ball is in the owner's court — needs their input, decision, or action"
+        valid_stage: review
+        is_blocker: true
+        blocker_reason: "Waiting for your input"
+      external:
+        description: "Blocked on external event or third party"
+        valid_stage: review
+        is_blocker: true
+        blocker_reason: "Waiting on external dependency"
+      subtasks:
+        description: "Parent task waiting for child tasks to complete"
+        valid_stage: review
+        is_blocker: true
+        blocker_reason: "Waiting for subtasks"
+      session:
+        description: "Requires an interactive Claude Code terminal session to execute (risk:destructive, complex multi-step, or needs human oversight)"
+        valid_stage: review
+        is_blocker: true
+        blocker_reason: "Needs interactive session"
+      trigger:
+        description: "Task is dormant — watching for file changes that satisfy a condition"
+        handler: watch-monitor
+        gate_stage: review
+    mutual_exclusion: true  # Ball can only be in one court
+
+  # ---------------------------------------------------------------------------
+  # ACTION — specific operation type (attribute)
+  # ---------------------------------------------------------------------------
+  action:
+    group: execution
+    function: attribute
+    description: "Specific action to perform"
+    values:
+      delete-junk:
+        description: "Delete junk/duplicate files"
+      rename-safe:
+        description: "Safe rename operation"
+      restructure:
+        description: "Restructure file/folder layout"
+
+  # ---------------------------------------------------------------------------
+  # STANDALONE EXECUTION LABELS (no prefix)
+  # ---------------------------------------------------------------------------
+  parked:
+    group: execution
+    function: gate
+    description: "Deliberately paused — valid work, just not now"
+    is_blocker: false  # Not blocked, just deferred
+    board_column: deferred
+    set_by: [manual, pipeline-pause-action, executor-on-failure]
+
+  needs-input:
+    group: execution
+    function: gate
+    valid_stage: review
+    description: "Task needs more information or clarification before it can proceed"
+    is_blocker: true
+    blocker_reason: "Needs more information"
+
+  manual-action:
+    group: execution
+    function: gate
+    valid_stage: review
+    description: "Requires manual human intervention — cannot be automated"
+    is_blocker: true
+    blocker_reason: "Requires manual action"
+
+  # ---------------------------------------------------------------------------
+  # DEPENDENCY BLOCKERS
+  # ---------------------------------------------------------------------------
+  blocked:
+    group: execution
+    function: gate
+    description: "Dependency blockers"
+    values:
+      dependency:
+        description: "Task has unresolved orchestration dependencies (depends:* labels)"
+        valid_stage: [queue]
+        is_blocker: true
+        blocker_reason: "Unresolved orchestration dependency"
+
+  # ---------------------------------------------------------------------------
+  # DOMAIN — work area categorization (metadata)
+  # ---------------------------------------------------------------------------
+  domain:
+    group: context
+    function: metadata
+    description: "Work domain / area of concern"
+    values:
+      infrastructure:
+        description: "Homelab, Docker, networking, servers"
+      coding:
+        description: "Software development projects"
+      creative:
+        description: "Creative writing, worldbuilding"
+      research:
+        description: "General research tasks"
+      ai-research:
+        description: "AI/ML specific research"
+      security:
+        description: "Security, OSINT, threat intel"
+      writing:
+        description: "Non-fiction writing, blog posts, thought leadership"
+      content:
+        description: "Content creation and management"
+      personal:
+        description: "Personal tasks"
+      feedback:
+        description: "Feedback and review items"
+      business:
+        description: "Business and professional"
+      automation:
+        description: "Automation and workflow tasks"
+      # CUSTOMIZE: Add your domain-specific labels here
+    allow_multiple: true  # A task can span multiple domains
+
+  # ---------------------------------------------------------------------------
+  # PROJECT — which project does this belong to? (metadata)
+  # ---------------------------------------------------------------------------
+  project:
+    group: context
+    function: metadata
+    description: "Project assignment"
+    values:
+      example-project:
+        description: "Example project — replace with your projects"
+      # CUSTOMIZE: Add your domain-specific labels here
+    allow_multiple: false  # One primary project per task
+
+  # ---------------------------------------------------------------------------
+  # SOURCE — how was this task created? (metadata)
+  # ---------------------------------------------------------------------------
+  source:
+    group: context
+    function: metadata
+    description: "How this task was created — affects trust level for approval cascade"
+    values:
+      session:
+        description: "Created during a Claude Code interactive session"
+        trust_level: medium
+      headless:
+        description: "Created by a Nexus job"
+        trust_level: system
+      claude-code:
+        description: "Created via Claude Code with high confidence"
+        trust_level: high
+      claude-app:
+        description: "Created from Claude App (web/mobile)"
+        trust_level: medium
+      priority:
+        description: "Created from priority review"
+        trust_level: high
+      ad-hoc:
+        description: "Created manually or ad-hoc"
+        trust_level: low
+      orchestration:
+        description: "Generated from an orchestration plan"
+        trust_level: high
+      # CUSTOMIZE: Add your domain-specific labels here
+    allow_multiple: true  # Can have multiple sources (e.g., orchestration + session)
+
+  # ---------------------------------------------------------------------------
+  # TYPE — task classification (metadata)
+  # ---------------------------------------------------------------------------
+  type:
+    group: context
+    function: metadata
+    description: "Task type — affects routing to specialized executors"
+    values:
+      research:
+        description: "Research task — routed to research executor. ALWAYS present on research tasks; sub-type label added alongside for summary formatting."
+        executor: executor-research
+      research-upgrade:
+        description: "Research: version/upgrade check — summary format: features found, severity counts, recommendation"
+        executor: executor-research
+        summary_format: upgrade
+      research-investigation:
+        description: "Research: investigate an issue — summary format: root cause, fix options, recommendation"
+        executor: executor-research
+        summary_format: investigation
+      research-capability:
+        description: "Research: evaluate a tool or capability — summary format: assessment, adopt/integrate/pass"
+        executor: executor-research
+        summary_format: capability
+      research-threat:
+        description: "Research: threat intelligence — summary format: indicators found, inventory additions, action needed"
+        executor: executor-research
+        summary_format: threat
+      research-general:
+        description: "Research: general/untyped — summary format: key findings, suggested next steps"
+        executor: executor-research
+        summary_format: general
+      bug:
+        description: "Bug fix"
+      feature:
+        description: "New feature"
+      maintenance:
+        description: "Maintenance / housekeeping"
+
+  # ---------------------------------------------------------------------------
+  # CAPABILITY — what execution capability is needed? (attribute)
+  # ---------------------------------------------------------------------------
+  capability:
+    group: context
+    function: attribute
+    description: "Required capability — determines which executor persona handles this"
+    values:
+      file-ops:
+        description: "File operations (copy, move, rename, edit)"
+        executor: executor
+      infrastructure:
+        description: "Docker, compose, container management"
+        executor: executor-infra
+      code:
+        description: "Code changes, refactoring, feature development"
+        executor: executor
+      research:
+        description: "Research, analysis, investigation"
+        executor: executor-research
+
+  # ---------------------------------------------------------------------------
+  # SEVERITY — impact level (metadata)
+  # ---------------------------------------------------------------------------
+  severity:
+    group: context
+    function: metadata
+    description: "Impact severity"
+    values:
+      critical:
+        description: "Service down or data loss risk"
+      high:
+        description: "Major functionality impacted"
+      medium:
+        description: "Moderate impact, workaround exists"
+      low:
+        description: "Minor issue, cosmetic, or nice-to-have"
+
+  # ---------------------------------------------------------------------------
+  # AGENT — who created this task? (metadata)
+  # ---------------------------------------------------------------------------
+  agent:
+    group: context
+    function: metadata
+    description: "Who/what created the task"
+    values:
+      claude:
+        description: "Created by Claude (any mode)"
+      human:
+        description: "Created by a human directly"
+
+  # ---------------------------------------------------------------------------
+  # RELATIONAL LABELS (metadata)
+  # ---------------------------------------------------------------------------
+  parent:
+    group: context
+    function: metadata
+    description: "Parent task ID (e.g., parent:<task-id>)"
+    format: "parent:<task-id>"
+    dynamic: true  # Values are task IDs, not enumerable
+
+  follow-up:
+    group: context
+    function: metadata
+    description: "Follow-up to a completed task (e.g., follow-up:<task-id>)"
+    format: "follow-up:<task-id>"
+    dynamic: true
+
+  orchestration:
+    group: context
+    function: metadata
+    description: "Links a task to its orchestration YAML (e.g., orchestration:<yaml-slug>). The YAML is the plan — tasks are created from it when work begins, not during evaluation."
+    format: "orchestration:<yaml-slug>"
+    dynamic: true
+
+  phase:
+    group: context
+    function: metadata
+    description: "Which phase within an orchestration YAML this task belongs to (e.g., phase:1 or phase:phase-1-foundation). Tasks should reference the YAML phase, not duplicate it."
+    format: "phase:<phase-identifier>"
+    dynamic: true
+
+  approval:
+    group: context
+    function: metadata
+    description: "Orchestration-level approval status. Indicates the task inherits elevated permissions from a human-approved orchestration plan."
+    values:
+      orchestration:
+        description: "Task inherits elevated permissions from an approved orchestration plan"
+        set_by: [orchestration-loader]
+
+# =============================================================================
+# DEPRECATED LABELS
+# =============================================================================
+# These should be migrated when encountered. Consumers should treat them
+# as aliases for the canonical label.
+
+deprecated:
+  pipeline:evaluated:
+    replacement: "stage: progression"
+    reason: "Replaced by stage lifecycle — stage advancement implies evaluation"
+
+  pipeline:modified:
+    replacement: "stage:evaluate (send back to evaluate stage)"
+    reason: "Replaced by stage transition — re-evaluation is a stage rewind"
+
+  auto-approved:
+    replacement: pipeline:approved
+    reason: "Legacy standalone label — replaced by pipeline:approved for consistency"
+    migration: "Remove auto-approved, add pipeline:approved"
+
+  auto:blocked:
+    replacement: null
+    reason: "Use status field (status=blocked) or specific blocker labels instead"
+    migration: "Remove auto:blocked, apply appropriate waiting:* or needs-input label"
+
+  gap:no-executor:
+    replacement: blocked:dependency
+    reason: "Executor capability gaps should use blocked:dependency + capability label"
+    migration: "Remove gap:no-executor, add blocked:dependency"
+
+  waiting:pipeline:
+    replacement: blocked:dependency
+    reason: "Redundant — use blocked:dependency for orchestration deps"
+    migration: "Remove waiting:pipeline, add blocked:dependency if not present"
+
+# =============================================================================
+# BOARD CLASSIFICATION RULES
+# =============================================================================
+# Evaluated in order. First match wins. This is the CANONICAL definition
+# that classifyTask (dashboard) and CLI both derive from.
+
+board_classification:
+  - column: done
+    rule: "status === 'closed'"
+    priority: 1
+
+  - column: deferred
+    rule: "status === 'deferred' OR has label 'parked' OR any label contains 'defer'"
+    priority: 2
+
+  - column: blocked
+    rule: "has any blocker label (see blocker_labels below)"
+    priority: 3
+
+  - column: in_progress
+    rule: "status === 'in_progress'"
+    priority: 4
+
+  - column: ready
+    rule: "has label 'auto:ready' OR has label 'stage:queue'"
+    priority: 5
+    note: "Transitioning from auto:ready to stage:queue — both accepted during migration"
+
+  - column: backlog
+    rule: "default — everything else"
+    priority: 6
+
+# Note: 'auto:candidate' without 'auto:ready' falls to backlog.
+# Candidates are not ready — they need investigation first.
+
+# =============================================================================
+# BLOCKER LABELS
+# =============================================================================
+# Canonical set. Used by classifyTask, stats, CLI ready, and filter views.
+# A task with ANY of these labels is classified as "blocked" on the board.
+
+blocker_labels:
+  - waiting:owner
+  - waiting:external
+  - waiting:subtasks
+  - waiting:session
+  - waiting:trigger
+  - needs-input
+  - manual-action
+  - pipeline:needs-approval
+  # Prefix match:
+  - "blocked:*"
+
+# NOT blockers (common misconceptions):
+# - parked -> deferred, not blocked (deliberately paused)
+# - risk:destructive -> safety classification, not a blocker
+
+# =============================================================================
+# STATE TRANSITIONS
+# =============================================================================
+# When an event occurs, apply these label changes atomically.
+# Consumers: Pulse transition engine, dashboard pipeline API.
+# Each transition now includes stage mutations where applicable.
+
+transitions:
+
+  approve:
+    description: "Human approves a task for execution"
+    precondition: "has pipeline:needs-approval"
+    add: [pipeline:approved, auto:ready, stage:queue]
+    remove: [pipeline:needs-approval, auto:candidate, waiting:owner, needs-input, stage:review]
+
+  modify:
+    description: "Human sends task back for re-evaluation with feedback"
+    add: [stage:evaluate]
+    remove: [pipeline:needs-approval, waiting:owner, auto:candidate, stage:review, stage:route]
+
+  pause:
+    description: "Deliberately defer a task"
+    add: [parked]
+    remove: [pipeline:needs-approval, waiting:owner, blocked:dependency, auto:ready, stage:queue, stage:review]
+    note: "Parked tasks have no stage label — they're outside the pipeline"
+
+  cancel:
+    description: "Close a task without completing it"
+    action: "close task"
+    remove: [pipeline:needs-approval, waiting:owner, blocked:dependency, "stage:*"]
+
+  route-to-owner:
+    description: "Route task to owner's queue"
+    add: [waiting:owner, stage:review, pipeline:needs-approval]
+    remove: [blocked:dependency, waiting:external, auto:candidate, stage:route, stage:queue]
+
+  route-to-queue:
+    description: "Route task to automation queue"
+    add: [auto:candidate]
+    remove: [waiting:owner, waiting:external]
+
+  route-to-session:
+    description: "Mark task as requiring an interactive Claude Code session"
+    add: [waiting:session, stage:review]
+    remove: [waiting:owner, blocked:dependency, waiting:external, auto:candidate, auto:ready, stage:route, stage:queue]
+
+  route-to-external:
+    description: "Mark task as waiting on external dependency"
+    add: [waiting:external, stage:review]
+    remove: [waiting:owner, blocked:dependency, auto:candidate, auto:ready, stage:route, stage:queue]
+
+  unpark:
+    description: "Resume a parked/deferred task"
+    remove: [parked]
+    # Does not auto-add routing — caller decides where it goes next
+
+  claim:
+    description: "Start working on a task"
+    action: "set status to in_progress"
+    add: [stage:execute]
+    remove: [waiting:owner, blocked:dependency, parked, auto:ready, stage:queue]
+
+  complete:
+    description: "Mark task as done"
+    action: "close task"
+    remove: ["stage:*", "auto:*", "waiting:*", "blocked:*",
+             "pipeline:needs-approval", "pipeline:evaluated",
+             "needs-input", "manual-action", "parked"]
+    note: "Strips all execution/gate labels on closure. Keeps metadata (domain, project, source, type, risk, capability, pipeline:approved, pipeline:has-orchestration) as historical record."
+
+  research-complete-signal:
+    description: "Research completed with actionable findings — route to owner for triage"
+    add: [stage:review, waiting:owner]
+    remove: [stage:execute, stage:queue, auto:ready]
+    note: "Researcher found something actionable. Owner reviews via dashboard task detail page."
+
+  research-complete-silent:
+    description: "Research completed with no actionable findings — close silently"
+    action: close
+    note: "Nothing new found. Rolls into weekly digest. Close reason contains brief summary."
+
+  executor-fail:
+    description: "Automated execution failed"
+    add: [parked, stage:review, pipeline:needs-approval]
+    remove: [auto:ready, stage:execute, stage:queue]
+
+  evaluate:
+    description: "Task evaluator scores and classifies a task"
+    add: [stage:evaluate]
+    remove: [stage:intake]
+    # Additional labels (risk:*, capability:*, pipeline:approved|needs-approval)
+    # determined by evaluator logic, not hardcoded here
+
+  evaluate-complete-route:
+    description: "Evaluation done, needs routing"
+    add: [stage:route, auto:candidate]
+    remove: [stage:evaluate]
+
+  evaluate-complete-fasttrack:
+    description: "Evaluation done, fast-tracked to queue (risk:safe, no human needed)"
+    add: [stage:queue, auto:ready]
+    remove: [stage:evaluate]
+    precondition: "risk:safe"
+
+  dispatch:
+    description: "Executor picks up a queued task"
+    add: [stage:execute]
+    remove: [stage:queue, auto:ready]
+
+  defer-with-trigger:
+    description: "Dashboard defers task to watch for file changes"
+    add: [waiting:trigger, stage:review]
+    remove: [waiting:owner, needs-input, stage:queue]
+
+  trigger-satisfied:
+    description: "Monitor confirms watched file change satisfied the trigger condition"
+    add: [auto:ready, pipeline:approved, stage:queue]
+    remove: [waiting:trigger, stage:review]
+
+  trigger-cancel:
+    description: "Cancel watch trigger, return task to owner's queue"
+    add: [waiting:owner]
+    remove: [waiting:trigger]
+
+# =============================================================================
+# MUTUAL EXCLUSIONS
+# =============================================================================
+# When adding a label from a mutual exclusion set, remove all others in the set.
+# Enforced by transition engine and should be validated periodically.
+
+mutual_exclusions:
+  - set: [stage:intake, stage:evaluate, stage:route, stage:review, stage:queue, stage:execute]
+    description: "Exactly one pipeline position per task"
+
+  - set: [auto:ready, auto:candidate]
+    description: "Task is either ready to execute or still a candidate, not both"
+
+  - set: [pipeline:approved, pipeline:needs-approval]
+    description: "Task is either approved or awaiting approval, not both"
+
+  - set: [risk:safe, risk:moderate, risk:destructive]
+    description: "Exactly one risk level per task"
+
+  - set: [waiting:owner, waiting:external, waiting:subtasks, waiting:session, waiting:trigger]
+    description: "Ball can only be in one court at a time"
+
+  - set: [parked, waiting:owner, waiting:external, waiting:subtasks, waiting:session, waiting:trigger, blocked:dependency]
+    description: "Parked tasks are deliberately shelved — the ball is not in anyone's court. Remove all waiting:* and blocked:* labels when parking."
+
+# =============================================================================
+# GATE-STAGE VALIDATION RULES
+# =============================================================================
+# Gate labels are only meaningful at their associated stage. These rules enable
+# automated validation — if a gate label appears at the wrong stage, it's a
+# data integrity issue that should be flagged for cleanup.
+
+gate_stage_rules:
+  - gate: waiting:owner
+    valid_stages: [review]
+    violation: "waiting:owner should only appear at stage:review"
+
+  - gate: waiting:external
+    valid_stages: [review]
+    violation: "waiting:external should only appear at stage:review"
+
+  - gate: waiting:subtasks
+    valid_stages: [review]
+    violation: "waiting:subtasks should only appear at stage:review"
+
+  - gate: needs-input
+    valid_stages: [review]
+    violation: "needs-input should only appear at stage:review"
+
+  - gate: manual-action
+    valid_stages: [review]
+    violation: "manual-action should only appear at stage:review"
+
+  - gate: pipeline:needs-approval
+    valid_stages: [review]
+    violation: "pipeline:needs-approval should only appear at stage:review"
+
+  - gate: auto:candidate
+    valid_stages: [route]
+    violation: "auto:candidate should only appear at stage:route"
+
+  - gate: auto:ready
+    valid_stages: [queue, execute]
+    violation: "auto:ready should only appear at stage:queue or stage:execute"
+
+  - gate: waiting:session
+    valid_stages: [review]
+    violation: "waiting:session should only appear at stage:review"
+
+  - gate: waiting:trigger
+    valid_stages: [review]
+    violation: "waiting:trigger should only appear at stage:review"
+
+  - gate: blocked:dependency
+    valid_stages: [queue]
+    violation: "blocked:dependency should only appear at stage:queue"
+
+# =============================================================================
+# EXECUTION ELIGIBILITY
+# =============================================================================
+# Rules that determine whether a task can be auto-executed.
+# Referenced by routing-rules.yaml, registry.yaml pre_checks,
+# and executor persona prompts.
+
+execution_eligibility:
+  executor:
+    description: "General task executor (file-ops, code)"
+    stage: queue
+    eligible: "stage:queue AND (risk:safe OR pipeline:approved)"
+    skip_if_any: [waiting:owner, needs-input, type:research, parked, capability:infrastructure]
+    capabilities: [file-ops, code]
+
+  executor-infra:
+    description: "Infrastructure deployment executor"
+    stage: queue
+    eligible: "stage:queue AND capability:infrastructure AND (risk:safe OR risk:moderate)"
+    skip_if_any: [waiting:owner, needs-input, parked, risk:destructive]
+    capabilities: [infrastructure]
+
+  executor-research:
+    description: "Research task executor"
+    stage: queue
+    eligible: "stage:queue AND pipeline:approved AND type:research"
+    skip_if_any: [waiting:owner, needs-input, parked]
+    capabilities: [research]

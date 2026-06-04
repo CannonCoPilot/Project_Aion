@@ -1,0 +1,219 @@
+#!/usr/bin/env python3
+"""plan-unblocker — deterministic dependency cascade for Pulse tasks.
+
+Scans open tasks that carry `blocked:dependency` + one or more `blocked-by:<plan-id>`
+labels. For every task whose predecessors are all closed, the script strips the
+blocking labels and promotes the task to auto:ready. Zero LLM cost; safe to run
+every dispatcher cycle.
+
+The script is intentionally limited: it only adds/removes labels. It never
+changes task status, claims, description, or closes tasks.
+
+Exit codes:
+  0 — success (zero or more unblocks applied)
+  1 — transient error (Pulse API unreachable, malformed JSON, etc.)
+  2 — invalid CLI usage
+
+Typical invocation:
+  plan-unblocker                    # live run, concise output
+  plan-unblocker --dry-run          # show what would change, no writes
+  plan-unblocker --json-out FILE    # also write a machine-readable report
+  plan-unblocker --verbose          # print every dependency decision
+
+See P4-T09 in the multi-space plan for context.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+from datetime import datetime, timezone
+from typing import Any, Iterable
+
+
+PULSE_CMD = os.environ.get("PULSE_CLI", "pulse")
+
+
+def run_pulse(args: list[str]) -> str:
+    """Invoke the pulse CLI and return stdout. Raises on non-zero exit."""
+    result = subprocess.run(
+        [PULSE_CMD, *args],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        sys.stderr.write(f"pulse {' '.join(args)} failed: {result.stderr.strip()}\n")
+        raise SystemExit(1)
+    return result.stdout
+
+
+def list_tasks_json(status: str) -> list[dict[str, Any]]:
+    raw = run_pulse(["list", "--status", status, "--json"])
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        sys.stderr.write(f"invalid JSON from pulse list --status {status}: {exc}\n")
+        raise SystemExit(1)
+    return data.get("tasks", [])
+
+
+def plan_id_from_labels(labels: Iterable[str]) -> str | None:
+    for label in labels:
+        if label.startswith("plan-id:"):
+            return label.split(":", 1)[1]
+    return None
+
+
+def blocked_by_refs(labels: Iterable[str]) -> list[str]:
+    out: list[str] = []
+    for label in labels:
+        if label.startswith("blocked-by:"):
+            out.append(label.split(":", 1)[1])
+    return out
+
+
+def label_remove(task_id: str, label: str, dry_run: bool) -> None:
+    if dry_run:
+        return
+    subprocess.run(
+        [PULSE_CMD, "label", "remove", task_id, label],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def label_add(task_id: str, label: str, dry_run: bool) -> None:
+    if dry_run:
+        return
+    subprocess.run(
+        [PULSE_CMD, "label", "add", task_id, label],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def build_plan_id_status_map(
+    open_tasks: list[dict[str, Any]],
+    closed_tasks: list[dict[str, Any]],
+) -> dict[str, str]:
+    mapping: dict[str, str] = {}
+    for task in open_tasks + closed_tasks:
+        pid = plan_id_from_labels(task.get("labels", []))
+        if pid:
+            mapping[pid] = task["status"]
+    return mapping
+
+
+def unblock_candidates(
+    open_tasks: list[dict[str, Any]],
+    closed_tasks: list[dict[str, Any]],
+    verbose: bool,
+) -> list[dict[str, Any]]:
+    """Return structured info for every task ready to unblock."""
+    plan_status = build_plan_id_status_map(open_tasks, closed_tasks)
+
+    decisions: list[dict[str, Any]] = []
+    for task in open_tasks:
+        labels = task.get("labels", [])
+        if "blocked:dependency" not in labels:
+            continue
+
+        deps = blocked_by_refs(labels)
+        if not deps:
+            # blocked:dependency with no deps — probably stale, unblock it
+            decisions.append({
+                "id": task["id"],
+                "title": task.get("title", ""),
+                "plan_id": plan_id_from_labels(labels),
+                "deps": [],
+                "unresolved": [],
+                "action": "unblock",
+                "reason": "blocked:dependency with no blocked-by refs",
+            })
+            continue
+
+        unresolved = [d for d in deps if plan_status.get(d, "unknown") != "closed"]
+        if verbose:
+            sys.stderr.write(
+                f"task={task['id']} deps={deps} unresolved={unresolved}\n"
+            )
+        if unresolved:
+            continue
+        decisions.append({
+            "id": task["id"],
+            "title": task.get("title", ""),
+            "plan_id": plan_id_from_labels(labels),
+            "deps": deps,
+            "unresolved": [],
+            "action": "unblock",
+            "reason": f"all {len(deps)} predecessors closed",
+        })
+
+    return decisions
+
+
+def apply_unblock(decision: dict[str, Any], dry_run: bool) -> None:
+    task_id = decision["id"]
+    label_remove(task_id, "blocked:dependency", dry_run)
+    for dep in decision["deps"]:
+        label_remove(task_id, f"blocked-by:{dep}", dry_run)
+    label_add(task_id, "auto:ready", dry_run)
+
+
+def write_report(path: str, payload: dict[str, Any]) -> None:
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as fh:
+        json.dump(payload, fh, indent=2)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Unblock Pulse tasks whose blocked-by predecessors are all closed."
+    )
+    parser.add_argument("--dry-run", action="store_true", help="preview without writes")
+    parser.add_argument("--verbose", "-v", action="store_true", help="log per-task decisions")
+    parser.add_argument("--json-out", default="", help="write structured report to file")
+    args = parser.parse_args()
+
+    open_tasks = list_tasks_json("open")
+    closed_tasks = list_tasks_json("closed")
+
+    decisions = unblock_candidates(open_tasks, closed_tasks, verbose=args.verbose)
+
+    applied: list[dict[str, Any]] = []
+    for decision in decisions:
+        apply_unblock(decision, dry_run=args.dry_run)
+        applied.append(decision)
+        tag = "[DRY-RUN] " if args.dry_run else ""
+        print(
+            f"{tag}unblocked {decision['id']} plan-id={decision['plan_id']} "
+            f"deps={decision['deps']}  # {decision['reason']}"
+        )
+
+    report = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "dry_run": args.dry_run,
+        "open_scanned": len(open_tasks),
+        "closed_scanned": len(closed_tasks),
+        "unblocked_count": len(applied),
+        "unblocked": applied,
+    }
+
+    if args.json_out:
+        write_report(args.json_out, report)
+
+    # stderr one-line summary (parseable by dispatcher.log)
+    sys.stderr.write(
+        f"plan-unblocker: scanned={len(open_tasks)} open / {len(closed_tasks)} closed, "
+        f"unblocked={len(applied)}{' (dry-run)' if args.dry_run else ''}\n"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,113 @@
+# Gospel Synopsis — Single-Ticket Decomposition Test (v2, 2026-05-04)
+# ONE broad ticket → orchestrator should decompose into child tasks with deps
+# Source data: KJV Mark 1 and Luke 4 extracted to tests/gospel-synopsis/sources/
+#
+# Import: python3 .claude/jobs/test-suites/import-suite.py gospel-synopsis.yaml
+#
+# v2 changes vs v1 (informed by 2026-05-04 run findings, see Jarvis report
+# gospel-synopsis-smoke-test-2026-05-04.md §5.3 and §5.4):
+#  - All deliverable paths reference output/gospel-synopsis/ (the executor's
+#    de-facto deliverable directory) instead of tests/gospel-synopsis/ — this
+#    aligns the reviewer's filesystem-existence check with the YAML spec
+#  - Explicit clean-state expectation note added so executor does not
+#    short-circuit on pre-existing artifacts (the §5.3 child-#1 failure mode)
+#  - Master scope clarification: AFTER children produce deliverables, master
+#    should ONLY verify the chain's output and write a final summary report;
+#    it should NOT re-create files that the children already produced (§5.4)
+
+tasks:
+  - title: "GS-MASTER: Parallelize and merge Mark 1 and Luke 4 from KJV source texts"
+    description: |
+      ## Project: Gospel Synopsis — Mark 1 and Luke 4
+
+      Two KJV source text files are available:
+        - tests/gospel-synopsis/sources/mark-1.txt (Mark Chapter 1, 45 verses)
+        - tests/gospel-synopsis/sources/luke-4.txt (Luke Chapter 4, 44 verses)
+
+      These chapters describe overlapping events: Jesus's baptism, temptation,
+      and early Galilean ministry. The goal is to identify parallel passages,
+      create side-by-side synopsis documents, and merge them into a single
+      comprehensive document.
+
+      ### Clean-state expectation (IMPORTANT)
+
+      The deliverable directory `output/gospel-synopsis/` has been intentionally
+      cleared before this test. Always CREATE fresh deliverables. If a file you
+      were asked to write happens to already exist (because of a re-run or
+      partial prior attempt), OVERWRITE it with newly-produced content. Do NOT
+      report "task complete because files already existed" — the test asks for
+      fresh work, not directory verification.
+
+      ### Steps required (the orchestrator may split these into subtasks)
+
+      1. **Research parallels**: Read both source files. Identify which passages
+         in Mark 1 and Luke 4 describe the same events. Create a reference table
+         at `output/gospel-synopsis/mark1-luke4-parallels.md` listing:
+         - Scene name
+         - Mark 1 verse range
+         - Luke 4 verse range
+         - "—" if only one Gospel covers the scene
+
+      2. **Create synopsis for each parallel scene**: For each scene identified
+         in step 1 where BOTH Gospels have coverage, create a synopsis file at
+         `output/gospel-synopsis/<scene-slug>-synopsis.md` containing:
+         - Title with scene name
+         - Mark's account (verbatim KJV text from mark-1.txt)
+         - Luke's account (verbatim KJV text from luke-4.txt)
+         - 2-3 bullet points noting differences
+
+      3. **Create synopsis for unique scenes**: For scenes only in one Gospel,
+         create a synopsis file at `output/gospel-synopsis/<scene-slug>-synopsis.md`
+         noting it is unique to that Gospel and including the full text.
+
+      4. **Merge all synopsis files**: Combine all individual synopsis documents
+         into `output/gospel-synopsis/mark1-luke4-master.md` with:
+         - Title: "Gospel Synopsis: Mark 1 and Luke 4 (KJV)"
+         - Table of contents
+         - All scenes in narrative order
+         - A final "Comparative Notes" section
+
+      5. **Create Word document**: Convert the master synopsis to a properly
+         formatted .docx file at `output/gospel-synopsis/mark1-luke4-synopsis.docx`.
+         Install python-docx if needed (pip install python-docx), write a Python
+         script to create the document with headings and body text, then run it.
+
+      6. **Validate deliverables**: Check that all expected files exist, the
+         parallels table has the right structure, at least one verse appears
+         verbatim from source files in the synopsis, and the .docx is valid.
+         Write a validation report to `output/gospel-synopsis/validation-report.md`.
+
+      ### Master task scope (read carefully)
+
+      If you are running as the MASTER task (after the orchestrator has
+      decomposed and the children have all completed), your job is ONLY to:
+        - Read each child's deliverable file(s) from output/gospel-synopsis/
+        - Confirm all 6 expected deliverables exist and are non-empty
+        - Spot-check that at least one KJV verse appears verbatim somewhere
+          in the master synopsis or comparison files
+        - Write a final summary at `output/gospel-synopsis/run-summary.md`
+          listing each deliverable's filename, byte size, and a one-line
+          description (e.g., "mark1-luke4-parallels.md (1.2KB) — reference
+          table of N parallel scenes")
+      You should NOT re-create or duplicate the children's work. If you find
+      a deliverable missing or empty, FAIL the task and report which step
+      did not produce its expected output.
+
+      ### Important constraints
+
+      - ALL text must be copied VERBATIM from the source .txt files — do not
+        paraphrase or rewrite any KJV text
+      - Each step depends on the previous step's output
+      - The parallels reference table is the foundation — all other work depends on it
+    priority: high
+    labels:
+      - "project:gospel-synopsis"
+      - "assigned:test-writer"
+      - "type:feature"
+      - "phase:1"
+      - "staging:wait"
+      - "evaluated:no"
+      - "queued:no"
+      - "active:no"
+      - "completed:no"
+      - "blocked:no"

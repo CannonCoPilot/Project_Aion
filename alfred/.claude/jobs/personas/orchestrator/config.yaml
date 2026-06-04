@@ -1,0 +1,14 @@
+persona: orchestrator
+description: "Single routing brain \u2014 classifies tasks, applies routing rules,\
+  \ assigns to personas, sequences multi-step work"
+engine:
+  default: claude-code
+  model: sonnet
+  router_override: true
+  fallback: null
+output:
+  format: json
+  save_to: .claude/agent-output/results/orchestrator/
+session:
+  persist: false
+schema_version: 2

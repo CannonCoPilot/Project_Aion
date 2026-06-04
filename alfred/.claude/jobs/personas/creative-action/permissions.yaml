@@ -1,0 +1,87 @@
+# Persona: creative-action
+# Tier: action (execute approved creative pipeline tasks)
+# Purpose: Deploy or refine user-approved creative outputs.
+# Based on creative-builder with targeted changes:
+#   Added: ${DOCS_ROOT} create_file, task_update, task_close
+#   Removed: WebSearch (not a research agent), task_create (feedback made the task)
+
+persona: creative-action
+tier: action
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Web access (fetch docs/APIs, no search)
+  - WebFetch
+  # Write and Edit (for worktree work + publishing)
+  - Write
+  - Edit
+  # Git (full — within worktree only)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  # Filesystem (full read + write)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__read_multiple_files
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__create_directory
+  # Knowledge server (read context + create/update document notes)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_sources
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+  # Pulse task management (update + close only — no create)
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_list
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_show
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_update
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_close
+
+denied_tools:
+  # No web search (not a research agent)
+  - WebSearch
+  # No moving/deleting existing files
+  - mcp__filesystem__move_file
+  # No creating new tasks (feedback already created them)
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_create
+
+# Bash: full access for execution, validation, Pulse CLI, Telegram
+allowed_bash:
+  - "*"
+
+approval_required:
+  - action: "docker compose up or docker start"
+    reason: "Creative Pipeline action must not auto-start containers"
+  - action: "Modify files outside the worktree, /tmp/creative-*, or creative-web publish dir"
+    reason: "Action phase must stay scoped to approved work"
+  - action: "SSH to any remote machine"
+    reason: "Action phase works locally only"
+  - action: "git push"
+    reason: "No pushing to remotes — user merges on acceptance"
+
+pre_approved:
+  - "Read any file in AIProjects"
+  - "Write/edit files in .claude/worktrees/creative-*"
+  - "Write/edit files in /tmp/creative-*"
+  - "Publish web artifacts to ${HOME}/Docker/mydocker/creative-web/html/creative/"
+  - "Create/update document notes via MCP knowledge server"
+  - "Update Pulse task status, labels, and notes for project:creative tasks"
+  - "Close completed Pulse tasks for project:creative"
+  - "Run validation scripts and tests"
+  - "Write action report to .claude/agent-output/creative/"
+  - "Run docker compose config (validation only)"
+  - "Run docker build (image building)"
+  - "Create git commits in worktree"

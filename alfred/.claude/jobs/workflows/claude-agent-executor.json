@@ -1,0 +1,70 @@
+{
+  "name": "Claude Agent Executor",
+  "description": "n8n sub-workflow: receives capability + prompt, runs executor.sh via SSH, returns parsed result. Wire this as a sub-workflow called by the MCP or Chat trigger workflows.",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"capability\": \"agent-general\",\n  \"prompt\": \"Check my Docker containers\",\n  \"session_id\": \"\",\n  \"safety_mode\": \"readonly\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "id": "trigger-1",
+      "name": "When Called by MCP Workflow"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build the executor.sh command from input parameters\nconst input = $input.first().json;\nconst capability = input.capability || 'agent-general';\nconst prompt = (input.prompt || 'No prompt provided').replace(/'/g, \"'\\\\''\");\nconst sessionId = input.session_id || '';\nconst safetyMode = input.safety_mode || 'readonly';\n\n// Validate capability\nconst validCapabilities = ['agent-infra-check', 'agent-research', 'agent-troubleshoot', 'agent-general'];\nif (!validCapabilities.includes(capability)) {\n  return [{ json: { error: `Invalid capability: ${capability}. Valid: ${validCapabilities.join(', ')}` } }];\n}\n\n// Build command — UPDATE THIS PATH to match your installation\nlet cmd = `${process.env.PROJECT_DIR || '/path/to/project'}/.claude/jobs/executor.sh --job ${capability} --param \"prompt=${prompt}\" --param \"safety_mode=${safetyMode}\" --quiet`;\n\nif (sessionId) {\n  cmd += ` --session \"${sessionId}\"`;\n}\n\nreturn [{ json: { command: cmd, capability, session_id: sessionId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0],
+      "id": "build-cmd-1",
+      "name": "Build Command"
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "={{ $json.command }}",
+        "cwd": "={{ process.env.PROJECT_DIR || '/path/to/project' }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [440, 0],
+      "id": "ssh-exec-1",
+      "name": "Execute on Server",
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "YOUR_SSH_CREDENTIAL_ID",
+          "name": "YourServer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the executor.sh JSON output and format response\nconst input = $input.first().json;\nconst stdout = input.stdout || '';\nconst stderr = input.stderr || '';\nconst exitCode = input.exitCode || 0;\n\nlet response = '';\nlet cost = 'unknown';\nlet model = 'unknown';\n\ntry {\n  const result = JSON.parse(stdout);\n  response = result.result || result.response || stdout;\n  cost = result.total_cost_usd || result.cost_usd || 'unknown';\n  model = result.model || 'unknown';\n} catch (e) {\n  response = stdout || stderr || 'No output received';\n}\n\nif (exitCode !== 0 && !response) {\n  response = `Error (exit code ${exitCode}): ${stderr || 'Unknown error'}`;\n}\n\nreturn [{\n  json: {\n    response: response,\n    cost_usd: cost,\n    model: model,\n    exit_code: exitCode,\n    capability: $('Build Command').first().json.capability,\n    session_id: $('Build Command').first().json.session_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0],
+      "id": "format-response-1",
+      "name": "Format Response"
+    }
+  ],
+  "connections": {
+    "When Called by MCP Workflow": {
+      "main": [[{ "node": "Build Command", "type": "main", "index": 0 }]]
+    },
+    "Build Command": {
+      "main": [[{ "node": "Execute on Server", "type": "main", "index": 0 }]]
+    },
+    "Execute on Server": {
+      "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {},
+  "staticData": null,
+  "tags": []
+}

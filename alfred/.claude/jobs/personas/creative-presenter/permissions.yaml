@@ -1,0 +1,50 @@
+# Persona: creative-presenter
+# Tier: present (read + write ${DOCS_ROOT} note)
+# Purpose: Create the morning creative output note in ${DOCS_ROOT}.
+
+persona: creative-presenter
+tier: present
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Write (for phase output)
+  - Write
+  # Filesystem (read build artifacts + write report)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__read_multiple_files
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  # Knowledge server (create creative output note in ${DOCS_ROOT})
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_sources
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+
+denied_tools:
+  - Edit
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+
+# Bash: limited — notifications and Pulse only
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read phase 1 and phase 2 output files"
+  - "Read files in worktree or temp directory"
+  - "Create ${DOCS_ROOT} creative output note in ${OUTPUT_DIR}/outputs/"
+  - "Update Pulse task status with project:creative label"
+  - "Write phase output to .claude/agent-output/creative/"
+  - "Rebuild Creative Pipeline manifest via curl to localhost:8350/api/rebuild-manifest"

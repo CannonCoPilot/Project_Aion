@@ -1,0 +1,322 @@
+# Nexus — Nexus Job Registry
+# ============================================
+# All scheduled and on-demand Nexus jobs are defined here.
+# The dispatcher reads this file every cycle to determine what to run.
+#
+# Adding a new job:
+#   1. Create a persona in personas/<name>/ (or reuse an existing one)
+#   2. Add an entry below with schedule, budget, and prompt
+#   3. The dispatcher picks it up automatically on next cycle
+#
+# Engine routing (optional):
+#   engine: claude-code          # DEPRECATED — redirects to claude-interactive.
+#   engine: claude-interactive   # Managed interactive CLI in tmux (Anthropic via proxy). Recommended for Claude.
+#   engine: ollama               # Uses local Ollama API. Free, fast. Supports tool-dispatch.
+#   Resolution order: job.engine > persona config engine.default > defaults.engine > "claude-code"
+#
+# Ollama tool support (optional, ollama engine only):
+#   tools: true                  # Enables /api/chat with run_command tool (multi-turn loop)
+#   tools: false                 # Uses /api/generate (single-turn, default for ollama)
+#   max_tool_rounds: 5           # Max tool call→response cycles (default: 5)
+#
+# Data pre-injection (optional, any engine):
+#   pre_gather: "bash script.sh" # Runs BEFORE LLM, output injected into prompt as data.
+#                                # Use for pure-analysis jobs where data sources are known.
+#
+# Schedule types:
+#   type: interval    — Run every N hours (every_hours: 6)
+#   type: daily       — Run once per day (hour: 14)
+#   type: weekly      — Run once per week (day: monday, hour: 9)
+#   type: on-demand   — Never auto-runs, triggered via webhook or manual dispatch
+#
+# Pre-checks:
+#   pre_check: "bash command"  — Runs BEFORE LLM invocation. If exit != 0, job is skipped.
+#   Use this to avoid expensive LLM calls when there's nothing to do.
+#
+# Effort field (optional):
+#   effort: low | medium | high  — Hint to dispatcher for parallelism and budget allocation.
+#
+# Workflow field (optional):
+#   workflow: <filename>.md  — Points to a workflow markdown file in workflows/ directory.
+#   Provides structured instructions beyond the inline prompt.
+#
+# Tags field (optional):
+#   tags: [monitoring, pipeline]  # Searchable labels for grouping jobs by business line,
+#                                 # client, or service. Not consumed by dispatcher — used
+#                                 # for filtering (grep, yq). Convention: snake_case.
+
+version: 1
+
+# Notification quiet hours — prevents non-critical alerts during sleep
+# Customize timezone and hours to match your schedule
+quiet_hours:
+  timezone: "America/Denver"  # Change to your timezone
+  weekday:
+    start: 22    # 10 PM
+    end: 7       # 7 AM
+  weekend:
+    start: 23    # 11 PM
+    end: 9       # 9 AM
+  severity_bypass:
+    - critical   # Critical always delivers immediately
+  batch_release: true  # Send queued messages when DND ends
+
+# Default values for all jobs (override per-job as needed)
+# v2 uncapped: limits are for observability, not enforcement.
+# Token/cost tracking continues via cost-ledger + Prometheus.
+defaults:
+  engine: claude-code
+  model: sonnet
+  max_turns: 200
+  max_budget_usd: 50.00
+  timeout_minutes: 30
+  session_persist: false
+  max_retries: 1
+  retry_backoff_hours: 1
+
+# Per-persona budget defaults (override per-job)
+# job_defaults:
+#   investigator:
+#     max_budget_usd: 1.00
+#     max_turns: 10
+#   analyst:
+#     max_budget_usd: 2.00
+#     max_turns: 15
+#   autofix-executor:
+#     max_budget_usd: 5.00
+#     max_turns: 30
+
+# ─────────────────────────────────────────────────
+# TEMPLATE JOBS
+# These are representative examples covering each persona tier.
+# Customize schedules, budgets, and pre_checks for your environment.
+# Replace ${PROJECT_DIR} with your actual project path.
+# ─────────────────────────────────────────────────
+jobs:
+
+  # ── Monitoring ─────────────────────────────────
+
+  # Quick infrastructure health check. Runs every 12 hours.
+  # Uses the read-only investigator persona.
+  health-summary:
+    description: "Quick infrastructure health check"
+    tags: [monitoring]
+    persona: investigator
+    engine: ollama
+    model: "qwen3:32b"
+    schedule:
+      type: interval
+      every_hours: 12
+    enabled: true
+    pre_check: "docker ps >/dev/null 2>&1"  # Skip if Docker isn't running
+    pre_gather: "bash ${JOBS_DIR}/lib/gather-health-data.sh"
+    workflow: health-summary.md
+
+  # Validate persona directories and registry references.
+  # Weekly sanity check that all persona configs are valid.
+  persona-health-check:
+    description: "Validate persona directories and registry references"
+    tags: [monitoring]
+    persona: investigator
+    engine: ollama
+    model: "qwen3:32b"
+    schedule:
+      type: weekly
+      day: sunday
+      hour: 5
+    enabled: true
+    pre_gather: "bash ${PROJECT_DIR}/.claude/jobs/lib/persona-health-check.sh 2>&1 || true"
+    workflow: persona-health-check.md
+
+  # ── Task Pipeline ──────────────────────────────
+  # Phase D, Plan B + Option B (parallel-write rollout), 2026-05-12 → cleanup 2026-05-12:
+  # All 3 pipeline cron jobs were DISABLED then REMOVED per Sir's personas-rebuild
+  # Phase 1.0 cleanup directive. Pulse-Nexus task-pipeline operations are event-driven
+  # via .claude/jobs/services/ (V2 services) + event-watcher.sh (Pulse /api/v1/events polling).
+  # Architectural rule: dispatcher = recurring jobs only. No recurring jobs may
+  # handle task-pipeline operations.
+  # Removed entries (historical reference):
+  #   task-score        → services/score.py (risk:* only; auto:* dropped under Plan B)
+  #                       fired by event-watcher.sh on task.created Pulse event
+  #   task-investigator → NOT REPLACED. Plan B drops the auto:candidate → auto:ready
+  #                       promotion path; V2 services drive advancement via dimension
+  #                       labels (staging/evaluated/queued/active/completed/blocked).
+  #   task-executor     → services/executor.py daemon (autofix-executor logic folded
+  #                       in as a persona-mode of the v2 executor)
+  # Audit: Jarvis/projects/project-aion/reports/dispatcher-registry-audit-2026-05-12.md
+  # Personas-rebuild context: Jarvis/projects/project-aion/designs/current/personas-rebuild-design-2026-05-12.md §7 Phase 1.0
+
+  # ── Maintenance ────────────────────────────────
+
+  # Check if documentation needs updating based on recent code changes.
+  doc-sync-check:
+    description: "Check if documentation needs sync with code changes"
+    tags: [maintenance]
+    persona: investigator
+    engine: ollama
+    model: "qwen3:32b"
+    schedule:
+      type: interval
+      every_hours: 24
+    enabled: true
+    pre_check: >-
+      test -f ${PROJECT_DIR}/.claude/logs/.doc-sync-state.json &&
+      python3 -c "import json;
+      d=json.load(open('${PROJECT_DIR}/.claude/logs/.doc-sync-state.json'));
+      exit(0 if len(d.get('changes',[])) >= 5 else 1)"
+    pre_gather: "cat ${PROJECT_DIR}/.claude/logs/.doc-sync-state.json 2>/dev/null || echo '{}'"
+    workflow: doc-sync-check.md
+
+  # LLM review of pipeline health — pattern analysis, recommendations.
+  # DISABLED 2026-05-13 (Phase 1.2 deploy): replaced by services/pipeline_reviewer.py
+  # event-driven service stub (Phase 1.1 commit 5481f5c). The cron-driven 12h interval
+  # no longer fires; pipeline_reviewer.py subscribes to pipeline.health events and
+  # invokes the Tier A pipeline-reviewer persona reactively. Persona file at
+  # personas/pipeline-reviewer/ remains active (Tier A; substrate-locked).
+  pipeline-review:
+    description: "LLM review of pipeline health — pattern analysis, rule recommendations, upstream fix suggestions"
+    tags: [monitoring]
+    persona: pipeline-reviewer
+    schedule:
+      type: interval
+      every_hours: 12
+    enabled: false
+    pre_check: "test -s ${PROJECT_DIR}/.claude/data/pipeline-health.jsonl"
+    workflow: pipeline-review.md
+
+  # Maintain Evaluator Brief sections in project context docs.
+  context-maintenance:
+    description: "Maintain Evaluator Brief sections in project context docs — validate paths, archive stale decisions, resolve questions"
+    tags: [maintenance, context]
+    persona: context-maintainer
+    engine: ollama
+    model: "qwen3:32b"
+    tools: true
+    max_tool_rounds: 8
+    schedule:
+      type: interval
+      every_hours: 12
+    enabled: true
+    pre_check: >-
+      pulse list --status open --json 2>/dev/null |
+      python3 -c "import sys,json;
+      t=json.load(sys.stdin).get('tasks',[]);
+      exit(0 if any(l.startswith('project:')
+      for ta in t for l in ta.get('labels',[])) else 1)"
+
+  # ── Creative Pipeline ──────────────────────────
+  # Three-phase pipeline: Think → Build → Present
+  # Phase gating via state file in .claude/agent-output/creative/
+
+  # Phase 1: Research interests, generate ideas, select tonight's surprise.
+  creative-think:
+    description: "Creative Pipeline Phase 1: Research interests, generate ideas, select tonight's surprise"
+    tags: [creative]
+    persona: creative-thinker
+    engine: ollama
+    model: "qwen3:32b"
+    tools: true
+    max_tool_rounds: 10
+    schedule:
+      type: daily
+      hour: 0     # Midnight
+    enabled: true
+    effort: high
+    pre_check: "bash ${PROJECT_DIR}/.claude/jobs/lib/creative-activity-digest.sh"
+    workflow: creative-think.md
+
+  # Phase 2: Build tonight's surprise in isolation.
+  creative-build:
+    description: "Creative Pipeline Phase 2: Build tonight's surprise in isolation"
+    tags: [creative]
+    persona: creative-builder
+    engine: ollama
+    model: "qwen3:32b"
+    tools: true
+    max_tool_rounds: 10
+    schedule:
+      type: daily
+      hour: 2     # 2:00 AM
+    enabled: true
+    # Gate: only run if Think phase completed today
+    pre_check: >-
+      python3 -c "import json,sys,datetime;
+      d=json.load(open('${PROJECT_DIR}/.claude/agent-output/creative/state-'
+      +datetime.date.today().strftime('%Y%m%d')+'.json'));
+      sys.exit(0 if d.get('think',{}).get('status')=='completed' else 1)"
+    workflow: creative-build.md
+
+  # Phase 3: Create morning surprise note.
+  creative-present:
+    description: "Creative Pipeline Phase 3: Create morning surprise note"
+    tags: [creative]
+    persona: creative-presenter
+    engine: ollama
+    model: "qwen3:32b"
+    tools: true
+    max_tool_rounds: 5
+    schedule:
+      type: daily
+      hour: 6     # 6:00 AM
+    enabled: true
+    # Gate: run if any state file has build completed + present pending
+    pre_check: >-
+      python3 -c "import json,sys,datetime,pathlib;
+      base=pathlib.Path('${PROJECT_DIR}/.claude/agent-output/creative');
+      today=datetime.date.today().strftime('%Y%m%d');
+      yest=(datetime.date.today()-datetime.timedelta(days=1)).strftime('%Y%m%d');
+      candidates=[f'state-{today}.json',f'state-{today}-pm.json',
+      f'state-{yest}-pm.json'];
+      found=[base/c for c in candidates if (base/c).exists()];
+      sys.exit(1) if not found else None;
+      result=any(json.load(open(f)).get('build',{}).get('status')=='completed'
+      and not json.load(open(f)).get('present',{}).get('status')=='completed'
+      for f in found); sys.exit(0 if result else 1)"
+    workflow: creative-present.md
+
+  # ── Reporting ──────────────────────────────────
+
+  # Weekly summary report — aggregates job results, costs, and pipeline health.
+  weekly-digest:
+    description: "Weekly summary report — job results, costs, pipeline health"
+    tags: [reporting]
+    persona: investigator
+    engine: ollama
+    model: "qwen3:32b"
+    schedule:
+      type: weekly
+      day: monday
+      hour: 9
+    enabled: true
+    pre_gather: "bash ${JOBS_DIR}/lib/gather-weekly-data.sh"
+    workflow: weekly-digest.md
+
+  # ── Ollama Test (disabled) ─────────────────────
+  # Example Ollama job for testing engine routing.
+  # Enable this to verify your Ollama setup works with the dispatcher.
+  ollama-test:
+    description: "Test Ollama engine routing (lightweight summary)"
+    engine: ollama
+    model: "qwen3:8b"
+    persona: investigator
+    schedule:
+      type: on-demand
+    enabled: true
+    timeout_minutes: 5
+    workflow: ollama-test.md
+
+# ─────────────────────────────────────────────────
+# Notification routing — what severities reach which channels.
+# Without this block, msg-relay.sh:should_deliver_to_telegram() defaults
+# to false (empty severity-filter loop never matches), so even
+# severity=critical events stay dashboard-only.
+# Surfaced 2026-05-06 by Jarvis Telegram smoke-test (post cd0aadd).
+# ─────────────────────────────────────────────────
+notification_preferences:
+  channels:
+    telegram:
+      enabled: true
+      filter:
+        severity:
+          - critical
+          - warning

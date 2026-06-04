@@ -1,0 +1,1 @@
+archive/compose-validator.js

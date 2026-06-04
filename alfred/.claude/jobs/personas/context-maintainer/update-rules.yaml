@@ -1,0 +1,114 @@
+# Update Rules for Context Maintainer
+# Machine-readable constraints — persona checks these before every edit
+# Document Guard enforces section_preservation + heading_structure on top
+
+sections:
+  editable:
+    - "### Key File Paths"
+    - "### Models & Tools"
+    - "### Decisions Made"
+    - "### Open Questions"
+    - "### Related Tasks"
+    - "### Archived Decisions"    # Created by maintainer for 180-day-old entries
+
+  read_only:
+    - "# *"                       # Project title (any H1)
+    - "## Overview"
+    - "## Goal"
+    - "## Status"
+    - "## Architecture"
+    - "## Approach"
+    - "## Context"
+    - "## Related Work"
+    - "## Source Documents"
+    - "## Development Sequence"
+    - "## Technology Stack"
+    - "## Future Scope"
+    - "## Key Concepts"
+    - "## Relationship to *"
+    - "## Evaluator Brief"        # The section header itself — read-only
+    - "## Resources & References"
+    - "## Learnings"
+    - "## Implementation Plan"
+    - "## Progress Log"
+    - "## Decisions & Trade-offs"
+    - "## Blockers & Issues"
+    - "## Testing & Validation"
+
+operations:
+  allowed:
+    - append_row                  # Add new row to a table
+    - mark_resolved               # Change [ ] to [x] with answer and date
+    - update_task_status          # Change "open" to "closed" in Related Tasks
+    - flag_missing_path           # Add "(MISSING)" annotation to file path
+    - archive_decision            # Add "[archived]" prefix to 90-day-old decisions
+    - move_to_archive             # Move 180-day archived entry to Archived Decisions subsection
+    - add_timestamp               # Update "Last maintained" comment
+
+  denied:
+    - delete_row                  # Never remove existing data
+    - modify_decision             # Never change what was decided (only archive)
+    - modify_path                 # Never change existing paths (flag instead)
+    - create_section              # Never add new ## sections
+    - modify_goal                 # Never change project goals
+    - reorder_entries             # Never change ordering
+    - overwrite_file              # Never use Write tool on context docs (use Edit only)
+
+staleness_rules:
+  decision_archive_after_days: 90
+  decision_archive_condition: "no related open tasks AND no tasks closed in last 30 days reference it"
+  decision_move_to_archive_after_days: 180
+  path_flag_on_missing: true
+  path_remove_on_missing: false
+  path_escalate_if_critical: true       # First 3 rows in Key File Paths = critical
+  path_create_cleanup_task_after_days: 30
+  question_auto_resolve: true
+  question_auto_resolve_confidence: "task notes explicitly answer the question — no inference"
+
+deduplication:
+  check_before_append: true
+  match_strategy: "semantic — same topic + same conclusion = duplicate, even if wording differs"
+  on_duplicate: "skip and log in report"
+  max_edits_per_file: 3                 # Safety cap per run — escalate if more needed
+
+auto_approval_tiers:
+  tier_1_auto:
+    operations:
+      - append_decision_from_closed_task
+      - mark_question_resolved
+      - update_related_task_status
+      - flag_missing_file_path
+      - add_maintenance_timestamp
+    conditions:
+      - "Edit is within Evaluator Brief section ONLY"
+      - "Edit is append-only"
+      - "File passes Document Guard section_preservation"
+      - "No more than 3 edits per file per run"
+
+  tier_2_auto_with_review:
+    operations:
+      - archive_stale_decision
+      - append_model_or_tool
+      - append_file_path
+    conditions:
+      - "All Tier 1 conditions PLUS:"
+      - "Log change for AI Reviewer review on next cycle"
+
+  tier_3_escalate:
+    operations:
+      - bulk_archive_gt_5
+      - missing_context_doc
+      - critical_path_missing
+      - architecture_decision_detected
+      - cross_project_conflict
+    conditions:
+      - "Create waiting:human task via pulse create"
+      - "Do NOT make the edit"
+
+  tier_4_never:
+    operations:
+      - modify_goal_or_status
+      - delete_any_entry
+      - modify_non_brief_sections
+      - edit_template_file
+      - modify_own_persona_files

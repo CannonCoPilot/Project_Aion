@@ -1,0 +1,30 @@
+# GitHub Repos Configuration — Issue Monitoring
+#
+# Defines which repositories the job system monitors for new issues.
+# Consumed by: github-issue-poller workflow, bug-intake processes
+#
+# To add a new repo: add an entry below. The poller picks it up automatically.
+
+version: 1
+
+defaults:
+  issue_filter:
+    exclude_labels: [wontfix, invalid, duplicate, question]
+  max_new_per_cycle: 5
+
+repos:
+  # --- Add your repositories below ---
+  # Example:
+  # - owner: your-github-username
+  #   repo: your-repo-name
+  #   project_label: your-project
+  #   enabled: true
+  #   issue_filter:
+  #     exclude_labels: [wontfix, invalid, duplicate, question]
+
+  - owner: GITHUB_USERNAME
+    repo: REPO_NAME
+    project_label: my-project
+    enabled: false
+    issue_filter:
+      exclude_labels: [wontfix, invalid, duplicate, question]

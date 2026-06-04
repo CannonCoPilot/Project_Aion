@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# nexus-label - Label state machine CLI wrapping pulse label operations.
+#
+# Usage:
+#   nexus-label add    <task_id> <label>          [actor]
+#   nexus-label remove <task_id> <label>          [actor]
+#   nexus-label stage  <task_id> <stage>          [actor]   # sets stage:<stage>, removing any prior stage:*
+#   nexus-label list   <task_id>
+#
+# Stage names are free-form but conventional: queue, review, execute, verify, done
+# Actor is informational (logged via append-notes when supported).
+
+set -euo pipefail
+
+cmd="${1:-}"
+shift || true
+
+usage() {
+  sed -n '3,14p' "$0" >&2
+  exit 2
+}
+
+require_pulse() {
+  command -v pulse >/dev/null 2>&1 || { echo "nexus-label: 'pulse' CLI not on PATH" >&2; exit 3; }
+}
+
+case "$cmd" in
+  add)
+    require_pulse
+    [ "$#" -ge 2 ] || usage
+    task="$1"; label="$2"; actor="${3:-nexus-label}"
+    pulse label add "$task" "$label" >/dev/null
+    echo "added $label to $task (by $actor)"
+    ;;
+
+  remove|rm)
+    require_pulse
+    [ "$#" -ge 2 ] || usage
+    task="$1"; label="$2"; actor="${3:-nexus-label}"
+    pulse label remove "$task" "$label" >/dev/null 2>&1 || true
+    echo "removed $label from $task (by $actor)"
+    ;;
+
+  stage)
+    require_pulse
+    [ "$#" -ge 2 ] || usage
+    task="$1"; stage="$2"; actor="${3:-nexus-label}"
+    existing=$(pulse show "$task" 2>/dev/null | grep -oE 'stage:[a-z_-]+' | sort -u || true)
+    if [ -n "$existing" ]; then
+      while IFS= read -r old; do
+        [ -z "$old" ] && continue
+        [ "$old" = "stage:$stage" ] && continue
+        pulse label remove "$task" "$old" >/dev/null 2>&1 || true
+      done <<< "$existing"
+    fi
+    pulse label add "$task" "stage:$stage" >/dev/null
+    echo "staged $task -> stage:$stage (by $actor)"
+    ;;
+
+  list|ls)
+    require_pulse
+    [ "$#" -ge 1 ] || usage
+    task="$1"
+    pulse show "$task" 2>/dev/null | awk '/^  Labels:/{sub(/^  Labels:[[:space:]]*/,"");print}'
+    ;;
+
+  ""|-h|--help|help)
+    usage
+    ;;
+
+  *)
+    echo "nexus-label: unknown command: $cmd" >&2
+    usage
+    ;;
+esac

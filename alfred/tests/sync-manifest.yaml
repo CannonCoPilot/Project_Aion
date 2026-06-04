@@ -1,0 +1,172 @@
+# sync-manifest.yaml — Declares file ownership between AIFred (public) and AIFred-Pro (private)
+#
+# shared: Should be identical between repos (synced from AIProjects -> AIFred -> Pro)
+# pro_only: Expected only in AIFred-Pro
+# base_only: Expected only in public AIFred
+#
+# Used by: tests/validate-sync.sh
+
+shared:
+  # Core hooks (active)
+  - .claude/hooks/orchestration-detector.js
+  - .claude/hooks/memory-maintenance.js
+  - .claude/hooks/cross-project-commit-tracker.js
+  - .claude/hooks/planning-mode-detector.js
+  - .claude/hooks/branch-protection.js
+  - .claude/hooks/lib/shared.js
+  - .claude/hooks/skill-router.js
+  - .claude/hooks/prompt-dispatcher.js
+  - .claude/hooks/doc-sync-trigger.js
+  - .claude/hooks/docker-health-check.js
+  - .claude/hooks/subagent-dispatcher.js
+  - .claude/hooks/session-start.js
+  - .claude/hooks/session-stop.js
+  - .claude/hooks/pre-compact.js
+  - .claude/hooks/audit-logger.js
+  - .claude/hooks/secret-scanner.js
+  - .claude/hooks/docker-validator.js
+  - .claude/hooks/document-guard.js
+  - .claude/hooks/file-access-tracker.js
+  - .claude/hooks/index-sync.js
+  - .claude/hooks/paths-registry-sync.js
+  - .claude/hooks/service-registration-detector.js
+
+  # Archived hooks
+  - .claude/hooks/archive/session-exit-enforcer.js
+  - .claude/hooks/archive/context-reminder.js
+  - .claude/hooks/archive/health-monitor.js
+  - .claude/hooks/archive/amend-validator.js
+  - .claude/hooks/archive/compose-validator.js
+  - .claude/hooks/archive/prompt-enhancer.js
+  - .claude/hooks/archive/network-validator.js
+  - .claude/hooks/archive/fabric-suggester.js
+  - .claude/hooks/archive/worktree-manager.js
+  - .claude/hooks/archive/metrics-collector.js
+  - .claude/hooks/archive/project-detector.js
+  - .claude/hooks/archive/context-usage-tracker.js
+  - .claude/hooks/archive/self-correction-capture.js
+  - .claude/hooks/archive/mcp-enforcer.js
+  - .claude/hooks/archive/credential-guard.js
+  - .claude/hooks/archive/env-validator.js
+  - .claude/hooks/archive/restart-loop-detector.js
+  - .claude/hooks/archive/priority-validator.js
+  - .claude/hooks/archive/port-conflict-detector.js
+  - .claude/hooks/archive/subagent-stop.js
+  - .claude/hooks/archive/lsp-redirector.js
+
+  # Scripts
+  - scripts/profile-loader.js
+  - scripts/lib/platform.sh
+  - scripts/lib/test-platform.sh
+  - scripts/priority-cleanup.sh
+  - scripts/weekly-context-analysis.sh
+  - scripts/link-external.sh
+  - scripts/check-all-services.sh
+  - scripts/push-all-commits.sh
+  - scripts/weekly-health-check.sh
+  - scripts/aifred-update.sh
+  - scripts/consolidate-project.sh
+  - scripts/statusline-command.sh
+  - scripts/check-service.sh
+  - scripts/update-priorities.sh
+  - scripts/discover-docker.sh
+  - scripts/check-gateway.sh
+  - scripts/register-project.sh
+  - scripts/scan-secrets.sh
+
+  # Profiles
+  - profiles/general.yaml
+  - profiles/homelab.yaml
+  - profiles/development.yaml
+  - profiles/production.yaml
+  - profiles/schema.yaml
+  - profiles/_template.yaml
+  - profiles/README.md
+
+  # Skills (shared)
+  - .claude/skills/_index.md
+  - .claude/skills/session-management/SKILL.md
+  - .claude/skills/infrastructure-ops/SKILL.md
+  - .claude/skills/orchestration/SKILL.md
+  - .claude/skills/upgrade/SKILL.md
+  - .claude/skills/upgrade/config.yaml
+  - .claude/skills/structured-planning/SKILL.md
+  - .claude/skills/structured-planning/config.json
+  - .claude/skills/_template/SKILL.md
+  - .claude/skills/_template/config.json
+  - .claude/skills/project-lifecycle/SKILL.md
+  - .claude/skills/parallel-dev/SKILL.md
+  - .claude/skills/parallel-dev/config.json
+  - .claude/skills/task-dashboard/SKILL.md
+
+  # Jobs
+  - .claude/jobs/dispatcher.sh
+  - .claude/jobs/executor.sh
+  - .claude/jobs/memory-prune.sh
+  - .claude/jobs/registry.yaml
+  - .claude/jobs/lib/common.sh
+  - .claude/jobs/lib/send-telegram.sh
+  - .claude/jobs/lib/sessions.sh
+  - .claude/jobs/lib/weekly-digest.sh
+  - .claude/jobs/lib/msg-relay.sh
+  - .claude/jobs/lib/dashboard.sh
+  - .claude/jobs/lib/dispatcher-watchdog.sh
+  - .claude/jobs/lib/msgbus.sh
+  - .claude/jobs/lib/cost-report.sh
+  - .claude/jobs/lib/telegram-callback-handler.sh
+
+  # Top-level
+  - .claude/CLAUDE.md
+  - .claude/settings.json
+  - README.md
+  - opencode.json
+  - VERSION
+  - commands/register-project.md
+  - commands/create-project.md
+  - knowledge/templates/project-context.md
+  - knowledge/docs/getting-started.md
+
+  # Test infrastructure (shared)
+  - tests/validate-structure.sh
+  - .yamllint
+  - .shellcheckrc
+
+pro_only:
+  # Pro-specific hooks
+  - .claude/hooks/credential-guard.js
+  - .claude/hooks/credential-guard.config.js
+  - .claude/hooks/persona-guard.js
+  - .claude/hooks/yaml-validator.js
+  - .claude/hooks/lib/persona-policies.yaml
+  - .claude/hooks/context-monitor/
+
+  # Registries and schemas
+  - .claude/registries/
+  - .claude/settings.local.json
+
+  # Job rules
+  - .claude/jobs/rules/
+  - .claude/jobs/lib/routing-rules.yaml
+
+  # Pro context
+  - .claude/context/tools/pulse-reference.md
+  - .claude/context/tools/label-taxonomy.yaml
+  - .claude/context/projects/aiprojects-migration-audit.md
+  - .claude/context/standards/
+
+  # Pro skills
+  - .claude/skills/fabric/SKILL.md
+  - .claude/skills/system-utilities/SKILL.md
+
+  # Infra
+  - docker-compose.yml
+  - scripts/setup-pulse.sh
+
+  # Sync tooling
+  - tests/sync-manifest.yaml
+  - tests/validate-sync.sh
+
+base_only:
+  # Public-only scripts
+  - scripts/pulse-aliases.sh
+  - scripts/new-code-project.sh

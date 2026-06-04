@@ -1,0 +1,88 @@
+# AIfred .gitignore
+
+# Local settings (user-specific)
+.claude/settings.local.json
+
+# Logs (rotated, can be large)
+.claude/logs/*.jsonl
+.claude/logs/*.log
+.claude/logs/*.json
+.claude/logs/archive/
+.claude/logs/.current-session
+.claude/logs/.session-activity
+.claude/logs/headless/
+
+# Hook runtime logs
+.claude/hooks/logs/
+
+# Job runtime state
+.claude/jobs/state/
+
+# Job runtime archive (per-run lifecycle summaries — regenerated)
+.claude/jobs/archive/
+
+# Agent job output (runtime reports, scores — regenerated each run)
+.claude/agent-output/
+
+# Runtime review artifacts (regenerated each pipeline run)
+.claude/reports/
+
+# Pipeline session telemetry (runtime, can be large)
+session-metrics.jsonl
+
+# Stray gospel-synopsis build artifacts at repo root (canonical copies live in tests/gospel-synopsis/)
+/mark1-luke4-synopsis.docx
+/verify-source-word-order-and-completenes.md
+
+# Runtime data (audit logs, exports, backups)
+.claude/data/
+
+# Agent sessions (transient)
+.claude/agents/sessions/*.md
+
+# MCP configuration (may contain paths)
+.mcp.json
+
+# OpenCode local settings
+opencode.local.json
+
+# User-specific paths (create from template)
+paths-registry.yaml
+
+# Profile configuration (user-specific, create from template)
+.claude/config/active-profile.yaml
+.claude/config/profile-config.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if using node for scripts)
+node_modules/
+
+# Python (if using python for scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Environment / credentials (NEVER commit these)
+.env
+.env.local
+*.secret
+.claude/jobs/.env
+
+# Script configuration (contains sensitive data)
+scripts/config.sh
+
+# AIfred update tracking (user-specific)
+.aifred.yaml
+.aifred-ignore
+.aifred-check-result.json
+output/

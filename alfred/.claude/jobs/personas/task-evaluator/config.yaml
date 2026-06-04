@@ -1,0 +1,13 @@
+persona: task-evaluator
+engine:
+  default: claude-code
+  model: sonnet
+  fallback: null
+output:
+  format: json
+  save_to: .claude/agent-output/results/task-evaluator/
+env_files:
+- .claude/jobs/.env
+session:
+  persist: false
+schema_version: 2

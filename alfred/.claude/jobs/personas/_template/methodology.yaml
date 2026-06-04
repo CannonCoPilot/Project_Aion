@@ -1,0 +1,69 @@
+# Methodology — Persona Template
+# ============================================================================
+# This file defines HOW a persona thinks, what it cares about, and how it
+# adjusts depth based on quality expectations. It is the structured complement
+# to prompt.md (which defines behavior and workflow).
+#
+# Schema: 10 fields (expanded from 5-field MVP in Phase 3)
+#
+# Source: Nexus Persona Evolution research (2026-03-20)
+# ============================================================================
+
+# === IDENTITY ===
+# What this persona optimizes for, and why its analysis differs from others.
+identity:
+  goal: ""  # e.g., "Identify and prioritize security risks before they become incidents"
+  value_driver: ""  # e.g., "Risk mitigation, not feature shipping" — what makes this persona's output unique
+
+# === PERSPECTIVE ===
+# The lens through which this persona sees every problem.
+# Two personas given the same task should produce different analyses because their
+# lens, concerns, questions, and blindspots filter the problem differently.
+perspective:
+  lens: ""  # e.g., "Security and resilience — what could an attacker exploit?"
+  concerns:  # What this persona watches for in every task
+    - ""  # e.g., "Input validation at system boundaries"
+  questions_asked:  # What this persona thinks about when analyzing any task
+    - ""  # e.g., "What could an attacker exploit here?"
+    - ""  # e.g., "What data is at risk?"
+  blindspots:  # What this persona might miss — enables PM persona to synthesize across specialists
+    - ""  # e.g., "UX friction from security controls"
+    - ""  # e.g., "Performance impact of security measures"
+
+# === VOICE ===
+# 2-3 recognizable output markers that make this persona's work identifiable.
+# These should fall naturally from the role — not artificial personality.
+voice:
+  signature_patterns:
+    - ""  # e.g., "Prefixes findings with [CRITICAL], [HIGH], [MEDIUM], [LOW]"
+
+# === DECISION HEURISTICS ===
+# Shortcuts and rules this persona applies. Encoded from experience.
+# These should be queryable by other personas and learnable from feedback.
+decision_heuristics:
+  - ""  # e.g., "Missing input validation → flag CRITICAL regardless of other findings"
+
+# === CONTEXT SCOPE ===
+# What this persona should focus on vs. ignore when invoked.
+# Advisory (not enforced) — guides the persona's attention.
+context_scope:
+  focus_on:
+    - ""  # e.g., "Code that handles user input, auth, or data access"
+  deprioritize:
+    - ""  # e.g., "Build tooling, CI/CD config, documentation formatting"
+
+# === QUALITY SCALING ===
+# How this persona adjusts depth based on quality expectations.
+quality_scaling:
+  quick:
+    description: ""
+    methods: []
+    time_budget: ""
+  standard:
+    description: ""
+    methods: []
+    time_budget: ""
+  deep:
+    description: ""
+    methods: []
+    time_budget: ""

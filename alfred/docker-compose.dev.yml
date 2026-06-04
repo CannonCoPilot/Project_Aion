@@ -1,0 +1,195 @@
+# Alfred-Dev overlay — applies dev-space-isolation (P0-T04) conventions.
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml \
+#     --project-name=aifred-pro-dev up -d
+#
+# See .claude/context/decisions/dev-space-isolation.md for the scheme:
+#   - Container names: aifred-*  →  aifred-dev-*
+#   - Ports: prod port + 100  (with one override to avoid 8700 collision)
+#   - Volumes: aifred-*-data   →  aifred-dev-*-data
+#   - Network: aifred-network  →  aifred-dev-network
+#
+# Port map:
+#   Pulse API           8700 → 8800
+#   Dashboard (prod)    8600 → 8701   (override: strict +100 would hit prod pulse 8700)
+#   Dashboard-dev vite  5173 → 8702   (Path 1 hot-reload sidecar; iteration loop for frontend)
+#
+# Dev does NOT join caddy-network (bypasses Caddy/SSO for local access).
+
+services:
+  postgres:
+    container_name: aifred-dev-postgres
+    volumes: !override
+      - postgres-dev-data:/var/lib/postgresql/data
+    networks: !override
+      - aifred-dev-network
+
+  pulse:
+    image: aifred-pulse:latest
+    container_name: aifred-dev-pulse
+    restart: unless-stopped
+    command: ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8700", "--reload"]
+    ports: !override
+      - "${PULSE_PORT:-8800}:8700"
+    networks: !override
+      - aifred-dev-network
+    depends_on: !override
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8700/api/v1/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    # Phase 1.2 (2026-05-13): personas/ bind-mount enables (a) the schema v1→v2
+    # migration to rewrite config.yaml files in-place, and (b) the Tier C/D PUT
+    # endpoints to round-trip-write methodology.yaml / permissions.yaml / prompt
+    # version snapshots. Container path /jobs/personas matches pulse/app.py:2847
+    # PERSONAS_DIR default. Without this mount the substrate gracefully degrades
+    # (PUT returns 200 with fs_synced=false). Merges with the 3 base mounts.
+    # Phase 1.4: app.py bind-mount shadows the built-in copy so host edits
+    # auto-trigger uvicorn --reload without docker cp or container restart.
+    volumes:
+      - ${AIFRED_PATH:-.}/.claude/jobs/personas:/jobs/personas:rw
+      - ${AIFRED_PATH:-.}/pulse/app.py:/app/app.py:ro
+      - ${AIFRED_PATH:-.}/.claude/jobs/test-suites:/app/test-suites:ro
+
+  nexus-dashboard:
+    # Build inherits from docker-compose.yml (build: ./dashboard); compose tags result
+    # as aifred-pro-dev-nexus-dashboard:latest from the project name. No image: override
+    # here — that previously pinned dev to the prod-derived aifred-pro-nexus-dashboard
+    # tag, silently leaking production frontend code into the dev container (discovered
+    # 2026-05-07; see Jarvis/.../aifred-pro-dev-reo-page.md §8 Phase 5.5).
+    container_name: aifred-dev-dashboard
+    ports: !override
+      - "${DASHBOARD_PORT:-8701}:8600"
+    environment:
+      # P1.B1.1: decisions/storyline reads now go through Pulse GET endpoints
+      # (symmetric to P1.5 POST receivers). Direct DB access removed.
+      - PULSE_API_URL=http://pulse:8700/api/v1
+      # Phase 2B: Jarvis Memory dashboard reads context files from Jarvis workspace
+      - JARVIS_PROJECT_DIR=/jarvis
+    volumes: !override
+      - dashboard-dev-data:/data
+      - ${AIFRED_PATH:-.}/.claude/jobs:/workspace/.claude/jobs
+      - ${AIFRED_PATH:-.}/.claude/logs/headless:/workspace/.claude/logs/headless:ro
+      - ${AIFRED_PATH:-.}/.claude/agent-output:/workspace/.claude/agent-output:ro
+      - ${AIFRED_PATH:-.}/.claude/data:/workspace/.claude/data:ro
+      - ${AIFRED_PATH:-.}/.claude/hooks:/workspace/.claude/hooks:ro
+      - ${AIFRED_PATH:-.}/knowledge:/workspace/knowledge:ro
+      # Jarvis workspace (read-only) for memory health dashboard
+      - ${JARVIS_PATH:-/Users/nathanielcannon/Claude/Project_Aion}:/jarvis:ro
+    networks: !override
+      - aifred-dev-network
+    depends_on: !override
+      pulse:
+        condition: service_healthy
+
+  dashboard-dev:
+    # Path 1 (2026-05-08): vite hot-reload sidecar for dashboard frontend.
+    # Source of truth is the host filesystem via bind-mount; container only runs
+    # the vite dev server. /api requests proxy to nexus-dashboard:8600 over the
+    # dev network. The prod-style nexus-dashboard service stays in place for
+    # bundle-path validation; dashboard-dev is the fast iteration loop.
+    #
+    # node_modules: lives in a NAMED VOLUME (not the bind-mount) so npm install
+    # writes don't cross the macOS bind-mount boundary (perf) and host
+    # node_modules from non-container dev doesn't leak into the container.
+    image: node:20-alpine
+    container_name: aifred-dev-dashboard-vite
+    restart: unless-stopped
+    working_dir: /app/frontend
+    command: sh -c "npm install --no-audit --no-fund && npm run dev -- --host 0.0.0.0 --port 5173"
+    ports:
+      - "${DASHBOARD_DEV_PORT:-8702}:5173"
+    environment:
+      - VITE_API_PROXY_TARGET=http://nexus-dashboard:8600
+      - VITE_HOST=0.0.0.0
+      - VITE_PORT=5173
+      - VITE_USE_POLLING=1   # macOS docker bind-mount inotify is unreliable; polling is the workaround
+    volumes:
+      - ./dashboard/frontend:/app/frontend
+      - dashboard-dev-node-modules:/app/frontend/node_modules
+    networks:
+      - aifred-dev-network
+    depends_on:
+      nexus-dashboard:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:5173"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+
+  pipeline:
+    build: ./pipeline
+    image: aifred-pipeline:latest
+    container_name: aifred-dev-pipeline
+    restart: unless-stopped
+    volumes:
+      - ${AIFRED_PATH:-.}:/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PULSE_API=http://pulse:8700/api/v1
+      - OLLAMA_URL=http://host.docker.internal:11434/api/generate
+      - PROJECT_DIR=/workspace
+      - HOST_PROJECT_DIR=${AIFRED_PATH:-/Users/nathanielcannon/Claude/Project_Aion/alfred}
+      - POLL_INTERVAL=${PIPELINE_POLL_INTERVAL:-30}
+      - WEBHOOK_CALLBACK_HOST=pipeline
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
+    networks:
+      - aifred-dev-network
+    depends_on:
+      pulse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; assert os.path.exists('/workspace/.claude/jobs/pipeline-watcher.py')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  usage-proxy:
+    build: ./usage-proxy
+    image: aifred-usage-proxy:latest
+    container_name: aifred-dev-usage-proxy
+    restart: unless-stopped
+    ports:
+      - "${USAGE_PROXY_PORT:-9800}:9800"
+    environment:
+      - UPSTREAM_URL=https://api.anthropic.com
+      - PROXY_DB_HOST=postgres
+      - PROXY_DB_PORT=5432
+      - PROXY_DB_NAME=pulse_dev
+      - PROXY_DB_USER=pulse_dev
+      - PROXY_DB_PASSWORD=${PULSE_DB_PASSWORD}
+      - PROXY_PORT=9800
+    networks:
+      - aifred-dev-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9800/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres-dev-data:
+    name: aifred-dev-postgres-data
+  dashboard-dev-data:
+    name: aifred-dev-dashboard-data
+  dashboard-dev-node-modules:
+    name: aifred-dev-dashboard-vite-node-modules
+
+networks:
+  aifred-dev-network:
+    name: aifred-dev-network
+    driver: bridge

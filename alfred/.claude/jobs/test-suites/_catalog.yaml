@@ -1,0 +1,348 @@
+# Test Suite Catalog — Master registry for all pipeline test suites
+# Read by: dashboard TestCockpitPage, import-suite.py, pipeline validation scripts
+# Updated: 2026-05-29
+
+suites:
+  - id: probe-simple
+    name: "Simple Probe (Full Lifecycle)"
+    file: null  # Inline — single task, no YAML file needed
+    status: active
+    priority: P0
+    task_count: 1
+    expected_runtime_min: 3
+    description: >
+      Single task through full pipeline lifecycle: stage → evaluate → orchestrate →
+      execute (chain-executor) → review → close. The simplest end-to-end validation.
+    components_tested:
+      - stage.py
+      - evaluate.py
+      - orchestrate.py
+      - executor.py (signal-delegation)
+      - reviewer.py
+      - host-executor-bridge.sh
+      - chain-executor (seed session)
+      - sentinel mechanism
+    behaviors_tested:
+      - label FSM progression
+      - context summary capture
+      - reviewer filesystem verification
+      - HOST_PROJECT_DIR path translation
+    inline_task:
+      title: "PROBE: Create and verify test file"
+      description: "Create probe-test.txt in the output directory with content 'Pipeline probe - success'. Verify it exists and print path."
+      labels: ["project:pipeline-probe", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    validation:
+      last_run: "2026-05-29T05:02:26Z"
+      last_result: pass
+      last_commit: null
+      notes: "Validated during chain-executor development. Full lifecycle completed."
+
+  - id: probe-file-verify
+    name: "File Verification Probe"
+    file: null
+    status: active
+    priority: P0
+    task_count: 1
+    expected_runtime_min: 3
+    description: >
+      Tests that executor creates a file at HOST_PROJECT_DIR path and reviewer
+      correctly translates and verifies it inside Docker container.
+    components_tested:
+      - executor.py (HOST_PROJECT_DIR)
+      - reviewer.py (_host_to_container_path)
+    behaviors_tested:
+      - Docker ↔ host path translation
+      - reviewer FOUND/MISSING detection
+    inline_task:
+      title: "PROBE: File path verification"
+      description: "Create verify-test.txt in the output directory with 'Path verification success'. The reviewer must confirm the file exists."
+      labels: ["project:pipeline-probe", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    validation:
+      last_run: "2026-05-29T04:27:23Z"
+      last_result: pass
+      last_commit: null
+      notes: "Validated with probe v5. Reviewer passed after HOST_PROJECT_DIR fix."
+
+  - id: chain-decomposition
+    name: "Chain Decomposition"
+    file: null
+    status: active
+    priority: P0
+    task_count: 1
+    expected_runtime_min: 5
+    description: >
+      Single complex task that orchestrator decomposes into 2-3 subtasks.
+      Tests chain ordering, dependency blocking, and parent auto-close.
+    components_tested:
+      - orchestrate.py (decomposition)
+      - pipeline-watcher.py (chain_predecessor_done, auto-close parent)
+      - executor.py (chain_resume propagation)
+    behaviors_tested:
+      - Task decomposition into subtasks
+      - chain_order sequential execution
+      - blocked:yes/reason:dependency
+      - Parent auto-close when all children closed
+    inline_task:
+      title: "PROBE: Multi-step file creation"
+      description: "Create three files: step1.txt, step2.txt, step3.txt in the output directory. Each file should reference the previous. Verify all three exist."
+      labels: ["project:pipeline-probe", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:feature"]
+    validation:
+      last_run: "2026-05-29T05:07:38Z"
+      last_result: pass
+      last_commit: null
+      notes: "Probe v9 decomposed into 3 subtasks, all closed, parent auto-closed."
+
+  - id: reviewer-pass-fail
+    name: "Reviewer Pass/Fail Pair"
+    file: null
+    status: active
+    priority: P1
+    task_count: 2
+    expected_runtime_min: 5
+    description: >
+      Two tasks: one designed to pass review (creates expected file), one designed
+      to fail review (creates file at WRONG path so reviewer sees MISSING). Tests
+      reviewer accuracy in both directions + diagnose recovery.
+    components_tested:
+      - reviewer.py (pass path)
+      - reviewer.py (fail path)
+      - diagnose.py (triggered on fail)
+    behaviors_tested:
+      - Review pass with filesystem evidence
+      - Review fail detection (MISSING file triggers fail)
+      - Diagnose recovery cycle
+      - retry_count increment
+    inline_tasks:
+      - title: "PROBE-PASS: Create reviewer-pass.txt correctly"
+        description: "Create reviewer-pass.txt in the output directory with content 'Reviewer pass test - success'. Verify it exists and print full path."
+        labels: ["project:reviewer-test", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+      - title: "PROBE-FAIL: Write file to wrong subdirectory"
+        description: "Create reviewer-fail.txt but write it to a subdirectory called 'wrong-place' inside the output directory (e.g. output/reviewer-test/wrong-place/reviewer-fail.txt). The reviewer expects the file at output/reviewer-test/reviewer-fail.txt, so this should fail review."
+        labels: ["project:reviewer-test", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    validation:
+      last_run: "2026-05-29T17:29:46Z"
+      last_result: pass
+      last_commit: null
+      notes: "Both tasks passed. PROBE-FAIL did not trigger reviewer failure — executor was smart enough to create file at correct path despite misleading description. Tests reviewer pass path and full lifecycle; does NOT test reviewer fail path."
+
+  - id: self-healing-cycle
+    name: "Self-Healing Cycle"
+    file: null
+    status: active
+    priority: P1
+    task_count: 1
+    expected_runtime_min: 8
+    description: >
+      Task that writes to wrong output directory on first attempt. Reviewer fails it,
+      diagnose identifies the path issue, redesigns the description with the correct
+      path, and the retry succeeds. Tests the full fail → diagnose → retry → pass cycle.
+    components_tested:
+      - reviewer.py (fail detection)
+      - diagnose.py (root cause + label reset + description rewrite)
+      - pipeline-watcher.py (retry dispatch)
+      - executor.py (executor_attempts tracking)
+    behaviors_tested:
+      - executor_attempts increment and reset by diagnose
+      - lifecycle_resets increment
+      - diagnose_output propagation to retry context
+      - Full self-healing loop (fail → diagnose → re-stage → re-execute → pass)
+    inline_task:
+      title: "PROBE-HEAL: Create healing-test.txt (initially wrong path)"
+      description: "Create healing-test.txt in a subdirectory called 'scratch' inside the output directory (output/heal-test/scratch/healing-test.txt). Write 'Self-healing test content' as the file content. NOTE: The reviewer expects files directly in output/heal-test/, not in a subdirectory."
+      labels: ["project:heal-test", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    validation:
+      last_run: "2026-05-29T17:28:00Z"
+      last_result: pass
+      last_commit: null
+      notes: "Passed first try. Executor created file at correct path despite description specifying wrong subdirectory. Did NOT exercise the fail→diagnose→retry cycle. Needs redesign to force executor failure."
+
+  - id: sentinel-timeout
+    name: "Sentinel Timeout"
+    file: null
+    status: active
+    priority: P1
+    task_count: 1
+    expected_runtime_min: 3
+    description: >
+      Task with a very short executor timeout (1 minute). The task asks for work
+      that takes longer than 1 minute, so the sentinel never arrives in time.
+      Tests the bridge timeout path, result file generation (returncode 124),
+      and pipeline-watcher's executor_attempts cap leading to blocked:yes.
+    components_tested:
+      - host-executor-bridge.sh (timeout path)
+      - executor.py (timeout result handling)
+      - pipeline-watcher.py (executor_attempts cap → blocked:yes)
+    behaviors_tested:
+      - Sentinel timeout detection (returncode 124)
+      - Timeout result file written by bridge
+      - executor_attempts increment per timeout
+      - Task blocking after max attempts (3)
+      - reason:max-executor-retries label
+    inline_task:
+      title: "PROBE-TIMEOUT: Deliberate sentinel timeout test"
+      description: "This is a timeout test. Wait for exactly 90 seconds using 'sleep 90' before doing anything else. After the sleep, create timeout-test.txt in the output directory. IMPORTANT: You MUST run the sleep command first."
+      labels: ["project:timeout-test", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    timeout_override_minutes: 1
+    validation:
+      last_run: "2026-05-29T17:30:36Z"
+      last_result: pass
+      last_commit: null
+      notes: "First attempt timed out correctly (executor_attempts=1, returncode 124). Diagnose rewrote description removing sleep instruction. Second attempt completed quickly and passed review. Validates timeout detection + self-healing recovery."
+
+  - id: multi-chain-parallel
+    name: "Multi-Chain Parallel"
+    file: null
+    status: active
+    priority: P2
+    task_count: 2
+    expected_runtime_min: 8
+    description: >
+      Two independent tasks that execute in parallel chain windows forked from seed.
+      Tests multi-chain window management, parallel dispatch, and cleanup.
+    components_tested:
+      - host-executor-bridge.sh (chain routing)
+      - chain-executor.sh (seed fork)
+      - pipeline-watcher.py (concurrent dispatch)
+    behaviors_tested:
+      - Per-chain forked windows
+      - Serialized dispatch (current) or parallel (future)
+      - Chain window cleanup after completion
+    inline_tasks:
+      - title: "PROBE-A: Create alpha file"
+        description: "Create alpha.txt in output dir with 'Probe A success'. Verify."
+        labels: ["project:probe-alpha", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+      - title: "PROBE-B: Create beta file"
+        description: "Create beta.txt in output dir with 'Probe B success'. Verify."
+        labels: ["project:probe-beta", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    validation:
+      last_run: "2026-05-29T05:56:04Z"
+      last_result: pass
+      last_commit: null
+      notes: "Both probes closed. A closed first, B followed. Serialized dispatch."
+
+  - id: gospel-synopsis
+    name: "Gospel Synopsis (Functional)"
+    file: gospel-synopsis.yaml
+    status: active
+    priority: P2
+    task_count: 1
+    expected_runtime_min: 15
+    timeout_override_minutes: 45
+    max_budget_override_usd: 5.00
+    description: >
+      Complex functional test: KJV text analysis, parallel passage identification,
+      synopsis document creation, Word doc generation. Tests full content pipeline.
+    components_tested:
+      - Full pipeline lifecycle
+      - File creation (multiple)
+      - docx generation
+      - Orchestrator multi-step decomposition
+    behaviors_tested:
+      - Complex task decomposition (6+ subtasks)
+      - Chain dependency ordering
+      - Content quality (verbatim text handling)
+    validation:
+      last_run: "2026-05-04"
+      last_result: partial
+      last_commit: null
+      notes: "v1 had path issues (§5.3, §5.4). v2 created but never formally run."
+
+  - id: label-fsm-transitions
+    name: "Label FSM Transition Verification"
+    file: null
+    status: active
+    priority: P1
+    task_count: 1
+    expected_runtime_min: 3
+    description: >
+      Single task that verifies the pipeline label FSM by checking that each
+      stage transition produces the expected label combination. The executor
+      should read its own task labels at each checkpoint and log the full
+      label set, providing an audit trail of FSM correctness.
+    components_tested:
+      - pipeline-watcher.py (FSM dispatch logic)
+      - Pulse API (label management)
+      - All pipeline services (stage/evaluate/orchestrate/execute/review)
+    behaviors_tested:
+      - staging:wait → staging:processing → staging:done
+      - evaluated:no → evaluated:processing → evaluated:done
+      - queued:no → queued:done
+      - active:no → active:claiming → active:running → active:done
+      - completed:no → completed:reviewing → completed:done
+      - "stage: label progression (staging→staged→evaluated→executing→executed)"
+    inline_task:
+      title: "PROBE-FSM: Label state machine verification"
+      description: "Create fsm-verify.txt in the output directory with content 'FSM verification pass'. This is a standard probe - the purpose is to verify label transitions, not complex logic."
+      labels: ["project:fsm-test", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:verify"]
+    validation:
+      last_run: "2026-05-29T17:32:30Z"
+      last_result: pass
+      last_commit: null
+      notes: "Full FSM traversal validated. All label transitions occurred correctly: staging→staged→evaluated→executing→executed. Passed review first try."
+
+  - id: chain-predecessor-ordering
+    name: "Chain Predecessor Ordering"
+    file: null
+    status: active
+    priority: P1
+    task_count: 1
+    expected_runtime_min: 6
+    description: >
+      Task that decomposes into 2 ordered subtasks (chain_order 0 and 1).
+      Verifies that the second subtask waits for the first to complete before
+      executing, enforcing sequential chain ordering.
+    components_tested:
+      - orchestrate.py (decomposition with chain ordering)
+      - pipeline-watcher.py (chain_predecessor_done check)
+      - pipeline-watcher.py (blocked:yes/reason:dependency)
+    behaviors_tested:
+      - Subtask creation with chain_order metadata
+      - chain_predecessor_done blocks task B until task A is active:done
+      - Sequential execution within a single chain
+      - Parent auto-close after all children complete
+    inline_task:
+      title: "PROBE-CHAIN-ORDER: Two ordered steps"
+      description: "Step 1: Create chain-step1.txt with 'Step 1 complete'. Step 2: Read chain-step1.txt and create chain-step2.txt with the content of step1 plus ' - Step 2 complete'. Both files must exist in the output directory."
+      labels: ["project:chain-order-test", "staging:wait", "blocked:no", "active:no", "completed:no", "evaluated:no", "queued:no", "risk:safe", "type:feature"]
+    validation:
+      last_run: "2026-05-29T17:37:46Z"
+      last_result: partial
+      last_commit: null
+      notes: "Decomposed into 3 children. Children 1+2 closed. Child 3 (Verify) failed review on formatting, triggered diagnose + retry. Chain ordering validated: sequential unblocking worked correctly. Self-healing loop exercised as bonus."
+
+deprecated:
+  - id: aifred-pro-dev-archive
+    name: "AIFred-Pro Dev E2E (Archived)"
+    file: archive/aifred-pro-dev.yaml
+    archived_date: "2026-04-29"
+    reason: "Tests pre-refactor executor.sh and dispatcher.sh. Dead code post-2026-05-28."
+
+  - id: token-compression-archive
+    name: "Token Compression Demo (Archived)"
+    file: archive/token-compression.yaml
+    archived_date: "2026-04-29"
+    reason: "8-phase demo suite. Overly complex, targets pre-refactor infrastructure."
+
+  - id: unknown-stress-archive
+    name: "Stress Test (Archived)"
+    file: archive/unknown.yaml
+    archived_date: "2026-04-29"
+    reason: "15-task concurrency stress test. Never formally validated."
+
+  - id: pipeline-smoke-sh
+    name: "Pipeline Smoke Test (Shell)"
+    file: "../tests/pipeline-smoke-test.sh"
+    archived_date: "2026-05-29"
+    reason: "Targets dead pipeline-runner.sh."
+
+  - id: phase3-integration-sh
+    name: "Phase 3 Integration (Shell)"
+    file: "../tests/phase3-integration-test.sh"
+    archived_date: "2026-05-29"
+    reason: "Targets dead dispatcher.sh."
+
+  - id: nexus-settings-sh
+    name: "Nexus Settings (Shell)"
+    file: "../tests/nexus-settings-test.sh"
+    archived_date: "2026-05-29"
+    reason: "Low value, targets nexus-settings.sh library."

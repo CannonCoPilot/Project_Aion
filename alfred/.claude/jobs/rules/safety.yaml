@@ -1,0 +1,165 @@
+# Safety Rules — Hard constraints that must never be violated
+# Source: autofix-scoring-rules.md + operational experience
+
+rules:
+  - id: no-delete-audio
+    title: "Never delete audio files"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task involves deleting files with extensions: mp3, m4b, m4a, flac, ogg, opus, wma, aac"
+    action: "Skip task, route to waiting:human"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: no-docker-ops
+    title: "Never execute Docker operations autonomously"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task requires docker run, docker rm, docker-compose, volume deletion"
+    action: "Skip task, route to waiting:human"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: no-git-push
+    title: "Never push to remote repositories autonomously"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task requires git push, force push, or remote operations"
+    action: "Skip task, route to waiting:human"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: no-modify-own-config
+    title: "Never modify own persona or scoring rules"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task targets persona files, scoring rules, or registry.yaml"
+    action: "Skip task immediately"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: max-tasks-per-run
+    title: "Maximum 10 tasks per autonomous run"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "More than 10 tasks queued for execution"
+    action: "Process first 10 only, skip remainder"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: git-stash-checkpoint
+    title: "Git stash before any changes"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Before making any file modifications"
+    action: "Run git stash (no --include-untracked) to create checkpoint"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  # === Deny-list rules — block auto-approval cascade regardless of project ===
+
+  - id: no-delete-data
+    title: "Never auto-approve data deletion"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task involves deleting databases, dropping tables, removing persistent data, or purging application state"
+    action: "Block auto-approval cascade. Route to pipeline:needs-approval + waiting:human"
+    source: manual
+    created: 2026-03-09
+    enabled: true
+
+  - id: no-modify-persona-files
+    title: "Never auto-approve persona or prompt modifications"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task modifies files in .claude/jobs/personas/, .claude/jobs/rules/, .claude/jobs/registry.yaml, or any evaluator/executor prompt"
+    action: "Block auto-approval cascade. Route to pipeline:needs-approval + waiting:human"
+    source: manual
+    created: 2026-03-09
+    enabled: true
+
+  - id: no-docker-volume-delete
+    title: "Never auto-approve Docker volume or container deletion"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task involves docker volume rm, docker volume prune, docker rm, docker system prune, or removing named volumes"
+    action: "Block auto-approval cascade. Route to pipeline:needs-approval + waiting:human"
+    source: manual
+    created: 2026-03-09
+    enabled: true
+
+  - id: no-modify-auth
+    title: "Never auto-approve auth or credential changes"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task modifies authentication config, API keys, OAuth settings, or TLS settings"
+    action: "Block auto-approval cascade. Route to pipeline:needs-approval + waiting:human"
+    source: manual
+    created: 2026-03-09
+    enabled: true
+
+  - id: no-database-destructive
+    title: "Never auto-approve destructive database operations"
+    domain: safety
+    severity: critical
+    scope: global
+    condition: "Task involves DROP, TRUNCATE, DELETE without WHERE, database migration rollbacks, or schema-breaking changes"
+    action: "Block auto-approval cascade. Route to pipeline:needs-approval + waiting:human"
+    source: manual
+    created: 2026-03-09
+    enabled: true
+
+  - id: context-maintainer-brief-edits
+    title: "Context maintainer can edit Evaluator Brief sections in project context docs"
+    domain: documentation
+    severity: low
+    scope: global
+    condition: "persona=context-maintainer AND target=knowledge/projects/*.md AND edit is within Evaluator Brief section AND edit is append-only"
+    action: "Allow — scoped to Brief section, append-only. Tier 1-2 auto-approved; Tier 3 escalates to waiting:human"
+    source: manual
+    created: 2026-03-22
+    enabled: true
+
+  # === Orchestration Approval Override Classification ===
+  # When an orchestration YAML has an `approval` block, these rules define
+  # which deny-list rules CAN be relaxed via deny_list_overrides, and which
+  # are permanently hard-blocked regardless of any approval.
+
+  - id: override-classification
+    title: "Deny-list override policy for orchestration approvals"
+    domain: safety
+    severity: info
+    scope: global
+    condition: "Orchestration approval block specifies deny_list_overrides"
+    action: |
+      OVERRIDABLE (may appear in deny_list_overrides):
+        - no-modify-persona-files: When building NEW personas in an approved plan
+        - no-docker-ops: When infrastructure deployment is the plan's explicit purpose
+        - no-git-push: When release/deploy is explicitly approved in the plan
+        - no-delete-audio: When audio management is the plan's explicit purpose
+      NEVER OVERRIDABLE (must always remain in deny_list_enforced):
+        - no-delete-data: Data loss is irreversible
+        - no-modify-auth: Security boundary — auth, API keys, OAuth, TLS
+        - no-database-destructive: Data loss is irreversible
+        - no-docker-volume-delete: Data loss is irreversible
+      AUDIT: The approval block records who approved, when, why, and what scope.
+             All overrides are injected into task descriptions by orchestration-loader.
+    source: manual
+    created: 2026-03-17
+    enabled: true

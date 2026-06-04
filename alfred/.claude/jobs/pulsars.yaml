@@ -1,0 +1,283 @@
+# pulsars.yaml — Pulsar definitions for Pulse/Nexus
+#
+# Pulsars are scheduled task emitters. They check conditions on a schedule
+# and create Pulse tasks when conditions are met.
+#
+# Types:
+#   gate       — Watch for a condition. Create task once when condition is met.
+#   recurring  — Create a task on every scheduled run (with knowledge carry-forward).
+#   monitor    — Check health. Create task only when something is wrong.
+#   external   — Managed by an external service. Dashboard visibility only (read-only).
+#
+# Processed by: .claude/jobs/bin/pulsar-runner.sh
+# Dashboard:    /pulsars
+
+version: 1
+
+defaults:
+  persona: analyst
+  knowledge_window: 3
+  workspace: AIProjects
+
+pulsars:
+
+  # ---------------------------------------------------------------------------
+  # GATE: Watch for kernel 6.18.4+ in Ubuntu OEM channel
+  # ---------------------------------------------------------------------------
+  kernel-6.18-oem:
+    type: gate
+    description: "Watch for kernel 6.18.4+ in Ubuntu OEM repos (needed for ROCm KFD patches)"
+    schedule:
+      type: daily
+      hour: 6
+    condition:
+      type: bash
+      command: "apt-cache search linux-image 2>/dev/null | grep -qP 'linux-image-6\\.18.*oem'"
+    on_condition_met:
+      action: create_once
+      task_template:
+        title: "Kernel 6.18 available in OEM channel — upgrade and retest ROCm"
+        priority: 2
+        labels:
+          - "domain:infrastructure"
+          - "project:aiprojects"
+          - "capability:infrastructure"
+          - "type:task"
+        description: |
+          Kernel 6.18.4+ has been detected in Ubuntu OEM repos.
+
+          ## Why This Matters
+          Kernel 6.18.4+ includes KFD patches for AMD Strix Halo (gfx1151/RDNA4).
+          These patches are required before retesting ROCm vs Vulkan for Ollama.
+
+          ## Action Plan
+          1. Install the new kernel: `sudo apt update && sudo apt upgrade`
+          2. Reboot: `sudo reboot`
+          3. Verify: `uname -r` shows 6.18.x
+          4. Update ROCm repos from 6.4.3 to 7.2.1 via `amdgpu-install`
+          5. Update Ollama systemd overrides (swap Vulkan for ROCm)
+          6. Benchmark against previous Vulkan numbers
+          7. Update `.claude/context/systems/ollama-strix-halo.md` with results
+
+          ## Context
+          - Current kernel: 6.17.0-1011-oem
+          - Current backend: Vulkan (ROCm was 18-31% slower due to queue eviction bug)
+          - ROCm bug #6012 is now CLOSED
+          - Previous benchmarks: `.claude/context/systems/ollama-strix-halo.md`
+    enabled: false
+
+  # ---------------------------------------------------------------------------
+  # GATE: Watch for ROCm 7.2.1+ in Ubuntu repos
+  # ---------------------------------------------------------------------------
+  rocm-repo-update:
+    type: gate
+    description: "Watch for ROCm 7.2+ in AMD's Ubuntu apt repo (currently pinned to 6.4.3)"
+    schedule:
+      type: weekly
+      day: sunday
+      hour: 6
+    condition:
+      type: bash
+      # Check if AMD has published ROCm 7.x packages for Ubuntu noble
+      # We're pinned to 6.4.3 — need 7.2+ for Strix Halo support
+      command: |
+        curl -sf "https://repo.radeon.com/rocm/apt/" 2>/dev/null | grep -qP '7\.[2-9]|[89]\.\d'
+    on_condition_met:
+      action: create_once
+      task_template:
+        title: "ROCm 7.2+ available in AMD Ubuntu repo — update apt sources and test"
+        priority: 2
+        labels:
+          - "domain:infrastructure"
+          - "project:aiprojects"
+          - "capability:infrastructure"
+          - "type:task"
+        description: |
+          ROCm 7.2+ packages are now available in AMD's Ubuntu apt repository.
+
+          ## Action Plan
+          1. Update apt sources from 6.4.3 to the new version
+          2. Install updated ROCm packages
+          3. Verify gfx1151 detection: `rocminfo | grep gfx`
+          4. Update Ollama systemd overrides for ROCm backend
+          5. Benchmark against Vulkan baseline numbers
+          6. Update `.claude/context/systems/ollama-strix-halo.md`
+
+          ## Context
+          - Current: ROCm 6.4.3 (apt pinned), Vulkan backend
+          - Tested: ROCm 7.2.0 was 18-31% slower than Vulkan (queue eviction bug)
+          - Bug #6012: CLOSED in 7.2.1
+          - Prerequisite: kernel 6.18.4+ (watched by kernel-6.18-oem pulsar)
+          - Hardware: AMD Ryzen AI MAX+ 395, Radeon 8060S (gfx1151)
+    enabled: false
+
+  # ---------------------------------------------------------------------------
+  # GATE: Watch for Ollama updates with ROCm/RDNA4 improvements
+  # ---------------------------------------------------------------------------
+  ollama-rocm-support:
+    type: gate
+    description: "Watch for Ollama releases with ROCm/RDNA4 improvements"
+    schedule:
+      type: weekly
+      day: wednesday
+      hour: 8
+    condition:
+      type: bash
+      command: |
+        current="0.19.0"
+        latest=$(curl -sf "https://api.github.com/repos/ollama/ollama/releases/latest" 2>/dev/null | jq -r '.tag_name // empty')
+        latest="${latest#v}"
+        [[ -n "$latest" ]] && dpkg --compare-versions "$latest" gt "$current" 2>/dev/null
+    on_condition_met:
+      action: create_once
+      task_template:
+        title: "Ollama update available — check for ROCm/RDNA4 changes"
+        priority: 3
+        labels:
+          - "domain:infrastructure"
+          - "project:aiprojects"
+          - "capability:research"
+          - "type:research"
+        description: |
+          A new Ollama version has been detected.
+
+          ## Research Needed
+          1. Check changelog for ROCm or RDNA4-related changes
+          2. Check for gfx1151 specific improvements
+          3. Evaluate whether upgrade is worthwhile
+          4. If upgrading: update systemd service, test models
+
+          ## Context
+          - Current: Ollama 0.19.0
+          - Backend: Vulkan (ROCm disabled)
+          - Hardware: Radeon 8060S (gfx1151, RDNA4)
+    enabled: false
+
+  # ---------------------------------------------------------------------------
+  # RECURRING: Weekly upgrade discovery (Claude Code, MCP, PAI upstream)
+  # ---------------------------------------------------------------------------
+  upgrade-discovery:
+    type: recurring
+    description: "Weekly check for Claude Code, MCP, and upstream project updates"
+    schedule:
+      type: weekly
+      day: sunday
+      hour: 6
+    on_schedule:
+      task_template:
+        title: "Upgrade Discovery — Week of {{date}}"
+        priority: 3
+        labels:
+          - "domain:infrastructure"
+          - "project:aiprojects"
+          - "capability:research"
+          - "type:research"
+          - "pipeline:approved"
+        description: |
+          Check for updates to Claude Code, MCP servers, and upstream projects.
+          Compare against current baselines and report anything new.
+
+          ## Sources to Check
+          1. **Claude Code**: https://github.com/anthropics/claude-code/releases
+             - Current: check `claude --version` output
+             - Look for: new features, security patches, breaking changes
+          2. **MCP Servers**: https://github.com/modelcontextprotocol/servers
+             - Look for: new servers, updates to git/filesystem servers
+          3. **Claude Code Docs**: https://code.claude.com/docs/en/
+             - Look for: new capabilities, hook patterns, skill features
+          4. **PAI Upstream** (danielmiessler/Personal_AI_Infrastructure):
+             - Current fork: v2.3 (observability only)
+             - Look for: new observability features, monitoring approaches
+
+          ## Output Format
+          For each discovery, report:
+          - What changed (version, feature, fix)
+          - Relevance to our infrastructure (high/medium/low)
+          - Recommended action (upgrade now, evaluate, defer, ignore)
+
+          Write findings to: .claude/agent-output/results/upgrade-discovery-{{date}}.md
+
+          ## IMPORTANT: Knowledge Carry-Forward
+          Before closing this task, append your key findings as a task note:
+            pulse update <task_id> --append-notes "## Key Findings\n<your 3-5 bullet summary>"
+          Then close with: pulse close <task_id> --reason "Research complete: <1-line summary>"
+          The notes are harvested by the Pulsar system and injected into next week's task.
+    knowledge_store: upgrade-discovery
+    knowledge_carry_forward: true
+    enabled: true
+
+  # ---------------------------------------------------------------------------
+  # RECURRING: Weekly threat intelligence report
+  # ---------------------------------------------------------------------------
+  threat-intel:
+    type: recurring
+    description: "Weekly threat intelligence for ATS/HR-tech platforms"
+    schedule:
+      type: weekly
+      day: monday
+      hour: 6
+    on_schedule:
+      task_template:
+        title: "Threat Intel Report — {{week}}"
+        priority: 2
+        labels:
+          - "domain:security"
+          - "project:aiprojects"
+          - "capability:research"
+          - "type:research"
+          - "pipeline:approved"
+        description_template: spawner-templates/threat-intel.md
+    knowledge_store: threat-intel
+    knowledge_carry_forward: true
+    enabled: true
+
+  # ---------------------------------------------------------------------------
+  # RECURRING: Weekly dependency and container security scan
+  # ---------------------------------------------------------------------------
+  security-scan:
+    type: recurring
+    description: "Weekly scan of Docker images and key dependencies for vulnerabilities"
+    schedule:
+      type: weekly
+      day: tuesday
+      hour: 6
+    on_schedule:
+      task_template:
+        title: "Security Scan — Week of {{date}}"
+        priority: 2
+        labels:
+          - "domain:security"
+          - "project:aiprojects"
+          - "capability:research"
+          - "type:research"
+          - "pipeline:approved"
+        description: |
+          Run a weekly security scan of infrastructure components.
+
+          ## Scan Targets
+          1. **Docker images**: Run `docker images` and check for known CVEs
+             in key images (node, python, postgres, caddy, etc.)
+          2. **Ollama models**: Check for any security advisories
+          3. **npm dependencies**: Check nexus-dashboard and Pulse for outdated
+             packages with known vulnerabilities (`npm audit`)
+          4. **Exposed services**: Verify only expected ports are externally reachable
+             via Caddy reverse proxy at example.com
+
+          ## Output
+          - List findings by severity (critical, high, medium, low)
+          - For each: what's affected, CVE if applicable, recommended fix
+          - If nothing found, state "No vulnerabilities identified this week"
+
+          ## IMPORTANT: Knowledge Carry-Forward
+          Before closing this task, append your key findings as a task note:
+            pulse update <task_id> --append-notes "## Key Findings\n<your 3-5 bullet summary>"
+          Then close with: pulse close <task_id> --reason "Scan complete: <1-line summary>"
+          The notes are harvested by the Pulsar system and injected into next week's task.
+    knowledge_store: security-scan
+    knowledge_carry_forward: true
+    enabled: true
+
+  # ===========================================================================
+  # REMOVED: Personal pulsars (PuppyPals, ATS Weekly, Pakistan Weekly)
+  # Archived during Project Aion migration 2026-06-04
+  # Archived during Project Aion migration 2026-06-04

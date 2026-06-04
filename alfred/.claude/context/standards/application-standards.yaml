@@ -1,0 +1,269 @@
+# Application Standards Reference
+# Defines what "complete" means for different application archetypes.
+# Used during structured planning to surface gaps before code is written.
+#
+# Usage: The structured-planning skill references these standards via the
+# completeness-matrix template. Archetype selection determines which
+# categories apply — API services skip UX checks, dashboards skip entity lifecycle.
+
+version: "1.0"
+updated: "2026-03-18"
+
+# Archetype Selection:
+#   - Pick one or combine multiple (e.g., "crud_app + api_service" for full-stack with public API)
+#   - When combining, union all `applies` lists — the completeness matrix includes all matched sections
+#   - Single archetype is fine for most projects; combine only when genuinely needed
+
+archetypes:
+  crud_app:
+    name: "CRUD Application"
+    description: "Full entity lifecycle with user-facing UI (e.g., Family Tracker, GRC Platform)"
+    applies:
+      - entity_lifecycle
+      - ux_patterns
+      - data_visibility
+      - platform
+      - notifications
+      - api_patterns
+      - observability
+
+  api_service:
+    name: "API Service"
+    description: "Backend service with API consumers, no user-facing UI (e.g., Pulse, Feedback Service)"
+    applies:
+      - api_patterns
+      - observability
+      - data_visibility
+
+  content_site:
+    name: "Content Site"
+    description: "Content-driven site with reading/browsing focus (e.g., CISO Expert blog)"
+    applies:
+      - ux_patterns
+      - platform
+      - data_visibility
+      - notifications
+
+  dashboard:
+    name: "Dashboard"
+    description: "Data visibility and monitoring interface (e.g., Task Dashboard)"
+    applies:
+      - ux_patterns
+      - data_visibility
+      - platform
+
+standards:
+  entity_lifecycle:
+    name: "Entity Lifecycle"
+    description: "Per-entity CRUD completeness"
+    items:
+      EL-01:
+        name: "Create"
+        question: "Can the user create this entity? What fields are required vs optional?"
+        details: "Form validation, defaults, required field indicators, creation confirmation"
+      EL-02:
+        name: "Read / Detail View"
+        question: "Can the user view a single entity with all its details?"
+        details: "Detail page or modal, related data display, loading states"
+      EL-03:
+        name: "Edit"
+        question: "Can the user modify this entity after creation?"
+        details: "Edit form pre-populated with current values, field-level validation, save confirmation"
+      EL-04:
+        name: "Delete"
+        question: "Can the user remove this entity? Soft or hard delete?"
+        details: "Confirmation dialog, cascade effects explained to user, undo option"
+      EL-05:
+        name: "List View"
+        question: "Can the user see all entities of this type?"
+        details: "Table or card layout, pagination or infinite scroll, item count"
+      EL-06:
+        name: "Filter"
+        question: "Can the user narrow the list by relevant criteria?"
+        details: "Filter controls, active filter indicators, clear all, URL-persisted filters"
+      EL-07:
+        name: "Sort"
+        question: "Can the user reorder the list?"
+        details: "Sort indicators, default sort order, multi-column sort if needed"
+      EL-08:
+        name: "History / Audit"
+        question: "Can the user see what changed and when?"
+        details: "Change log, timestamps, who changed it, before/after values"
+      EL-09:
+        name: "Bulk Operations"
+        question: "Does the user need to act on multiple entities at once?"
+        details: "Select all, batch actions (delete, status change, export), progress indicator"
+      EL-10:
+        name: "Relationships"
+        question: "How does this entity relate to others? How are relationships managed?"
+        details: "Association UI (dropdowns, search, multi-select), relationship display, orphan handling"
+      EL-11:
+        name: "Ownership / Permissions"
+        question: "Who can see/edit this entity? Is there per-entity access control?"
+        details: "Owner field, sharing, role-based visibility, permission denied states"
+      EL-12:
+        name: "Validation"
+        question: "What are the business rules for valid entity state?"
+        details: "Client-side validation, server-side validation, error message clarity, edge cases"
+
+  ux_patterns:
+    name: "UX Patterns"
+    description: "Standard user experience patterns"
+    items:
+      UX-01:
+        name: "Empty States"
+        question: "What does the user see when there's no data yet?"
+        details: "First-use guidance, illustration or message, call-to-action to create first item"
+      UX-02:
+        name: "Loading States"
+        question: "What does the user see while data is loading?"
+        details: "Skeleton screens, spinners, progressive loading, perceived performance"
+      UX-03:
+        name: "Error States"
+        question: "What does the user see when something goes wrong?"
+        details: "Error messages (specific, not generic), retry options, fallback content, error boundaries"
+      UX-04:
+        name: "Success Feedback"
+        question: "How does the user know an action succeeded?"
+        details: "Toast notifications, inline confirmations, state transitions, optimistic updates"
+      UX-05:
+        name: "Destructive Action Confirmation"
+        question: "Are destructive actions guarded with confirmation?"
+        details: "Confirmation dialog, type-to-confirm for critical actions, undo where possible"
+      UX-06:
+        name: "Navigation & Wayfinding"
+        question: "Can the user always find their way around?"
+        details: "Breadcrumbs, active nav indicators, back navigation, deep link support"
+      UX-07:
+        name: "Responsive Layout"
+        question: "Does the layout adapt to different screen sizes?"
+        details: "Breakpoints, collapsible nav, touch-friendly targets, readable text at all sizes"
+      UX-08:
+        name: "Keyboard Accessibility"
+        question: "Can the user navigate and act without a mouse?"
+        details: "Focus management, tab order, keyboard shortcuts, skip links"
+      UX-09:
+        name: "Form UX"
+        question: "Are forms well-designed for the input required?"
+        details: "Inline validation, auto-save or draft, field grouping, input types (date pickers, etc.)"
+      UX-10:
+        name: "Offline / Degraded"
+        question: "What happens when the network is slow or unavailable?"
+        details: "Offline indicator, queued actions, cached data display, reconnection handling"
+
+  data_visibility:
+    name: "Data Visibility"
+    description: "How users see and understand their data"
+    items:
+      DV-01:
+        name: "Summary / Dashboard View"
+        question: "Is there an at-a-glance overview of key metrics?"
+        details: "Counts, trends, status distribution, recent activity"
+      DV-02:
+        name: "History / Timeline"
+        question: "Can the user see activity over time?"
+        details: "Timeline view, date range selection, activity feed"
+      DV-03:
+        name: "Export"
+        question: "Can the user get their data out?"
+        details: "CSV/PDF export, date range selection, field selection"
+      DV-04:
+        name: "Aggregation / Reports"
+        question: "Can the user see rolled-up data (totals, averages, trends)?"
+        details: "Charts, summary tables, period comparisons, drill-down"
+      DV-05:
+        name: "Cross-Entity Views"
+        question: "Can the user see relationships across entity types?"
+        details: "Linked views, entity relationship displays, combined search"
+
+  platform:
+    name: "Platform Considerations"
+    description: "Device and platform-specific requirements"
+    items:
+      PL-01:
+        name: "Primary Device"
+        question: "What is the primary device? Mobile-first or desktop-first?"
+        details: "Design starting point, testing priority, performance budgets per device"
+      PL-02:
+        name: "PWA / Installability"
+        question: "Should this be installable as a PWA?"
+        details: "Service worker, manifest, offline support, home screen icon"
+      PL-03:
+        name: "Touch Targets"
+        question: "Are interactive elements large enough for touch (min 44x44px)?"
+        details: "Button sizes, spacing between tap targets, swipe gestures"
+      PL-04:
+        name: "Soft Keyboard"
+        question: "Does the layout handle soft keyboard appearance correctly?"
+        details: "Input scrolling, viewport meta, fixed elements behavior, iOS zoom prevention"
+      PL-05:
+        name: "Orientation"
+        question: "Does the app work in both portrait and landscape?"
+        details: "Layout adaptation, lock if needed, data tables in landscape"
+      PL-06:
+        name: "Safe Areas"
+        question: "Does the layout respect device safe areas (notch, home indicator)?"
+        details: "env(safe-area-inset-*), padding on fixed elements, full-bleed content"
+
+  notifications:
+    name: "Notifications"
+    description: "Event communication and navigation"
+    items:
+      NT-01:
+        name: "Notification Events"
+        question: "What events should notify the user?"
+        details: "Event catalog, urgency levels, user preferences for each event type"
+      NT-02:
+        name: "Deep Links"
+        question: "Do notifications link directly to the relevant content?"
+        details: "URL scheme, route handling for notification links, context preservation"
+      NT-03:
+        name: "Unread Tracking"
+        question: "Can the user see what's new since their last visit?"
+        details: "Unread indicators, badge counts, mark-as-read behavior"
+      NT-04:
+        name: "Push Notifications"
+        question: "Are push notifications needed? For which events?"
+        details: "Push subscription, permission request timing, fallback to in-app"
+
+  api_patterns:
+    name: "API Patterns"
+    description: "Standard API design patterns"
+    items:
+      AP-01:
+        name: "Error Envelope"
+        question: "Is there a consistent error response format?"
+        details: "Error code, message, details field, HTTP status mapping"
+      AP-02:
+        name: "Pagination"
+        question: "How are large result sets handled?"
+        details: "Cursor vs offset, page size limits, total count, next/prev links"
+      AP-03:
+        name: "Rate Limiting"
+        question: "Are endpoints protected from abuse?"
+        details: "Rate limit headers, 429 responses, per-client limits, backoff guidance"
+      AP-04:
+        name: "Versioning"
+        question: "How will breaking changes be handled?"
+        details: "URL versioning, header versioning, deprecation notices, migration guides"
+      AP-05:
+        name: "Health Endpoint"
+        question: "Is there a health check endpoint?"
+        details: "/health or /healthz, dependency checks, readiness vs liveness"
+
+  observability:
+    name: "Observability"
+    description: "Monitoring and debugging capabilities"
+    items:
+      OB-01:
+        name: "Health Check"
+        question: "Can the system report its own health?"
+        details: "Health endpoint, dependency status, degraded mode detection"
+      OB-02:
+        name: "Structured Logging"
+        question: "Are logs structured and queryable?"
+        details: "JSON logging, correlation IDs, log levels, sensitive data exclusion"
+      OB-03:
+        name: "Error Tracking"
+        question: "Are errors captured and surfaced for debugging?"
+        details: "Error aggregation, stack traces, context preservation, alerting thresholds"

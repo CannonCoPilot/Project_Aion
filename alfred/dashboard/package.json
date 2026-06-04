@@ -1,0 +1,31 @@
+{
+  "name": "pulse-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:frontend\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:frontend": "cd frontend && npm run dev",
+    "build": "npm run build:frontend && npm run build:server",
+    "build:frontend": "cd frontend && npm run build",
+    "build:server": "cd server && npm run build",
+    "start": "cd server && npm start",
+    "backfill-stages": "cd server && npx tsx scripts/backfill-stages.ts"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/js-yaml": "^4.0.9",
+    "@typescript-eslint/eslint-plugin": "^8.57.1",
+    "@typescript-eslint/parser": "^8.57.1",
+    "concurrently": "^9.1.2",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "prettier": "^3.8.1",
+    "typescript-eslint": "^8.57.1"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.1"
+  }
+}

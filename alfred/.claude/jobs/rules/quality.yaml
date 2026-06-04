@@ -1,0 +1,46 @@
+# Quality Rules — Standards for task execution quality
+
+rules:
+  - id: verify-paths-exist
+    title: "Verify all referenced paths before execution"
+    domain: quality
+    severity: warning
+    scope: global
+    condition: "Task description references file or directory paths"
+    action: "Verify each path exists with stat/test before proceeding"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: deterministic-actions-only
+    title: "Only execute deterministic actions"
+    domain: quality
+    severity: warning
+    scope: global
+    condition: "Task requires creative judgment, design decisions, or choosing between approaches"
+    action: "Route to waiting:human instead of executing"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: task-timeout
+    title: "3-minute timeout per task"
+    domain: quality
+    severity: warning
+    scope: global
+    condition: "Task execution exceeds 3 minutes"
+    action: "Abort execution, mark as failed"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: commit-message-format
+    title: "Conventional commit messages"
+    domain: quality
+    severity: info
+    scope: global
+    condition: "Creating a git commit"
+    action: "Use conventional commit format: type(scope): description"
+    source: manual
+    created: 2026-03-06
+    enabled: true

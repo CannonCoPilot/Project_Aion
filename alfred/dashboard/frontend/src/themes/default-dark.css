@@ -1,0 +1,105 @@
+/*
+ * Theme Variable System
+ *
+ * Semantic color tokens for the beads-dashboard.
+ * Maps structural colors (surfaces, text, borders, accents) to CSS variables.
+ *
+ * All color tokens (surfaces, text, borders, accents, priorities,
+ * statuses, labels, feedback) are defined here as the single source of truth.
+ *
+ * To create a new theme, duplicate the @theme block below and change values.
+ */
+
+@theme {
+  /* ── Surfaces (backgrounds) ── */
+  --color-surface-base: #030712;   /* gray-950 — page background */
+  --color-surface-1: #111827;      /* gray-900 — cards, panels */
+  --color-surface-2: #1f2937;      /* gray-800 — elevated elements, inputs */
+  --color-surface-3: #374151;      /* gray-700 — hover states */
+  --color-surface-muted: #4b5563;  /* gray-600 — muted surfaces */
+
+  /* ── Text ── */
+  /* Note: no "text-" prefix — Tailwind 4 adds the utility prefix automatically.
+     --color-primary → text-primary, bg-primary, etc. */
+  --color-primary: #f3f4f6;        /* gray-100 */
+  --color-secondary: #e5e7eb;      /* gray-200 */
+  --color-tertiary: #d1d5db;       /* gray-300 */
+  --color-muted: #9ca3af;          /* gray-400 */
+  --color-faint: #6b7280;          /* gray-500 */
+  --color-disabled: #4b5563;       /* gray-600 */
+  --color-ghost: #374151;          /* gray-700 */
+
+  /* ── Borders ── */
+  /* Note: no "border-" prefix — same reason as above.
+     --color-default → border-default, etc. */
+  --color-default: #1f2937;        /* gray-800 */
+  --color-subtle: #374151;         /* gray-700 */
+  --color-b-muted: #4b5563;        /* gray-600 — "b-muted" to avoid conflict with text --color-muted */
+
+  /* ── Accent (primary action color) ── */
+  --color-accent: #3b82f6;         /* blue-500 */
+  --color-accent-hover: #2563eb;   /* blue-600 */
+  --color-accent-light: #60a5fa;   /* blue-400 */
+  --color-accent-text: #60a5fa;    /* blue-400 */
+  --color-accent-text-light: #93c5fd; /* blue-300 */
+  --color-accent-border: #3b82f6;  /* blue-500 */
+
+  /* ── Ring / Focus ── */
+  --color-ring-accent: #3b82f6;    /* blue-500 */
+
+  /* ── Priority colors ── */
+  --color-priority-critical: #f87171;      /* red-400 (text) */
+  --color-priority-critical-bg: #ef4444;   /* red-500 (bg base for /20 opacity) */
+  --color-priority-high: #fb923c;          /* orange-400 */
+  --color-priority-high-bg: #f97316;       /* orange-500 */
+  --color-priority-medium: #facc15;        /* yellow-400 */
+  --color-priority-medium-bg: #eab308;     /* yellow-500 */
+
+  /* ── Status colors ── */
+  --color-status-open: #34d399;            /* emerald-400 (text) */
+  --color-status-open-bg: #10b981;         /* emerald-500 (bg/dot) */
+
+  /* ── Label prefix colors ── */
+  --color-label-auto: #d8b4fe;             /* purple-300 (text) */
+  --color-label-auto-bg: #a855f7;          /* purple-500 (bg base) */
+  --color-label-risk: #fca5a5;             /* red-300 */
+  --color-label-risk-bg: #ef4444;          /* red-500 */
+  --color-label-pipeline: #a5b4fc;         /* indigo-300 */
+  --color-label-pipeline-bg: #6366f1;      /* indigo-500 */
+  --color-label-domain: #93c5fd;           /* blue-300 — same as accent-text-light */
+  --color-label-domain-bg: #3b82f6;        /* blue-500 — same as accent */
+  --color-label-project: #c4b5fd;          /* violet-300 */
+  --color-label-project-bg: #8b5cf6;       /* violet-500 */
+  --color-label-source: #67e8f9;           /* cyan-300 */
+  --color-label-source-bg: #06b6d4;        /* cyan-500 */
+  --color-label-capability: #6ee7b7;       /* emerald-300 */
+  --color-label-capability-bg: #10b981;    /* emerald-500 */
+  --color-label-aurora: #f9a8d4;           /* pink-300 */
+  --color-label-aurora-bg: #ec4899;        /* pink-500 */
+  --color-label-waiting: #fdba74;          /* orange-300 */
+  --color-label-waiting-bg: #f97316;       /* orange-500 */
+  --color-label-severity: #fda4af;         /* rose-300 */
+  --color-label-severity-bg: #f43f5e;      /* rose-500 */
+  --color-label-action: #86efac;           /* green-300 */
+  --color-label-action-bg: #22c55e;        /* green-500 */
+  --color-label-agent: #5eead4;            /* teal-300 */
+  --color-label-agent-bg: #14b8a6;         /* teal-500 */
+  --color-label-type: #7dd3fc;             /* sky-300 */
+  --color-label-type-bg: #0ea5e9;          /* sky-500 */
+  --color-label-review: #fde047;           /* yellow-300 */
+  --color-label-review-bg: #eab308;        /* yellow-500 */
+  --color-label-stage: #fcd34d;            /* amber-300 */
+  --color-label-stage-bg: #f59e0b;         /* amber-500 */
+
+  /* ── Feedback / semantic colors ── */
+  --color-success: #34d399;                /* emerald-400 */
+  --color-success-bg: #10b981;             /* emerald-500 */
+  --color-error: #f87171;                  /* red-400 */
+  --color-error-bg: #ef4444;              /* red-500 */
+  --color-warning: #fbbf24;               /* amber-400 */
+  --color-warning-bg: #f59e0b;            /* amber-500 */
+  --color-info: #60a5fa;                   /* blue-400 — same as accent-light */
+
+  /* ── Dot/indicator muted ── */
+  --color-dot-muted: #9ca3af;             /* gray-400 — for deferred status dots */
+}

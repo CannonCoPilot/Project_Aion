@@ -1,0 +1,126 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aifred-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${PULSE_DB_NAME:-pulse}
+      - POSTGRES_USER=${PULSE_DB_USER:-pulse}
+      - POSTGRES_PASSWORD=${PULSE_DB_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - aifred-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${PULSE_DB_USER:-pulse} -d ${PULSE_DB_NAME:-pulse}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  pulse:
+    build:
+      context: ${PULSE_SOURCE_PATH:-./pulse}
+      dockerfile: Dockerfile
+    image: aifred-pulse:latest
+    container_name: aifred-pulse
+    restart: unless-stopped
+    ports:
+      - "${PULSE_PORT:-8700}:8700"
+    environment:
+      - PULSE_DB_HOST=postgres
+      - PULSE_DB_PORT=5432
+      - PULSE_DB_NAME=${PULSE_DB_NAME:-pulse}
+      - PULSE_DB_USER=${PULSE_DB_USER:-pulse}
+      - PULSE_DB_PASSWORD=${PULSE_DB_PASSWORD}
+      - PULSE_TAXONOMY_PATH=/config/label-taxonomy.yaml
+      - PULSE_ROUTING_RULES_PATH=/config/routing-rules.yaml
+      - PULSE_LOG_LEVEL=${PULSE_LOG_LEVEL:-info}
+    volumes:
+      - ${AIFRED_PATH:-.}/.claude/context/tools/label-taxonomy.yaml:/config/label-taxonomy.yaml:ro
+      - ${AIFRED_PATH:-.}/.claude/jobs/lib/routing-rules.yaml:/config/routing-rules.yaml:ro
+      - ${AIFRED_PATH:-.}/.claude/data/pulse-export:/data/export
+    networks:
+      - aifred-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8700/api/v1/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  nexus-dashboard:
+    build: ./dashboard
+    container_name: aifred-dashboard
+    restart: unless-stopped
+    ports:
+      - "${DASHBOARD_PORT:-8600}:8600"
+    environment:
+      - PULSE_API_URL=http://pulse:8700/api/v1
+      - PULSE_DASHBOARD_TOKEN=${PULSE_DASHBOARD_TOKEN:-}
+      - WORKSPACE_DIR=/workspace
+      - DEFAULT_WORKSPACE=${DEFAULT_WORKSPACE:-MyProject}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY:-}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY:-}
+      - TZ=${TZ:-UTC}
+    volumes:
+      - dashboard-data:/data
+      - ${AIFRED_PATH:-.}/.claude/jobs:/workspace/.claude/jobs
+      - ${AIFRED_PATH:-.}/.claude/logs/headless:/workspace/.claude/logs/headless:ro
+      - ${AIFRED_PATH:-.}/.claude/agent-output:/workspace/.claude/agent-output:ro
+      - ${AIFRED_PATH:-.}/.claude/data:/workspace/.claude/data:ro
+      - ${AIFRED_PATH:-.}/.claude/hooks:/workspace/.claude/hooks:ro
+      - ${AIFRED_PATH:-.}/knowledge:/workspace/knowledge:ro
+    networks:
+      - aifred-network
+    depends_on:
+      pulse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8600/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  pipeline:
+    build: ./pipeline
+    image: aifred-pipeline:latest
+    container_name: aifred-pipeline
+    restart: unless-stopped
+    volumes:
+      - ${AIFRED_PATH:-.}:/workspace
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PULSE_API=http://pulse:8700/api/v1
+      - OLLAMA_URL=http://host.docker.internal:11434/api/generate
+      - PROJECT_DIR=/workspace
+      - POLL_INTERVAL=${PIPELINE_POLL_INTERVAL:-30}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-}
+    networks:
+      - aifred-network
+    depends_on:
+      pulse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os; assert os.path.exists('/workspace/.claude/jobs/pipeline-watcher.py')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  postgres-data:
+    name: aifred-postgres-data
+  dashboard-data:
+    name: aifred-dashboard-data
+
+networks:
+  aifred-network:
+    name: aifred-network

@@ -1,0 +1,392 @@
+# Nexus Routing Rules — Centralized Routing Decisions
+#
+# This file defines all pickup criteria, stage transitions, dispatch routing,
+# authorization rules, and fast-track conditions in one place.
+#
+# Consumers:
+#   - Persona prompts (LLM-readable reference — prompts say "see routing-rules.yaml")
+#   - routing-helpers.sh (bash-executable mirror of these rules)
+#   - label-taxonomy.yaml (canonical label definitions — this file references it)
+#   - Dashboard labels page (renders routing context)
+#
+# Risk gate defaults are defined in risk-policy.yaml (same directory).
+# Runtime overrides live in nexus-settings.json. See nexus-settings.sh for fallback chain.
+# When updating routing logic, change BOTH this file and routing-helpers.sh.
+#
+# Last updated: 2026-03-15
+
+version: 1
+
+# =============================================================================
+# PICKUP CRITERIA — What each executor looks for
+# =============================================================================
+# Each executor runs a pre_check query. If it matches tasks, the executor runs.
+# These criteria are mirrored in registry.yaml pre_checks and routing-helpers.sh.
+
+pickup_criteria:
+
+  task-evaluator:
+    description: "Score and classify new tasks"
+    query: "pulse list --status open --label stage:intake"
+    stage_input: intake
+    stage_output: [evaluate, route, queue]  # evaluate is transient — outputs route or queue
+    runs_when: "Tasks exist at stage:intake without scoring labels"
+
+  task-investigator:
+    description: "Route scored tasks to the right handler"
+    query: "pulse list --status open --label stage:route"
+    stage_input: route
+    stage_output: [queue, review]
+    runs_when: "Tasks exist at stage:route needing routing decision"
+    excludes: [waiting:human, waiting:session, needs-input, parked, blocked:dependency]
+
+  ai-david:
+    description: "Proxy review for tasks in the operator's queue"
+    query: "pulse list --status open --label waiting:human"
+    stage_input: review
+    stage_output: [queue, review]  # stays at review if escalated
+    runs_when: "Tasks are waiting:human, or approved-actions.jsonl has unexecuted entries"
+
+  task-executor:
+    description: "Execute general tasks (file-ops, code)"
+    query: "pulse list --status open --label stage:queue | grep -E 'risk:safe|pipeline:approved' | grep -v capability:infrastructure"
+    stage_input: queue
+    stage_output: [execute]
+    # Risk gate defaults defined in risk-policy.yaml (executors.task-executor).
+    # Runtime overrides via nexus-settings.json. See nexus-settings.sh fallback chain.
+    eligible: "stage:queue AND risk in auto_execute (default: risk:safe) OR pipeline:approved"
+    skip_if_any: [waiting:human, waiting:session, waiting:external, needs-input, parked, blocked:dependency, type:research, capability:infrastructure]
+    capabilities: [file-ops, code]
+
+  task-executor-infra:
+    description: "Execute infrastructure tasks"
+    query: "pulse list --status open --label stage:queue --label capability:infrastructure"
+    stage_input: queue
+    stage_output: [execute]
+    # Risk gate defaults defined in risk-policy.yaml (executors.task-executor-infra).
+    # Runtime overrides via nexus-settings.json.
+    eligible: "stage:queue AND capability:infrastructure AND risk in auto_execute (default: risk:safe, risk:moderate)"
+    skip_if_any: [waiting:human, waiting:session, needs-input, parked, blocked:dependency, risk:destructive]
+    capabilities: [infrastructure]
+
+  task-research:
+    description: "Execute research tasks"
+    query: "pulse list --status open --label stage:queue --label pipeline:approved --label type:research"
+    stage_input: queue
+    stage_output: [execute]
+    # Risk gate defaults defined in risk-policy.yaml (executors.task-research).
+    # Runtime overrides via nexus-settings.json.
+    # Tasks with type:research-* sub-types MUST also carry type:research for routing.
+    # Sub-type label (e.g. type:research-upgrade) controls summary format, not routing.
+    eligible: "stage:queue AND risk in auto_execute (default: risk:safe, risk:moderate) AND type:research"
+    skip_if_any: [waiting:human, waiting:session, needs-input, parked, blocked:dependency]
+    capabilities: [research]
+
+  bug-fixer:
+    description: "Execute type:bug tasks — reproduce, fix, submit PR"
+    query: "pulse list --status open --label stage:queue --label type:bug | grep -E 'risk:safe|pipeline:approved'"
+    stage_input: queue
+    stage_output: [execute]
+    eligible: "stage:queue AND type:bug AND (risk:safe OR pipeline:approved)"
+    skip_if_any: [waiting:human, waiting:session, needs-input, parked, blocked:dependency]
+    capabilities: [code]
+
+  security-reviewer:
+    description: "Security-focused code review and vulnerability assessment"
+    query: "pulse list --status open --label stage:queue --label capability:security"
+    stage_input: queue
+    stage_output: [execute]
+    eligible: "stage:queue AND capability:security AND (risk:safe OR risk:moderate OR pipeline:approved)"
+    skip_if_any: [waiting:human, waiting:session, needs-input, parked, blocked:dependency]
+    capabilities: [security]
+
+  task-scoring:
+    description: "Score unlabeled tasks with routing labels"
+    query: "pulse list --status open (filter: no auto:, no waiting:, no parked, no stage:)"
+    stage_input: null  # works on tasks missing stage labels entirely
+    stage_output: [intake]
+    runs_when: "Tasks exist without any routing labels"
+
+# =============================================================================
+# DISPATCH ROUTING PRECEDENCE
+# =============================================================================
+# When dispatching a task at stage:queue, check in this order:
+#   1. assigned:<persona> — direct persona assignment, bypasses capability matching
+#   2. type:<type> — type-specific routing (type:research → task-research, type:bug → bug-fixer)
+#   3. capability:<cap> — capability-based routing (capability:security → security-reviewer)
+#   4. Default — falls through to task-executor
+#
+# The assigned: label is checked FIRST. If present, the task goes to the named
+# persona's job regardless of capability or type labels. This enables:
+#   - The operator directing work to a specific specialist
+#   - AI Reviewer assigning sub-tasks to known-good executors
+#   - Cross-persona consultation requests
+#
+# Mapping: assigned:<persona> → job name
+#   assigned:researcher → task-research
+#   assigned:security-reviewer → security-reviewer
+#   assigned:infrastructure-deployer → task-executor-infra
+#   assigned:autofix-executor → task-executor
+#   assigned:bug-fixer → bug-fixer
+#   assigned:ai-david → ai-david (review cycle)
+#   assigned:task-evaluator → task-evaluator (re-evaluation)
+#   assigned:task-investigator → task-investigator (investigation)
+#   assigned:troubleshooter → troubleshooter
+#   assigned:backend-eng → backend-eng
+#   assigned:db-eng → db-eng
+#   assigned:ux-eng → ux-eng
+#   assigned:project-manager → project-manager
+
+# =============================================================================
+# STAGE TRANSITION TABLE
+# =============================================================================
+# For each stage, what handler runs, what outcomes are possible, and exact
+# label mutations for each outcome.
+
+stage_transitions:
+
+  intake:
+    handler: event-watcher
+    description: "New task enters the pipeline"
+    outcomes:
+      evaluate:
+        description: "Normal flow — send to evaluator"
+        add: [stage:evaluate]
+        remove: [stage:intake]
+      queue:
+        description: "Fast-track — already assessed (risk:safe + auto:ready)"
+        add: [stage:queue]
+        remove: [stage:intake]
+        condition: "risk:safe AND auto:ready (pre-assessed by creator)"
+
+  evaluate:
+    handler: task-evaluator
+    description: "Score risk, capability, automation readiness"
+    outcomes:
+      route:
+        description: "Needs routing decision"
+        add: [stage:route, auto:candidate]
+        remove: [stage:evaluate]
+      queue:
+        description: "Fast-track: risk:safe, can auto-execute"
+        add: [stage:queue, auto:ready]
+        remove: [stage:evaluate]
+        condition: "risk:safe (no human approval needed)"
+      review:
+        description: "Needs human review (risk:moderate/destructive without pre-approval)"
+        add: [stage:review, pipeline:needs-approval, waiting:human]
+        remove: [stage:evaluate]
+        condition: "risk:moderate OR risk:destructive"
+
+  route:
+    handler: task-investigator
+    description: "Decide who/what handles the task"
+    outcomes:
+      queue:
+        description: "Ready for execution"
+        add: [stage:queue, auto:ready]
+        remove: [stage:route, auto:candidate]
+      review:
+        description: "Needs human decision"
+        add: [stage:review, waiting:human, pipeline:needs-approval]
+        remove: [stage:route, auto:candidate]
+      decompose:
+        description: "Too complex — break into subtasks"
+        add: [stage:review, waiting:subtasks]
+        remove: [stage:route, auto:candidate]
+        note: "Parent stays at review; children enter pipeline at intake"
+
+  review:
+    handler: [ai-david, dashboard]
+    description: "Human or AI-proxy makes a decision"
+    outcomes:
+      queue:
+        description: "Approved for execution"
+        add: [stage:queue, pipeline:approved, auto:ready]
+        remove: [stage:review, pipeline:needs-approval, waiting:human, needs-input, auto:candidate]
+      evaluate:
+        description: "Send back for re-evaluation (modify)"
+        add: [stage:evaluate]
+        remove: [stage:review, pipeline:needs-approval, waiting:human]
+      park:
+        description: "Deliberately defer"
+        add: [parked]
+        remove: [stage:review, pipeline:needs-approval, waiting:human, blocked:dependency]
+      cancel:
+        description: "Close without completing"
+        action: "close task"
+        remove: ["stage:*", pipeline:needs-approval, waiting:human]
+
+  queue:
+    handler: null  # passive — executors poll
+    description: "Waiting for next execution slot"
+    outcomes:
+      execute:
+        description: "Executor picks up the task"
+        add: [stage:execute]
+        remove: [stage:queue, auto:ready]
+        action: "set status to in_progress"
+
+  execute:
+    handler: [task-executor, task-executor-infra, task-research, bug-fixer]
+    description: "Work gets done"
+    outcomes:
+      complete:
+        description: "Task finished successfully"
+        action: "close task"
+        remove: ["stage:*"]
+      fail:
+        description: "Execution failed"
+        add: [parked, stage:review]
+        remove: [stage:execute]
+        note: "Failed tasks park for human review"
+
+# =============================================================================
+# DISPATCH ROUTING — Capability → Executor mapping
+# =============================================================================
+# Used by event-watcher.sh when a task is approved and needs auto-dispatch.
+# Mirrored in routing-helpers.sh get_executor_for_capability().
+
+dispatch_routing:
+  capability:infrastructure:
+    executor: task-executor-infra
+    risk_gate: "risk:destructive → reject (infra-deployer refuses destructive tasks)"
+
+  capability:research:
+    executor: task-research
+    note: "Also adds type:research label if missing"
+
+  capability:code:
+    executor: task-executor
+
+  capability:file-ops:
+    executor: task-executor
+
+  type:bug:
+    executor: bug-fixer
+    note: "Bug tasks route to the bug-fixer persona for reproduce-fix-PR workflow"
+
+  default:
+    executor: task-executor
+    note: "Tasks without a capability label default to general executor"
+
+  unknown:
+    action: stall
+    note: "Unknown capability → mark waiting:human, send notification"
+
+# =============================================================================
+# AUTHORIZATION RULES — What pipeline:approved grants
+# =============================================================================
+
+authorization:
+  pipeline:approved:
+    description: "Overrides the risk gate for execution eligibility"
+    grants:
+      - "risk:moderate tasks can be auto-executed"
+      - "risk:destructive tasks can be auto-executed (with extra caution)"
+      - "Audio file deletion (ABS tasks)"
+      - "Destructive file operations"
+    does_not_grant:
+      - "Skipping pre_check entirely — pre_check still runs"
+      - "Bypassing capability routing — still goes to correct executor"
+
+  approval:project:
+    description: "Inherits elevated permissions from a human-approved project plan (stored in Pulse projects table)"
+    grants:
+      - "Same as pipeline:approved — risk gate override for execution"
+      - "Deny-list relaxation per the project's approval.deny_list_overrides field"
+      - "Task-evaluator auto-approves up to the risk_override ceiling"
+      - "Persona treats tasks as pre-vetted — reduced soft-judgment gating"
+    does_not_grant:
+      - "Overriding deny_list_enforced rules (no-delete-data, no-modify-auth, no-database-destructive)"
+      - "Exceeding the risk_override ceiling from the approval block"
+      - "Blanket permissions outside the project's declared scope"
+    audit: "Check Pulse project approval JSONB for full details"
+    see_also: ".claude/jobs/rules/safety.yaml → override-classification"
+
+  approval:orchestration:
+    description: "DEPRECATED alias for approval:project — kept for backward compatibility"
+    aliases: "approval:project"
+    grants:
+      - "Same as approval:project"
+
+# =============================================================================
+# DENY-LIST — Actions requiring explicit human approval regardless
+# =============================================================================
+
+deny_list:
+  - action: "Delete production data"
+    requires: "session approval (interactive Claude Code session)"
+  - action: "Modify Docker compose files on production services"
+    requires: "pipeline:approved + risk review"
+  - action: "Push to main branch of any project"
+    requires: "session approval"
+
+# =============================================================================
+# SOURCE TRUST LEVELS — Auto-approve cascade
+# =============================================================================
+# Higher trust sources can auto-approve at lower risk levels.
+
+source_trust:
+  high:
+    sources: [claude-code, priority, orchestration]
+    auto_approve_at: [risk:safe]
+    note: "risk:safe tasks from trusted sources skip review"
+
+  medium:
+    sources: [session, claude-app]
+    auto_approve_at: [risk:safe]
+    note: "Same auto-approve threshold, but lower confidence in task quality"
+
+  system:
+    sources: [headless]
+    auto_approve_at: [risk:safe]
+    note: "System-generated tasks — auto-approve only risk:safe"
+
+  low:
+    sources: [ad-hoc]
+    auto_approve_at: []
+    note: "All ad-hoc tasks require explicit review"
+
+# =============================================================================
+# FAST-TRACK RULES — Conditions that skip stages
+# =============================================================================
+# These are shortcuts through the pipeline for well-understood task patterns.
+
+fast_track:
+  - name: "Safe auto-execute"
+    condition: "risk:safe AND auto:ready"
+    skips_to: stage:queue
+    rationale: "Safe, reversible, pre-assessed — no human needed"
+
+  - name: "Pre-approved"
+    condition: "pipeline:approved (set before entering pipeline)"
+    skips_to: stage:queue
+    rationale: "Already human-approved"
+
+  - name: "Creator-assessed"
+    condition: "Manual creation with explicit auto:ready"
+    skips_to: stage:queue
+    rationale: "Creator pre-assessed the task"
+
+  - name: "Context maintenance"
+    condition: "source:context-maintainer AND edit targets Evaluator Brief section only"
+    skips_to: "auto-execute within tier model (see update-rules.yaml)"
+    rationale: "Append-only edits to Evaluator Brief, protected by Document Guard section_preservation. Tier 1-2 auto-approved, Tier 3 escalates."
+
+# =============================================================================
+# DISPATCH BLOCKERS — Pre-dispatch checks
+# =============================================================================
+# Even if a task is at stage:queue, these labels prevent dispatch.
+
+dispatch_blockers:
+  - waiting:human
+  - waiting:session
+  - needs-input
+  - parked
+  - blocked:dependency
+
+risk_dispatch_blocks:
+  - condition: "risk:destructive AND capability:infrastructure"
+    reason: "infra-deployer rejects destructive tasks — don't waste a cycle"
+    action: "Stay at stage:queue, flag for manual pickup"

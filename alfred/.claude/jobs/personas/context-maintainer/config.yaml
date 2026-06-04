@@ -1,0 +1,14 @@
+persona: context-maintainer
+description: "Maintain Evaluator Brief sections in project context docs \u2014 validate\
+  \ paths, archive stale decisions, resolve questions, detect drift"
+engine:
+  default: claude-code
+  model: sonnet
+output:
+  format: json
+  save_to: .claude/agent-output/results/context-maintainer/
+env_files:
+- .claude/jobs/.env
+session:
+  persist: false
+schema_version: 2

@@ -1,0 +1,14 @@
+persona: cortex
+description: "Analyzes the AIProjects learning infrastructure holistically \u2014\
+  \ identifies coverage gaps, staleness hotspots, failure patterns, and improvement\
+  \ opportunities"
+engine:
+  default: claude-code
+  model: sonnet
+  fallback: null
+output:
+  format: json
+  save_to: .claude/agent-output/results/cortex/
+session:
+  persist: false
+schema_version: 2

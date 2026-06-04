@@ -1,0 +1,15 @@
+[Unit]
+Description=AIfred Nexus Pipeline Runner — Event-driven task dispatch
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=%h/Code/AIFred-Pro/.claude/jobs/pipeline-runner.sh
+Restart=on-failure
+RestartSec=10
+User=%U
+WorkingDirectory=%h/Code/AIFred-Pro
+Environment=PROJECT_DIR=%h/Code/AIFred-Pro
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,98 @@
+/*
+ * Theme: CISO Expert Dark
+ *
+ * Warm purple/mauve palette inspired by the CISO Expert blog.
+ * Deep plum surfaces, soft purple accent, warm text tones.
+ *
+ * To restore default: copy themes/default-dark.css over this file.
+ */
+
+@theme {
+  /* ── Surfaces (backgrounds) ── */
+  --color-surface-base: #0A0A10;   /* deep purple-black — page background */
+  --color-surface-1: #16121F;      /* dark plum — cards, panels (more contrast vs base) */
+  --color-surface-2: #221A2C;      /* muted plum — elevated elements, inputs */
+  --color-surface-3: #2C2338;      /* lighter plum — hover states */
+  --color-surface-muted: #3C2F4A;  /* dusty plum — muted surfaces */
+
+  /* ── Text ── */
+  --color-primary: #EDE9F2;        /* warm white — slightly brighter for clarity */
+  --color-secondary: #D8D2DE;      /* light mauve */
+  --color-tertiary: #C8C2CE;       /* soft mauve */
+  --color-muted: #9E99A8;          /* mauve gray — lifted for better readability */
+  --color-faint: #7A7480;          /* dim mauve — lifted for better readability */
+  --color-disabled: #504860;       /* faded plum */
+  --color-ghost: #2C2338;          /* near-invisible */
+
+  /* ── Borders ── */
+  --color-default: #2C2338;        /* plum border */
+  --color-subtle: #3C2F4A;         /* lighter plum border */
+  --color-b-muted: #4E4260;        /* muted plum border */
+
+  /* ── Accent (primary action color — vibrant purple) ── */
+  --color-accent: #B06EBF;         /* vibrant purple — more visible than before */
+  --color-accent-hover: #9558A6;   /* deeper purple */
+  --color-accent-light: #CC96D8;   /* light purple */
+  --color-accent-text: #CC96D8;    /* light purple */
+  --color-accent-text-light: #DDB8E6; /* pale purple */
+  --color-accent-border: #B06EBF;  /* vibrant purple */
+
+  /* ── Ring / Focus ── */
+  --color-ring-accent: #B06EBF;    /* vibrant purple */
+
+  /* ── Priority colors ── */
+  --color-priority-critical: #f87171;      /* red-400 (text) */
+  --color-priority-critical-bg: #ef4444;   /* red-500 */
+  --color-priority-high: #fb923c;          /* orange-400 */
+  --color-priority-high-bg: #f97316;       /* orange-500 */
+  --color-priority-medium: #facc15;        /* yellow-400 */
+  --color-priority-medium-bg: #eab308;     /* yellow-500 */
+
+  /* ── Status colors ── */
+  --color-status-open: #34d399;            /* emerald-400 */
+  --color-status-open-bg: #10b981;         /* emerald-500 */
+
+  /* ── Label prefix colors ── */
+  --color-label-auto: #d8b4fe;             /* purple-300 */
+  --color-label-auto-bg: #a855f7;          /* purple-500 */
+  --color-label-risk: #fca5a5;             /* red-300 */
+  --color-label-risk-bg: #ef4444;          /* red-500 */
+  --color-label-pipeline: #a5b4fc;         /* indigo-300 */
+  --color-label-pipeline-bg: #6366f1;      /* indigo-500 */
+  --color-label-domain: #DDB8E6;           /* pale purple — matches accent-text-light */
+  --color-label-domain-bg: #B06EBF;        /* vibrant purple — matches accent */
+  --color-label-project: #c4b5fd;          /* violet-300 */
+  --color-label-project-bg: #8b5cf6;       /* violet-500 */
+  --color-label-source: #67e8f9;           /* cyan-300 */
+  --color-label-source-bg: #06b6d4;        /* cyan-500 */
+  --color-label-capability: #6ee7b7;       /* emerald-300 */
+  --color-label-capability-bg: #10b981;    /* emerald-500 */
+  --color-label-aurora: #f9a8d4;           /* pink-300 */
+  --color-label-aurora-bg: #ec4899;        /* pink-500 */
+  --color-label-waiting: #fdba74;          /* orange-300 */
+  --color-label-waiting-bg: #f97316;       /* orange-500 */
+  --color-label-severity: #fda4af;         /* rose-300 */
+  --color-label-severity-bg: #f43f5e;      /* rose-500 */
+  --color-label-action: #86efac;           /* green-300 */
+  --color-label-action-bg: #22c55e;        /* green-500 */
+  --color-label-agent: #5eead4;            /* teal-300 */
+  --color-label-agent-bg: #14b8a6;         /* teal-500 */
+  --color-label-type: #7dd3fc;             /* sky-300 */
+  --color-label-type-bg: #0ea5e9;          /* sky-500 */
+  --color-label-review: #fde047;           /* yellow-300 */
+  --color-label-review-bg: #eab308;        /* yellow-500 */
+  --color-label-stage: #fcd34d;            /* amber-300 */
+  --color-label-stage-bg: #f59e0b;         /* amber-500 */
+
+  /* ── Feedback / semantic colors ── */
+  --color-success: #34d399;                /* emerald-400 */
+  --color-success-bg: #10b981;             /* emerald-500 */
+  --color-error: #f87171;                  /* red-400 */
+  --color-error-bg: #ef4444;              /* red-500 */
+  --color-warning: #fbbf24;               /* amber-400 */
+  --color-warning-bg: #f59e0b;            /* amber-500 */
+  --color-info: #CC96D8;                   /* light purple — matches accent-light */
+
+  /* ── Dot/indicator muted ── */
+  --color-dot-muted: #9E99A8;             /* mauve gray — matches --color-muted */
+}

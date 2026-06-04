@@ -1,0 +1,47 @@
+{
+    email nathanielcannon@onomatologos.org
+}
+
+# Authentik SSO
+auth.onomatologos.org {
+    reverse_proxy authentik_server:9000
+}
+
+# Nexus Dashboard
+tasks.onomatologos.org {
+    route {
+        reverse_proxy /outpost.goauthentik.io/* http://authentik_server:9000
+        forward_auth http://authentik_server:9000 {
+            uri /outpost.goauthentik.io/auth/caddy
+            copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Entitlements X-Authentik-Email X-Authentik-Name X-Authentik-Uid X-Authentik-Jwt X-Authentik-Meta-Jwks X-Authentik-Meta-Outpost X-Authentik-Meta-Provider X-Authentik-Meta-App X-Authentik-Meta-Version
+            trusted_proxies private_ranges
+        }
+        reverse_proxy aifred-dashboard:8600
+    }
+}
+
+# Pulse API
+pulse.onomatologos.org {
+    route {
+        reverse_proxy /outpost.goauthentik.io/* http://authentik_server:9000
+        forward_auth http://authentik_server:9000 {
+            uri /outpost.goauthentik.io/auth/caddy
+            copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Entitlements X-Authentik-Email X-Authentik-Name X-Authentik-Uid X-Authentik-Jwt X-Authentik-Meta-Jwks X-Authentik-Meta-Outpost X-Authentik-Meta-Provider X-Authentik-Meta-App X-Authentik-Meta-Version
+            trusted_proxies private_ranges
+        }
+        reverse_proxy aifred-pulse:8700
+    }
+}
+
+# Grafana
+grafana.onomatologos.org {
+    route {
+        reverse_proxy /outpost.goauthentik.io/* http://authentik_server:9000
+        forward_auth http://authentik_server:9000 {
+            uri /outpost.goauthentik.io/auth/caddy
+            copy_headers X-Authentik-Username X-Authentik-Groups X-Authentik-Entitlements X-Authentik-Email X-Authentik-Name X-Authentik-Uid X-Authentik-Jwt X-Authentik-Meta-Jwks X-Authentik-Meta-Outpost X-Authentik-Meta-Provider X-Authentik-Meta-App X-Authentik-Meta-Version
+            trusted_proxies private_ranges
+        }
+        reverse_proxy aifred-grafana:3000
+    }
+}

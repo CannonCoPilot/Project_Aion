@@ -1,0 +1,17 @@
+{
+  "task_id": "AION-2f7a6573",
+  "timestamp": "2026-05-29T01:53:10Z",
+  "overall_status": "READY",
+  "host": "JARVIS.local",
+  "platform": "Darwin arm64",
+  "output_dir_note": "/workspace/output/pipeline-validation not accessible (container path); logs written to fallback",
+  "checks": {
+    "ollama_binary": {"status": "PASS", "version": "0.16.2", "path": "/opt/homebrew/bin/ollama"},
+    "ollama_api": {"status": "PASS", "endpoint": "http://localhost:11434", "http_code": 200},
+    "models_available": {"status": "PASS", "count": 8, "models": ["qwen3-32b-nothink:latest","qwen3:32b","qwen3-coder:latest","qwen3-vl:8b","qwen3-embedding:4b","qwen3:8b","nomic-embed-text:latest","qwen3:0.6b"]},
+    "env_vars": {"status": "PASS", "OLLAMA_HOST": "http://localhost:11434"},
+    "model_paths": {"status": "PASS", "path": "/Users/nathanielcannon/.ollama/models"},
+    "disk_space": {"status": "PASS", "free_gib": 599, "total_gib": 926},
+    "workspace_output_dir": {"status": "WARNING", "detail": "Path /workspace/output/pipeline-validation not writable on bare-metal host"}
+  }
+}

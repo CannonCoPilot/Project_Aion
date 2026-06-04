@@ -1,0 +1,250 @@
+# Registry Manifest — All Sources of Truth
+#
+# This is the superset registry that catalogs every authoritative file
+# in AIProjects. For Nexus-specific cascade rules, see:
+#   .claude/context/systems/nexus-sources-of-truth.md
+#
+# Design:
+#   - Declares what exists and who consumes it
+#   - Does NOT duplicate Document Guard protection rules (see document-guard.config.js)
+#   - Does NOT duplicate cascade dependency rules (see nexus-sources-of-truth.md)
+#   - consumers.internal = same repo, fully validatable
+#   - consumers.external = different repo, existence-only check
+#   - tier values: registry | pattern | reference | ephemeral (see knowledge-tier-classification-pattern.md)
+#
+# Maintenance: When a new registry is created, add it here in the same session.
+
+version: 1
+last_verified: "2026-03-17"
+
+registries:
+  label-taxonomy:
+    path: .claude/context/tools/label-taxonomy.yaml
+    purpose: "All label definitions — prefixes, values, mutual exclusions, gate-stage rules, state transitions"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/lib/label-ops.sh
+        - .claude/jobs/pipeline-watchdog.sh
+        - .claude/jobs/lib/routing-helpers.sh
+        - .claude/jobs/lib/routing-rules.yaml
+      external:
+        - ~/Code/nexus-dashboard/frontend/src/lib/labels.ts
+        - ~/Code/nexus-dashboard/frontend/src/pages/ReferencePage.tsx
+        - ~/Code/nexus-dashboard/server/routes/pipeline.ts
+        - ~/Code/nexus-dashboard/server/routes/stats.ts
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-03-17"
+    cascade_doc: .claude/context/systems/nexus-sources-of-truth.md
+
+  routing-rules:
+    path: .claude/jobs/lib/routing-rules.yaml
+    purpose: "Executor pickup criteria — stage transitions, dispatch routing, authorization, deny-list, trust levels"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/lib/routing-helpers.sh
+      external:
+        - ~/Code/nexus-dashboard/frontend/src/pages/ReferencePage.tsx
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-03-17"
+    cascade_doc: .claude/context/systems/nexus-sources-of-truth.md
+
+  risk-policy:
+    path: .claude/jobs/lib/risk-policy.yaml
+    purpose: "Default risk gate policy — per-executor auto_execute/with_approval/block buckets"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/lib/nexus-settings.sh
+        - .claude/jobs/lib/routing-helpers.sh
+    freshness:
+      max_age_days: 90
+      last_verified: "2026-03-17"
+    cascade_doc: .claude/context/systems/nexus-sources-of-truth.md
+
+  job-registry:
+    path: .claude/jobs/registry.yaml
+    purpose: "Job definitions — schedule, budget, persona, model, pre_checks, quiet hours, notification preferences"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/dispatcher.sh
+        - .claude/jobs/executor.sh
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-03-17"
+    cascade_doc: .claude/context/systems/nexus-sources-of-truth.md
+
+  pulsars-registry:
+    path: .claude/jobs/pulsars.yaml
+    purpose: "Pulsar definitions — scheduled task emitters (gates, recurring research, monitors)"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/bin/pulsar-runner.sh
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-04-02"
+
+  paths-registry:
+    path: paths-registry.yaml
+    purpose: "All external paths — project locations, infrastructure hosts, service endpoints, NAS shares"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/hooks/paths-registry-sync.js
+        - .claude/hooks/paths-registry-validator.js
+    freshness:
+      max_age_days: 60
+      last_verified: "2026-03-17"
+
+  service-registry:
+    path: .claude/context/registries/service-registry.yaml
+    purpose: "Registered services — health endpoints, dependencies, monitoring config"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/commands/check-services.md
+        - .claude/commands/register-service.md
+    freshness:
+      max_age_days: 60
+      last_verified: "2026-03-17"
+
+  feature-registry:
+    path: .claude/config/feature-registry.yaml
+    purpose: "Configurable features — toggles, config paths, versions for Document Guard, audit logging, etc."
+    tier: registry
+    consumers:
+      internal:
+        - .claude/hooks/document-guard.config.js
+    freshness:
+      max_age_days: 60
+      last_verified: "2026-03-17"
+
+  voice-registry:
+    path: voice-registry.yaml
+    purpose: "Global voice assignments — project voice mappings, TTS character profiles"
+    tier: registry
+    consumers:
+      internal: []
+      external:
+        - ~/Code/voice-character-system/characters.db
+    freshness:
+      max_age_days: 90
+      last_verified: "2026-03-17"
+
+  nexus-settings:
+    path: .claude/jobs/state/nexus-settings.json
+    purpose: "Runtime executor settings — risk gates, timing overrides, turbo mode, pipeline runner config"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/lib/nexus-settings.sh
+        - .claude/jobs/lib/routing-helpers.sh
+        - .claude/jobs/dispatcher.sh
+        - .claude/jobs/event-watcher.sh
+        - .claude/jobs/pipeline-runner.sh
+      external:
+        - ~/Code/nexus-dashboard/server/routes/settings.ts
+    freshness:
+      max_age_days: 7
+      last_verified: "2026-03-17"
+    cascade_doc: .claude/context/systems/nexus-sources-of-truth.md
+    note: "Runtime-mutable — written by dashboard API, CLI, and dispatcher auto-revert"
+
+  credential-inventory:
+    path: .claude/context/systems/credential-inventory.yaml
+    purpose: "Credential metadata catalog — storage locations, consumers, rotation schedules, risk classification (no actual secrets)"
+    tier: reference
+    consumers:
+      internal:
+        - .claude/registries/credential-governance.yaml
+    freshness:
+      max_age_days: 90
+      last_verified: "2026-03-17"
+    note: "Quarterly audit cadence. Contains NO secret values — metadata only."
+
+  credential-governance:
+    path: .claude/registries/credential-governance.yaml
+    purpose: "Credential scope authorization policies — who can access which credential, risk tiers, escalation rules"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/hooks/credential-guard.config.js
+        - .claude/hooks/credential-guard.js
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-03-18"
+    note: "Document Guard critical tier. Keep JS config in sync when editing YAML."
+
+  egress-policy:
+    path: .claude/registries/egress-policy.yaml
+    purpose: "Egress controls — what data can leave the system, through which channels, per-persona permissions"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/lib/send-telegram.sh
+    freshness:
+      max_age_days: 90
+      last_verified: "2026-04-01"
+    note: "Telegram egress scan enforced. MCP fetch and Gemini API enforcement planned."
+
+  persona-policies:
+    path: .claude/hooks/lib/persona-policies.yaml
+    purpose: "Per-persona guard policies — block/allow patterns for PreToolUse hooks"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/hooks/persona-guard.js
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-03-17"
+    cascade_doc: .claude/context/systems/nexus-sources-of-truth.md
+
+  sync-manifest:
+    path: sync-manifest.yaml
+    purpose: "AIProjects→AIfred sync mapping — which hooks/skills/patterns port to the public repo"
+    tier: reference
+    consumers:
+      internal: []
+    freshness:
+      max_age_days: 90
+      last_verified: "2026-03-17"
+
+  github-repos:
+    path: .claude/jobs/config/github-repos.yaml
+    purpose: "GitHub repo monitoring config — which repos to poll for issues, label mapping, filters"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/github-issue-poller.sh
+        - .claude/jobs/lib/github-ops.sh
+    freshness:
+      max_age_days: 90
+      last_verified: "2026-03-19"
+
+  parallel-dev-registry:
+    path: .claude/parallel-dev/registry.json
+    purpose: "Parallel development plans — worktrees, branches, execution state"
+    tier: ephemeral
+    consumers:
+      internal:
+        - .claude/skills/parallel-dev/SKILL.md
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-03-17"
+
+  public-endpoints-allowlist:
+    path: .claude/registries/public-endpoints-allowlist.yaml
+    purpose: "Public endpoint expected state for nightly exposure-audit job — declares allowed HTTP response codes per hostname + path"
+    tier: registry
+    consumers:
+      internal:
+        - .claude/jobs/bin/exposure-audit.sh
+    freshness:
+      max_age_days: 30
+      last_verified: "2026-04-08"
+    cascade_doc: .claude/context/systems/exposure-audit.md

@@ -1,0 +1,186 @@
+# Context Index
+
+Central navigation for the AIfred knowledge base.
+
+---
+
+## Quick Access
+
+| Need | Location |
+|------|----------|
+| Current work status | @.claude/context/session-state.md |
+| Active tasks | @.claude/context/projects/current-priorities.md |
+| All paths | @paths-registry.yaml |
+
+---
+
+## Knowledge Base Structure
+
+### Systems (Infrastructure Documentation)
+```
+systems/
+├── _template.md          # Template for new services
+└── (your services here)
+```
+
+**Purpose**: Reference documentation for infrastructure. Created via `/discover` command.
+
+### Projects (Active Initiatives)
+```
+projects/
+└── current-priorities.md  # Active todos and priorities
+```
+
+**Purpose**: Track ongoing work and priorities.
+
+### Workflows (Repeatable Procedures)
+```
+workflows/
+├── session-exit.md       # End session procedure
+└── _template.md          # Template for new workflows
+```
+
+**Purpose**: Step-by-step guides for recurring tasks.
+
+### Standards (Conventions & Terminology)
+```
+standards/
+├── _index.md                   # Standards directory index
+├── severity-status-system.md   # Universal severity levels, status values
+└── model-selection.md          # When to use Opus vs Sonnet vs Haiku
+```
+
+**Purpose**: Project-wide standards for naming, classification, and terminology. Ensures consistency across commands, scripts, and documentation.
+
+**Active Standards**:
+- ✅ **Severity/Status System**: `[X] CRITICAL` / `[!] HIGH` / `[~] MEDIUM` / `[-] LOW`
+- ✅ **Model Selection**: Opus for architecture, Sonnet for dev, Haiku for quick checks
+
+### Tools (CLI & Service References)
+```
+tools/
+└── pulse-reference.md           # Pulse task management CLI/API reference
+```
+
+**Purpose**: Reference docs for CLI tools and services used by the hub.
+
+### Patterns (Reusable Implementations)
+```
+patterns/
+├── _index.md                    # Patterns directory index
+├── agent-selection-pattern.md   # Choose agents vs subagents vs skills vs tools
+├── automation-routing.md        # Scheduling/cron decision tree
+├── clarification-pattern.md     # When/how to clarify ambiguous requests
+├── memory-storage-pattern.md    # When/how to store in Memory MCP
+└── prompt-design-review.md      # PARC pattern for design review
+```
+
+**Purpose**: Extracted patterns from recurring practices. Reference when implementing similar functionality.
+
+**Active Patterns**:
+- **Agent Selection**: Choose between custom agents, built-in subagents, skills, and direct tools
+- **Automation Routing**: Decision tree for scheduling/cron/headless work
+- **Clarification**: When to clarify scope vs proceed directly
+- **Memory Storage Pattern**: Decision framework for Memory MCP storage
+- **PARC Design Review**: Prompt -> Assess -> Relate -> Create pre-implementation check
+- **Environment Profiles**: Composable layers (homelab, development, production)
+
+### Designs (Architecture Documents)
+```
+designs/
+└── (architecture documents here)
+```
+
+**Purpose**: Design documents for significant system architectures. These describe the "why" and "how" before implementation begins.
+
+### Integrations (API & Integration Guides)
+```
+integrations/
+└── memory-usage.md       # Memory MCP guidelines
+```
+
+**Purpose**: Documentation for connecting systems.
+
+### Learning (Background Knowledge)
+```
+learning/
+└── (notes and insights)
+```
+
+**Purpose**: Background knowledge that informs decisions.
+
+---
+
+## File Lifecycle
+
+1. **Discovery**: New findings go in `knowledge/notes/`
+2. **Documentation**: Clean notes move to `knowledge/docs/`
+3. **Context**: Stable, frequently-used info becomes context files
+4. **Automation**: Proven processes become slash commands
+
+---
+
+## Tips for Claude
+
+When asked about infrastructure:
+1. Check this index to find relevant context files
+2. Load the specific context files using @ imports
+3. If information isn't documented yet, help create it
+
+When documenting discoveries:
+1. Use appropriate template from systems/projects/workflows
+2. Follow naming conventions (descriptive-hyphenated-names.md)
+3. Keep files concise (50-200 lines ideal)
+4. Link to related context files
+
+When implementing tasks:
+1. **Apply PARC first** - check patterns before coding
+2. Use severity system for reporting issues
+3. Consider agent selection for complex tasks
+4. Store learnings in Memory MCP when appropriate
+
+---
+
+## Maintenance
+
+**Create a context file when**:
+- You've referenced information 3+ times
+- It's critical for a system or project
+- It contains commands/paths you need regularly
+
+**Update existing files when**:
+- You discover new information
+- A configuration changed
+- You solved a problem worth documenting
+
+**Refactor when**:
+- A file exceeds 300 lines (split it)
+- Multiple files duplicate info (consolidate)
+- Structure doesn't match how you work
+
+---
+
+## Setup Status
+
+**Run `/setup` to configure your environment and populate this knowledge base.**
+
+After setup, discovered systems will appear in the `systems/` directory.
+
+---
+
+## Recent Updates
+
+**2026-02-18**: Context Optimization (v2.5 alignment)
+- CLAUDE.md reduced from 558 to 79 lines (86% reduction)
+- 16 low-value hooks archived, 3 re-enabled, settings.json cleaned
+- parallel-dev and upgrade SKILL.md split with references/ directories
+- New extraction files: pulse-reference.md, automation-routing.md, clarification-pattern.md
+- Compaction instructions added to CLAUDE.md
+
+**2026-02-05**: Environment Profile System (v2.2)
+- Composable profile layers (general, homelab, development, production)
+- Profile loader generates settings.json from YAML definitions
+
+---
+
+*Last Updated: 2026-02-18*

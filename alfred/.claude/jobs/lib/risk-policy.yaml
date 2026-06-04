@@ -1,0 +1,104 @@
+# risk-policy.yaml — Default Risk Gate Policy for Nexus Executors
+#
+# This file is the canonical source of truth for default risk→approval mappings.
+# It defines what risk levels each executor can handle autonomously, what requires
+# human approval, and what is blocked entirely.
+#
+# Architecture:
+#   risk-policy.yaml  →  Default policy (this file, git-tracked, rarely changes)
+#   nexus-settings.json → Runtime overrides (dashboard-mutable, can differ per env)
+#   nexus-settings.sh → Reads JSON first, falls back to this file, then hardcoded
+#
+# To change defaults permanently: edit this file.
+# To temporarily override at runtime: use the dashboard or `nexus-settings.sh` CLI.
+# To reset runtime overrides to policy defaults: dashboard "Reset to defaults" action.
+#
+# Consumers:
+#   - nexus-settings.sh (ns_get_risk_gate fallback reads this file via python3)
+#   - routing-rules.yaml (references this file for default values)
+#   - Documentation and dashboard UI (displays current policy vs runtime overrides)
+#
+# Last updated: 2026-03-15
+
+version: 1
+
+# =============================================================================
+# GLOBAL OVERRIDES — Apply to ALL executors regardless of risk label
+# =============================================================================
+
+global_overrides:
+  pipeline_approved:
+    always_allow: true
+    description: >
+      pipeline:approved bypasses all per-executor risk gates.
+      Human approval via the dashboard or AI Reviewer is the safety gate.
+      This enables moderate and destructive tasks to execute autonomously
+      once a human has explicitly reviewed and approved them.
+
+# =============================================================================
+# PER-EXECUTOR RISK GATES — Default baseline (before runtime overrides)
+# =============================================================================
+#
+# Buckets:
+#   auto_execute  — Executor runs these without any human approval
+#   with_approval — Executor runs these only if pipeline:approved is set
+#   block         — Executor refuses these regardless of pipeline:approved
+#
+# Note: risk:destructive is always in `block` for general executors.
+# task-executor-infra has a wider auto_execute because it is purpose-built
+# for infrastructure changes and has capability-based access control.
+
+executors:
+
+  task-executor:
+    description: "General code/file-ops executor — conservative by default"
+    auto_execute:
+      - risk:safe
+    with_approval:
+      - risk:moderate
+    block:
+      - risk:destructive
+    rationale: >
+      General executor handles broad code and file operations where the blast
+      radius of a mistake is unpredictable. Moderate-risk tasks require human
+      review to catch unintended side effects.
+
+  task-executor-infra:
+    description: "Infrastructure executor — capability-gated, wider risk tolerance"
+    auto_execute:
+      - risk:safe
+      - risk:moderate
+    with_approval: []
+    block:
+      - risk:destructive
+    rationale: >
+      Infrastructure executor is purpose-built and capability-gated
+      (capability:infrastructure required). Moderate risk is acceptable
+      because the executor's scope is well-defined and reversible infra
+      changes are expected. Destructive changes still require human approval.
+
+  task-research:
+    description: "Research executor — read-heavy, low side-effect risk"
+    auto_execute:
+      - risk:safe
+      - risk:moderate
+    with_approval: []
+    block:
+      - risk:destructive
+    rationale: >
+      Research tasks are primarily read-only (web searches, file reads,
+      synthesis). Moderate risk is acceptable as research outputs are
+      observations and documents, not system state changes.
+
+  security-reviewer:
+    description: "Security review executor — read-only analysis, creates findings and remediation tasks"
+    auto_execute:
+      - risk:safe
+      - risk:moderate
+    with_approval: []
+    block:
+      - risk:destructive
+    rationale: >
+      Security reviewer is read-only — it analyzes code but never modifies it.
+      Moderate risk is acceptable because the output is findings documents and
+      remediation task creation, not system state changes.

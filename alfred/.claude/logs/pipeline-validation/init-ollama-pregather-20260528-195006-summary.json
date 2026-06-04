@@ -1,0 +1,94 @@
+{
+  "task_id": "AION-2f7a6573",
+  "task": "init-ollama-pregather",
+  "initialized_at": "2026-05-29T01:50:06Z",
+  "completed_at": "2026-05-29T01:51:08Z",
+  "status": "INITIALIZED_OK",
+  "host": "JARVIS.local",
+  "platform": "Darwin arm64",
+  "services": {
+    "ollama": {
+      "status": "RUNNING",
+      "version": "0.16.2",
+      "api_url": "http://localhost:11434",
+      "api_reachable": true
+    },
+    "pulse_api": {
+      "url": "http://localhost:8800",
+      "status": "reachable (HTTP 404 on /health \u2014 expected for dev)",
+      "note": "pipeline manages Pulse lifecycle"
+    },
+    "dashboard_db": {
+      "path": "/Users/nathanielcannon/Claude/Alfred-Dev/dashboard/server/data/dashboard.db",
+      "present": true,
+      "size": "496K"
+    }
+  },
+  "models": {
+    "storage_path": "~/.ollama/models",
+    "blob_count": 24,
+    "manifest_count": 8,
+    "available": [
+      {
+        "name": "qwen3-32b-nothink:latest",
+        "size_gb": 20,
+        "loaded": false
+      },
+      {
+        "name": "qwen3:32b",
+        "size_gb": 20,
+        "loaded": true,
+        "context": 40960
+      },
+      {
+        "name": "qwen3-coder:latest",
+        "size_gb": 18,
+        "loaded": false
+      },
+      {
+        "name": "qwen3-vl:8b",
+        "size_gb": 6.1,
+        "loaded": false
+      },
+      {
+        "name": "qwen3-embedding:4b",
+        "size_gb": 2.5,
+        "loaded": false
+      },
+      {
+        "name": "qwen3:8b",
+        "size_gb": 5.2,
+        "loaded": true,
+        "context": 40960
+      },
+      {
+        "name": "nomic-embed-text:latest",
+        "size_gb": 0.274,
+        "loaded": false
+      },
+      {
+        "name": "qwen3:0.6b",
+        "size_gb": 0.522,
+        "loaded": false
+      }
+    ]
+  },
+  "environment_variables": {
+    "OLLAMA_HOST": "http://localhost:11434",
+    "OLLAMA_HOME": "NOT_SET (default: ~/.ollama)",
+    "OLLAMA_MODELS": "NOT_SET (default: ~/.ollama/models)",
+    "OLLAMA_KEEP_ALIVE": "NOT_SET (default: 5m)",
+    "OLLAMA_NUM_PARALLEL": "NOT_SET (default: auto)",
+    "OLLAMA_MAX_LOADED_MODELS": "NOT_SET (default: auto)"
+  },
+  "resources": {
+    "system_memory_gb": 128,
+    "disk_free_gb": 599,
+    "disk_used_gb": 281
+  },
+  "warnings": [
+    "/workspace mount not present \u2014 using .claude/logs/pipeline-validation as output dir"
+  ],
+  "readiness": "READY",
+  "log_file": "/Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/pipeline-validation/init-ollama-pregather-20260528-195006.log"
+}

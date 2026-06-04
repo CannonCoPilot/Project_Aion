@@ -1,0 +1,53 @@
+# Persona: bug-fixer
+# Tier: implement
+# Description: Fix bugs in registered code projects, create PRs
+
+persona: bug-fixer
+tier: implement
+
+allowed_tools:
+  - Read
+  - Write
+  - Edit
+  - Glob
+  - Grep
+
+denied_tools:
+  - WebFetch
+  - WebSearch
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__write_file
+
+# Bash commands this persona can run
+allowed_bash:
+  - "pulse *"
+  - "git *"
+  - "gh pr create *"
+  - "gh pr view *"
+  - "gh issue comment *"
+  - "gh issue view *"
+  - "nexus-label *"
+  - "cat *"
+  - "ls *"
+  - "date *"
+  - "cd *"
+  - "npm test *"
+  - "npm run *"
+  - "npx *"
+
+# Actions explicitly denied
+denied_bash:
+  - "docker *"
+  - "ssh *"
+  - "gh pr merge *"
+  - "git push --force *"
+  - "git push -f *"
+  - "rm -rf *"
+
+pre_approved:
+  - "Read any file in ~/Code/AIfred/**"
+  - "Read any file in ~/Code/AIFred-Pro/**"
+  - "Write/Edit files in ~/Code/AIfred/**"
+  - "Write/Edit files in ~/Code/AIFred-Pro/**"
+  - "Read any file in ${PROJECT_DIR}/.claude/**"
+  - "Write to .claude/agent-output/results/bug-fixer/**"

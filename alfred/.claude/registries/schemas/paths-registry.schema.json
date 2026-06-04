@@ -1,0 +1,45 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "paths-registry.schema.json",
+  "title": "Infrastructure Paths Registry",
+  "description": "Schema for paths-registry.yaml — validates host definitions and infrastructure paths",
+  "type": "object",
+  "required": ["version", "hosts"],
+  "properties": {
+    "version": { "type": "string" },
+    "last_updated": { "type": "string" },
+    "hosts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["hostname", "role", "status"],
+        "properties": {
+          "hostname": { "type": "string", "minLength": 1 },
+          "ip": { "type": "string" },
+          "role": { "type": "string", "minLength": 1 },
+          "hardware": {},
+          "os": { "type": "string" },
+          "status": {
+            "type": "string",
+            "pattern": "^(active|inactive|decommissioned|planned)"
+          },
+          "notes": { "type": "string" },
+          "ssh": { "type": "string" }
+        }
+      }
+    },
+    "network": {
+      "type": "object",
+      "properties": {
+        "domain": { "type": "string" }
+      }
+    },
+    "services": {
+      "type": "object"
+    },
+    "coding": {
+      "type": "object"
+    }
+  }
+}

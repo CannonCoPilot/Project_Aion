@@ -1,0 +1,14 @@
+persona: ai-david
+description: "Autonomous decision proxy \u2014 processes waiting:david queue using\
+  \ documented patterns"
+engine:
+  default: claude-code
+  model: sonnet
+  router_override: true
+  fallback: null
+output:
+  format: json
+  save_to: .claude/agent-output/results/ai-david/
+session:
+  persist: false
+schema_version: 2

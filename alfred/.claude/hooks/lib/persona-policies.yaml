@@ -1,0 +1,68 @@
+# Persona Guard Policies
+#
+# Per-persona block patterns for the persona-guard.js PreToolUse hook.
+# These apply only when CLAUDE_PERSONA matches the persona name.
+#
+# Format:
+#   <persona-name>:
+#     mode: block | allow-only
+#     tools:
+#       Bash:
+#         block_patterns: [regex strings matched against command]
+#         block_message: "Human-readable reason shown in error"
+#       <other-tool>:
+#         ...
+#
+# Modes:
+#   block     — allow all tools EXCEPT what's explicitly blocked
+#   allow-only — block all tools EXCEPT what's explicitly allowed (stricter)
+#
+# Note: CLAUDE_PERSONA env var must be set by executor.sh when launching headless sessions.
+
+personas:
+
+  aurora-builder:
+    mode: block
+    description: "Aurora creative builder — blocks destructive system commands"
+    tools:
+      Bash:
+        block_patterns:
+          - "rm\\s+-rf"
+          - "\\bdd\\s+if="
+          - "\\bmkfs\\b"
+          - "curl\\s+.*\\|\\s*bash"
+          - "wget\\s+.*\\|\\s*sh"
+          - "\\bchmod\\s+777\\b"
+          - "\\bsudo\\s+rm\\b"
+        block_message: "aurora-builder: destructive system command blocked by persona-guard"
+
+  infra-deployer:
+    mode: block
+    description: "Infrastructure deployer — restricts Bash to docker-compose / kubectl / systemctl"
+    tools:
+      Bash:
+        allow_patterns:
+          - "^docker(-compose|\\s+compose)\\b"
+          - "^kubectl\\b"
+          - "^systemctl\\b"
+          - "^bd\\b"
+          - "^cat\\b"
+          - "^echo\\b"
+          - "^ls\\b"
+          - "^grep\\b"
+          - "^helm\\b"
+        block_if_no_allow_match: true
+        block_message: "infra-deployer: Bash command does not match allowed patterns (docker-compose, kubectl, systemctl)"
+
+  aurora-thinker:
+    mode: block
+    description: "Aurora thinker — read-only, should not execute write operations"
+    tools:
+      Bash:
+        block_patterns:
+          - "rm\\s+"
+          - "\\bdd\\s+if="
+          - "\\bmkfs\\b"
+          - "curl\\s+.*\\|\\s*bash"
+          - "wget\\s+.*\\|\\s*sh"
+        block_message: "aurora-thinker: write/destructive operation blocked (thinker is read-only)"

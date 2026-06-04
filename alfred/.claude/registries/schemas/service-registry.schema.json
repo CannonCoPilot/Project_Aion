@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "service-registry.schema.json",
+  "title": "Service Registry",
+  "description": "Schema for .claude/context/registries/service-registry.yaml — validates service definitions and health endpoints",
+  "type": "object",
+  "required": ["version", "services"],
+  "properties": {
+    "version": { "type": "string" },
+    "defaults": {
+      "type": "object",
+      "properties": {
+        "health_check": {
+          "type": "object",
+          "properties": {
+            "timeout_seconds": { "type": "integer", "minimum": 1 },
+            "retry_count": { "type": "integer", "minimum": 0 },
+            "interval_minutes": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "priority_mapping": {
+          "type": "object"
+        }
+      }
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "type"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "type": {
+            "type": "string",
+            "enum": ["docker", "application", "systemd", "external", "external_api", "infrastructure"]
+          },
+          "description": { "type": "string" },
+          "container_name": { "type": "string" },
+          "location": { "type": "string" },
+          "health_endpoint": {
+            "type": "object",
+            "properties": {
+              "url": { "type": "string" },
+              "method": { "type": "string", "enum": ["GET", "POST", "HEAD"] },
+              "expected_status": { "type": "integer" }
+            }
+          },
+          "dependencies": {
+            "type": "object",
+            "properties": {
+              "required": { "type": "array", "items": { "type": "string" } },
+              "optional": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "operations": {
+            "type": "object"
+          },
+          "tags": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    },
+    "groups": {
+      "type": "object"
+    }
+  }
+}

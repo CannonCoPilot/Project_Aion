@@ -1,0 +1,63 @@
+# Persona: researcher-readonly
+# Tier: analyze (read-heavy, narrow write)
+# Purpose: External research for email-delivered reports. Never sends anything directly.
+#
+# IMPORTANT: The executor runs with --dangerously-skip-permissions, so this allow-list
+# is advisory. The real enforcement for this persona is the output validator in
+# ~/Code/threat-intel-email/app/research.py which rejects non-conforming results
+# before they ever leave the service. This file documents *intent*.
+
+persona: researcher-readonly
+tier: analyze
+
+allowed_tools:
+  # Plan mode exit (required for headless execution)
+  - ExitPlanMode
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Web access (research)
+  - WebFetch
+  - WebSearch
+  # Write — ONLY to Obsidian threat-intel paths (enforced by prompt, not CLI)
+  - Write
+  # Filesystem (read only)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+
+denied_tools:
+  # No editing
+  - Edit
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__write_file
+  # No git mutations
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  # NO communication tools — delivery is handled by the service, not the job
+  - mcp__claude_ai_Gmail__gmail_create_draft
+  - mcp__claude_ai_Gmail__gmail_send
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__edit_file
+  - mcp__plugin_telegram_telegram__reply
+  - mcp__plugin_telegram_telegram__edit_message
+
+# Bash: narrow allow-list. No wildcard.
+allowed_bash:
+  - "date*"
+  - "ls*"
+  - "cat*"
+  - "find*"
+
+pre_approved:
+  - "Read any file"
+  - "Write ONLY to /mnt/synology_nas/Obsidian/Master/Threat-Intel/ and Pakistan-Intel/"
+  - "Search and fetch the web for research"
+  - "NEVER send email directly — the threat-intel-email service handles delivery"

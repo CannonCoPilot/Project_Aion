@@ -1,0 +1,56 @@
+# Persona: aurora-feedback
+# Tier: feedback (read + write ${DOCS_ROOT} metadata + Pulse CLI)
+# Purpose: Process Creative Pipeline feedback, update document notes and Pulse tasks.
+
+persona: aurora-feedback
+tier: feedback
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Write (for updating feedback file and reports)
+  - Write
+  - Edit
+  # Filesystem
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__read_multiple_files
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  - mcp__filesystem__edit_file
+  # Knowledge server (read + update document notes)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_sources
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+  # Pulse task management
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_list
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_show
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_create
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_update
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_close
+
+denied_tools:
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+
+# Bash: limited — curl, Pulse CLI, Telegram notification
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read feedback entries from feedback.jsonl or API"
+  - "Read creative output notes from ${DOCS_ROOT}"
+  - "Create Pulse tasks for creative outputs missing a task"
+  - "Update Pulse task status and labels for project:creative tasks"
+  - "Close Pulse tasks declined via Creative Pipeline review"
+  - "Call aurora-api rebuild-manifest endpoint via curl"
+  - "Write updated feedback file with processed flags"
+  - "Write phase output to .claude/logs/headless/executions/"

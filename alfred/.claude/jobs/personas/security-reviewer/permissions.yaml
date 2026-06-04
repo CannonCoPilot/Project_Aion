@@ -1,0 +1,69 @@
+# Persona: security-reviewer
+# Tier: review (read + analysis tools + Pulse management + Obsidian write)
+# Purpose: Security-focused code review and vulnerability assessment.
+# Can read code, run static analysis, write reports. Cannot modify code.
+
+persona: security-reviewer
+tier: review
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Web access (vulnerability databases, CVE lookups)
+  - WebFetch
+  - WebSearch
+  # Write (for JSON reports to agent-output)
+  - Write
+  # Git (read-only — review diffs, blame, history)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  # Filesystem (read + write for reports)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__read_multiple_files
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  # MCP Knowledge Server (read + create for Obsidian reports)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_sources
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+  # Pulse task management
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_list
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_show
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_create
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_update
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_close
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_ready
+
+denied_tools:
+  - Edit                              # Cannot modify code
+  - mcp__filesystem__edit_file        # Cannot modify code
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add                 # Cannot commit
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+
+# Bash: wildcard allowed. Safety from prompt constraints + denied_tools.
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read any file in AIProjects or registered code projects"
+  - "Run Semgrep static analysis scans"
+  - "Search the web for CVE/CWE/vulnerability information"
+  - "Write JSON reports to .claude/agent-output/results/security-reviewer/"
+  - "Create security findings in Obsidian via MCP create_file"
+  - "Query and manage Pulse tasks"
+  - "Create follow-up Pulse tasks for remediation (type:bug with source:headless)"

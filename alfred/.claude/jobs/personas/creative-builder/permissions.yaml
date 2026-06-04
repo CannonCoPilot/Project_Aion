@@ -1,0 +1,75 @@
+# Persona: creative-builder
+# Tier: build (full capabilities, scoped to worktree)
+# Purpose: Build the current creative output in an isolated workspace.
+
+persona: creative-builder
+tier: build
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Web access (docs, APIs, references)
+  - WebFetch
+  - WebSearch
+  # Write and Edit (for building in worktree/temp)
+  - Write
+  - Edit
+  # Git (full — within worktree only)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  # Filesystem (full read + write)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__read_multiple_files
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__create_directory
+  # Knowledge server (read context for building)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_sources
+
+denied_tools:
+  # No moving/deleting existing files
+  - mcp__filesystem__move_file
+  # No creating document files (that's the presenter's job)
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+
+# Bash: full access for building, testing, validating
+allowed_bash:
+  - "*"
+
+approval_required:
+  - action: "docker compose up or docker start"
+    reason: "Creative Pipeline must not auto-start containers — user reviews first"
+  - action: "Modify files outside the worktree, /tmp/creative-*, or creative-web publish dir"
+    reason: "Build phase must stay isolated (web publish dir is the exception)"
+  - action: "SSH to any remote machine"
+    reason: "Build phase works locally only"
+  - action: "git push"
+    reason: "No pushing to remotes — user merges on acceptance"
+
+pre_approved:
+  - "Read any file in AIProjects"
+  - "Write/edit files in .claude/worktrees/creative-*"
+  - "Write/edit files in /tmp/creative-*"
+  - "Run docker compose config (validation only)"
+  - "Run docker build (image building)"
+  - "Create git commits in worktree"
+  - "Run tests and validation scripts"
+  - "Write build report to .claude/agent-output/creative/"
+  - "Publish web artifacts to ${HOME}/Docker/mydocker/creative-web/html/creative/"
+  - "Create Pulse tasks with project:creative label"

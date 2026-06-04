@@ -1,0 +1,62 @@
+# Persona: infrastructure-deployer
+# Tier: deploy (read + write + edit + Docker + compose)
+# Purpose: Execute approved infrastructure tasks — deploy services, update compose files,
+#          manage Docker containers. Higher trust than autofix-executor.
+
+persona: infrastructure-deployer
+tier: deploy
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Write and Edit (for config files, compose, Dockerfiles)
+  - Write
+  - Edit
+  # Filesystem (full access)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  # Git (read-only)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  # Homelab MCP (read service info)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+
+denied_tools:
+  # No git write operations
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+  # No web access
+  - WebFetch
+  - WebSearch
+  # No task spawning
+  - Task
+
+# Bash: full access for Docker, compose, systemctl, curl
+# Safety enforced by prompt constraints (no SSH, no push, no destructive ops without validation)
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read any file"
+  - "Write and edit files within project directories"
+  - "Run pulse update, pulse show, pulse close commands"
+  - "Run docker compose up/down/build/restart"
+  - "Run docker ps, docker logs, docker inspect"
+  - "Run curl for health checks"
+  - "Run systemctl status/restart for user services"

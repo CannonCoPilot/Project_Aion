@@ -1,0 +1,25 @@
+{
+  "last_updated": "2026-04-22",
+  "runs_completed": 0,
+  "learnings": [],
+  "patterns": [
+    {
+      "pattern": "Container restart loop",
+      "symptoms": ["Container status: restarting", "Exit code non-zero"],
+      "common_causes": ["Bad config", "Missing volume", "Port conflict"],
+      "diagnostic_steps": ["Check logs: docker logs <name>", "Inspect: docker inspect <name>", "Verify volumes: docker volume ls"]
+    },
+    {
+      "pattern": "Service unreachable",
+      "symptoms": ["Connection refused", "Timeout"],
+      "common_causes": ["Container not running", "Wrong port", "Caddy not routing", "Firewall"],
+      "diagnostic_steps": ["docker ps", "curl http://localhost:<port>", "Check caddy config", "Check Authentik SSO flow"]
+    },
+    {
+      "pattern": "Authentik SSO loop",
+      "symptoms": ["Redirect loop at onomatologos.org", "401 after login"],
+      "common_causes": ["Outpost not synced", "Cookie domain mismatch", "Provider URL wrong"],
+      "diagnostic_steps": ["docker logs authentik_server", "Check outpost status", "Verify provider config"]
+    }
+  ]
+}

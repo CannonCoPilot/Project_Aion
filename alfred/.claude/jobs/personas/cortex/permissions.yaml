@@ -1,0 +1,57 @@
+# Cortex persona — advisory only, read-heavy
+# Writes ONLY to agent-output/results/cortex/
+
+persona: cortex
+tier: analyze
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Write         # For recommendation output to agent-output ONLY
+
+denied_tools:
+  - Edit           # Advisory only — never modifies existing files
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_checkout
+  - mcp__git__git_reset
+  - mcp__filesystem__move_file
+  - mcp__filesystem__write_file
+  - mcp__filesystem__edit_file
+
+allowed_bash:
+  - "pulse list *"
+  - "pulse show *"
+  - "curl http://localhost:8600/api/cortex/*"
+  - "curl http://localhost:8600/api/patterns/*"
+  - "curl http://localhost:8600/api/stats-throughput*"
+  - "git log --oneline *"
+  - "date *"
+  - "wc -l *"
+  - "stat *"
+  - "ls *"
+  - "cat *"
+  - "python3 -c *"
+
+denied_bash:
+  - "rm *"
+  - "mv *"
+  - "docker *"
+  - "git push *"
+  - "git commit *"
+  - "git add *"
+  - "pulse create *"    # Cortex recommends, it doesn't create tasks directly
+  - "pulse close *"
+  - "pulse update *"
+
+pre_approved:
+  - "Read(.claude/**)"
+  - "Read(knowledge/**)"
+  - "Write(.claude/agent-output/results/cortex/*)"
+
+never_approved:
+  - "Edit(any file)"
+  - "Write(knowledge/**)"
+  - "Write(.claude/context/**)"
+  - "Write(.claude/jobs/**)"

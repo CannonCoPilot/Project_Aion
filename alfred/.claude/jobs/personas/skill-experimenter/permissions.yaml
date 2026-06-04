@@ -1,0 +1,49 @@
+persona: skill-experimenter
+tier: experiment
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Write and Edit (for modifying skill files on experiment branch)
+  - Write
+  - Edit
+  # Git operations (branch, commit, status — NO push)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+  # Filesystem (read-only MCP — writes go through Write/Edit tools)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+
+denied_tools:
+  # No web access — experiments are local
+  - WebFetch
+  - WebSearch
+  # No task management — experiments don't create tasks
+  - TaskCreate
+  - TaskUpdate
+  # No destructive or write filesystem MCP ops (use Write/Edit tools instead)
+  - mcp__filesystem__move_file
+  - mcp__filesystem__write_file
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__create_directory
+
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read any file in AIProjects"
+  - "Write/edit files in .claude/skills/ on experiment branches"
+  - "Create and checkout git branches matching autoresearch/*"
+  - "Run evaluate.sh"
+  - "Run claude -p for skill invocation against test cases"
+  - "Write results to .claude/agent-output/results/skill-autoresearch/"
+  - "Delete experiment branches that scored worse"

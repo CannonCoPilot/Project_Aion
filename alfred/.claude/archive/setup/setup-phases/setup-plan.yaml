@@ -1,0 +1,210 @@
+name: "AIFred Pro Setup"
+summary: "Self-bootstrapping setup — tracked by the system it creates"
+status: active
+
+phases:
+  - id: prerequisites
+    name: "Prerequisites & Foundation"
+    tasks:
+      - id: verify-docker
+        title: "Verify Docker Engine and Compose V2 are running"
+        description: "Reference: setup-phases/00-prerequisites.md"
+        done_criteria: "docker info and docker compose version both succeed"
+        depends_on: []
+
+      - id: setup-pulse
+        title: "Configure and deploy Pulse task service"
+        description: "Run scripts/setup-pulse.sh, then docker compose up -d. Verify health."
+        done_criteria: "curl /api/v1/health returns status:ok"
+        depends_on: [verify-docker]
+
+      - id: verify-tools
+        title: "Verify required CLI tools (jq, yq, python3, curl)"
+        description: |
+          Required by Nexus job system:
+          - jq: JSON processing (dispatcher, executor, label-ops)
+          - yq: YAML processing (dispatcher, executor, common.sh)
+          - python3: SQLite state management (jobsdb.py)
+          - curl: Pulse API calls (all scripts)
+        done_criteria: "All four tools available on PATH"
+        depends_on: []
+
+      - id: install-pulse-cli
+        title: "Install and verify pulse CLI"
+        description: |
+          The pulse CLI is needed for task management from terminal.
+          Install from Pulse source: cd pulse && pip install -e . && cd ..
+          Verify: pulse --help
+          Configure: PULSE_URL=http://localhost:8700 in shell profile
+        done_criteria: "pulse list returns results from local Pulse instance"
+        depends_on: [setup-pulse]
+
+      - id: secure-credentials
+        title: "Verify credential security"
+        description: |
+          Confirm: .env is chmod 600, not in git (in .gitignore),
+          PULSE_DB_PASSWORD is set and non-trivial,
+          .claude/jobs/.env (if exists) is chmod 600.
+        done_criteria: "stat -c '%a' .env returns 600, grep .env .gitignore succeeds"
+        depends_on: [setup-pulse]
+
+  - id: discovery
+    name: "System Discovery & Purpose"
+    tasks:
+      - id: system-discovery
+        title: "Discover system environment and infrastructure"
+        description: "Reference: setup-phases/01-system-discovery.md"
+        done_criteria: "Discovery results saved to .claude/context/systems/this-host.md"
+        depends_on: [setup-pulse]
+
+      - id: purpose-interview
+        title: "Conduct purpose interview for profile selection"
+        description: "Reference: setup-phases/02-purpose-interview.md"
+        done_criteria: "Profile layers selected, active-profile.yaml created"
+        depends_on: [system-discovery]
+
+  - id: foundation
+    name: "Foundation & Knowledge Base"
+    tasks:
+      - id: create-paths-registry
+        title: "Create paths-registry.yaml from discovery"
+        description: "Reference: setup-phases/03-foundation-setup.md, Task 1"
+        done_criteria: "paths-registry.yaml exists with host and docker sections"
+        depends_on: [purpose-interview]
+
+      - id: init-external-sources
+        title: "Initialize external-sources directory"
+        description: "Reference: setup-phases/03-foundation-setup.md, Task 2"
+        done_criteria: "external-sources/ created with README"
+        depends_on: [create-paths-registry]
+
+      - id: document-systems
+        title: "Document discovered containers as system files"
+        description: "Reference: setup-phases/03-foundation-setup.md, Task 3"
+        done_criteria: "System docs in .claude/context/systems/ for each container"
+        depends_on: [init-external-sources]
+
+      - id: configure-knowledge
+        title: "Create getting-started.md"
+        description: "Reference: setup-phases/03-foundation-setup.md, Task 4"
+        done_criteria: "knowledge/docs/getting-started.md exists"
+        depends_on: [create-paths-registry]
+
+  - id: security
+    name: "Security & Guards"
+    tasks:
+      - id: activate-document-guard
+        title: "Activate Document Guard with protection rules"
+        description: |
+          Verify document-guard.js is registered in settings.json hooks.
+          Verify document-guard.config.js has critical/high/medium tiers.
+          Test: attempt to write to .env (should be blocked).
+        done_criteria: "Document guard blocks writes to critical files"
+        depends_on: [setup-pulse]
+
+      - id: activate-credential-guard
+        title: "Activate Credential Guard"
+        description: |
+          Verify credential-guard.js registered in settings.json.
+          Verify credential-guard.config.js has credential patterns.
+          Add user-specific policies to credential-governance.yaml.
+        done_criteria: "Credential patterns detected and blocked/warned"
+        depends_on: [activate-document-guard]
+
+      - id: configure-persona-permissions
+        title: "Configure persona permissions for Nexus jobs"
+        description: |
+          Review each persona's permissions.yaml:
+          - investigator: read-only (discovery tier)
+          - task-investigator: read + label updates (investigate tier)
+          - autofix-executor: read + write + close (execute tier)
+          - researcher: read + web + write reports (research tier)
+          Verify persona-guard.js is registered in settings.json.
+          Customize persona-policies.yaml if needed.
+        done_criteria: "All persona permissions.yaml files reviewed, persona-guard active"
+        depends_on: [activate-credential-guard]
+
+      - id: verify-safety-rules
+        title: "Verify safety rules are loaded and active"
+        description: |
+          Confirm .claude/jobs/rules/safety.yaml has 8 hard constraints + 6 deny rules.
+          Confirm routing.yaml has 6 routing rules.
+          Confirm quality.yaml has 4 quality rules.
+          These are pre-installed — just verify, don't recreate.
+        done_criteria: "All rule files exist and parse cleanly with yq"
+        depends_on: [configure-persona-permissions]
+
+  - id: integration
+    name: "MCP & Hooks"
+    tasks:
+      - id: mcp-setup
+        title: "Configure MCP servers"
+        description: "Reference: setup-phases/04-mcp-integration.md"
+        done_criteria: "MCP servers configured in settings.json"
+        depends_on: [create-paths-registry]
+
+      - id: hooks-automation
+        title: "Generate hooks from profile and configure automation"
+        description: "Reference: setup-phases/05-hooks-automation.md"
+        done_criteria: "settings.json hooks registered, all hooks pass syntax check"
+        depends_on: [mcp-setup, verify-safety-rules]
+
+  - id: headless
+    name: "Nexus Job System"
+    tasks:
+      - id: verify-dispatcher
+        title: "Verify dispatcher.sh is operational"
+        description: |
+          Test: bash .claude/jobs/dispatcher.sh --list
+          Confirm it reads registry.yaml and lists all 7+ template jobs.
+          Verify executor.sh is executable and common.sh loads.
+        done_criteria: "dispatcher.sh --list shows all template jobs without errors"
+        depends_on: [hooks-automation]
+
+      - id: register-cron
+        title: "Register dispatcher in crontab"
+        description: |
+          Add: */5 * * * * .claude/jobs/dispatcher.sh >> .claude/logs/headless/dispatcher.log 2>&1
+          Verify: crontab -l | grep dispatcher
+        done_criteria: "Cron entry exists, dispatcher runs on schedule"
+        depends_on: [verify-dispatcher]
+
+      - id: deploy-event-watcher
+        title: "Deploy event-watcher.sh and register cron"
+        description: |
+          Install simplified event-watcher.sh.
+          Add cron: */2 * * * * .claude/jobs/event-watcher.sh >> logs
+          Test: event-watcher.sh --status
+        done_criteria: "event-watcher.sh runs, cron registered"
+        depends_on: [register-cron]
+
+  - id: agents
+    name: "Agents & Memory"
+    tasks:
+      - id: deploy-agents
+        title: "Deploy starter agents and initialize memory"
+        description: "Reference: setup-phases/06-agent-deployment.md"
+        done_criteria: "Agent configs exist, memory initialized"
+        depends_on: [hooks-automation]
+
+  - id: finalization
+    name: "Finalization"
+    tasks:
+      - id: finalize-config
+        title: "Generate config summary, remove hard gate, archive setup"
+        description: |
+          Reference: setup-phases/07-finalization.md
+          1. Create .claude/context/configuration-summary.md
+          2. Remove SETUP MODE section from CLAUDE.md (allowed by Document Guard —
+             the SETUP MODE heading is not in the protectedSections list)
+          3. Move setup-phases/ to .claude/archive/setup/
+          4. Disable setup-monitor job in registry.yaml
+          5. Git commit
+        done_criteria: "CLAUDE.md has no SETUP MODE section, config summary exists"
+        depends_on: [deploy-agents, deploy-event-watcher]
+
+      - id: optional-integrations
+        title: "Configure optional integrations (Ollama, SSH, Playwright)"
+        description: "Reference: setup-phases/08-optional-integrations.md"
+        done_criteria: "User has chosen which optionals to enable"
+        depends_on: [finalize-config]

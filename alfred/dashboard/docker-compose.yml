@@ -1,0 +1,79 @@
+services:
+  nexus-dashboard:
+    build: .
+    container_name: nexus-dashboard
+    restart: unless-stopped
+    ports:
+      - "8600:8600"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      - PULSE_API_URL=http://pulse:8700/api/v1
+      - PULSE_DASHBOARD_TOKEN=${PULSE_DASHBOARD_TOKEN}
+      - TZ=America/Denver
+      - NODE_ENV=production
+      - PORT=8600
+      - PAI_BACKEND_URL=http://host.docker.internal:4000
+      - BEADS_DIR=/beads
+      - NEXUS_DB_PATH=/nexus/state/nexus.db
+      - DISPATCHER_HEARTBEAT_PATH=/nexus/state/dispatcher-heartbeat
+      - DISPATCHER_PATH=/nexus/dispatcher.sh
+      - VAPID_PUBLIC_KEY=BFuXkGb5K87h3oNHc-BXlBZB0cAHvrKBSgjDLNRPBe5sNM6Hy8KyzOIJ2e4cBWF_CC_enBztF07X5Qkxj5UtV7o
+      - VAPID_PRIVATE_KEY=RwP9esodJ5YDuKcd7YyshLcZuUdOaZvnohrfxd-JrXU
+      - VAPID_SUBJECT=mailto:david@theklyx.space
+      - DASHBOARD_DB_PATH=/data/dashboard.db
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:32b
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - CREATIVE_BEADS_DIR=/creative-beads
+      - PERSONAS_DIR=/nexus/personas
+      - REGISTRY_PATH=/nexus/registry.yaml
+      - RULES_DIR=/nexus/rules
+      - ORCHESTRATION_DIR=/orchestration
+      - TASK_REVIEWER_RESULTS_DIR=/task-reviewer-results
+      - EXECUTIONS_DIR=/nexus-executions
+      - NEXUS_STATE_DIR=/nexus/state
+      - WORKFLOWS_DIR=/nexus/workflows
+      - STRUCTURED_LOGS_PATH=/nexus-logs/nexus.jsonl
+      - RELAY_MESSAGES_PATH=/nexus/state/messages.jsonl
+      - NEXUS_SETTINGS_PATH=/nexus/state/nexus-settings.json
+      - AGENT_OUTPUT_DIR=/agent-output
+      - CORTEX_RESULTS_DIR=/cortex-results
+      - PULSARS_FILE_PATH=/nexus/pulsars.yaml
+      - PULSAR_STATE_PATH=/nexus/state/pulsar-state
+      - PULSAR_KNOWLEDGE_PATH=/nexus/state/pulsar-knowledge
+      - PULSAR_RUNNER_PATH=/nexus/bin/pulsar-runner.sh
+      - AIPROJECTS_DIR=/aiprojects
+      - GIT_LOG_DIR=/aiprojects
+      - COST_LEDGER_PATH=/aiprojects/.claude/data/cost-ledger.jsonl
+      - DOCUMENT_GUARD_CONFIG_PATH=/aiprojects/.claude/hooks/document-guard.config.js
+      - DOCUMENT_GUARD_LOG_PATH=/aiprojects/.claude/logs/document-guard.jsonl
+    volumes:
+      - /home/user/AIProjects/.beads:/beads
+      - dashboard-data:/data
+      - /home/user/AIProjects/.claude/jobs:/nexus
+      - /home/user/CreativeProjects/.beads:/creative-beads:ro
+      - /home/user/AIProjects/.claude/orchestration:/orchestration:ro
+      - /home/user/AIProjects/.claude/agent-output/results/task-reviewer:/task-reviewer-results
+      - /home/user/AIProjects/.claude/logs/headless/executions:/nexus-executions:ro
+      - /home/user/AIProjects/.claude/logs/headless:/nexus-logs:ro
+      - /home/user/AIProjects/.claude/agent-output:/agent-output:ro
+      - /home/user/AIProjects/.claude/agent-output/results/cortex:/cortex-results
+      - /home/user/AIProjects:/aiprojects:ro
+    networks:
+      - caddy-network
+    labels:
+      - "homepage.group=Tools"
+      - "homepage.name=Pulse Dashboard"
+      - "homepage.icon=mdi-clipboard-check-outline"
+      - "homepage.href=https://tasks.theklyx.space"
+      - "homepage.description=Task management dashboard"
+
+volumes:
+  dashboard-data:
+    external: true
+    name: beads-dashboard_dashboard-data
+
+networks:
+  caddy-network:
+    external: true

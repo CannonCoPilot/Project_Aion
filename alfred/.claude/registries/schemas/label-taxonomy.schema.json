@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "label-taxonomy.schema.json",
+  "title": "Pulse Label Taxonomy",
+  "description": "Schema for .claude/context/tools/label-taxonomy.yaml — validates structure of label definitions, functions, groups, and rules",
+  "type": "object",
+  "required": ["version", "label_functions", "groups"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "label_functions": {
+      "type": "object",
+      "required": ["position", "authorization", "gate", "attribute", "metadata"],
+      "properties": {
+        "position": {
+          "type": "object",
+          "required": ["description", "labels"],
+          "properties": {
+            "description": { "type": "string" },
+            "labels": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^stage:"
+              },
+              "minItems": 1
+            }
+          }
+        },
+        "authorization": {
+          "type": "object",
+          "required": ["description", "labels"]
+        },
+        "gate": {
+          "type": "object",
+          "required": ["description", "labels"]
+        },
+        "attribute": {
+          "type": "object",
+          "required": ["description"]
+        },
+        "metadata": {
+          "type": "object",
+          "required": ["description"]
+        }
+      }
+    },
+    "groups": {
+      "type": "object",
+      "required": ["execution", "context"],
+      "properties": {
+        "execution": {
+          "type": "object",
+          "required": ["name", "description", "prefixes"]
+        },
+        "context": {
+          "type": "object",
+          "required": ["name", "description", "prefixes"]
+        }
+      }
+    },
+    "mutual_exclusions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["group", "labels"],
+        "properties": {
+          "group": { "type": "string" },
+          "labels": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "board_classification_rules": {
+      "type": "object"
+    },
+    "gate_stage_validation": {
+      "type": "object"
+    },
+    "state_transitions": {
+      "type": "object"
+    },
+    "execution_eligibility": {
+      "type": "object"
+    }
+  }
+}

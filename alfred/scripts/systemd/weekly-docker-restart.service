@@ -1,0 +1,29 @@
+# Weekly Docker Restart Service
+#
+# INSTALLATION:
+# 1. Copy this file to /etc/systemd/system/
+# 2. Edit the paths below to match your installation
+# 3. Run: sudo systemctl daemon-reload
+# 4. Run: sudo systemctl enable weekly-docker-restart.timer
+#
+# The service runs the weekly-docker-restart.sh script.
+
+[Unit]
+Description=Weekly Docker Restart with Health Check
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+
+# UPDATE THESE PATHS for your environment:
+ExecStart=/home/YOUR_USERNAME/Code/AIfred/scripts/weekly-docker-restart.sh
+User=YOUR_USERNAME
+Environment=HOME=/home/YOUR_USERNAME
+
+# Or use root if needed:
+# User=root
+# Environment=HOME=/root
+
+[Install]
+WantedBy=multi-user.target

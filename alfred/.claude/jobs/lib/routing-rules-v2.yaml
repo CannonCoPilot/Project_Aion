@@ -1,0 +1,126 @@
+# Pipeline v2 Routing Rules — 6-Dimension Label State Machine
+# Replaces routing-rules.yaml (v1, archived)
+# Date: 2026-04-26
+
+version: 2
+
+label_dimensions:
+  staging:
+    values: [wait, processing, done, blocked]
+    owner: stage-service
+    default: wait
+    note: "processing is transient (set by event-watcher claim, cleared by stage service)"
+  evaluated:
+    values: ["no", processing, done, blocked]
+    owner: evaluate-service
+    default: "no"
+    note: "processing is transient (set by event-watcher claim, cleared by evaluate service)"
+  queued:
+    values: ["no", done, blocked]
+    owner: orchestrate-service
+    default: "no"
+  active:
+    values: ["no", claiming, running, done, blocked]
+    owner: executor
+    default: "no"
+    note: "claiming is transient (set by event-watcher, cleared by executor setting running)"
+  completed:
+    values: ["no", reviewing, done]
+    owner: review-service
+    default: "no"
+    note: "reviewing is transient (set by event-watcher claim, cleared by reviewer)"
+  blocked:
+    values: ["no", "yes"]
+    owner: any
+    default: "no"
+
+default_labels:
+  - staging:wait
+  - evaluated:no
+  - queued:no
+  - active:no
+  - completed:no
+  - blocked:no
+
+board_columns:
+  staging:
+    condition: "staging:wait OR (staging:done AND evaluated:no)"
+  evaluated:
+    condition: "staging:done AND evaluated:done AND queued:no"
+  queued:
+    condition: "queued:done AND active:no"
+  active:
+    condition: "active:running OR active:done"
+  completed:
+    condition: "completed:done"
+  blocked:
+    condition: "blocked:yes"
+    override: true
+
+trigger_rules:
+  - condition: "staging:wait AND blocked:no"
+    action: trigger-stage
+    service: stage.py
+
+  - condition: "staging:done AND evaluated:no AND blocked:no"
+    action: trigger-evaluate
+    service: evaluate.py
+
+  - condition: "staging:done AND evaluated:done AND queued:no AND blocked:no"
+    action: trigger-orchestrate
+    service: orchestrate.py
+    guard: single-instance
+
+  - condition: "queued:done AND active:no AND blocked:no"
+    action: trigger-execute
+    service: executor.py
+
+  - condition: "active:done AND completed:no AND blocked:no"
+    action: trigger-review
+    service: reviewer.py
+
+  - condition: invalid-combination
+    action: watchdog-reset
+    target: staging:wait
+
+services:
+  stage:
+    model: qwen3:32b
+    endpoint: localhost:11434/api/generate
+    duration: 15-30s
+    purpose: "Convert raw ideas/prompts into structured ticket objects"
+
+  evaluate:
+    model: qwen3:32b
+    endpoint: localhost:11434/api/generate
+    duration: 30-60s
+    purpose: "Safety sweep, persona assignment, decomposition check"
+
+  orchestrate:
+    model: qwen3:32b
+    endpoint: localhost:11434/api/generate
+    duration: 1-3min
+    purpose: "Group, order, chain-link tasks for context efficiency"
+
+  execute:
+    model: claude-sonnet/opus
+    endpoint: litellm:4000
+    duration: 1-30min
+    purpose: "Do the work via claude -p"
+
+  review:
+    model: qwen3:32b
+    endpoint: localhost:11434/api/generate
+    duration: 30-60s
+    purpose: "Verify execution output"
+
+  diagnose:
+    model: qwen3:32b
+    endpoint: localhost:11434/api/generate
+    duration: 1-5min
+    purpose: "Parse failed JSONL, identify failure, redesign task"
+
+unblock_reset:
+  removes_prefix: [staging, evaluated, queued, active, completed, blocked, reason]
+  sets: [staging:wait, evaluated:no, queued:no, active:no, completed:no, blocked:no]
+  status: open

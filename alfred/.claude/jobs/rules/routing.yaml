@@ -1,0 +1,83 @@
+# Routing Rules — How tasks get classified and assigned
+
+rules:
+  - id: vague-description-routing
+    title: "Route vague tasks to human"
+    domain: routing
+    severity: warning
+    scope: global
+    condition: "Task description uses words like 'fix', 'clean up', 'improve' without specific paths or actions"
+    action: "Route to waiting:human"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: external-wait-routing
+    title: "Skip externally-blocked tasks"
+    domain: routing
+    severity: info
+    scope: global
+    condition: "Task has waiting:external label"
+    action: "Skip — waiting on external event"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: human-only-routing
+    title: "Skip human-only tasks"
+    domain: routing
+    severity: info
+    scope: global
+    condition: "Task has agent:human label"
+    action: "Skip — requires human action"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: in-progress-skip
+    title: "Skip in-progress tasks"
+    domain: routing
+    severity: info
+    scope: global
+    condition: "Task status is in_progress"
+    action: "Skip — someone is already working on it"
+    source: manual
+    created: 2026-03-06
+    enabled: true
+
+  - id: project-approval-cascade
+    title: "Pre-approved projects auto-approve safe/moderate child tasks"
+    domain: routing
+    severity: warning
+    scope: global
+    condition: >
+      Task has a project:<name> label AND the project is listed in the
+      pre-approved projects list below AND risk is safe or moderate AND
+      the task does NOT trigger any deny-list safety rule
+      (no-delete-data, no-modify-persona-files, no-docker-volume-delete,
+      no-modify-auth, no-database-destructive).
+      Pre-approved projects: customize this list for your environment.
+    action: >
+      Auto-approve: apply pipeline:approved + auto:ready. Skip the
+      pipeline:needs-approval gate. Log the cascade reason in task notes:
+      "Auto-approved via project-approval-cascade (project:<name> is pre-approved)."
+    source: manual
+    created: 2026-03-09
+    enabled: true
+
+  - id: orchestration-child-cascade
+    title: "Approved orchestration plans auto-approve child tasks"
+    domain: routing
+    severity: warning
+    scope: global
+    condition: >
+      Task was created by an orchestration plan (has task reference
+      in an active orchestration YAML) AND the parent orchestration task
+      has pipeline:approved AND the child task risk is safe or moderate AND
+      the task does NOT trigger any deny-list safety rule.
+    action: >
+      Auto-approve: apply pipeline:approved + auto:ready. Log cascade
+      reason: "Auto-approved via orchestration-child-cascade (parent: <parent-id>)."
+    source: manual
+    created: 2026-03-09
+    enabled: true

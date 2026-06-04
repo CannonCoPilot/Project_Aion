@@ -1,0 +1,52 @@
+# Persona: content-writer
+# Tier: content (read + web + WordPress API + reports)
+# Purpose: Write and publish blog posts to puppypalsutah.com
+
+persona: content-writer
+tier: content
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Web access (research + product lookup)
+  - WebFetch
+  - WebSearch
+  # Write (for JSON reports and content calendar updates)
+  - Write
+  - Edit
+  # Git (read-only)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  # Filesystem (read + write for reports)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__write_file
+  # Telegram notification
+  - mcp__plugin_telegram_telegram__reply
+
+denied_tools:
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+
+# Bash: needed for curl to WordPress REST API and sourcing credentials
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read voice guide and content calendar"
+  - "Source credentials from .credentials/bluehost-ftp.env"
+  - "Search the web for product information and care topics"
+  - "Fetch web content for research"
+  - "Publish posts via WordPress REST API (curl to puppypalsutah.com)"
+  - "Query existing posts via WordPress REST API"
+  - "Write JSON reports to .claude/agent-output/results/puppypals/"
+  - "Update content calendar"
+  - "Send Telegram notification with post link"

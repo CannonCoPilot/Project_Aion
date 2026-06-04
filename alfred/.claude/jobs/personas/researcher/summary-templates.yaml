@@ -1,0 +1,150 @@
+# Research Summary Templates
+#
+# Defines structured summary formats per research sub-type.
+# The researcher persona reads the type:research-* label and uses the matching
+# template to generate a structured summary in the task notes.
+#
+# Each template defines:
+#   - sections: Required sections in the summary
+#   - signal_criteria: What makes the research actionable (routes to Sir)
+#   - no_signal_criteria: What makes it informational (closes silently)
+#   - example: A concrete example of the summary format
+#
+# Consumer: researcher persona prompt (prompt.md)
+# Created: 2026-03-19
+
+version: 1
+
+templates:
+
+  upgrade:
+    label: "type:research-upgrade"
+    description: "Version/upgrade check — are there new features, fixes, or breaking changes?"
+    sections:
+      - "Current Version"
+      - "Latest Available"
+      - "Features Found"
+      - "Severity Breakdown"
+      - "Recommendation"
+    signal_criteria:
+      - "New version available with critical or high-severity features"
+      - "Breaking changes that affect our environment"
+      - "Security patches that should be applied"
+    no_signal_criteria:
+      - "Already on latest version"
+      - "New version exists but changes are cosmetic/irrelevant to our use"
+      - "Version bump with no meaningful differences for our stack"
+    example: |
+      ## Research Summary: Upgrade Check
+      **Current**: v3.2.1 | **Latest**: v3.4.0
+      **Features**: 6 total — 2 critical, 1 high, 3 low
+      - [CRITICAL] New streaming API replaces deprecated polling (affects AIFred)
+      - [CRITICAL] Security fix for CVE-2026-1234 (auth bypass)
+      - [HIGH] Performance improvement: 40% faster cold starts
+      - [LOW] New theme options, updated docs, minor UI tweaks
+      **Recommendation**: Upgrade recommended. Critical security fix + API deprecation.
+      **Obsidian**: 05-AI/Claude-Research/2026-03-19-claude-code-upgrade.md
+
+  investigation:
+    label: "type:research-investigation"
+    description: "Investigate an issue — find root cause and recommend a fix"
+    sections:
+      - "Problem Statement"
+      - "Root Cause"
+      - "Fix Options"
+      - "Recommendation"
+    signal_criteria:
+      - "Root cause identified with actionable fix"
+      - "Multiple fix options requiring Sir's judgment"
+      - "Issue affects production or user-facing systems"
+    no_signal_criteria:
+      - "Issue already resolved or self-corrected"
+      - "Root cause is transient/environmental (e.g., network blip)"
+      - "No reproduction possible — monitoring recommended"
+    example: |
+      ## Research Summary: Investigation
+      **Problem**: Backup jobs failing silently since March 15
+      **Root Cause**: Restic cache directory filled disk on /tmp (98% full)
+      **Fix Options**:
+      1. Move restic cache to /var/cache/restic (persistent, larger partition) — 15 min
+      2. Add cache cleanup to cron pre-backup hook — 5 min, but treats symptom
+      **Recommendation**: Option 1 — permanent fix, prevents recurrence.
+      **Obsidian**: 08-Research/2026-03-19-backup-failure-investigation.md
+
+  capability:
+    label: "type:research-capability"
+    description: "Evaluate a tool, library, or technology for adoption"
+    sections:
+      - "What It Does"
+      - "How It Fits Our Stack"
+      - "Pros / Cons"
+      - "Verdict"
+    signal_criteria:
+      - "Tool is a strong fit — recommend adoption or integration"
+      - "Tool replaces something we currently use (migration needed)"
+      - "Significant trade-offs that need Sir's judgment"
+    no_signal_criteria:
+      - "Tool doesn't fit our use case"
+      - "Existing solution is already better"
+      - "Too immature / unstable for production use"
+    example: |
+      ## Research Summary: Capability Evaluation
+      **Tool**: Dagger CI (container-native CI pipelines)
+      **Fits Our Stack**: Partial — works with Docker, but requires Go SDK knowledge
+      **Pros**: Reproducible pipelines, local testing, no YAML hell
+      **Cons**: Learning curve, small community, limited plugin ecosystem
+      **Verdict**: PASS — our current Docker Compose + shell scripts are simpler for our scale. Revisit if we outgrow current approach.
+      **Obsidian**: 05-AI/Claude-Research/2026-03-19-dagger-ci-evaluation.md
+
+  threat:
+    label: "type:research-threat"
+    description: "Threat intelligence — check for new vulnerabilities, advisories, or attack patterns"
+    sections:
+      - "Sources Checked"
+      - "New Indicators"
+      - "Affected Services"
+      - "Action Required"
+    signal_criteria:
+      - "Critical/high CVE affecting a service in our inventory"
+      - "Active exploitation reported for something we run"
+      - "New attack pattern relevant to our exposure"
+    no_signal_criteria:
+      - "No new relevant advisories"
+      - "All found CVEs are low-severity or don't affect our stack"
+      - "Advisories already addressed in current versions"
+    example: |
+      ## Research Summary: Threat Intelligence
+      **Sources**: CISA KEV, NVD, vendor advisories (Docker, Node, Python)
+      **New Indicators**: 2 relevant
+      - CVE-2026-5678 (HIGH): Node.js HTTP/2 DoS — affects beads-dashboard (Node 20)
+      - CVE-2026-9012 (LOW): Python pip hash collision — no practical impact
+      **Affected Services**: beads-dashboard (Node 20.x)
+      **Action Required**: Update Node.js base image in Dockerfile. Low urgency — DoS only, not RCE.
+      **Obsidian**: Threat-Intel/2026-03-19-weekly-advisory-check.md
+
+  general:
+    label: "type:research-general"
+    description: "General research — fallback when no specific sub-type applies"
+    sections:
+      - "Research Question"
+      - "Key Findings"
+      - "Recommendations"
+    signal_criteria:
+      - "Findings suggest a concrete next action"
+      - "Research reveals a problem or opportunity"
+      - "Sir asked for this research specifically"
+    no_signal_criteria:
+      - "Informational only — no action needed"
+      - "Background knowledge gathering with no immediate application"
+    example: |
+      ## Research Summary: General
+      **Question**: What are the best practices for local LLM inference on consumer GPUs?
+      **Key Findings**:
+      - Ollama is the simplest path for our setup (already running)
+      - vLLM offers better throughput but needs more VRAM than our 3090 has
+      - GGUF quantized models (Q4_K_M) give best quality/speed balance
+      **Recommendations**: Stick with Ollama + Q4_K_M models. Consider vLLM only if we add a second GPU.
+      **Obsidian**: 05-AI/Claude-Research/2026-03-19-local-llm-best-practices.md
+
+# Default: if no type:research-* sub-type label is found, use 'general' template
+default_template: general

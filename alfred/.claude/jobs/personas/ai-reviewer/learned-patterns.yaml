@@ -1,0 +1,350 @@
+# AI Reviewer — Learned Decision Patterns
+#
+# This file is the living knowledge base for the AI Reviewer persona.
+# It is read at the start of each run and updated based on Sir's feedback.
+#
+# Structure:
+#   patterns: Named decision patterns with conditions and actions
+#   negative_rules: Things Sir said "never do this"
+#   feedback_history: Summary of feedback received (not individual items)
+#
+# Last updated: 2026-03-13 (session 332 — research-paid-service pattern added from 6yky feedback; stale-close reinforced from 0iw3/qsu5/dmgr feedback)
+
+version: 1
+
+patterns:
+
+  abs-naming-convention:
+    description: "ABS file rename/move matching AudioBookShelf naming conventions"
+    conditions:
+      - task mentions ABS, AudioBookShelf, or audiobook file operations
+      - operation is rename, move, or metadata fix
+      - follows documented naming pattern (Author/Series/Book format)
+    action: execute
+    confidence: high
+    risk: safe
+    source: "Session 206 — Sir explicitly said auto-approve ABS matching best practices"
+
+  research-with-scope:
+    description: "Research task with clear scope and/or linked Obsidian file"
+    conditions:
+      - task type is research or has capability:research label
+      - task has specific topic/question defined
+      - task links to Obsidian file OR has detailed description
+    action: execute
+    confidence: high
+    risk: safe
+    note: "Research tasks are ALWAYS safe to execute even if they involve paid services, external vendors, or cloud accounts. Research ≠ purchasing. Only escalate if the task explicitly requires creating an account, providing billing info, or purchasing — not merely evaluating options."
+    source: "Session 206 — Sir creates research tasks from Claude App with linked files. Session 332 — 6yky feedback: Sir said 'This was just a research item, not implementing anything. You can research even though it will be a paid service.'"
+
+  documentation-update:
+    description: "Update to existing documentation/context files"
+    conditions:
+      - task involves editing existing .md files in .claude/context/
+      - no new architectural decisions required
+      - follows existing document structure
+    action: execute
+    confidence: medium
+    risk: safe
+    source: "General pattern — documentation updates are low risk and reversible"
+
+  config-matching-pattern:
+    description: "Configuration change matching existing patterns"
+    conditions:
+      - change follows same format as existing config
+      - same file location as similar past changes
+      - no new services or external dependencies
+    action: execute
+    confidence: medium
+    risk: safe
+    source: "General pattern — config consistency"
+
+  stale-task-closure:
+    description: "Close tasks older than 30 days with no activity"
+    conditions:
+      - task is >30 days old
+      - no recent comments, label changes, or status updates
+      - no active orchestration or project referencing it
+      - task is not marked as blocked by an external dependency
+    action: close
+    confidence: medium
+    risk: safe
+    source: "Session 206 — Sir confirmed stale cleanup is wanted"
+
+  duplicate-task:
+    description: "Task duplicates an existing open task"
+    conditions:
+      - another open task has substantially similar title and description
+      - both tasks target the same files or systems
+    action: close
+    confidence: high
+    risk: safe
+    source: "General pattern — duplicate cleanup"
+
+  completed-phase-container:
+    description: "Orchestration phase container where all child tasks are closed"
+    conditions:
+      - task is a phase container (has orchestration:N label)
+      - all child tasks referenced are closed
+      - orchestration YAML shows phase complete
+    action: close
+    confidence: high
+    risk: safe
+    source: "General pattern — phase lifecycle"
+
+  new-project-creation:
+    description: "Creating a new project or service"
+    conditions:
+      - task involves creating new project, repo, or service
+      - requires architectural decisions
+    action: propose
+    confidence: medium
+    risk: moderate
+    source: "General pattern — new projects need Sir's direction"
+
+  nexus-infrastructure-change:
+    description: "Changes to Nexus itself (dispatcher, executor, personas, rules)"
+    conditions:
+      - task modifies files in .claude/jobs/
+      - changes affect scheduling, routing, or safety rules
+    action: propose
+    confidence: low
+    risk: moderate
+    source: "Session 206 — Nexus changes are self-referential, need Sir's review"
+
+  external-service-integration:
+    description: "Changes involving external APIs, credentials, or services"
+    conditions:
+      - task requires API keys, OAuth, DNS changes
+      - involves third-party services
+    action: escalate
+    confidence: low
+    risk: high
+    source: "General pattern — external dependencies are irreversible"
+
+  security-sensitive:
+    description: "Security-related changes"
+    conditions:
+      - task involves auth, tokens, certificates, firewall rules
+      - changes to access control or permissions
+    action: escalate
+    confidence: low
+    risk: destructive
+    source: "General pattern — security changes are high consequence"
+
+  manual-action-required:
+    description: "Task requires physical/browser action only Sir can do"
+    conditions:
+      - task requires browser login, GUI interaction
+      - involves creating API tokens in web UIs
+      - requires NAS physical access
+    action: propose
+    confidence: high
+    risk: safe
+    note: "Propose as batch — group manual actions for Sir's 'admin hour'"
+    source: "Session 206 — Sir wants manual tasks batched for efficiency"
+
+  abs-needs-human-confirmation:
+    description: "ABS rename task that explicitly requires human confirmation of title format"
+    conditions:
+      - task is ABS rename/move
+      - task description says 'needs human confirmation' or title format is ambiguous
+      - task has needs-input label
+    action: escalate
+    confidence: high
+    risk: safe
+    note: "Escalate with specific questions so Sir can confirm format quickly"
+    source: "Session 209 — gx8t had ambiguous title, task-evaluator flagged for human confirmation"
+
+  architecture-audit-phase:
+    description: "Phase task in an architecture audit orchestration"
+    conditions:
+      - task is a phase in an architecture audit
+      - task has capability:research label and risk:safe
+      - orchestration phases are sequential (follow ordering)
+    action: execute
+    confidence: high
+    risk: safe
+    source: "Session 209 — Sir agreed on execute for audit phases (o1uq, a5xd, 68y1)"
+
+  sync-phase-task:
+    description: "Phase task for orchestrated sync (CreativeProjects, hooks, components)"
+    conditions:
+      - task is a sync phase (CreativeProjects sync, hook drift, component batch)
+      - parent task has pipeline:approved
+      - task is phase container without detailed spec (lacking spec_id)
+    action: propose
+    confidence: medium
+    risk: safe
+    note: "Propose closing phase containers when parent task drives execution via YAML"
+    source: "Session 209 — o13q and lluu were phase containers without actionable descriptions"
+
+  cloudflare-free-tier-check:
+    description: "Cloudflare API changes — verify free tier, then escalate for token creation"
+    conditions:
+      - task involves Cloudflare API tokens or filter lists
+      - task claims a limitation or capacity issue
+    action: escalate
+    confidence: high
+    risk: moderate
+    note: "Escalate: Sir confirmed he WILL need to get a new API token for Cloudflare filter list capacity. Free tier is limited. Human action required."
+    source: "Session 209 — Sir confirmed escalate is correct ('I will need to get the API token')"
+
+  superseded-by-newer-implementation:
+    description: "Task may be superseded by work completed after task was created"
+    conditions:
+      - task was created weeks/months ago
+      - recent sessions completed related infrastructure (e.g. AI Reviewer approval loop)
+      - task description overlaps with recently-completed systems
+    action: propose
+    confidence: medium
+    risk: safe
+    note: "Propose re-evaluation with specific context of what was built. Let Sir confirm if still needed."
+    source: "Session 209 — u11p (task-approvals bash job) may be superseded by AI Reviewer loop"
+
+  pause-labeled-task:
+    description: "Task Sir wants to keep but not work on now"
+    conditions:
+      - task has parked label
+      - Sir has said 'put on pause' or 'not now'
+    action: defer
+    confidence: high
+    risk: safe
+    defer_duration: "+2w"
+    note: "Defer parked tasks instead of re-proposing. Only surface if related work changes the calculus."
+    source: "Session 211 — Updated: defer instead of propose for parked items (Sir feedback)"
+
+  low-priority-deferrable:
+    description: "Valid task that isn't priority and doesn't need Sir's direct input"
+    conditions:
+      - task is P3 or P4 priority
+      - task doesn't require manual browser action, architectural decision, or creative direction
+      - task has no active dependency chain (nothing blocked on it)
+      - task is not time-sensitive (no deadline, no external event)
+    action: defer
+    confidence: high
+    risk: safe
+    defer_duration: "+2w"
+    note: "Defer for 2 weeks. Use +4w for P4/backlog-tier items. Removes waiting:david so queue stays clean."
+    source: "Session 211 — Sir wants deferral to keep waiting:david queue focused on real decisions"
+
+  already-completed-task:
+    description: "Task description reads as already done — session completion note in description"
+    conditions:
+      - task description starts with 'Done:' or describes completed work
+      - no pending steps remain
+      - task-evaluator flagged as possibly already done
+    action: close
+    confidence: high
+    risk: safe
+    source: "Session 209 — t5z2 described work already done in session"
+
+  approved-needs-investigation:
+    description: "Approved proposal that may be superseded — investigate current state before executing"
+    conditions:
+      - task was previously proposed and Sir approved
+      - Sir's comment includes 'investigate', 'revisit', or 'based on what we've done'
+      - significant infrastructure changes happened since task was created (e.g. AI Reviewer loop, Nexus revamp)
+    action: propose
+    confidence: medium
+    risk: moderate
+    note: "Propose investigation of current state first. Frame: 'Before executing, let's verify this is still needed given [recent work].' Include specific things to check."
+    source: "Session 209 — mqz2 (rule engine): Sir approved but said 'investigate based on what we have done'"
+
+  orphaned-phase-container:
+    description: "Pulse phase task from a completed orchestration with no remaining work"
+    conditions:
+      - task description is only a phase title (no implementation steps)
+      - orchestration YAML shows the phase status as completed
+      - parent task is closed or its completion notes confirm work was done
+    action: close
+    confidence: high
+    risk: safe
+    source: "Session 209/210 — multiple phase containers (brpe, b4yw, b49q, jpjh) confirmed orphaned by task-evaluator"
+
+  self-contained-task-notes:
+    description: "Task notes must be understandable without external context"
+    conditions:
+      - writing or updating task notes, descriptions, or proposals
+      - notes reference internal systems, pipelines, or architecture
+    action: execute
+    confidence: high
+    risk: safe
+    note: "When writing task notes that reference internal systems (AI Reviewer, Nexus, approval pipeline, etc.), include enough context that Sir can understand the decision from the dashboard alone — without needing to ask Claude Code or cross-reference other files. Summarize what exists, what's proposed, and what decision is needed."
+    source: "Session 213 — Sir couldn't understand mqz2 from dashboard, had to ask Claude Code for context"
+
+  pipeline-approved-no-reescalate:
+    description: "Tasks with pipeline:approved label — Sir's approval is final, never re-escalate or re-block"
+    conditions:
+      - task has pipeline:approved label
+      - a safety persona (Document Guard, infra-deployer constraint) fires after Sir already approved
+      - task was re-escalated by AI Reviewer despite Sir's prior approval being on record
+    action: execute
+    confidence: high
+    risk: safe
+    note: "pipeline:approved = Sir's explicit approval = permission granted. Any downstream safety block is overridden by prior approval. Route to auto:ready. DO NOT escalate back. Sir said: 'Take my Approval as permissions going forward, don't reblock it.'"
+    source: "Session 304 feedback — 88st (Organizr) and 20ws (pre-flight validation) were re-escalated after Sir's prior approval. Sir explicitly corrected this twice. This is a hard rule."
+
+  docker-cleanup-safety:
+    description: "Docker image/container cleanup tasks — remove only truly unused resources"
+    conditions:
+      - task involves removing Docker images, containers, or volumes
+      - cleanup type is dangling, unused, or reclaimable
+    action: propose
+    confidence: high
+    risk: moderate
+    note: "NEVER remove images/containers that are associated with systems still present in docker-compose or stopped (not absent) services. Only remove images with zero associated containers. When in doubt, propose with specific list of what would be removed and why it's safe."
+    source: "Session 210 — x383 feedback: Sir said don't remove containers attached to systems that are still there (e.g. GRC Platform). Only remove empty/truly dangling ones. More rules needed around what can/can't be deleted."
+
+  ciso-expert-requires-approval:
+    description: "CISO-expert persona jobs require Sir's explicit approval before publishing/executing live"
+    conditions:
+      - task involves CISO-expert persona job output
+      - task would publish, deploy, or execute live CISO-expert content or job
+    action: propose
+    confidence: high
+    risk: moderate
+    note: "ALWAYS propose and require Sir's approval before CISO-expert jobs go live. This applies until a stronger Voice of Sir profile is in place. Do NOT auto-execute CISO-expert live deployments."
+    source: "Session 659 (2026-04-02) — sx4w feedback: Sir said 'Always, for now until we get a better voice profile in place, require me to approve jobs for CISO-expert before publishing live.'"
+
+  creative-task-watch-trigger:
+    description: "Creative D&D/campaign tasks that depend on a prior session outcome — defer with watch trigger, not escalation"
+    conditions:
+      - task is D&D/campaign creative work
+      - task explicitly states it depends on outcome of a previous session or encounter
+      - the dependency is a file change (session notes, outcome doc) rather than a human decision
+    action: defer
+    confidence: high
+    risk: safe
+    note: "These tasks need a watch trigger on the session outcome file, not escalation to Sir. Sir feedback (w9bw wrong x2): escalation was wrong, should be waiting on file change for dnd campaign. Watch trigger + deferred is the correct routing."
+    source: "Session 663 (2026-04-02) — w9bw feedback wrong x2: Sir said should be waiting on file change, not escalated."
+
+  verify-output-files-before-escalating:
+    description: "Review/summarize tasks — check if Obsidian output already exists before escalating"
+    conditions:
+      - task is type:writing or type:research with review-and-create-summary scope
+      - task references Obsidian files as the work output location
+      - task has no explicit BLOCKER in description
+    action: execute
+    confidence: medium
+    risk: safe
+    note: "Before escalating, READ the referenced Obsidian output files. If the summary/output exists and looks complete, close as already-done. Sir feedback (n39k adjust): task was already done but I escalated without checking the files."
+    source: "Session 663 (2026-04-02) — n39k adjust: Sir said the review was done and visible in the files. Wrong escalation."
+
+negative_rules:
+  - "never auto-approve ABS renames when title format is ambiguous — always escalate for human confirmation"
+  - "never close tasks with parked label unless explicitly instructed — Sir parks things intentionally"
+  - "never assume an old infrastructure task is still relevant without checking recent session completions"
+  - "never execute mqz2-type tasks (rule engine changes, significant infra additions) without verifying current state first — always investigate before committing to execution"
+  - "never write task notes that require cross-referencing other files to understand — task notes must be self-contained for human review on the dashboard"
+  - "never approve docker cleanup tasks that remove images/containers still associated with known services (even if stopped) — only remove images with zero container associations. GRC Platform, and similar services that are temporarily stopped, are NOT safe to remove."
+  - "never re-escalate a task that has pipeline:approved label — Sir's approval is final and overrides any subsequent safety persona block. Check for pipeline:approved BEFORE deciding to escalate."
+  - "never propose or escalate a research task simply because it involves paid services, cloud vendors, or external APIs — research is always safe. Only escalate if the task requires actual account creation, billing entry, or purchasing (not mere evaluation). Source: 6yky feedback 2026-03-13."
+  - "never escalate a D&D/campaign task that depends on a previous session outcome — defer with watch trigger on session notes file, not manual Sir input. Source: w9bw feedback 2026-04-02."
+  - "never escalate a review-and-summarize task without first reading the referenced Obsidian output files. If the summary exists, close as already-done. Source: n39k feedback 2026-04-02."
+
+feedback_summary:
+  total_agreed: 104
+  total_wrong: 3
+  total_adjusted: 13
+  last_feedback_date: "2026-04-09"

@@ -1,0 +1,57 @@
+# Persona: creative-thinker
+# Tier: research (read + web + write reports)
+# Purpose: Research interests, generate ideas, select the current creative output.
+
+persona: creative-thinker
+tier: research
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Web access (trend research, inspiration)
+  - WebFetch
+  - WebSearch
+  # Write (for phase output and idea tracking)
+  - Write
+  # Git (read-only — understand current codebase state)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  # Filesystem (read + write reports)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  # Knowledge server (read ${DOCS_ROOT} vault, diary, interest profile)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_sources
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+
+denied_tools:
+  - Edit
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+
+# Bash: wildcard allowed. Safety comes from prompt constraints and denied_tools.
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read any file"
+  - "Write to .claude/agent-output/aurora/"
+  - "Create files in ${DOCS_ROOT} ${OUTPUT_DIR}/"
+  - "Search the web for trends and research"
+  - "Create Pulse tasks with project:creative label"
+  - "Read ${DOCS_ROOT} diary entries and interest profile"

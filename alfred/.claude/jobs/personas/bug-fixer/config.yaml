@@ -1,0 +1,14 @@
+persona: bug-fixer
+engine:
+  default: claude-code
+  model: sonnet
+  fallback: null
+add_dirs:
+- ~/Code/AIfred
+- ~/Code/AIFred-Pro
+output:
+  format: json
+  save_to: .claude/agent-output/results/bug-fixer/
+session:
+  persist: false
+schema_version: 2

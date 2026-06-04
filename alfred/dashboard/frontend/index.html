@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Pulse Dashboard</title>
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#3b82f6" />
+  </head>
+  <body class="bg-surface-base text-primary">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.FeedbackWidgetConfig = {
+        endpoint: 'https://feedback.theklyx.space/api/feedback',
+        projectId: 'pulse-dashboard',
+        position: 'bottom-right',
+        theme: 'dark'
+      };
+    </script>
+    <script src="/feedback-widget.js"></script>
+  </body>
+</html>

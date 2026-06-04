@@ -1,0 +1,14 @@
+persona: researcher
+engine:
+  default: claude-code
+  model: sonnet
+  router_override: false
+  fallback: null
+output:
+  format: json
+  save_to: .claude/logs/headless/executions/
+env_files:
+- .claude/jobs/.env
+session:
+  persist: false
+schema_version: 2

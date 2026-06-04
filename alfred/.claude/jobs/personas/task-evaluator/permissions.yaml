@@ -1,0 +1,63 @@
+# Persona: task-evaluator
+# Tier: evaluate (read + Pulse updates + report writes + web research for context)
+# Purpose: Evaluate new tasks, determine pipeline routing (READY / NEEDS RESEARCH / NEEDS INPUT),
+#          apply pipeline labels, generate orchestration YAMLs for multi-phase work.
+
+persona: task-evaluator
+tier: evaluate
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Write (for reports and orchestration YAMLs)
+  - Write
+  # Git (read-only)
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  # Filesystem (read + write for reports/YAMLs)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__list_directory_with_sizes
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  # Web (for research context when evaluating feasibility)
+  - WebFetch
+  - WebSearch
+  # Homelab MCP (read-only — search knowledge, read obsidian docs)
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+
+denied_tools:
+  # No editing existing files — evaluation only
+  - Edit
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  # No git write operations
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+  # No task spawning
+  - Task
+
+# Bash: allowed for pulse commands, ls, stat, file checks.
+# Safety enforced by prompt constraints.
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read any file in AIProjects"
+  - "Write reports to .claude/agent-output/results/task-evaluator/"
+  - "Write orchestration YAMLs to .claude/orchestration/"
+  - "Run pulse show, pulse update, pulse list, pulse ready commands"
+  - "Run ls, stat, file, test for path verification"
+  - "Web search for project/technology context"

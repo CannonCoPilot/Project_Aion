@@ -1,0 +1,825 @@
+project: token-compression
+task_count: 34
+exported_from: pulse-dev (port 8800)
+export_date: '2026-04-29'
+notes: Archived from pipeline v2 testing sessions
+tasks:
+- id: AION-47b798e9
+  title: '[TC-34] Final cleanup — close temp artifacts, verify dashboard accuracy, archive benchmarks'
+  description: Perform the final cleanup and verification of the Token Compression demo project. This includes closing all
+    related tasks, archiving benchmark data, verifying dashboard accuracy, and ensuring all deliverables are finalized and
+    ready for completion.
+  priority: low
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:verify
+  - phase:8-validation
+  - assigned:project-manager
+  - parked
+  stage_output_preview:
+    expected_output:
+    - All tasks TC-01 through TC-33 marked as closed in the Pulse board
+    - Benchmark JSONL files archived to .claude/metrics/token-compression/archive/
+    - Temporary test files removed from the project directory
+    - Dashboard page verified to load with real metrics data
+    - JICM compression integration verified as stable
+    - capability-map.yaml updated with 'token-compression' skill
+    - .claude/skills/_index.md updated with new skill entry
+    - All scripts marked as executable (chmod +x applied)
+    - Final quality validation report across all project phases
+    - session-state.md updated to reflect project completion
+    - Project marked as complete in current-plans.md and Pulse
+- id: AION-4fed98d9
+  title: '[TC-33] Write project completion report with benchmark results and recommendations'
+  description: Write a comprehensive project completion report for the Token Compression demo project, summarizing research
+    findings, implementation details, benchmark results, and production recommendations. The report should be structured into
+    specific sections and include references to all task IDs (TC-01 through TC-34) with their completion status.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:8-validation
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: 'A completed Markdown report file at Jarvis/projects/project-aion/reports/token-compression-project-report.md
+      with the following sections: Executive Summary, Research Findings Summary, Implementation Summary, Benchmark Results,
+      Dashboard Screenshots, Recommendations for Production, and Future Work. All task IDs should be included with their current
+      status.'
+  review_result:
+    passed: true
+    summary: 'The task was successfully executed by writing a comprehensive 367-line Markdown report at the correct location,
+      including all required sections and task status tracking. However, the project is still '
+- id: AION-16191bdc
+  title: '[TC-32] Validate Jeeves register maintained in compressed user-facing responses'
+  description: Re-execute [TC-32] to validate the Jeeves register in compressed user-facing responses only after TC-13 is
+    fully implemented and the required files are committed. Ensure the token-compression project is registered in paths-registry.yaml.
+    Once prerequisites are met, evaluate 10 Jeeves-mode and 10 Caveman-mode responses using the linguistic criteria (erudition,
+    propriety, Wodehouse personality, technical precision, and grammar) on a 5.0 scale, with a pass threshold of ≥4.5.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:verify
+  - phase:8-validation
+  - assigned:ai-reviewer
+  - reason:max-retries
+  - parked
+  stage_output_preview:
+    expected_output: Updated evaluation scores for 10 Jeeves-mode and 10 Caveman-mode responses based on the linguistic criteria.
+      Verification that the Jeeves register is correctly reflected in compressed outputs. Confirmation that all required files
+      are committed and the token-compression project is registered in paths-registry.yaml.
+  review_result:
+    passed: false
+    summary: The task did not complete successfully. It was correctly identified as blocked due to unmet prerequisites, including
+      the incomplete implementation of TC-13 and missing files. No evaluation of the Jeev
+  retry_count: 4
+- id: AION-66afcfed
+  title: '[TC-31] Execute Unity benchmark with and without compression — measure token delta'
+  description: Re-run the Unity world-generation benchmark with and without token compression enabled, using identical prompts
+    and generation parameters. Ensure all prerequisites (Unity project setup, MCP integration, and prompt validation) are
+    completed. Compare token usage, generation quality (terrain, textures, water), and runtime performance across all compression
+    modes (none, light, medium, heavy). Ensure all session data, including files in subdirectories, is fully processed.
+  priority: high
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:verify
+  - phase:8-validation
+  - assigned:analyst
+  - reason:max-retries
+  - parked
+  stage_output_preview:
+    expected_output: Benchmark results files updated with token usage, performance metrics, and generation quality assessments
+      for each compression mode. A comparison report highlighting differences in token delta, runtime, and visual fidelity.
+      Verified that all prerequisites are met and data is complete.
+  review_result:
+    passed: false
+    summary: 'The task was partially executed, but key prerequisites were not completed, and the data used was not representative
+      of actual Unity benchmark sessions. As a result, the results are incomplete and not '
+  retry_count: 4
+- id: AION-deae2d36
+  title: '[TC-30] Run end-to-end pipeline test with all compression strategies enabled'
+  description: Run TC-30 as an end-to-end test of all compression strategies (TC-09 to TC-15). Before execution, ensure the
+    pipeline-watchdog.sh script is running and has updated pipeline-health.jsonl. Verify all tasks use standard stage:* label
+    namespaces. Resolve any phase ordering violations by completing earlier phases (TC-01 to TC-24) before marking phase 8
+    as active. Implement TC-09 through TC-15 and resolve the '--task-id' dispatcher error. Once pipeline readiness is confirmed,
+    re-run TC-30.
+  priority: high
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:verify
+  - phase:8-validation
+  - assigned:pipeline-reviewer
+  - reason:max-retries
+  - parked
+  stage_output_preview:
+    expected_output: A successful execution of TC-30 with updated pipeline-health.jsonl reflecting the test results. All compression
+      strategy tasks (TC-09 to TC-15) must be implemented and verified. The '--task-id' dispatcher error must be resolved,
+      and all relevant labels must conform to stage:* naming conventions.
+  review_result:
+    passed: false
+    summary: The task did not successfully execute as intended. The pipeline-watchdog did not run, the required compression
+      strategies (TC-09 to TC-15) were not implemented, and the label governance and phase orde
+  retry_count: 4
+- id: AION-1757d092
+  title: '[TC-29] Create benchmark comparison report template'
+  description: Design a Markdown template for token compression benchmark results and implement a Python script to automatically
+    populate the template using data from benchmark-results.jsonl. The template should be structured to allow consistent reporting
+    of benchmark metrics and be used in the project completion report.
+  priority: low
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:7-unity
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: '1. A new Markdown template file at `Jarvis/.claude/skills/token-compression/templates/benchmark-report.md`
+
+      2. A new Python script `generate-report.py` that reads from `benchmark-results.jsonl` and fills the template
+
+      3. The template should be verified to include all required placeholders and formatting for benchmark data'
+  review_result:
+    passed: true
+    summary: The execution successfully addressed the task objective by creating a Markdown template for benchmark reports
+      and implementing a Python script to populate it using data from benchmark-results.jsonl. T
+- id: AION-0c603863
+  title: '[TC-28] Build JSONL token measurement harness for automated benchmark runs'
+  description: Develop and implement a JSONL token measurement harness script to automate benchmarking of token usage across
+    multiple Unity world-generation runs, varying by compression settings. The harness should execute multiple runs, capture
+    token usage, and produce structured metrics comparing performance against a baseline.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:7-unity
+  - assigned:pipeline-reviewer
+  stage_output_preview:
+    expected_output: A new shell script at Jarvis/.claude/skills/token-compression/scripts/benchmark-harness.sh that accepts
+      compression settings and runs benchmarks. A Python script (token-extractor.py) for extracting and summarizing token
+      usage from JSONL files. Updated benchmark results stored in .claude/metrics/token-compression/benchmark-results.jsonl.
+      A comparison table showing token usage and duration for each compression level.
+  review_result:
+    passed: true
+    summary: The task was successfully completed. The JSONL token measurement harness was built, including the required shell
+      and Python scripts, and the benchmark results file was created. The execution addressed
+- id: AION-0ad669c3
+  title: '[TC-27] Prepare reduced 3-layer world generation benchmark prompt'
+  description: Create two standardized benchmark prompts for token compression testing based on the tomicz/one-shot-prompt-world-generation-unity
+    project. One should be a reduced 3-layer variant (terrain, textures, water) for fast iteration (<10 min), and the other
+    should be the full 6-layer prompt for validation. Both must include a fixed seed, consistent input, and instructions for
+    recording token usage and generating a run report.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:7-unity
+  - assigned:creative-builder
+  - parked
+  stage_output_preview:
+    expected_output:
+    - benchmark-prompt-3layer.md created in Jarvis/.claude/skills/token-compression/benchmarks/ with 3 layers, fixed seed,
+      map size 250x250, and run report instructions.
+    - benchmark-prompt-full.md created in the same directory with full 6-layer prompt, fixed seed, and run report instructions.
+    - Baseline token counts documented for comparison from one uncompressed run of each prompt.
+- id: AION-1ba19cbc
+  title: '[TC-26] Install and configure IvanMurzak/Unity-MCP on macOS ARM64'
+  description: Install and configure the IvanMurzak/Unity-MCP server on macOS ARM64, ensuring native compatibility and integration
+    with Claude Code for C# execution and tool access. If IvanMurzak/Unity-MCP fails, fall back to CoplayDev/unity-mcp using
+    Python.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:infrastructure
+  - phase:7-unity
+  - assigned:infrastructure-deployer
+  stage_output_preview:
+    expected_output: SETUP-MCP.md documentation with server startup command, MCP client configuration (.mcp.json), troubleshooting
+      steps, and verification instructions. The .mcp.json file should be correctly configured, and connectivity and tool availability
+      should be verified via test execution.
+  review_result:
+    passed: true
+    summary: The task was successfully initiated with unity-mcp-cli v0.67.1 installed, the Unity-MCP plugin registered, and
+      the .mcp.json and SETUP-MCP.md files created. The key setup steps were documented, and fa
+- id: AION-458d6009
+  title: '[TC-25] Create Unity project with URP template for token compression benchmarking'
+  description: Create a new Unity project using the URP 3D template, configured for procedural landscape generation benchmarking.
+    The project must be set up with consistent quality settings, a dedicated directory for generated landscapes, and a valid
+    URP configuration. The final deliverable must include a working project, verified URP setup, a README.md, and a screenshot
+    of the empty scene with URP skybox visible.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:infrastructure
+  - phase:7-unity
+  - assigned:infrastructure-deployer
+  - parked
+  stage_output_preview:
+    expected_output:
+    - A new Unity project named 'TokenCompressionBench' at /Users/nathanielcannon/Claude/Projects/TokenCompressionBench/
+    - URP pipeline asset assigned and validated in Project Settings > Graphics
+    - Post-processing support enabled in URP renderer
+    - Quality settings configured with shadow distance=300, soft shadows enabled, 4 shadow cascades
+    - Assets/WorldGenRuns/ directory created for generated landscapes
+    - README.md in the project root documenting the setup
+    - Screenshot of the empty scene with URP skybox visible saved in the project directory
+- id: AION-97f0d220
+  title: '[TC-24] Wire up real-time metrics, add page to router, and integrate nav entry'
+  description: Integrate the Token Compression dashboard page into the application by lazy loading the component, updating
+    the navigation configuration with a new icon, implementing real-time metrics using React Query, and ensuring the page
+    is accessible and behaves correctly in the mobile menu.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:6-dashboard-fe
+  - assigned:ux-eng
+  - reason:max-retries
+  - parked
+  stage_output_preview:
+    expected_output: 'A fully integrated Token Compression dashboard page with real-time metrics, updated navigation entry,
+      correct icon, and lazy loading implementation. The following should be verified: navigation entry is present and clickable,
+      real-time data updates are functioning, the page is lazy loaded, and the mobile menu behavior is correct. File changes
+      should include the router configuration, navigation config, dashboard component, and possibly the React Query setup.'
+  review_result:
+    passed: false
+    summary: The task was partially completed, with the route and navigation entry added, but there were multiple spec deviations,
+      including incorrect lazy loading, mispositioned nav item, and an unsupported icon.
+  retry_count: 4
+- id: AION-997d06b8
+  title: '[TC-23] Build before/after comparison widget with trend line visualization'
+  description: Build a 'CompressionTrendChart' component for the TokenCompressionPage that visualizes token consumption and
+    compression savings over time. The chart should include dual-area lines for total tokens consumed and tokens after compression,
+    a mini-chart for average daily compression ratio, a before/after comparison card with highlighted removed words and savings,
+    and a time range selector for 7 days, 30 days, and all time. The UI must handle empty states gracefully.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:6-dashboard-fe
+  - assigned:ux-eng
+  - parked
+  stage_output_preview:
+    expected_output:
+    - A new 'CompressionTrendChart' React component implementing the described visualization and interaction patterns.
+    - Updated TokenCompressionPage to include and render the new component.
+    - Unit and integration tests for the CompressionTrendChart component, including empty state handling.
+    - Style/SCSS files for the component to ensure consistent UI/UX.
+    - Time range selector logic and state management integration.
+  review_result:
+    passed: false
+    summary: The task was not completed successfully. The execution summary reflects a pre-implementation UX review rather
+      than the actual implementation of the 'CompressionTrendChart' component. The required UI e
+  retry_count: 2
+- id: AION-27ed0740
+  title: '[TC-22] Build savings-by-phase breakdown chart using Recharts'
+  description: Implement a feature to display a savings-by-phase breakdown chart using Recharts on the Token Compression dashboard.
+    This includes creating a React Query hook to fetch and format phase data, developing a responsive and styled stacked bar
+    chart component, and setting up a dedicated page to showcase the chart and related metrics.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:6-dashboard-fe
+  - assigned:code-implementer
+  - parked
+  stage_output_preview:
+    expected_output:
+    - A new React component for the stacked bar chart using Recharts
+    - A React Query hook to fetch and format phase data
+    - A new page or route in the dashboard to display the chart and associated metrics
+    - Updated dashboard UI to include the new chart page in navigation or layout
+    - Unit and integration tests for the new hook and component
+    - Updated documentation or comments where necessary to reflect new functionality
+  review_result:
+    passed: false
+    summary: The task was misassigned to a UX reviewer and only a UX review and specification were completed, with no actual
+      implementation performed. The required files were not created, and the task objective wa
+  retry_count: 3
+- id: AION-b0c624e1
+  title: '[TC-21] Create TokenCompressionPage.tsx with stat cards showing savings summary'
+  description: Create the TokenCompressionPage.tsx dashboard page in the AIFred-Pro-Dev frontend application, following the
+    established page pattern from ObservabilityPage.tsx and PipelinePage.tsx. The page should include a header, a row of four
+    stat cards showing compression metrics, a phase breakdown section, a trend chart, and a recent events table. Implement
+    three React Query hooks in token-compression.ts to fetch stats, events, and phases from the backend. Ensure components
+    like StatCard and table formatt
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:6-dashboard-fe
+  - assigned:ux-eng
+  stage_output_preview:
+    expected_output: 'A new TokenCompressionPage.tsx file implementing the specified dashboard layout and functionality. A
+      new token-compression.ts API file with three React Query hooks: useCompressionStats(), useCompressionEvents(), and useCompressionPhases().
+      Updated or created components (e.g., StatCard, table, etc.) to be consistent with the existing UI. The page should be
+      verified to display all required metrics and components correctly.'
+  review_result:
+    passed: true
+    summary: 'The execution successfully addressed the task objective by creating the TokenCompressionPage.tsx dashboard page
+      and the token-compression.ts API file with the required React Query hooks. The expected '
+- id: AION-e12a8c56
+  title: '[TC-20] Add compression metrics storage with rotation and cleanup'
+  description: Set up a metrics storage system for token compression data, including JSONL file storage, rotation policy,
+    archive management, and daily summary generation. The system should rotate the primary metrics file when it exceeds 1MB
+    or is older than 30 days, archive it in a compressed format, and update a daily summary. Integrate the rotation into the
+    existing housekeeping script and ensure the directory structure is created and gitignored.
+  priority: low
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:infrastructure
+  - phase:5-dashboard-be
+  - assigned:infrastructure-deployer
+  stage_output_preview:
+    expected_output: '1. A new directory structure under `Jarvis/.claude/metrics/token-compression/` (primary, archive, and
+      daily summary files)
+
+      2. A script `scripts/setup-metrics.sh` that initializes the directory structure and files
+
+      3. `housekeep.sh` updated with a rotation task in Phase 7
+
+      4. `.gitignore` updated to include `.claude/metrics/`
+
+      5. A daily-summary.json file updated on rotation
+
+      6. A test with 100 sample metric lines that verifies the rotation logic works correctly'
+  review_result:
+    passed: true
+    summary: The execution successfully implemented the compression metrics storage system as described in the task. The directory
+      structure, setup script, housekeeping integration, gitignore update, daily summary
+- id: AION-f491f2fa
+  title: '[TC-19] Implement metrics collection service for compression data aggregation'
+  description: Implement a metrics collection service for token compression data aggregation. The service should parse session-metrics.jsonl,
+    compute aggregated statistics, handle caching with a 30s TTL, and transform data for API consumption. The module must
+    follow existing service patterns and handle edge cases such as missing or corrupted data.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:5-dashboard-be
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: 'A new service module at `dashboard/server/services/token-compression.ts` with four functions: `readMetricsFile`,
+      `aggregateStats`, `computeTrends`, and `getPhaseDetails`. Unit tests for the aggregation functions should be added.
+      The service should be verified to handle file parsing, caching, and edge cases correctly.'
+  review_result:
+    passed: true
+    summary: The execution fully addressed the task objective by implementing the required metrics collection service for
+      token compression data aggregation. All four required functions (`readMetricsFile`, `aggreg
+- id: AION-ecfc13a5
+  title: '[TC-18] Create token-compression API route in dashboard server'
+  description: Create a new Express API route in the dashboard server for serving token-compression metrics, following the
+    existing route structure. This route should provide three endpoints for retrieving aggregate statistics, recent events,
+    and phase-specific metrics. Data should be read from a JSONL file and parsed accordingly, with appropriate TypeScript
+    types defined and the route registered in the main server configuration.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:5-dashboard-be
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: New route file at `dashboard/server/routes/token-compression.ts`, updated `dashboard/server/index.ts`
+      with the new route registration, added TypeScript types in `dashboard/server/types.ts`, and verified correct JSON responses
+      via curl commands for all three endpoints.
+  review_result:
+    passed: true
+    summary: The task was completed successfully. The token-compression API route was created with the required three endpoints,
+      TypeScript types were added, and the route was properly registered. All expected fil
+- id: AION-5c51b73d
+  title: '[TC-17] Validate JICM compression quality — before/after token comparison test'
+  description: Validate the compression quality of JICM by comparing token counts and fact recall accuracy between checkpoints
+    generated with and without NLP preprocessing. Use the methodology documented in the previous report to measure compression
+    ratio, fact preservation, and cycle latency.
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:verify
+  - phase:4-jicm
+  - assigned:ai-reviewer
+  - reason:max-retries
+  - parked
+  stage_output_preview:
+    expected_output: A detailed validation report containing actual results, including compression ratios, fact preservation
+      metrics, and cycle latency measurements. The report should include quality scores and a comparison of token counts and
+      fact recall accuracy between the two configurations.
+  review_result:
+    passed: false
+    summary: The task was not successfully completed. While a validation report was generated, it only documented that the
+      necessary prerequisites for validation were missing. No actual compression quality validat
+  retry_count: 4
+- id: AION-90f91ca7
+  title: '[TC-16] Add compression metrics fields to JICM state files and checkpoint metadata'
+  description: Extend JICM state files and checkpoint metadata to include compression metrics for dashboard tracking. This
+    includes adding new fields to existing files, creating a new append-only metrics file, and updating related scripts to
+    reflect the new structure and functionality.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:4-jicm
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: Modified .jicm-state and .jicm-last-compression.json files with new compression metric fields. A new
+      session-metrics.jsonl file created for event logging. Updated jicm-watcher.sh and jicm-config.sh to handle the new fields.
+      All JICM components should remain functional and backward compatible.
+  review_result:
+    passed: true
+    summary: The execution successfully addressed the task objective by adding compression metric fields to the .jicm-state
+      and .jicm-last-compression.json files, creating a new session-metrics.jsonl file, and upd
+- id: AION-632c4789
+  title: '[TC-15] Integrate NLP compression into JICM prep script (jicm-prep-context.sh)'
+  description: Modify the JICM Tier 1 bash script (jicm-prep-context.sh) to add a new preprocessing step that runs the NLP
+    compression tool (compress-input.py) in 'standard' mode before the LLM enrichment step. This step should reduce the input
+    size fed to qwen3:8b while maintaining critical information. The integration must be backward-compatible, defaulting to
+    the original behavior if compression is unavailable or fails.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:refactor
+  - phase:4-jicm
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: '1. jicm-prep-context.sh updated with the new compression step.
+
+      2. A new .jicm-last-compression.json file created or updated with metadata including: nlp_compression_applied, nlp_tokens_before,
+      nlp_tokens_after, nlp_compression_ratio, and nlp_mode.
+
+      3. A final .compressed-context-ready.md file containing the compressed context and metadata.
+
+      4. Verified that compression runs without error, is readable by Claude after /clear, and retains critical data (e.g.,
+      file paths, task names, git state).
+
+      5. Metrics are correctly logged to .jicm-last-compression.json.'
+  review_result:
+    passed: true
+    summary: The task was successfully completed. The NLP compression tool (compress-input.py) was created and integrated
+      into the jicm-prep-context.sh script as a new preprocessing step (Step 3b). The necessary m
+- id: AION-2af35995
+  title: '[TC-14] Build strategy router mapping consumption phase to optimal compression approach'
+  description: Build a strategy router script that maps each detected consumption phase (as identified by TC-07) to the corresponding
+    optimal compression strategy (from TC-09 to TC-13). The router should select and apply the correct compression method
+    based on the phase and configured compression level, validate output quality, and log performance metrics.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:3-strategies
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: A new script `strategy-router.sh` in the `scripts/` directory that routes phases to compression strategies.
+      Integration test script to validate routing logic and strategy execution. Updated logs and metrics in log files. Validation
+      of correct behavior for 5 sample inputs across all defined phases.
+  review_result:
+    passed: true
+    summary: The execution fully addressed the task objective by implementing the `strategy-router.sh` script that maps consumption
+      phases to optimal compression strategies. An integration test script was provided
+- id: AION-c47d38d8
+  title: '[TC-13] Implement Jeeves-register output filter for user-facing responses'
+  description: Implement the Jeeves-register output filter to ensure user-facing responses maintain erudition, propriety,
+    and a Wodehouse-flavored personality while preserving technical precision and conciseness. The filter should act as a
+    quality gate, validating responses against a defined register and returning pass/warn/fail statuses accordingly.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:3-strategies
+  - assigned:ai-reviewer
+  stage_output_preview:
+    expected_output: A working implementation of the Jeeves-register filter script at `jarvis/.claude/skills/token-compression/scripts/jeeves-filter.sh`,
+      a reference document at `templates/jeeves-register.md`, and verification of register compliance on 10 sample responses
+      with different compression levels applied.
+  review_result:
+    passed: true
+    summary: The execution fully addressed the task objective by implementing the Jeeves-register output filter, creating
+      the required reference document, and verifying compliance on 10 sample responses. All expec
+- id: AION-f6d33a9a
+  title: '[TC-12] Implement Caveman Compression NLP backend for JICM input preprocessing'
+  description: Implement a rule-based text compressor (Caveman Compression) for preprocessing JICM checkpoint content before
+    it is fed into Claude. The compressor should reduce input size by removing predictable linguistic elements while preserving
+    key facts, numbers, code, and technical terms. The implementation should include three compression modes (light, standard,
+    aggressive) and be based on the Caveman Compression logic from the GitHub repository. The script must be written in Python
+    and run using the Ja
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:3-strategies
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: A new Python script located at Jarvis/.claude/skills/token-compression/scripts/compress-input.py that
+      performs input-side text compression on JICM checkpoint files (.compressed-context-ready.md). The script should output
+      compressed text with reduced token count while preserving key information. Test results including token count before/after,
+      fact preservation checks, and Claude readability verification should be documented.
+  review_result:
+    passed: true
+    summary: The task was largely completed in design and code, with the implementation of the Caveman Compression NLP preprocessor
+      for JICM input. However, the final script could not be written to the expected lo
+- id: AION-37d21c45
+  title: '[TC-11] Implement Signal notation template for session notes and state files'
+  description: Implement the Eridani Signal notation as a structured format template for session notes, scratchpad entries,
+    and state file updates. This will reduce note verbosity by 40-60% while preserving all factual content and enabling efficient
+    parsing by both humans and LLMs. The task includes creating format templates, writing a bash formatter, integrating the
+    format into the session-state.md workflow, and measuring the compression ratio on real entries.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:3-strategies
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: '1. New markdown template files in `Jarvis/.claude/skills/token-compression/templates/` defining Signal
+      notation rules and templates.
+
+      2. A bash script `signal-format.sh` to convert natural language to Signal notation.
+
+      3. Integration of Signal notation into the `session-state.md` update process.
+
+      4. A report with compression ratios for 5 real session-state entries.
+
+      5. Verified reduction in note verbosity with no loss of factual information.'
+  review_result:
+    passed: true
+    summary: The execution fully addressed the task objective by implementing the Eridani Signal notation as a structured
+      format template for session notes, scratchpad entries, and state files. All expected delive
+- id: AION-d1a92ed0
+  title: '[TC-10] Implement Chain of Draft for internal reasoning compression'
+  description: Implement the Chain of Draft (CoD) strategy as the primary reasoning compression method for thinking blocks
+    and reasoning-heavy subagents. This involves injecting the CoD instruction into system prompts, including few-shot examples
+    of compressed reasoning, tracking token usage before and after, and logging metrics. The goal is to achieve significant
+    token savings with minimal impact on reasoning accuracy.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:3-strategies
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: Updated system prompts with CoD instruction, added few-shot examples in prompts, scripts to track and
+      log token usage, and updated metrics. The implementation should be verified by running 5 reasoning tasks with and without
+      CoD, measuring token savings and accuracy.
+  review_result:
+    passed: true
+    summary: The task was mostly completed successfully with the implementation of the Chain of Draft strategy, including
+      the creation of prompt templates, an apply script, and a metrics log. However, the benchmar
+- id: AION-5992f24a
+  title: '[TC-09] Implement Caveman Micro Prompt strategy for general output compression'
+  description: Implement the Caveman Micro Prompt (85 tokens) as the primary output-style compression strategy for subagent
+    prompts and non-persona responses. The strategy should be injected into system prompts or additional context, and its
+    effectiveness should be measured through token count reduction and logged for analysis.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:3-strategies
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: Updated subagent prompts and internal communications to use the Caveman Micro Prompt. New script at apply-caveman-micro.sh
+      should be created and tested. Token compression metrics should be logged to .claude/metrics/token-compression/. Verify
+      5 sample subagent prompts are compressed with expected token savings.
+  review_result:
+    passed: true
+    summary: The task appears to have been addressed by updating subagent prompts and implementing the Caveman Micro Prompt
+      strategy, but the provided execution summary lacks detailed verification, such as token c
+- id: AION-2c168be1
+  title: '[TC-08] Create compression quality validation framework with automated scoring'
+  description: Develop a compression quality validation framework that automatically scores the output of token-compressed
+    content across multiple quality dimensions. The framework should validate fact preservation, register compliance, reasoning
+    integrity, and structural completeness, and assign a score from 0 to 5 for each dimension. The validation should be triggered
+    automatically after compression, on-demand via a command, and as part of the benchmark suite.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:2-core
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: A new script file `validate-quality.py` under `jarvis/.claude/skills/token-compression/scripts/` that
+      implements the validation framework. Validation results should be written to `.claude/metrics/token-compression/quality-scores.jsonl`.
+      The output must include scores for each quality dimension and a summary of any quality degradation or failures.
+  review_result:
+    passed: true
+    summary: The task appears to have been addressed with the creation of the expected script file, but there is insufficient
+      detail to confirm that all requirements were implemented correctly or fully. Further re
+- id: AION-364e678d
+  title: '[TC-07] Build compression mode auto-detection — identify consumption phase from context'
+  description: Implement a system to automatically detect the current token consumption phase (JICM, Subagent, Notes, Thinking,
+    or Response) based on runtime context. This detection will allow the correct compression strategy to be applied automatically,
+    without manual selection, by evaluating a set of rules in order. The solution must be usable from both bash scripts and
+    Python code.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:2-core
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: 'A script or module that outputs a JSON object {phase: string, confidence: float, strategy: string} when
+      invoked, reflecting the detected phase. The following files should be updated or created: detect-phase.sh, and potentially
+      context-injector.js integration hooks. The logic must be verified to correctly identify each phase under the specified
+      conditions.'
+  review_result:
+    passed: true
+    summary: 'The execution addressed the task objective by implementing a system to automatically detect the token consumption
+      phase and output a JSON object with the detected phase, confidence, and strategy. The '
+- id: AION-33c73771
+  title: '[TC-06] Implement token counting utilities for input/output/thinking measurement'
+  description: Implement token counting utilities in both Bash and Python to measure token consumption across five phases
+    of a session. The Bash script should parse JSONL transcripts to extract and summarize token usage per phase, while the
+    Python script should provide detailed analysis, including compression ratios and metrics generation. The goal is to support
+    compression strategies and dashboard metrics.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:2-core
+  - assigned:backend-eng
+  stage_output_preview:
+    expected_output: 'Two new tools: a Bash script at Jarvis/.claude/skills/token-compression/scripts/token-counter.sh and
+      a Python script at Jarvis/.claude/skills/token-compression/token-counter.py. Output includes JSON summaries of token
+      usage by phase and metrics written to .claude/metrics/token-compression/. Changes to existing files should be minimal
+      and limited to necessary integrations.'
+  review_result:
+    passed: true
+    summary: The execution fully addressed the task objective by implementing the required Bash and Python token-counting
+      utilities. The expected files were created in the correct locations, and the output include
+- id: AION-7121e1be
+  title: '[TC-05] Create token-compression skill skeleton with SKILL.md and config'
+  description: Create a skeleton for the token-compression skill in the Jarvis/.claude/skills/token-compression/ directory.
+    This includes defining the skill structure, configuration, and documentation. The task involves setting up foundational
+    files such as SKILL.md, config.yaml, and relevant directories for scripts, templates, and reference material. The skill
+    should be registered in capability-map.yaml and follow the existing skill patterns outlined in .claude/skills/_index.md.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:2-core
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: 'A new token-compression skill directory with the following:
+
+      - SKILL.md with defined trigger keywords, phase documentation, and compression level table.
+
+      - config.yaml with per-phase compression settings.
+
+      - scripts/, templates/, and reference/ directories created.
+
+      - capability-map.yaml updated to include the new skill under the skills section.
+
+      Verify that all files are present, properly structured, and follow the existing skill conventions.'
+  review_result:
+    passed: true
+    summary: The task was successfully completed. The token-compression skill skeleton was created with all required files
+      and directories. SKILL.md, config.yaml, and the necessary subdirectories (scripts/, templa
+- id: AION-ef2e0f82
+  title: '[TC-04] Write token compression skill design document with phase-specific strategy mappings'
+  description: Synthesize findings from tasks TC-01, TC-02, and TC-03 into a comprehensive design document for the token-compression
+    skill. The document must define phase-specific strategy mappings, skill structure, integration points, and quality constraints
+    for the token-compression system.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:feature
+  - phase:1-research
+  - assigned:project-manager
+  stage_output_preview:
+    expected_output: 'A completed design document at Jarvis/.claude/context/designs/token-compression-skill-design.md that
+      includes: 1. Phase-to-strategy mappings, 2. Skill structure (SKILL.md, config, scripts, templates), 3. Integration points,
+      4. Quality constraints. The document should be reviewed for completeness and clarity.'
+  review_result:
+    passed: true
+    summary: 'The execution fully addressed the task objective by producing a comprehensive design document for the token-compression
+      skill. The document includes all required components: phase-to-strategy mappings'
+- id: AION-a8666059
+  title: '[TC-03] Research Unity MCP integration requirements for benchmarking on macOS ARM64'
+  description: Conduct detailed technical research to integrate Unity's Minting Compression Protocol (MCP) into a benchmarking
+    environment on macOS ARM64. The research must result in a comprehensive setup guide that includes component requirements,
+    installation instructions, an architecture diagram, and performance considerations for token compression benchmarking.
+  priority: medium
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:research
+  - phase:1-research
+  - assigned:researcher
+  stage_output_preview:
+    expected_output: 'A new Markdown file at `.claude/context/research/unity-benchmark-setup.md` containing: 1) a checklist
+      of required components with macOS ARM64 compatibility, 2) installation and setup commands for each component, 3) an
+      architecture diagram, and 4) a summary of architectural and performance considerations. The file must be verified for
+      technical accuracy and completeness.'
+  review_result:
+    passed: true
+    summary: 'The execution directly addressed the task objective by producing a Markdown file at the correct path containing
+      all required elements: a checklist of macOS ARM64-compatible components, installation in'
+  retry_count: 1
+- id: AION-84492dc4
+  title: '[TC-02] Analyze cc-compression-bench methodology and adapt for Jarvis metrics'
+  description: 'Analyze Max Taylor''s CC Compression Bench methodology, focusing on its 5-arm testing structure, rubric-based
+    scoring system, and prompt suite. Adapt this methodology to align with Jarvis''s consumption phases: thinking, response,
+    JICM, subagent, and notes. Create a structured research file that includes a summary of the original methodology, adaptations
+    for each phase, a modified rubric, an adapted prompt suite, a statistical approach, and verification of clarity, completeness,
+    and architectural '
+  priority: medium
+  final_status: deferred
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:research
+  - phase:1-research
+  - assigned:researcher
+  - reason:dependency
+  - parked
+  depends_on:
+  - AION-aa1fba5d
+  - AION-b313838d
+  - AION-a288f370
+  - AION-f719d502
+  stage_output_preview:
+    expected_output: A populated research file at .claude/context/research/compression-bench-adapted.md that includes all
+      required sections. Evidence must be provided that the file was created and fully populated with content.
+  review_result:
+    passed: false
+    summary: The task was not completed successfully. The execution summary is incomplete and does not confirm that the methodology
+      was analyzed or adapted. The expected output file is referenced but not substanti
+  retry_count: 1
+- id: AION-cb2513ad
+  title: '[TC-01] Survey token compression techniques — Caveman, CoD, Eridani, Rocky, benchmarks'
+  description: Research and synthesize findings from 8 token compression techniques for LLMs, including their mechanisms,
+    savings percentages, quality impact, best-fit consumption phase, prompt overhead, and limitations. Produce a structured
+    research report with a comparison table, phase-specific recommendations, and a compatibility matrix for combining methods.
+  priority: high
+  final_status: closed
+  labels:
+  - project:token-compression
+  - agent:jarvis
+  - type:research
+  - phase:1-research
+  - assigned:researcher
+  stage_output_preview:
+    expected_output: 'Generate a Markdown research report at `.claude/context/research/token-compression-survey.md` containing:
+      a comparison table of all 8 techniques, phase-specific usage recommendations, and a compatibility matrix for combining
+      techniques. Ensure the report is well-organized and includes references to the provided sources.'
+  review_result:
+    passed: true
+    summary: The execution successfully addressed the task objective by generating a Markdown research report at the expected
+      location. The report includes a comparison table of all 8 token compression techniques,

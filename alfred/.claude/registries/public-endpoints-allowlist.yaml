@@ -1,0 +1,49 @@
+# Public Endpoints Allowlist
+#
+# Declarative expected-state file for the nightly exposure audit Nexus job
+# (exposure-audit.sh). Every public hostname in the Caddyfile should have an
+# entry here declaring which sensitive paths are expected to return which
+# HTTP status codes when accessed UNAUTHENTICATED from the public internet.
+#
+# The audit compares live responses against these expected codes. Any
+# unexpected 200 response is treated as a drift and surfaces as a waiting:david
+# Pulse task plus a Telegram alert.
+#
+# How to use:
+#   1. When you add a new public service to the Caddyfile, add an entry here
+#      BEFORE deploying. The audit will alert on the first nightly run if
+#      you forget.
+#   2. When you intentionally make a path public, add it to the expected
+#      section with [200] so the audit stops alerting.
+#   3. When a service is removed, delete its entry here too.
+#
+# Sensitive paths tested against every hostname:
+#   /api/      /admin/   /debug/   /metrics
+#   /.env      /login    /graphql  /.well-known/
+#
+# Format:
+#   hostnames:
+#     myservice.example.com:
+#       auth_strategy: forward_auth | self_auth | ip_gated | public | exempt
+#       expected:
+#         /api/:     [401, 403]      # Auth-protected API
+#         /login:    [200]           # Public login page (intentional)
+#         /metrics:  [401, 403]      # Protected metrics
+#
+# ─────────────────────────────────────────────────────────────────────
+# EXAMPLE ENTRIES (uncomment and customize for your services)
+# ─────────────────────────────────────────────────────────────────────
+
+hostnames: {}
+  # myapp.example.com:
+  #   auth_strategy: forward_auth
+  #   expected:
+  #     /api/:     [401, 403]
+  #     /admin/:   [401, 403]
+  #     /login:    [200]  # Public login page
+
+  # monitoring.example.com:
+  #   auth_strategy: self_auth
+  #   expected:
+  #     /api/:     [401, 403]
+  #     /metrics:  [401, 403]

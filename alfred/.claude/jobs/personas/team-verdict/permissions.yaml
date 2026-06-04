@@ -1,0 +1,34 @@
+# Persona: team-verdict
+# Tier: verdict-only (read + pulse show for context)
+# Purpose: Analyze task context and produce structured VERDICT/CONFIDENCE/REASONING.
+#          No file writes, no git, no web.
+
+persona: team-verdict
+tier: verdict-only
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+
+denied_tools:
+  - Edit
+  - Write
+  - WebFetch
+  - WebSearch
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__write_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+
+allowed_bash:
+  - "pulse show:*"
+  - "pulse list:*"
+
+pre_approved:
+  - "Read any file"
+  - "Run pulse show for task details"

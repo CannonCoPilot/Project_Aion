@@ -1,0 +1,77 @@
+# Egress Policy — defines what data can leave the system and through which channels
+#
+# Consumed by: send-telegram.sh (payload scan), future output-scanner.js hook
+# Ref: nexus-security-standards.md, AIProjects-f4xt
+# Created: 2026-04-01
+
+channels:
+  telegram:
+    purpose: "Critical pager alerts with dashboard link"
+    allowed_personas:
+      - aurora-presenter    # Surprise delivery notifications
+      - ai-david            # Task decision summaries
+      - orchestrator        # Pipeline status alerts
+      - infrastructure-deployer  # Service health alerts
+      - "*:escalation"      # Any persona via escalation path
+    prohibited_content:
+      - api_keys            # sk-ant-*, sk-*, AKIA*, ghp_*, etc.
+      - private_keys        # PEM-encoded private keys
+      - jwt_tokens          # Full JWT tokens (3-part base64)
+      - database_credentials # MYSQL_*, POSTGRES_*, connection strings
+      - oauth_secrets       # CLIENT_SECRET, client_secret
+      - file_contents_over_1kb  # Raw file dumps (use dashboard links instead)
+    enforcement: send-telegram.sh egress scan
+
+  mcp_fetch:
+    purpose: "HTTP client for web content retrieval"
+    allowed_domains: []     # TODO: define allowlist (currently unrestricted)
+    prohibited_content:
+      - credentials_in_url  # API keys in query parameters
+      - credentials_in_body # Secrets in POST data
+    enforcement: "future — egress policy not yet enforced for MCP fetch"
+
+  gemini_api:
+    purpose: "LLM inference via Google Gemini"
+    allowed_personas:
+      - "*"                 # Any persona can use Gemini for inference
+    prohibited_content:
+      - raw_credentials     # Never send actual API keys/passwords in prompts
+      - pii                 # No personally identifiable information
+    enforcement: "future — content filtering not yet implemented"
+
+  git_push:
+    purpose: "Code deployment to known remotes"
+    allowed_remotes:
+      - "github.com/CannonCoPilot/*"
+    prohibited_content:
+      - secrets_in_commits  # Enforced by secret-scanner.js hook
+    enforcement: secret-scanner.js + safety.yaml no-git-push rule
+
+prohibited_data_types:
+  api_keys:
+    description: "API keys for any service"
+    patterns:
+      - 'sk-ant-*'         # Anthropic
+      - 'sk-*'             # OpenAI
+      - 'AKIA*'            # AWS
+      - 'ghp_*'            # GitHub
+      - 'glpat-*'          # GitLab
+  private_keys:
+    description: "PEM-encoded private keys"
+    patterns:
+      - '-----BEGIN * PRIVATE KEY'
+  jwt_tokens:
+    description: "JSON Web Tokens (full 3-part tokens)"
+    patterns:
+      - 'eyJ*.eyJ*.*'
+  database_credentials:
+    description: "Database connection strings and passwords"
+    patterns:
+      - 'MYSQL_*PASSWORD*'
+      - 'POSTGRES_*PASSWORD*'
+      - 'postgresql://*:*@*'
+  oauth_secrets:
+    description: "OAuth client secrets"
+    patterns:
+      - 'CLIENT_SECRET=*'
+      - 'client_secret:*'

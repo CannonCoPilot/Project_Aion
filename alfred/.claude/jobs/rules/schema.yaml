@@ -1,0 +1,17 @@
+# Rules Engine Schema
+# Each rule file in this directory follows this structure.
+# Rules are loaded by the dashboard and referenced by persona prompts.
+
+# Rule structure:
+#   id: unique identifier (kebab-case)
+#   title: human-readable name
+#   domain: category (safety, quality, routing, style, workflow)
+#   severity: critical | warning | info
+#   scope: global | persona:<name> | job:<name>
+#   condition: when this rule applies (human-readable)
+#   action: what to do (human-readable)
+#   examples: optional list of examples
+#   source: how this rule was created (manual | correction | suggestion)
+#   created: ISO date
+#   updated: ISO date
+#   enabled: true/false

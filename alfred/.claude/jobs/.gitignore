@@ -1,0 +1,16 @@
+# Runtime state (not version controlled)
+state/*.db
+state/*.db-shm
+state/*.db-wal
+state/*.lock
+state/locks/
+state/locks/*.lock
+state/*.json
+!state/nexus-settings.json
+state/last-run.json
+state/msgbus-cursor.txt
+state/msgbus-cursor.lock
+notifications.jsonl
+messages.jsonl
+queue.json
+.env

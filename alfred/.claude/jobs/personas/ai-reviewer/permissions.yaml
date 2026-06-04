@@ -1,0 +1,81 @@
+persona: ai-david
+tier: evaluate-and-route
+
+description: |
+  Read-only access to all AIProjects files for pattern matching.
+  Write access to own learned-patterns file and decision logs.
+  Pulse CLI access for task queries and label updates.
+  MCP access for reading Obsidian files linked in tasks.
+  CodeGraph MCP access for codebase dependency/impact queries (read-only, no raw Cypher).
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Write  # For decision logs and learned-patterns.yaml only
+  - Edit   # For learned-patterns.yaml updates only
+  # CodeGraph — read-only codebase graph queries (run_cypher excluded)
+  - mcp__nexus_codegraph__graph_stats
+  - mcp__nexus_codegraph__get_script_info
+  - mcp__nexus_codegraph__get_callers
+  - mcp__nexus_codegraph__get_source_chain
+  - mcp__nexus_codegraph__get_job_pipeline
+  - mcp__nexus_codegraph__get_dependencies
+  - mcp__nexus_codegraph__search_code
+  - mcp__nexus_codegraph__get_cascade_impact
+  - mcp__nexus_codegraph__get_api_consumers
+  - mcp__nexus_codegraph__get_cross_project_links
+
+denied_tools:
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__write_file
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_checkout
+  - mcp__git__git_create_branch
+  - mcp__git__git_reset
+
+# Bash commands AI Reviewer is allowed to run (executor reads this field)
+# Each entry becomes Bash(<pattern>) in --allowedTools
+# Scoped to specific tools AI Reviewer needs (closes ASI02, ASI09, ASI10)
+# AI Reviewer prompt says "one command per Bash call, no pipes" — these patterns are sufficient
+allowed_bash:
+  - "pulse *"           # Pulse task operations (list, show, update, close, defer)
+  - "cat *"          # Reading feedback files, approved-actions, decision logs
+  - "curl *"         # Dashboard API calls (mark-executed)
+  - "date *"         # Timestamps for logging
+  - "wc *"           # Counting lines/items
+  - "head *"         # Truncating long output
+  - "tail *"         # Reading log tails
+  - "grep *"         # Filtering file content
+  - "docker ps *"    # Read-only container status checks (health, uptime)
+  - "docker inspect *"  # Read-only container metadata (config, state, health)
+
+# Documentation: what pre_approved means in context
+# (pre_approved is NOT read by the executor — allowed_tools + allowed_bash are)
+pre_approved:
+  # Read any file in AIProjects
+  - "Read(${PROJECT_DIR}/**)"
+  - "Glob(${PROJECT_DIR}/**)"
+  - "Grep(${PROJECT_DIR}/**)"
+
+  # Write to own output and patterns
+  - "Write(${PROJECT_DIR}/.claude/agent-output/results/ai-david/*)"
+  - "Write(${PROJECT_DIR}/.claude/jobs/personas/ai-david/learned-patterns.yaml)"
+  - "Edit(${PROJECT_DIR}/.claude/jobs/personas/ai-david/learned-patterns.yaml)"
+
+  # Read Obsidian files via MCP
+  - "mcp__claude_ai_Theklyx_Space_Homelab__read_file"
+  - "mcp__claude_ai_Theklyx_Space_Homelab__search"
+
+  # CodeGraph — read-only codebase graph queries (no run_cypher)
+  - "mcp__nexus_codegraph__graph_stats"
+  - "mcp__nexus_codegraph__get_script_info"
+  - "mcp__nexus_codegraph__get_callers"
+  - "mcp__nexus_codegraph__get_source_chain"
+  - "mcp__nexus_codegraph__get_job_pipeline"
+  - "mcp__nexus_codegraph__get_dependencies"
+  - "mcp__nexus_codegraph__search_code"
+  - "mcp__nexus_codegraph__get_cascade_impact"
+  - "mcp__nexus_codegraph__get_api_consumers"
+  - "mcp__nexus_codegraph__get_cross_project_links"

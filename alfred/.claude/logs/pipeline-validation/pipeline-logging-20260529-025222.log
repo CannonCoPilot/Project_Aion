@@ -1,0 +1,41 @@
+=== Pipeline Detailed Logging Configuration ===
+Task ID: AION-1807da9f
+Timestamp: 2026-05-29T02:52:22Z
+Host: JARVIS.local
+Log file: /Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/pipeline-validation/pipeline-logging-20260529-025222.log
+
+--- Logging Targets ---
+[2026-05-29T02:52:22Z] INFO:  stdout  → ENABLED (tty-aware ANSI colors, suppressed when QUIET=true)
+[2026-05-29T02:52:22Z] INFO:  stderr  → ENABLED for log_error() (fd2)
+[2026-05-29T02:52:22Z] INFO:  JSONL   → /Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/headless/nexus.jsonl
+    4394 lines in nexus.jsonl
+[2026-05-29T02:52:22Z] INFO:  file    → /Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/pipeline-validation/pipeline-logging-20260529-025222.log
+
+--- Logging Functions in common.sh ---
+[2026-05-29T02:52:22Z] INFO:  log()          — INFO to stdout + JSONL
+[2026-05-29T02:52:22Z] INFO:  log_info()     — INFO (blue) to stdout + JSONL
+[2026-05-29T02:52:22Z] INFO:  log_success()  — OK (green) to stdout + JSONL
+[2026-05-29T02:52:22Z] INFO:  log_warning()  — WARN (yellow) to stdout + JSONL
+[2026-05-29T02:52:22Z] INFO:  log_error()    — ERROR (red) to stderr + JSONL
+[2026-05-29T02:52:22Z] INFO:  log_debug()    — DEBUG (cyan) to stdout + JSONL [NEW — gated by LOG_LEVEL=debug]
+
+--- Configuration Changes Applied ---
+[2026-05-29T02:52:22Z] CHANGE: Added log_debug() to .claude/jobs/lib/common.sh
+[2026-05-29T02:52:22Z] CHANGE: log_debug() gated by LOG_LEVEL=debug or NEXUS_DEBUG=1
+[2026-05-29T02:52:22Z] CHANGE: Created pipeline-logging-config.sh shim (source before job runs)
+
+--- Environment ---
+[2026-05-29T02:52:22Z] INFO:  LOG_LEVEL: not set (default: info)
+[2026-05-29T02:52:22Z] INFO:  NEXUS_DEBUG: not set (default: 0)
+[2026-05-29T02:52:22Z] INFO:  QUIET: false
+[2026-05-29T02:52:22Z] INFO:  OLLAMA_HOST: http://localhost:11434
+
+--- Validation ---
+[2026-05-29T02:52:22Z] DEBUG: Trace-level write — this line confirms log_debug() path works
+[2026-05-29T02:52:22Z] INFO:  File write verified — log is writable
+[2026-05-29T02:52:22Z] INFO:  stdout write verified
+[2026-05-29T02:52:22Z] WARN:  /workspace/output/pipeline-validation not writable on bare-metal macOS host
+[2026-05-29T02:52:22Z] INFO:  Fallback log dir: /Users/nathanielcannon/Claude/Alfred-Dev/.claude/logs/pipeline-validation
+
+[2026-05-29T02:52:22Z] SUCCESS: Detailed logging configuration complete
+OVERALL STATUS: CONFIGURED

@@ -1,0 +1,146 @@
+{
+  "name": "🤖 Claude Code Agent (MCP Server)",
+  "nodes": [
+    {
+      "parameters": {
+        "path": "claude-agent",
+        "authentication": "none"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 200],
+      "id": "mcp-trigger",
+      "name": "MCP Server Trigger"
+    },
+    {
+      "parameters": {
+        "name": "infra_check",
+        "description": "Check infrastructure health — Docker containers, services, system resources, network connectivity, and monitoring dashboards. Use for questions like: 'Are my services healthy?', 'What containers are running?', 'Check disk space', 'Is Grafana working?'",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "EXECUTOR_WORKFLOW_ID"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "capability",
+              "stringValue": "agent-infra-check"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [300, -100],
+      "id": "tool-infra",
+      "name": "Infrastructure Check"
+    },
+    {
+      "parameters": {
+        "name": "research",
+        "description": "Research topics using web search, documentation, and local knowledge base. Use for questions like: 'What is the latest version of X?', 'How does Y work?', 'Find information about Z', 'What are best practices for...'",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "EXECUTOR_WORKFLOW_ID"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "capability",
+              "stringValue": "agent-research"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [300, 100],
+      "id": "tool-research",
+      "name": "Research"
+    },
+    {
+      "parameters": {
+        "name": "troubleshoot",
+        "description": "Diagnose and fix infrastructure issues — service outages, performance problems, connectivity issues, log analysis. Can apply safe fixes (restart services, clear caches) with approval. Use for: 'Grafana is slow', 'Plex is down', 'Why is CPU high?'",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "EXECUTOR_WORKFLOW_ID"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "capability",
+              "stringValue": "agent-troubleshoot"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [300, 300],
+      "id": "tool-troubleshoot",
+      "name": "Troubleshoot"
+    },
+    {
+      "parameters": {
+        "name": "general_task",
+        "description": "General-purpose agent for any infrastructure task — file management, Docker operations, system configuration, Beads task management, and more. Confirms before taking risky actions. Use when no specific capability fits.",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "EXECUTOR_WORKFLOW_ID"
+        },
+        "fields": {
+          "values": [
+            {
+              "name": "capability",
+              "stringValue": "agent-general"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2,
+      "position": [300, 500],
+      "id": "tool-general",
+      "name": "General Task"
+    }
+  ],
+  "connections": {
+    "MCP Server Trigger": {
+      "ai_tool": [
+        [
+          {
+            "node": "Infrastructure Check",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Research",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "Troubleshoot",
+            "type": "ai_tool",
+            "index": 0
+          },
+          {
+            "node": "General Task",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {},
+  "staticData": null,
+  "tags": []
+}

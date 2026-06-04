@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+# nexus-turbo — CLI for managing Nexus turbo mode and runtime settings
+#
+# Usage:
+#   nexus-turbo on 2h          # Activate turbo for 2 hours
+#   nexus-turbo on 30m         # Activate turbo for 30 minutes
+#   nexus-turbo off             # Revert immediately
+#   nexus-turbo status          # Show current state
+#   nexus-turbo timing 1h      # Set all executors to 1h intervals
+#   nexus-turbo timing task-executor 0.5h  # Set one executor
+#   nexus-turbo gates           # Show current risk gates
+#
+# Reads/writes .claude/jobs/state/nexus-settings.json directly.
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LIB_DIR="$SCRIPT_DIR/../lib"
+
+source "$LIB_DIR/nexus-settings.sh"
+
+# Colors
+if [ -t 1 ]; then
+  RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+  CYAN='\033[0;36m'; BOLD='\033[1m'; NC='\033[0m'
+else
+  RED='' GREEN='' YELLOW='' CYAN='' BOLD='' NC=''
+fi
+
+usage() {
+  cat << 'EOF'
+nexus-turbo — Nexus runtime settings CLI
+
+USAGE:
+    nexus-turbo on <duration>     Activate turbo mode (30min intervals)
+    nexus-turbo plus              Activate turbo+ (15min intervals for 1h)
+    nexus-turbo off               Deactivate turbo immediately
+    nexus-turbo status            Show current settings state
+    nexus-turbo timing <interval> Set all executors to this interval
+    nexus-turbo timing <exec> <i> Set one executor's interval
+    nexus-turbo gates             Show current risk gate configuration
+
+EXAMPLES:
+    nexus-turbo on 2h             # All executors run every 30 min for 2 hours
+    nexus-turbo plus              # All executors run every 15 min for 1 hour
+    nexus-turbo off               # Revert to normal intervals
+    nexus-turbo timing 1h         # Set all to 1 hour
+    nexus-turbo timing task-executor 0.5h  # Just task-executor to 30 min
+    nexus-turbo status            # See current state and countdowns
+EOF
+}
+
+# Parse duration string (2h, 30m, 1.5h) to hours
+parse_duration() {
+  local input="$1"
+  if [[ "$input" =~ ^([0-9.]+)h$ ]]; then
+    echo "${BASH_REMATCH[1]}"
+  elif [[ "$input" =~ ^([0-9]+)m$ ]]; then
+    echo "scale=4; ${BASH_REMATCH[1]} / 60" | bc -l
+  else
+    echo ""
+  fi
+}
+
+cmd_on() {
+  local duration_str="${1:-}"
+  if [ -z "$duration_str" ]; then
+    echo -e "${RED}Error: duration required (e.g., 2h, 30m)${NC}" >&2
+    exit 1
+  fi
+
+  local hours
+  hours=$(parse_duration "$duration_str")
+  if [ -z "$hours" ]; then
+    echo -e "${RED}Error: invalid duration format '$duration_str' (use Nh or Nm)${NC}" >&2
+    exit 1
+  fi
+
+  ns_activate_turbo "$hours" "cli:nexus-turbo" "0.5"
+
+  local expires_at
+  expires_at=$(_ns_read ".turbo.expires_at")
+  echo -e "${GREEN}Turbo mode activated${NC}"
+  echo -e "  Duration: ${BOLD}${duration_str}${NC}"
+  echo -e "  Expires:  ${CYAN}${expires_at}${NC}"
+  echo -e "  All executors now running every 30 minutes"
+}
+
+cmd_plus() {
+  ns_activate_turbo "1" "cli:nexus-turbo" "0.25"
+
+  local expires_at
+  expires_at=$(_ns_read ".turbo.expires_at")
+  echo -e "${GREEN}Turbo+ mode activated${NC}"
+  echo -e "  Duration: ${BOLD}1h${NC}"
+  echo -e "  Expires:  ${CYAN}${expires_at}${NC}"
+  echo -e "  All executors now running every 15 minutes"
+}
+
+cmd_off() {
+  ns_deactivate_turbo "cli:nexus-turbo"
+  echo -e "${GREEN}Turbo mode deactivated${NC}"
+  echo -e "  Timing reverted to default intervals"
+}
+
+cmd_status() {
+  echo ""
+  echo -e "${BOLD}Nexus Runtime Settings${NC}"
+  echo "======================"
+
+  # Turbo status
+  if ns_is_turbo_active; then
+    local expires_at
+    expires_at=$(_ns_read ".turbo.expires_at")
+    local expires_epoch now_epoch remaining
+    expires_epoch=$(date -d "$expires_at" +%s 2>/dev/null || echo 0)
+    now_epoch=$(date +%s)
+    remaining=$(( (expires_epoch - now_epoch) / 60 ))
+
+    local mode
+    mode=$(_ns_read ".turbo.mode" 2>/dev/null || echo "turbo")
+    local mode_label="${mode:-turbo}"
+    echo -e "\n  Turbo: ${GREEN}ACTIVE${NC} [${mode_label}] (${remaining}m remaining)"
+    echo -e "  Expires: ${CYAN}${expires_at}${NC}"
+  else
+    local turbo_active
+    turbo_active=$(_ns_read ".turbo.active")
+    if [ "$turbo_active" = "true" ]; then
+      echo -e "\n  Turbo: ${YELLOW}EXPIRED${NC} (will revert on next dispatch cycle)"
+    else
+      echo -e "\n  Turbo: ${NC}inactive"
+    fi
+  fi
+
+  # Timing
+  echo -e "\n  ${BOLD}Timing (current)${NC}"
+  for executor in task-executor task-executor-infra task-research; do
+    local hours
+    hours=$(ns_get_timing "$executor" 2>/dev/null || echo "?")
+    local default_hours
+    default_hours=$(_ns_read ".turbo.default_timing[\"$executor\"].every_hours" 2>/dev/null || echo "?")
+    if ns_is_turbo_active; then
+      echo -e "    $executor: ${CYAN}${hours}h${NC} (default: ${default_hours}h)"
+    else
+      echo -e "    $executor: ${hours}h"
+    fi
+  done
+
+  # Risk gates
+  echo -e "\n  ${BOLD}Risk Gates${NC}"
+  for executor in task-executor task-executor-infra task-research; do
+    local auto approval block
+    auto=$(ns_get_risk_gate "$executor" "auto_execute" | tr '\n' ',' | sed 's/,$//')
+    approval=$(ns_get_risk_gate "$executor" "with_approval" | tr '\n' ',' | sed 's/,$//')
+    block=$(ns_get_risk_gate "$executor" "block" | tr '\n' ',' | sed 's/,$//')
+    echo -e "    $executor:"
+    [ -n "$auto" ] && echo -e "      ${GREEN}auto${NC}: $auto"
+    [ -n "$approval" ] && echo -e "      ${YELLOW}approval${NC}: $approval"
+    [ -n "$block" ] && echo -e "      ${RED}block${NC}: $block"
+  done
+
+  # Metadata
+  local updated_at updated_by
+  updated_at=$(_ns_read ".updated_at" 2>/dev/null || echo "unknown")
+  updated_by=$(_ns_read ".updated_by" 2>/dev/null || echo "unknown")
+  echo -e "\n  Last updated: ${updated_at} by ${updated_by}"
+  echo ""
+}
+
+cmd_timing() {
+  local arg1="${1:-}" arg2="${2:-}"
+
+  if [ -z "$arg1" ]; then
+    echo -e "${RED}Error: interval required${NC}" >&2
+    exit 1
+  fi
+
+  # Single arg = set all executors
+  if [ -z "$arg2" ]; then
+    local hours
+    hours=$(parse_duration "$arg1")
+    if [ -z "$hours" ]; then
+      echo -e "${RED}Error: invalid duration '$arg1'${NC}" >&2
+      exit 1
+    fi
+    for executor in task-executor task-executor-infra task-research; do
+      ns_update_timing "$executor" "$hours" "cli:nexus-turbo"
+    done
+    echo -e "${GREEN}All executors set to ${hours}h intervals${NC}"
+  else
+    # Two args = set specific executor
+    local executor="$arg1"
+    local hours
+    hours=$(parse_duration "$arg2")
+    if [ -z "$hours" ]; then
+      echo -e "${RED}Error: invalid duration '$arg2'${NC}" >&2
+      exit 1
+    fi
+    ns_update_timing "$executor" "$hours" "cli:nexus-turbo"
+    echo -e "${GREEN}${executor} set to ${hours}h intervals${NC}"
+  fi
+}
+
+cmd_gates() {
+  echo ""
+  echo -e "${BOLD}Risk Gate Configuration${NC}"
+  echo "======================="
+  for executor in task-executor task-executor-infra task-research; do
+    local auto approval block
+    auto=$(ns_get_risk_gate "$executor" "auto_execute" | tr '\n' ',' | sed 's/,$//')
+    approval=$(ns_get_risk_gate "$executor" "with_approval" | tr '\n' ',' | sed 's/,$//')
+    block=$(ns_get_risk_gate "$executor" "block" | tr '\n' ',' | sed 's/,$//')
+    echo -e "\n  ${BOLD}$executor${NC}"
+    echo -e "    ${GREEN}Auto-execute${NC}:     ${auto:-none}"
+    echo -e "    ${YELLOW}Needs approval${NC}:  ${approval:-none}"
+    echo -e "    ${RED}Blocked${NC}:          ${block:-none}"
+  done
+  echo ""
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+case "${1:-}" in
+  on)       shift; cmd_on "$@" ;;
+  plus|+)   cmd_plus ;;
+  off)      cmd_off ;;
+  status)   cmd_status ;;
+  timing)   shift; cmd_timing "$@" ;;
+  gates)    cmd_gates ;;
+  -h|--help|help|"")
+            usage ;;
+  *)
+    echo -e "${RED}Unknown command: $1${NC}" >&2
+    usage
+    exit 1
+    ;;
+esac

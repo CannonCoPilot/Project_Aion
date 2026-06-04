@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "job-registry.schema.json",
+  "title": "Nexus Job Registry",
+  "description": "Schema for .claude/jobs/registry.yaml — validates job definitions, schedules, and defaults",
+  "type": "object",
+  "required": ["version", "defaults", "jobs"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "quiet_hours": {
+      "type": "object",
+      "required": ["timezone"],
+      "properties": {
+        "timezone": { "type": "string" },
+        "weekday": {
+          "type": "object",
+          "properties": {
+            "start": { "type": "integer", "minimum": 0, "maximum": 23 },
+            "end": { "type": "integer", "minimum": 0, "maximum": 23 }
+          }
+        },
+        "weekend": {
+          "type": "object",
+          "properties": {
+            "start": { "type": "integer", "minimum": 0, "maximum": 23 },
+            "end": { "type": "integer", "minimum": 0, "maximum": 23 }
+          }
+        }
+      }
+    },
+    "defaults": {
+      "type": "object",
+      "required": ["engine", "model", "max_turns", "max_budget_usd"],
+      "properties": {
+        "engine": {
+          "type": "string",
+          "enum": ["claude-code", "ollama"]
+        },
+        "model": { "type": "string" },
+        "max_turns": { "type": "integer", "minimum": 1 },
+        "max_budget_usd": { "type": "number", "minimum": 0 },
+        "timeout_minutes": { "type": "integer", "minimum": 1 },
+        "session_persist": { "type": "boolean" },
+        "max_retries": { "type": "integer", "minimum": 0 },
+        "retry_backoff_hours": { "type": "number", "minimum": 0 }
+      }
+    },
+    "jobs": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["description", "persona"],
+        "properties": {
+          "description": { "type": "string", "minLength": 1 },
+          "persona": { "type": "string", "minLength": 1 },
+          "schedule": {
+            "type": "object",
+            "required": ["type"],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": ["interval", "cron", "on-demand", "event"]
+              }
+            }
+          },
+          "enabled": { "type": "boolean" },
+          "engine": {
+            "type": "string",
+            "enum": ["claude-code", "ollama"]
+          },
+          "model": { "type": "string" },
+          "max_turns": { "type": "integer", "minimum": 1 },
+          "max_budget_usd": { "type": "number", "minimum": 0 },
+          "timeout_minutes": { "type": "integer", "minimum": 1 },
+          "prompt": { "type": "string" },
+          "pre_check": { "type": "string" }
+        }
+      }
+    }
+  }
+}

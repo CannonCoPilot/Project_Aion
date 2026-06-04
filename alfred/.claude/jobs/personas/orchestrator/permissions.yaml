@@ -1,0 +1,73 @@
+# Persona: orchestrator
+# Tier: evaluate-and-route
+# Description: Read-only codebase access + Pulse label mutations for routing decisions
+
+persona: orchestrator
+tier: evaluate-and-route
+
+description: |
+  Read-only access to all AIProjects for routing context.
+  Pulse CLI access for task queries and label mutations.
+  Write access to own decision log directory only.
+  No file editing, no git writes, no task execution.
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Write  # For decision logs only (save_to directory)
+  # Homelab MCP — read-only for task context
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  # CodeGraph — read-only codebase graph queries
+  - mcp__nexus_codegraph__graph_stats
+  - mcp__nexus_codegraph__get_script_info
+  - mcp__nexus_codegraph__get_dependencies
+  - mcp__nexus_codegraph__get_cascade_impact
+  - mcp__nexus_codegraph__search_code
+
+denied_tools:
+  - Edit
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__write_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_checkout
+  - mcp__git__git_create_branch
+  - mcp__git__git_reset
+
+# Bash commands this persona can run
+# Each entry becomes Bash(<pattern>) in --allowedTools
+allowed_bash:
+  - "pulse *"           # Task queries and label updates
+  - "nexus-label *"     # Validated label mutations (stage transitions, add/remove)
+  - "cat *"             # Reading routing rules, config files, cost ledger
+  - "date *"            # Timestamps for decision logs
+  - "wc *"              # Counting tasks in queue
+  - "head *"            # Truncating long output
+  - "tail *"            # Reading log tails (cost-ledger)
+  - "grep *"            # Filtering content
+  - "jq *"              # JSON processing for task labels
+
+pre_approved:
+  # Read any file in AIProjects
+  - "Read(${PROJECT_DIR}/**)"
+  - "Glob(${PROJECT_DIR}/**)"
+  - "Grep(${PROJECT_DIR}/**)"
+
+  # Write to own output directory
+  - "Write(${PROJECT_DIR}/.claude/agent-output/results/orchestrator/*)"
+
+  # Read Obsidian files via MCP (task context)
+  - "mcp__claude_ai_Theklyx_Space_Homelab__read_file"
+  - "mcp__claude_ai_Theklyx_Space_Homelab__search"
+
+  # CodeGraph — read-only
+  - "mcp__nexus_codegraph__graph_stats"
+  - "mcp__nexus_codegraph__get_script_info"
+  - "mcp__nexus_codegraph__get_dependencies"
+  - "mcp__nexus_codegraph__get_cascade_impact"
+  - "mcp__nexus_codegraph__search_code"

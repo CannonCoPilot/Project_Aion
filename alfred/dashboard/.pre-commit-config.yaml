@@ -1,0 +1,22 @@
+repos:
+  - repo: local
+    hooks:
+      - id: eslint
+        name: ESLint (auto-fix)
+        entry: npx eslint --fix --max-warnings 0
+        language: system
+        types_or: [ts, tsx]
+        pass_filenames: true
+      - id: prettier
+        name: Prettier (auto-fix)
+        entry: npx prettier --write --ignore-unknown
+        language: system
+        types_or: [ts, tsx, css, markdown]
+        pass_filenames: true
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json

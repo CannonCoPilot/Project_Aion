@@ -1,0 +1,183 @@
+/* Village sprite animations — lifted from pokegents (MIT) pokemon.css
+   + adapted for AIFred persona village. */
+
+/* Idle: gentle hover bob */
+@keyframes village-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+.village-idle { animation: village-idle 1.5s ease-in-out infinite; }
+
+/* Slow idle: half-bob for done/deep-idle */
+@keyframes village-idle-slow {
+  0%, 100% { transform: translateY(1px); }
+  50% { transform: translateY(-1px); }
+}
+.village-idle-slow { animation: village-idle-slow 3s ease-in-out infinite; }
+
+/* Hop: quick bounce */
+@keyframes village-hop {
+  0% { transform: translateY(0); }
+  30% { transform: translateY(-8px); }
+  50% { transform: translateY(-8px) scaleY(1.05); }
+  70% { transform: translateY(0); }
+  85% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+.village-hop { animation: village-hop 0.6s ease-out; }
+
+/* Jump: bigger hop with squash & stretch */
+@keyframes village-jump {
+  0% { transform: translateY(0) scaleX(1) scaleY(1); }
+  15% { transform: translateY(1px) scaleX(1.1) scaleY(0.9); }
+  40% { transform: translateY(-14px) scaleX(0.9) scaleY(1.1); }
+  70% { transform: translateY(0); }
+  85% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+.village-jump { animation: village-jump 0.5s ease-out; }
+
+/* Bump right: lunge right */
+@keyframes village-bump-right {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(5px) rotate(3deg); }
+  60% { transform: translateX(-1px); }
+  100% { transform: translateX(0); }
+}
+.village-bump-right { animation: village-bump-right 0.5s ease-out; }
+
+/* Bump left: lunge left */
+@keyframes village-bump-left {
+  0% { transform: translateX(0); }
+  30% { transform: translateX(-5px) rotate(-3deg); }
+  60% { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+.village-bump-left { animation: village-bump-left 0.5s ease-out; }
+
+/* Shake: rapid side-to-side */
+@keyframes village-shake {
+  0%, 100% { transform: translateX(0); }
+  15% { transform: translateX(-3px); }
+  30% { transform: translateX(3px); }
+  45% { transform: translateX(-3px); }
+  60% { transform: translateX(3px); }
+  75% { transform: translateX(-2px); }
+  90% { transform: translateX(1px); }
+}
+.village-shake { animation: village-shake 0.6s ease-out; }
+
+/* Wiggle: gentle rock */
+@keyframes village-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(-4deg); }
+  40% { transform: rotate(4deg); }
+  60% { transform: rotate(-3deg); }
+  80% { transform: rotate(2deg); }
+}
+.village-wiggle { animation: village-wiggle 0.8s ease-in-out; }
+
+/* Nod: subtle dip */
+@keyframes village-nod {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(2px) rotate(3deg); }
+  60% { transform: translateY(1px) rotate(1deg); }
+}
+.village-nod { animation: village-nod 0.7s ease-in-out; }
+
+/* Lean forward */
+@keyframes village-lean {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  20% { transform: translateY(2px) rotate(5deg) translateX(2px); }
+  50% { transform: translateY(2px) rotate(5deg) translateX(2px); }
+  80% { transform: translateY(0); }
+}
+.village-lean { animation: village-lean 0.9s ease-in-out; }
+
+/* Doze: slow droop */
+@keyframes village-doze {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  30% { transform: translateY(2px) rotate(2deg); }
+  50% { transform: translateY(3px) rotate(3deg); }
+  70% { transform: translateY(2px) rotate(2deg); }
+}
+.village-doze { animation: village-doze 1.2s ease-in-out; }
+
+/* Spin: playful full rotation (rare) */
+@keyframes village-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.village-spin { animation: village-spin 0.7s ease-in-out; }
+
+/* Wave: friendly side-lean greeting */
+@keyframes village-wave {
+  0%, 100% { transform: rotate(0deg) translateX(0); }
+  15% { transform: rotate(-6deg) translateX(-2px); }
+  30% { transform: rotate(6deg) translateX(2px); }
+  45% { transform: rotate(-4deg) translateX(-1px); }
+  60% { transform: rotate(4deg) translateX(1px); }
+  75% { transform: rotate(-2deg); }
+}
+.village-wave { animation: village-wave 0.8s ease-in-out; }
+
+/* Stretch: upward reach + settle */
+@keyframes village-stretch {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  30% { transform: translateY(-6px) scaleY(1.08) scaleX(0.95); }
+  50% { transform: translateY(-6px) scaleY(1.08) scaleX(0.95); }
+  70% { transform: translateY(1px) scaleY(0.97) scaleX(1.02); }
+}
+.village-stretch { animation: village-stretch 1s ease-in-out; }
+
+/* Peek: lean forward peep + snap back */
+@keyframes village-peek {
+  0%, 100% { transform: translateX(0) scaleX(1); }
+  20% { transform: translateX(4px) scaleX(0.95); }
+  40% { transform: translateX(6px) scaleX(0.92) rotate(2deg); }
+  60% { transform: translateX(6px) scaleX(0.92) rotate(2deg); }
+  80% { transform: translateX(-1px); }
+}
+.village-peek { animation: village-peek 0.9s ease-in-out; }
+
+/* Pokéball spawn: deploy animation for newly created personas */
+@keyframes village-spawn {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  40% { transform: scale(1.3) rotate(0deg); opacity: 1; }
+  55% { transform: scale(0.85); }
+  70% { transform: scale(1.1); }
+  85% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+.village-spawn { animation: village-spawn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+/* Spawn flash: brief white flash behind the spawning sprite */
+@keyframes village-spawn-flash {
+  0% { opacity: 0; transform: scale(0.5); }
+  30% { opacity: 0.8; transform: scale(1.5); }
+  100% { opacity: 0; transform: scale(2); }
+}
+.village-spawn-flash {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 70%);
+  pointer-events: none;
+  animation: village-spawn-flash 0.6s ease-out forwards;
+}
+
+/* Transit hop: bouncy walk for busy sprites (LIVE STATE indicator) */
+@keyframes village-transit-hop {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(-4px); }
+  65% { transform: translateY(-4px) scaleY(1.02); }
+}
+.village-transit-hop { animation: village-transit-hop 0.34s ease-in-out infinite; }
+
+/* Busy glow: pulsing ring for running personas */
+@keyframes village-busy-glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(232,120,72,0.4); }
+  50% { box-shadow: 0 0 8px 3px rgba(232,120,72,0.7); }
+}
+.village-busy-glow { animation: village-busy-glow 1.2s ease-in-out infinite; }

@@ -1,0 +1,59 @@
+# Persona: pipeline-reviewer
+# Tier: analyze (read + limited write for reports)
+# Purpose: Review pipeline watchdog output, write analysis reports
+
+persona: pipeline-reviewer
+tier: analyze
+
+allowed_tools:
+  # Core read tools
+  - Read
+  - Glob
+  - Grep
+  # Write (only for report output)
+  - Write
+  # Filesystem (read-only + create for reports)
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__write_file
+  - mcp__filesystem__create_directory
+  # CodeGraph — read-only codebase graph queries for dependency/impact analysis
+  - mcp__nexus_codegraph__graph_stats
+  - mcp__nexus_codegraph__get_script_info
+  - mcp__nexus_codegraph__get_callers
+  - mcp__nexus_codegraph__get_source_chain
+  - mcp__nexus_codegraph__get_dependencies
+  - mcp__nexus_codegraph__get_cascade_impact
+  - mcp__nexus_codegraph__search_code
+  - mcp__nexus_codegraph__get_api_consumers
+  - mcp__nexus_codegraph__get_cross_project_links
+
+denied_tools:
+  - Edit
+  - mcp__filesystem__move_file
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+
+allowed_bash:
+  - "pulse list:*"
+  - "pulse show:*"
+  - "cat:*"
+  - "python3:*"
+  - "mkdir:*"
+  - "date:*"
+  - "wc:*"
+  - "head:*"
+  - "tail:*"
+  - "jq:*"
+
+pre_approved:
+  - "Read any file in .claude/ directory"
+  - "Read pipeline-health.jsonl"
+  - "Read label-taxonomy.yaml and routing-rules.yaml"
+  - "Write report to .claude/agent-output/results/pipeline-reviewer/"
+  - "Query Pulse task list (read-only)"

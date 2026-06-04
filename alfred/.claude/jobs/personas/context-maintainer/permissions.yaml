@@ -1,0 +1,51 @@
+persona: context-maintainer
+tier: context-management
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Edit          # For knowledge/projects/ Evaluator Brief sections ONLY
+  - Write         # For report output to agent-output ONLY
+
+denied_tools:
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_checkout
+  - mcp__git__git_reset
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+
+allowed_bash:
+  - "pulse list *"
+  - "pulse show *"
+  - "pulse create *"      # For bootstrap/escalation tasks only
+  - "date *"
+  - "test -f *"            # File existence checks
+  - "test -d *"            # Directory existence checks
+  - "ls *"                 # Directory listings
+  - "wc -l *"              # Line counts
+  - "python3 -c *"         # JSON parsing for label extraction
+
+denied_bash:
+  - "rm *"
+  - "mv *"
+  - "docker *"
+  - "git push *"
+  - "git commit *"
+  - "git add *"
+  - "pulse close *"             # Cannot close tasks
+  - "pulse update *--status*"   # Cannot change task status
+
+pre_approved:
+  - "Read(.claude/context/**)"
+  - "Read(.claude/agent-output/results/**)"
+  - "Edit(knowledge/projects/*.md — Evaluator Brief section only, append-only)"
+  - "Write(.claude/agent-output/results/context-maintainer/*)"
+
+never_approved:
+  - "Edit(knowledge/projects/_template-project.md)"
+  - "Edit(.claude/context/systems/*)"
+  - "Edit(.claude/context/patterns/*)"
+  - "Edit(.claude/jobs/**)"
+  - "Write(knowledge/projects/*.md)"   # Use Edit not Write — prevents full overwrite

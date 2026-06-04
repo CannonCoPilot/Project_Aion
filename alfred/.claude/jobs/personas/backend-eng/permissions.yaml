@@ -1,0 +1,54 @@
+# Persona: backend-eng
+# Tier: review (read + analysis + Pulse management)
+# Purpose: Backend architecture and code review. Read-only — cannot modify code.
+
+persona: backend-eng
+tier: review
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - WebFetch
+  - WebSearch
+  - Write  # For JSON reports only
+  - mcp__git__git_status
+  - mcp__git__git_log
+  - mcp__git__git_diff
+  - mcp__git__git_show
+  - mcp__filesystem__read_text_file
+  - mcp__filesystem__read_file
+  - mcp__filesystem__read_multiple_files
+  - mcp__filesystem__list_directory
+  - mcp__filesystem__directory_tree
+  - mcp__filesystem__get_file_info
+  - mcp__filesystem__search_files
+  - mcp__filesystem__write_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__search
+  - mcp__claude_ai_Theklyx_Space_Homelab__read_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__list_files
+  - mcp__claude_ai_Theklyx_Space_Homelab__create_file
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_list
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_show
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_create
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_update
+  - mcp__claude_ai_Theklyx_Space_Homelab__task_close
+
+denied_tools:
+  - Edit
+  - mcp__filesystem__edit_file
+  - mcp__filesystem__move_file
+  - mcp__filesystem__create_directory
+  - mcp__git__git_add
+  - mcp__git__git_commit
+  - mcp__git__git_create_branch
+  - mcp__git__git_checkout
+
+allowed_bash:
+  - "*"
+
+pre_approved:
+  - "Read any file in registered code projects"
+  - "Write JSON reports to .claude/agent-output/"
+  - "Create review findings in Obsidian"
+  - "Query and manage Pulse tasks"

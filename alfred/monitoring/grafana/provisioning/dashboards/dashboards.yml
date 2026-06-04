@@ -1,0 +1,12 @@
+apiVersion: 1
+
+providers:
+  - name: 'AIFred Nexus'
+    orgId: 1
+    folder: 'Nexus'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
+      foldersFromFilesStructure: false

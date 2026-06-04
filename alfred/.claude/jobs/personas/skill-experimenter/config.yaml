@@ -1,0 +1,13 @@
+persona: skill-experimenter
+description: Proposes and evaluates targeted improvements to skill definitions (autoresearch
+  pattern)
+engine:
+  default: claude-code
+  model: sonnet
+  fallback: null
+output:
+  format: json
+  save_to: .claude/agent-output/results/skill-autoresearch/
+session:
+  persist: false
+schema_version: 2

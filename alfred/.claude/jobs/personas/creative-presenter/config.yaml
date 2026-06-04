@@ -1,0 +1,13 @@
+persona: aurora-presenter
+engine:
+  default: claude-code
+  model: sonnet
+  fallback: null
+output:
+  format: json
+  save_to: .claude/logs/headless/executions/
+session:
+  persist: false
+env_files:
+- $HOME/Docker/mydocker/aurora-web/.env
+schema_version: 2

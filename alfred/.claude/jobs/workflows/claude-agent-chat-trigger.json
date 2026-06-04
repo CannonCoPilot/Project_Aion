@@ -1,0 +1,69 @@
+{
+  "name": "Claude Code Agent (Chat)",
+  "description": "n8n chat trigger that routes user messages to the right executor.sh capability based on keyword detection.",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 200],
+      "id": "chat-trigger-1",
+      "name": "Chat Trigger",
+      "webhookId": "claude-code-agent-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Route the user's chat message to the right executor.sh job\nconst chatInput = $input.first().json.chatInput || $input.first().json.body || '';\n\n// Simple capability detection from message content\nlet capability = 'agent-general';\nconst msg = chatInput.toLowerCase();\n\nif (msg.match(/\\b(health|container|docker|service|infra|status|running|disk|memory|cpu|grafana|prometheus|caddy|loki)\\b/)) {\n  capability = 'agent-infra-check';\n} else if (msg.match(/\\b(research|search|find|look up|what is|how does|latest|version|docs|documentation)\\b/)) {\n  capability = 'agent-research';\n} else if (msg.match(/\\b(fix|troubleshoot|diagnose|broken|down|slow|error|issue|problem|restart|not working)\\b/)) {\n  capability = 'agent-troubleshoot';\n}\n\n// Escape single quotes in the prompt for shell safety\nconst safePrompt = chatInput.replace(/'/g, \"'\\\\'\");\n\n// Build executor.sh command — UPDATE THIS PATH\nconst cmd = `${process.env.PROJECT_DIR || '/path/to/project'}/.claude/jobs/executor.sh --job ${capability} --param \"prompt=${safePrompt}\" --param \"safety_mode=readonly\" --quiet`;\n\nreturn [{ json: { command: cmd, capability: capability, original_prompt: chatInput } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [300, 200],
+      "id": "route-cmd-1",
+      "name": "Route & Build Command"
+    },
+    {
+      "parameters": {
+        "authentication": "privateKey",
+        "command": "={{ $json.command }}",
+        "cwd": "={{ process.env.PROJECT_DIR || '/path/to/project' }}"
+      },
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [540, 200],
+      "id": "ssh-exec-1",
+      "name": "Execute on Server",
+      "credentials": {
+        "sshPrivateKey": {
+          "id": "YOUR_SSH_CREDENTIAL_ID",
+          "name": "YourServer"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse executor.sh JSON output and return clean response\nconst input = $input.first().json;\nconst stdout = input.stdout || '';\nconst stderr = input.stderr || '';\n\nlet response = '';\ntry {\n  const result = JSON.parse(stdout);\n  response = result.result || result.response || stdout;\n} catch (e) {\n  response = stdout || stderr || 'No output received from agent.';\n}\n\nif (input.exitCode && input.exitCode !== 0 && !response) {\n  response = `Agent encountered an error (code ${input.exitCode}): ${stderr || 'Unknown error'}`;\n}\n\nreturn [{ json: { output: response } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [780, 200],
+      "id": "format-resp-1",
+      "name": "Format Response"
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [[{ "node": "Route & Build Command", "type": "main", "index": 0 }]]
+    },
+    "Route & Build Command": {
+      "main": [[{ "node": "Execute on Server", "type": "main", "index": 0 }]]
+    },
+    "Execute on Server": {
+      "main": [[{ "node": "Format Response", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}
