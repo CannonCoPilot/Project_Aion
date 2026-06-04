@@ -5,48 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-05-12 [eef395340066]
-
-This is the classic "scope-creep risk vs. completeness-debt" trade-off that comes up after a partial bulk operation. The user approved scoped scrub (force-loaded files only); the broader project docs (~25 hits across 7 design/plan/report files) sit outside that scope. The honest move is to (a) surface the discovery, (b) complete E (scratchpad Alfred-Dev refs — explicitly requested), then (c) ask for scope-extension decision rather than silently extending. The user's preference for scope discipline ("Don't drift on your planning documentation") from the 2026-05-12 feedback memory argues for explicit ask.
-
-### 2026-05-12 [031694fb5746]
-
-This is the cascade pattern from "bulk text substitution requires post-grep verification" (self-corrections 2026-05-06). Renaming a path/filename creates a ripple: every doc that referenced the old path is now stale. The 4 active docs I'm about to fix are operational bugs *I created* in the prior step — not scope creep. The 4 historical reports + 3 logs + 1 JSONL session export are append-only or archival; scrubbing them rewrites history. Distinction matters: fix the bugs I caused (active docs), surface the historical-vs-current choice for everything else.
-
-### 2026-05-12 [447fdf74757a]
-
-The two-stage substitution (`Nate → Nat` then `Nat → Sir`) could theoretically be collapsed into one pass (`Nate → Sir` directly), but doing it sequentially has a useful property: the intermediate `Nat` state is uniquely identifiable. If the second pass needs to be reverted while preserving the first, `git diff` between commits makes the boundary clear. Also: doing `Nat → Sir` second means anywhere a fresh `Nate` was missed in the first pass, the second pass still catches it (because we'll grep `\bNate\b` count = 0 before proceeding). Defense in depth on the cleanup.
-
-### 2026-05-12 [d183ff23f528]
-
-This is the canonical "data about the operation gets confused with the operation's targets" pattern. The 3 `Nate` hits in `insights-log` and `compressed-context-ready` are LITERALLY the strings `Nate`, `Nat`, `Sir` USED AS DATA inside meta-text describing the substitution. Replacing them would destroy the explanation ("Sir → Sir → Sir doesn't make sense"). Conventional fix: wrap such meta-strings in code blocks or backticks so grep can be scoped to non-code-block text. For this session, leaving them is correct — they're documentation OF the change, not affected BY the change.
-
-### 2026-05-12 [dadb101489fc]
-
-Three subtle git-workflow patterns worth flagging from this commit cycle:
-
-1. **Per-commit author env-set, never config update**: `--author="..."` flag + `GIT_COMMITTER_NAME/EMAIL` env vars override per-process without touching `.git/config`. Future-Jarvis can use this pattern unchanged across any CannonCoPilot/* repo without worrying about polluting global git state.
-
-2. **Cross-namespace push targets**: Both pushes used `<local-branch>:<remote-branch>` form (`Project_Aion:main`, `nate-dev:main`). This is intentional — local branch names preserve historical authorship signal (which work was on which feature line), while the remote consolidates to `main`. The colon syntax lets a single repo have multi-named local branches all targeting one canonical remote.
-
-3. **Commit size signal**: Jarvis commit is 556 insertions / 1130 deletions across 65 files — the 2:1 delete:insert ratio is the perl `-i -pe` signature, since each substituted line is replaced wholesale (line out + line in) even when the actual change is a 3-char swap. Useful diagnostic: if you ever see a *suspicious* delete-heavy diff in a sed-driven commit, the ratio confirms it's substitution-pattern not content-loss.
-
-### 2026-05-12 [2c9d10e88bd8]
-
-The diagnostic principle here is **historical vs operational document status**: a milestone-decision-record like the 2026-05-04 executive report should not be backdated; its value is preserving what was decided at decision-time. An operational tracking doc like the workstream architecture v1.4 SHOULD be updated, because future readers consult it for "what's the current state?" The cleavage matters — overwriting historical decisions erases the audit trail of how the project actually evolved.
-
-### 2026-05-12 [9923a93c3eaf]
-
-The most useful diagnostic the review surfaced: **Project Aion is currently in a single-merge-gate funnel**. Four distinct workstreams (REO Validate, Phase D follow-on PR, F-1/F-5 fix sequence, future re-cleave-dependent work) all stall behind one external decision: David's review/merge of PR #3. This is healthy concentration of review burden, but it means Sir's allocation choices for the interim period determine throughput — picking unrelated, fully-unblocked work (Watchdog W2/W3, /personas rebuild, JICM v8.0 PTY prototype) maximizes parallel productivity.
-
-### 2026-05-12 [3b54ba185ed0]
-
-The selection logic for what Sir picks next breaks into three buckets by their dependency on the PR-#3-merge gate. Picking from the **fully-unblocked** bucket extracts maximum parallel value during the merge wait. Picking from the **merge-dependent** bucket commits Sir-time but yields nothing until David reviews. Picking from the **observation-only** bucket is the cheapest cost (passive) but produces zero throughput.
-
-### 2026-05-13 [585446038e94]
-
-The audit surfaces a clean dependency map between the persona system and 4 other dashboard surfaces that today live in separate IA silos: (1) **/reviews** consumes ai-reviewer's `learned-patterns.yaml` curation outputs; (2) **/jobs** maps 8 of 33 personas to scheduled cron jobs; (3) **/reo** stores decision_events emitted by ~6 personas (executor, diagnose, reviewer, evaluator); (4) **/cortex** acts as a meta-persona that monitors all the others. The /personas rebuild is naturally the **hub** of this graph — every other surface deep-links here for "who is this persona?" The current implementation is a flat alphabetical list precisely because it was never positioned as the hub.
-
 ### 2026-05-13 [0ed9e3442bb2]
 
 - **Root cause of the original incident was a learnable one.** Running `docker compose down` (or any halt sequence) in `AIFred-Pro-Dev/` without `-f docker-compose.yml -f docker-compose.dev.yml` will read the base PROD compose file and may produce confusing behavior. Same trap on `up`. Worth a one-line addition to the halt-aifred-pro runbook: **dev stack invocations require both compose files, override pattern, every time.** Could also be solved by a `Makefile` or `.envrc` setting `COMPOSE_FILE=docker-compose.yml:docker-compose.dev.yml` for the directory.
@@ -1521,3 +1479,43 @@ YAML's colon-as-mapping rule is subtle: `- foo:bar` parses as the string `"foo:b
 **What we wired up**: `ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-<chain_id>'` is now exported in every forked Claude session. Claude Code passes custom headers through to its Anthropic API requests. The proxy extracts `x-aion-session-id` from request headers and stores it in `api_requests.session_id`. This means every API call from a chain fork is now tagged with its chain_id, enabling clean per-chain (and therefore per-suite) attribution even with concurrent overlapping execution.
 
 **The attribution chain**: Task → chain_id (in task metadata) → `session_id` in api_requests → GROUP BY session_id = per-chain cost/tokens/calls.
+
+### 2026-06-04 [fed35424f394]
+
+**Architecture summary of the telemetry system**:
+
+1. **Capture trigger**: `_maybe_capture_telemetry()` fires as an `asyncio.create_task()` on both the PATCH `/tasks/{id}` (status→closed) and POST `/tasks/{id}/close` endpoints. Fire-and-forget — doesn't block the API response.
+
+2. **Computation**: `_capture_test_run_telemetry()` uses a recursive CTE to walk the task tree (parent → children → grandchildren via `labels LIKE '%parent:xxx%'`), collects all `chain_id` values, then aggregates `api_requests` where `session_id = 'chain-<chain_id>'`. Burns are computed by bracketing the run window with the nearest `unified_5h_utilization` readings.
+
+3. **Storage**: `test_run_telemetry` table with UPSERT (ON CONFLICT DO UPDATE) so re-runs and backfills are idempotent.
+
+4. **Frontend**: `BurnBadge` (color-coded pp chip on each suite card), `BurnGauge` (visual 5hr window bar with 90% warning line), and summary stats showing total burn across all suites. Burn data loads eagerly on page mount by fetching metrics for all active suites.
+
+**Known edge case**: Cross-window runs (like gospel-synopsis spanning a 5hr reset) show negative burn weight deltas. This is architecturally correct — the start/end readings are accurate — but the delta is misleading. A future improvement could detect window resets and split the measurement.
+
+### 2026-06-04 [dae5dfdc991e]
+
+The pipeline is now **operational and observable**. The natural progression branches into three directions: hardening what's built, expanding capabilities, or resuming the suspended Chronicler project. Each has different time-cost profiles.
+
+### 2026-06-04 [504c9299c789]
+
+**The A → C → B execution delivered a three-layer scheduling defense**:
+
+1. **Pre-flight gate** (event-watcher.sh) — Before any task dispatches, the watcher queries Pulse for 5hr utilization. At 85%+, no new tasks get dispatched. This is the first line of defense: don't start work you can't finish.
+
+2. **Priority ordering** (orchestrate.py) — When tasks ARE dispatched, `priority:high` tasks run first. This ensures important work gets headroom before lower-priority tasks consume it. The sort key is `(priority, type_score)`, so a high-priority research task still runs before a normal-priority bug fix.
+
+3. **Runtime watchdog** (observation_tunnel.py) — Even after dispatch, the observation tunnel monitors system utilization during execution. If util hits 90% while a task is running, the task gets blocked (medium intervention). This catches runaway consumption that the pre-flight gate couldn't predict.
+
+Together with the C hardening (cross-window burn fix, configurable timeouts, time-bounded attribution), the pipeline now has burn-weight awareness at every stage: measurement → scheduling → execution → monitoring.
+
+### 2026-06-04 [c8257522b2eb]
+
+**The branch has evolved significantly beyond its original scope.** It started as "personas rebuild" (Phase 1.0–1.4 of the dashboard), but accreted three additional workstreams: the usage page improvements, the full pipeline v2 rewrite (chain-executor replacing `claude -p`), and the P2 scheduling system. This is typical of long-lived feature branches, but it creates a PR challenge: the diff is 15K+ LOC across 131 files spanning unrelated concerns.
+
+### 2026-06-04 [ac22dd2c17db]
+
+**Key clarification**: The local `main` and `nate-dev` branches are both stuck at `c5b1186` — they haven't been updated. Meanwhile `origin/main` on CannonCoPilot/Alfred is 22 commits ahead (those are the earlier `nate-dev` pushes from the supplant work). The `feature/personas-rebuild` branch was cut from `c5b1186` and has diverged 43 commits.
+
+**The upstream** (`davidmoneil/AIFred-Pro:main`) is at `dfd40c5` — David's latest. Our `pre-sync-safety-2026-04-23` branch is also at `dfd40c5`, confirming that was the snapshot before we started diverging.
