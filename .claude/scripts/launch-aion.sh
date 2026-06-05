@@ -748,13 +748,8 @@ if [[ ! -d "$PROJECT_DIR" ]]; then
 fi
 
 echo -e "  ${CYAN}Project:${NC} $PROJECT_DIR"
+echo -e "  ${CYAN}Launch dir:${NC} $CLAUDE_LAUNCH_DIR"
 echo -e "  ${CYAN}Session:${NC} $SESSION_NAME"
-if [[ "$FRESH_MODE" == "true" ]]; then
-    echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session pinned to $JARVIS_W0_SESSION_ID)"
-else
-    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} (most recent non-W5 session)"
-fi
-echo -e "  ${CYAN}W5 UUID:${NC} $JARVIS_W5_SESSION_ID (excluded from W0 lookup)"
 echo -e "  ${CYAN}Watcher:${NC} $([ "$WATCHER_ENABLED" = true ] && echo "${GREEN}ENABLED${NC}" || echo "${YELLOW}DISABLED${NC}")"
 echo ""
 echo "Starting Aion..."
@@ -815,11 +810,11 @@ if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
 fi
 
 # Determine W0 first-run command based on mode
-# NOTE: --continue and --resume/--session-id are mutually exclusive CLI flags.
-# JICM /clear creates new session UUIDs, so we can't pin W0 to a deterministic UUID.
-# Default mode finds the most recent non-W5 session and --resume's it explicitly.
+# --continue picks the most recent session and creates a new session ID that
+# inherits context. This is safer than --resume which fails if the prior
+# session is still marked "busy" in ~/.claude/sessions/ (e.g., after a crash
+# or when the launcher runs while an old session is still active).
 if [[ "$FRESH_MODE" == "true" ]]; then
-    # Fresh: archive existing session and start new with pinned UUID
     if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
         mkdir -p "$W0_SESSION_ARCHIVE_DIR"
         ARCHIVE_NAME="w0-session-$(date +%Y%m%d-%H%M%S).jsonl"
@@ -828,40 +823,10 @@ if [[ "$FRESH_MODE" == "true" ]]; then
     fi
     CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
     echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
+    echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session $JARVIS_W0_SESSION_ID)"
 else
-    # Default: resume W0 from state file, fall back to mtime heuristic
-    if [[ -f "$W0_UUID_FILE" ]]; then
-        LATEST_W0=$(cat "$W0_UUID_FILE" | tr -d '[:space:]')
-        LATEST_W0_JSONL="$JARVIS_PROJECTS_DIR/${LATEST_W0}.jsonl"
-        if [[ -n "$LATEST_W0" ]] && [[ -f "$LATEST_W0_JSONL" ]]; then
-            echo -e "  ${CYAN}Resuming W0 from state file:${NC} $LATEST_W0"
-            CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
-        else
-            echo -e "  ${YELLOW}State file UUID stale (JSONL missing), falling back to heuristic${NC}"
-            LATEST_W0=$(find_latest_w0_session)
-            if [[ -n "$LATEST_W0" ]]; then
-                echo -e "  ${CYAN}Resuming W0 session:${NC} $LATEST_W0"
-                CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
-                echo "$LATEST_W0" > "$W0_UUID_FILE"
-            else
-                echo -e "  ${CYAN}No prior W0 session found — creating new${NC}"
-                CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
-                echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
-            fi
-        fi
-    else
-        # No state file yet — fall back to heuristic, seed the file
-        LATEST_W0=$(find_latest_w0_session)
-        if [[ -n "$LATEST_W0" ]]; then
-            echo -e "  ${CYAN}Resuming W0 (seeding state file):${NC} $LATEST_W0"
-            CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0"
-            echo "$LATEST_W0" > "$W0_UUID_FILE"
-        else
-            echo -e "  ${CYAN}No prior W0 session found — creating new${NC}"
-            CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
-            echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
-        fi
-    fi
+    CLAUDE_FIRST="$CLAUDE_BASE --continue"
+    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}CONTINUE${NC} (inherits most recent session)"
 fi
 
 # Propagate W0 session ID to Alfred pipeline state for extend-then-fork execution.
