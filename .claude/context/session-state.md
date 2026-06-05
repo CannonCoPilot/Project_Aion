@@ -5,12 +5,12 @@
 
 ---
 
-**Status**: **PIPELINE v2 OPERATIONAL — TEST COCKPIT + TELEMETRY LIVE**. Chain-executor architecture replaces headless `claude -p` with managed interactive CLI sessions (125× cache_write reduction). 10 active test suites, all passing. Automated telemetry capture on task close via chain-attributed `session_id` in `api_requests`. Test Cockpit dashboard shows burn weight badges, 5hr window gauge, per-suite cost. Full parallel batch run validated (10 suites concurrent, 73pp total burn, 75% cost attribution). Usage proxy breach fixed (all chain forks now route through `:9800`).
+**Status**: **MONOREPO MIGRATION — PHASES 0-5 COMPLETE**. Project Aion monorepo live at `CannonCoPilot/Project_Aion`. Alfred imported as `alfred/` subdirectory. Secrets scrubbed from history, credentials consolidated. Pipeline v2, Test Cockpit, telemetry all operational. Launcher rewritten (`launch-aion.sh`).
 **Date**: 2026-06-04
-**Version**: v5.12.1
-**Branch (Jarvis)**: Project_Aion → origin/main on CannonCoPilot/Jarvis.
-**Last commit (Jarvis)**: `aa6133a` (chore: context state update).
-**Last commit (Alfred-Dev)**: `b36fd13` on feature/personas-rebuild (telemetry capture + burn weight dashboard). Pushed to CannonCoPilot/Alfred.
+**Version**: v5.13.0
+**Branch**: main → origin/main on CannonCoPilot/Project_Aion.
+**Last commit**: `f710f48` (feat: launch-aion.sh — unified Archon launcher).
+**Legacy**: CannonCoPilot/Jarvis archived, jarvis-legacy remote preserved.
 **Quota**: active session.
 
 ## Pulse / Nexus boundary tagging (2026-05-05)

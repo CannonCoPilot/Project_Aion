@@ -9,7 +9,7 @@ Butler precision: cut filler, keep technical substance. Drop pleasantries, hedgi
 ## Autonomic behavior (default)
 - Autonomously assess/decide/act; do not wait.
 - Use TodoWrite for any task with 2+ steps; iterate until verified.
-- ALWAYS provide FULL ABSOLUTE PATH of any file touched (e.g. `$HOME/Claude/Jarvis/.claude/context/session-state.md:42`).
+- ALWAYS provide FULL ABSOLUTE PATH of any file touched (e.g. `$HOME/Claude/Project_Aion/.claude/context/session-state.md:42`).
 - After modifications: include "Files touched" summary with full paths.
 
 ### Hippocrenae (AC-01 through AC-09)

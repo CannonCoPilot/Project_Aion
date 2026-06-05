@@ -36,11 +36,43 @@ See `CLAUDE.md` for full operational instructions, guardrails, and force-loaded 
 
 ---
 
+## Service Inventory
+
+| Service | Port | Stack | Purpose |
+|---|---|---|---|
+| PostgreSQL (Jarvis) | 5432 | infrastructure | Knowledge DB, Chronicler, n8n |
+| Qdrant | 6333 | infrastructure | Vector search (RAG) |
+| Neo4j | 7687 | infrastructure | Knowledge graph (Graphiti) |
+| Redis | 6379 | infrastructure | Cache, queues |
+| n8n | 5678 | infrastructure | Workflow automation |
+| Pulse API (prod) | 8700 | alfred | Task management API |
+| Pulse API (dev) | 8800 | alfred | Dev task management |
+| Nexus Dashboard | 8701/8702 | alfred | Operations dashboard |
+| Usage Proxy | 9800 | alfred | API telemetry + cost tracking |
+| MLX Embed | 8000 | infrastructure | Qwen3 embedding server |
+| LiteLLM | 4000 | infrastructure | Multi-model proxy |
+| Ollama | 11434 | system | Local LLM inference |
+
+## tmux Windows
+
+| Window | Name | Role |
+|---|---|---|
+| W0 | Aion | Primary Claude Code session |
+| W1 | Watcher | JICM context management |
+| W2 | Ennoia | Session orchestration |
+| W3 | Virgil | Codebase guide |
+| W4 | Commands | Signal file handler |
+| W5 | Aion-dev | Dev/test session (--dev mode) |
+| W6+ | MLX-Embed, LiteLLM, HUD, Bridge | Auto-started services |
+
+---
+
 ## Git Workflow
 
-- **Repo**: `CannonCoPilot/Project_Aion`
+- **Repo**: `CannonCoPilot/Project_Aion` (private)
 - **Branch**: `main`
 - **Push**: `git push origin main`
+- **Credentials**: `.claude/secrets/credentials.yaml` (gitignored)
 
 ---
 
