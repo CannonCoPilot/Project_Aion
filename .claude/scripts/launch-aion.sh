@@ -26,12 +26,12 @@
 # Ennoia (window 2): Session orchestration, intent-driven wake-up
 # Virgil (window 3): Task tracking, agent monitoring, file changes
 # Commands (window 4): Signal file → command injection via send-keys
-# Aion-dev (window 5): Second Claude session for dev testing (--dev mode only)
+# Jarvis-dev (window 5): Second Claude session for dev testing (--dev mode only)
 # HUD-live (window 7+): Read-only htop-style dashboard over watcher state surface
 #
 # Modes:
 #   (default)    Full Aion with session persistence (W0-W4, resume by UUID)
-#   --dev        Add W5 Aion-dev test driver
+#   --dev        Add W5 Jarvis-dev test driver
 #   --fresh      Full Aion but new session (archive old, start clean)
 #   --lite       Isolated one-off session (W0+Watcher only, no persistence,
 #                separate tmux session 'lite', minimal CLAUDE.md ~340 tokens,
@@ -47,19 +47,18 @@ TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-aion}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 ALFRED_DIR="$PROJECT_DIR/alfred"
-# Claude Code derives its project slug from the PWD at launch time. When launched
-# via the ~/Claude/Jarvis symlink, the slug is -Users-*-Claude-Jarvis. We must
-# match that slug to find session JSONLs. Detect which slug directory actually
-# exists and use it; fall back to deriving from PROJECT_DIR.
-SLUG_FROM_PROJECT="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
-SLUG_FROM_SYMLINK="-$(echo "$HOME/Claude/Jarvis" | sed 's|^/||; s|/|-|g')"
-if [[ -d "$HOME/.claude/projects/${SLUG_FROM_SYMLINK}" ]]; then
-    CLAUDE_PROJECT_SLUG="$SLUG_FROM_SYMLINK"
-elif [[ -d "$HOME/.claude/projects/${SLUG_FROM_PROJECT}" ]]; then
-    CLAUDE_PROJECT_SLUG="$SLUG_FROM_PROJECT"
+# Claude Code derives its project slug from PWD at launch time. Sessions created
+# via ~/Claude/Jarvis live under slug -Users-*-Claude-Jarvis. We MUST cd through
+# the symlink path when launching Claude, otherwise it creates a new empty slug.
+# CLAUDE_LAUNCH_DIR: the path used for `cd` in Claude session windows.
+# PROJECT_DIR: the real path used for file operations (scripts, configs, etc.).
+JARVIS_SYMLINK="$HOME/Claude/Jarvis"
+if [[ -L "$JARVIS_SYMLINK" ]]; then
+    CLAUDE_LAUNCH_DIR="$JARVIS_SYMLINK"
 else
-    CLAUDE_PROJECT_SLUG="$SLUG_FROM_PROJECT"
+    CLAUDE_LAUNCH_DIR="$PROJECT_DIR"
 fi
+CLAUDE_PROJECT_SLUG="-$(echo "$CLAUDE_LAUNCH_DIR" | sed 's|^/||; s|/|-|g')"
 
 # Deterministic session UUIDs — pinned per-window for --fresh mode and exclusion filtering
 # W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL (used only for --fresh)
@@ -667,14 +666,13 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
     # If --dev requested and W5 doesn't exist, add it to the running session
     if [[ "$DEV_MODE" == "true" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
-        if ! echo "$EXISTING_WINDOWS" | grep -q "^Aion-dev$"; then
-            echo "Adding Aion-dev window (W5) to existing session..."
+        if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
+            echo "Adding Jarvis-dev window (W5) to existing session..."
             JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
             JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
             CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
             DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
-            # Session file rotation — archive if > 5MB to prevent unbounded growth
-            DEV_SESSION_MAX_BYTES=5242880  # 5MB
+            DEV_SESSION_MAX_BYTES=5242880
             DEV_SESSION_ARCHIVE_DIR="$PROJECT_DIR/.claude/exports/dev/sessions"
             if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
                 DEV_FILE_SIZE=$(stat -f%z "$JARVIS_DEV_SESSION_FILE" 2>/dev/null || echo 0)
@@ -686,19 +684,19 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
                     ls -t "$DEV_SESSION_ARCHIVE_DIR"/dev-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
                 fi
             fi
-            DEV_SYSTEM_APPEND="You are W5:Aion-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+            DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
             if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
                 CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
             else
                 CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
             fi
             DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
-            "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Aion-dev" -d \
-                "cd '$PROJECT_DIR' && export $CLAUDE_ENV_DEV && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
-            "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Aion-dev" automatic-rename off 2>/dev/null || true
-            echo -e "  ${GREEN}✓${NC} Aion-dev window created"
+            "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
+                "cd '$CLAUDE_LAUNCH_DIR' && export $CLAUDE_ENV_DEV && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
+            "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis-dev" automatic-rename off 2>/dev/null || true
+            echo -e "  ${GREEN}✓${NC} Jarvis-dev window created"
         else
-            echo "  Aion-dev window already exists."
+            echo "  Jarvis-dev window already exists."
         fi
     fi
 
@@ -880,7 +878,7 @@ fi
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
 W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS='$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
-"$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" "$W0_WRAPPER"
+"$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$CLAUDE_LAUNCH_DIR" "$W0_WRAPPER"
 
 # Give Claude a moment to start
 sleep 2
@@ -924,17 +922,16 @@ if [[ -x "$CMD_HANDLER_SCRIPT" ]]; then
         "cd '$PROJECT_DIR' && '$CMD_HANDLER_SCRIPT' --interval 3; echo 'Command handler stopped.'; read"
 fi
 
-# W5: Aion-dev (developer's seat — named session for deterministic resumption)
+# W5: Jarvis-dev (developer's seat — named session for deterministic resumption)
 # Uses a deterministic UUID so --resume always picks up the same conversation.
 # UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL = fbd7528a-c1bd-414a-bdaa-c3cc23f53215
 if [[ "$DEV_MODE" == "true" ]]; then
-    echo "Launching Aion-dev (developer's seat) in tmux window..."
+    echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
     JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
     CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
     DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
-    # Session file rotation — archive if > 5MB to prevent unbounded growth
-    DEV_SESSION_MAX_BYTES=5242880  # 5MB
+    DEV_SESSION_MAX_BYTES=5242880
     DEV_SESSION_ARCHIVE_DIR="$PROJECT_DIR/.claude/exports/dev/sessions"
     if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
         DEV_FILE_SIZE=$(stat -f%z "$JARVIS_DEV_SESSION_FILE" 2>/dev/null || echo 0)
@@ -943,21 +940,18 @@ if [[ "$DEV_MODE" == "true" ]]; then
             ARCHIVE_NAME="dev-session-$(date +%Y%m%d-%H%M%S).jsonl"
             mv "$JARVIS_DEV_SESSION_FILE" "$DEV_SESSION_ARCHIVE_DIR/$ARCHIVE_NAME"
             echo -e "  ${YELLOW}Session file rotated ($(( DEV_FILE_SIZE / 1024 ))KB > 5MB) → $ARCHIVE_NAME${NC}"
-            # Prune archives: keep last 5
             ls -t "$DEV_SESSION_ARCHIVE_DIR"/dev-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
         fi
     fi
-    # W5 system prompt overlay — deprioritizes DwarfCron context, focuses on Jarvis core
-    DEV_SYSTEM_APPEND="You are W5:Aion-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+    DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
         CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
     else
         CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
     fi
-    # Preload dev instructions file into context on launch
     DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Aion-dev" -d \
-        "cd '$PROJECT_DIR' && export $CLAUDE_ENV_DEV && export ANTHROPIC_CUSTOM_HEADERS='$DEV_HEADERS' && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
+        "cd '$CLAUDE_LAUNCH_DIR' && export $CLAUDE_ENV_DEV && export ANTHROPIC_CUSTOM_HEADERS='$DEV_HEADERS' && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
     "$TMUX_BIN" set-window-option -t "$SESSION_NAME:5" automatic-rename off 2>/dev/null || true
 fi
 
@@ -1091,7 +1085,7 @@ echo "  W2  Ennoia        Session orchestrator"
 echo "  W3  Virgil        Codebase guide"
 echo "  W4  Commands      Signal file → command injection"
 [[ "$DEV_MODE" == "true" ]] && \
-echo "  W5  Aion-dev      Developer test driver"
+echo "  W5  Jarvis-dev      Developer test driver"
 echo "      MLX-Embed     Qwen3-Embedding-4B server (:8000)"
 echo "      LiteLLM       Model proxy (:4000)"
 echo "      Ollama        Local model monitor (:11434)"
@@ -1122,7 +1116,7 @@ if [[ "$ITERM2_MODE" == "true" ]]; then
 else
     echo "Keyboard shortcuts:"
     echo "  Ctrl+b then 0-4 - Switch windows: Jarvis (0), Watcher (1), Ennoia (2), Virgil (3), Commands (4)"
-    [[ "$DEV_MODE" == "true" ]] && echo "  Ctrl+b then 5   - Switch to Aion-dev (test driver)"
+    [[ "$DEV_MODE" == "true" ]] && echo "  Ctrl+b then 5   - Switch to Jarvis-dev (test driver)"
     echo "  Ctrl+b then d     - Detach (leave running)"
     echo "  Ctrl+b then x     - Close current window"
     echo ""
