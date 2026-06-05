@@ -222,8 +222,8 @@ These four items are exactly what ccusage's `blocks` and `statusline` commands p
 #!/bin/bash
 # Refresh ccusage block data to cache file
 # Run asynchronously from Stop hook or ennoia maintenance
-CACHE_FILE="$HOME/Claude/Jarvis/.claude/context/.ccusage-blocks.json"
-LOCK_FILE="$HOME/Claude/Jarvis/.claude/context/.ccusage-refresh.lock"
+CACHE_FILE="$HOME/Claude/Project_Aion/.claude/context/.ccusage-blocks.json"
+LOCK_FILE="$HOME/Claude/Project_Aion/.claude/context/.ccusage-refresh.lock"
 # Guard: skip if lock exists (another refresh in progress)
 [ -f "$LOCK_FILE" ] && exit 0
 touch "$LOCK_FILE"
@@ -235,13 +235,13 @@ rm -f "$LOCK_FILE"
 **Step 2 — Wire cache refresh into Stop hook** (append to `~/.claude/hooks/stop-hook.sh` or add as a PostToolUse hook on Bash):
 ```bash
 # Async ccusage cache refresh (non-blocking)
-"$HOME/Claude/Jarvis/.claude/scripts/refresh-ccusage-cache.sh" &
+"$HOME/Claude/Project_Aion/.claude/scripts/refresh-ccusage-cache.sh" &
 ```
 
 **Step 3 — Extend jarvis-statusline.sh** to read the cache file and extract active block data:
 ```bash
 # Read ccusage block cache (age-gated: stale after 10 min)
-CCUSAGE_CACHE="$HOME/Claude/Jarvis/.claude/context/.ccusage-blocks.json"
+CCUSAGE_CACHE="$HOME/Claude/Project_Aion/.claude/context/.ccusage-blocks.json"
 block_cost=""
 block_remaining=""
 burn_rate=""
@@ -259,7 +259,7 @@ fi
 
 **Step 5 — Optional: install claude-monitor** for on-demand TUI review:
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/bin/uv tool install claude-monitor
+/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/uv tool install claude-monitor
 ```
 Then wire `cmonitor --view monthly` to a Jarvis slash command or Virgil dashboard panel.
 
@@ -276,7 +276,7 @@ Then wire `cmonitor --view monthly` to a Jarvis slash command or Virgil dashboar
 
 **Install**:
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/bin/uv tool install claude-monitor
+/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/uv tool install claude-monitor
 ```
 
 **Usage**: `cmonitor` (live TUI), `cmonitor --view monthly` (table view), `cmonitor --plan custom` (auto-detect P90 limits).

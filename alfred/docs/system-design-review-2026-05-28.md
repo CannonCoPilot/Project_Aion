@@ -214,7 +214,7 @@ The following principles were established during this review and govern all targ
 
 ### DP-1: Alfred-Dev is canonical; PROD stack is deprecated
 
-Alfred-Dev (`/Users/nathanielcannon/Claude/Alfred-Dev/`) is the single source of truth for all AIFred infrastructure. The PROD stack (`aifred-postgres`, `aifred-pulse`, PROD launchd agents) exists only as historical artifact. It should be shut down to eliminate confusion, resource waste, and the risk of accidental cross-stack data corruption.
+Alfred-Dev (`/Users/nathanielcannon/Claude/Project_Aion/alfred/`) is the single source of truth for all AIFred infrastructure. The PROD stack (`aifred-postgres`, `aifred-pulse`, PROD launchd agents) exists only as historical artifact. It should be shut down to eliminate confusion, resource waste, and the risk of accidental cross-stack data corruption.
 
 **Implication**: All PROD-targeting launchd agents (`nexus-dispatcher`, `nexus-event-watcher`, `nexus-watchdog`, `com.aion.pulse`) must be unloaded. The `aifred-pro` Docker compose project must be stopped. Port 8700 should either be freed or remapped to the DEV pulse service.
 

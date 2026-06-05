@@ -23,7 +23,7 @@ Without explicit filesystem boundaries, Jarvis defaults to writing temp files, d
 
 | Zone | Path | Use For |
 |------|------|---------|
-| Jarvis workspace | `~/Claude/Jarvis/` | Jarvis config, context, plans, project artifacts |
+| Project_Aion workspace | `~/Claude/Project_Aion/` | Jarvis config, context, plans, project artifacts |
 | Project code | `~/Claude/Projects/<Name>/` | Deliverable source code, tests, data |
 | Reference repos | `~/Claude/GitRepos/` | Cloned references (prefer read-only) |
 | Claude hidden | `~/.claude/` | Hooks, scripts, state, logs (judicious) |

@@ -18,7 +18,7 @@ const path = require('path');
 
 // Hardcoded paths for reliability (config file is optional enhancement)
 const AIFRED_BASELINE = (process.env.HOME + '/Claude/AIfred');
-const JARVIS_WORKSPACE = (process.env.HOME + '/Claude/Jarvis');
+const JARVIS_WORKSPACE = (process.env.HOME + '/Claude/Project_Aion');
 
 const FORBIDDEN_PATHS = [
   '/',

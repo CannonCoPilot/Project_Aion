@@ -8,7 +8,7 @@
 # REQUIRES: osascript (macOS) or xdotool (Linux)
 
 # Use CLAUDE_PROJECT_DIR if set, otherwise default
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 SIGNAL_FILE="$PROJECT_DIR/.claude/context/.auto-clear-signal"
 WINDOW_FILE="$PROJECT_DIR/.claude/context/.terminal-window-id"
 CHECK_INTERVAL=2  # seconds

@@ -66,10 +66,10 @@
 
 | Name | Path | Type |
 |------|------|------|
-| AIFred-Pro-Dev | `~/Claude/AIFred-Pro-Dev` | infrastructure (this repo) |
+| AIFred-Pro-Dev | `~/Claude/Project_Aion/alfred` | infrastructure (this repo) |
 | AIFred-Pro | `~/Claude/AIFred-Pro` | infrastructure (prod sibling) |
 | Jarvis | `~/Claude/Jarvis` | application-stack |
-| Jarvis-Dev | `~/Claude/Jarvis-Dev` | application-stack |
+| Jarvis-Dev | `~/Claude/Project_Aion (dev)` | application-stack |
 
 ## Managing Your Profile
 

@@ -26,6 +26,6 @@ Active application stack — 5 containers currently running on this host: `jarvi
 
 ## When to load context
 
-- Working in `~/Claude/Jarvis/` or its subdirs
+- Working in `~/Claude/Project_Aion/` or its subdirs
 - Troubleshooting any `jarvis-*` container
 - Questions about n8n workflows, vector/graph queries, or the Project_Aion initiative

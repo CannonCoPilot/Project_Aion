@@ -30,7 +30,7 @@ from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 
-ROOT = Path('/Users/nathanielcannon/Claude/Jarvis')
+ROOT = Path('/Users/nathanielcannon/Claude/Project_Aion')
 OUT_DIR = ROOT / '.claude/scratch/cache-mechanics-v4'
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

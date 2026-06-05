@@ -54,7 +54,7 @@ Session learner extracts patterns and reuses them—aligns with Jarvis Memory MC
 - Execution mode keywords (ralph, eco, ulw) valuable idioms but don't require architectural adoption
 
 ### Actionable Next Step
-Study `/Users/nathanielcannon/Claude/Jarvis/.claude/context/designs/jicm-v5-design-addendum.md` and `.claude/context/psyche/capability-map.yaml` against OMC's hook separation pattern. If JICM threshold formula alignment is weak, adopt OMC's "preemptive-compaction + recovery" pattern to prevent lockout spikes.
+Study `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/designs/jicm-v5-design-addendum.md` and `.claude/context/psyche/capability-map.yaml` against OMC's hook separation pattern. If JICM threshold formula alignment is weak, adopt OMC's "preemptive-compaction + recovery" pattern to prevent lockout spikes.
 
 ---
 

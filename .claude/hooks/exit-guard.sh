@@ -38,7 +38,7 @@
 # INTENTIONALLY no set -e or pipefail — this hook must never crash
 set +e
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 CEREMONY_DONE="$PROJECT_DIR/.claude/context/.exit-ceremony-done"
 LOG_FILE="$PROJECT_DIR/.claude/logs/exit-guard-debug.log"
 

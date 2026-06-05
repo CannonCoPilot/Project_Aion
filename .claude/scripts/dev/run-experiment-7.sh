@@ -15,7 +15,7 @@ set -eu
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION="${TMUX_SESSION:-jarvis}"
 TARGET="${SESSION}:0"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 SCRIPTS_DIR="$PROJECT_DIR/.claude/scripts/dev"
 DATA_FILE="$PROJECT_DIR/.claude/reports/testing/experiment-7-data.jsonl"
 LOG_FILE="$PROJECT_DIR/.claude/logs/experiment-7.log"

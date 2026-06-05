@@ -1,7 +1,7 @@
 ---
 name: Jarvis-Dev
 type: application-stack
-path: ~/Claude/Jarvis-Dev
+path: ~/Claude/Project_Aion (dev)
 registered: 2026-04-22
 ---
 

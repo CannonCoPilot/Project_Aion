@@ -225,7 +225,7 @@ If an existing Next.js app is already in the project, install `@blitzjs/rpc` and
 ### Quickstart (5 minutes)
 
 ```bash
-cd /Users/nathanielcannon/Claude/Jarvis/projects/
+cd /Users/nathanielcannon/Claude/Project_Aion/projects/
 npx blitz new jarvis-dashboard --template=full --language=typescript
 
 # In the new project:

@@ -36,7 +36,7 @@ SSO identity provider — server, worker, Postgres, Redis. Fronted by Caddy at `
 
 ### jarvis-* (5 containers)
 Application stack — n8n (workflows), Redis, Qdrant (vector), Neo4j (graph), Postgres (ParadeDB).
-Compose location: `~/Claude/Jarvis/docker-compose.yml`.
+Compose location: `~/Claude/Project_Aion/docker-compose.yml`.
 
 ### Supporting
 - `caddy` — reverse proxy

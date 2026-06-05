@@ -83,9 +83,9 @@ HomeServer (Physical — 192.168.4.194)
 | Proto definitions | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/proto/` |
 | Bridge Lua script | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-bridge.lua` |
 | Export Lua script | `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/scripts/chronicler-export.lua` |
-| VM scripts | `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-{config,lifecycle,bootstrap}.sh` |
-| VM config (shared) | `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-config.sh` |
-| HomeServer deploy | `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh` |
+| VM scripts | `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-{config,lifecycle,bootstrap}.sh` |
+| VM config (shared) | `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-config.sh` |
+| HomeServer deploy | `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/deploy-homeserver.sh` |
 | Legends data | `/Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/` |
 | Game backups | `/Users/nathanielcannon/Claude/Projects/DwarfCron/data/backups/` |
 | Pre-embark legends | `.../data/legends/region1-pre-embark/` |
@@ -134,14 +134,14 @@ Best for ad-hoc transfers. No server dependency — just SSH.
 
 **Single file**:
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh scp-pull \
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh scp-pull \
   'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends.xml' \
   /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/
 ```
 
 **Multiple files in parallel**:
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh scp-pull-multi \
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh scp-pull-multi \
   /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-post-embark \
   'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/autosave 1-00250-01-15-legends.xml' \
   'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/autosave 1-00250-01-15-legends_plus.xml'
@@ -149,7 +149,7 @@ Best for ad-hoc transfers. No server dependency — just SSH.
 
 **Smart pull** (auto-selects SCP if SSH available, else Guest Agent):
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh pull \
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh pull \
   'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/legends.xml' /tmp/
 ```
 
@@ -159,18 +159,18 @@ Use when SSH is unavailable, or for persistent serving across many downloads.
 
 1. **Start file server** (port 8889, serves DF directory):
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh http-serve start
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh http-serve start
    ```
 
 2. **Download file** (path relative to DF directory):
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh http-pull \
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh http-pull \
      'autosave 1-00250-01-15-legends.xml' /tmp/
    ```
 
 3. **Or use curl directly for parallel downloads**:
    ```bash
-   VM_IP=$(/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh ip)
+   VM_IP=$(/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh ip)
    curl -o /tmp/legends.xml "http://${VM_IP}:8889/autosave%201-00250-01-15-legends.xml" &
    curl -o /tmp/legends_plus.xml "http://${VM_IP}:8889/autosave%201-00250-01-15-legends_plus.xml" &
    wait
@@ -178,14 +178,14 @@ Use when SSH is unavailable, or for persistent serving across many downloads.
 
 4. **Stop when done**:
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh http-serve stop
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh http-serve stop
    ```
 
 ### Method 3: Guest Agent (Emergency Only — 1-5 MB/s)
 
 Only use when both SSH and HTTP are unavailable.
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh pull-ga \
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh pull-ga \
   "C:\\\\Program Files (x86)\\\\Steam\\\\steamapps\\\\common\\\\Dwarf Fortress\\\\legends.xml"
 ```
 **Warning**: Double-backslash escaping required. Exit code 0 even on failure. Serial port transfer.
@@ -233,7 +233,7 @@ the HTTP JSON endpoint is serving data.
 
 2. **Deploy bridge Lua script to VM**:
    ```bash
-   VM_IP=$(/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh ip)
+   VM_IP=$(/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh ip)
    scp -i ~/.ssh/df-vm \
      /Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/chronicler-bridge.lua \
      "Jarvis@${VM_IP}:C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/hack/scripts/"
@@ -245,7 +245,7 @@ the HTTP JSON endpoint is serving data.
    ```
    Or via SSH:
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh ssh \
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh ssh \
      "dfhack-run chronicler-bridge"
    ```
 
@@ -286,7 +286,7 @@ endpoints, detects changes, and writes to PostgreSQL.
 
 1. **Verify bridge is healthy**:
    ```bash
-   VM_IP=$(/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh ip)
+   VM_IP=$(/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh ip)
    curl -sf "http://${VM_IP}:8888/game_time" >/dev/null && echo "Bridge OK" || echo "Bridge DOWN"
    ```
 
@@ -334,7 +334,7 @@ Parse and load Dwarf Fortress legends XML exports into the PostgreSQL CDM schema
 1. **Pull legends XML from VM** (if not already local):
    ```bash
    mkdir -p /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-pre-embark
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh scp-pull-multi \
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh scp-pull-multi \
      /Users/nathanielcannon/Claude/Projects/DwarfCron/data/legends/region1-pre-embark \
      'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends.xml' \
      'C:/Program Files (x86)/Steam/steamapps/common/Dwarf Fortress/region1-00250-01-01-legends_plus.xml'
@@ -436,7 +436,7 @@ This is the standard startup sequence for a Chronicler data gathering session.
 
 1. **Boot VM** (if not running):
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh start
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh start
    ```
 
 2. **Verify DF + DFHack running**:
@@ -477,24 +477,24 @@ Create and restore named snapshots for safe experimentation.
 
 2. **Stop VM** (snapshots require stopped VM):
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh stop
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh stop
    ```
 
 3. **Create snapshot**:
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh snapshot "pre-experiment-name"
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh snapshot "pre-experiment-name"
    ```
 
 4. **Start VM and continue**:
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh start
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh start
    ```
 
 5. **Restore** (if experiment fails):
    ```bash
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh stop
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh restore "pre-experiment-name"
-   /Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/vm-lifecycle.sh start
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh stop
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh restore "pre-experiment-name"
+   /Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/vm-lifecycle.sh start
    ```
 
 ---
@@ -558,13 +558,13 @@ Deploy Lua scripts and configuration to the HomeServer (192.168.4.194) via SMB.
 
 ```bash
 # Deploy bridge + export scripts
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh bridge
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/deploy-homeserver.sh bridge
 
 # Check deployment status (network, files, versions)
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh status
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/deploy-homeserver.sh status
 
 # Deploy everything
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh all
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/deploy-homeserver.sh all
 ```
 
 **HomeServer access limitations**: No SSH, no admin shares (C$), no WMI, no WinRM. File deployment uses SMB `Users` share via impacket. Remote execution not available — use DFHack console or Startup folder scripts.
@@ -590,7 +590,7 @@ This runs `exportlegends all` and writes `chronicler-export-manifest.json` with 
 
 ### Step 2: Transfer + Ingest (automated)
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh legends
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/deploy-homeserver.sh legends
 ```
 This reads the manifest (or constructs filenames from bridge data), downloads XMLs via HTTP, and runs `chronicler ingest`.
 
@@ -606,7 +606,7 @@ This reads the manifest (or constructs filenames from bridge data), downloads XM
 Snapshot the current live game state from the bridge.
 
 ```bash
-/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/deploy-homeserver.sh backup-save
+/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/deploy-homeserver.sh backup-save
 ```
 
 Saves a timestamped JSON snapshot of all 17 bridge data sections to `/Users/nathanielcannon/Claude/Projects/DwarfCron/data/backups/`. Also lists available local legends XML backups.
@@ -639,12 +639,12 @@ Saves a timestamped JSON snapshot of all 17 bridge data sections to `/Users/nath
 
 ## Related Resources
 
-- `/vm` command: `/Users/nathanielcannon/Claude/Jarvis/.claude/commands/vm.md`
-- `/df` command: `/Users/nathanielcannon/Claude/Jarvis/.claude/commands/df.md`
-- VM scripts: `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts/`
+- `/vm` command: `/Users/nathanielcannon/Claude/Project_Aion/.claude/commands/vm.md`
+- `/df` command: `/Users/nathanielcannon/Claude/Project_Aion/.claude/commands/df.md`
+- VM scripts: `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts/`
 - DFHack client: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/client.py`
 - Bridge script: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/dfhack/chronicler-bridge.lua`
 - CDM schema: PostgreSQL `chronicler` database
 - DF reference repos: `/Users/nathanielcannon/Claude/GitRepos/{df-structures,dfhack-client-python,weblegends}/`
-- VM Operations Runbook: `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/docs/vm-operations-runbook.md`
-- DF/DFHack Runbook: `/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/docs/df-dfhack-runbook.md`
+- VM Operations Runbook: `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/docs/vm-operations-runbook.md`
+- DF/DFHack Runbook: `/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/docs/df-dfhack-runbook.md`

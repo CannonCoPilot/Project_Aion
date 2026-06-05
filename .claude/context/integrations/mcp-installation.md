@@ -61,7 +61,7 @@ claude -p "Use Memory MCP to create an entity named 'test' of type 'validation'"
 ```bash
 # Add with allowed directories
 claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem \
-  /Users/nathanielcannon/Claude/Jarvis \
+  /Users/nathanielcannon/Claude/Project_Aion \
   /Users/nathanielcannon/Claude
 ```
 
@@ -151,7 +151,7 @@ claude -p "Use Time MCP to get current time in America/Los_Angeles"
 **Installation**:
 ```bash
 # Python-based (requires uv)
-claude mcp add git -- uvx mcp-server-git --repository /Users/nathanielcannon/Claude/Jarvis
+claude mcp add git -- uvx mcp-server-git --repository /Users/nathanielcannon/Claude/Project_Aion
 ```
 
 **Tools Provided**:
@@ -385,7 +385,7 @@ claude mcp add memory -- npx -y @modelcontextprotocol/server-memory
 
 # Filesystem (On-Demand)
 claude mcp add filesystem -- npx -y @modelcontextprotocol/server-filesystem \
-  /Users/nathanielcannon/Claude/Jarvis \
+  /Users/nathanielcannon/Claude/Project_Aion \
   /Users/nathanielcannon/Claude
 
 # Fetch (On-Demand)
@@ -395,7 +395,7 @@ claude mcp add fetch -- uvx mcp-server-fetch
 claude mcp add time -- uvx mcp-server-time
 
 # Git (On-Demand)
-claude mcp add git -- uvx mcp-server-git --repository /Users/nathanielcannon/Claude/Jarvis
+claude mcp add git -- uvx mcp-server-git --repository /Users/nathanielcannon/Claude/Project_Aion
 
 # Sequential Thinking (On-Demand)
 claude mcp add sequential-thinking -- npx -y @modelcontextprotocol/server-sequential-thinking

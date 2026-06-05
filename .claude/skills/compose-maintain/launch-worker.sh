@@ -9,7 +9,7 @@
 # DO NOT `set -euo pipefail` — bash-gotchas: grep exit 1 kills the script.
 
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRATCH_DIR="/Users/nathanielcannon/Claude/Jarvis/.claude/scratch"
+SCRATCH_DIR="/Users/nathanielcannon/Claude/Project_Aion/.claude/scratch"
 TMUX_BIN="$HOME/bin/tmux"
 LOCK_DIR="$SCRATCH_DIR/compose-maintain.lock"
 POLL_INTERVAL=3
@@ -252,7 +252,7 @@ else
   WORKER_FINISH="$TMUX_BIN kill-window"
 fi
 
-WORKER_CMD="cd /Users/nathanielcannon/Claude/Jarvis && env -u ANTHROPIC_BASE_URL claude --print \"\$(cat $PROMPT_PATH)\" > $LOG_PATH 2>&1; $WORKER_FINISH"
+WORKER_CMD="cd /Users/nathanielcannon/Claude/Project_Aion && env -u ANTHROPIC_BASE_URL claude --print \"\$(cat $PROMPT_PATH)\" > $LOG_PATH 2>&1; $WORKER_FINISH"
 
 # Spawn worker tmux window. New window in jarvis session, detached.
 echo "Spawning worker window: jarvis:$WINDOW_NAME"

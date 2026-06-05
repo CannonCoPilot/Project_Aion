@@ -14,7 +14,7 @@ allowed-tools: Bash, TaskList, Write, Read
 ### Step 1: Watcher liveness check
 
 ```bash
-WATCHER_PID=$(cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.jicm-watcher.pid 2>/dev/null)
+WATCHER_PID=$(cat /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.jicm-watcher.pid 2>/dev/null)
 if [ -n "$WATCHER_PID" ] && kill -0 "$WATCHER_PID" 2>/dev/null; then
     echo "Watcher alive (pid $WATCHER_PID)"
 else
@@ -28,7 +28,7 @@ If guard fails, **STOP**. Tell the user to start the watcher (e.g., `bash .claud
 ### Step 2: Cycle-in-flight check
 
 ```bash
-if [ -f /Users/nathanielcannon/Claude/Jarvis/.claude/context/.jicm-clear-now.signal ]; then
+if [ -f /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.jicm-clear-now.signal ]; then
     echo "GUARD-FAIL: .jicm-clear-now.signal already present — a cycle is in flight or stalled"
     exit 1
 fi
@@ -41,7 +41,7 @@ If trigger signal is already present, the watcher is already mid-cycle (or stall
 Reaching this step means no cycle is in flight (Step 2 passed). Any other transient signals are stale leftovers from a prior failed cycle — clear them so prep produces a fresh checkpoint and the watcher's cycle starts clean.
 
 ```bash
-CTX=/Users/nathanielcannon/Claude/Jarvis/.claude/context
+CTX=/Users/nathanielcannon/Claude/Project_Aion/.claude/context
 rm -f "$CTX/.compression-done.signal" \
       "$CTX/.compression-in-progress" \
       "$CTX/.jicm-resume-complete.signal"
@@ -49,12 +49,12 @@ rm -f "$CTX/.compression-done.signal" \
 
 ### Step 4: Dump active tasks
 
-If `TaskList` tool is loaded, call it and write a compact rendering of the result to `/Users/nathanielcannon/Claude/Jarvis/.claude/context/.active-tasks.txt`. If `TaskList` is not loaded (deferred-tool registry), or there are no tasks, write the literal string `No active tasks.` to that file.
+If `TaskList` tool is loaded, call it and write a compact rendering of the result to `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.active-tasks.txt`. If `TaskList` is not loaded (deferred-tool registry), or there are no tasks, write the literal string `No active tasks.` to that file.
 
 ### Step 5: Run JICM prep script
 
 ```bash
-bash /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh
+bash /Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-prep-context.sh
 ```
 
 This produces `.compressed-context-ready.md` and `.compression-done.signal`. The prep script invokes a local Ollama model (qwen3:8b at `localhost:11434`) for narrative compression — no Anthropic tokens consumed.
@@ -62,8 +62,8 @@ This produces `.compressed-context-ready.md` and `.compression-done.signal`. The
 ### Step 6: Verify checkpoint
 
 ```bash
-ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compressed-context-ready.md \
-       /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compression-done.signal 2>/dev/null
+ls -la /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.compressed-context-ready.md \
+       /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.compression-done.signal 2>/dev/null
 ```
 
 Both files must exist. If the prep script exited non-zero **or** either file is missing, run the failure cleanup (see "On Failure" below) and abort.
@@ -71,7 +71,7 @@ Both files must exist. If the prep script exited non-zero **or** either file is 
 ### Step 7: Fire the trigger
 
 ```bash
-date +%s > /Users/nathanielcannon/Claude/Jarvis/.claude/context/.jicm-clear-now.signal
+date +%s > /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.jicm-clear-now.signal
 ```
 
 This is the signal the v7.9 watcher's main loop polls for (`jicm-watcher.sh:301`). Within ~1s the watcher will enter `actuate_jicm_cycle()`.
@@ -83,7 +83,7 @@ Output exactly:
 ```
 JICM cycle initiated.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Checkpoint: /Users/nathanielcannon/Claude/Jarvis/.claude/context/.compressed-context-ready.md
+Checkpoint: /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.compressed-context-ready.md
 Signals:    .compression-done.signal (prep complete)
             .jicm-clear-now.signal   (cycle trigger fired)
 
@@ -103,7 +103,7 @@ Acknowledge with the single word "Understood" when HALT arrives.
 If Step 5 (prep) fails or Step 6 (verify) finds missing artifacts:
 
 ```bash
-CTX=/Users/nathanielcannon/Claude/Jarvis/.claude/context
+CTX=/Users/nathanielcannon/Claude/Project_Aion/.claude/context
 rm -f "$CTX/.compression-done.signal" "$CTX/.compression-in-progress"
 echo "JICM prep failed. No trigger signal written. Working tree restored to pre-/jicm state."
 ```

@@ -16,7 +16,7 @@ last_updated: "2026-01-05"
 
 core_workspaces:
   jarvis:
-    path: "/Users/nathanielcannon/Claude/Jarvis"
+    path: "/Users/nathanielcannon/Claude/Project_Aion"
     description: "Project Aion Master Archon - primary workspace"
     permissions:
       - read

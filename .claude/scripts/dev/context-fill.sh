@@ -18,7 +18,7 @@ set -euo pipefail
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION="${TMUX_SESSION:-jarvis}"
 TARGET_WINDOW="${SESSION}:0"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 TARGET_PCT=55
 TOLERANCE=2
 WAIT_PER_PROMPT=45    # Seconds to wait after each prompt for W0 to process

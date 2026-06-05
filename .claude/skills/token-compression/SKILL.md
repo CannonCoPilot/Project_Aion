@@ -73,7 +73,7 @@ Benchmark results are appended to:
 ## Running a Benchmark
 
 ```bash
-cd /Users/nathanielcannon/Claude/Jarvis
+cd /Users/nathanielcannon/Claude/Project_Aion
 .claude/skills/token-compression/scripts/benchmark-harness.sh \
   --compression all \
   --runs 3 \
@@ -99,7 +99,7 @@ Inject its contents **before** the main task instructions in any system prompt t
 ### Applying CoD to a Prompt File
 
 ```bash
-cd /Users/nathanielcannon/Claude/Jarvis
+cd /Users/nathanielcannon/Claude/Project_Aion
 .claude/skills/token-compression/scripts/apply-cod.sh \
   --task-id <pulse-task-id> \
   path/to/system-prompt.txt

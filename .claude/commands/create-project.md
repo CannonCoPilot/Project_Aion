@@ -118,7 +118,7 @@ development:
 
 ### 5. Creates Project Summary in Jarvis
 
-Creates `/Users/nathanielcannon/Claude/Jarvis/projects/<name>.md` using the template from `knowledge/templates/project-summary.md`.
+Creates `/Users/nathanielcannon/Claude/Project_Aion/projects/<name>.md` using the template from `knowledge/templates/project-summary.md`.
 
 ### 6. Optional GitHub Setup
 
@@ -139,7 +139,7 @@ Per the workspace-path-policy:
 |------|-------|
 | Project code | `/Users/nathanielcannon/Claude/<project-name>/` |
 | Project's CLAUDE.md | `/Users/nathanielcannon/Claude/<project-name>/CLAUDE.md` |
-| Project summary (in Jarvis) | `/Users/nathanielcannon/Claude/Jarvis/projects/<project-name>.md` |
+| Project summary (in Jarvis) | `/Users/nathanielcannon/Claude/Project_Aion/projects/<project-name>.md` |
 | Registry | `paths-registry.yaml` → `development.projects` |
 
 **Key principle**: Jarvis creates and orchestrates projects stored elsewhere. Project code lives at the projects root, NOT inside Jarvis.

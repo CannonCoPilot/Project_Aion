@@ -28,7 +28,7 @@ set -o pipefail
 
 INPUT="$(cat)"
 
-PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
+PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-precompact.log"
 PREP_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
 COMPRESSED_FILE="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"

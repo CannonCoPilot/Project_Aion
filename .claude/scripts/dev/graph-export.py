@@ -26,7 +26,7 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from collections import defaultdict
 
-PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis"))
+PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion"))
 GRAPH_FILE = os.path.join(PROJECT_DIR, ".claude/context/filespace-graph.json")
 ANALYSIS_FILE = os.path.join(PROJECT_DIR, ".claude/context/filespace-analysis.json")
 EXPORT_DIR = os.path.join(PROJECT_DIR, ".claude/context/exports")

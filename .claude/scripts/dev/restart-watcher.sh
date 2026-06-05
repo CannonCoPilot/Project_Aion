@@ -14,7 +14,7 @@ set -euo pipefail
 # ─── Configuration ──────────────────────────────────────────────────────────
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION="${TMUX_SESSION:-jarvis}"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
 CONTEXT_DIR="$PROJECT_DIR/.claude/context"
 PID_FILE="$CONTEXT_DIR/.jicm-watcher.pid"

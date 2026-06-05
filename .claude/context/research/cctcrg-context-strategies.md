@@ -36,7 +36,7 @@ Jarvis's `CLAUDE.md` (root) functions as the primary project memory file with 9 
 - `.claude/context/compaction-essentials.md` — essential preserved context (now deprecated in v7; auto-loaded by Claude Code)
 - `.claude/context/psyche/jarvis-identity.md` — persona and tone
 
-Reference files: `/Users/nathanielcannon/Claude/Jarvis/CLAUDE.md`, `/Users/nathanielcannon/Claude/Jarvis/.claude/context/session-state.md`
+Reference files: `/Users/nathanielcannon/Claude/Project_Aion/CLAUDE.md`, `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/session-state.md`
 
 ---
 
@@ -50,7 +50,7 @@ CCTCRG provides `PromptTemplates.md` with a formula: `[Action] + [Object] + [Tec
 
 Jarvis's command system (`.claude/commands/`, 40 commands) implements the equivalent: `/react`, `/api`, `/fix`, `/test`, `/refactor`, `/quick`, `/debug`, `/optimize`, `/batch`, `/extend` — each encodes a structured template that Jarvis executes without requiring the human user to supply verbose context. Skill definitions in `.claude/skills/` provide the analogous standardized patterns for recurring task types.
 
-Reference files: `/Users/nathanielcannon/Claude/Jarvis/.claude/commands/README.md`, `/Users/nathanielcannon/Claude/Jarvis/.claude/skills/_index.md`
+Reference files: `/Users/nathanielcannon/Claude/Project_Aion/.claude/commands/README.md`, `/Users/nathanielcannon/Claude/Project_Aion/.claude/skills/_index.md`
 
 ---
 
@@ -70,7 +70,7 @@ Estimated savings: significant per-interaction reduction in response length.
 
 Jarvis's `observation-masking-pattern.md` implements the equivalent at the infrastructure level: tool outputs >50 files get summarized, grep results >100 lines get written to temp files with inline summary, bash outputs >2000 chars get offloaded. Target savings: 60-80% reduction on tool output tokens. Additionally, Jarvis's CLAUDE.md guardrails specify autonomic behavior that prevents verbose wait-and-ask responses.
 
-Reference files: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/observation-masking-pattern.md`, `/Users/nathanielcannon/Claude/Jarvis/.claude/context/compaction-essentials.md` (lines 85-98)
+Reference files: `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/observation-masking-pattern.md`, `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/compaction-essentials.md` (lines 85-98)
 
 ---
 
@@ -84,7 +84,7 @@ CCTCRG recommends grouping related tasks in a single conversation ("chain relate
 
 The Wiggum Loop (AC-02) is Jarvis's autonomous iteration engine: Execute → Check → Review → Drift Check → Context Check → Continue. This keeps related work in one session without user-triggered batching. The parallelization-strategy pattern further extends this by running independent subtasks as parallel tool calls. Both eliminate the per-session re-briefing overhead that CCTCRG's batch strategy targets.
 
-Reference: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/wiggum-loop-pattern.md`, `/Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/parallelization-strategy.md`
+Reference: `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/wiggum-loop-pattern.md`, `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/parallelization-strategy.md`
 
 ---
 
@@ -144,7 +144,7 @@ CCTCRG recommends separating requirements into: core (must-have), advanced (nice
 
 Jarvis's `progressive-constraint-encoding.md` pattern formalizes the exact same concept: 3-level constraint encoding for artifact generation prompts (essential → behavioral → quality). This was independently derived but functionally identical to CCTCRG's layered requirements approach.
 
-Reference: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/progressive-constraint-encoding.md`
+Reference: `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/progressive-constraint-encoding.md`
 
 ---
 
@@ -245,7 +245,7 @@ ccusage daily 2>/dev/null | head -5  # Show recent burn rate
 
 This provides the cross-session budget visibility that JICM's in-session monitoring lacks. Useful for identifying sessions that consistently burn high context (candidate for task restructuring).
 
-Implementation location: `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/session-start.sh`
+Implementation location: `/Users/nathanielcannon/Claude/Project_Aion/.claude/hooks/session-start.sh`
 
 ---
 
@@ -262,7 +262,7 @@ Create `.claude/context/usage-log.jsonl` with per-session entries:
 
 Populate via AC-09 (end-session) by reading JICM telemetry and session-state. This enables trend analysis: which task types drive context exhaustion, whether JICM cycles are correlated with specific work patterns, and whether observation masking is being applied consistently.
 
-Implementation location: `/Users/nathanielcannon/Claude/Jarvis/.claude/commands/end-session.md` (add logging step), `/Users/nathanielcannon/Claude/Jarvis/.claude/context/usage-log.jsonl` (new file)
+Implementation location: `/Users/nathanielcannon/Claude/Project_Aion/.claude/commands/end-session.md` (add logging step), `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/usage-log.jsonl` (new file)
 
 ---
 
@@ -274,7 +274,7 @@ Implementation location: `/Users/nathanielcannon/Claude/Jarvis/.claude/commands/
 When a human directs Jarvis to perform work, add a lightweight task triage step to determine whether the request is AI-appropriate (component generation, complex refactoring, API implementation) or trivially automatable via direct bash/edit (single-line change, rename, copy-paste). This prevents Jarvis from consuming context on work that a 5-line bash script would handle.
 
 Candidate pattern name: `task-triage-pattern.md`
-Implementation location: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/task-triage-pattern.md`
+Implementation location: `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/task-triage-pattern.md`
 
 ---
 
@@ -316,11 +316,11 @@ This is primarily useful if external tooling (extensions, browser bookmarks, thi
 4. [CCTCRG PromptTemplates.md](https://raw.githubusercontent.com/gino2013/CCTCRG/main/PromptTemplates.md)
 5. [CCTCRG CLAUDE_COMMANDS.md](https://raw.githubusercontent.com/gino2013/CCTCRG/main/CLAUDE_COMMANDS.md)
 6. [CCTCRG QuickStartGuide.md](https://raw.githubusercontent.com/gino2013/CCTCRG/main/QuickStartGuide.md)
-7. [Jarvis JICM v5 Design Addendum](file:///Users/nathanielcannon/Claude/Jarvis/.claude/context/designs/jicm-v5-design-addendum.md)
-8. [Jarvis Compaction Essentials (JICM v7 ref)](file:///Users/nathanielcannon/Claude/Jarvis/.claude/context/compaction-essentials.md)
-9. [Jarvis Context Budget Management Pattern](file:///Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/context-budget-management.md)
-10. [Jarvis Observation Masking Pattern](file:///Users/nathanielcannon/Claude/Jarvis/.claude/context/patterns/observation-masking-pattern.md)
-11. [Jarvis Current Priorities](file:///Users/nathanielcannon/Claude/Jarvis/.claude/context/current-priorities.md) — JICM v7 completion notes (2026-02-16)
+7. [Jarvis JICM v5 Design Addendum](file:///Users/nathanielcannon/Claude/Project_Aion/.claude/context/designs/jicm-v5-design-addendum.md)
+8. [Jarvis Compaction Essentials (JICM v7 ref)](file:///Users/nathanielcannon/Claude/Project_Aion/.claude/context/compaction-essentials.md)
+9. [Jarvis Context Budget Management Pattern](file:///Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/context-budget-management.md)
+10. [Jarvis Observation Masking Pattern](file:///Users/nathanielcannon/Claude/Project_Aion/.claude/context/patterns/observation-masking-pattern.md)
+11. [Jarvis Current Priorities](file:///Users/nathanielcannon/Claude/Project_Aion/.claude/context/current-priorities.md) — JICM v7 completion notes (2026-02-16)
 12. [ccusage npm package](https://www.npmjs.com/package/ccusage)
 13. [Claude-Code-Usage-Monitor](https://github.com/Maciek-roboblog/Claude-Code-Usage-Monitor)
 
@@ -334,10 +334,10 @@ This is primarily useful if external tooling (extensions, browser bookmarks, thi
 
 ## Related Topics
 
-- JICM v7 implementation report: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/designs/jicm-v6.1-implementation-report.md`
-- Context engineering marketplace analysis: `/Users/nathanielcannon/Claude/Jarvis/.claude/context/research/context-engineering-marketplace-analysis.md`
-- Compression timing experiments 1-7: `/Users/nathanielcannon/Claude/Jarvis/.claude/reports/testing/`
-- Research agenda (future topics): `/Users/nathanielcannon/Claude/Jarvis/.claude/context/research/research-agenda.yaml`
+- JICM v7 implementation report: `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/designs/jicm-v6.1-implementation-report.md`
+- Context engineering marketplace analysis: `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/research/context-engineering-marketplace-analysis.md`
+- Compression timing experiments 1-7: `/Users/nathanielcannon/Claude/Project_Aion/.claude/reports/testing/`
+- Research agenda (future topics): `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/research/research-agenda.yaml`
 
 ---
 

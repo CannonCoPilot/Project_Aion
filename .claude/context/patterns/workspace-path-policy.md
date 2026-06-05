@@ -38,13 +38,13 @@ This is the root directory for all Claude-assisted projects. Each project gets i
 | Content | Location |
 |---------|----------|
 | External projects | `/Users/nathanielcannon/Claude/<ProjectName>/` |
-| Jarvis itself | `/Users/nathanielcannon/Claude/Jarvis/` |
+| Jarvis itself | `/Users/nathanielcannon/Claude/Project_Aion/` |
 | AIfred baseline | `/Users/nathanielcannon/Claude/AIfred/` (read-only) |
 | Future Archons | `/Users/nathanielcannon/Claude/<ArchonName>/` |
 
 ### 2. Jarvis Project Summaries
 
-**Path**: `/Users/nathanielcannon/Claude/Jarvis/projects/`
+**Path**: `/Users/nathanielcannon/Claude/Project_Aion/projects/`
 
 When Jarvis works on external projects, it creates **summary documents** here (not code). These summaries provide context about projects without duplicating their content.
 
@@ -58,11 +58,11 @@ When Jarvis works on external projects, it creates **summary documents** here (n
 
 **Example**: Working on a project called "MyApp":
 - Code lives at: `/Users/nathanielcannon/Claude/MyApp/`
-- Summary lives at: `/Users/nathanielcannon/Claude/Jarvis/projects/myapp.md`
+- Summary lives at: `/Users/nathanielcannon/Claude/Project_Aion/projects/myapp.md`
 
 ### 3. Project Aion Documentation (EVOLUTION)
 
-**Path**: `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/`
+**Path**: `/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/`
 
 Project Aion is special—Jarvis is working on itself. All evolution documentation lives here.
 
@@ -103,9 +103,9 @@ The `paths-registry.yaml` file at Jarvis root is the source of truth for all pat
 
 ```yaml
 projects_root: /Users/nathanielcannon/Claude
-jarvis_root: /Users/nathanielcannon/Claude/Jarvis
-jarvis_summaries: /Users/nathanielcannon/Claude/Jarvis/projects
-jarvis_project_aion: /Users/nathanielcannon/Claude/Jarvis/projects/project-aion
+jarvis_root: /Users/nathanielcannon/Claude/Project_Aion
+jarvis_summaries: /Users/nathanielcannon/Claude/Project_Aion/projects
+jarvis_project_aion: /Users/nathanielcannon/Claude/Project_Aion/projects/project-aion
 aifred_baseline: /Users/nathanielcannon/Claude/AIfred  # READ-ONLY
 
 development:
@@ -122,7 +122,7 @@ development:
 | Scenario | Location |
 |----------|----------|
 | New external project | `/Users/nathanielcannon/Claude/<ProjectName>/` |
-| Jarvis internal changes | `/Users/nathanielcannon/Claude/Jarvis/` |
+| Jarvis internal changes | `/Users/nathanielcannon/Claude/Project_Aion/` |
 | New Archon | `/Users/nathanielcannon/Claude/<ArchonName>/` |
 | Benchmarks (Demo apps) | `/Users/nathanielcannon/Claude/<DemoName>/` |
 
@@ -155,7 +155,7 @@ User: "Clone https://github.com/example/myapp"
 
 Action:
 1. Clone to: /Users/nathanielcannon/Claude/myapp/
-2. Create summary: /Users/nathanielcannon/Claude/Jarvis/projects/myapp.md
+2. Create summary: /Users/nathanielcannon/Claude/Project_Aion/projects/myapp.md
 3. Register in: paths-registry.yaml under development.projects
 ```
 
@@ -167,7 +167,7 @@ User: "Create a new project called DataPipeline"
 Action:
 1. Create at: /Users/nathanielcannon/Claude/DataPipeline/
 2. Initialize: git, README, CLAUDE.md
-3. Create summary: /Users/nathanielcannon/Claude/Jarvis/projects/DataPipeline.md
+3. Create summary: /Users/nathanielcannon/Claude/Project_Aion/projects/DataPipeline.md
 4. Register in: paths-registry.yaml
 ```
 
@@ -179,7 +179,7 @@ Task: Execute one-shot PRD demo
 Action:
 1. Create repo at: /Users/nathanielcannon/Claude/aion-hello-console-2026-01-05/
 2. Push to: github.com/CannonCoPilot/aion-hello-console-2026-01-05
-3. Create report: /Users/nathanielcannon/Claude/Jarvis/projects/aion-hello-console-report.md
+3. Create report: /Users/nathanielcannon/Claude/Project_Aion/projects/aion-hello-console-report.md
 ```
 
 ---

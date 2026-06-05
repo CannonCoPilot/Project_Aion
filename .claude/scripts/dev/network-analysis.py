@@ -22,7 +22,7 @@ except ImportError:
     print("ERROR: networkx required. Install with: pip3 install networkx")
     sys.exit(1)
 
-PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis"))
+PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion"))
 GRAPH_FILE = os.path.join(PROJECT_DIR, ".claude/context/filespace-graph.json")
 OUTPUT_JSON = os.path.join(PROJECT_DIR, ".claude/context/filespace-analysis.json")
 OUTPUT_MD = os.path.join(PROJECT_DIR, ".claude/context/filespace-analysis-report.md")

@@ -32,7 +32,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-ROOT = Path('/Users/nathanielcannon/Claude/Jarvis')
+ROOT = Path('/Users/nathanielcannon/Claude/Project_Aion')
 DATA_DIR = ROOT / '.claude/scratch/cache-mechanics-v4'
 PLOT_DIR = DATA_DIR / 'plots'
 PLOT_DIR.mkdir(parents=True, exist_ok=True)

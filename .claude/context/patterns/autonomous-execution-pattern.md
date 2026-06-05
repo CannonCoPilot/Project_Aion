@@ -141,7 +141,7 @@ claude -p "task description" \
 
 set -euo pipefail
 
-PROJECT_DIR="${JARVIS_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_DIR:-$HOME/Claude/Project_Aion}"
 LOG_DIR="$PROJECT_DIR/.claude/logs/scheduled"
 
 # Permission tiers

@@ -30,5 +30,5 @@ replaces: Manual ccusage/cmonitor CLI calls
 ```
 NPX="/Users/nathanielcannon/.nvm/versions/node/v24.13.1/bin/npx"
 CMONITOR="/Users/nathanielcannon/.local/bin/cmonitor"
-CCUSAGE_CACHE="$HOME/Claude/Jarvis/.claude/context/.ccusage-blocks.json"
+CCUSAGE_CACHE="$HOME/Claude/Project_Aion/.claude/context/.ccusage-blocks.json"
 ```

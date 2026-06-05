@@ -25,7 +25,7 @@ Destructive or flagged-risky actions still require explicit confirmation.
 
 ## Homelab
 
-- **Primary compose dir**: `~/Claude/AIFred-Pro-Dev`
+- **Primary compose dir**: `~/Claude/Project_Aion/alfred`
 - **Critical services**: aifred-dev-dashboard, aifred-dev-pulse, aifred-dev-postgres
 - **NAS**: None registered
 - **SSH remote hosts**: None

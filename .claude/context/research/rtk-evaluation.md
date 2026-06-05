@@ -147,7 +147,7 @@ The hook script and RTK.md are installed. The `PreToolUse` hook entry needs to b
 }
 ```
 
-**Important Jarvis-specific caution**: Jarvis has an existing rich hooks system (Stop hooks, exit-guard, idle-hands, etc.) managed via `/Users/nathanielcannon/Claude/Jarvis/.claude/hooks/hooks.json`. The RTK hook goes into `~/.claude/settings.json` (global), not the local hooks.json. These do not conflict — hooks.json handles `Stop` events; RTK handles `PreToolUse:Bash`.
+**Important Jarvis-specific caution**: Jarvis has an existing rich hooks system (Stop hooks, exit-guard, idle-hands, etc.) managed via `/Users/nathanielcannon/Claude/Project_Aion/.claude/hooks/hooks.json`. The RTK hook goes into `~/.claude/settings.json` (global), not the local hooks.json. These do not conflict — hooks.json handles `Stop` events; RTK handles `PreToolUse:Bash`.
 
 However, the Jarvis `bash-safety-guard.js` and `permission-gate.js` PreToolUse hooks (if any) need to be checked for conflicts before enabling RTK's rewrite hook.
 
@@ -306,7 +306,7 @@ rtk read /path/to/file -l aggressive   # signatures only mode
      jq '[.usage.input_tokens] | add' 2>/dev/null
    
    # Or from Jarvis usage-tracker
-   cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/sessions/usage-*.json | \
+   cat /Users/nathanielcannon/Claude/Project_Aion/.claude/context/sessions/usage-*.json | \
      jq '[.tokens_used] | add'
    ```
 4. Record: total input tokens, total output tokens, session duration, command count.
@@ -333,12 +333,12 @@ Run this script before/after hook activation for key Jarvis commands:
 
 ```bash
 #!/bin/bash
-# /Users/nathanielcannon/Claude/Jarvis/.claude/scripts/rtk-benchmark.sh
+# /Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/rtk-benchmark.sh
 # Run WITHOUT hook, then WITH hook, compare output sizes
 
 CMDS=(
   "git status"
-  "ls -la /Users/nathanielcannon/Claude/Jarvis/.claude/context/"
+  "ls -la /Users/nathanielcannon/Claude/Project_Aion/.claude/context/"
   "git log --oneline -20"
   "git diff HEAD~1 --stat"
   "docker ps"
@@ -384,7 +384,7 @@ Compare across hook-off vs hook-on sessions of similar task complexity.
 rtk --version && rtk gain
 
 # 2. Side-by-side git status
-echo "=== RAW ===" && git -C /Users/nathanielcannon/Claude/Jarvis status
+echo "=== RAW ===" && git -C /Users/nathanielcannon/Claude/Project_Aion status
 echo "=== RTK ===" && rtk git status
 
 # 3. Check what was saved

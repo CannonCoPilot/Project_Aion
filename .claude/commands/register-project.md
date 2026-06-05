@@ -103,7 +103,7 @@ development:
 
 ### 4. Creates Project Summary
 
-Creates `/Users/nathanielcannon/Claude/Jarvis/projects/<name>.md` using the template from `knowledge/templates/project-summary.md`.
+Creates `/Users/nathanielcannon/Claude/Project_Aion/projects/<name>.md` using the template from `knowledge/templates/project-summary.md`.
 
 This summary:
 - Lives in Jarvis (not the project)
@@ -124,7 +124,7 @@ Per the workspace-path-policy:
 | What | Where |
 |------|-------|
 | Project code | `/Users/nathanielcannon/Claude/<project-name>/` |
-| Project summary | `/Users/nathanielcannon/Claude/Jarvis/projects/<project-name>.md` |
+| Project summary | `/Users/nathanielcannon/Claude/Project_Aion/projects/<project-name>.md` |
 | Detailed context | `.claude/context/projects/<project-name>.md` (optional) |
 | Registry | `paths-registry.yaml` → `development.projects` |
 

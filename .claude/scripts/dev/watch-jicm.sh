@@ -10,7 +10,7 @@
 set -euo pipefail
 
 # ─── Configuration ──────────────────────────────────────────────────────────
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state"
 SLEEP_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-sleep.signal"
 INTERVAL=2

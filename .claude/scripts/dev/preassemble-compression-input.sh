@@ -16,7 +16,7 @@
 set -euo pipefail
 
 # ─── Configuration ──────────────────────────────────────────────────────────
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 OUTPUT_FILE="$PROJECT_DIR/.claude/context/.compression-input-preassembled.md"
 TMP_FILE="${OUTPUT_FILE}.tmp"
 MAX_CHARS=50000

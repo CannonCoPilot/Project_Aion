@@ -247,7 +247,7 @@ Check git status across ALL known project directories:
 for DIR in \
   "/Users/nathanielcannon/Claude/Projects/DwarfCron" \
   "/Users/nathanielcannon/Claude/Alfred-Dev" \
-  "/Users/nathanielcannon/Claude/Jarvis-Dev"; do
+  "/Users/nathanielcannon/Claude/Project_Aion-Dev"; do
   if [ -d "$DIR/.git" ]; then
     CHANGES=$(git -C "$DIR" status --porcelain 2>/dev/null | wc -l | tr -d ' ')
     UNPUSHED=$(git -C "$DIR" log @{u}.. --oneline 2>/dev/null | wc -l | tr -d ' ')

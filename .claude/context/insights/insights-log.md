@@ -1519,3 +1519,24 @@ Together with the C hardening (cross-window burn fix, configurable timeouts, tim
 **Key clarification**: The local `main` and `nate-dev` branches are both stuck at `c5b1186` — they haven't been updated. Meanwhile `origin/main` on CannonCoPilot/Alfred is 22 commits ahead (those are the earlier `nate-dev` pushes from the supplant work). The `feature/personas-rebuild` branch was cut from `c5b1186` and has diverged 43 commits.
 
 **The upstream** (`davidmoneil/AIFred-Pro:main`) is at `dfd40c5` — David's latest. Our `pre-sync-safety-2026-04-23` branch is also at `dfd40c5`, confirming that was the snapshot before we started diverging.
+
+### 2026-06-05 [74216e862a5c]
+
+**Archived Jarvis repo**: `CannonCoPilot/Jarvis` is archived on GitHub and still contains the old commits with secrets. If you want to scrub those too, you'd need to: unarchive → clone → filter-repo → force push → re-archive. Since it's private and archived, the risk is low but not zero.
+
+**Key rotation**: The exposed keys should ideally be rotated, especially the GitHub PATs and any third-party API keys. The credentials file has them all in one place now, making rotation straightforward.
+
+**Personal info**: Private IPs (`192.168.*`, Tailscale `100.93.*`), machine names, and `nathanielcannon` in filesystem paths remain in tracked files. These are low-risk in a private repo but would need redaction before going public.
+
+### 2026-06-05 [7a454f873e56]
+
+The credentials file now has three layers of database access info:
+1. **Quick-reference table** at the top of the database section — scan for any DB in 2 seconds
+2. **DSN shortcuts** — copy-paste connection strings for `psql`, Python, or any DB tool
+3. **Structured YAML** below — for programmatic access via `yq` in scripts
+
+The key discovery: Chronicler shares the Jarvis postgres user/password but has its own database name (`chronicler`). n8n also shares the Jarvis user via the same `PG_USER`/`PG_PASSWORD` env vars. This means rotating the Jarvis postgres password affects three services simultaneously.
+
+### 2026-06-05 [7f71c296be45]
+
+The `JARVIS_*` variable names are **internal implementation details** — they reference session UUIDs and file paths, not user-facing identity. Renaming them to `AION_*` would be cosmetic but would break compatibility with the existing `.current-w0-uuid` file and any hooks/scripts that read `JARVIS_SESSION_ROLE` or `JARVIS_LITE` env vars. The pragmatic choice: keep the internal names, update only the user-visible strings (window names, banners, session name).

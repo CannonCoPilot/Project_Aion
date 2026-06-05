@@ -194,7 +194,7 @@ After install, the docs are in `~/.claude-code-docs/docs/`. No further configura
 
 Add a `claude-docs` collection to the Qdrant stack. This requires:
 
-1. Edit `/Users/nathanielcannon/Claude/Jarvis/infrastructure/rag-service/mcp_server.py`:
+1. Edit `/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py`:
    - Add `"claude-docs"` to `VALID_COLLECTIONS`
    - Add collection to `file_to_collection()` routing (docs from `~/.claude-code-docs/` path)
 
@@ -320,7 +320,7 @@ Alternatively, a cron entry until n8n is wired:
 ## Action Items
 
 - [ ] Run install one-liner: `curl -fsSL https://raw.githubusercontent.com/costiash/claude-code-docs/main/install.sh | bash`
-- [ ] Add `claude-docs` to `VALID_COLLECTIONS` in `/Users/nathanielcannon/Claude/Jarvis/infrastructure/rag-service/mcp_server.py`
+- [ ] Add `claude-docs` to `VALID_COLLECTIONS` in `/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py`
 - [ ] Create Qdrant collection `claude-docs` (2560-dim Cosine)
 - [ ] Run `ingest_directory("/Users/nathanielcannon/.claude-code-docs/docs", "claude-docs")`
 - [ ] Update `file_to_collection()` routing for `~/.claude-code-docs/` paths
@@ -341,7 +341,7 @@ Alternatively, a cron entry until n8n is wired:
 7. [scripts/fetcher/safeguards.py](https://github.com/costiash/claude-code-docs/blob/main/scripts/fetcher/safeguards.py)
 8. [scripts/claude-docs-helper.sh.template](https://github.com/costiash/claude-code-docs/blob/main/scripts/claude-docs-helper.sh.template)
 9. [paths_manifest.json](https://github.com/costiash/claude-code-docs/blob/main/paths_manifest.json)
-10. [Jarvis RAG MCP Server](/Users/nathanielcannon/Claude/Jarvis/infrastructure/rag-service/mcp_server.py)
+10. [Jarvis RAG MCP Server](/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py)
 
 ---
 

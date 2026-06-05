@@ -27,7 +27,7 @@ This pattern eliminates the need for manual intervention when context limits are
 ```json
 {
   "projects": {
-    "/Users/nathanielcannon/Claude/Jarvis": {
+    "/Users/nathanielcannon/Claude/Project_Aion": {
       "mcpServers": { /* registered MCPs */ },
       "disabledMcpServers": ["context7", "github", "sequential-thinking"]
     }
@@ -343,7 +343,7 @@ fi
 
 2. Start fresh session:
    ```bash
-   cd /Users/nathanielcannon/Claude/Jarvis
+   cd /Users/nathanielcannon/Claude/Project_Aion
    claude
    ```
 
@@ -411,7 +411,7 @@ ps -p $(cat .claude/context/.watcher-pid)
 
 ```bash
 # Check disabledMcpServers array
-jq '.projects["/Users/nathanielcannon/Claude/Jarvis"].disabledMcpServers' ~/.claude.json
+jq '.projects["/Users/nathanielcannon/Claude/Project_Aion"].disabledMcpServers' ~/.claude.json
 
 # Manual disable
 .claude/scripts/disable-mcps.sh github context7 sequential-thinking

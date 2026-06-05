@@ -2085,7 +2085,7 @@ echo "Group 28: Dev-Ops Testing Infrastructure"
 echo "───────────────────────────────────────"
 
 # Group 28 tests real project files (not temp dirs used by other groups)
-REAL_PROJECT="${REAL_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+REAL_PROJECT="${REAL_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 DEV_SCRIPTS_DIR="$REAL_PROJECT/.claude/scripts/dev"
 DEV_TEST_SCRIPTS=(
     "send-to-jarvis.sh"

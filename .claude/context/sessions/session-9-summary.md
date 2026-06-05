@@ -48,20 +48,20 @@ All three target Alfred-Dev `nate-dev` branch.
 ## Files Modified (full absolute paths)
 
 **Maintenance edits (this commit)**:
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher.sh`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jarvis-watcher.sh`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/ennoia.sh`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-prep-context.sh`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/prompts.yaml`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/jarvis-identity.md`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/context/psyche/self-knowledge/self-corrections.md`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/context/components/AC-04-jicm.md`
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/tests/test-jicm-v6.sh`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-watcher.sh`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jarvis-watcher.sh`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/ennoia.sh`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-prep-context.sh`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/prompts.yaml`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/jarvis-identity.md`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/self-knowledge/self-corrections.md`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/components/AC-04-jicm.md`
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/tests/test-jicm-v6.sh`
 
 **New plans of record (this commit)**:
-- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/plans/aifred-pro-dev-pipeline-watcher-watchdog.md`
-- `/Users/nathanielcannon/Claude/Jarvis/projects/project-aion/plans/aifred-pro-dev-reviewer-dash.md`
+- `/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/plans/aifred-pro-dev-pipeline-watcher-watchdog.md`
+- `/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/plans/aifred-pro-dev-reviewer-dash.md`
 
 **Gitignored edits (parallel — won't show in git history but applied)**:
-- `/Users/nathanielcannon/Claude/Jarvis/.claude/context/memory/MEMORY.md` (project memory)
+- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/memory/MEMORY.md` (project memory)
 - `/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Jarvis/memory/MEMORY.md` (auto-memory)

@@ -21,7 +21,7 @@ tmux should already be available at `~/bin/tmux` (built during Jarvis setup).
 ## Step 2: Launch Jarvis (30 sec)
 
 ```bash
-cd ~/Claude/Jarvis
+cd ~/Claude/Project_Aion
 .claude/scripts/launch-jarvis-tmux.sh
 ```
 

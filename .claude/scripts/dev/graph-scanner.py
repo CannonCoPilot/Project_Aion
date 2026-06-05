@@ -23,7 +23,7 @@ from collections import defaultdict, deque
 from pathlib import Path
 
 # ─── Configuration ─────────────────────────────────────────────────────────
-PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis"))
+PROJECT_DIR = os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion"))
 
 # Entry points for BFS reachability
 ENTRY_POINTS = [

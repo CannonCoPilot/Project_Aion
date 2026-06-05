@@ -39,7 +39,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 // Configuration
-const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Jarvis');
+const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Project_Aion');
 const SESSION_STATE_PATH = path.join(WORKSPACE_ROOT, '.claude/context/session-state.md');
 const PRIORITIES_PATH = path.join(WORKSPACE_ROOT, '.claude/context/current-priorities.md');
 const AIFRED_BASELINE = (process.env.HOME + '/Claude/AIfred');

@@ -15,7 +15,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 
-const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || (process.env.HOME + '/Claude/Jarvis');
+const WORKSPACE_ROOT = process.env.CLAUDE_PROJECT_DIR || (process.env.HOME + '/Claude/Project_Aion');
 
 // Test configuration
 const TEST_CONFIG = {

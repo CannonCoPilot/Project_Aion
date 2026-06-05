@@ -21,12 +21,12 @@ from datetime import datetime
 # ─── Configuration ──────────────────────────────────────────────────────────
 
 DEFAULT_DATA = os.path.join(
-    os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis")),
+    os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion")),
     ".claude/reports/testing/compression-timing-data.jsonl"
 )
 
 DEFAULT_REPORT = os.path.join(
-    os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis")),
+    os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion")),
     ".claude/reports/testing/compression-experiment-report.md"
 )
 

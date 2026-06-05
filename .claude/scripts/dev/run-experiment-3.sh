@@ -17,7 +17,7 @@ set -euo pipefail
 # ─── Configuration ──────────────────────────────────────────────────────────
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION="${TMUX_SESSION:-jarvis}"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 SCRIPTS_DIR="$PROJECT_DIR/.claude/scripts/dev"
 DATA_FILE="$PROJECT_DIR/.claude/reports/testing/compression-exp3-data.jsonl"
 LOG_FILE="$PROJECT_DIR/.claude/logs/experiment-3.log"

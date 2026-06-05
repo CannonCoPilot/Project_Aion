@@ -16,7 +16,7 @@
 set +e
 
 HOOK_INPUT=$(cat)
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 WINDOW="${JARVIS_WINDOW:-0}"
 IH_FILE="$PROJECT_DIR/.claude/context/.idle-hands-active.W${WINDOW}"
 LOG="$PROJECT_DIR/.claude/logs/idle-hands-debug.log"

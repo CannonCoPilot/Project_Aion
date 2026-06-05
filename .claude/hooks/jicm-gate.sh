@@ -56,7 +56,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # ─── Config ─────────────────────────────────────────────────────────────────
-PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
+PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-gate.log"
 STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 STATE_UPDATE="$PROJECT_DIR/.claude/scripts/jicm-state-update.sh"

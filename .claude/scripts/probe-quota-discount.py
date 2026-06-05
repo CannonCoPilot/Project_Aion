@@ -24,7 +24,7 @@ import time
 import uuid
 from pathlib import Path
 
-OUT_DIR = Path('/Users/nathanielcannon/Claude/Jarvis/.claude/scratch/quota-discount-probe')
+OUT_DIR = Path('/Users/nathanielcannon/Claude/Project_Aion/.claude/scratch/quota-discount-probe')
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # Common user prompt — same across all cells. Sized to a realistic CoD-cell shape.

@@ -56,7 +56,7 @@ Empirical pairings observed within one session are NOT rates. "27pp burned durin
 
 ## §2 Headers — Glossary (the map)
 
-Source of capture: `/Users/nathanielcannon/Claude/Alfred-Dev/usage-proxy/proxy.py:222-295`. All `anthropic-*` headers stored verbatim in `raw_headers` JSONB; typed columns extracted.
+Source of capture: `/Users/nathanielcannon/Claude/Project_Aion/alfred/usage-proxy/proxy.py:222-295`. All `anthropic-*` headers stored verbatim in `raw_headers` JSONB; typed columns extracted.
 
 ### §2.1 Unified composite (authoritative)
 
@@ -263,12 +263,12 @@ Modal patterns observed in proxy data; use for postmortem attribution only:
 
 | Surface | Path | Lines |
 |---|---|---|
-| Reverse proxy | `/Users/nathanielcannon/Claude/Alfred-Dev/usage-proxy/proxy.py` | 154-295 |
-| Pulse API server | `/Users/nathanielcannon/Claude/Alfred-Dev/pulse/app.py` | 1938, 2632-2690 |
-| Statusline v9 | `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jarvis-statusline-v9.sh` | 543-797 |
-| Cost-anomaly-watcher | `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/cost-anomaly-watcher.sh` | 74-134 |
-| HUD | `/Users/nathanielcannon/Claude/Jarvis/.claude/scripts/jicm-watcher-hud.sh` | 51, 843-864 |
-| Dashboard UsagePage | `/Users/nathanielcannon/Claude/Alfred-Dev/dashboard/frontend/src/pages/UsagePage.tsx` | 305-356, 1828-1877 |
+| Reverse proxy | `/Users/nathanielcannon/Claude/Project_Aion/alfred/usage-proxy/proxy.py` | 154-295 |
+| Pulse API server | `/Users/nathanielcannon/Claude/Project_Aion/alfred/pulse/app.py` | 1938, 2632-2690 |
+| Statusline v9 | `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jarvis-statusline-v9.sh` | 543-797 |
+| Cost-anomaly-watcher | `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/cost-anomaly-watcher.sh` | 74-134 |
+| HUD | `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-watcher-hud.sh` | 51, 843-864 |
+| Dashboard UsagePage | `/Users/nathanielcannon/Claude/Project_Aion/alfred/dashboard/frontend/src/pages/UsagePage.tsx` | 305-356, 1828-1877 |
 | v3 cache findings | `projects/project-aion/reports/fork-cache-validation-v3-findings-2026-05-21.md` | — |
 | v4 cache article | `projects/project-aion/reports/claude-code-cache-mechanics-2026-05-22.md` | §3.2.1, §5.4 |
 | v5 G script | `.claude/scripts/cache-mechanics-v5-arm-g.py` | — |

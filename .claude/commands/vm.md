@@ -30,7 +30,7 @@ Wraps `projects/chronicler/scripts/vm-lifecycle.sh` for convenient VM management
 ## Implementation
 
 ```bash
-SCRIPTS="/Users/nathanielcannon/Claude/Jarvis/projects/chronicler/scripts"
+SCRIPTS="/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts"
 VM="$SCRIPTS/vm-lifecycle.sh"
 ```
 

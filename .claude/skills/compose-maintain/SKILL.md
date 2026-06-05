@@ -31,7 +31,7 @@ W0 (you)                          worker tmux window (ephemeral)
   │      ├─ acquire lock (mkdir scratch/compose-maintain.lock)
   │      ├─ render prompt template + recipe path
   │      ├─ spawn:  tmux new-window -d -n maintain-<recipe> \
-  │      │           "cd ~/Claude/Jarvis && \
+  │      │           "cd ~/Claude/Project_Aion && \
   │      │            env -u ANTHROPIC_BASE_URL \
   │      │            claude --print '<prompt>' > <log>; \
   │      │            tmux kill-window"
@@ -61,7 +61,7 @@ W0 (you)                          worker tmux window (ephemeral)
 
 ### Direct invocation (works any time)
 ```bash
-bash /Users/nathanielcannon/Claude/Jarvis/.claude/skills/compose-maintain/launch-worker.sh <recipe>
+bash /Users/nathanielcannon/Claude/Project_Aion/.claude/skills/compose-maintain/launch-worker.sh <recipe>
 ```
 
 ### Via Skill tool (after capability-map registration + session restart)
@@ -129,13 +129,13 @@ If the worker hangs or crashes mid-flight:
 
 ```bash
 # 1. Check status
-cat /Users/nathanielcannon/Claude/Jarvis/.claude/scratch/compose-maintain-<recipe>.status.json
+cat /Users/nathanielcannon/Claude/Project_Aion/.claude/scratch/compose-maintain-<recipe>.status.json
 
 # 2. Check worker log
-tail -50 /Users/nathanielcannon/Claude/Jarvis/.claude/scratch/compose-maintain-<recipe>.log
+tail -50 /Users/nathanielcannon/Claude/Project_Aion/.claude/scratch/compose-maintain-<recipe>.log
 
 # 3. Force-release the lock (last resort)
-rm -rf /Users/nathanielcannon/Claude/Jarvis/.claude/scratch/compose-maintain.lock
+rm -rf /Users/nathanielcannon/Claude/Project_Aion/.claude/scratch/compose-maintain.lock
 
 # 4. Manually restore the stack
 cd <project_dir>

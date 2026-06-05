@@ -20,7 +20,7 @@ set -euo pipefail
 # ─── Configuration ──────────────────────────────────────────────────────────
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION="${TMUX_SESSION:-jarvis}"
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 CONTEXT_DIR="$PROJECT_DIR/.claude/context"
 DEV_DIR="$PROJECT_DIR/.claude/scripts/dev"
 STATE_FILE="$CONTEXT_DIR/.jicm-state"

@@ -48,7 +48,7 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 # ─── Config ─────────────────────────────────────────────────────────────────
-PROJECT_DIR="${JICM_COD_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}}"
+PROJECT_DIR="${JICM_COD_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 SKILL_ROOT="$PROJECT_DIR/.claude/skills/token-compression"
 LOG_FILE="$PROJECT_DIR/.claude/logs/cod-inject.log"
 

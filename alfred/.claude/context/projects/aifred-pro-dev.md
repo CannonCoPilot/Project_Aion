@@ -1,7 +1,7 @@
 ---
 name: AIFred-Pro-Dev
 type: infrastructure
-path: ~/Claude/AIFred-Pro-Dev
+path: ~/Claude/Project_Aion/alfred
 registered: 2026-04-22
 ---
 
@@ -11,5 +11,5 @@ Sibling development branch of AIFred-Pro. Same stack layout (docker-compose.yml 
 
 ## When to load context
 
-- Running `cd ~/Claude/AIFred-Pro-Dev` — AIfred's primary hub is `AIFred-Pro`, so if you see dev, you're comparing or porting changes.
+- Running `cd ~/Claude/Project_Aion/alfred` — AIfred's primary hub is `AIFred-Pro`, so if you see dev, you're comparing or porting changes.
 - Questions about feature parity between dev and main.

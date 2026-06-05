@@ -18,7 +18,7 @@ TARGET="${SESSION}:0"
 TIMEOUT=600          # 10 minutes max wait
 POLL_INTERVAL=2      # Poll every 2 seconds
 OUTPUT_FILE=""       # Append JSON to this file
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 
 # ─── Usage ──────────────────────────────────────────────────────────────────
 show_usage() {

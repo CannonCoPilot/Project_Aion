@@ -21,7 +21,7 @@ import time
 import uuid
 from pathlib import Path
 
-ROOT = Path('/Users/nathanielcannon/Claude/Jarvis')
+ROOT = Path('/Users/nathanielcannon/Claude/Project_Aion')
 OUT_DIR = ROOT / '.claude/scratch/fork-cache-validation-v2'
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 

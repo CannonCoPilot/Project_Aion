@@ -177,7 +177,7 @@ If significant changes were made this session:
 
 | Failure | Cause | Fix |
 |---------|-------|-----|
-| Jarvis workspace not found | Wrong directory | `cd /Users/nathanielcannon/Claude/Jarvis` |
+| Project_Aion workspace not found | Wrong directory | `cd /Users/nathanielcannon/Claude/Project_Aion` |
 | In AIfred baseline | Started from wrong repo | Change working directory |
 | In forbidden path | Started from system directory | Navigate to workspace |
 

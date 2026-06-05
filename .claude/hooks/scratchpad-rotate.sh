@@ -20,7 +20,7 @@
 #   - All operations idempotent / no-op if no rotation needed
 #   - Bash 3.2 compatible (macOS), no `set -e` (failures surface explicitly)
 
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/nathanielcannon/Claude/Jarvis}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-/Users/nathanielcannon/Claude/Project_Aion}"
 SCRATCHPAD="${PROJECT_DIR}/.claude/context/.scratchpad.md"
 ARCHIVE_DIR="${PROJECT_DIR}/.claude/context/archive"
 LIMIT="${SCRATCHPAD_LINE_LIMIT:-120}"

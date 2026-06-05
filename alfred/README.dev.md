@@ -26,7 +26,7 @@ from prod).
 ## Starting / stopping the dev stack
 
 ```bash
-cd ~/Claude/Alfred-Dev
+cd ~/Claude/Project_Aion/alfred
 
 # Start
 docker compose \
@@ -90,7 +90,7 @@ do not copy dev `.env` to prod. They intentionally diverge:
 When prod gets new overlay commits you want in dev:
 
 ```bash
-cd ~/Claude/Alfred-Dev
+cd ~/Claude/Project_Aion/alfred
 git fetch prod-local    # remote set to /Users/nathanielcannon/Claude/AIFred-Pro
 git merge --ff-only prod-local/main
 ```

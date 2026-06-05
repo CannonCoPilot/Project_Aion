@@ -34,7 +34,7 @@ Parse the argument to determine which view to show:
 
 ```bash
 # Active block from cache (fast, no npx latency)
-cat /Users/nathanielcannon/Claude/Jarvis/.claude/context/.ccusage-blocks.json 2>/dev/null
+cat /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.ccusage-blocks.json 2>/dev/null
 ```
 
 Extract today's entry from the daily JSON: `.daily[-1]` (last entry is today).

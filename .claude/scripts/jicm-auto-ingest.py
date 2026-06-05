@@ -36,7 +36,7 @@ from qdrant_client.models import (
 )
 
 # --- Configuration (from environment, set by jicm-config.sh sourcing) ---
-PROJECT_DIR = os.environ.get("PROJECT_DIR", os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Jarvis")))
+PROJECT_DIR = os.environ.get("PROJECT_DIR", os.environ.get("CLAUDE_PROJECT_DIR", os.path.expanduser("~/Claude/Project_Aion")))
 CHECKPOINT_FILE = os.environ.get("JICM_COMPRESSED_FILE", f"{PROJECT_DIR}/.claude/context/.compressed-context-ready.md")
 COLLECTION = os.environ.get("JICM_RAG_COLLECTION", "sessions")
 DEDUP_THRESHOLD = float(os.environ.get("JICM_RAG_DEDUP_THRESHOLD", "0.92"))

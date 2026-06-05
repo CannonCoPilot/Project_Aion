@@ -10,7 +10,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Jarvis}"
+PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 METRICS_DIR="$PROJECT_DIR/.claude/metrics/token-compression"
 METRICS_FILE="$METRICS_DIR/session-metrics.jsonl"
 ARCHIVE_DIR="$METRICS_DIR/archive"

@@ -42,7 +42,7 @@ from pathlib import Path
 from typing import Any
 from urllib.request import urlopen
 
-ROOT = Path('/Users/nathanielcannon/Claude/Jarvis')
+ROOT = Path('/Users/nathanielcannon/Claude/Project_Aion')
 OUT = ROOT / '.claude/scratch/cache-mechanics-v5/EF'
 OUT.mkdir(parents=True, exist_ok=True)
 SP_FILE = OUT / 'v6-system-prompt-file.txt'  # written above

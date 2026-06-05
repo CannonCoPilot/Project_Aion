@@ -32,7 +32,7 @@ try {
 }
 
 // Configuration
-const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Jarvis');
+const WORKSPACE_ROOT = (process.env.HOME + '/Claude/Project_Aion');
 const STATE_DIR = path.join(WORKSPACE_ROOT, '.claude/state/components');
 const LOG_DIR = path.join(WORKSPACE_ROOT, '.claude/logs');
 const STATE_FILE = path.join(STATE_DIR, 'AC-03-review.json');
