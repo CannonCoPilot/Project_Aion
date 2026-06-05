@@ -9,7 +9,7 @@
 **Date**: 2026-06-04
 **Version**: v5.13.0
 **Branch**: main → origin/main on CannonCoPilot/Project_Aion.
-**Last commit**: `f710f48` (feat: launch-aion.sh — unified Archon launcher).
+**Last commit**: `05e69a2` (verify: Phase 6 — reference sweep clean, Docker stack validated).
 **Legacy**: CannonCoPilot/Jarvis archived, jarvis-legacy remote preserved.
 **Quota**: active session.
 

@@ -16,7 +16,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JOBS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_DIR="${JOBS_DIR}/state"
 TMUX_BIN="${HOME}/bin/tmux"
-ALFDEV_DIR="${HOME}/Claude/Alfred-Dev"
+TMUX_SESSION="${TMUX_SESSION:-jarvis}"
+ALFDEV_DIR="${ALFRED_DIR:-${HOME}/Claude/Project_Aion/alfred}"
 SEED_WINDOW="AlfDev-Seed"
 SEED_SESSION_FILE="${STATE_DIR}/.chain-seed-session-id"
 SENTINEL_DIR="${STATE_DIR}"
@@ -29,9 +30,9 @@ log() {
 
 ensure_seed() {
     # Check if the seed window exists and has a running Claude process
-    if "$TMUX_BIN" list-windows -t jarvis -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
+    if "$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
         local pane_pid
-        pane_pid=$("$TMUX_BIN" list-panes -t "jarvis:${SEED_WINDOW}" -F '#{pane_pid}' 2>/dev/null)
+        pane_pid=$("$TMUX_BIN" list-panes -t "${TMUX_SESSION}:${SEED_WINDOW}" -F '#{pane_pid}' 2>/dev/null)
         # Claude may BE the pane process (exec) or a child of it
         if [ -n "$pane_pid" ]; then
             local cmd
@@ -44,11 +45,11 @@ ensure_seed() {
             fi
         fi
         log "Seed window exists but Claude not running — restarting"
-        "$TMUX_BIN" kill-window -t "jarvis:${SEED_WINDOW}" 2>/dev/null
+        "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${SEED_WINDOW}" 2>/dev/null
     fi
 
     log "Starting seed session in ${SEED_WINDOW}"
-    "$TMUX_BIN" new-window -d -t jarvis -n "${SEED_WINDOW}" \
+    "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${SEED_WINDOW}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 
     # Wait for Claude to become interactive (up to 30s)
@@ -57,7 +58,7 @@ ensure_seed() {
         sleep 2
         waited=$((waited + 2))
         local pane_pid
-        pane_pid=$("$TMUX_BIN" list-panes -t "jarvis:${SEED_WINDOW}" -F '#{pane_pid}' 2>/dev/null)
+        pane_pid=$("$TMUX_BIN" list-panes -t "${TMUX_SESSION}:${SEED_WINDOW}" -F '#{pane_pid}' 2>/dev/null)
         if [ -n "$pane_pid" ]; then
             local cmd
             cmd=$(ps -p "$pane_pid" -o command= 2>/dev/null)
@@ -113,7 +114,7 @@ fork_chain_window() {
     fi
 
     log "Forking seed ${seed_sid:0:12} → ${window_name}"
-    "$TMUX_BIN" new-window -d -t jarvis -n "${window_name}" \
+    "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 
     # Wait for the fork to become interactive
@@ -122,7 +123,7 @@ fork_chain_window() {
         sleep 2
         waited=$((waited + 2))
         local pane_pid
-        pane_pid=$("$TMUX_BIN" list-panes -t "jarvis:${window_name}" -F '#{pane_pid}' 2>/dev/null)
+        pane_pid=$("$TMUX_BIN" list-panes -t "${TMUX_SESSION}:${window_name}" -F '#{pane_pid}' 2>/dev/null)
         if [ -n "$pane_pid" ]; then
             local cmd
             cmd=$(ps -p "$pane_pid" -o command= 2>/dev/null)
@@ -153,9 +154,9 @@ inject_prompt() {
 
     # Inject via tmux paste-buffer
     "$TMUX_BIN" load-buffer "$augmented_prompt" 2>/dev/null
-    "$TMUX_BIN" paste-buffer -t "jarvis:${window_name}" 2>/dev/null
+    "$TMUX_BIN" paste-buffer -t "${TMUX_SESSION}:${window_name}" 2>/dev/null
     sleep 0.5
-    "$TMUX_BIN" send-keys -t "jarvis:${window_name}" Enter 2>/dev/null
+    "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${window_name}" Enter 2>/dev/null
 
     log "Injected prompt for ${task_id} into ${window_name}"
     rm -f "$augmented_prompt"
@@ -265,7 +266,7 @@ json.dump({
 
     # Kill the chain window
     log "Chain ${chain_id} complete — cleaning up ${window_name}"
-    "$TMUX_BIN" kill-window -t "jarvis:${window_name}" 2>/dev/null
+    "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${window_name}" 2>/dev/null
 }
 
 # ── Entry points ──
@@ -279,9 +280,9 @@ case "${1:-}" in
         execute_chain "$@"
         ;;
     --status)
-        echo "Seed window: $("$TMUX_BIN" list-windows -t jarvis -F '#{window_name}' 2>/dev/null | grep "${SEED_WINDOW}" || echo "NOT RUNNING")"
+        echo "Seed window: $("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep "${SEED_WINDOW}" || echo "NOT RUNNING")"
         echo "Seed session: $(get_seed_session_id || echo "unknown")"
-        echo "Active chains: $("$TMUX_BIN" list-windows -t jarvis -F '#{window_name}' 2>/dev/null | grep '^chain-' | wc -l | tr -d ' ')"
+        echo "Active chains: $("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep '^chain-' | wc -l | tr -d ' ')"
         ;;
     *)
         echo "Usage: $0 {--ensure-seed|--execute-chain <chain_id> <request1.json> [request2.json ...]|--status}"

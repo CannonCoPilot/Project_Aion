@@ -17,7 +17,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JOBS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_DIR="${JOBS_DIR}/state"
 TMUX_BIN="${HOME}/bin/tmux"
-ALFDEV_DIR="${HOME}/Claude/Alfred-Dev"
+TMUX_SESSION="${TMUX_SESSION:-jarvis}"
+ALFDEV_DIR="${ALFRED_DIR:-${HOME}/Claude/Project_Aion/alfred}"
 SEED_WINDOW="AlfDev-Seed"
 SEED_SESSION_FILE="${STATE_DIR}/.chain-seed-session-id"
 CHAIN_EXECUTOR="${SCRIPT_DIR}/chain-executor.sh"
@@ -32,7 +33,7 @@ log() {
 _claude_running_in_window() {
     local window="$1"
     local pane_pid
-    pane_pid=$("$TMUX_BIN" list-panes -t "jarvis:${window}" -F '#{pane_pid}' 2>/dev/null)
+    pane_pid=$("$TMUX_BIN" list-panes -t "${TMUX_SESSION}:${window}" -F '#{pane_pid}' 2>/dev/null)
     if [ -z "$pane_pid" ]; then return 1; fi
     local cmd
     cmd=$(ps -p "$pane_pid" -o command= 2>/dev/null)
@@ -42,17 +43,17 @@ _claude_running_in_window() {
 }
 
 ensure_seed() {
-    if "$TMUX_BIN" list-windows -t jarvis -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
+    if "$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
         if _claude_running_in_window "$SEED_WINDOW"; then
             [ ! -s "$SEED_SESSION_FILE" ] && _capture_seed_session_id
             return 0
         fi
         log "Seed window exists but Claude not running — restarting"
-        "$TMUX_BIN" kill-window -t "jarvis:${SEED_WINDOW}" 2>/dev/null
+        "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${SEED_WINDOW}" 2>/dev/null
     fi
 
     log "Starting seed session: ${SEED_WINDOW}"
-    "$TMUX_BIN" new-window -d -t jarvis -n "${SEED_WINDOW}" \
+    "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${SEED_WINDOW}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 
     local waited=0
@@ -112,7 +113,7 @@ get_or_create_chain_window() {
     fi
 
     log "Forking seed → ${window_name} for chain ${chain_id:0:12}"
-    "$TMUX_BIN" new-window -d -t jarvis -n "${window_name}" \
+    "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 
     local waited=0
@@ -138,7 +139,7 @@ cleanup_chain_window() {
         local window_name
         window_name=$(cat "$map_file" 2>/dev/null)
         if [ -n "$window_name" ] && [ "$window_name" != "$SEED_WINDOW" ]; then
-            "$TMUX_BIN" kill-window -t "jarvis:${window_name}" 2>/dev/null
+            "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${window_name}" 2>/dev/null
             log "Cleaned up chain window: ${window_name}"
         fi
         rm -f "$map_file"
@@ -166,9 +167,9 @@ inject_and_wait() {
 
     # Inject via tmux paste-buffer → Enter
     "$TMUX_BIN" load-buffer "$inject_file" 2>/dev/null
-    "$TMUX_BIN" paste-buffer -t "jarvis:${window}" 2>/dev/null
+    "$TMUX_BIN" paste-buffer -t "${TMUX_SESSION}:${window}" 2>/dev/null
     sleep 0.5
-    "$TMUX_BIN" send-keys -t "jarvis:${window}" Enter 2>/dev/null
+    "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${window}" Enter 2>/dev/null
 
     log "Injected: task=${task_id} window=${window}"
     rm -f "$inject_file"
@@ -354,7 +355,7 @@ reap_dead_chain_windows() {
 
     # Collect all current chain windows
     local chain_windows
-    chain_windows=$("$TMUX_BIN" list-windows -t jarvis -F '#{window_name}' 2>/dev/null | grep '^chain-')
+    chain_windows=$("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep '^chain-')
 
     for win in $chain_windows; do
         local counter_file="${IDLE_STATE_DIR}/${win}"
@@ -393,7 +394,7 @@ reap_dead_chain_windows() {
         # ── Reap ──
         if [ "$should_reap" = true ]; then
             log "Reaping ${win}: ${reason}"
-            "$TMUX_BIN" kill-window -t "jarvis:${win}" 2>/dev/null
+            "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${win}" 2>/dev/null
             rm -f "$counter_file" "$activity_file"
             reaped=$((reaped + 1))
         fi
@@ -402,7 +403,7 @@ reap_dead_chain_windows() {
     # Clean up: map entries for windows that no longer exist
     if [ -d "$CHAIN_MAP_DIR" ]; then
         local existing_windows
-        existing_windows=$("$TMUX_BIN" list-windows -t jarvis -F '#{window_name}' 2>/dev/null)
+        existing_windows=$("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null)
         for map_file in "$CHAIN_MAP_DIR"/*; do
             [ -f "$map_file" ] || continue
             local mapped_win
@@ -466,7 +467,7 @@ if [ "${1:-}" = "--daemon" ]; then
                 [ -f "$f" ] || continue
                 local wn
                 wn=$(cat "$f" 2>/dev/null)
-                [ -n "$wn" ] && [ "$wn" != "$SEED_WINDOW" ] && "$TMUX_BIN" kill-window -t "jarvis:${wn}" 2>/dev/null
+                [ -n "$wn" ] && [ "$wn" != "$SEED_WINDOW" ] && "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${wn}" 2>/dev/null
             done
             rm -rf "$CHAIN_MAP_DIR"
         fi

@@ -118,7 +118,7 @@ if [[ "$LITE_MODE" == "true" ]]; then
 
     echo -e "${CYAN}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
-    echo "║              AION LITE LAUNCHER                             ║"
+    echo "║          PROJECT AION  ·  Lite Launcher v3.1                  ║"
     echo "║       (Isolated session — no persistence, no state)           ║"
     echo "╚═══════════════════════════════════════════════════════════════╝"
     echo -e "${NC}"
@@ -212,8 +212,9 @@ NC='\033[0m'
 
 echo -e "${CYAN}"
 echo "╔═══════════════════════════════════════════════════════════════╗"
-echo "║              JARVIS TMUX LAUNCHER v2.4                        ║"
-echo "║       (Deterministic UUIDs + Aion Quartet + JICM)            ║"
+echo "║               PROJECT AION  ·  Launcher v3.1                  ║"
+echo "║         Jarvis (Master Archon) + Alfred (Ops Archon)          ║"
+echo "║       Deterministic UUIDs · Aion Quartet · JICM v7.9         ║"
 echo "╚═══════════════════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -245,161 +246,295 @@ if ! command -v jq &> /dev/null; then
 fi
 
 # ─── Service Pre-Flight ───────────────────────────────────────────────────────
-# Ensures all Jarvis dependencies are healthy before launching Claude sessions.
-# Auto-starts services we control (Docker stack, MLX embeddings, LiteLLM).
+# Comprehensive pre-flight for the entire Aion environment.
+# Auto-starts services we control (Docker stacks, MLX, LiteLLM).
 # Warns for externally managed services (Ollama via macOS launchd).
 
-preflight_services() {
-    echo -e "${CYAN}Service pre-flight checks...${NC}"
-    local failures=0
+check_port() {
+    curl -sf --max-time 2 "http://localhost:${1}${2:-/}" >/dev/null 2>&1
+}
 
-    # 1. Docker Engine
+check_container() {
+    docker ps --format '{{.Names}}' 2>/dev/null | grep -q "^${1}$"
+}
+
+preflight_services() {
+    echo -e "${CYAN}Pre-flight checks — Aion environment${NC}"
+    echo ""
+    local failures=0 warnings=0
+
+    # ── Section 1: Docker Engine ────────────────────────────────────────────
+    echo -e "  ${CYAN}[Docker Engine]${NC}"
     if docker info &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} Docker Engine"
+        echo -e "    ${GREEN}✓${NC} Docker Engine running"
     else
-        echo -e "  ${RED}✗${NC} Docker Engine — not running (start Docker Desktop)"
+        echo -e "    ${RED}✗${NC} Docker Engine — not running (start Docker Desktop)"
         failures=$((failures + 1))
+        echo ""
+        echo -e "  ${RED}Cannot continue pre-flight without Docker. Start Docker Desktop and retry.${NC}"
+        return 1
     fi
 
-    # 2. Docker Compose stack (5 containers: postgres, qdrant, neo4j, redis, n8n)
+    # ── Section 2: Jarvis Infrastructure (5 services) ───────────────────────
+    echo -e "  ${CYAN}[Jarvis Infrastructure]${NC}"
     local infra_dir="$PROJECT_DIR/infrastructure"
     if [[ -f "$infra_dir/docker-compose.yml" ]]; then
         local running_count
         running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || true)
         running_count=${running_count:-0}
-        if [[ "$running_count" -ge 5 ]]; then
-            echo -e "  ${GREEN}✓${NC} Docker Compose stack ($running_count containers)"
-        else
-            echo -e "  ${YELLOW}✗${NC} Docker Compose stack ($running_count/5 running) — starting..."
+        if [[ "$running_count" -lt 5 ]]; then
+            echo -e "    ${YELLOW}…${NC} Infrastructure stack ($running_count/5 running) — starting..."
             (cd "$infra_dir" && docker compose up -d 2>/dev/null)
-            # Wait up to 30s for containers
             local waited=0
             while [[ $waited -lt 30 ]]; do
                 running_count=$(cd "$infra_dir" && docker compose ps --format json 2>/dev/null | grep -c '"running"' || true)
                 running_count=${running_count:-0}
-                if [[ "$running_count" -ge 5 ]]; then
-                    break
-                fi
-                sleep 2
-                waited=$((waited + 2))
+                [[ "$running_count" -ge 5 ]] && break
+                sleep 2; waited=$((waited + 2))
             done
-            if [[ "$running_count" -ge 5 ]]; then
-                echo -e "  ${GREEN}✓${NC} Docker Compose stack ($running_count containers — started)"
-            else
-                echo -e "  ${RED}✗${NC} Docker Compose stack ($running_count/5 after ${waited}s)"
-                failures=$((failures + 1))
-            fi
+        fi
+        if [[ "$running_count" -ge 5 ]]; then
+            echo -e "    ${GREEN}✓${NC} Compose stack ($running_count containers)"
+        else
+            echo -e "    ${RED}✗${NC} Compose stack ($running_count/5 after ${waited:-0}s)"
+            failures=$((failures + 1))
         fi
     fi
-
-    # 3. Ollama (macOS launchd managed — warn only)
-    if curl -sf --max-time 2 http://localhost:11434/api/version &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} Ollama (localhost:11434)"
+    # Individual service health (port-level, not just container count)
+    # PostgreSQL: not HTTP — use pg_isready or TCP probe
+    if command -v pg_isready &>/dev/null && pg_isready -h localhost -p 5432 &>/dev/null; then
+        echo -e "    ${GREEN}✓${NC} PostgreSQL/ParadeDB (:5432)"
+    elif check_container jarvis-postgres; then
+        echo -e "    ${GREEN}✓${NC} PostgreSQL/ParadeDB (container healthy)"
     else
-        echo -e "  ${YELLOW}⚠${NC} Ollama — not reachable (launchd-managed; check manually)"
+        echo -e "    ${RED}✗${NC} PostgreSQL/ParadeDB — not reachable on :5432"
+        failures=$((failures + 1))
+    fi
+    if check_port 6333 "/collections"; then
+        echo -e "    ${GREEN}✓${NC} Qdrant (:6333)"
+    else
+        echo -e "    ${RED}✗${NC} Qdrant — not reachable on :6333"
+        failures=$((failures + 1))
+    fi
+    if check_port 7474; then
+        echo -e "    ${GREEN}✓${NC} Neo4j (:7474 browser, :7687 bolt)"
+    else
+        echo -e "    ${RED}✗${NC} Neo4j — not reachable on :7474"
+        failures=$((failures + 1))
+    fi
+    if check_container jarvis-redis; then
+        echo -e "    ${GREEN}✓${NC} Redis (:6379, RedisInsight :8001)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} Redis — container not detected"
+        warnings=$((warnings + 1))
+    fi
+    if check_port 5678; then
+        echo -e "    ${GREEN}✓${NC} n8n (:5678)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} n8n — not reachable on :5678"
+        warnings=$((warnings + 1))
     fi
 
-    # 4. MLX Embedding Server
-    if curl -sf --max-time 2 http://localhost:8000/health &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} MLX Embedding Server (localhost:8000)"
-        MLX_STARTED_BY_PREFLIGHT=false
-    else
-        echo -e "  ${YELLOW}✗${NC} MLX Embedding Server — not running, will start in tmux window"
-        MLX_STARTED_BY_PREFLIGHT=true
-    fi
-
-    # 5. LiteLLM Proxy
-    # Note: /health probes all backends (hangs if Ollama models not loaded).
-    # Use /v1/models instead — lightweight metadata check that confirms proxy is up.
-    if curl -sf --max-time 2 http://localhost:4000/v1/models &>/dev/null; then
-        echo -e "  ${GREEN}✓${NC} LiteLLM Proxy (localhost:4000)"
-    else
-        echo -e "  ${YELLOW}✗${NC} LiteLLM Proxy — not running, will start in tmux window"
-        LITELLM_STARTED_BY_PREFLIGHT=true
-    fi
-
-    # 6. Alfred Compose stack (pulse, proxy, dashboard, pipeline)
+    # ── Section 3: Alfred Dev Stack (6 services) ────────────────────────────
+    echo -e "  ${CYAN}[Alfred Ops Archon — Dev Stack]${NC}"
     local aifred_dev_dir="$ALFRED_DIR"
     if [[ -f "$aifred_dev_dir/docker-compose.yml" ]]; then
         local dev_running
         dev_running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -c 'aifred-dev-' || true)
-        if [[ "$dev_running" -ge 4 ]]; then
-            echo -e "  ${GREEN}✓${NC} Alfred Compose stack ($dev_running containers)"
-        else
-            echo -e "  ${YELLOW}✗${NC} Alfred Compose stack ($dev_running running) — starting..."
+        if [[ "$dev_running" -lt 4 ]]; then
+            echo -e "    ${YELLOW}…${NC} Alfred stack ($dev_running running) — starting..."
             (cd "$aifred_dev_dir" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d 2>/dev/null)
             local waited=0
             while [[ $waited -lt 45 ]]; do
                 dev_running=$(docker ps --format '{{.Names}}' 2>/dev/null | grep -c 'aifred-dev-' || true)
-                if [[ "$dev_running" -ge 4 ]]; then break; fi
-                sleep 3
-                waited=$((waited + 3))
+                [[ "$dev_running" -ge 4 ]] && break
+                sleep 3; waited=$((waited + 3))
             done
-            if [[ "$dev_running" -ge 4 ]]; then
-                echo -e "  ${GREEN}✓${NC} Alfred Compose stack ($dev_running containers — started)"
-            else
-                echo -e "  ${RED}✗${NC} Alfred Compose stack ($dev_running after ${waited}s)"
-                failures=$((failures + 1))
-            fi
+        fi
+        if [[ "$dev_running" -ge 4 ]]; then
+            echo -e "    ${GREEN}✓${NC} Compose stack ($dev_running containers)"
+        else
+            echo -e "    ${RED}✗${NC} Compose stack ($dev_running after ${waited:-0}s)"
+            failures=$((failures + 1))
         fi
     fi
-
-    # 7. Pulse API (Alfred, canonical)
-    if curl -sf --max-time 2 http://localhost:8800/api/v1/health >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Pulse API (localhost:8800)"
+    # Pulse API
+    if check_port 8800 "/api/v1/health"; then
+        echo -e "    ${GREEN}✓${NC} Pulse API (:8800)"
     else
-        echo -e "  ${YELLOW}!${NC} Pulse API — not reachable on :8800"
+        echo -e "    ${YELLOW}⚠${NC} Pulse API — not reachable on :8800"
+        warnings=$((warnings + 1))
     fi
-
-    # 8. Usage Proxy + failover logic
-    if curl -sf --max-time 2 http://localhost:9800/health >/dev/null 2>&1; then
-        echo -e "  ${GREEN}✓${NC} Usage Proxy (localhost:9800)"
+    # Nexus Dashboard (prod-style)
+    if check_port 8701; then
+        echo -e "    ${GREEN}✓${NC} Nexus Dashboard (:8701)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} Nexus Dashboard — not reachable on :8701"
+        warnings=$((warnings + 1))
+    fi
+    # Vite dev sidecar
+    if check_port 8702; then
+        echo -e "    ${GREEN}✓${NC} Vite Dev Sidecar (:8702)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} Vite Dev Sidecar — not reachable on :8702 (hot-reload may be slow to start)"
+        warnings=$((warnings + 1))
+    fi
+    # Usage Proxy + failover
+    if check_port 9800 "/health"; then
+        echo -e "    ${GREEN}✓${NC} Usage Proxy (:9800)"
         export ANTHROPIC_BASE_URL="http://localhost:9800"
     else
-        echo -e "  ${YELLOW}⚠${NC} Usage Proxy DOWN — Claude Code will route direct to Anthropic (telemetry offline)"
+        echo -e "    ${YELLOW}⚠${NC} Usage Proxy DOWN — telemetry offline, routing direct to Anthropic"
         unset ANTHROPIC_BASE_URL
         PROXY_OFFLINE=true
+        warnings=$((warnings + 1))
     fi
-
-    # 9. Pipeline Watcher (Docker container)
-    if docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^aifred-dev-pipeline$'; then
-        echo -e "  ${GREEN}✓${NC} Pipeline Watcher (Docker: aifred-dev-pipeline)"
+    # Pipeline Watcher
+    if check_container aifred-dev-pipeline; then
+        echo -e "    ${GREEN}✓${NC} Pipeline Watcher (Docker)"
     else
-        echo -e "  ${YELLOW}!${NC} Pipeline Watcher — not running"
+        echo -e "    ${YELLOW}⚠${NC} Pipeline Watcher — not running"
+        warnings=$((warnings + 1))
     fi
-
-    # 10. Host Executor Bridge (replaces event-watcher for signal-file processing)
+    # Host Executor Bridge
     local bridge_heartbeat="$ALFRED_DIR/.claude/jobs/state/.bridge-heartbeat"
     if [[ -f "$bridge_heartbeat" ]]; then
         local bridge_age=$(( $(date +%s) - $(date -r "$bridge_heartbeat" +%s 2>/dev/null || echo 0) ))
-        if [[ "$bridge_age" -lt 30 ]]; then
-            echo -e "  ${GREEN}✓${NC} Host Executor Bridge (heartbeat ${bridge_age}s ago)"
+        if [[ "$bridge_age" -lt 60 ]]; then
+            echo -e "    ${GREEN}✓${NC} Host Executor Bridge (heartbeat ${bridge_age}s ago)"
         else
-            echo -e "  ${YELLOW}!${NC} Host Executor Bridge (stale heartbeat: ${bridge_age}s)"
+            echo -e "    ${YELLOW}⚠${NC} Host Executor Bridge (stale heartbeat: ${bridge_age}s)"
+            warnings=$((warnings + 1))
         fi
     else
-        echo -e "  ${YELLOW}!${NC} Host Executor Bridge — not running"
+        echo -e "    ${YELLOW}⚠${NC} Host Executor Bridge — no heartbeat file"
+        warnings=$((warnings + 1))
     fi
 
-    # 11. Nexus launchd agents (DEV — dispatcher + watchdog only, event-watcher superseded by Bridge)
-    local dev_agents_loaded=0
-    for agent in com.aion.nexus-dev-dispatcher com.aion.nexus-dev-watchdog; do
+    # ── Section 4: Optional Stacks (Authentik, Caddy, Monitoring, MCP-GW) ──
+    echo -e "  ${CYAN}[Optional Infrastructure]${NC}"
+    # Authentik (SSO)
+    if check_container authentik_server; then
+        if check_port 9000; then
+            echo -e "    ${GREEN}✓${NC} Authentik SSO (:9000, :9443)"
+        else
+            echo -e "    ${YELLOW}⚠${NC} Authentik container up but :9000 not reachable"
+            warnings=$((warnings + 1))
+        fi
+    else
+        echo -e "    ${YELLOW}·${NC} Authentik SSO — not running (optional)"
+    fi
+    # Caddy (reverse proxy)
+    if check_container caddy; then
+        echo -e "    ${GREEN}✓${NC} Caddy reverse proxy (:80, :443)"
+    else
+        echo -e "    ${YELLOW}·${NC} Caddy — not running (optional)"
+    fi
+    # Monitoring (Prometheus + Grafana)
+    local mon_count=0
+    check_container aifred-prometheus && mon_count=$((mon_count + 1))
+    check_container aifred-pushgateway && mon_count=$((mon_count + 1))
+    check_container aifred-grafana && mon_count=$((mon_count + 1))
+    if [[ $mon_count -ge 3 ]]; then
+        echo -e "    ${GREEN}✓${NC} Monitoring stack ($mon_count/3: Prometheus :9090, Pushgateway :9091, Grafana :3002)"
+    elif [[ $mon_count -gt 0 ]]; then
+        echo -e "    ${YELLOW}⚠${NC} Monitoring stack partial ($mon_count/3)"
+        warnings=$((warnings + 1))
+    else
+        echo -e "    ${YELLOW}·${NC} Monitoring stack — not running (optional)"
+    fi
+    # MCP Gateway
+    if check_container mcp-gateway || docker ps --format '{{.Config.Image}}' 2>/dev/null | grep -q 'mcp-gateway'; then
+        echo -e "    ${GREEN}✓${NC} MCP Gateway (:8811)"
+    elif docker ps --format '{{.Image}}' 2>/dev/null | grep -q 'mcp-gateway'; then
+        echo -e "    ${GREEN}✓${NC} MCP Gateway (running, non-standard name)"
+    else
+        echo -e "    ${YELLOW}·${NC} MCP Gateway — not running (optional)"
+    fi
+
+    # ── Section 5: AI Services (Ollama, MLX, LiteLLM) ──────────────────────
+    echo -e "  ${CYAN}[AI Services]${NC}"
+    # Ollama
+    if check_port 11434 "/api/version"; then
+        local model_count
+        model_count=$(curl -sf --max-time 3 http://localhost:11434/api/tags 2>/dev/null | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('models',[])))" 2>/dev/null || echo "?")
+        echo -e "    ${GREEN}✓${NC} Ollama (:11434, $model_count models available)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} Ollama — not reachable (launchd-managed; check manually)"
+        warnings=$((warnings + 1))
+    fi
+    # MLX Embedding Server
+    if check_port 8000 "/health"; then
+        echo -e "    ${GREEN}✓${NC} MLX Embedding Server (:8000, Qwen3-Embedding-4B)"
+        MLX_STARTED_BY_PREFLIGHT=false
+    else
+        echo -e "    ${YELLOW}…${NC} MLX Embedding Server — will start in tmux window"
+        MLX_STARTED_BY_PREFLIGHT=true
+    fi
+    # LiteLLM Proxy (use /v1/models — /health probes backends and can hang)
+    if check_port 4000 "/v1/models"; then
+        echo -e "    ${GREEN}✓${NC} LiteLLM Proxy (:4000)"
+    else
+        echo -e "    ${YELLOW}…${NC} LiteLLM Proxy — will start in tmux window"
+        LITELLM_STARTED_BY_PREFLIGHT=true
+    fi
+
+    # ── Section 6: MCP Servers ──────────────────────────────────────────────
+    echo -e "  ${CYAN}[MCP Servers]${NC}"
+    # jarvis-rag: depends on Qdrant + MLX
+    if check_port 6333 "/collections" && (check_port 8000 "/health" || [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]]); then
+        echo -e "    ${GREEN}✓${NC} jarvis-rag (Qdrant + MLX backends available)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} jarvis-rag — backend(s) missing (Qdrant:6333 or MLX:8000)"
+        warnings=$((warnings + 1))
+    fi
+    # jarvis-graphiti: depends on Neo4j + LiteLLM
+    if check_port 7474 && (check_port 4000 "/v1/models" || [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]]); then
+        echo -e "    ${GREEN}✓${NC} jarvis-graphiti (Neo4j + LiteLLM backends available)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} jarvis-graphiti — backend(s) missing (Neo4j:7474 or LiteLLM:4000)"
+        warnings=$((warnings + 1))
+    fi
+    # jarvis-pulse: depends on Pulse API
+    if check_port 8800 "/api/v1/health"; then
+        echo -e "    ${GREEN}✓${NC} jarvis-pulse (Pulse API :8800)"
+    else
+        echo -e "    ${YELLOW}⚠${NC} jarvis-pulse — Pulse API not reachable"
+        warnings=$((warnings + 1))
+    fi
+
+    # ── Section 7: LaunchAgents ─────────────────────────────────────────────
+    echo -e "  ${CYAN}[LaunchAgents]${NC}"
+    local agents_loaded=0 agents_total=0
+    for agent in com.aion.nexus-dev-dispatcher com.aion.nexus-dev-watchdog com.aion.jarvis-cost-watcher com.aion.token-compression-reminder; do
+        agents_total=$((agents_total + 1))
         if launchctl list "$agent" &>/dev/null; then
-            dev_agents_loaded=$((dev_agents_loaded + 1))
+            agents_loaded=$((agents_loaded + 1))
         else
             local plist_path="$HOME/Library/LaunchAgents/${agent}.plist"
             if [[ -f "$plist_path" ]]; then
                 launchctl load "$plist_path" 2>/dev/null
-                dev_agents_loaded=$((dev_agents_loaded + 1))
+                if launchctl list "$agent" &>/dev/null; then
+                    agents_loaded=$((agents_loaded + 1))
+                fi
             fi
         fi
     done
-    echo -e "  ${GREEN}✓${NC} Nexus launchd agents ($dev_agents_loaded/2 loaded)"
-
-    if [[ $failures -gt 0 ]]; then
-        echo -e "${RED}Pre-flight: $failures critical service(s) failed. Continuing anyway...${NC}"
+    if [[ $agents_loaded -ge $agents_total ]]; then
+        echo -e "    ${GREEN}✓${NC} All $agents_loaded/$agents_total agents loaded"
     else
-        echo -e "${GREEN}Pre-flight: all services healthy.${NC}"
+        echo -e "    ${YELLOW}⚠${NC} $agents_loaded/$agents_total agents loaded"
+        warnings=$((warnings + 1))
+    fi
+
+    # ── Summary ─────────────────────────────────────────────────────────────
+    echo ""
+    if [[ $failures -gt 0 ]]; then
+        echo -e "  ${RED}Pre-flight: $failures CRITICAL failure(s), $warnings warning(s). Continuing...${NC}"
+    elif [[ $warnings -gt 0 ]]; then
+        echo -e "  ${GREEN}Pre-flight: OK${NC} ${YELLOW}($warnings non-critical warning(s))${NC}"
+    else
+        echo -e "  ${GREEN}Pre-flight: all systems nominal.${NC}"
     fi
     echo ""
 }
@@ -463,9 +598,9 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
             sleep 1
             "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
-                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null \
+                "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null \
                 || "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
-                    "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read"
+                    "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read"
             ;;
         all)
             echo "Full restart..."
@@ -474,7 +609,7 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
             sleep 1
             "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
-                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null || true
+                "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null || true
             echo "Docker stacks + bridge restarted. tmux processes unchanged."
             ;;
         *)
@@ -603,7 +738,7 @@ fi
 echo -e "  ${CYAN}W5 UUID:${NC} $JARVIS_W5_SESSION_ID (excluded from W0 lookup)"
 echo -e "  ${CYAN}Watcher:${NC} $([ "$WATCHER_ENABLED" = true ] && echo "${GREEN}ENABLED${NC}" || echo "${YELLOW}DISABLED${NC}")"
 echo ""
-echo "Starting Jarvis..."
+echo "Starting Aion..."
 
 # Set TERM for best compatibility with Claude's ink UI
 export TERM=xterm-256color
@@ -861,10 +996,23 @@ BRIDGE_SCRIPT="$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh"
 if [[ -x "$BRIDGE_SCRIPT" ]] || [[ -f "$BRIDGE_SCRIPT" ]]; then
     if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q '^Bridge$'; then
         "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
-            "cd '$ALFRED_DIR' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Bridge stopped.'; read"
+            "cd '$ALFRED_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$ALFRED_DIR' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Bridge stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Bridge" automatic-rename off 2>/dev/null || true
         echo -e "  ${GREEN}✓${NC} Host Executor Bridge daemon started"
     fi
+fi
+
+# AlfDev-Seed — warm Claude session for chain-executor fork-and-inject pattern.
+# The chain-executor calls ensure_seed() on demand, but pre-warming at launch
+# avoids the ~15s cold-start penalty on the first chain dispatch.
+SEED_WINDOW="AlfDev-Seed"
+if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
+    echo "Launching AlfDev-Seed (warm chain session)..."
+    SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
+    "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
+        "cd '$ALFRED_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Seed stopped.'; read"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} AlfDev-Seed warm session created"
 fi
 
 # Set tmux options for better experience
@@ -878,25 +1026,36 @@ fi
 "$TMUX_BIN" set-window-option -t "$SESSION_NAME:4" automatic-rename off 2>/dev/null || true
 
 echo ""
-echo -e "${GREEN}Aion is ready!${NC}"
+echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║                    Aion is ready!                             ║${NC}"
+echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
-echo "Windows:"
-echo "  Window 0: Aion ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed") — $JARVIS_W0_SESSION_ID)"
-echo "  Window 1: Watcher"
-echo "  Window 2: Ennoia"
-echo "  Window 3: Virgil"
-echo "  Window 4: Commands"
-[[ "$DEV_MODE" == "true" ]] && echo "  Window 5: Aion-dev (test driver)"
-[[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : MLX-Embed (embedding server)"
-[[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && echo "  Window  : LiteLLM (proxy server)"
-[[ -x "$HUD_SCRIPT" ]] && echo "  Window  : HUD (live dashboard)"
-[[ -f "$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh" ]] && echo "  Window  : Bridge (executor signal daemon)"
+echo -e "${CYAN}Tmux Windows:${NC}"
+echo "  W0  Aion          Jarvis Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"
+echo "  W1  Watcher       JICM v7.9 context monitor"
+echo "  W2  Ennoia        Session orchestrator"
+echo "  W3  Virgil        Codebase guide"
+echo "  W4  Commands      Signal file → command injection"
+[[ "$DEV_MODE" == "true" ]] && \
+echo "  W5  Aion-dev      Developer test driver"
+[[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && \
+echo "      MLX-Embed     Qwen3-Embedding-4B server (:8000)"
+[[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && \
+echo "      LiteLLM       Model proxy (:4000)"
+[[ -x "$HUD_SCRIPT" ]] && \
+echo "      HUD           Live dashboard"
+[[ -f "$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh" ]] && \
+echo "      Bridge        Host executor signal daemon"
+echo "      AlfDev-Seed   Warm chain session (fork cache)"
 echo ""
-echo "Services:"
-echo -n "  Docker: "; docker info &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${RED}✗${NC}"
-echo -n "  MLX Embed: "; curl -sf --max-time 1 http://localhost:8000/health &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}starting${NC}"
-echo -n "  LiteLLM: "; curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
-echo -n "  Ollama: "; curl -sf --max-time 1 http://localhost:11434/api/version &>/dev/null && echo -e "${GREEN}✓${NC}" || echo -e "${YELLOW}⚠${NC}"
+echo -e "${CYAN}Archon Service Summary:${NC}"
+echo -n "  Jarvis Infra : "; check_port 5432 && check_port 6333 "/collections" && check_port 7474 && echo -e "${GREEN}PG+Qdrant+Neo4j ✓${NC}" || echo -e "${YELLOW}partial${NC}"
+echo -n "  Alfred Pulse : "; check_port 8800 "/api/v1/health" && echo -e "${GREEN}:8800 ✓${NC}" || echo -e "${YELLOW}⚠${NC}"
+echo -n "  Dashboard    : "; check_port 8701 && echo -e "${GREEN}:8701 ✓${NC}" || echo -e "${YELLOW}⚠${NC}"
+echo -n "  Usage Proxy  : "; check_port 9800 "/health" && echo -e "${GREEN}:9800 ✓${NC}" || echo -e "${YELLOW}offline${NC}"
+echo -n "  AI Services  : "; check_port 11434 "/api/version" && echo -n -e "${GREEN}Ollama${NC} " || echo -n -e "${YELLOW}Ollama?${NC} "
+check_port 8000 "/health" && echo -n -e "${GREEN}MLX${NC} " || echo -n -e "${YELLOW}MLX…${NC} "
+check_port 4000 "/v1/models" && echo -e "${GREEN}LiteLLM${NC}" || echo -e "${YELLOW}LiteLLM…${NC}"
 echo ""
 
 if [[ "$ITERM2_MODE" == "true" ]]; then
