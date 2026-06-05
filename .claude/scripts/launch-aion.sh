@@ -1053,14 +1053,25 @@ fi
 # Protos — warm Claude session for chain-executor fork-and-inject pattern.
 # The chain-executor calls ensure_seed() on demand, but pre-warming at launch
 # avoids the ~15s cold-start penalty on the first chain dispatch.
+# MUST launch from ALFRED_LAUNCH_DIR (~/Claude/Alfred-Dev symlink) rather than
+# ALFRED_DIR (inside the monorepo git tree). Claude Code walks up to find .git/
+# and would load Jarvis's .claude/ instead of Alfred's if launched from within
+# the monorepo. The Alfred-Dev symlink is outside the git tree, so Claude Code
+# finds alfred/.claude/ directly.
 SEED_WINDOW="Protos"
+ALFRED_LAUNCH_DIR="$HOME/Claude/Alfred-Dev"
 if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
-    echo "Launching Protos (warm chain session)..."
-    SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
-    "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
-        "cd '$ALFRED_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
-    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
-    echo -e "  ${GREEN}✓${NC} Protos warm session created"
+    if [[ -d "$ALFRED_LAUNCH_DIR" ]] || [[ -L "$ALFRED_LAUNCH_DIR" ]]; then
+        echo "Launching Protos (warm chain session via Alfred-Dev)..."
+        SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
+        "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
+            "cd '$ALFRED_LAUNCH_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} Protos warm session created (Alfred identity)"
+    else
+        echo -e "  ${YELLOW}⚠${NC} Protos skipped — $ALFRED_LAUNCH_DIR not found"
+        echo "    Create it: ln -sf $PROJECT_DIR/alfred $ALFRED_LAUNCH_DIR"
+    fi
 fi
 
 # Set tmux options for better experience
