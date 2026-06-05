@@ -1,8 +1,8 @@
 {
-  "timestamp": "2026-06-05T01:00:34Z",
+  "timestamp": "2026-06-05T01:15:59Z",
   "services": {
     "qdrant": {"up": true, "latency_ms": 23},
-    "mlx_embed": {"up": true, "latency_ms": 21},
+    "mlx_embed": {"up": true, "latency_ms": 20},
     "neo4j": {"up": true, "latency_ms": 24}
   },
   "collections": {

@@ -26,7 +26,7 @@
 
 ## Port mapping (prod → dev, +100)
 
-### AIFred-Pro-Dev
+### alfred
 
 | Service | Prod | Dev |
 |---------|:---:|:---:|

@@ -1,11 +1,11 @@
 ---
-name: AIFred-Pro-Dev
+name: alfred
 type: infrastructure
 path: ~/Claude/Project_Aion/alfred
 registered: 2026-04-22
 ---
 
-# AIFred-Pro-Dev
+# alfred (Operations Archon)
 
 Sibling development branch of AIFred-Pro. Same stack layout (docker-compose.yml present). Use for experiments that might destabilize the primary hub.
 

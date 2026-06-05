@@ -44,7 +44,7 @@ Compose location: `~/Claude/Project_Aion/docker-compose.yml`.
 
 ## Projects Root
 
-`~/Claude/` — contains AIFred-Pro, AIFred-Pro-Dev, Jarvis, Jarvis-Dev, Archive, GitRepos, Projects, Shared_Projects.
+`~/Claude/` — contains Project_Aion (monorepo), Archive, GitRepos, Projects.
 
 ## Tools Available
 

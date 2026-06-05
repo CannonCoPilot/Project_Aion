@@ -325,14 +325,14 @@ label is an honor-system attribution. This is acceptable because:
 ## Reference implementations
 
 - `archon/register` (P2-T03) — command-line helper that reads a manifest
-  YAML and posts §1.2 registration. Built in AIFred-Pro-Dev, promoted
+  YAML and posts §1.2 registration. Built in alfred, promoted
   via P2-T03p.
 - `archon/task-create` (P2-T04) — ergonomic wrapper around §2.2 create
-  with label/metadata validation. Built in AIFred-Pro-Dev, promoted
+  with label/metadata validation. Built in alfred, promoted
   via P2-T04p.
 - `archon/test-suite` (P2-T05) — contract tests that exercise every
   requirement in this document against a live Pulse. Built in
-  AIFred-Pro-Dev, promoted via P2-T05p.
+  alfred, promoted via P2-T05p.
 
 Every MUST/SHOULD in this document MUST have at least one test case in the
 P2-T05 suite. If you find one without, open a Pulse task labelled

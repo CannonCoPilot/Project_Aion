@@ -6,7 +6,7 @@
 
 ## Context
 
-AIFred-Pro-Dev is the development twin of the production AIFred-Pro stack. The question is whether dev services should share production's Authentik + Caddy (via additional `*-dev.onomatologos.org` subdomains) or run without SSO on localhost only.
+alfred is the development twin of the production AIFred-Pro stack. The question is whether dev services should share production's Authentik + Caddy (via additional `*-dev.onomatologos.org` subdomains) or run without SSO on localhost only.
 
 ## Options Considered
 
