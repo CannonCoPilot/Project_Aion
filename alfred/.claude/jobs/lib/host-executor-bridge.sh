@@ -2,7 +2,7 @@
 # host-executor-bridge.sh — Host-side executor using warm interactive Claude Code sessions
 #
 # Architecture (v2 — chain-executor):
-#   - A warm "seed" interactive Claude Code CLI runs in tmux window AlfDev-Seed
+#   - A warm "seed" interactive Claude Code CLI runs in tmux window Protos
 #   - Tasks are injected as messages via tmux paste-buffer (simulates a user at a terminal)
 #   - Sentinel files signal completion (Claude writes DONE to a file as its final action)
 #   - Cache prefix is reused across turns — near-zero cache_write per task
@@ -19,7 +19,7 @@ STATE_DIR="${JOBS_DIR}/state"
 TMUX_BIN="${HOME}/bin/tmux"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"
 ALFDEV_DIR="${ALFRED_DIR:-${HOME}/Claude/Project_Aion/alfred}"
-SEED_WINDOW="AlfDev-Seed"
+SEED_WINDOW="Protos"
 SEED_SESSION_FILE="${STATE_DIR}/.chain-seed-session-id"
 CHAIN_EXECUTOR="${SCRIPT_DIR}/chain-executor.sh"
 CHAIN_MAP_DIR="${STATE_DIR}/.chain-windows"

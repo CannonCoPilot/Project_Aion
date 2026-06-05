@@ -47,8 +47,19 @@ TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-aion}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 ALFRED_DIR="$PROJECT_DIR/alfred"
-# Derive Claude project directory slug from PROJECT_DIR (e.g. /Users/foo/Claude/Project_Aion → -Users-foo-Claude-Project_Aion)
-CLAUDE_PROJECT_SLUG="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
+# Claude Code derives its project slug from the PWD at launch time. When launched
+# via the ~/Claude/Jarvis symlink, the slug is -Users-*-Claude-Jarvis. We must
+# match that slug to find session JSONLs. Detect which slug directory actually
+# exists and use it; fall back to deriving from PROJECT_DIR.
+SLUG_FROM_PROJECT="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
+SLUG_FROM_SYMLINK="-$(echo "$HOME/Claude/Jarvis" | sed 's|^/||; s|/|-|g')"
+if [[ -d "$HOME/.claude/projects/${SLUG_FROM_SYMLINK}" ]]; then
+    CLAUDE_PROJECT_SLUG="$SLUG_FROM_SYMLINK"
+elif [[ -d "$HOME/.claude/projects/${SLUG_FROM_PROJECT}" ]]; then
+    CLAUDE_PROJECT_SLUG="$SLUG_FROM_PROJECT"
+else
+    CLAUDE_PROJECT_SLUG="$SLUG_FROM_PROJECT"
+fi
 
 # Deterministic session UUIDs — pinned per-window for --fresh mode and exclusion filtering
 # W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL (used only for --fresh)
@@ -612,9 +623,29 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
                 "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null || true
             echo "Docker stacks + bridge restarted. tmux processes unchanged."
             ;;
+        ollama)
+            echo "Restarting Ollama monitor window..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Ollama" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Ollama" "" Enter 2>/dev/null
+            ;;
+        mlx)
+            echo "Restarting MLX-Embed..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:MLX-Embed" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:MLX-Embed" \
+                "cd '$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read" 2>/dev/null || true
+            ;;
+        litellm)
+            echo "Restarting LiteLLM..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:LiteLLM" C-c 2>/dev/null
+            sleep 1
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:LiteLLM" \
+                "cd '$PROJECT_DIR/infrastructure' && .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read" 2>/dev/null || true
+            ;;
         *)
             echo "Unknown component: $RESTART_COMPONENT"
-            echo "Available: infra, pulse, proxy, dashboard, pipeline, bridge, watcher, hud, all"
+            echo "Available: infra, pulse, proxy, dashboard, pipeline, bridge, watcher, hud, ollama, mlx, litellm, all"
             exit 1
             ;;
     esac
@@ -673,37 +704,27 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
 
     # Add missing service windows to existing session
     EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
-    if [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^MLX-Embed$"; then
+    if ! echo "$EXISTING_WINDOWS" | grep -q "^MLX-Embed$"; then
         echo "Adding MLX-Embed window to existing session..."
+        MLX_EMBED_DIR="$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx"
         "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "MLX-Embed" -d \
-            "cd '$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read"
+            "cd '$MLX_EMBED_DIR' && bash start-server.sh; echo 'MLX-Embed stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:MLX-Embed" automatic-rename off 2>/dev/null || true
-        WAITED=0
-        while [[ $WAITED -lt 15 ]]; do
-            if curl -sf --max-time 1 http://localhost:8000/health &>/dev/null; then
-                echo -e "  ${GREEN}✓${NC} MLX Embedding Server ready (${WAITED}s)"
-                break
-            fi
-            sleep 1
-            WAITED=$((WAITED + 1))
-        done
-        [[ $WAITED -ge 15 ]] && echo -e "  ${YELLOW}⚠${NC} MLX Embedding Server still starting"
+        echo -e "  ${GREEN}✓${NC} MLX-Embed window added"
     fi
-    if [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^LiteLLM$"; then
+    if ! echo "$EXISTING_WINDOWS" | grep -q "^LiteLLM$"; then
         echo "Adding LiteLLM window to existing session..."
         "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "LiteLLM" -d \
             "cd '$PROJECT_DIR/infrastructure' && .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:LiteLLM" automatic-rename off 2>/dev/null || true
-        WAITED=0
-        while [[ $WAITED -lt 10 ]]; do
-            if curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null; then
-                echo -e "  ${GREEN}✓${NC} LiteLLM Proxy ready (${WAITED}s)"
-                break
-            fi
-            sleep 1
-            WAITED=$((WAITED + 1))
-        done
-        [[ $WAITED -ge 10 ]] && echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting"
+        echo -e "  ${GREEN}✓${NC} LiteLLM window added"
+    fi
+    if ! echo "$EXISTING_WINDOWS" | grep -q "^Ollama$"; then
+        echo "Adding Ollama monitor window to existing session..."
+        OLLAMA_MONITOR='while true; do clear; echo "Ollama Model Monitor (:11434)"; echo ""; if curl -sf --max-time 2 http://localhost:11434/api/version >/dev/null 2>&1; then echo "Status: ONLINE"; echo ""; echo "── Loaded ──"; ollama ps 2>/dev/null; echo ""; echo "── Available ──"; ollama list 2>/dev/null; else echo "Status: OFFLINE"; fi; echo ""; echo "Refresh: 30s"; sleep 30; done'
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Ollama" -d "bash -c '$OLLAMA_MONITOR'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Ollama" automatic-rename off 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} Ollama monitor added"
     fi
     HUD_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
     if [[ -x "$HUD_SCRIPT" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^HUD$"; then
@@ -859,7 +880,7 @@ fi
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
 W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS='$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
-"$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Aion" -c "$PROJECT_DIR" "$W0_WRAPPER"
+"$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$PROJECT_DIR" "$W0_WRAPPER"
 
 # Give Claude a moment to start
 sleep 2
@@ -940,47 +961,80 @@ if [[ "$DEV_MODE" == "true" ]]; then
     "$TMUX_BIN" set-window-option -t "$SESSION_NAME:5" automatic-rename off 2>/dev/null || true
 fi
 
-# MLX-Embed window — auto-start embedding server if preflight detected it was down
-if [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]]; then
-    echo "Launching MLX Embedding Server in tmux window..."
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "MLX-Embed" -d \
-        "cd '$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read"
-    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:MLX-Embed" automatic-rename off 2>/dev/null || true
-    # Wait up to 15s for MLX health endpoint
-    WAITED=0
-    while [[ $WAITED -lt 15 ]]; do
-        if curl -sf --max-time 1 http://localhost:8000/health &>/dev/null; then
-            echo -e "  ${GREEN}✓${NC} MLX Embedding Server ready (${WAITED}s)"
-            break
-        fi
-        sleep 1
-        WAITED=$((WAITED + 1))
-    done
-    if [[ $WAITED -ge 15 ]]; then
-        echo -e "  ${YELLOW}⚠${NC} MLX Embedding Server still starting after 15s (may need longer for model load)"
+# MLX-Embed window — always present; starts server if not already running
+MLX_EMBED_DIR="$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx"
+if [[ -d "$MLX_EMBED_DIR" ]]; then
+    echo "Launching MLX-Embed window..."
+    if [[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]]; then
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "MLX-Embed" -d \
+            "cd '$MLX_EMBED_DIR' && bash start-server.sh; echo 'MLX-Embed stopped.'; read"
+        WAITED=0
+        while [[ $WAITED -lt 15 ]]; do
+            curl -sf --max-time 1 http://localhost:8000/health &>/dev/null && break
+            sleep 1; WAITED=$((WAITED + 1))
+        done
+        [[ $WAITED -lt 15 ]] && echo -e "  ${GREEN}✓${NC} MLX Embedding Server started (${WAITED}s)" \
+            || echo -e "  ${YELLOW}⚠${NC} MLX Embedding Server still loading model"
+    else
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "MLX-Embed" -d \
+            "cd '$MLX_EMBED_DIR' && echo 'MLX Embedding Server already running on :8000'; echo 'Restart: bash start-server.sh'; echo ''; bash start-server.sh; echo 'MLX-Embed stopped.'; read"
+        echo -e "  ${GREEN}✓${NC} MLX-Embed window (server already running on :8000)"
     fi
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:MLX-Embed" automatic-rename off 2>/dev/null || true
 fi
 
-# LiteLLM window — auto-start proxy if preflight detected it was down
-if [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]]; then
-    echo "Launching LiteLLM Proxy in tmux window..."
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "LiteLLM" -d \
-        "cd '$PROJECT_DIR/infrastructure' && .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read"
-    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:LiteLLM" automatic-rename off 2>/dev/null || true
-    # Wait up to 10s for /v1/models endpoint
-    WAITED=0
-    while [[ $WAITED -lt 10 ]]; do
-        if curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null; then
-            echo -e "  ${GREEN}✓${NC} LiteLLM Proxy ready (${WAITED}s)"
-            break
-        fi
-        sleep 1
-        WAITED=$((WAITED + 1))
-    done
-    if [[ $WAITED -ge 10 ]]; then
-        echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting after 10s"
+# LiteLLM window — always present; starts proxy if not already running
+LITELLM_DIR="$PROJECT_DIR/infrastructure"
+if [[ -f "$LITELLM_DIR/litellm-config.yaml" ]]; then
+    echo "Launching LiteLLM window..."
+    if [[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]]; then
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "LiteLLM" -d \
+            "cd '$LITELLM_DIR' && .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read"
+        WAITED=0
+        while [[ $WAITED -lt 10 ]]; do
+            curl -sf --max-time 1 http://localhost:4000/v1/models &>/dev/null && break
+            sleep 1; WAITED=$((WAITED + 1))
+        done
+        [[ $WAITED -lt 10 ]] && echo -e "  ${GREEN}✓${NC} LiteLLM Proxy started (${WAITED}s)" \
+            || echo -e "  ${YELLOW}⚠${NC} LiteLLM Proxy still starting"
+    else
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "LiteLLM" -d \
+            "cd '$LITELLM_DIR' && echo 'LiteLLM Proxy already running on :4000'; echo 'Restart: .venv/bin/litellm --config litellm-config.yaml --port 4000'; echo ''; .venv/bin/litellm --config litellm-config.yaml --port 4000; echo 'LiteLLM stopped.'; read"
+        echo -e "  ${GREEN}✓${NC} LiteLLM window (proxy already running on :4000)"
     fi
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:LiteLLM" automatic-rename off 2>/dev/null || true
 fi
+
+# Ollama window — live model status monitor
+echo "Launching Ollama model monitor window..."
+OLLAMA_MONITOR='while true; do
+    clear
+    echo "╔═══════════════════════════════════════════════╗"
+    echo "║          Ollama Model Monitor (:11434)        ║"
+    echo "╚═══════════════════════════════════════════════╝"
+    echo ""
+    if curl -sf --max-time 2 http://localhost:11434/api/version >/dev/null 2>&1; then
+        echo "Status: ONLINE"
+        echo ""
+        echo "── Loaded Models (in VRAM) ──────────────────"
+        ollama ps 2>/dev/null || echo "  (none running)"
+        echo ""
+        echo "── Available Models ─────────────────────────"
+        ollama list 2>/dev/null || echo "  (ollama CLI not found)"
+    else
+        echo "Status: OFFLINE"
+        echo ""
+        echo "Ollama is not reachable on localhost:11434."
+        echo "Start via: open -a Ollama (macOS) or ollama serve"
+    fi
+    echo ""
+    echo "─────────────────────────────────────────────"
+    echo "Refreshing every 30s. Press Ctrl-C to exit."
+    sleep 30
+done'
+"$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Ollama" -d "bash -c '$OLLAMA_MONITOR'; read"
+"$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Ollama" automatic-rename off 2>/dev/null || true
+echo -e "  ${GREEN}✓${NC} Ollama model monitor window created"
 
 # HUD-live window — always launch (read-only dashboard, negligible resource cost)
 HUD_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
@@ -1002,17 +1056,17 @@ if [[ -x "$BRIDGE_SCRIPT" ]] || [[ -f "$BRIDGE_SCRIPT" ]]; then
     fi
 fi
 
-# AlfDev-Seed — warm Claude session for chain-executor fork-and-inject pattern.
+# Protos — warm Claude session for chain-executor fork-and-inject pattern.
 # The chain-executor calls ensure_seed() on demand, but pre-warming at launch
 # avoids the ~15s cold-start penalty on the first chain dispatch.
-SEED_WINDOW="AlfDev-Seed"
+SEED_WINDOW="Protos"
 if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
-    echo "Launching AlfDev-Seed (warm chain session)..."
+    echo "Launching Protos (warm chain session)..."
     SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
     "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
-        "cd '$ALFRED_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Seed stopped.'; read"
+        "cd '$ALFRED_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
-    echo -e "  ${GREEN}✓${NC} AlfDev-Seed warm session created"
+    echo -e "  ${GREEN}✓${NC} Protos warm session created"
 fi
 
 # Set tmux options for better experience
@@ -1031,22 +1085,21 @@ echo -e "${GREEN}║                    Aion is ready!                          
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${CYAN}Tmux Windows:${NC}"
-echo "  W0  Aion          Jarvis Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"
+echo "  W0  Jarvis        Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"
 echo "  W1  Watcher       JICM v7.9 context monitor"
 echo "  W2  Ennoia        Session orchestrator"
 echo "  W3  Virgil        Codebase guide"
 echo "  W4  Commands      Signal file → command injection"
 [[ "$DEV_MODE" == "true" ]] && \
 echo "  W5  Aion-dev      Developer test driver"
-[[ "$MLX_STARTED_BY_PREFLIGHT" == "true" ]] && \
 echo "      MLX-Embed     Qwen3-Embedding-4B server (:8000)"
-[[ "$LITELLM_STARTED_BY_PREFLIGHT" == "true" ]] && \
 echo "      LiteLLM       Model proxy (:4000)"
+echo "      Ollama        Local model monitor (:11434)"
 [[ -x "$HUD_SCRIPT" ]] && \
 echo "      HUD           Live dashboard"
 [[ -f "$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh" ]] && \
 echo "      Bridge        Host executor signal daemon"
-echo "      AlfDev-Seed   Warm chain session (fork cache)"
+echo "      Protos        Warm chain session (fork cache)"
 echo ""
 echo -e "${CYAN}Archon Service Summary:${NC}"
 echo -n "  Jarvis Infra : "; check_port 5432 && check_port 6333 "/collections" && check_port 7474 && echo -e "${GREEN}PG+Qdrant+Neo4j ✓${NC}" || echo -e "${YELLOW}partial${NC}"
@@ -1068,7 +1121,7 @@ if [[ "$ITERM2_MODE" == "true" ]]; then
     exec "$TMUX_BIN" -CC attach-session -t "$SESSION_NAME"
 else
     echo "Keyboard shortcuts:"
-    echo "  Ctrl+b then 0-4 - Switch windows: Aion (0), Watcher (1), Ennoia (2), Virgil (3), Commands (4)"
+    echo "  Ctrl+b then 0-4 - Switch windows: Jarvis (0), Watcher (1), Ennoia (2), Virgil (3), Commands (4)"
     [[ "$DEV_MODE" == "true" ]] && echo "  Ctrl+b then 5   - Switch to Aion-dev (test driver)"
     echo "  Ctrl+b then d     - Detach (leave running)"
     echo "  Ctrl+b then x     - Close current window"

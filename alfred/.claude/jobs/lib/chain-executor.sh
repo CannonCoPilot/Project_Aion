@@ -18,7 +18,7 @@ STATE_DIR="${JOBS_DIR}/state"
 TMUX_BIN="${HOME}/bin/tmux"
 TMUX_SESSION="${TMUX_SESSION:-jarvis}"
 ALFDEV_DIR="${ALFRED_DIR:-${HOME}/Claude/Project_Aion/alfred}"
-SEED_WINDOW="AlfDev-Seed"
+SEED_WINDOW="Protos"
 SEED_SESSION_FILE="${STATE_DIR}/.chain-seed-session-id"
 SENTINEL_DIR="${STATE_DIR}"
 
