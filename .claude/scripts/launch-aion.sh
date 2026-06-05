@@ -69,15 +69,77 @@ JARVIS_W5_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
 JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
-# Find the most recent W0 session by excluding known non-W0 deterministic UUIDs.
-# JICM /clear creates new session UUIDs, so we can't pin W0 to one UUID.
-# Instead, we pick the most recent JSONL that isn't W5's session.
+# ──────────────────────────────────────────────────────────────────────────
+# Session resumability validation (added 2026-06-04 after launcher v3.0 cwd-
+# mismatch incident: cached UUIDs pointed at sessions whose recorded cwd was
+# /Users/.../Project_Aion while launcher was cd'd into the Jarvis symlink, so
+# `claude --resume <UUID>` rejected with "No conversation found".)
+#
+# Claude Code records cwd verbatim at session start (no realpath normalization)
+# and --resume requires byte-exact cwd match. Mixed-cwd sessions in the same
+# project store therefore need filtering at the launcher layer.
+# ──────────────────────────────────────────────────────────────────────────
+
+# Returns 0 if the JSONL's recorded cwd is one of the canonical paths for
+# this project (literal CLAUDE_LAUNCH_DIR or its realpath). Claude Code
+# 2.1.153+ tolerates cross-cwd resume — sessions recorded under either the
+# symlink path or its realpath resume cleanly from either cwd — so accepting
+# both matches Claude's behavior. Reason this filter still exists: prevents
+# the launcher from selecting sessions that belong to OTHER unrelated
+# projects (e.g. lite-workspace) that share a JSONL store via symlink.
+session_cwd_matches() {
+    local jsonl="$1"
+    [[ -f "$jsonl" ]] || return 1
+    local launch_real
+    launch_real="$(cd "$CLAUDE_LAUNCH_DIR" 2>/dev/null && pwd -P)"
+    grep -m1 '"cwd"' "$jsonl" 2>/dev/null | python3 -c "
+import sys, json
+try:
+    d = json.loads(sys.stdin.read())
+    cwd = d.get('cwd', '')
+    sys.exit(0 if cwd == '$CLAUDE_LAUNCH_DIR' or cwd == '$launch_real' else 1)
+except Exception:
+    sys.exit(1)
+" 2>/dev/null
+}
+
+# Returns 0 if a running Claude process has this UUID as its active sessionId.
+# Source: Claude Code maintains ~/.claude/sessions/<pid>.json for every live
+# process, with sessionId and status fields. This is the authoritative signal
+# — pgrep on command line misses sessions launched without explicit --resume.
+session_uuid_in_use() {
+    local uuid="$1"
+    local f
+    [[ -z "$uuid" ]] && return 1
+    for f in "$HOME"/.claude/sessions/*.json; do
+        [[ -f "$f" ]] || continue
+        # Cheap match first; only parse JSON if substring hit.
+        grep -q "\"sessionId\":\"$uuid\"" "$f" 2>/dev/null && return 0
+    done
+    return 1
+}
+
+# Composite check: 0 = safely resumable from this launcher, 1 = skip.
+session_resumable() {
+    local uuid="$1"
+    [[ -n "$uuid" ]] || return 1
+    local jsonl="$JARVIS_PROJECTS_DIR/${uuid}.jsonl"
+    [[ -f "$jsonl" ]] || return 1
+    session_cwd_matches "$jsonl" || return 1
+    ! session_uuid_in_use "$uuid"
+}
+
+# Find the most recent resumable W0 session — i.e., the newest JSONL whose
+# recorded cwd matches CLAUDE_LAUNCH_DIR (or its realpath) AND whose UUID is
+# not currently held by a live claude process. Excludes W5's deterministic
+# UUID to prevent W5/W0 cross-contamination.
 find_latest_w0_session() {
     local exclude_uuid="$JARVIS_W5_SESSION_ID"
     local f uuid
     for f in $(ls -t "$JARVIS_PROJECTS_DIR"/*.jsonl 2>/dev/null); do
         uuid=$(basename "$f" .jsonl)
-        if [[ "$uuid" != "$exclude_uuid" ]]; then
+        [[ "$uuid" == "$exclude_uuid" ]] && continue
+        if session_resumable "$uuid"; then
             echo "$uuid"
             return 0
         fi
@@ -825,31 +887,48 @@ if [[ "$FRESH_MODE" == "true" ]]; then
     echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
     echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session $JARVIS_W0_SESSION_ID)"
 else
-    # Find the most recent W0 session to resume
+    # Find the most recent W0 session to resume.
+    # Two-stage trust: (1) check cached UUID via session_resumable; (2) on
+    # cache invalidation, scan filesystem via find_latest_w0_session (which
+    # itself uses session_resumable). This prevents caching stale UUIDs whose
+    # recorded cwd no longer matches the launcher's CLAUDE_LAUNCH_DIR, which
+    # was the failure mode in the 2026-06-04 launcher v3.0 incident.
+    LATEST_W0=""
     if [[ -f "$W0_UUID_FILE" ]]; then
-        LATEST_W0=$(cat "$W0_UUID_FILE" | tr -d '[:space:]')
-        LATEST_W0_JSONL="$JARVIS_PROJECTS_DIR/${LATEST_W0}.jsonl"
-        if [[ -n "$LATEST_W0" ]] && [[ -f "$LATEST_W0_JSONL" ]]; then
-            echo -e "  ${CYAN}W0 UUID:${NC} $LATEST_W0 (from state file)"
+        CACHED_W0=$(cat "$W0_UUID_FILE" | tr -d '[:space:]')
+        if session_resumable "$CACHED_W0"; then
+            LATEST_W0="$CACHED_W0"
+            echo -e "  ${CYAN}W0 UUID:${NC} $LATEST_W0 (from state file, validated)"
         else
-            LATEST_W0=$(find_latest_w0_session)
-            if [[ -n "$LATEST_W0" ]]; then
-                echo "$LATEST_W0" > "$W0_UUID_FILE"
-            fi
+            echo -e "  ${YELLOW}W0 cached UUID stale ($CACHED_W0) — rescanning${NC}"
         fi
-    else
+    fi
+    if [[ -z "$LATEST_W0" ]]; then
         LATEST_W0=$(find_latest_w0_session)
-        [[ -n "$LATEST_W0" ]] && echo "$LATEST_W0" > "$W0_UUID_FILE"
+        if [[ -n "$LATEST_W0" ]]; then
+            echo "$LATEST_W0" > "$W0_UUID_FILE"
+            echo -e "  ${CYAN}W0 UUID:${NC} $LATEST_W0 (rediscovered, cwd-compatible, not in use)"
+        fi
     fi
 
     if [[ -n "$LATEST_W0" ]]; then
-        # --resume preserves UUID; || --continue as fallback if session is busy
-        CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0 || (echo 'Resume failed (session busy?) — falling back to --continue'; $CLAUDE_BASE --continue)"
-        echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} $LATEST_W0 (fallback: --continue)"
+        # Pre-validation (session_resumable) catches the common failure modes
+        # but Claude Code's --resume can still reject for reasons outside the
+        # launcher's visibility (internal index state, version drift, etc.).
+        # Keep a runtime --continue fallback so a post-validation rejection
+        # doesn't dump the user straight into the wait loop. If --continue
+        # also fails, the wait loop prompts for manual recovery — we do NOT
+        # auto-create a fresh session (preserves user's history-fidelity rule).
+        CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0 || (echo \"\${YELLOW}--resume rejected $LATEST_W0 at runtime — trying --continue\${NC}\"; $CLAUDE_BASE --continue)"
+        echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} $LATEST_W0 (runtime fallback: --continue)"
     else
+        # No resumable session found at all — fall back to deterministic UUID.
+        # This creates a NEW session under JARVIS_W0_SESSION_ID. Existing
+        # cwd-mismatched JSONLs remain preserved on disk (recoverable manually
+        # by launching with the matching cwd) but are not auto-resumed.
         CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
         echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
-        echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}NEW${NC} (no prior session found)"
+        echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}NEW${NC} (no resumable session — preserving prior JSONLs on disk)"
     fi
 fi
 
