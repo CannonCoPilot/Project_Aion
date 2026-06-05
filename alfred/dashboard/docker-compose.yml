@@ -18,9 +18,9 @@ services:
       - NEXUS_DB_PATH=/nexus/state/nexus.db
       - DISPATCHER_HEARTBEAT_PATH=/nexus/state/dispatcher-heartbeat
       - DISPATCHER_PATH=/nexus/dispatcher.sh
-      - VAPID_PUBLIC_KEY=BFuXkGb5K87h3oNHc-BXlBZB0cAHvrKBSgjDLNRPBe5sNM6Hy8KyzOIJ2e4cBWF_CC_enBztF07X5Qkxj5UtV7o
-      - VAPID_PRIVATE_KEY=RwP9esodJ5YDuKcd7YyshLcZuUdOaZvnohrfxd-JrXU
-      - VAPID_SUBJECT=mailto:david@theklyx.space
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_SUBJECT=${VAPID_SUBJECT:-mailto:dev@localhost}
       - DASHBOARD_DB_PATH=/data/dashboard.db
       - OLLAMA_URL=http://host.docker.internal:11434
       - OLLAMA_MODEL=qwen2.5:32b

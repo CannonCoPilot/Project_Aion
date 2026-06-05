@@ -163,3 +163,14 @@ infrastructure/qwen3-embeddings-mlx/
 
 # LanceDB (local-rag MCP runtime data)
 lancedb/
+
+# Pipeline validation logs (session-specific)
+alfred/.claude/logs/pipeline-validation/
+alfred/.claude/jobs/logs/*.log
+
+# Skill runtime logs
+.claude/skills/*/logs/
+
+# Config backups
+*.backup
+.claude/settings.json.pre-*
