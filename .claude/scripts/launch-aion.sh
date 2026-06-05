@@ -810,10 +810,10 @@ if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
 fi
 
 # Determine W0 first-run command based on mode
-# --continue picks the most recent session and creates a new session ID that
-# inherits context. This is safer than --resume which fails if the prior
-# session is still marked "busy" in ~/.claude/sessions/ (e.g., after a crash
-# or when the launcher runs while an old session is still active).
+# Primary: --resume <UUID> (preserves session identity across relaunches).
+# Fallback: --continue (if resume fails due to busy/stale session index).
+# ~/.claude/sessions/<pid>.json tracks active sessions — --resume rejects
+# sessions marked "busy". Exit the old Claude session before relaunching.
 if [[ "$FRESH_MODE" == "true" ]]; then
     if [[ -f "$JARVIS_W0_SESSION_FILE" ]]; then
         mkdir -p "$W0_SESSION_ARCHIVE_DIR"
@@ -825,8 +825,32 @@ if [[ "$FRESH_MODE" == "true" ]]; then
     echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
     echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}FRESH${NC} (new session $JARVIS_W0_SESSION_ID)"
 else
-    CLAUDE_FIRST="$CLAUDE_BASE --continue"
-    echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}CONTINUE${NC} (inherits most recent session)"
+    # Find the most recent W0 session to resume
+    if [[ -f "$W0_UUID_FILE" ]]; then
+        LATEST_W0=$(cat "$W0_UUID_FILE" | tr -d '[:space:]')
+        LATEST_W0_JSONL="$JARVIS_PROJECTS_DIR/${LATEST_W0}.jsonl"
+        if [[ -n "$LATEST_W0" ]] && [[ -f "$LATEST_W0_JSONL" ]]; then
+            echo -e "  ${CYAN}W0 UUID:${NC} $LATEST_W0 (from state file)"
+        else
+            LATEST_W0=$(find_latest_w0_session)
+            if [[ -n "$LATEST_W0" ]]; then
+                echo "$LATEST_W0" > "$W0_UUID_FILE"
+            fi
+        fi
+    else
+        LATEST_W0=$(find_latest_w0_session)
+        [[ -n "$LATEST_W0" ]] && echo "$LATEST_W0" > "$W0_UUID_FILE"
+    fi
+
+    if [[ -n "$LATEST_W0" ]]; then
+        # --resume preserves UUID; || --continue as fallback if session is busy
+        CLAUDE_FIRST="$CLAUDE_BASE --resume $LATEST_W0 || (echo 'Resume failed (session busy?) — falling back to --continue'; $CLAUDE_BASE --continue)"
+        echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} $LATEST_W0 (fallback: --continue)"
+    else
+        CLAUDE_FIRST="$CLAUDE_BASE --session-id $JARVIS_W0_SESSION_ID"
+        echo "$JARVIS_W0_SESSION_ID" > "$W0_UUID_FILE"
+        echo -e "  ${CYAN}W0 Mode:${NC} ${YELLOW}NEW${NC} (no prior session found)"
+    fi
 fi
 
 # Propagate W0 session ID to Alfred pipeline state for extend-then-fork execution.
