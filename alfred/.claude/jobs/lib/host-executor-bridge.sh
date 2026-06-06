@@ -95,13 +95,31 @@ ensure_seed() {
 }
 
 _capture_seed_session_id() {
-    local project_dir="${HOME}/.claude/projects/-Users-nathanielcannon-Claude-Alfred-Dev"
-    if [ -d "$project_dir" ]; then
-        local latest
-        latest=$(ls -t "$project_dir"/*.jsonl 2>/dev/null | head -1)
-        if [ -n "$latest" ]; then
-            basename "$latest" .jsonl > "$SEED_SESSION_FILE"
+    # Claude Code may resolve the Alfred-Dev symlink to the real path,
+    # writing the session JSONL under either project slug. Check both.
+    local dirs=(
+        "${HOME}/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion-alfred"
+        "${HOME}/.claude/projects/-Users-nathanielcannon-Claude-Alfred-Dev"
+    )
+    local latest=""
+    local latest_mtime=0
+    for dir in "${dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            local candidate
+            candidate=$(ls -t "$dir"/*.jsonl 2>/dev/null | head -1)
+            if [ -n "$candidate" ]; then
+                local mtime
+                mtime=$(stat -f %m "$candidate" 2>/dev/null || echo 0)
+                if [ "$mtime" -gt "$latest_mtime" ]; then
+                    latest="$candidate"
+                    latest_mtime="$mtime"
+                fi
+            fi
         fi
+    done
+    if [ -n "$latest" ]; then
+        basename "$latest" .jsonl > "$SEED_SESSION_FILE"
+        log "Captured seed session: $(basename "$latest" .jsonl) from $(dirname "$latest")"
     fi
 }
 
