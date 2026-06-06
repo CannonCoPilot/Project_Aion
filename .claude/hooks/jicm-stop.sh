@@ -49,6 +49,14 @@ if [[ "$STOP_ACTIVE" == "true" ]]; then
     exit 0
 fi
 
+# ─── W5 exclusion: dev/test window must not trigger W0 JICM cycles ──────────
+# If jicm-gate.sh's W5 exclusion fires (JARVIS_SESSION_ROLE=dev), the state
+# file retains W0's pending_action. Without this guard, W5's Stop event would
+# read that pending_action and write .jicm-clear-now.signal, interrupting W0.
+if [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
+    exit 0
+fi
+
 # ─── Disable check ───────────────────────────────────────────────────────────
 if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
     echo "$NOW_ISO | SKIP | JICM disabled (env or exit-mode signal)" >> "$LOG_FILE"
