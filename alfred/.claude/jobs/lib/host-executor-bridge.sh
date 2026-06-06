@@ -132,9 +132,14 @@ get_or_create_chain_window() {
     local window_name="chain-${chain_id:0:8}"
 
     if [ -z "$seed_sid" ]; then
-        log "WARNING: no seed session ID for fork — using seed directly"
-        echo "$SEED_WINDOW"
-        return 0
+        log "WARNING: no seed session ID — retrying capture"
+        sleep 5
+        _capture_seed_session_id
+        seed_sid=$(cat "$SEED_SESSION_FILE" 2>/dev/null | tr -d '[:space:]')
+        if [ -z "$seed_sid" ]; then
+            log "ERROR: seed session ID unavailable after retry — cannot fork"
+            return 1
+        fi
     fi
 
     # Build --mcp-config flag if persona provides a config
@@ -179,8 +184,8 @@ get_or_create_chain_window() {
         fi
     done
 
-    log "ERROR: chain fork failed for ${chain_id} — falling back to seed"
-    echo "$SEED_WINDOW"
+    log "ERROR: chain fork failed for ${chain_id} — refusing to pollute seed"
+    return 1
 }
 
 cleanup_chain_window() {
@@ -301,9 +306,21 @@ json.dump({
     local target_window
     target_window=$(get_or_create_chain_window "$effective_chain" "$mcp_config")
 
-    # The bridge always runs Claude Code interactive sessions. The actual model
-    # is the CC session default (typically the workspace model from CLAUDE.md).
-    # requested_model is what executor.py asked for; actual_model is what ran.
+    if [ -z "$target_window" ]; then
+        log "ERROR: fork failed for task ${task_id} — writing error result (seed NOT polluted)"
+        python3 -c "
+import json
+json.dump({
+    'returncode': 1,
+    'result_text': 'Chain fork failed — could not create isolated session',
+    'cli_data': {'execution_mode': 'chain-interactive'},
+    'stderr': 'fork_failed_no_seed_fallback'
+}, open('$result_file', 'w'), indent=2)
+" 2>/dev/null
+        rm -f "$request_file" "$prompt_file"
+        return 1
+    fi
+
     local actual_model="claude-code-interactive"
     log "Dispatching: task=${task_id} → ${target_window} (requested_model=${requested_model:-unset})"
 
