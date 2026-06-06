@@ -1,0 +1,39 @@
+persona: book-retriever
+tier: implement
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Write
+  - ToolSearch
+  - mcp__annas-archive__searchBook
+  - mcp__annas-archive__searchJournal
+  - mcp__annas-archive__info
+  - mcp__annas-archive__fastDownload
+  - mcp__annas-archive__downloadBook
+  - mcp__annas-archive__downloadJournal
+  - mcp__annas-archive__memberDownload
+  - mcp__annas-archive__lookupDoi
+
+denied_tools:
+  - Edit
+  - Agent
+
+allowed_bash:
+  - "pulse create:*"
+  - "pulse update:*"
+  - "pulse close:*"
+  - "pulse list:*"
+  - "pulse show:*"
+  - "ls:*"
+  - "find:*"
+  - "wc:*"
+  - "file:*"
+
+pre_approved:
+  - "Search Anna's Archive for books and articles"
+  - "Download files via member API to configured download path"
+  - "Create and close Pulse tasks for retrieval tracking"
+  - "Write retrieval reports to output directory"
