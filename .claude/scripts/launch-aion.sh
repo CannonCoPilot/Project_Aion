@@ -1215,19 +1215,24 @@ if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
         # Prime the seed: wait for Claude to be interactive, then inject the seed prompt.
         # This caches the initial context and confirms the session is ready for forking.
+        # Detection: look for "Claude Code" banner (startup done) + "bypass permissions"
+        # (interactive prompt ready). Can't match ❯ directly — tmux capture mangles Unicode.
         (
-            sleep 12
+            sleep 15
             local_waited=0
-            while [ "$local_waited" -lt 30 ]; do
+            while [ "$local_waited" -lt 40 ]; do
                 pane=$("$TMUX_BIN" capture-pane -t "${SESSION_NAME}:${SEED_WINDOW}" -p 2>/dev/null)
                 if echo "$pane" | grep -q "Allow external CLAUDE.md"; then
                     "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" Down 2>/dev/null
                     sleep 0.3
                     "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" Enter 2>/dev/null
                     sleep 5
+                    continue
                 fi
-                if echo "$pane" | grep -qE '❯ $|❯  $'; then
-                    "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" 'You are the Alfred seed session. Acknowledge with: "Seed ready."' Enter 2>/dev/null
+                if echo "$pane" | grep -q "bypass permissions"; then
+                    "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" 'You are the Alfred seed session. Acknowledge with: "Seed ready."' 2>/dev/null
+                    sleep 0.5
+                    "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" Enter 2>/dev/null
                     break
                 fi
                 sleep 2

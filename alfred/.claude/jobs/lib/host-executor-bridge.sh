@@ -92,8 +92,10 @@ ensure_seed() {
             fi
             sleep 3
             # Prime the seed so it caches initial context and is ready for forking
-            "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" 'You are the Alfred seed session. Acknowledge with: "Seed ready."' Enter 2>/dev/null
-            sleep 8
+            "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" 'You are the Alfred seed session. Acknowledge with: "Seed ready."' 2>/dev/null
+            sleep 0.5
+            "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" Enter 2>/dev/null
+            sleep 10
             _capture_seed_session_id
             log "Seed ready (waited ${waited}s, import_prompt=${import_prompt_handled})"
             return 0

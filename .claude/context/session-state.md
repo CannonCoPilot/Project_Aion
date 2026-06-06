@@ -5,11 +5,11 @@
 
 ---
 
-**Status**: **MONOREPO MIGRATION — PHASES 0-5 COMPLETE**. Project Aion monorepo live at `CannonCoPilot/Project_Aion`. Alfred imported as `alfred/` subdirectory. Secrets scrubbed from history, credentials consolidated. Pipeline v2, Test Cockpit, telemetry all operational. Launcher rewritten (`launch-aion.sh`).
+**Status**: **ANNAS TOOLS** — building Anna's Archive MCP + Alfred persona for ebook/article search and download. GitHub portfolio facelift complete (8 public showcase repos).
 **Date**: 2026-06-04
-**Version**: v5.13.0
+**Version**: v5.14.0
 **Branch**: main → origin/main on CannonCoPilot/Project_Aion.
-**Last commit**: `05e69a2` (verify: Phase 6 — reference sweep clean, Docker stack validated).
+**Last commit**: `1e665bf` (fix: restore --resume for W0 with --continue fallback).
 **Legacy**: CannonCoPilot/Jarvis archived, jarvis-legacy remote preserved.
 **Quota**: active session.
 
@@ -79,19 +79,31 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - Alerts via msgbus → Telegram (existing plumbing, no new notification infra)
 - Commit `3a540ef` on feature/personas-rebuild
 
-### P3 [Nexus]: AIFred-Pro Dev — B2+B3 exploratory sweep
+### P3 [Nexus] (DEFERRED): AIFred-Pro Dev — B2+B3 exploratory sweep
 - B2: audit-ingest env adaptation + sidecar container for cron
 - B3: `40290c4` orchestration graph viz already lifted; build out dashboard layer
 - ~2-3 hr each
 
-### Suspended: Chronicler Phase 4 — Narrative Engine
-- Phase 3 COMPLETE 2026-03-23 (27/27 DoD)
-- Paused pending P1 completion
+### Professional GitHub Presence (COMPLETE 2026-06-05)
+- 8 showcase repos public with professional READMEs (Project_Aion, DwarfCron, neural-canvas, confluence-concierge, model-foundry, agentic-patterns, ancestry-insights, palimpsest)
+- Profile README at CannonCoPilot/CannonCoPilot
+- 19 repos set private. Commits: `9acb8a3`→`42fb6ef` (Project_Aion), plus individual repo commits
 
-## Live processes
+### NEW: AnnasTools — Anna's Archive MCP + Alfred Persona
+- MCP server for ebook/article search + member download
+- Tools: searchBook, searchJournal, info, fastDownload, downloadBook, downloadJournal, memberDownload
+- Dual deployment: Jarvis MCP (direct use) + Alfred persona (task tickets)
+- Project code: `/Users/nathanielcannon/Claude/Projects/AnnasTools/`
+- Planning: `projects/annas_archive/`
+- Credentials: `projects/annas_archive/credentials.txt`
+- Status: Deep research in progress
+
+## Live processes (tmux `aion` session)
+- W0 Jarvis: Master Archon (this session)
 - W1 Watcher: JICM v7.9
-- W9 Bridge: host-executor-bridge.sh --daemon (chain-executor dispatch)
-- AlfDev-Seed: warm Claude session for chain forks
+- W5 Jarvis-dev: engineering/infrastructure agent
+- W10 Bridge: host-executor-bridge.sh --daemon
+- W11 Protos: warm Claude session for chain forks (Alfred identity)
 
 ## Notes
 - MCPs configured: 3 active (jarvis-rag, jarvis-graphiti, jarvis-pulse) + 4 disabled in `.mcp.json.disabled-2026-05-04` backup. Current session still has 7 loaded (MCP changes apply on next restart).
