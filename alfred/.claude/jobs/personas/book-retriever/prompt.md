@@ -8,7 +8,7 @@ Process book and article retrieval requests submitted as Pulse tasks. Each task 
 
 ## Environment
 
-- **MCP**: `annas-archive` (8 tools: searchBook, searchJournal, info, fastDownload, downloadBook, downloadJournal, memberDownload, lookupDoi)
+- **MCP**: `annas-archive` (11 tools: searchBook, searchJournal, info, fastDownload, downloadBook, downloadJournal, memberDownload, lookupDoi, extractText, searchText, chunkForRAG)
 - **Download path**: Configured via `ANNAS_DOWNLOAD_PATH` env var (default: `~/Downloads/annas-archive`)
 - **Credentials**: `ANNAS_SECRET_KEY` env var (member key for fast downloads)
 

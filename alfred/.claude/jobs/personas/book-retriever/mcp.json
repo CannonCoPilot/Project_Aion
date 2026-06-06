@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "annas-archive": {
+      "command": "/Users/nathanielcannon/Claude/Projects/AnnasTools/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Projects/AnnasTools/src/annas_tools/mcp_server.py"
+      ],
+      "env": {
+        "ANNAS_SECRET_KEY": "yqgZHZRM45jA1ZNJKajsMpvLtp8WV",
+        "ANNAS_DOWNLOAD_PATH": "/Users/nathanielcannon/Downloads/annas-archive"
+      }
+    }
+  }
+}

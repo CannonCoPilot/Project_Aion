@@ -357,3 +357,14 @@ def load_persona_prompt(persona_name: str) -> str | None:
         with open(prompt_file) as f:
             return f.read()
     return None
+
+
+def get_persona_mcp_config(persona_name: str) -> str | None:
+    """Return absolute path to persona's mcp.json if it exists."""
+    d = get_persona_dir()
+    if not d:
+        return None
+    mcp_file = os.path.join(d, persona_name, "mcp.json")
+    if os.path.isfile(mcp_file):
+        return os.path.abspath(mcp_file)
+    return None

@@ -87,7 +87,9 @@ _capture_seed_session_id() {
 get_or_create_chain_window() {
     # Returns the tmux window name for a given chain_id.
     # If the window doesn't exist or Claude isn't running, forks the seed.
+    # $2 (optional): path to a persona-specific mcp.json for --mcp-config
     local chain_id="$1"
+    local persona_mcp_config="${2:-}"
     mkdir -p "$CHAIN_MAP_DIR" 2>/dev/null
 
     local map_file="${CHAIN_MAP_DIR}/${chain_id}"
@@ -112,9 +114,16 @@ get_or_create_chain_window() {
         return 0
     fi
 
+    # Build --mcp-config flag if persona provides a config
+    local mcp_flag=""
+    if [ -n "$persona_mcp_config" ] && [ -f "$persona_mcp_config" ]; then
+        mcp_flag="--mcp-config '${persona_mcp_config}'"
+        log "Attaching persona MCP config: ${persona_mcp_config}"
+    fi
+
     log "Forking seed → ${window_name} for chain ${chain_id:0:12}"
     "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
-        "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
+        "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
 
     local waited=0
     while [ "$waited" -lt 20 ]; do
@@ -209,9 +218,9 @@ process_request() {
         return 1
     fi
 
-    # Extract prompt, output_dir, chain_id, model from request
+    # Extract prompt, output_dir, chain_id, model, mcp_config from request
     local prompt_file="${STATE_DIR}/.bridge-prompt-${task_id}.txt"
-    local timeout_minutes output_dir chain_id requested_model
+    local timeout_minutes output_dir chain_id requested_model mcp_config
     eval "$(python3 -c "
 import json, shlex
 d = json.load(open('$request_file'))
@@ -221,6 +230,7 @@ print(f'timeout_minutes={d.get(\"timeout_minutes\", 10)}')
 print(f'output_dir={shlex.quote(d.get(\"output_dir\", \"\"))}')
 print(f'chain_id={shlex.quote(d.get(\"chain_id\", \"\"))}')
 print(f'requested_model={shlex.quote(d.get(\"model\", \"\"))}')
+print(f'mcp_config={shlex.quote(d.get(\"mcp_config\", \"\"))}')
 " 2>/dev/null)"
 
     local result_file="${STATE_DIR}/execute-result-${task_id}.json"
@@ -244,9 +254,10 @@ json.dump({
     # Route to chain-specific forked window.
     # NEVER inject directly into the seed — it's a fork source only.
     # Tasks without chain_id get a unique ephemeral chain.
+    # Pass persona MCP config so the fork loads required MCP servers.
     local effective_chain="${chain_id:-ephemeral-${task_id}}"
     local target_window
-    target_window=$(get_or_create_chain_window "$effective_chain")
+    target_window=$(get_or_create_chain_window "$effective_chain" "$mcp_config")
 
     # The bridge always runs Claude Code interactive sessions. The actual model
     # is the CC session default (typically the workspace model from CLAUDE.md).

@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(__file__))
-from _shared import call_ollama_streaming, get_ollama_telemetry, load_persona_prompt, log_activity, pulse_get, pulse_patch, pulse_post, set_label
+from _shared import call_ollama_streaming, get_ollama_telemetry, get_persona_mcp_config, load_persona_prompt, log_activity, pulse_get, pulse_patch, pulse_post, set_label
 from observability import log_audit, log_cost, log_decision, notify_msgbus
 from observability.thread import ensure_thread_id
 
@@ -967,6 +967,10 @@ def main():
     if JARVIS_SESSION_ID_FILE.exists():
         jarvis_session_id = JARVIS_SESSION_ID_FILE.read_text().strip() or None
 
+    mcp_config_path = get_persona_mcp_config(persona_name)
+    if mcp_config_path:
+        log.info("Persona %s has MCP config: %s", persona_name, mcp_config_path)
+
     request_payload = {
         "task_id": TASK_ID,
         "session_id": session_id,
@@ -977,6 +981,7 @@ def main():
         "chain_resume": chain_resume if chain_resume and not (metadata.get("prior_log_bytes", 0) > COMPRESSED_MODE_BYTES) else None,
         "chain_id": metadata.get("chain_id", ""),
         "jarvis_session_id": jarvis_session_id,
+        "mcp_config": mcp_config_path,
         "max_budget_usd": task_budget,
         "output_dir": str(output_dir),
         "log_file": str(log_file),

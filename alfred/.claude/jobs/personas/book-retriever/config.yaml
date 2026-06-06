@@ -17,5 +17,9 @@ output:
 session:
   persist: false
 
-mcps:
+# MCP requirements — these must be present in alfred/.mcp.json for chain
+# sessions to inherit them. The executor does not dynamically load MCPs;
+# they are inherited from the working directory's .mcp.json at session start.
+# Verify with: jq '.mcpServers | keys' alfred/.mcp.json
+mcps_required:
   - annas-archive

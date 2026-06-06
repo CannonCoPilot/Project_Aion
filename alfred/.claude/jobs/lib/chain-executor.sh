@@ -103,7 +103,9 @@ get_seed_session_id() {
 
 fork_chain_window() {
     # Fork the seed into a new interactive window for this chain
+    # $2 (optional): path to persona-specific mcp.json for --mcp-config
     local chain_id="$1"
+    local persona_mcp_config="${2:-}"
     local window_name="chain-${chain_id:0:10}"
     local seed_sid
     seed_sid=$(get_seed_session_id)
@@ -113,9 +115,15 @@ fork_chain_window() {
         return 1
     fi
 
+    local mcp_flag=""
+    if [ -n "$persona_mcp_config" ] && [ -f "$persona_mcp_config" ]; then
+        mcp_flag="--mcp-config '${persona_mcp_config}'"
+        log "Attaching persona MCP config: ${persona_mcp_config}"
+    fi
+
     log "Forking seed ${seed_sid:0:12} → ${window_name}"
     "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
-        "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
+        "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
 
     # Wait for the fork to become interactive
     local waited=0
