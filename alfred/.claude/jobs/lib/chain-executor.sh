@@ -49,8 +49,9 @@ ensure_seed() {
     fi
 
     log "Starting seed session in ${SEED_WINDOW}"
+    local seed_model="${AION_MODEL:-claude-opus-4-6[1M]}"
     "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${SEED_WINDOW}" \
-        "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
+        "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${seed_model}' --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 
     # Wait for Claude to become interactive (up to 45s).
     # Handle the external CLAUDE.md import prompt that appears because
@@ -86,6 +87,9 @@ ensure_seed() {
                     continue  # still stuck at prompt
                 fi
                 sleep 3
+                # Prime the seed so it caches initial context and is ready for forking
+                "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" 'You are the Alfred seed session. Acknowledge with: "Seed ready."' Enter 2>/dev/null
+                sleep 8
                 _capture_seed_session_id
                 log "Seed ready (waited ${waited}s, import_prompt=${import_prompt_handled})"
                 return 0

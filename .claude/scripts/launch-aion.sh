@@ -47,6 +47,7 @@ TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-aion}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 ALFRED_DIR="$PROJECT_DIR/alfred"
+AION_MODEL="${AION_MODEL:-claude-opus-4-6[1M]}"
 # Claude Code derives its project slug from PWD at launch time. Sessions created
 # via ~/Claude/Jarvis live under slug -Users-*-Claude-Jarvis. We MUST cd through
 # the symlink path when launching Claude, otherwise it creates a new empty slug.
@@ -858,7 +859,7 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_A
 # --add-dir loads .claude/personas/jarvis/CLAUDE.md with @-import processing.
 # Jarvis identity, psyche, and force-loaded context are in that persona CLAUDE.md,
 # NOT in the root CLAUDE.md (which is shared with Alfred to avoid external-import conflicts).
-CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --exclude-dynamic-system-prompt-sections --model 'claude-opus-4-6[1M]' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
@@ -1139,9 +1140,30 @@ if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null
         echo "Launching Protos (warm chain session via Alfred-Dev)..."
         SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
         "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
-            "cd '$ALFRED_LAUNCH_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
+            "cd '$ALFRED_LAUNCH_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${AION_MODEL}' --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
-        echo -e "  ${GREEN}✓${NC} Protos warm session created (Alfred identity)"
+        # Prime the seed: wait for Claude to be interactive, then inject the seed prompt.
+        # This caches the initial context and confirms the session is ready for forking.
+        (
+            sleep 12
+            local_waited=0
+            while [ "$local_waited" -lt 30 ]; do
+                pane=$("$TMUX_BIN" capture-pane -t "${SESSION_NAME}:${SEED_WINDOW}" -p 2>/dev/null)
+                if echo "$pane" | grep -q "Allow external CLAUDE.md"; then
+                    "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" Down 2>/dev/null
+                    sleep 0.3
+                    "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" Enter 2>/dev/null
+                    sleep 5
+                fi
+                if echo "$pane" | grep -qE '❯ $|❯  $'; then
+                    "$TMUX_BIN" send-keys -t "${SESSION_NAME}:${SEED_WINDOW}" 'You are the Alfred seed session. Acknowledge with: "Seed ready."' Enter 2>/dev/null
+                    break
+                fi
+                sleep 2
+                local_waited=$((local_waited + 2))
+            done
+        ) &
+        echo -e "  ${GREEN}✓${NC} Protos warm session created (Alfred identity, model=${AION_MODEL})"
     else
         echo -e "  ${YELLOW}⚠${NC} Protos skipped — $ALFRED_LAUNCH_DIR not found"
         echo "    Create it: ln -sf $PROJECT_DIR/alfred $ALFRED_LAUNCH_DIR"
