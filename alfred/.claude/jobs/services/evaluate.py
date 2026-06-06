@@ -56,15 +56,17 @@ Instructions:
 4. DECOMPOSITION CHECK:
    - Should this task be split into smaller tasks?
    - Do NOT decompose if the task metadata contains "decomposition_depth" >= 2.
-   - Split if ANY of these apply:
-     a) The task lists 3+ numbered/bulleted steps that must be done sequentially
-     b) The task implies 2+ distinct personas (research + implementation + validation)
-     c) The scope is extremely broad (read entire codebase, analyze 100+ files)
-     d) The description explicitly says "steps required" or lists phases/stages
+   - Do NOT decompose if the task has label "action:retrieve" — retrieval tasks (search + download) are atomic single-persona workflows. The assigned persona handles the full search→verify→download→report pipeline internally.
+   - Do NOT decompose if the description is a single coherent instruction with a clear end state, even if it mentions multiple internal steps. Internal workflow steps (search then download then report) are NOT subtasks — they are the persona's responsibility.
+   - Split ONLY if ALL of these apply:
+     a) The task requires 2+ distinct personas with genuinely different skill sets
+     b) The scope spans multiple independent deliverables that could be done in parallel
+     c) Each proposed subtask would take >5 minutes and produces a distinct artifact
    - Each subtask must be a self-contained unit of work.
    - List subtasks IN EXECUTION ORDER. The first subtask has no dependencies.
    - Each subsequent subtask's "depends_on" names the prior subtask it needs.
    - Validation/verification subtasks MUST be listed LAST (they validate outputs from earlier steps).
+   - DEFAULT TO NO DECOMPOSITION. When in doubt, keep the task atomic.
 
 Output as JSON:
 {{
