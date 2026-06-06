@@ -651,6 +651,10 @@ check_identity_changes() {
         local queue_file="$PROJECT_DIR/.claude/context/.graphiti-reindex-queue"
         echo "$changed_files" > "$queue_file"
         log "maintain: M4 identity changes detected: ${changed_files}— queued for re-ingestion"
+        # Advance the marker so subsequent M4 cycles don't re-detect the same files.
+        # Without this touch, M4 re-queues every ~100s until the R2b REST consumer
+        # processes the queue — but R2b only runs at REST, so re-queuing is spurious.
+        touch "$marker"
     fi
 }
 

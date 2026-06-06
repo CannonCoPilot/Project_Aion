@@ -40,7 +40,7 @@ REQUIRED_DIRS=(
     ".claude/state/components"
     ".claude/logs"
     ".claude/plans"
-    ".claude/persona"
+    ".claude/personas"
 )
 
 MISSING_DIRS=""

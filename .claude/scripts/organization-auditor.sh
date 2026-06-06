@@ -60,7 +60,7 @@ audit_organization() {
     # Required files
     local required_files=(
         "$JARVIS_ROOT/CLAUDE.md"
-        "$CLAUDE_DIR/jarvis-identity.md"
+        "$CLAUDE_DIR/context/psyche/jarvis-identity.md"
         "$CLAUDE_DIR/context/session-state.md"
         "$CLAUDE_DIR/context/current-priorities.md"
         "$CLAUDE_DIR/context/compaction-essentials.md"
