@@ -367,17 +367,17 @@ preflight_services() {
         echo -e "  ${YELLOW}!${NC} Pipeline Watcher — not running"
     fi
 
-    # 10. Host Executor Bridge (replaces event-watcher for signal-file processing)
+    # 10. Styx (Host Executor) (replaces event-watcher for signal-file processing)
     local bridge_heartbeat="$HOME/Claude/Alfred-Dev/.claude/jobs/state/.bridge-heartbeat"
     if [[ -f "$bridge_heartbeat" ]]; then
         local bridge_age=$(( $(date +%s) - $(date -r "$bridge_heartbeat" +%s 2>/dev/null || echo 0) ))
         if [[ "$bridge_age" -lt 30 ]]; then
-            echo -e "  ${GREEN}✓${NC} Host Executor Bridge (heartbeat ${bridge_age}s ago)"
+            echo -e "  ${GREEN}✓${NC} Styx (Host Executor) (heartbeat ${bridge_age}s ago)"
         else
-            echo -e "  ${YELLOW}!${NC} Host Executor Bridge (stale heartbeat: ${bridge_age}s)"
+            echo -e "  ${YELLOW}!${NC} Styx (Host Executor) (stale heartbeat: ${bridge_age}s)"
         fi
     else
-        echo -e "  ${YELLOW}!${NC} Host Executor Bridge — not running"
+        echo -e "  ${YELLOW}!${NC} Styx (Host Executor) — not running"
     fi
 
     # 11. Nexus launchd agents (DEV — dispatcher + watchdog only, event-watcher superseded by Bridge)
@@ -457,28 +457,28 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             sleep 1
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:HUD" "$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh" Enter 2>/dev/null
             ;;
-        bridge)
-            echo "Restarting Host Executor Bridge..."
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
+        bridge|styx)
+            echo "Restarting Styx (Host Executor)..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Styx" C-c 2>/dev/null
             sleep 1
-            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
-                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null \
-                || "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
-                    "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read"
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Styx" \
+                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Styx stopped.'; read" 2>/dev/null \
+                || "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Styx" -d \
+                    "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Styx stopped.'; read"
             ;;
         all)
             echo "Full restart..."
             (cd "$PROJECT_DIR/infrastructure" && docker compose restart 2>/dev/null)
             (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d 2>/dev/null)
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Styx" C-c 2>/dev/null
             sleep 1
-            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
-                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null || true
-            echo "Docker stacks + bridge restarted. tmux processes unchanged."
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Styx" \
+                "cd '$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Styx stopped.'; read" 2>/dev/null || true
+            echo "Docker stacks + styx restarted. tmux processes unchanged."
             ;;
         *)
             echo "Unknown component: $RESTART_COMPONENT"
-            echo "Available: infra, pulse, proxy, dashboard, pipeline, bridge, watcher, hud, all"
+            echo "Available: infra, pulse, proxy, dashboard, pipeline, styx (bridge), watcher, hud, all"
             exit 1
             ;;
     esac
@@ -855,14 +855,14 @@ if [[ -x "$HUD_SCRIPT" ]]; then
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
 fi
 
-# Host Executor Bridge (signal-file daemon for Docker↔host Claude delegation)
+# Styx (Host Executor) (signal-file daemon for Docker↔host Claude delegation)
 BRIDGE_SCRIPT="$HOME/Claude/Alfred-Dev/.claude/jobs/lib/host-executor-bridge.sh"
 if [[ -x "$BRIDGE_SCRIPT" ]] || [[ -f "$BRIDGE_SCRIPT" ]]; then
-    if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q '^Bridge$'; then
-        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
-            "cd '$HOME/Claude/Alfred-Dev' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Bridge stopped.'; read"
-        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Bridge" automatic-rename off 2>/dev/null || true
-        echo -e "  ${GREEN}✓${NC} Host Executor Bridge daemon started"
+    if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q '^Styx$'; then
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Styx" -d \
+            "cd '$HOME/Claude/Alfred-Dev' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Styx stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Styx" automatic-rename off 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} Styx (Host Executor) daemon started"
     fi
 fi
 

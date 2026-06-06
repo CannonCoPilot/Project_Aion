@@ -48,6 +48,77 @@ SESSION_NAME="${TMUX_SESSION:-aion}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 ALFRED_DIR="$PROJECT_DIR/alfred"
 AION_MODEL="${AION_MODEL:-claude-opus-4-6[1M]}"
+
+# ── Window Index Map ──────────────────────────────────────────────────
+# Permanent window ordering. Core sessions first, infrastructure second,
+# aion subsystems third. Chain windows (from Alfred fork-resume) stack
+# at the end automatically since they get the next available index.
+#
+#   0: Jarvis       — Master Archon
+#   1: Protos       — Alfred seed (fork cache)
+#   2: HUD          — Live dashboard
+#   3: LiteLLM      — Model proxy
+#   4: Ollama       — Local model monitor
+#   5: MLX-Embed    — Embedding server
+#   6: Ennoia       — Session orchestrator
+#   7: Virgil       — Codebase guide
+#   8: Watcher      — JICM context monitor
+#   9: Commands     — Signal injection
+#  10: Styx         — Host executor daemon + reaper
+#  11: Jarvis-dev   — Dev test driver (when invoked)
+#  12+: chain-*     — Alfred fork-resume task windows (auto-stacked)
+
+window_target_index() {
+    case "$1" in
+        Jarvis)     echo 0 ;;
+        Protos)     echo 1 ;;
+        HUD)        echo 2 ;;
+        LiteLLM)    echo 3 ;;
+        Ollama)     echo 4 ;;
+        MLX-Embed)  echo 5 ;;
+        Ennoia)     echo 6 ;;
+        Virgil)     echo 7 ;;
+        Watcher)    echo 8 ;;
+        Commands)   echo 9 ;;
+        Styx)       echo 10 ;;
+        Jarvis-dev) echo 11 ;;
+        *)          echo "" ;;
+    esac
+}
+
+WINDOW_ORDER="Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
+
+reorder_windows() {
+    # Move each named window to its assigned index. Process in the order
+    # listed in WINDOW_ORDER (highest index first) to avoid collisions.
+    for name in $WINDOW_ORDER; do
+        local target
+        target=$(window_target_index "$name")
+        [ -z "$target" ] && continue
+
+        # Find the window's current index by name
+        local current
+        current=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_index}:#{window_name}' 2>/dev/null | grep ":${name}$" | cut -d: -f1)
+        [ -z "$current" ] && continue
+        [ "$current" = "$target" ] && continue
+
+        # Check if target slot is occupied
+        local occupant
+        occupant=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_index}:#{window_name}' 2>/dev/null | grep "^${target}:" | cut -d: -f2)
+        if [ -n "$occupant" ] && [ "$occupant" != "$name" ]; then
+            "$TMUX_BIN" swap-window -s "${SESSION_NAME}:${current}" -t "${SESSION_NAME}:${target}" 2>/dev/null
+        else
+            "$TMUX_BIN" move-window -s "${SESSION_NAME}:${current}" -t "${SESSION_NAME}:${target}" 2>/dev/null
+        fi
+    done
+
+    # Disable automatic rename for all assigned windows
+    for name in $WINDOW_ORDER; do
+        local idx
+        idx=$(window_target_index "$name")
+        [ -n "$idx" ] && "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${idx}" automatic-rename off 2>/dev/null || true
+    done
+}
 # Claude Code derives its project slug from PWD at launch time. Sessions created
 # via ~/Claude/Jarvis live under slug -Users-*-Claude-Jarvis. We MUST cd through
 # the symlink path when launching Claude, otherwise it creates a new empty slug.
@@ -469,18 +540,18 @@ preflight_services() {
         echo -e "    ${YELLOW}⚠${NC} Pipeline Watcher — not running"
         warnings=$((warnings + 1))
     fi
-    # Host Executor Bridge
+    # Styx (Host Executor)
     local bridge_heartbeat="$ALFRED_DIR/.claude/jobs/state/.bridge-heartbeat"
     if [[ -f "$bridge_heartbeat" ]]; then
         local bridge_age=$(( $(date +%s) - $(date -r "$bridge_heartbeat" +%s 2>/dev/null || echo 0) ))
         if [[ "$bridge_age" -lt 60 ]]; then
-            echo -e "    ${GREEN}✓${NC} Host Executor Bridge (heartbeat ${bridge_age}s ago)"
+            echo -e "    ${GREEN}✓${NC} Styx (Host Executor) (heartbeat ${bridge_age}s ago)"
         else
-            echo -e "    ${YELLOW}⚠${NC} Host Executor Bridge (stale heartbeat: ${bridge_age}s)"
+            echo -e "    ${YELLOW}⚠${NC} Styx (Host Executor) (stale heartbeat: ${bridge_age}s)"
             warnings=$((warnings + 1))
         fi
     else
-        echo -e "    ${YELLOW}⚠${NC} Host Executor Bridge — no heartbeat file"
+        echo -e "    ${YELLOW}⚠${NC} Styx (Host Executor) — no heartbeat file"
         warnings=$((warnings + 1))
     fi
 
@@ -666,24 +737,24 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             sleep 1
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:HUD" "$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh" Enter 2>/dev/null
             ;;
-        bridge)
-            echo "Restarting Host Executor Bridge..."
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
+        bridge|styx)
+            echo "Restarting Styx (Host Executor)..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Styx" C-c 2>/dev/null
             sleep 1
-            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
-                "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null \
-                || "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
-                    "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read"
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Styx" \
+                "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Styx stopped.'; read" 2>/dev/null \
+                || "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Styx" -d \
+                    "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Styx stopped.'; read"
             ;;
         all)
             echo "Full restart..."
             (cd "$PROJECT_DIR/infrastructure" && docker compose restart 2>/dev/null)
             (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d 2>/dev/null)
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Bridge" C-c 2>/dev/null
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Styx" C-c 2>/dev/null
             sleep 1
-            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Bridge" \
-                "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Bridge stopped.'; read" 2>/dev/null || true
-            echo "Docker stacks + bridge restarted. tmux processes unchanged."
+            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:Styx" \
+                "cd '$AIFRED_DEV_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$AIFRED_DEV_DIR' && bash '$AIFRED_DEV_DIR/.claude/jobs/lib/host-executor-bridge.sh' --daemon; echo 'Styx stopped.'; read" 2>/dev/null || true
+            echo "Docker stacks + styx restarted. tmux processes unchanged."
             ;;
         ollama)
             echo "Restarting Ollama monitor window..."
@@ -707,7 +778,7 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             ;;
         *)
             echo "Unknown component: $RESTART_COMPONENT"
-            echo "Available: infra, pulse, proxy, dashboard, pipeline, bridge, watcher, hud, ollama, mlx, litellm, all"
+            echo "Available: infra, pulse, proxy, dashboard, pipeline, styx (bridge), watcher, hud, ollama, mlx, litellm, all"
             exit 1
             ;;
     esac
@@ -1114,14 +1185,14 @@ if [[ -x "$HUD_SCRIPT" ]]; then
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
 fi
 
-# Host Executor Bridge (signal-file daemon for Docker↔host Claude delegation)
+# Styx (Host Executor) (signal-file daemon for Docker↔host Claude delegation)
 BRIDGE_SCRIPT="$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh"
 if [[ -x "$BRIDGE_SCRIPT" ]] || [[ -f "$BRIDGE_SCRIPT" ]]; then
-    if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q '^Bridge$'; then
-        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Bridge" -d \
-            "cd '$ALFRED_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$ALFRED_DIR' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Bridge stopped.'; read"
-        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Bridge" automatic-rename off 2>/dev/null || true
-        echo -e "  ${GREEN}✓${NC} Host Executor Bridge daemon started"
+    if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null | grep -q '^Styx$'; then
+        "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Styx" -d \
+            "cd '$ALFRED_DIR' && export TMUX_SESSION='$SESSION_NAME' ALFRED_DIR='$ALFRED_DIR' && bash '$BRIDGE_SCRIPT' --daemon; echo 'Styx stopped.'; read"
+        "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Styx" automatic-rename off 2>/dev/null || true
+        echo -e "  ${GREEN}✓${NC} Styx (Host Executor) daemon started"
     fi
 fi
 
@@ -1173,12 +1244,11 @@ fi
 # Set tmux options for better experience
 "$TMUX_BIN" set-option -t "$SESSION_NAME" mouse on 2>/dev/null || true
 "$TMUX_BIN" set-option -t "$SESSION_NAME" history-limit 10000 2>/dev/null || true
-# Prevent tmux from overriding window names with command names
-"$TMUX_BIN" set-window-option -t "$SESSION_NAME:0" automatic-rename off 2>/dev/null || true
-"$TMUX_BIN" set-window-option -t "$SESSION_NAME:1" automatic-rename off 2>/dev/null || true
-"$TMUX_BIN" set-window-option -t "$SESSION_NAME:2" automatic-rename off 2>/dev/null || true
-"$TMUX_BIN" set-window-option -t "$SESSION_NAME:3" automatic-rename off 2>/dev/null || true
-"$TMUX_BIN" set-window-option -t "$SESSION_NAME:4" automatic-rename off 2>/dev/null || true
+# Ensure chain windows (created later by bridge fork-resume) stack at 12+
+"$TMUX_BIN" set-option -t "$SESSION_NAME" -g renumber-windows off 2>/dev/null || true
+
+# Reorder all windows to their assigned indices
+reorder_windows
 
 echo ""
 echo -e "${GREEN}╔═══════════════════════════════════════════════════════════════╗${NC}"
@@ -1187,20 +1257,19 @@ echo -e "${GREEN}╚════════════════════
 echo ""
 echo -e "${CYAN}Tmux Windows:${NC}"
 echo "  W0  Jarvis        Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"
-echo "  W1  Watcher       JICM v7.9 context monitor"
-echo "  W2  Ennoia        Session orchestrator"
-echo "  W3  Virgil        Codebase guide"
-echo "  W4  Commands      Signal file → command injection"
+echo "  W1  Protos        Alfred seed (fork cache, model=${AION_MODEL})"
+echo "  W2  HUD           Live dashboard"
+echo "  W3  LiteLLM       Model proxy (:4000)"
+echo "  W4  Ollama        Local model monitor (:11434)"
+echo "  W5  MLX-Embed     Qwen3-Embedding-4B server (:8000)"
+echo "  W6  Ennoia        Session orchestrator"
+echo "  W7  Virgil        Codebase guide"
+echo "  W8  Watcher       JICM v7.9 context monitor"
+echo "  W9  Commands      Signal file → command injection"
+echo "  W10 Styx          Host executor daemon + reaper"
 [[ "$DEV_MODE" == "true" ]] && \
-echo "  W5  Jarvis-dev      Developer test driver"
-echo "      MLX-Embed     Qwen3-Embedding-4B server (:8000)"
-echo "      LiteLLM       Model proxy (:4000)"
-echo "      Ollama        Local model monitor (:11434)"
-[[ -x "$HUD_SCRIPT" ]] && \
-echo "      HUD           Live dashboard"
-[[ -f "$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh" ]] && \
-echo "      Bridge        Host executor signal daemon"
-echo "      Protos        Warm chain session (fork cache)"
+echo "  W11 Jarvis-dev    Developer test driver"
+echo "  W12+              Chain windows (Alfred fork-resume tasks)"
 echo ""
 echo -e "${CYAN}Archon Service Summary:${NC}"
 echo -n "  Jarvis Infra : "; check_port 5432 && check_port 6333 "/collections" && check_port 7474 && echo -e "${GREEN}PG+Qdrant+Neo4j ✓${NC}" || echo -e "${YELLOW}partial${NC}"
