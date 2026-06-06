@@ -57,17 +57,40 @@ ensure_seed() {
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 
     local waited=0
-    while [ "$waited" -lt 30 ]; do
+    local import_prompt_handled=false
+    while [ "$waited" -lt 45 ]; do
         sleep 2
         waited=$((waited + 2))
+
+        # Check for the external CLAUDE.md import prompt and auto-confirm.
+        # Alfred lives inside Project_Aion so Claude discovers the parent
+        # CLAUDE.md with @-imports. --dangerously-skip-permissions does not
+        # cover this security prompt. We detect it and send "1" + Enter.
+        if [ "$import_prompt_handled" = "false" ]; then
+            local pane_content
+            pane_content=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${SEED_WINDOW}" -p 2>/dev/null)
+            if echo "$pane_content" | grep -q "Allow external CLAUDE.md"; then
+                log "External import prompt detected — auto-confirming"
+                "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" Enter 2>/dev/null
+                import_prompt_handled=true
+                sleep 3
+            fi
+        fi
+
         if _claude_running_in_window "$SEED_WINDOW"; then
+            # Verify Claude is actually interactive, not stuck at another prompt
+            local pane_check
+            pane_check=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${SEED_WINDOW}" -p 2>/dev/null)
+            if echo "$pane_check" | grep -q "Allow external CLAUDE.md"; then
+                continue  # still stuck at prompt
+            fi
             sleep 3
             _capture_seed_session_id
-            log "Seed ready (waited ${waited}s)"
+            log "Seed ready (waited ${waited}s, import_prompt=${import_prompt_handled})"
             return 0
         fi
     done
-    log "ERROR: seed failed to start within 30s"
+    log "ERROR: seed failed to start within 45s"
     return 1
 }
 
@@ -126,12 +149,31 @@ get_or_create_chain_window() {
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
 
     local waited=0
-    while [ "$waited" -lt 20 ]; do
+    local fork_import_handled=false
+    while [ "$waited" -lt 30 ]; do
         sleep 2
         waited=$((waited + 2))
+
+        # Auto-confirm external import prompt on forked sessions too
+        if [ "$fork_import_handled" = "false" ]; then
+            local fork_content
+            fork_content=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${window_name}" -p 2>/dev/null)
+            if echo "$fork_content" | grep -q "Allow external CLAUDE.md"; then
+                log "External import prompt in fork ${window_name} — auto-confirming"
+                "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${window_name}" Enter 2>/dev/null
+                fork_import_handled=true
+                sleep 3
+            fi
+        fi
+
         if _claude_running_in_window "$window_name"; then
+            local fc
+            fc=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${window_name}" -p 2>/dev/null)
+            if echo "$fc" | grep -q "Allow external CLAUDE.md"; then
+                continue
+            fi
             echo "$window_name" > "$map_file"
-            log "Chain window ready: ${window_name} (waited ${waited}s)"
+            log "Chain window ready: ${window_name} (waited ${waited}s, import_prompt=${fork_import_handled})"
             echo "$window_name"
             return 0
         fi
