@@ -65,7 +65,10 @@ JICM_RESUME_TIMEOUT=${JICM_RESUME_TIMEOUT:-60}
 
 # --- tmux (overridable) -----------------------------------------------------
 JICM_TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
-JICM_TMUX_SESSION="${TMUX_SESSION:-jarvis}"
+# Default changed from 'jarvis' to 'aion' after monorepo migration (2026-06-05).
+# Session was renamed jarvis→aion in launch-aion.sh v3.1; the old default caused
+# every JICM inject attempt to fail with "tmux session 'jarvis' not found".
+JICM_TMUX_SESSION="${TMUX_SESSION:-aion}"
 JICM_TMUX_TARGET="${JICM_TMUX_TARGET:-${JICM_TMUX_SESSION}:0}"
 
 # --- Injection backend -------------------------------------------------------

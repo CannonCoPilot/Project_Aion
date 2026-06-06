@@ -960,10 +960,13 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     export TMUX_SESSION="$SESSION_NAME"
     export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
-    # Create watcher window (window 1, detached so we stay on window 0)
-    # Threshold=70 (default) — single compression threshold, no emergency/lockout
+    # Create watcher window (window 1, detached so we stay on window 0).
+    # TMUX_SESSION passed inline (not via tmux set-env) so the watcher subprocess
+    # picks it up regardless of tmux session-level env. jicm-config.sh resolves
+    # JICM_TMUX_SESSION="${TMUX_SESSION:-aion}" — without this inline export the
+    # old default 'jarvis' caused every inject attempt to fail ("session not found").
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)

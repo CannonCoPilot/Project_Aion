@@ -73,6 +73,19 @@ if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/cont
     exit 0
 fi
 
+# ─── W5 exclusion: skip state write for dev/test sessions ───────────────────
+# W5:Jarvis-dev shares CLAUDE_PROJECT_DIR with W0. Without this guard, W5
+# prompts overwrite .jicm-state-hook.json with W5 session data (Sonnet 4.6,
+# 200K window), causing the watcher to monitor W5 instead of W0. JICM
+# thresholds (250K/300K) are above W5's max window → JICM never fires for W0.
+# JARVIS_SESSION_ROLE=dev is set by launch-aion.sh for W5's Claude process
+# and propagated to hook child processes.
+JARVIS_W5_UUID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+if [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
+    echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
+    exit 0
+fi
+
 # ─── Extract identifiers from stdin ─────────────────────────────────────────
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null)
 TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
