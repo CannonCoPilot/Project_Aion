@@ -19,16 +19,23 @@ You are running in **W5:Jarvis-dev** — the autonomous test driver for Project 
 
 ## Environment
 
-You are inside a **tmux session** named `jarvis` with 6 windows:
+You are inside a **tmux session** named `aion` with 12 fixed windows (chain windows stack at W12+):
 
 | Window | Name | Role | How to interact |
 |--------|------|------|-----------------|
 | W0 | Jarvis | System Under Test (primary Archon) | Via dev scripts |
-| W1 | Watcher | JICM v6.1 monitoring W0 | Read logs, restart |
-| W2 | Ennoia | Session orchestrator | Read state files |
-| W3 | Virgil | Codebase guide | Read state files |
-| W4 | Commands | Command signal handler | Write signal files |
-| W5 | Jarvis-dev | **YOU ARE HERE** — test driver | Direct execution |
+| W1 | Protos | Alfred seed session (fork cache) | Read pane |
+| W2 | HUD | Live dashboard | Read pane |
+| W3 | LiteLLM | Model proxy (:4000) | Read pane |
+| W4 | Ollama | Local model monitor (:11434) | Read pane |
+| W5 | MLX-Embed | Qwen3-Embedding-4B (:8000) | Read pane |
+| W6 | Ennoia | Session orchestrator | Read state files |
+| W7 | Virgil | Codebase guide | Read state files |
+| W8 | Watcher | JICM v7.9 monitoring W0 | Read logs, restart |
+| W9 | Commands | Command signal handler | Write signal files |
+| W10 | Styx | Host executor daemon (bridge) | Read pane |
+| W11 | Jarvis-dev | **YOU ARE HERE** — test driver | Direct execution |
+| W12+ | chain-* | Alfred fork-resume task windows | Read pane |
 
 ### Critical Environment Facts
 
@@ -37,16 +44,17 @@ You are inside a **tmux session** named `jarvis` with 6 windows:
 - **CRITICAL**: `$HOME/bin/tmux` breaks when piped in zsh (`$HOME/bin/tmux ... | grep` fails). Always use `/Users/nathanielcannon/bin/tmux` or use the dev scripts (which run in bash and handle this internally)
 - **Project root**: `/Users/nathanielcannon/Claude/Project_Aion`
 - **All dev scripts** use `TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"` — they work out of the box
-- **You can capture any window**: `$HOME/bin/tmux capture-pane -t jarvis:N -p`
-- **You can send to any window**: `$HOME/bin/tmux send-keys -t jarvis:N -l "text"` then `$HOME/bin/tmux send-keys -t jarvis:N C-m`
+- **You can capture any window**: `/Users/nathanielcannon/bin/tmux capture-pane -t aion:N -p`
+- **You can send to any window**: `/Users/nathanielcannon/bin/tmux send-keys -t aion:N -l "text"` then `/Users/nathanielcannon/bin/tmux send-keys -t aion:N C-m`
+- **Target W0 by name not index**: use `aion:Jarvis` or `aion:0` — both work
 
 ### tmux Interaction Rules
 
 1. **NEVER combine text and Enter in one send-keys call**. Always split:
    ```bash
-   $HOME/bin/tmux send-keys -t jarvis:0 -l "prompt text"
+   /Users/nathanielcannon/bin/tmux send-keys -t aion:0 -l "prompt text"
    sleep 0.3
-   $HOME/bin/tmux send-keys -t jarvis:0 C-m
+   /Users/nathanielcannon/bin/tmux send-keys -t aion:0 C-m
    ```
 2. **Single-line strings ONLY with -l flag** — multi-line causes input corruption
 3. **Check idle before sending** — use `capture-jarvis.sh --tail 5` and look for `❯` prompt
@@ -69,21 +77,21 @@ You are inside a **tmux session** named `jarvis` with 6 windows:
 
 ```bash
 # Capture any window
-$HOME/bin/tmux capture-pane -t jarvis:0 -p | tail -20
+/Users/nathanielcannon/bin/tmux capture-pane -t aion:0 -p | tail -20
 
 # List all windows
-$HOME/bin/tmux list-windows -t jarvis -F "#{window_index}:#{window_name}"
+/Users/nathanielcannon/bin/tmux list-windows -t aion -F "#{window_index}:#{window_name}"
 
 # Check if W0 is idle (look for ❯ in output)
-$HOME/bin/tmux capture-pane -t jarvis:0 -p | grep -c '❯'
+/Users/nathanielcannon/bin/tmux capture-pane -t aion:0 -p | grep -c '❯'
 
 # Send text to W0
-$HOME/bin/tmux send-keys -t jarvis:0 -l "What is 2+2?"
+/Users/nathanielcannon/bin/tmux send-keys -t aion:0 -l "What is 2+2?"
 sleep 0.3
-$HOME/bin/tmux send-keys -t jarvis:0 C-m
+/Users/nathanielcannon/bin/tmux send-keys -t aion:0 C-m
 
 # Send ESC to interrupt W0
-$HOME/bin/tmux send-keys -t jarvis:0 Escape
+/Users/nathanielcannon/bin/tmux send-keys -t aion:0 Escape
 ```
 
 ### State Files (Read Directly)
@@ -131,10 +139,11 @@ See the skill for execution patterns (A-F), domain rotation, exit criteria, stat
 
 ## Session Identity
 
-- **Window**: W5 (tmux window 5)
-- **Session ID**: Deterministic UUID (pinned across relaunches)
+- **Window**: W11 (tmux window 11, name `Jarvis-dev`)
+- **Session ID**: Deterministic UUID `fbd7528a-c1bd-414a-bdaa-c3cc23f53215` (pinned across relaunches)
 - **Env var**: `JARVIS_SESSION_ROLE=dev`
-- **Isolation**: Watcher and command-handler target `jarvis:0` only — W5 is invisible to all monitoring
+- **Isolation**: Watcher and command-handler target `aion:0` (Jarvis) only — W11 is invisible to all JICM monitoring
+- **JICM exclusion**: jicm-gate.sh and jicm-stop.sh exit early for `JARVIS_SESSION_ROLE=dev` — W11 prompts never overwrite W0's state file
 
 ## Context Isolation — W5 vs W0
 
