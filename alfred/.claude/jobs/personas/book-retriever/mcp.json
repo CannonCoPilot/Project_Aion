@@ -7,7 +7,7 @@
       ],
       "env": {
         "ANNAS_SECRET_KEY": "yqgZHZRM45jA1ZNJKajsMpvLtp8WV",
-        "ANNAS_DOWNLOAD_PATH": "/Users/nathanielcannon/Downloads/annas-archive"
+        "ANNAS_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/library"
       }
     }
   }
