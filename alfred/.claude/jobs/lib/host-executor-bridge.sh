@@ -62,15 +62,20 @@ ensure_seed() {
         sleep 2
         waited=$((waited + 2))
 
-        # Check for the external CLAUDE.md import prompt and auto-confirm.
+        # Check for the external CLAUDE.md import prompt and REJECT it.
         # Alfred lives inside Project_Aion so Claude discovers the parent
-        # CLAUDE.md with @-imports. --dangerously-skip-permissions does not
-        # cover this security prompt. We detect it and send "1" + Enter.
+        # CLAUDE.md with @-imports (Jarvis psyche, api_aware, etc.).
+        # These add ~23K tokens of irrelevant Jarvis context, pushing the
+        # seed to 125K tokens — 62% of Sonnet's 200K context — which
+        # triggers autocompact on forked sessions and eats task prompts.
+        # Select option 2: "No, disable external imports".
         if [ "$import_prompt_handled" = "false" ]; then
             local pane_content
             pane_content=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${SEED_WINDOW}" -p 2>/dev/null)
             if echo "$pane_content" | grep -q "Allow external CLAUDE.md"; then
-                log "External import prompt detected — auto-confirming"
+                log "External import prompt detected — REJECTING (saves ~23K tokens)"
+                "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" Down 2>/dev/null
+                sleep 0.3
                 "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${SEED_WINDOW}" Enter 2>/dev/null
                 import_prompt_handled=true
                 sleep 3
@@ -182,7 +187,9 @@ get_or_create_chain_window() {
             local fork_content
             fork_content=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${window_name}" -p 2>/dev/null)
             if echo "$fork_content" | grep -q "Allow external CLAUDE.md"; then
-                log "External import prompt in fork ${window_name} — auto-confirming"
+                log "External import prompt in fork ${window_name} — REJECTING (saves ~23K tokens)"
+                "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${window_name}" Down 2>/dev/null
+                sleep 0.3
                 "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${window_name}" Enter 2>/dev/null
                 fork_import_handled=true
                 sleep 3
