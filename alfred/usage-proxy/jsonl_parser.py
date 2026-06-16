@@ -32,8 +32,12 @@ DB_NAME = os.getenv("PROXY_DB_NAME", "pulse_dev")
 DB_USER = os.getenv("PROXY_DB_USER", "pulse_dev")
 DB_PASS = os.getenv("PROXY_DB_PASSWORD", "JzmggkPyb8f3NiOy7Z51lV5PDcP15NZS")
 
-# Model pricing (per million tokens, April 2026)
+# Model pricing (per million tokens). claude-opus-4-8 assumed equal to the
+# opus-4-x tier ($15/$75) — VERIFY against Anthropic's published 4.8 rates.
+# Matcher below is substring (`key in model`), so the 4-8 key must be listed
+# explicitly or 4-8 traffic silently falls back to sonnet pricing.
 MODEL_PRICING = {
+    "claude-opus-4-8":   {"input": 15.00, "output": 75.00, "cache_write": 18.75, "cache_read": 1.50},
     "claude-opus-4-6":   {"input": 15.00, "output": 75.00, "cache_write": 18.75, "cache_read": 1.50},
     "claude-sonnet-4-6": {"input":  3.00, "output": 15.00, "cache_write":  3.75, "cache_read": 0.30},
     "claude-haiku-4-5":  {"input":  0.80, "output":  4.00, "cache_write":  1.00, "cache_read": 0.08},
@@ -116,7 +120,10 @@ def parse_jsonl_file(filepath: Path) -> list[dict]:
             else:
                 ts = datetime.now(timezone.utc)
 
-            cost = compute_cost(model, input_tokens, output_tokens, cache_read, cache_write)
+            # No hardcoded token→$ estimation (policy: telemetry uses intercepted
+            # Anthropic usage headers, not guessed dollar costs). The JSONL backfill
+            # path has no header source, so cost is left unknown (NULL).
+            cost = None
 
             records.append({
                 "request_id": request_id,
@@ -213,7 +220,7 @@ async def main():
 
             session_id = jsonl_file.stem
             total_tokens = sum(r["input_tokens"] + r["output_tokens"] for r in records)
-            total_cost = sum(r["cost_usd"] for r in records)
+            total_cost = sum((r["cost_usd"] or 0) for r in records)
 
             if args.dry_run:
                 print(f"  {session_id[:8]}... {len(records)} turns, {total_tokens:,} tokens, ${total_cost:.4f}")

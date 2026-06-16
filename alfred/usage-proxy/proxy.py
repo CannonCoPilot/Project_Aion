@@ -34,8 +34,10 @@ DB_USER = os.getenv("PROXY_DB_USER", "pulse_dev")
 DB_PASS = os.getenv("PROXY_DB_PASSWORD", "")
 PROXY_PORT = int(os.getenv("PROXY_PORT", "9800"))
 
-# Model pricing (per million tokens, April 2026)
+# Model pricing (per million tokens). claude-opus-4-8 assumed equal to the
+# opus-4-x tier ($15/$75) — VERIFY against Anthropic's published 4.8 rates.
 MODEL_PRICING = {
+    "claude-opus-4-8":   {"input": 15.00, "output": 75.00, "cache_write": 18.75, "cache_read": 1.50},
     "claude-opus-4-6":   {"input": 15.00, "output": 75.00, "cache_write": 18.75, "cache_read": 1.50},
     "claude-sonnet-4-6": {"input":  3.00, "output": 15.00, "cache_write":  3.75, "cache_read": 0.30},
     "claude-haiku-4-5":  {"input":  0.80, "output":  4.00, "cache_write":  1.00, "cache_read": 0.08},
@@ -215,16 +217,25 @@ async def _record_telemetry(
         cache_write = usage.get("cache_creation_input_tokens", 0)
         speed = usage.get("speed")
 
-        # Compute cost
+        # Cost is intentionally NOT estimated from a hardcoded token→$ table.
+        # On subscription plans there is no authoritative per-request dollar figure;
+        # telemetry relies exclusively on the intercepted Anthropic unified-usage
+        # headers (unified_5h/7d_utilization etc.) captured below. cost_usd stays NULL.
         model = req_context.get("model", "unknown")
-        cost = _compute_cost(model, input_tokens, output_tokens, cache_read, cache_write)
+        cost = None
 
         # Extract headers (case-insensitive lookup)
         h = {k.lower(): v for k, v in resp_headers.items()}
 
-        # Collect raw anthropic-* headers
-        raw = {k: v for k, v in h.items()
-               if k.startswith("anthropic-") or k == "request-id" or k == "retry-after"}
+        # Collect raw anthropic-* headers. Set PROXY_DEBUG_ALL_HEADERS=1 to
+        # capture the FULL unfiltered response header set instead — a diagnostic
+        # for verifying exactly what upstream returns (e.g. whether any header
+        # carries a dollar cost). Off by default to avoid storing CDN/transport noise.
+        if os.getenv("PROXY_DEBUG_ALL_HEADERS") == "1":
+            raw = dict(h)
+        else:
+            raw = {k: v for k, v in h.items()
+                   if k.startswith("anthropic-") or k == "request-id" or k == "retry-after"}
 
         # Parse unified reset timestamps (Unix epoch → datetime)
         unified_5h_reset = _epoch_to_dt(h.get("anthropic-ratelimit-unified-5h-reset"))

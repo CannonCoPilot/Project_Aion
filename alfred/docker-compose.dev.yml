@@ -169,6 +169,10 @@ services:
       - PROXY_DB_USER=pulse_dev
       - PROXY_DB_PASSWORD=${PULSE_DB_PASSWORD}
       - PROXY_PORT=9800
+      # Diagnostic: set to 1 to capture the FULL unfiltered upstream header set
+      # into raw_headers (default empty = anthropic-* only). Used to verify
+      # exactly which headers upstream returns.
+      - PROXY_DEBUG_ALL_HEADERS=${PROXY_DEBUG_ALL_HEADERS:-}
     networks:
       - aifred-dev-network
     depends_on:
