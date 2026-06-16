@@ -48,6 +48,21 @@ STATE_DIR = SCRIPT_DIR / "state"
 ACTIVE_DIR = SCRIPT_DIR / "active"
 LOCK_FILE = STATE_DIR / "locks" / "pipeline-watcher.lock"
 ORCHESTRATE_LOCK = STATE_DIR / "locks" / "orchestrate.lock"
+SEED_MODEL_FILE = STATE_DIR / "seed-model"
+
+
+def _seed_model() -> str:
+    """Model of the warm seed session pipeline tasks fork from. Read from the state
+    file the launcher/seed writes so a fork runs the SAME model as the seed
+    (prefix-cache match). Falls back to AION_MODEL env, then the current default."""
+    try:
+        if SEED_MODEL_FILE.exists():
+            v = SEED_MODEL_FILE.read_text().strip()
+            if v:
+                return v
+    except Exception:
+        pass
+    return os.environ.get("AION_MODEL", "claude-opus-4-8[1M]")
 PULSE_PORT = int(os.environ.get("PULSE_PORT", "8800"))
 PULSE_API = os.environ.get("PULSE_API") or f"http://localhost:{PULSE_PORT}/api/v1"
 os.environ["PULSE_API"] = PULSE_API
@@ -643,7 +658,7 @@ def process_task(task: dict):
         # If a previous executor invocation (any task) tripped the breaker, skip
         # claude dispatch; ollama-only models bypass the breaker.
         breaker_active, breaker_age = _check_auth_circuit_breaker()
-        task_model = (meta.get("model") or os.environ.get("EXECUTOR_MODEL") or "claude-sonnet-4-6")
+        task_model = (meta.get("model") or os.environ.get("EXECUTOR_MODEL") or _seed_model())
         is_ollama_task = (not task_model.startswith("claude-")) and (":" in task_model)
         if breaker_active and not is_ollama_task:
             with _thread_id_scope(_pipe_watcher_thread_id(task_id)):

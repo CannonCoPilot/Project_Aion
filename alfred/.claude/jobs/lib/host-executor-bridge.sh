@@ -53,7 +53,10 @@ ensure_seed() {
     fi
 
     log "Starting seed session: ${SEED_WINDOW}"
-    local seed_model="${AION_MODEL:-claude-opus-4-6[1M]}"
+    local seed_model="${AION_MODEL:-claude-opus-4-8[1M]}"
+    # Publish the seed model so Python executors fork tasks on the SAME model
+    # (prefix-cache match). Read by executor.py / pipeline-watcher.py.
+    printf '%s' "$seed_model" > "${STATE_DIR}/seed-model" 2>/dev/null || true
     "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${SEED_WINDOW}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${seed_model}' --dangerously-skip-permissions --permission-mode bypassPermissions" 2>/dev/null
 

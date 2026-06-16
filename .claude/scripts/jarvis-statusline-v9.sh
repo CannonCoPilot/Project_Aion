@@ -370,7 +370,7 @@ synthesize() {
     local now_epoch
     now_epoch=$(date +%s)
     # Defaults
-    MODEL_ID="claude-opus-4-7[1m]"
+    MODEL_ID="claude-opus-4-8[1m]"
     WINDOW=1000000
     EXCEEDS_200K="false"
     SESSION_NAME=""

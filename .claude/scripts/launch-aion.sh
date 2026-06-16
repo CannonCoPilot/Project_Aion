@@ -47,7 +47,12 @@ TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-aion}"
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 ALFRED_DIR="$PROJECT_DIR/alfred"
-AION_MODEL="${AION_MODEL:-claude-opus-4-6[1M]}"
+# Unified model for W0 (Jarvis Master Archon), the Protos/Alfred fork seed, and
+# the executor seeds in chain-executor.sh / host-executor-bridge.sh. These MUST
+# stay on the same model: executor tasks fork from W0's warm session to inherit
+# its prefix cache, and a model mismatch invalidates that shared cache. Exported
+# so an explicit `AION_MODEL=… ./launch-aion.sh` override propagates to children.
+export AION_MODEL="${AION_MODEL:-claude-opus-4-8[1M]}"
 
 # ── Window Index Map ──────────────────────────────────────────────────
 # Permanent window ordering. Core sessions first, infrastructure second,
@@ -891,6 +896,16 @@ echo "Starting Aion..."
 # Set TERM for best compatibility with Claude's ink UI
 export TERM=xterm-256color
 
+# Load MCP-server credentials from gitignored credentials.yaml so settings.json
+# can reference them via ${VAR} expansion instead of carrying literal secrets.
+# Silent failure tolerated (yq missing or section absent → MCP starts with empty
+# key and fails loudly downstream, which is preferable to embedding a secret).
+CREDS_FILE="$PROJECT_DIR/.claude/secrets/credentials.yaml"
+if command -v yq >/dev/null 2>&1 && [[ -r "$CREDS_FILE" ]]; then
+    ANNAS_KEY=$(yq -r '.annas_archive.secret_key // ""' "$CREDS_FILE" 2>/dev/null | head -1 | tr -d '[:space:]')
+    [[ -n "$ANNAS_KEY" && "$ANNAS_KEY" != "null" ]] && export ANNAS_SECRET_KEY="$ANNAS_KEY"
+fi
+
 # Context management environment variables
 # - ENABLE_TOOL_SEARCH: Enable MCP tool search to reduce context usage
 # - CLAUDE_CODE_MAX_OUTPUT_TOKENS: Set max output to 20K (affects effective context budget)
@@ -922,7 +937,7 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_A
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
-# W0: effort max, bypass permissions, full Opus 4.7 1M context, exclude dynamic system prompts
+# W0: bypass permissions, full Opus 4.8 1M context, exclude dynamic system prompts
 # Permission bypass: two complementary flags
 #   --dangerously-skip-permissions: skips workspace trust dialog + enables bypass
 #   --permission-mode bypassPermissions: explicitly sets session permission mode
@@ -1014,6 +1029,9 @@ if [[ -n "$JARVIS_SESSION_ID_FOR_PIPELINE" ]]; then
     PIPELINE_STATE_DIR="$ALFRED_DIR/.claude/jobs/state"
     mkdir -p "$PIPELINE_STATE_DIR"
     echo "$JARVIS_SESSION_ID_FOR_PIPELINE" > "$PIPELINE_STATE_DIR/jarvis-session-id"
+    # Publish W0's model so Alfred executors fork tasks on the SAME model
+    # (prefix-cache match with the warm seed). Read by executor.py / pipeline-watcher.py.
+    printf '%s' "$AION_MODEL" > "$PIPELINE_STATE_DIR/seed-model"
 fi
 
 # Restart loop: --continue is safe here because W0's JSONL was the most recently

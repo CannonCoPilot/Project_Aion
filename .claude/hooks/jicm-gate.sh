@@ -138,8 +138,10 @@ fi
 
 # ─── Window-size lookup (from model id) ─────────────────────────────────────
 case "$MODEL" in
-    *opus-4-7*1m*)  WINDOW=1000000 ;;
-    *opus-4-7*)     WINDOW=1000000 ;;  # Jarvis exclusively runs opus-4-7 1M variant
+    *opus-4-8*1m*)  WINDOW=1000000 ;;
+    *opus-4-8*)     WINDOW=1000000 ;;  # Jarvis W0 runs the opus-4-8 1M variant
+    *opus-4-7*)     WINDOW=1000000 ;;  # legacy opus 1M sessions (resumed)
+    *opus-4-6*)     WINDOW=1000000 ;;  # legacy opus 1M sessions (resumed)
     *sonnet-4-6*)   WINDOW=200000  ;;
     *haiku-4-5*)    WINDOW=200000  ;;
     *)              WINDOW=1000000 ;;  # safe upper bound (Jarvis runs 1M opus)

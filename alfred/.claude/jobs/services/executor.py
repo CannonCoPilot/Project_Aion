@@ -59,6 +59,21 @@ JOB_NAME = os.environ.get("JOB_NAME", "executor")
 # on the reader side so a stale file auto-clears.
 AUTH_FAILURE_TIMESTAMP_FILE = JOBS_DIR / "state" / "auth-failure-timestamp"
 JARVIS_SESSION_ID_FILE = JOBS_DIR / "state" / "jarvis-session-id"
+SEED_MODEL_FILE = JOBS_DIR / "state" / "seed-model"
+
+
+def _seed_model() -> str:
+    """Model of the warm seed session that executor tasks fork from. Read from the
+    state file the launcher/seed writes so a fork runs the SAME model as the seed
+    (prefix-cache match). Falls back to AION_MODEL env, then the current default."""
+    try:
+        if SEED_MODEL_FILE.exists():
+            v = SEED_MODEL_FILE.read_text().strip()
+            if v:
+                return v
+    except Exception:
+        pass
+    return os.environ.get("AION_MODEL", "claude-opus-4-8[1M]")
 EXECUTOR_MAX_BUDGET_USD = float(os.environ.get("EXECUTOR_MAX_BUDGET_USD", "1.50"))
 
 # Auth-class regex — translated from executor.sh:832
@@ -788,7 +803,7 @@ def main():
 
     model = (metadata.get("model")
              or os.environ.get("EXECUTOR_MODEL")
-             or "claude-sonnet-4-6")
+             or _seed_model())
 
     session_id = str(uuid.uuid4())
     exec_attempts = metadata.get("executor_attempts", 0) + 1

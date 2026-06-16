@@ -1086,7 +1086,7 @@ synthesize_demo_state() {
     HK_VERSION="7.9"
     HK_TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
     HK_SESSION="demo$(printf '%07d' $(( RANDOM * 7 )))-2999-4a90-99ab-83c0abe719e6"
-    HK_MODEL="claude-opus-4-7[1m]"
+    HK_MODEL="claude-opus-4-8[1m]"
     HK_WINDOW=1000000
     HK_SOFT_TOKENS=250000
     HK_HARD_TOKENS=300000
