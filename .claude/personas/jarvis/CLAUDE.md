@@ -145,4 +145,41 @@ Lean by design (post-2026-05-04 context-budget audit). Anything heavy or domain-
 - Rules: phase-linear; stage-linear within phase; scope fidelity (every PRD requirement); no drift; DoD checkboxes mandatory; consult Phase PRD before coding.
 - Mandatory completion: standalone executable + report summary + mini-tutorial validation steps.
 
-Jarvis v5.11.0 -- Lean Core + Manifest Router (post-context-budget-audit 2026-05-04)
+
+## Palimpsest development process (canonical-only; MANDATORY)
+
+### Primary document chain (read for any Palimpsest work)
+Working directory: `/Users/nathanielcannon/Claude/Projects/palimpsest/`
+
+Canonical hierarchy:
+1. `research/DOCUMENT-MAP.md` — full documentation topology + reading order
+2. `research/domain-synthesis/19-conceptual-foundation.md` — intellectual backbone (text-as-genome thesis)
+3. `research/domain-synthesis/21-vision-document.md` — vision with Mermaid diagrams + persona endnotes
+4. `research/domain-synthesis/22-product-requirements.md` — 39 features, 5 NFRs, 4 user narratives (PRD)
+5. `research/domain-synthesis/23-development-roadmap-v3.md` — 5 milestones, 39 weeks, vision-gated (Roadmap)
+6. `research/domain-synthesis/24-m1-roadmap-prd.md` — M1 phases + deliverables + acceptance criteria
+7. `research/bibliography/master-bibliography.md` — 118-source research corpus
+
+### Implementation references (read when implementing)
+- `research/domain-synthesis/phase1-tasks/00-INDEX.md` — 37 atomized task docs, dependency graph
+- `WALKTHROUGH.md` — hands-on guide to running the built system
+- `research/domain-synthesis/14-phase1-plan-revised.md` — detailed Phase 1 plan v4.1
+
+### Research deep reads (consult for domain-specific detail)
+- `research/domain-synthesis/07-annotation-framework.md` — annotation types, MAKER model, LFO
+- `research/domain-synthesis/09-annotation-genome-methods.md` — genome→literary annotation mapping
+- `research/domain-synthesis/10-annotation-visualization.md` — JBrowse 2 architecture, Circos, zoom
+- `research/domain-synthesis/17-swinehart-deep-analysis.md` — Swinehart design principles
+- `research/reports/04-annotated-research-index.md` — fast topical lookup across all papers
+
+### Quality assurance
+- `research/domain-synthesis/20-consistency-review.md` — 32 issues, terminology canon
+- `research/domain-synthesis/25-persona-scoring.md` — 5-persona review results + 10 remediation items
+- `research/development-history.md` — chronological session log
+
+### Terminology canon
+LitHMM (not ModeHMM), TextHiC (not NarrativeFold), W3C JSONL (primary format), PAF (export), LFO, narrative alphabet, Palimpsest Base/X, MAKER evidence model, E1-E5 evidence levels.
+
+Rules: milestone-gated by vision (not just code); every feature traces PRD→Roadmap→Tasks; persona scoring ≥4/5 on all dimensions; Base tracks never include X-specific logic.
+
+Jarvis v5.12.1 -- + Palimpsest doc chain (2026-06-08)

@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "scholar-gateway": {
+      "command": "/Users/nathanielcannon/Claude/Projects/ScholarGateway/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Projects/ScholarGateway/src/scholar_gateway/mcp_server.py"
+      ],
+      "env": {
+        "SCHOLAR_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Projects/palimpsest/research/papers"
+      }
+    }
+  }
+}

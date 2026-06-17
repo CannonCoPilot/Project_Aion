@@ -5,7 +5,10 @@
     ".claude/context/patterns/jicm-pattern.md",
     ".claude/context/patterns/mcp-loading-strategy.md",
     ".claude/context/patterns/context-budget-management.md",
-    ".claude/context/patterns/observation-masking-pattern.md"
+    ".claude/context/patterns/observation-masking-pattern.md",
+    ".claude/context/patterns/subagent-output-fidelity.md",
+    ".claude/context/patterns/milestone-review-pattern.md",
+    ".claude/context/patterns/wiggum-loop-pattern.md"
   ],
   "session_start": 1778970896569,
   "mcp_injected": [
@@ -19,7 +22,20 @@
     "domain_shift:pulse",
     "domain_shift:nexus",
     "domain_shift:aifred",
-    "domain_shift:reo"
+    "domain_shift:reo",
+    "domain_shift:jarvis-dev",
+    "domain_shift:dwarf",
+    "methodology:Pattern matching for",
+    "domain_shift:dwarfcron",
+    "methodology:pattern in the field is to",
+    "methodology:pattern for",
+    "methodology:pattern is to",
+    "methodology:pattern designed to",
+    "methodology:pattern is not enfor",
+    "methodology:pattern. Fix: split into",
+    "methodology:pattern that checks for",
+    "error_debug:error /Users",
+    "methodology:pattern index (8 platfor"
   ],
   "recent_projects": [
     "chronicler",
@@ -27,6 +43,9 @@
     "pulse",
     "nexus",
     "aifred",
-    "reo"
+    "reo",
+    "jarvis-dev",
+    "dwarf",
+    "dwarfcron"
   ]
 }

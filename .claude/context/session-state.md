@@ -5,11 +5,12 @@
 
 ---
 
-**Status**: **ANNAS TOOLS** — building Anna's Archive MCP + Alfred persona for ebook/article search and download. GitHub portfolio facelift complete (8 public showcase repos).
-**Date**: 2026-06-04
-**Version**: v5.14.0
+**Status**: **PALIMPSEST — POST-AUDIT VERIFICATION + REMEDIATION (2026-06-15 PM)**. Re-verification of the 43-request sprint found two prior claims OVERSTATED: (1) track-toggle perf was NOT actually fixed — the W2 cleanup deleted the half-built `useTrackVisibility` selector while all 7 consumers still subscribed to the whole tracks map (O(N) re-render intact); (2) number-key track toggles were silently broken by a `keyboard.ts` store-shape crash (read `getState().paragraphs` after the multi-project refactor moved it under `getActiveProject`). Both fixed this session + full tsc cleanup (44→0 errors, build GREEN). 315 backend + 21 frontend tests pass. COMMITTED & PUSHED to origin/main 2026-06-15 PM (3 commits, latest 12c9df4).
+**Date**: 2026-06-15
+**Version**: v5.15.1
 **Branch**: main → origin/main on CannonCoPilot/Project_Aion.
-**Last commit**: `1e665bf` (fix: restore --resume for W0 with --continue fallback).
+**Last commit (Project_Aion)**: `215c285` (fix: robust seed priming).
+**Last commit (Palimpsest)**: `12c9df4` (feat: Book Store view) — PUSHED to origin/main. 3 commits in this push: 86763d5 (track/tsc), 5907866 (landing page), 12c9df4 (Book Store). Store thumbnails gitignored (browser/public/store/*.png).
 **Legacy**: CannonCoPilot/Jarvis archived, jarvis-legacy remote preserved.
 **Quota**: active session.
 
@@ -97,6 +98,31 @@ Per `Jarvis/projects/project-aion/reports/pulse-nexus-boundary-audit-2026-05-05.
 - Planning: `projects/annas_archive/`
 - Credentials: `projects/annas_archive/credentials.txt`
 - Status: Deep research in progress
+
+### ACTIVE: Palimpsest Implementation Audit + Remediation (2026-06-15)
+- **Audit scope**: 43 requests (R1–R43) from Jun 12–15 sprint, 4-phase workflow (backend→frontend→integration→synthesis)
+- **Committed (R1–R8)**: M3 adversarial fixes, Bible EPUB filters, Zustand getter bug, embeddings, 4-metric compute, sentence-level similarity, LASTZ alignment, chunk size slider
+- **Uncommitted (R9–R43)**: 35 items across 14 files — chunk positions, multi-resolution cache, 4-dir alignment, repeat masking, formulaic patterns, HMM boundary detection, chapter gridlines, unified param panel, auto-run, performance optimizations
+- **CRITICAL BUGS — ALL 4 FIXED (2026-06-15 PM, committed 03f7fde)**:
+  - ✅ E3: Repeat-mask cache corruption — extract() now passes an unmasked *copy* to LASTZ (`[{**c,"masked":False} for c in chunks]`) instead of clearing masks on the shared per-cs cache. self_similarity.py.
+  - ✅ E-NEW1: Per-metric chunk sizes — declared chunk_size_{cosine,jaccard,word_overlap,edit_distance} in server.py run_analysis() + forwarded to params. set_params/_chunk_size_for already consumed them.
+  - ✅ E1: Multi-metric checkboxes made REAL (user chose subset-compute over always-all-4). Added self._selected_metrics + "metrics" param (set_params), extract() loops selected subset in METRICS order, server.py accepts comma-sep `metrics`, AnalysisPanel sends `metrics=enabled.join(',')`. NOTE: replace-semantics — each run's manifest.available_metrics = that run's selection (stale .bin from prior runs orphaned but not surfaced; incremental/union semantics deferred).
+  - ✅ E2: DotplotView ResizeObserver — observe containerRef, redraw via ref-to-latest (created once, no hover churn).
+- **COMMITS (palimpsest, PUSHED to origin/main)**:
+  - `03f7fde` — 4 critical fixes (E3/E-NEW1/E1/E2) + finalize Jun 12-15 sprint (16 files)
+  - `fb69e6c` — all 9 warnings W1-W9 (8 files)
+  - `9731e52` — route-ordering regression fix + E-NEW3/E-NEW4 test coverage (3 files)
+  - `61e332a` — frontend Vitest scaffold + 15 tests (colors/W1, trackStore, HelpOverlay/W4)
+- **Warnings W1-W9 (committed fb69e6c)**: W1 readableTextColor luminance clamp; W2 removed dead useTrackVisibility (⚠️ SEE CORRECTION below — this left track-toggle perf UNFIXED); W3 panel reserve 360→320; W4 dialog role moved to focused inner div; W5 primary_metric derived once; W6 formulaic O(n²) capped at 300; W7 metric allowlist validation on cs endpoints; W8 SE colophon regex tightened; W9 auto_run wired fire-and-forget on project load.
+- **Test coverage (committed 9731e52/61e332a)**: E-NEW3 test_boundary_detection.py (15 tests); E-NEW4 test_server.py (+8). 315 backend pass.
+
+#### ⚠️ POST-AUDIT VERIFICATION CORRECTION (2026-06-15 PM — COMMITTED & PUSHED, origin/main @ 12c9df4)
+Re-running the acceptance audit with a skeptical, code-grounded eye found two prior claims OVERSTATED, now remediated:
+- **Track-toggle regression NOT actually fixed by the sprint.** W2 deleted the half-built `useTrackVisibility` selector; all 7 consumers (TrackPanel, TextLinearView, AnnotationOverlay, DotplotView, BrowserView, TrackDrawer, OverviewBar) still subscribed to the whole `tracks` map, and every paragraph overlay re-filtered the full annotation array on each toggle (O(N×A)). FIX: restored granular `useTrackVisibility` + added `useTrackManifests` (useShallow, stable across toggles); AnnotationOverlay reads manifests not whole map; TextLinearView now buckets annotations per-paragraph (binary-search, `bucketAnnotationsByParagraph`, unit-tested) and passes per-para slices. Net O(N×A)→O(A) per toggle.
+- **Number-key track toggles silently broken.** `keyboard.ts:36` read `useProjectStore.getState().paragraphs` after the multi-project refactor moved it under `getActiveProject(state)` → `undefined.length` threw on every plain keypress before the switch reached the number cases. Same store-shape crash also broke TextSearch (search input) + AnnotationContextMenu (copy/navigate/show-all-mentions). All fixed via `getActiveProject(...)`.
+- **`npm run build` now GREEN.** Prior "BUILD RED — not mine" claim was PARTLY inaccurate: ~7 TS6133 unused-symbol errors were in sprint-touched files (DotplotView/AnnotationOverlay/TextLinearView/BrowserView). Cleaned all 44 tsc errors: removed sprint dead-code; migrated React-19 `JSX.Element`→`ReactElement` (or `React.JSX.Element` where UMD-global React in scope) across 12 files; fixed `ProjectStoreState` drift via `getActiveProject`. `tsc -b && vite build` succeeds. 315 backend + 21 frontend tests pass.
+- **Earlier "tsc --noEmit clean" claims were false** (root tsconfig has `files:[]`, checks nothing). Use `tsc -b` / `npm run build`.
+- **Not browser-verified this session**: live toggle-responsiveness + number-key behavior validated by type-check + unit tests + code review, NOT a live Playwright run. Dev servers available if a live check is wanted.
 
 ## Live processes (tmux `aion` session)
 - W0 Jarvis: Master Archon (this session)

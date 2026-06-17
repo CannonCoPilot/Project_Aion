@@ -1,0 +1,38 @@
+persona: scholar
+tier: implement
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Write
+  - ToolSearch
+  - mcp__scholar-gateway__searchPapers
+  - mcp__scholar-gateway__searchAuthor
+  - mcp__scholar-gateway__getPaperDetails
+  - mcp__scholar-gateway__getBibtex
+  - mcp__scholar-gateway__downloadPDF
+
+denied_tools:
+  - Edit
+  - Agent
+
+allowed_bash:
+  - "pulse create:*"
+  - "pulse update:*"
+  - "pulse close:*"
+  - "pulse list:*"
+  - "pulse show:*"
+  - "ls:*"
+  - "find:*"
+  - "wc:*"
+  - "file:*"
+  - "mkdir:*"
+
+pre_approved:
+  - "Search Google Scholar for papers and articles"
+  - "Download PDFs from direct links to configured download path"
+  - "Create topic subdirectories within configured download path"
+  - "Create and close Pulse tasks for research tracking"
+  - "Write retrieval reports and BibTeX exports to output directory"

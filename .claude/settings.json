@@ -4,6 +4,36 @@
   "version": "1.2",
   "plansDirectory": ".claude/plans",
   "mcpToolSearch": "auto:15",
+  "mcpServers": {
+    "scholar-gateway": {
+      "command": "/Users/nathanielcannon/Claude/Projects/ScholarGateway/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Projects/ScholarGateway/src/scholar_gateway/mcp_server.py"
+      ],
+      "env": {
+        "SCHOLAR_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Projects/palimpsest/research/papers"
+      }
+    },
+    "annas-archive": {
+      "command": "/Users/nathanielcannon/Claude/Projects/AnnasTools/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Projects/AnnasTools/src/annas_tools/mcp_server.py"
+      ],
+      "env": {
+        "ANNAS_SECRET_KEY": "${ANNAS_SECRET_KEY}",
+        "ANNAS_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Projects/palimpsest/research/papers"
+      }
+    },
+    "arxiv": {
+      "command": "uvx",
+      "args": [
+        "arxiv-mcp-server"
+      ],
+      "env": {
+        "ARXIV_STORAGE_PATH": "/Users/nathanielcannon/Claude/Projects/palimpsest/research/papers"
+      }
+    }
+  },
   "statusLine": {
     "type": "command",
     "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/jarvis-statusline-v9.sh"

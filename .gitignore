@@ -151,6 +151,9 @@ projects/myDFHackScripts/
 projects/weblegends/
 projects/claude-code-docs/
 
+# Downloaded ebook/scripture library (~1GB, local data — not versioned)
+projects/annas_archive/
+
 # Token compression metrics — ignore bulk telemetry; keep markdown analysis and templates tracked
 .claude/metrics/token-compression/*.csv
 .claude/metrics/token-compression/*.jsonl
