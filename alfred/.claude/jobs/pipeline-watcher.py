@@ -597,6 +597,11 @@ def process_task(task: dict):
     task_id = task["id"]
     labels = get_task_labels(task)
 
+    # R4a kill-switch: honor the global pause flag (works inside the container too,
+    # since state/ is on the mounted /workspace).
+    if os.path.exists(os.path.join(os.path.dirname(os.path.abspath(__file__)), "state", ".nexus-paused")):
+        return
+
     # Terminal tickets are never acted upon — prevents reopening a closed ticket
     # (a closed ticket must stay closed regardless of stray labels).
     if task.get("status") == "closed":

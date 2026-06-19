@@ -416,6 +416,12 @@ print(f'mcp_config={shlex.quote(d.get(\"mcp_config\", \"\"))}')
 " 2>/dev/null)"
 
     local result_file="${STATE_DIR}/execute-result-${task_id}.json"
+    # R2: git baseline for code-ticket evidence — captured host-side because the
+    # containerized reviewer has no git and cannot see project repos outside /workspace.
+    local git_base=""
+    if [ -n "$output_dir" ] && [ -d "$output_dir/.git" ]; then
+        git_base=$(git -C "$output_dir" rev-parse HEAD 2>/dev/null)
+    fi
 
     # Ensure seed is warm
     if ! ensure_seed; then
@@ -501,6 +507,33 @@ json.dump({
     'stderr': ''
 }, open('$result_file', 'w'), indent=2)
 " 2>/dev/null
+        # R2: capture git evidence (commits + diff since baseline) for the reviewer.
+        if [ -n "$output_dir" ] && [ -d "$output_dir/.git" ]; then
+            python3 - "$output_dir" "$git_base" "${STATE_DIR}/git-evidence-${task_id}.json" <<'PYEOF'
+import json, os, subprocess, sys
+repo, base, out = sys.argv[1], sys.argv[2], sys.argv[3]
+def g(*a):
+    try:
+        return subprocess.run(["git", "-C", repo, *a], capture_output=True, text=True, timeout=20).stdout.strip()
+    except Exception:
+        return ""
+ev = {}
+if repo and os.path.isdir(os.path.join(repo, ".git")):
+    head = g("rev-parse", "HEAD")
+    rng = base + ".." + head if base and head and base != head else None
+    diff = ((g("diff", base, head) if rng else "") + "\n" + g("diff")).strip()
+    status = g("status", "--porcelain")
+    files = set(l[3:].strip() for l in status.splitlines() if l[3:].strip())
+    if rng:
+        for f in g("diff", "--name-only", base, head).splitlines():
+            if f.strip():
+                files.add(f.strip())
+    ev = {"base": base, "head": head, "committed": bool(head and base and head != base),
+          "commits": g("log", rng, "--pretty=%h %s") if rng else "",
+          "status": status, "files": sorted(files), "diff": diff[:12000]}
+json.dump(ev, open(out, "w"), indent=2)
+PYEOF
+        fi
     else
         python3 -c "
 import json

@@ -1052,6 +1052,20 @@ def main():
         request_file.unlink(missing_ok=True)
         result_file.unlink(missing_ok=True)
 
+        # R2: propagate host-captured git evidence to metadata. The containerized
+        # reviewer has no git and cannot see project repos outside /workspace, so the
+        # host bridge captured commits/diff into this sidecar; we forward it here.
+        ge_file = signal_dir / f"git-evidence-{TASK_ID}.json"
+        if ge_file.exists():
+            try:
+                git_evidence = json.loads(ge_file.read_text())
+                pulse_patch(f"/tasks/{TASK_ID}", {"metadata": {"git_evidence": git_evidence}, "actor": "executor"})
+                log.info("Propagated git_evidence for %s: committed=%s files=%d",
+                         TASK_ID, git_evidence.get("committed"), len(git_evidence.get("files", [])))
+            except Exception as e:
+                log.warning("git_evidence propagation failed for %s: %s", TASK_ID, e)
+            ge_file.unlink(missing_ok=True)
+
         cli_data = result_data.get("cli_data", {})
         result_text = result_data.get("result_text", "")
         returncode = result_data.get("returncode", 1)

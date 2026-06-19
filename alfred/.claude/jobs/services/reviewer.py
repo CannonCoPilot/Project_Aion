@@ -262,24 +262,23 @@ def main():
     log.info("Reviewing task %s: %s", TASK_ID, title)
     sidecar = write_sidecar(TASK_ID, "review")
 
-    # Code tickets: judge on REAL git evidence (truth), not the fork's self-report.
+    # Code tickets: judge on REAL git evidence captured host-side by the bridge
+    # (the containerized reviewer has no git and cannot see project repos).
     is_code = _is_code_ticket(task)
-    git_ev = None
+    git_ev = metadata.get("git_evidence") if is_code else None
+    git_has_changes = bool(git_ev and (git_ev.get("commits") or git_ev.get("status") or git_ev.get("diff")))
     if is_code:
-        repo = metadata.get("output_dir") or ""
-        since = metadata.get("executed_at") or metadata.get("staged_at")
-        git_ev = _git_evidence(repo, since)
-        log.info("Code-ticket git evidence for %s: %s", TASK_ID, git_ev.get("summary"))
+        log.info("Code-ticket %s git_evidence present=%s committed=%s files=%d", TASK_ID,
+                 bool(git_ev), (git_ev or {}).get("committed"), len((git_ev or {}).get("files", [])))
 
-    if is_code and git_ev and git_ev.get("is_git"):
-        test_result = _best_effort_tests(git_ev["repo"], git_ev["files"])
+    if is_code and git_ev:
         prompt = CODE_REVIEW_PROMPT.format(
             title=title, description=description,
-            commits=git_ev["commits"] or "(none)",
-            files=", ".join(git_ev["files"]) or "(none)",
-            status=git_ev["status"] or "(clean)",
-            diff=git_ev["diff"] or "(empty)",
-            test_result=test_result,
+            commits=git_ev.get("commits") or "(none)",
+            files=", ".join(git_ev.get("files", [])) or "(none)",
+            status=git_ev.get("status") or "(clean)",
+            diff=git_ev.get("diff") or "(empty)",
+            test_result="(tests not run in reviewer; judged on diff + commit)",
         )
         model_used = REVIEW_CODE_MODEL
     else:
@@ -315,13 +314,15 @@ def main():
     result = extract_json(response)
     passed = result.get("passed", False) if result else False
 
-    # Hard ground-truth gate: a code ticket with NO git changes cannot pass,
-    # regardless of the LLM verdict (prevents false-pass on self-reported success).
-    if is_code and git_ev and git_ev.get("is_git") and not git_ev.get("has_changes"):
+    # Hard ground-truth gate: a code ticket whose host-captured git evidence shows
+    # NO changes cannot pass, regardless of the LLM verdict (kills the false-pass on
+    # self-reported success). If git_evidence is absent (non-git target), fall back
+    # to the narrative review above rather than hard-failing legitimate work.
+    if is_code and git_ev and not git_has_changes:
         passed = False
         result = {"passed": False, "confidence": "high",
-                  "issues": ["No git commits or file changes in the repo since execution — work not actually done."],
-                  "summary": "Ground-truth gate: no code changes found."}
+                  "issues": ["No git commits or file changes captured for this code ticket — work not actually done."],
+                  "summary": "Ground-truth gate: host-captured git evidence shows no changes."}
 
     review_meta = {
         "review_output": result or {"passed": False, "summary": "LLM output unparseable — defaulted to fail"},
