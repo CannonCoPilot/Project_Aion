@@ -562,10 +562,51 @@ def chain_predecessor_done(task: dict) -> bool:
     return True
 
 
+def _task_repo(task: dict):
+    """Repo identity for serialization: explicit output_dir, else project label."""
+    meta = task.get("metadata") or {}
+    if meta.get("output_dir"):
+        return meta["output_dir"]
+    for l in get_task_labels(task):
+        if l.startswith("project:"):
+            return "project:" + l.split(":", 1)[1]
+    return None
+
+
+def _repo_busy(task: dict, exclude_id: str) -> bool:
+    """R3 serialize-now: True if another code executor is already ACTIVE on the
+    same repo. Prevents concurrent forks clobbering a shared git repo. Derived
+    from live active-ticket state (no lock files -> no stale-lock deadlocks)."""
+    repo = _task_repo(task)
+    if not repo:
+        return False
+    data = pulse_get("/tasks?status=open&limit=200") or {}
+    for t in data.get("tasks", []):
+        if t.get("id") == exclude_id:
+            continue
+        tl = get_task_labels(t)
+        is_active = (has_label(tl, "active:running") or has_label(tl, "active:claiming")
+                     or has_label(tl, "stage:executing"))
+        if is_active and has_label(tl, "capability:code") and _task_repo(t) == repo:
+            return True
+    return False
+
+
 def process_task(task: dict):
     """Evaluate a single task's label state and trigger appropriate service."""
     task_id = task["id"]
     labels = get_task_labels(task)
+
+    # Terminal tickets are never acted upon — prevents reopening a closed ticket
+    # (a closed ticket must stay closed regardless of stray labels).
+    if task.get("status") == "closed":
+        return
+
+    # Authoritative operator hold — the watchdog must not heal, dispatch, or
+    # diagnose a ticket an operator has explicitly parked. Overrides the
+    # blocked:yes -> diagnose path below so manual holds are not overridden.
+    if has_label(labels, "hold:manual"):
+        return
 
     # Already being diagnosed — wait for diagnose to reset labels
     if has_label(labels, "blocked:diagnosing"):
@@ -726,6 +767,12 @@ def process_task(task: dict):
             })
             return
         if count_active_executors() >= MAX_CONCURRENT_EXECUTORS:
+            return
+        # R3: serialize code tickets per repo — one active code executor per repo
+        # at a time so concurrent forks cannot clobber a shared git repo.
+        if has_label(labels, "capability:code") and _repo_busy(task, task_id):
+            log.info("Serialize: deferring %s — another code executor active on same repo", task_id)
+            metrics["claim_conflicts"] += 1
             return
         if not chain_predecessor_done(task):
             metrics["chain_blocks"] += 1

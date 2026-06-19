@@ -686,6 +686,10 @@ if [ "${1:-}" = "--daemon" ]; then
     REAP_INTERVAL=6  # reap every 6th cycle (30s at default 5s poll)
     while true; do
         date -u +%Y-%m-%dT%H:%M:%SZ > "$HEALTH_FILE"
+        if [ -f "${STATE_DIR}/.nexus-paused" ]; then
+            log "PAUSED (.nexus-paused present) — skipping scan"
+            sleep "$POLL_INTERVAL"; continue
+        fi
         scan_once
         REAP_COUNTER=$((REAP_COUNTER + 1))
         if [ $((REAP_COUNTER % REAP_INTERVAL)) -eq 0 ]; then
@@ -694,5 +698,9 @@ if [ "${1:-}" = "--daemon" ]; then
         sleep "$POLL_INTERVAL"
     done
 else
-    scan_once
+    if [ -f "${STATE_DIR}/.nexus-paused" ]; then
+        log "PAUSED (.nexus-paused present) — skipping oneshot scan"
+    else
+        scan_once
+    fi
 fi

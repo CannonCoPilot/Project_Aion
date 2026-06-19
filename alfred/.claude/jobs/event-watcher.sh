@@ -278,7 +278,17 @@ trap release_watcher_lock EXIT
 
 # --- Host executor bridge: process signal-file delegation from Docker pipeline ---
 if [ -f "${SCRIPT_DIR}/lib/host-executor-bridge.sh" ]; then
-    bash "${SCRIPT_DIR}/lib/host-executor-bridge.sh" 2>&1 | while IFS= read -r line; do log "$line"; done
+    # Defer to the standalone Styx daemon when it is running: it owns execution
+    # and carries the correct TMUX_SESSION env. A oneshot here would race the
+    # daemon for execute-request claims with a stale default session and block
+    # this watcher for up to 15m on inject_and_wait.
+    if [ -f "${STATE_DIR}/.nexus-paused" ]; then
+        log "PAUSED (.nexus-paused present) — skipping bridge dispatch"
+    elif pgrep -f 'host-executor-bridge.sh --daemon' >/dev/null 2>&1; then
+        log "Styx daemon active — skipping oneshot bridge"
+    else
+        bash "${SCRIPT_DIR}/lib/host-executor-bridge.sh" 2>&1 | while IFS= read -r line; do log "$line"; done
+    fi
 fi
 
 # --- Always run project advancement (even without new events) ---

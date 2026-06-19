@@ -42,6 +42,10 @@ JOBS_DIR="$SCRIPT_DIR"
 REGISTRY="$SCRIPT_DIR/registry.yaml"
 EXECUTOR="$SCRIPT_DIR/executor.sh"
 STATE_DIR="$SCRIPT_DIR/state"
+if [ -f "$STATE_DIR/.nexus-paused" ]; then
+    echo "[dispatcher] PAUSED (.nexus-paused present) — exiting without dispatch"
+    exit 0
+fi
 LOCKS_DIR="$STATE_DIR/locks"
 QUEUE_FILE="$SCRIPT_DIR/queue.json"
 NEXUSDB="$SCRIPT_DIR/lib/nexusdb.py"
