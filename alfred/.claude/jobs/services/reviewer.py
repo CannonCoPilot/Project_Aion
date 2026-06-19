@@ -36,6 +36,7 @@ log = logging.getLogger("reviewer")
 TASK_ID = os.environ.get("TASK_ID", "")
 PULSE_API = os.environ.get("PULSE_API", "http://localhost:8800/api/v1")
 MODEL = os.environ.get("REVIEW_MODEL", "qwen3:32b")
+REVIEW_CODE_MODEL = os.environ.get("REVIEW_CODE_MODEL", "qwen3-coder:latest")
 
 PROJECT_DIR = Path(os.environ.get("PROJECT_DIR", ".")).resolve()
 HOST_PROJECT_DIR = os.environ.get("HOST_PROJECT_DIR", "")
@@ -147,6 +148,85 @@ def _verify_filesystem(task: dict) -> str:
 
 
 
+CODE_REVIEW_PROMPT = """You are a senior code reviewer. Judge whether the task was actually completed by inspecting the REAL git evidence below — NOT any self-report or narrative.
+
+Task: {title}
+Description: {description}
+
+Commits since execution: {commits}
+Files changed: {files}
+Working-tree status: {status}
+
+Diff (truncated):
+{diff}
+
+Best-effort test result:
+{test_result}
+
+Rules:
+- If there are NO commits, NO changed files, and the diff is empty, the work was NOT done -> passed=false.
+- Otherwise judge whether the diff actually implements what the Description asked, and whether tests (if run) passed.
+- Base the verdict ONLY on the evidence above. Be strict but fair.
+
+Output JSON: {{"passed": true/false, "confidence": "high/medium/low", "issues": ["..."], "summary": "..."}}
+Be brief.
+/no_think"""
+
+
+def _is_code_ticket(task) -> bool:
+    labels = task.get("labels") or []
+    return any(l in ("capability:code", "capability:file-ops") for l in labels)
+
+
+def _git(repo, *args, timeout=20):
+    try:
+        r = subprocess.run(["git", "-C", repo, *args], capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip() if r.returncode == 0 else ""
+    except Exception:
+        return ""
+
+
+def _git_evidence(repo, since_iso):
+    """Ground-truth code evidence: commits since execution start + uncommitted diff."""
+    if not repo or not os.path.isdir(os.path.join(repo, ".git")):
+        return {"repo": repo, "is_git": False, "has_changes": False, "summary": "not a git repo"}
+    since = since_iso or "2 hours ago"
+    commits = _git(repo, "log", "--since", since, "--pretty=%h %s")
+    diff_commits = _git(repo, "log", "--since", since, "-p", "--unified=2")
+    diff_uncommitted = _git(repo, "diff")
+    status = _git(repo, "status", "--porcelain")
+    files = set()
+    for line in _git(repo, "log", "--since", since, "--name-only", "--pretty=format:").splitlines():
+        if line.strip():
+            files.add(line.strip())
+    for line in status.splitlines():
+        name = line[3:].strip()
+        if name:
+            files.add(name)
+    diff_text = (diff_commits + "\n" + diff_uncommitted).strip()
+    has = bool(commits or status or diff_text)
+    return {"repo": repo, "is_git": True, "has_changes": has, "commits": commits,
+            "status": status, "files": sorted(files), "diff": diff_text[:12000],
+            "summary": f"{len(commits.splitlines())} commit(s) since exec, {len(files)} file(s) changed, has_changes={has}"}
+
+
+def _best_effort_tests(repo, files):
+    """Run touched pytest files best-effort. Distinguish FAILED from could-not-run."""
+    test_files = [f for f in files if "/test" in f.lower() or os.path.basename(f).startswith("test_")]
+    if not test_files:
+        return "no touched test files; skipped"
+    venv_py = os.path.join(repo, ".venv", "bin", "python")
+    py = venv_py if os.path.exists(venv_py) else "python3"
+    try:
+        r = subprocess.run([py, "-m", "pytest", *test_files, "-x", "-q", "--no-header"],
+                           cwd=repo, capture_output=True, text=True, timeout=180)
+        tail = "\n".join((r.stdout + r.stderr).strip().splitlines()[-15:])
+        verdict = "PASSED" if r.returncode == 0 else ("FAILED" if r.returncode == 1 else "INFRA-ERROR (could not run)")
+        return f"{verdict}\n{tail}"
+    except Exception as e:
+        return f"INFRA-ERROR (could not run): {e}"
+
+
 def main():
     thread_id = ensure_thread_id()
     log.info("Thread ID: %s", thread_id)
@@ -182,16 +262,38 @@ def main():
     log.info("Reviewing task %s: %s", TASK_ID, title)
     sidecar = write_sidecar(TASK_ID, "review")
 
-    prompt = REVIEW_PROMPT.format(
-        title=title,
-        description=description,
-        expected_output=expected_output,
-        context_summary=json.dumps(context_summary) if isinstance(context_summary, dict) else str(context_summary),
-        filesystem_report=filesystem_report,
-    )
+    # Code tickets: judge on REAL git evidence (truth), not the fork's self-report.
+    is_code = _is_code_ticket(task)
+    git_ev = None
+    if is_code:
+        repo = metadata.get("output_dir") or ""
+        since = metadata.get("executed_at") or metadata.get("staged_at")
+        git_ev = _git_evidence(repo, since)
+        log.info("Code-ticket git evidence for %s: %s", TASK_ID, git_ev.get("summary"))
+
+    if is_code and git_ev and git_ev.get("is_git"):
+        test_result = _best_effort_tests(git_ev["repo"], git_ev["files"])
+        prompt = CODE_REVIEW_PROMPT.format(
+            title=title, description=description,
+            commits=git_ev["commits"] or "(none)",
+            files=", ".join(git_ev["files"]) or "(none)",
+            status=git_ev["status"] or "(clean)",
+            diff=git_ev["diff"] or "(empty)",
+            test_result=test_result,
+        )
+        model_used = REVIEW_CODE_MODEL
+    else:
+        prompt = REVIEW_PROMPT.format(
+            title=title,
+            description=description,
+            expected_output=expected_output,
+            context_summary=json.dumps(context_summary) if isinstance(context_summary, dict) else str(context_summary),
+            filesystem_report=filesystem_report,
+        )
+        model_used = MODEL
 
     engine = "ollama"
-    response = call_ollama(prompt, MODEL)
+    response = call_ollama(prompt, model_used)
     if not response:
         log.warning("No Ollama response — reverting to completed:no for retry")
         log_decision(
@@ -209,10 +311,17 @@ def main():
         return
     review_telemetry = get_ollama_telemetry()
     review_telemetry["engine"] = "ollama"
-    model_used = MODEL
 
     result = extract_json(response)
     passed = result.get("passed", False) if result else False
+
+    # Hard ground-truth gate: a code ticket with NO git changes cannot pass,
+    # regardless of the LLM verdict (prevents false-pass on self-reported success).
+    if is_code and git_ev and git_ev.get("is_git") and not git_ev.get("has_changes"):
+        passed = False
+        result = {"passed": False, "confidence": "high",
+                  "issues": ["No git commits or file changes in the repo since execution — work not actually done."],
+                  "summary": "Ground-truth gate: no code changes found."}
 
     review_meta = {
         "review_output": result or {"passed": False, "summary": "LLM output unparseable — defaulted to fail"},
