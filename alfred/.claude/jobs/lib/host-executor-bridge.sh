@@ -17,7 +17,13 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 JOBS_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STATE_DIR="${JOBS_DIR}/state"
 TMUX_BIN="${HOME}/bin/tmux"
-TMUX_SESSION="${TMUX_SESSION:-jarvis}"
+# Resolve the tmux session hosting the seed (Protos) window. Auto-detect when
+# TMUX_SESSION is unset so oneshot invocations (e.g. from event-watcher.sh) do
+# not inherit a stale default and fail ensure_seed with seed_unavailable.
+if [ -z "${TMUX_SESSION:-}" ]; then
+    TMUX_SESSION=$("${HOME}/bin/tmux" list-windows -a -F '#{session_name} #{window_name}' 2>/dev/null | awk '$2=="Protos"{print $1; exit}')
+    TMUX_SESSION="${TMUX_SESSION:-aion}"
+fi
 ALFDEV_DIR="${ALFRED_LAUNCH_DIR:-${HOME}/Claude/Alfred-Dev}"
 SEED_WINDOW="Protos"
 SEED_SESSION_FILE="${STATE_DIR}/.chain-seed-session-id"
@@ -45,7 +51,7 @@ _claude_running_in_window() {
 ensure_seed() {
     if "$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -q "^${SEED_WINDOW}$"; then
         if _claude_running_in_window "$SEED_WINDOW"; then
-            [ ! -s "$SEED_SESSION_FILE" ] && _capture_seed_session_id
+            _refresh_seed_if_stale
             return 0
         fi
         log "Seed window exists but Claude not running — restarting"
@@ -137,6 +143,45 @@ _capture_seed_session_id() {
     fi
 }
 
+_refresh_seed_if_stale() {
+    # Re-point the seed id at the CURRENT live seed session.
+    #
+    # Fixes the frozen-stale-id bug: the seed id used to be captured only when
+    # the state file was empty, so once the seed session changed (e.g. a new
+    # seed was started by the launcher), forks kept resuming the OLD, dead,
+    # minimal seed — a transcript whose only content was the priming exchange.
+    # The forked child therefore booted believing it WAS the seed and never
+    # executed its ticket.
+    #
+    # Guard: never re-capture while a chain-* worker is live. A worker's forked
+    # jsonl can be the most-recently-modified file and would be mis-captured as
+    # the seed. ensure_seed runs before this task's own fork, so a clean board
+    # (no chain-* windows) means the newest jsonl is genuinely the seed.
+    "$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null \
+        | grep -q '^chain-' && return 0
+
+    local stored stored_m=0 newest_m=0 d c m
+    stored=$(cat "$SEED_SESSION_FILE" 2>/dev/null | tr -d '[:space:]')
+    local dirs=(
+        "${HOME}/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion-alfred"
+        "${HOME}/.claude/projects/-Users-nathanielcannon-Claude-Alfred-Dev"
+    )
+    for d in "${dirs[@]}"; do
+        [ -d "$d" ] || continue
+        c=$(ls -t "$d"/*.jsonl 2>/dev/null | head -1)
+        [ -n "$c" ] && { m=$(stat -f %m "$c" 2>/dev/null || echo 0); [ "$m" -gt "$newest_m" ] && newest_m="$m"; }
+        [ -n "$stored" ] && [ -f "$d/$stored.jsonl" ] && stored_m=$(stat -f %m "$d/$stored.jsonl" 2>/dev/null || echo 0)
+    done
+
+    # Re-capture when: no stored id, stored jsonl missing, or a newer seed
+    # session exists (>120s newer than the stored one). 120s avoids churn from
+    # normal interleaved writes while reliably catching a genuinely new seed.
+    if [ -z "$stored" ] || [ "$stored_m" -eq 0 ] || [ "$((newest_m - stored_m))" -gt 120 ]; then
+        log "Seed id stale (stored=${stored:0:12} m=${stored_m} newest_m=${newest_m}) — recapturing"
+        _capture_seed_session_id
+    fi
+}
+
 # ── Chain Window Management ───────────────────────────────────────────
 
 get_or_create_chain_window() {
@@ -181,13 +226,25 @@ get_or_create_chain_window() {
         log "Attaching persona MCP config: ${persona_mcp_config}"
     fi
 
+    # Remove any stale window with this name from a prior failed fork. The reuse
+    # path above already returned if a live window existed, so anything matching
+    # now is dead — and a duplicate window name breaks capture-pane targeting
+    # (readiness reads the wrong pane → false timeout → retry pile-up, the
+    # failure that trapped a reused chain_id in an infinite re-fork loop).
+    while "$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_name}' 2>/dev/null | grep -qx "$window_name"; do
+        _stale_idx=$("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_index} #{window_name}' 2>/dev/null | awk -v n="$window_name" '$2==n{print $1; exit}')
+        [ -z "$_stale_idx" ] && break
+        "$TMUX_BIN" kill-window -t "${TMUX_SESSION}:${_stale_idx}" 2>/dev/null
+        log "Removed stale window ${window_name} (idx ${_stale_idx}) before fork"
+    done
+
     log "Forking seed → ${window_name} for chain ${chain_id:0:12}"
     "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
 
     local waited=0
     local fork_import_handled=false
-    while [ "$waited" -lt 30 ]; do
+    while [ "$waited" -lt 60 ]; do
         sleep 2
         waited=$((waited + 2))
 
@@ -205,12 +262,34 @@ get_or_create_chain_window() {
             fi
         fi
 
+        # Auto-dismiss a "Settings Warning" prompt (e.g. an invalid permission
+        # rule in ~/.claude/settings.json). It blocks the TUI on a 1/2/3 menu
+        # with "1. Continue" pre-selected, so Enter proceeds: the invalid rule
+        # is skipped, the rest of settings applies, and forks run
+        # bypassPermissions regardless. Without this the fork never reaches an
+        # interactive prompt and the readiness gate times out.
+        if "$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${window_name}" -p 2>/dev/null | grep -q "Settings Warning"; then
+            log "Settings Warning in fork ${window_name} — selecting Continue"
+            "$TMUX_BIN" send-keys -t "${TMUX_SESSION}:${window_name}" Enter 2>/dev/null
+            sleep 2
+        fi
+
         if _claude_running_in_window "$window_name"; then
             local fc
             fc=$("$TMUX_BIN" capture-pane -t "${TMUX_SESSION}:${window_name}" -p 2>/dev/null)
             if echo "$fc" | grep -q "Allow external CLAUDE.md"; then
                 continue
             fi
+            # The claude PROCESS starts within ~2s, but a fork resuming a large
+            # seed session keeps loading its transcript for several more seconds
+            # before the TUI accepts input. Injecting during that load silently
+            # drops the paste — leaving the fork idle at an empty prompt while
+            # the daemon blocks the full timeout waiting for a sentinel that
+            # never comes. Gate on the interactive input footer, then settle.
+            if ! echo "$fc" | grep -q "bypass permissions"; then
+                continue
+            fi
+            sleep 2
             echo "$window_name" > "$map_file"
             log "Chain window ready: ${window_name} (waited ${waited}s, import_prompt=${fork_import_handled})"
             echo "$window_name"
@@ -239,13 +318,20 @@ cleanup_chain_window() {
 # ── Prompt Injection ─────────────────────────────────────────────────
 
 inject_and_wait() {
-    # Inject a prompt into a target window and wait for sentinel completion.
-    # Args: window_name task_id prompt_file timeout_minutes
+    # Inject a prompt into a target window and wait for completion.
+    # Args: window_name task_id prompt_file timeout_minutes [output_dir]
+    # Completion is signalled by EITHER the explicit sentinel file (primary)
+    # OR a freshly-written file in output_dir (secondary). Forked Claude
+    # sessions reliably write their deliverable but do not always run the
+    # trailing `echo DONE > sentinel` step, so output-detection prevents a
+    # false timeout-and-reset loop on work that actually completed.
     local window="$1"
     local task_id="$2"
     local prompt_file="$3"
     local timeout_minutes="${4:-10}"
+    local output_dir="${5:-}"
     local sentinel_file="${STATE_DIR}/.chain-done-${task_id}"
+    local marker_file="${STATE_DIR}/.inject-marker-${task_id}"
 
     rm -f "$sentinel_file"
 
@@ -264,22 +350,37 @@ inject_and_wait() {
     log "Injected: task=${task_id} window=${window}"
     rm -f "$inject_file"
 
-    # Wait for sentinel
+    # Baseline marker: output files newer than this were written by THIS run.
+    : > "$marker_file"
+
+    # Wait for completion: sentinel (primary) OR fresh output file (secondary).
     local elapsed=0
     local timeout_secs=$((timeout_minutes * 60))
-    while [ ! -f "$sentinel_file" ] && [ "$elapsed" -lt "$timeout_secs" ]; do
+    local doc_grace=0
+    while [ "$elapsed" -lt "$timeout_secs" ]; do
         sleep 5
         elapsed=$((elapsed + 5))
+        if [ -f "$sentinel_file" ]; then
+            rm -f "$sentinel_file" "$marker_file"
+            log "Completed (sentinel): task=${task_id} (${elapsed}s)"
+            return 0
+        fi
+        # Output-based completion: a deliverable appeared after injection.
+        # Require a brief stability grace so we do not cut off mid-write.
+        if [ -n "$output_dir" ] && [ -d "$output_dir" ] && \
+           find "$output_dir" -type f -newer "$marker_file" 2>/dev/null | grep -q .; then
+            doc_grace=$((doc_grace + 5))
+            if [ "$doc_grace" -ge 20 ]; then
+                rm -f "$marker_file"
+                log "Completed (output-detected): task=${task_id} (${elapsed}s, no sentinel)"
+                return 0
+            fi
+        fi
     done
 
-    if [ -f "$sentinel_file" ]; then
-        rm -f "$sentinel_file"
-        log "Completed: task=${task_id} (${elapsed}s)"
-        return 0
-    else
-        log "TIMEOUT: task=${task_id} after ${timeout_minutes}m"
-        return 1
-    fi
+    rm -f "$marker_file"
+    log "TIMEOUT: task=${task_id} after ${timeout_minutes}m"
+    return 1
 }
 
 # ── Request Processing ───────────────────────────────────────────────
@@ -360,7 +461,7 @@ json.dump({
 
     local summary_file="${STATE_DIR}/.chain-summary-${task_id}.json"
 
-    if inject_and_wait "$target_window" "$task_id" "$prompt_file" "${timeout_minutes:-10}"; then
+    if inject_and_wait "$target_window" "$task_id" "$prompt_file" "${timeout_minutes:-10}" "$output_dir"; then
         python3 -c "
 import json, os, time
 

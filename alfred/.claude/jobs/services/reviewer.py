@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import subprocess
+import shutil
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -90,6 +91,28 @@ def _verify_filesystem(task: dict) -> str:
     checks = []
 
     files_modified = ctx.get("files_modified", []) if isinstance(ctx, dict) else []
+
+    # Pipeline hardening (Phase A): reconcile dual-location writes. The executor
+    # may report writing the same deliverable to more than one directory (e.g. a
+    # project's canonical docs/ tree AND the generic alfred/output sink). If only
+    # some copies actually landed, sync from an existing copy to the missing ones
+    # so a location split does not produce a false "missing" verdict.
+    _by_name: dict = {}
+    for _f in files_modified:
+        if os.path.isabs(_f):
+            _by_name.setdefault(os.path.basename(_f), []).append(_host_to_container_path(_f))
+    for _name, _ps in _by_name.items():
+        _have = [q for q in _ps if q.exists()]
+        _need = [q for q in _ps if not q.exists()]
+        if _have and _need:
+            for _dst in _need:
+                try:
+                    _dst.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(_have[0], _dst)
+                    checks.append(f"RECONCILED: copied {_have[0].name} -> {_dst}")
+                    log.info("reviewer reconcile: %s -> %s", _have[0], _dst)
+                except OSError as _e:
+                    checks.append(f"RECONCILE FAILED: {_have[0]} -> {_dst}: {_e}")
     for f in files_modified:
         p = _host_to_container_path(f) if os.path.isabs(f) else PROJECT_DIR / f
         exists = p.exists()

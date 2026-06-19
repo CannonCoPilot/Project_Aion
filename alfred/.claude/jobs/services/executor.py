@@ -150,12 +150,32 @@ Format as JSON in <context-summary> tags:
 
 
 def _resolve_output_dir(task: dict) -> Path:
-    """Derive an output directory from the task's project label.
+    """Resolve the output directory for the task.
 
-    Returns host-side path (HOST_PROJECT_DIR) so prompts sent via signal-delegation
-    reference paths the host Claude CLI can actually write to.
+    Priority:
+      1. Explicit absolute override (metadata.output_dir or
+         stage_output.output_dir) — lets a task target its own canonical
+         location (e.g. a project's docs/ tree) instead of the generic
+         alfred/output/<project> sink. Without this, the injected output
+         directory can contradict an explicit path in the task description,
+         which splits the deliverable across two locations.
+      2. Generic label-derived default: HOST_PROJECT_DIR/output/<project>.
+
+    Returns a host-side path (HOST_PROJECT_DIR) so prompts sent via
+    signal-delegation reference paths the host Claude CLI can actually write to.
     Docker-internal mkdir uses PROJECT_DIR; prompt uses HOST_PROJECT_DIR.
     """
+    metadata = task.get("metadata") or {}
+    stage_output = metadata.get("stage_output") or {}
+    override = metadata.get("output_dir") or stage_output.get("output_dir")
+    if override and os.path.isabs(str(override)):
+        out = Path(str(override))
+        try:
+            out.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            log.warning("output_dir override mkdir failed (%s): %s", out, e)
+        return out
+
     labels = task.get("labels", [])
     project = "misc"
     for lbl in labels:
