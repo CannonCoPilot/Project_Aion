@@ -658,6 +658,55 @@ check_identity_changes() {
     fi
 }
 
+# --- Autonomous threshold check (added 2026-06-23) --------------------------
+# Bug: previously only jicm-stop.sh (Stop hook) could write JICM_CLEAR_SIGNAL.
+# Stop hook fires AFTER a turn completes — so idle sessions over threshold
+# silently stayed over threshold until the next turn. With ambient activity
+# (other sessions, hooks, MCP refreshes) growing context during idle windows,
+# W0 could reach 373K+ tokens without ever triggering JICM. Now the daemon
+# self-fires when state shows tokens >= hard_threshold, debounced by cooldown.
+AUTO_TRIGGER_COOLDOWN=${JICM_AUTO_TRIGGER_COOLDOWN:-300}   # seconds
+declare -i LAST_AUTO_TRIGGER=0
+declare -i LAST_HEALTH_WARN=0
+HEALTH_WARN_EVERY=600     # don't spam — at most one over-threshold warn per 10min
+
+check_autonomous_threshold() {
+    [[ -f "$JICM_STATE_HOOK_FILE" ]] || return 0
+    [[ -f "$JICM_CLEAR_SIGNAL" ]] && return 0   # already pending; skip
+
+    local now_epoch tokens hard_threshold state_age
+    now_epoch=$(date +%s)
+
+    # Cooldown: don't auto-fire more than once per AUTO_TRIGGER_COOLDOWN
+    [[ $((now_epoch - LAST_AUTO_TRIGGER)) -lt $AUTO_TRIGGER_COOLDOWN ]] && return 0
+
+    # Sanity: state file must be fresh (mtime < 5min) — stale state means the
+    # hook isn't updating; we shouldn't fire on cobwebs.
+    state_age=$(( now_epoch - $(stat -f %m "$JICM_STATE_HOOK_FILE" 2>/dev/null || echo "$now_epoch") ))
+    [[ "$state_age" -gt 300 ]] && return 0
+
+    tokens=$(jq -r '.tokens // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+    hard_threshold=$(jq -r '.hard_threshold_tokens // 300000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+    [[ "$tokens" =~ ^[0-9]+$ ]] || return 0
+    [[ "$hard_threshold" =~ ^[0-9]+$ ]] || return 0
+
+    if [[ "$tokens" -ge "$hard_threshold" ]]; then
+        printf '{"trigger":"autonomous_threshold","tokens":%d,"threshold":%d,"ts":"%s"}\n' \
+            "$tokens" "$hard_threshold" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$JICM_CLEAR_SIGNAL"
+        LAST_AUTO_TRIGGER=$now_epoch
+        log "autonomous fire: tokens=$tokens hard=$hard_threshold — wrote $JICM_CLEAR_SIGNAL"
+    elif [[ $((now_epoch - LAST_HEALTH_WARN)) -ge "$HEALTH_WARN_EVERY" ]]; then
+        # Health observability: log token state periodically so we can see the
+        # daemon IS watching even when it doesn't fire (refutes "lazy" claims).
+        local soft_threshold
+        soft_threshold=$(jq -r '.soft_threshold_tokens // 250000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+        if [[ "$tokens" -ge "$soft_threshold" ]]; then
+            log "soft-threshold (no fire): tokens=$tokens soft=$soft_threshold hard=$hard_threshold age=${state_age}s"
+            LAST_HEALTH_WARN=$now_epoch
+        fi
+    fi
+}
+
 # --- Main loop --------------------------------------------------------------
 log "main loop (poll ${JICM_POLL_INTERVAL}s, target $JICM_TMUX_TARGET, backend $JICM_INJECTION_BACKEND)"
 declare -i REFRESH_COUNTER=0
@@ -676,6 +725,7 @@ while true; do
     REFRESH_COUNTER=$(( REFRESH_COUNTER + 1 ))
     if [[ "$REFRESH_COUNTER" -ge "$REFRESH_EVERY" ]]; then
         refresh_state_from_jsonl
+        check_autonomous_threshold     # NEW: self-fire when over hard threshold
         REFRESH_COUNTER=0
     fi
 
