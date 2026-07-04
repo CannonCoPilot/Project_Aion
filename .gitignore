@@ -61,7 +61,8 @@
 .claude/exports/
 
 # Memory mirror (auto-synced from ~/.claude/projects/.../memory/)
-.claude/context/memory/MEMORY.md
+# MEMORY.md and linked memory files are now committed as a design-knowledge snapshot;
+# working memory continues to live in ~/.claude/projects/.../memory/ and drives runtime.
 
 # Symlinks to external ~/.claude/ scripts (originals live outside project)
 .claude/scripts/jarvis-statusline.sh
