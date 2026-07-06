@@ -10,6 +10,67 @@ textual, and apparatus decision is grounded in — and validated against — the
 
 ---
 
+## 0 · Revision 2026-07-06 — course-correction (READ FIRST)
+
+Sir's directive tightened the aims and reversed three premature closures. The plan's *design* (below)
+was right; **execution took the cheap path and fell short of it.** What actually shipped (P0→P3,
+commits through 3806656): the reconstruction consumed the existing archive.org **djvu.txt** OCR plus a
+*sampled* print-validation OCR, so the OCR witness (`ocr_consensus`) is **scripture-only and
+djvu-derived**; apparatus prose was **never OCR'd or stored** (it is render-time-sourced from the
+modern janvier-s witness and shared by both editions); and the archaic edition carries **199
+modern-fallback gaps** and a **modern apparatus**. That is exactly the "pick the best available and
+flag the rest" behavior §1 forbids.
+
+**Corrected aims (these override any conflicting text below):**
+
+1. **Every feature of the text is user-facing, always.** Masking is only a *default import setting* in
+   Palimpsest; the user masks/unmasks at will. Scripture, apparatus, and structure are all first-class
+   product. Archival and analytic completeness of **both** the modern and archaic editions is a goal in
+   itself.
+2. **The 108↔109 diff must expose every spelling/typeset delta across the _whole_ work — apparatus
+   included, not scripture-only.** The apparatus must therefore be rendered archaically in idx 109 (its
+   own archaic surface), not shared from the modern witness.
+3. **No terminal gaps; no modern-for-archaic fallbacks.** The union of sources — **Janvier (Sabates_A),
+   s-dismas, archive.org hOCR/txt, archive.org scans + our own OCR, annas-archive EEBO scans + our own
+   OCR** — covers 100% of the work (incl. all apparatus) at **≥2× depth**. The scans must be *processed*
+   to realize that coverage: **fresh custom OCR of every scan page we hold** (the hard path), tuned and
+   measured against the already-transcribed regions as ground truth. A missing surface comes from our
+   OCR — never from a wrong-register substitute.
+4. **Confidence variation is a feature, not a defect.** The basis DB is itself a primary deliverable: a
+   **canonical error/confidence map** of the entire work (all components — scripture + apparatus +
+   structure), showing per-region source coverage and cross-source agreement.
+5. **Two new first-class report deliverables:** (a) a **whole-work source-overlay map** — every source a
+   track across the entire work incl. apparatus, our-OCR contribution shown; (b) a **full per-source
+   accounting** — for each source, how it was used, what parts it contributes, how it cross-validated
+   (and was cross-validated by) the other sources and the basis DB. The report must stand alone as an
+   academic-grade guide to the standard set by, and the state of, the produced OriginalDR documents.
+
+**Genome-assembly framing (Sir's model).** Each source is a **de-novo assembly from a different
+sequencing technology**: Janvier (modern polished transcription), s-dismas (archaic diplomatic
+transcription, partial), archive.org hOCR/txt (existing 3rd-party OCR), archive.org scans + our OCR
+(fresh reads), annas-archive EEBO scans + our OCR (a second physical copy, fresh reads). Reconciled by
+independence-weighted consensus, they yield the basis DB (the reference assembly + variant/confidence
+annotation) with no unfilled interval.
+
+**Reopened decisions (closed prematurely; now inputs to Phase 4 §12, not dispositions):**
+- **#5 — the 199 archaic coverage-gaps.** Was "genuine gaps; modern-fallback honest; re-OCR would
+  fabricate noise." REVERSED: the "same OCR family" objection applies only to *re-consuming* the
+  archive.org djvu — it does **not** excuse skipping **fresh custom OCR of the page images**
+  (archive.org + annas-archive) with a ground-truth-tuned pipeline. These 199 are **OCR work-targets**,
+  filled to an attested archaic surface + confidence.
+- **#6 — archaic apparatus.** Was "keep modern-shared; defer as reader-invisible opt-in." REVERSED:
+  archaic apparatus is **required** (aim 2). Source it from odr-com where present + s-dismas /
+  archive.org / annas-archive **OCR everywhere else** → full archaic apparatus with confidence, no
+  modern substitute.
+- **#4 — the 55 archaic-only coords.** Classification stands as evidence but is reframed: these are
+  **versification-variance signals** feeding the confidence/error map, not an "exclude-and-done" set.
+
+The committed follow-up artifacts (`versification-adjudication.json`, `archaic-apparatus-sourcing.json`)
+are retained as **evidence/inputs** to Phase 4, not final answers. Detailed reopened work: **§12 (Phase
+4 — the hard path).**
+
+---
+
 ## 1 · Paradigm
 
 > **Detect in every source → generate from every source → re-detect in the final document as confirmation.**
@@ -52,6 +113,25 @@ edition-invariant truth (with per-source surface forms in both orthographies); *
 and archaic works consume **all** sources and differ only in the last conversion step. There is no
 "modern phase" and "archaic phase" — there is one reconstruction and two renderings.
 
+**This applies to _every_ element, not just scripture.** Apparatus prose (book/chapter arguments,
+verse annotations, cross-references, sidecar notes, and the ~26 reference documents) and structural
+labels are reconstructed into the basis DB with **both** a modern and an archaic surface per element —
+consensus-called from all attesting sources exactly like scripture — so idx 108 renders them modern
+and idx 109 renders them archaic. A diff of 108 vs 109 then exposes **every** spelling/typeset delta
+across the whole work (scripture + apparatus + structure), which is the point. (The prior execution
+stored apparatus prose nowhere and shared a single modern apparatus across both editions; that is the
+gap Phase 4 closes.)
+
+**Masking is orthogonal to reconstruction.** Palimpsest lets the user mask/unmask any layer at will;
+the mask map that ships with each gold work is only a *default* view. Nothing about a feature's default
+mask state lowers its reconstruction standard — apparatus is reconstructed and rendered to the same
+completeness and fidelity bar as scripture.
+
+**The basis DB is a deliverable in its own right.** Beyond feeding the two renderings, it is the
+**canonical error/confidence map** of the entire work: every component, in canonical layout and order,
+annotated with source coverage, cross-source agreement, and independence-weighted confidence — a map of
+where the reconstruction is strong and where it is thin (a feature, not a defect; §4.3, §7).
+
 ---
 
 ## 2 · Sources (8 witness families + derived OCR)
@@ -78,6 +158,18 @@ fidelity check; **true independence** comes from the archaic print line — s-di
 archive.org scans (three physically distinct scan sets) — plus our own OCR. Confidence must weight by
 independence, not raw source count (§4.3).
 
+**Coverage guarantee (the reason to OCR everything).** Transcribed sources are partial and
+register-limited: Janvier/Madueke are modern-only; s-dismas is archaic but stops at OT Wisdom; odr-com
+is archaic-spelling (ſ-normalised, not diplomatic) over ~39 books; the pre-existing archive.org
+djvu/hOCR is a single noisy OCR family. **No transcribed source covers the whole work in the archaic
+register, and none covers the apparatus prose as extractable text.** The image scans, however, *do*
+cover 100% of the work — including all apparatus and marginalia — in genuine archaic typesetting, in at
+least two physically distinct copies (archive.org's six items + the annas-archive EEBO volumes). The
+**only** way to convert that latent 100% coverage into usable per-element surfaces is to **OCR the
+scans ourselves**. Our custom OCR is thus not a "fill where convenient" witness but the mechanism that
+guarantees ≥2× archaic depth over every interval — scripture and apparatus alike — with the transcribed
+sources serving as ground truth to tune and score it (§3 P0.4, §12).
+
 ---
 
 ## 3 · Phase 0 — Acquisition, verification, provenance registry
@@ -100,11 +192,23 @@ not registered and sha-pinned.
   — the djvu.txt is already local. Full page-image coverage gives complete visual layout authority +
   raw data for whole-Bible fresh OCR + LLM visual reading. Large binaries stay local under `imports/`
   (preserve-don't-push), pinned by sha256; fetch incrementally but to completeness (GBs expected).
-- **P0.4 Fresh-OCR pipeline — WHOLE TOME (decision 2026-07-04).** `ocr_pipeline.py`: `pdftoppm 300dpi →
-  tesseract` over **every** scan page, producing our own OCR witness across the entire Bible. Build the
-  **majority-consensus OCR** that fuses, per page/line, the three archive.org djvu layers + archive.org
-  hOCR + our tesseract into a consensus OCR with per-token agreement — an independent print witness with
-  **full-tome depth at every verse**, not a sample. (Heaviest step: GBs local + hours of OCR; accepted.)
+- **P0.4 Fresh-OCR pipeline — WHOLE TOME, ALL COMPONENTS (decision 2026-07-04; expanded 2026-07-06).**
+  `ocr_pipeline.py`: `pdftoppm 300dpi → tesseract` over **every** scan page of **both** scan lines
+  (archive.org's six items **and** the annas-archive EEBO volumes), producing our own OCR witness across
+  the entire Bible. Scope is **scripture _and_ apparatus/marginalia** — arguments, annotations,
+  footnotes, cross-references and the ~26 reference documents are OCR'd from the same pages, region-typed
+  via the hOCR/marginalia geometry (§4.4), not skipped. Fuse, per page/line, the archive.org djvu layers
+  + archive.org hOCR + our tesseract (+ annas-archive OCR) into a **majority-consensus OCR** with
+  per-token agreement — an independent print witness with **full-tome depth at every element**, not a
+  sample. The OCR is **diplomatic-aware** (configured/evaluated to preserve long-ſ, æ/œ, u/v, i/j, vv, &
+  rather than collapsing ſ→f) and **ground-truth-tuned**: the s-dismas / odr-com / Janvier transcribed
+  regions are held out as ground truth to score and iterate the pipeline, and the resulting per-region
+  accuracy becomes part of the per-source accounting (§7). Per-element OCR confidence is recorded.
+  (Heaviest step: GBs local + hours of OCR; accepted — this is the hard path, and it is the point.)
+  > **STATUS 2026-07-06: under-executed.** P0.3/P0.4 were only partially carried out — the pipeline
+  > leaned on the pre-existing archive.org **djvu.txt** plus a *sampled* validation OCR, so `ocr_consensus`
+  > is scripture-only and djvu-derived, apparatus was never OCR'd, and annas-archive scans were used only
+  > for placement grounding, never OCR'd. **Phase 4 (§12) executes P0.4 as written.**
 - **P0.5 Source registry.** Emit committed `sources-registry.json`: for each source — alias, URL/commit,
   form, spelling, typeset, coverage map (which books/apparatus it contains), lineage group,
   independence flag, acquisition date, file sha256(s). This is the single provenance index every later
@@ -213,6 +317,15 @@ it omitted."
 Output: `apparatus-attestation.json` (source × item presence + placement + decision), the input to the
 contributor heatmaps (§5).
 
+> **CORRECTION 2026-07-06 — apparatus prose is first-class.** Attestation/placement is necessary but
+> **not sufficient**: every apparatus item must also carry its **modern _and_ archaic surface prose**
+> in the basis DB, consensus-called from all attesting sources (Janvier modern; odr-com archaic where
+> present; s-dismas / archive.org / annas-archive **OCR** everywhere else), exactly like a scripture
+> verse — see the §4.6 element schema (`attestation.surface_modern/surface_archaic`,
+> `render.modern_form/archaic_form`). The prior execution populated apparatus *placement* only and
+> sourced the prose at render time from modern Janvier alone; Phase 4 (§12) reconstructs the apparatus
+> prose into the basis DB so idx 109 can render it archaically.
+
 ### 4.6 · P1.6 — Basis database emission
 
 Emit the **core basis database** — the single source of truth for both renderings. Per element:
@@ -274,15 +387,21 @@ the reference `.txt` + `work-108.map.json` (generate-and-record-offsets, exact b
 ### 5.3 · P2b — Archaic OriginalDR (idx 109)
 
 Render `basis-db → archaic` using `render.archaic_form` — a **diplomatic facsimile** preserving long-ſ,
-æ/œ, u/v, i/j, vv, &, and period spellings, sourced from the archaic witnesses (s-dismas primary;
-odr-com and archive.org fresh-OCR fill where s-dismas is absent — e.g. OT Ecclesiasticus→Machabees,
-prophets). Record per element the archaic source + method + glyphs preserved + coverage tier. Emit the
-archaic `.txt` + `work-109.map.json`. Gates: `verify_map(109)==[]`, oracle 76/76, **structural parity
-vs 108** (same skeleton, differing only in surface), sha reproduces, apply CLI+API, full suite green
-(the gold-map glob auto-parametrizes work-109).
+æ/œ, u/v, i/j, vv, &, and period spellings — for **every** element: scripture **and** apparatus **and**
+structural labels. Archaic surfaces come from the archaic witnesses (s-dismas primary; odr-com where
+present; **our diplomatic OCR of the scans everywhere else**, incl. the OT Ecclesiasticus→Machabees /
+prophets scripture and the whole apparatus). Record per element the archaic source + method + glyphs
+preserved + confidence tier. **No modern-for-archaic fallback:** every element renders from an *attested
+archaic* surface; an element with no archaic attestation is a **P0.4 OCR work-target**, not a
+modern-substitute (Fallbacks-Are-Failures). Emit the archaic `.txt` + `work-109.map.json`. Gates:
+`verify_map(109)==[]`, oracle 76/76, **structural parity vs 108** (same skeleton, differing only in
+surface), sha reproduces, apply CLI+API, full suite green (the gold-map glob auto-parametrizes work-109).
 
 **Both:** share skeleton + basis DB + apparatus placement; a diff of 108 vs 109 isolates exactly the
-spelling/typeset delta and nothing else.
+spelling/typeset delta — across the **whole** work (scripture, apparatus, structure) and nothing else.
+Because the apparatus renders modern in 108 and archaic in 109, that diff includes the apparatus
+spelling/typeset deltas; a 108-vs-109 diff that shows *no* apparatus change is a bug (the pre-2026-07-06
+state).
 
 ---
 
@@ -299,9 +418,11 @@ recorded so archaic rendering restores it from the archaic witness, not from a l
 ### 6.2 · Diplomatic-fidelity validation (archaic)
 
 - **Glyph inventory:** per-book counts of retained ſ, æ, œ, vv, u/v, i/j (evidence the type is
-  genuinely archaic), visualized.
+  genuinely archaic), visualized — computed over **both** scripture and apparatus surfaces.
 - **Word-for-word correspondence:** confirm archaic↔modern correspond after the documented fold;
   spelling/type diffs are expected and **not** errors — only post-fold residual wording diffs count.
+  Run over scripture **and** apparatus (each apparatus element's archaic surface vs its modern surface),
+  so the apparatus is held to the same fidelity bar as scripture.
 
 ### 6.3 · Independent print validation (both editions)
 
@@ -309,6 +430,18 @@ Stratified-random sampling with bootstrap 95% CIs against the archive.org print 
 existing seeded protocol to **all** archaic witnesses + majority-consensus OCR). Report per-stratum and
 aggregate recall with CIs, cross-source agreement, and the distinctive-content-word miss count (the
 genuine-discrepancy signal). Seeded and reproducible.
+
+### 6.4 · OCR pipeline evaluation against ground truth
+
+The custom OCR (§3 P0.4) is a first-class witness, so it is measured, not trusted. Hold out the
+transcribed regions — s-dismas (archaic diplomatic), odr-com (archaic-spelling), Janvier/Madueke
+(modern) — as **ground truth**, and score our OCR on them: character/word accuracy overall and per
+glyph class (the ſ/æ/œ/u-v/i-j/vv discrimination that separates diplomatic OCR from ſ→f collapse), by
+page-quality stratum and by region type (body vs marginalia/apparatus). Iterate the pipeline
+(binarization, PSM, language/char-whitelist, per-copy tuning) against these scores; report the final
+per-source, per-region accuracy. This both validates the gap-fill (P0.4 targets rendered only when OCR
+clears a confidence bar) and yields the OCR-accuracy numbers the per-source accounting (§7) needs.
+Seeded, reproducible, deterministic.
 
 ---
 
@@ -319,28 +452,37 @@ The report is restructured from a marketing-style dashboard into an **academic b
 ### 7.1 · Structure (Methods/Results)
 
 **Abstract · Introduction · Sources & provenance · Methods** (paradigm; skeleton; per-source
-detection; layout grounding from scans; consensus calling + confidence model; conversion model)
-**· Results** (source coverage & attestation statistics; consensus agreement & depth; apparatus
-inclusion/exclusion matrix; scan-grounded placement map; modern & archaic rendering outcomes;
-diplomatic-fidelity + print-validation CIs) **· Discussion · Limitations · Reproducibility & audit
-trail · References**. Every figure computed from committed artifacts; every headline number traces to a
+detection; **custom OCR pipeline + ground-truth evaluation, §6.4**; layout grounding from scans;
+consensus calling + confidence model; conversion model) **· Results** (source coverage & attestation
+statistics; consensus agreement & depth; the **canonical confidence/error map of the whole work**;
+apparatus inclusion/exclusion matrix **and apparatus reconstruction outcomes**; scan-grounded placement
+map; modern & archaic rendering outcomes; diplomatic-fidelity + print-validation CIs; OCR-pipeline
+accuracy) **· Per-source accounting (§7.4) · Discussion · Limitations · Reproducibility & audit trail ·
+References**. Every figure computed from committed artifacts; every headline number traces to a
 committed JSON + a source sha256.
 
 ### 7.2 · Genome-browser-style visualizations (first-class)
 
 Built to read like a genome browser (the intended audience is fluent in them):
 
-- **Source-track browser.** x-axis = canonical position (book→chapter→verse index, or char offset);
-  one lane per source; per-element presence + post-normalization agreement (color); a **consensus
-  track** on top and **variant pileups** where sources disagree. The textual analog of aligned reads
-  over a reference.
+- **Whole-work source-overlay map (headline deliverable).** x-axis = canonical position across the
+  **entire** work — scripture **and** apparatus **and** structural components, in canonical layout/order;
+  one lane per source (Janvier, s-dismas, odr-com, archive.org hOCR/txt, **our OCR of archive.org**,
+  **our OCR of annas-archive**); per-element presence + post-normalization agreement (color); a
+  **consensus track** on top and **variant pileups** where sources disagree. This is the textual analog
+  of aligned reads over a reference, and it must span apparatus lanes, not just scripture — our-OCR
+  contribution is explicitly visible as the layer that fills what the transcriptions miss.
 - **Coverage-depth histogram / karyotype.** Per element (or binned), the number of attesting sources
-  (read depth) and independent depth — the "how many witnesses cover this base" view.
+  (read depth) and independent depth — the "how many witnesses cover this base" view; annotate the ≥2×
+  depth floor and highlight any interval below it (there should be none after P0.4).
 - **Contributor heatmaps (book × source, book × apparatus-channel × source).** Coverage %, colored and
   **tabulated**, so the contribution of each source to each book and each apparatus channel is explicit.
-- **Confidence ideogram.** The whole Bible as a chromosome-style ideogram, banded by confidence/coverage
-  tier — book-by-book and item-by-item, visualized **and** tabulated (the "full schematics of
-  contributors to the confidence" deliverable).
+- **Canonical confidence/error map (headline deliverable).** The whole work as a chromosome-style
+  ideogram over the canonical layout of **all** components (scripture + apparatus + structure), banded by
+  independence-weighted confidence and coloured by error/uncertainty (low coverage or low agreement) —
+  book-by-book and item-by-item, visualized **and** tabulated. This is the standalone "map of where the
+  reconstruction is strong vs thin" deliverable (§1.2, aim 4); regions of lower confidence are surfaced
+  as a feature, with their driving cause (few witnesses / disagreement / OCR-only).
 - **Variant pileup panels.** At disagreement loci, the per-source surface readings side by side (the
   SNP-pileup analog).
 - **Apparatus placement map.** Tome diagram (front matter → testament → back matter) with each slot's
@@ -353,6 +495,23 @@ Built to read like a genome browser (the intended audience is fluent in them):
 A primary **academic brief** covering the shared methodology + both products, plus per-work gold-set
 report views generated from the same basis DB + validation artifacts. Reuse and extend the existing
 SVG primitives; add the browser-track, pileup, heatmap, ideogram, and CI-whisker helpers.
+
+### 7.4 · Per-source accounting (full, one section per source)
+
+A dedicated report section giving **each** source (Janvier/Sabates_A, Madueke_A/B, s-dismas, odr-com,
+archive.org hOCR/txt, our OCR of archive.org, our OCR of annas-archive EEBO) a complete accounting:
+- **What it is** — provenance, form, spelling/typeset register, lineage group, independence status, sha256.
+- **What it contributes** — which components (books/chapters/verses + apparatus channels) it attests,
+  as coverage %, mapped onto the canonical layout (its lane in the source-overlay map, §7.2).
+- **How it was used** — as backbone / corroborator / archaic surface / OCR gap-fill / placement grounding;
+  for OCR sources, the §6.4 accuracy by glyph class and region type.
+- **How it cross-validated (and was cross-validated by) the others and the basis DB** — where it agreed
+  vs where it was the minority read in a pileup; where it *uniquely* supplied a surface (single-witness
+  intervals it is solely responsible for) and how confidence reflects that; whether it changed a
+  consensus call and why.
+This turns the contributor heatmaps into a narrative + tabular audit, so a reader can trace every
+source's exact role in — and every source's exact reliability across — the reconstruction.
+Backed by a committed `source-accounting.json` (materialized from the basis DB) that the section renders.
 
 ---
 
@@ -397,6 +556,14 @@ images — the belt-and-suspenders visual proof).
 - **Report:** academic-brief structure present (Methods + Results); genome-browser visualizations
   render; visual QA of each figure (zoom to where the property is resolvable, per the UI-verification
   standard).
+- **P4 (the hard path, §12):** custom OCR run over every page of both scan lines (scripture **and**
+  apparatus), diplomatic-aware + ground-truth-scored (`ocr-eval.json`); **≥2× archaic depth over 100% of
+  the work** with any thin interval explicitly listed; apparatus prose reconstructed into the basis DB
+  with modern **and** archaic surfaces (re-detection 100% over the enlarged element set); **no
+  modern-for-archaic fallbacks** — the 199 gaps OCR-filled or evidenced `unrecoverable`; idx 109
+  re-rendered archaic **everywhere incl. apparatus** (sha re-mint recorded); a 108-vs-109 diff shows
+  apparatus deltas; the whole-work source-overlay map, canonical confidence/error map, and full
+  per-source accounting (`source-accounting.json`) emitted; academic report stands alone.
 
 ---
 
@@ -415,6 +582,17 @@ images — the belt-and-suspenders visual proof).
 5. **Statistics + visualizations first-class**, for both protocol and product — book-by-book,
    item-by-item, visualized and tabulated.
 6. **Generate-and-record-offsets** for the emitted works: offsets exact by construction, masks free.
+7. **No unfilled intervals; process, don't skip.** Every element gets an attested surface in *both*
+   registers. Where transcriptions don't reach, do the hard-path OCR to reach it — a gap is a
+   work-target, never a terminal state, and never a wrong-register substitute.
+8. **Confidence, not fallback.** When a region is thin (few witnesses / low agreement / OCR-only),
+   record and *show* the reduced confidence; never paper over it with a modern surface in the archaic
+   edition (or vice versa). Confidence variation is a first-class product (the error map).
+9. **Every feature is user-facing; masking is a default, not a class.** Scripture, apparatus, and
+   structure are reconstructed and rendered to the same completeness/fidelity bar regardless of default
+   mask state.
+10. **Account for every source.** Each source's exact contribution, cross-validation role, and
+    reliability is reported (§7.4) — nothing is used silently or left unexplained.
 
 ---
 
@@ -437,4 +615,73 @@ for explicit approval**.
 - *Volume of scan imagery.* Page-image downloads are large → keep local under `imports/`, pin by
   sha256, fetch incrementally per book/section as needed.
 - *Basis DB size.* May exceed a single JSON → shard by book, keep a schema + index.
-```
+
+---
+
+## 12 · Phase 4 — The hard path (full custom OCR · apparatus first-class · whole-work completeness)
+
+**Why this phase exists.** §0 documented that P0→P3 shipped the design's *outputs* but not its
+*standard*: djvu-derived scripture-only OCR, apparatus prose stored nowhere, 199 archaic scripture
+gaps, a modern-shared apparatus. Phase 4 executes the plan **as written** — the custom-OCR hard path
+(§3 P0.4), apparatus as a first-class reconstructed element (§4.5 correction), no-fallback archaic
+rendering (§5.3), and the new whole-work deliverables (§7). This **supersedes** the earlier
+"opt-in / reader-invisible archaic apparatus" framing entirely: archaic apparatus is neither optional
+nor reader-invisible — it is part of *completing* idx 109. Sub-phases are ordered highest-leverage-first
+(OCR unlocks everything downstream); each is independently green-gated and git-reversible.
+
+**Inputs (evidence, not dispositions).** `versification-adjudication.json` (the 199 gaps + 55
+archaic-only coords, now OCR work-targets) and `archaic-apparatus-sourcing.json` (odr-com carries the
+archaic-spelling apparatus twin for ~39 books; everything else needs our OCR).
+
+### 12.1 · P4.1 — Acquire + OCR every scan (the unlock)
+- Complete **P0.3** acquisition: all page images + hOCR + text-PDF for the six archive.org items **and**
+  the annas-archive EEBO volumes; sha-pin in `sources-registry.json`.
+- Build/finish `ocr_pipeline.py` per **P0.4**: diplomatic-aware OCR (ſ/æ/œ/u-v/i-j/vv preserved, not
+  ſ→f), over **every** page of **both** scan lines, **scripture and apparatus/marginalia** (region-typed
+  via hOCR + marginalia geometry §4.4).
+- Ground-truth tune + score per **§6.4** (hold out s-dismas / odr-com / Janvier); iterate to a
+  diplomatic accuracy bar; emit `ocr-eval.json` (accuracy per source, per glyph class, per region type).
+- Emit fresh witness layers `reads/our_ocr_archive.json` + `reads/our_ocr_annas.json` (scripture **and**
+  apparatus), replacing the djvu-derived `ocr_consensus` scaffold with real reads.
+- **Gate:** ≥2× archaic depth over 100% of the work (scripture + apparatus); every interval below the
+  floor explicitly listed + explained (target: none).
+
+### 12.2 · P4.2 — Reconstruct apparatus prose into the basis DB (first-class)
+- Extend detection/consensus (§4.2/§4.3) to apparatus prose: parse odr-com book arguments + chapter
+  annotations (the archaic twin; chapter-note blobs split on the verse-marker + `]` lemma delimiters,
+  whole-blob fallback), Janvier modern arguments/annotations/xrefs/refdocs, and the new OCR reads, into
+  apparatus channel coordinates; consensus-call each with **modern + archaic surfaces + confidence**.
+- Grow the apparatus element set from the current 102 placeholders to per-item/per-channel prose
+  granularity; populate `attestation.surface_modern/surface_archaic` + `render.modern_form/archaic_form`
+  in `basis-db.sqlite`; re-run the **P1.7 re-detection gate** over the enlarged set.
+- **Gate:** every apparatus element carries an archaic surface (attested or OCR'd — never
+  modern-substituted); re-detection 100%; counts + apparatus tests updated.
+
+### 12.3 · P4.3 — Fill the 199 (and any remaining) scripture gaps
+- For every archaic scripture element lacking an attested archaic surface (reopened **#5**), render from
+  the P4.1 OCR consensus + confidence and **drop the modern-fallback flag**. A coord whose page is
+  genuinely illegible becomes an explicitly-evidenced `unrecoverable` (with the scan cited) — still not a
+  modern substitute.
+- Re-fold the 55 archaic-only coords (**#4**) into the versification / confidence map at the new depth.
+
+### 12.4 · P4.4 — Re-render both editions from the completed basis DB
+- Re-run `render_modern.py` / `render_archaic.py`: idx 108 modern throughout (intent unchanged); idx 109
+  **archaic everywhere, incl. apparatus, no fallbacks**. idx 109 sha **re-mints** (`08b75de16a84 → …`) —
+  record it. Gates: verify_map(108/109), oracle 76/76, structural parity, CLI+API apply sha-verified,
+  full suite green.
+- **§5.3 acceptance check:** a 108-vs-109 diff now exhibits apparatus spelling/typeset deltas (absent
+  pre-2026-07-06) as well as scripture — the whole-work delta.
+
+### 12.5 · P4.5 — Whole-work deliverables + standalone academic report
+- Emit `source-accounting.json` + the **§7.4 per-source accounting**; the **whole-work source-overlay
+  map** and the **canonical confidence/error map** (§7.2) spanning apparatus; the OCR-eval figures (§6.4).
+- Rebuild the academic brief to stand alone as a guide to the standard set by, and state of, the
+  OriginalDR documents (§7.1) — every number traced to a committed artifact + source sha256.
+
+**Effort / risk.** The largest phase: GBs of image acquisition + hours of OCR + a tuned diplomatic
+pipeline + apparatus reconstruction + basis-DB element growth + re-render + report. Risks & mitigations:
+*diplomatic OCR accuracy on degraded blackletter/roman* → ground-truth tuning (§6.4) + multi-copy
+consensus + honest per-region confidence (never a silent fallback); *basis-DB element-count growth
+ripples through P1.7 + every apparatus test* → stage per sub-phase, keep gates green each step;
+*annas-archive EEBO page↔edition mapping ambiguity* → resolve + sha-pin in the registry before citing.
+Sequence P4.1 → P4.5; **hold commit/push for approval** per §11.
