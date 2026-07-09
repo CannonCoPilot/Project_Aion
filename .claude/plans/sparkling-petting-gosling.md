@@ -10,7 +10,127 @@ textual, and apparatus decision is grounded in — and validated against — the
 
 ---
 
-## 0 · Revision 2026-07-06 — course-correction (READ FIRST)
+## 0′ · Revision 2026-07-08 — Locus-Level QC / Double-Bind Coverage / Exhaustive Best-Raster Re-OCR (READ FIRST — SUPERSEDES §0 & §12)
+
+> **Authoritative detailed plan:** `Project_Aion/.claude/plans/partitioned-watching-dijkstra.md` (approved via
+> ExitPlanMode, 20-decision / 5-round plan-mode dialogue). This block is the in-master summary; dijkstra carries
+> full build order + critical-file grounding. **Supersedes** `partitioned-snacking-feather.md` (the prior 4R mirror)
+> and re-grounds §12's hard path. **HOLD commit/push per §11.**
+
+Sir's course-correction: execution again took the cheap path and drew simplistic conclusions that degrade project
+aims. Three corrections: **(1)** no book may be dropped by a %-chapters-missing heuristic — the only goal is *every
+chapter of every book OCR'd at ≥0.90 identity vs modern*; **(2)** "coverage" = realized quality (localized AND
+parsed at quality), counted per chapter and per apparatus element — physical presence ≠ coverage; **(3)** the jp2
+"no gain" was cause/effect inverted — layout confusion (inline `(n)/(o)` commentary folding between verses) masks
+resolution; layout-understanding and resolution go hand in hand.
+
+**The QC contract (compressed — authoritative even if dijkstra scrolls):**
+- **Locus** = any skeleton coord: scripture chapter | apparatus element (channel-typed) | front/back-matter slot.
+- **E(v)** expected witnesses/locus (warn/flag, not cap): scripture NT=12, OT=6 baseline (→10). Apparatus lower;
+  **min 3** QC'd witnesses to unblock consensus.
+- **Double-bind:** FORWARD = OCR read counts iff localized AND identity-pass (else re-OCR+retry). BACKWARD = locus
+  below E(v) → flag → investigate every source that OUGHT to contain it (holds transcribed sources accountable too).
+- **Coverage = individual-source count per locus** (reverse old "combined-OCR=1 witness"). Transcribed AUTO-PASS
+  identity but must still localize. **Madueke_a NOT independent** (localization aid for Madueke_b). **One witness per
+  physical source, highest-res raster ONLY. `archive-*` pre-existing OCR EXCLUDED** until further notice.
+- **Localization = anchors found AND contiguous span** (no column/marginalia/inline-annotation interleaving).
+- **OCR identity bar (char-level, uniform 0.90, OCR-only, 5-step bootstrap):** modernize→char≥0.90 vs Janvier
+  (Madueke_b fallback); archaicize→char≥0.90 vs s-dismas (odr_com fallback), ſ-folded + separate long-ſ RULE check;
+  PASS iff modern≥0.90 AND (archaic≥0.90 OR no archaic ref). Identity is CHARACTER-level (today's sim() is token-level).
+  **Metric = normalized Levenshtein** `1−editdist/max(len)` post-fold (`char_identity.edit_ratio`, currently dead — activate it; difflib is a skip-prefilter only). **No-archaic-ref → `long_s_rule.rule_pass`**, NOT auto-pass (dijkstra §1.4).
+- **Consensus:** finest MSA preserved (verse/item pileups); ALL gating/scoring/reporting per chapter/element — "no
+  book-level" = no book pass/drop, not coarser assembly. Scripture chapters HARD-BLOCK until every containing source
+  passes; apparatus/marginalia unblock ≥3 witnesses (thin=warn). **Cross-lineage independence floor:** the ≥3 must
+  include **≥1 from OUTSIDE the Madueke/Sabates/Janvier lineage** — that trio counts as **ONE** lineage vote (§4.3).
+- **Audit = NEW AUTHORITY** (`coverage-audit.json`): per-locus×per-source {localized?, modern_id, archaic_id,
+  pass/fail, witness_count, E(v), shortfall_flag}. Supersedes tome-map book-level coverage. Preserve current artifacts
+  as `.pre-QC-framework` baselines (mv-not-rm).
+
+**Current authoritative build order — P0–P7 (REVISED 2026-07-08 PM; SUPERSEDES the prior P0–P5 numbering; full detail in dijkstra Part 2).** The top-level contract is sound but the QC *measurement machinery* was mis-built — so cheap, **paradigm-independent** correctness fixes + doc reconciliation go FIRST, the one architectural decision (Janvier-canonical coordinate-collapse) is FORCED **at** the pilot, and only then is the harness built (so it can't be built in one paradigm and thrown away if the other is chosen):
+- **P0 — Provenance spine + gate-removal verification.** Unify the `master-source-list.json` witness record (single schema + `kind` discriminant), add `sha256` (14 scan witnesses; the 7 non-scan already carry it) + `lineage_group` + `independent` (all 21); keep the per-source ought-to-contain index (`source_index.py` — named backward-E(v) owner). Confirm `guard_no_book_gates.py` green; **delete dead `consensus_spike.py`**; drop the orphaned `sources-registry.json`. *(The 4 book gates are already EXTIRPATED — COVER_FLOOR / NOISE_FRACTION / BOOK_FLOOR / BOOK_ALIAS_FLOOR removed at constant + site; per-verse ATTEST + per-locus char-identity replace them, `guard_no_book_gates.py` is the AST anti-drift enforcement.)*
+- **P1a — Fix measurement primitives** (paradigm-independent, mandatory before any harness): `char_identity` activate `edit_ratio` + wire `long_s_rule.rule_pass` no-ref gate + `floor_modern` + f→s pre-check; `detect_our_ocr` order-aware coverage + `PREC_FLOOR`; `consensus_v2` depth/gap-plurality fixes.
+- **P1b — Doc reconciliation (THIS revision):** metric decision, dual-grain, scoped re-OCR triggers, cross-lineage independence floor, key-space-only + SHORTFALL/NOVEL + novel-span grammar, coverage-audit=derived-view, stale-0.85 delete, error-map banding, asymmetric-pass rule, backward transcribed owner, Palimpsest handoff.
+- **P2 — PILOT** (eebo-vol4 Psalms + S06; **the one human pause**): Vulgate-vs-Masoretic Psalm-numbering pre-check; `pilot-report.json` (unlock >0 chapters @≥0.90; ROC-calibrated `ATTEST_THRESHOLD` + identity bar; **BRAINSTORM approve/defer**; verse/chapter grain; vision-LLM cost); **autonomy safety envelope** (hard budget cap + per-locus escalation ceiling + monotonic-improvement stop + `parked: bar-unreachable` state, *enforced* in `reocr_ladder.py`).
+- **P3 — QC harness** (`qc_audit.py` → `coverage-audit.json`, the derived authority) in the paradigm chosen at P2.
+- **P4 — Exhaustive best-raster layout-aware re-OCR to E(v), worst-first** (`reocr_ladder.py`, autonomous under the envelope); **S02** (Gen–Job) + **S9-OT2** (Psalms–2 Machabees) named first-wave gaps, distinct sources.
+- **P5 — Apparatus first-class, channel-typed**; cross-lineage ≥3-witness unblock; SHORTFALL/NOVEL applied.
+- **P6 — Consensus rebuild** (two-stage MSA, R3) + deliverables: idx108/109 from one basis-db (no modern fallbacks), source-overlay + confidence/error map, per-source accounting, Palimpsest gold register + e2e smoke test, inbound fold-pin.
+- **P7 — Final verification gate.**
+- **Execution: one deliberate pause after P2, fully autonomous to completion thereafter, bounded by the P2 safety envelope.** Details + full critical-file map: dijkstra Parts 2–4.
+
+---
+
+## 0 · Revision 2026-07-07 — Phase 4R course-correction (SUBSUMED by §0′ 2026-07-08 above; retained for evidence trail)
+
+### Progress — 2026-07-07 ~16:00 (batch #10–16 status)
+
+Source reorg COMPLETE; **`sources/dr-sources-manifest.json` (v2) is now the authoritative source catalogue** (supersedes the master-source-list and the point-in-time "Local status" column in the §3 Sources table below). Layout: `sources/scans/S01–S15` (15 scans), `sources/transcriptions/` (5), `sources/downloaded-ocr/` (6 archive.org OCR). Inclusion policy = **maximal inclusion** (nothing superseded); **primary spine = S1** (authority copy, 3-vol layout).
+
+- **#10 manifest superseded→included** ✅ · **#11 spine=S1** ✅
+- **#12 odr_com apparatus scrape** ✅ — `transcriptions/originaldouayrheims-com/apparatus/` (per-book JSON + `_raw/` + `_coverage-report.json`). Site ceiling: 32 books carry apparatus (all 27 NT + psalms/genesis/lamentations/exodus/leviticus); 9 OT scripture-only; 32 OT unhosted stubs (isaie/jeremie/ezechiel/deut/joshua/kings — honest site gap; those OT apparatus come from madueke_b + s_dismas + scan marginalia instead).
+- **#13 OCR path registries** ✅ — `acquisition/ocr_pipeline.py` re-pathed to `sources/scans/`; jp2 `archive:` adapter RETIRED (existing `archive-*` OCR caches kept as-is — the vanished jp2 was higher-res than the low-res S1 PDF, so re-OCR would degrade); everything routes via `pdf:`/`eebo:`. pyright 0/0.
+- **#14 poetic-OT layout-aware OCR (R7)** · **#15 exhaustive locate+apparatus validation (R10)** · **#16 doc/manifest freshness** — PENDING (#16 manifest side done; this note is the plan-doc side).
+
+HOLD commit/push per §11.
+
+
+Whole-Bible consensus **v2** shipped and was verified complete (`consensus-full/`, 76 books, 37,130 verses):
+modern **0.9542** (74/76 gate), archaic **0.8968** (52 scored / 29 gate), conservation **0.8739**. Sir's review
+found execution again undershot the plan's own standard (aims 2–3). Empirical investigation confirmed the gaps
+and **corrected three of my own prior claims**:
+
+- **Architecture is a flat MSA** — every OCR'd scan dir votes co-equally with the 5 transcribed texts; **no
+  OCR-consensus stage** exists. → **R3** two-stage hierarchical assembly.
+- **Apparatus never entered the consensus** (`consensus_v2.run_book` walks `scripture/` coords only) — contra
+  aim 2 / §4.5 / §12.2. → **R5**. *(Terminology: "apparatus" is Sir's umbrella for ALL non-scripture — front/back
+  matter sections AND book/chapter arguments, footnotes, headers, marginalia. All included.)*
+- **Hi-res sources benched**: S02 (1609 OT hi-res) OCR'd 10 pages, S08 (1582 NT hi-res) **zero** — low-res archive
+  scans used instead. The "old/weak" scans were **not** replaced. → **R8**.
+- **Sabates has all 76 books** incl. 3/4-Esdras + Manasses → apocrypha "modern fails" are versification/depth, not
+  a missing reference. → **R11**.
+- **Madueke is modernized** (0 long-s) → cannot extend the archaic reference (I was wrong). No ſ-diplomatic
+  reference exists past Wisdom (s_dismas 0/24; odr_com 7/24). → **R12** rule-based ſ validation.
+- **"Every source is used" was validated against the tome-map** (an OCR-derived universe that can't see un-OCR'd
+  sources) — the wrong denominator. → build a **master source list from disk**; tally usage against it (**R10**,
+  VERY HIGH PRIORITY).
+
+**Resolutions (R1–R14), folded into the Phase-4 sub-phases in §12:**
+- **R1** Typography fold (v→u,j→i,vv→w) is a symmetric *comparison-key* canonicalization for % identity — the
+  stored archaic surface stays verbatim. Counting-as-match, not recasting. *(Document only.)*
+- **R2** Archaic layer = **archaic-sub-consensus (ſ-bearing witnesses) then modern-clean** (letter-correct from the
+  modern consensus while preserving ſ/æ/œ and positional u-v/i-j). Replaces the single `max(long-s)` pick.
+- **R3** **Two-stage MSA.** Stage 1: consolidate ALL original-printing scans → one weighted **scan-consensus**
+  witness + per-scan variant catalog + agreement score. Stage 2: MSA scan-consensus vs transcribed witnesses
+  (sabates=modern, s_dismas=archaic, madueke, odr_com) → two-layer consensus. Deliberate scan weight, not N
+  incidental equal votes. (SOURCE = a physical printing/transcription; WITNESS = an aligned stream in a vote.)
+- **R4** Robust position-aware `modernize()` table (vv→w, u/v, i/j, capitals, residual archaisms), derived from
+  aligned sabates↔archaic pairs, applied surgically only to fallback tokens; validated vs Sabates.
+- **R5/R6** ALL apparatus (front/back matter + arguments + notes + headers + marginalia) get first-class
+  MSA/two-layer/conservation/%id, driven by the apparatus-cross-map (1333/1334 attested) + odr_com scrape ingest
+  + Sabates modern baseline + region-typed OCR marginalia.
+- **R7** Layout-aware re-OCR of columnar/poetic + unusual-layout pages (column detect, verse-line, marginal split).
+- **R8** OCR hi-res S02 + S08 fully (optimize decode) → primary witnesses; low-res scans remain added depth.
+- **R9** File reorg (archive-not-delete) grouped by source; EEBO = Early English Books Online (ProQuest, S10–S15);
+  the two `Original-DR*.pdf` = **Madueke** source docs (Merged→_b, bare→_a); **exclude Haydock AND Challoner
+  entirely**; manifest rewrite keyed to the master source list.
+- **R10** Re-validate witness usage vs the **master source list**; raise locate/attest recall so every covering
+  witness contributes at every coord it attests; emit a per-coord witness-usage map. **VERY HIGH PRIORITY.**
+- **R11** Diagnose apocrypha (3/4-Esdras) versification vs Sabates + add depth → modern pass.
+- **R12** Archaic for the 24: score vs odr_com where present (ſ-folded) + validate ſ-placement by the deterministic
+  long-s **rule**; report the rest as "produced · ſ rule-validated · spelling-reference-capped." No fabrication.
+- **R13** Apparatus pass bar: %id vs Sabates + conservation, per-block threshold, anchored to the reference-copy
+  (S1 three-volume set) matter placement.
+- **R14** Reference-copy authority in `build_tome_map`; **source-overlay visualization** in three tiers —
+  (1) source×book/section matrix now, (2) **genome-browser-like report figure** (each source a track across the
+  whole work), (3) *follow-on* interactive browser-track group for user investigation (Sir's KJV-1611 model).
+
+**Execution order (Sir's):** First (design + master list + reorg + matrix) → **B** layout-aware re-OCR + hi-res →
+**A** apparatus into the basis → **C/D** depth completeness + full re-score. Detailed in the rewritten §12 below.
+Working plan mirror: `Project_Aion/.claude/plans/partitioned-snacking-feather.md`. **Hold commit/push per §11.**
+
+---
+
+## 0-a · Revision 2026-07-06 — course-correction (prior; still in force)
 
 Sir's directive tightened the aims and reversed three premature closures. The plan's *design* (below)
 was right; **execution took the cheap path and fell short of it.** What actually shipped (P0→P3,
@@ -145,10 +265,10 @@ archaic}. "Independent" marks lineage-independence used in confidence weighting 
 | **Madueke_B** | gitlab `simple-gui/xml2gui-bible` | 2 PDFs (+ merged/small txt) | modern | modern | full + apparatus | Scripture + apparatus (supersedes janvier PDFs) | ✅ present — **re-pull latest** (updated ~2 mo ago) |
 | **Sabates_A** | github `janvier-s/original-douay-rheims` | structured JSON (`bible`, `annotations`, `reference/{ot,nt}`, `usfm`) | modern | modern | full + apparatus + appendix | Apparatus (notes/xrefs/annotations) + **26 reference docs** (front/back matter) + apocryphal appendix | ✅ present (incl. `reference/ot`=14, `reference/nt`=12) |
 | **s-dismas** | github `s-dismas/Pdf` | PDFs (frontmatter = scanned images) | **archaic** | **archaic** | NT complete + OT Gen→Wisdom + frontmatter + epistles-argument | Archaic diplomatic backbone (type + spelling) | ✅ 55 PDFs — **re-pull** to confirm 57-book set |
-| **originaldouayrheims.com** | `originaldouayrheims.com` | website HTML | **archaic** | modern | entire NT + Gen, Exod, Psalms, Ruth, Wisdom, Lam, Baruch, Daniel, Jonas, Sophonias, I/II Machabees | Archaic-spelling scripture (independent of Madueke lineage) | ⚠️ **scrape required** (only 4 probe HTML present) |
+| **originaldouayrheims.com** | `originaldouayrheims.com` | website HTML | **archaic** | modern | entire NT + Gen, Exod, Psalms, Ruth, Wisdom, Lam, Baruch, Daniel, Jonas, Sophonias, I/II Machabees | Archaic-spelling scripture (independent of Madueke lineage) | ✅ **apparatus scraped 2026-07-07** (`transcriptions/originaldouayrheims-com/apparatus/`, 32 apparatus books; see manifest) |
 | **archive.org — 3 main** | `1609 OT (1/3)`, `1610 OT (2/3)`, `1582 NT (3/3)` | scans: page images, djvu.txt, hOCR, text-PDF, epub | **archaic** | **archaic** | full tome | **LAYOUT AUTHORITY**: contents, organization, front/back matter, marginalia; fresh-OCR raw data | ⚠️ djvu.txt ✅ (`ot1-1609`, `ot2-1610`, `nt-1582`); **page images + hOCR + text-PDF required** |
 | **archive.org — 3 suppl.** | `newtestamentofie00engl`, `holiebiblefaithf00mart_0`, `holiebiblefaithf00mart` | scans + OCR layers | archaic | archaic | NT / OT-1 / OT-2 | Independent print scans for **majority-consensus OCR** + scan verification | ⚠️ djvu.txt ✅ (`newtestament`, `holiebible-ot1`, `holiebible-ot2`); **images + hOCR required** |
-| **Original scan PDFs** | Anna's Archive EEBO (imports/) | image-scan PDFs vol 1–5 + NT | archaic | archaic | full tome | High-res page images for **apparatus/layout placement grounding** + fresh OCR + LLM visual reading | ✅ present (`imports/Scripture/Bibles/DouayRheims_DR/Original/`) |
+| **Original scan PDFs** | Anna's Archive EEBO (imports/) | image-scan PDFs vol 1–5 + NT | archaic | archaic | full tome | High-res page images for **apparatus/layout placement grounding** + fresh OCR + LLM visual reading | ✅ reorganized → `imports/Scripture/Bibles/DouayRheims_DR/sources/scans/S01–S15/` (see manifest v2) |
 | **our fresh OCR** | derived (tesseract 5.5.2 + pdftoppm) | text from rendered page images | archaic | archaic | on demand | Independent OCR witness feeding majority-consensus | ⚙️ tooling present |
 
 **Provenance lineage (for independence weighting):** Madueke_A and Madueke_B are the **same edition,
@@ -268,14 +388,24 @@ statistics.
 - **Consensus reading:** the agreed content, stored **neutrally** (a normalized lemma) with **both**
   the modern and archaic surface forms attached (from the modern-spelling and archaic-spelling
   witnesses respectively), enabling deterministic rendering later.
-- **Support depth & agreement:** per element, # attesting sources and post-normalization agreement
-  fraction; disagreements retained as a **variant pileup** (per-source readings), never silently
-  dropped.
+- **Support depth & agreement (separated — CORRECTED rev 2026-07-08 PM):** store `n_present` (witnesses
+  with a real token at this element) and `n_all` (pool) explicitly; compute **`agreement =
+  topn/n_present`** (fraction of *present* witnesses agreeing) and **`depth_fraction = n_present/E(v)`**
+  as **orthogonal** first-class outputs — never fold depth into entropy normalization. Exclude gap `"-"`
+  from the plurality vote (a silent *gap-wins-plurality* bug: 5 absent + 4 agreeing → gap wins, the word
+  is dropped). Disagreements retained as a **variant pileup**, never silently dropped.
 - **Independence-weighted confidence (§ non-circular):** weight witnesses by *lineage independence* —
-  Madueke_A/B count as one lineage; Sabates is Madueke-derived; s-dismas, odr-com, each archive.org
-  scan set, and our OCR are independent. Confidence tier = f(independent-witness depth, agreement).
+  **Janvier/Sabates_A + Madueke_A/B together count as ONE lineage vote** (Sabates is Madueke-derived,
+  Janvier is the modern-content ref); s-dismas, odr-com, each archive.org scan set, and our OCR are each
+  independent. **Cross-lineage independence floor:** the ≥3-witness apparatus unblock (§4.5, dijkstra
+  §1.5) must include **≥1 witness outside that modern lineage**, closing the correlated-source loophole.
   The consensus never *defines* the truth it is then measured against; per-source readings are always
   reported alongside the consensus.
+- **Confidence-tier banding (error map input — NEW rev 2026-07-08 PM):** the tier is a function of the
+  **two orthogonal axes** `(depth_fraction, agreement_among_present)` — HIGH=green, MED=yellow,
+  LOW=orange, SINGLE=red for the *agreement/depth* combination — with the **`shortfall_flag`** carried
+  **separately** as a hatch overlay for depth-inadequacy. A locus can be HIGH-tier but shortfall-hatched
+  (few witnesses that agree) or LOW-tier but depth-adequate (many that disagree). §7.2 renders this.
 
 Output: `consensus/*.json` — per-element consensus + pileup + confidence.
 
@@ -326,6 +456,17 @@ contributor heatmaps (§5).
 > sourced the prose at render time from modern Janvier alone; Phase 4 (§12) reconstructs the apparatus
 > prose into the basis DB so idx 109 can render it archaically.
 
+> **SHORTFALL / NOVEL disposition (NEW rev 2026-07-08 PM — the outer-join two-cell rule; dijkstra §1.5).**
+> Janvier's ODR tree defines the coordinate **KEY SPACE only** (locus IDs, marker types, expected-element
+> set); **content authority is consensus, never Janvier by default** — when Madueke_b and Janvier disagree
+> on an element's presence/text, both are variant reads in the pileup. Two cells never drop: **(a)**
+> Janvier coordinate present + **no print attestation** = `SHORTFALL` → include at low confidence, flag as
+> OCR work-target (the backward E(v) gate fires); **(b)** print element present (OCR marker found) + **no
+> Janvier coordinate** = `NOVEL` → dedicated novel channel, surfaced in the overlay map, ID grammar
+> `apparatus/novel/{book}/{ch}/{page}/{reading_order_idx}`, promoted to `apparatus/confirmed_novel/{…}`
+> (`min-witnesses=1`) only after ≥2 independent OCR sources + reviewer confirmation. Whether confirmed-novel
+> spans render into idx108/109 vs overlay-only (+ their insertion/ordering rule) is settled at **P5**.
+
 ### 4.6 · P1.6 — Basis database emission
 
 Emit the **core basis database** — the single source of truth for both renderings. Per element:
@@ -336,19 +477,28 @@ element {
   type:          scripture-verse | apparatus-item | structural-node
   canonical_ref: book/chapter/verse | apparatus slot
   attestation:   [ {source, present, surface_modern, surface_archaic, locus, method,
-                    local_confidence, evidence_ptr}, ... ]     # every witness's read
+                    local_confidence, evidence_ptr,
+                    modern_id, archaic_id, localized, pass}, ... ]  # +QC fields (rev 2026-07-08 PM)
   consensus:     { lemma_neutral, agreement, support_depth, independent_depth,
-                   confidence_tier, variant_pileup:[...] }
+                   confidence_tier, variant_pileup:[...],
+                   witness_count, E_v, shortfall_flag }         # +double-bind aggregates (rev 2026-07-08 PM)
   placement:     { tome_position, scan_page, crop, identifying_text, ocr_offset, sha256 }
   render:        { modern_form, archaic_form }                 # resolved surfaces for §6
 }
 ```
+**Basis-db is the SINGLE materialized authority (rev 2026-07-08 PM).** `coverage-audit.json` is a **derived
+view/export** of it, **not** a second authority; join key = **locus = `element.id`**. The per-source×per-locus
+scores (`modern_id, archaic_id, localized, pass`) live on the **attestation** row; the per-locus aggregates
+(`witness_count, E_v, shortfall_flag`) on the **consensus** row. **Build order:** `qc_audit.py` (P3) populates
+`coverage-audit.json`; `build_basis_db.py` (P6) reads **only PASS attestations** keyed by `element.id` and writes
+the char-identity fields into the attestation table.
 
 Output: committed **`basis-db.sqlite`** — a queryable database (decision 2026-07-04), tables:
 `elements(id, type, canonical_ref, …)` · `attestation(element_id, source, present, surface_modern,
-surface_archaic, locus, method, confidence, evidence)` · `consensus(element_id, lemma, agreement,
-depth, indep_depth, tier, variant_pileup)` · `placement(element_id, tome_position, page, crop,
-identifying_text, ocr_offset, sha256)`. The cross-source joins the confidence heatmaps/ideograms need
+surface_archaic, locus, method, confidence, evidence, modern_id, archaic_id, localized, pass)` ·
+`consensus(element_id, lemma, agreement, depth, indep_depth, tier, variant_pileup, witness_count, E_v,
+shortfall_flag)` · `placement(element_id, tome_position, page, crop, identifying_text, ocr_offset,
+sha256)`. The cross-source joins the confidence heatmaps/ideograms need
 fall out of SQL. Also emit a committed JSON snapshot (`basis-db.json`) for diff-review + CI-safe
 artifact tests.
 
@@ -402,6 +552,17 @@ spelling/typeset delta — across the **whole** work (scripture, apparatus, stru
 Because the apparatus renders modern in 108 and archaic in 109, that diff includes the apparatus
 spelling/typeset deltas; a 108-vs-109 diff that shows *no* apparatus change is a bug (the pre-2026-07-06
 state).
+
+**Asymmetric-pass deliverable rule (NEW rev 2026-07-08 PM — resolves the completeness-critic gap).** The
+PASS predicate `modern≥0.90 AND (archaic≥0.90 OR no archaic ref)` makes **modern-PASS / archaic-FAIL** the
+most common divergent cell. Such a locus **still ships in BOTH works** — idx109 renders from its **best
+attested *archaic* surface** (diplomatic OCR of the scans), **banded low-confidence** in the error map,
+**never a modern substitute** (confidence-not-fallback, §10.8). This preserves **structural parity** (the
+element is present in both; they differ only in surface + confidence banding, never presence) so
+`verify_map(109)==[]` and the 76/76 oracle hold; the archaic FAIL marks the locus an **OCR work-target**
+(backward gate), not a hole. The converse (archaic-PASS / modern-FAIL) renders idx108 from its best
+attested-modern surface under the same rule. A fixture locus exercising modern-PASS/archaic-FAIL must pass
+through both renderers (§9).
 
 ---
 
@@ -483,6 +644,12 @@ Built to read like a genome browser (the intended audience is fluent in them):
   book-by-book and item-by-item, visualized **and** tabulated. This is the standalone "map of where the
   reconstruction is strong vs thin" deliverable (§1.2, aim 4); regions of lower confidence are surfaced
   as a feature, with their driving cause (few witnesses / disagreement / OCR-only).
+  **Banding formula (rev 2026-07-08 PM, per §4.3):** colour intensity = `confidence_tier` derived from the
+  **two orthogonal axes** `(depth_fraction, agreement_among_present)` — HIGH=green / MED=yellow /
+  LOW=orange / SINGLE=red — with the **`shortfall_flag` as a separate hatch overlay** for depth-inadequacy
+  (so a HIGH-tier-but-shortfall locus reads distinctly from a LOW-tier depth-adequate one). Asymmetric-pass
+  loci (§5, modern-PASS/archaic-FAIL) render at their low-confidence archaic band, flagged as OCR
+  work-targets — never dropped or modern-substituted.
 - **Variant pileup panels.** At disagreement loci, the per-source surface readings side by side (the
   SNP-pileup analog).
 - **Apparatus placement map.** Tome diagram (front matter → testament → back matter) with each slot's
@@ -564,6 +731,26 @@ images — the belt-and-suspenders visual proof).
   re-rendered archaic **everywhere incl. apparatus** (sha re-mint recorded); a 108-vs-109 diff shows
   apparatus deltas; the whole-work source-overlay map, canonical confidence/error map, and full
   per-source accounting (`source-accounting.json`) emitted; academic report stands alone.
+- **Provenance audit (NEW rev 2026-07-08 PM):** every source cited in `coverage-audit.json` resolves to a
+  `master-source-list.json` witness carrying non-null `sha256` + `lineage_group` + `independent` — closes
+  the audit trail (all 14 scan witnesses now sha-pinned; the witness record is schema-unified across kinds).
+- **Asymmetric-pass (NEW rev 2026-07-08 PM):** a fixture locus that passes modern but fails archaic renders
+  through **both** idx108 and idx109 (idx109 low-confidence archaic surface, **no modern substitute**;
+  `verify_map(109)==[]` + structural parity preserved) — §5.
+- **Reciprocal Palimpsest handoff (NEW rev 2026-07-08 PM — the loop that makes OriginalDR gold data).** Path
+  already in place: idx108/109 registered in PROVENANCE (`gen_sources_manifest.py`) → `sources.manifest.json`
+  → `palimpsest.gold.registry_entries()` → `POST /api/gold/{idx}/apply` (or `gold apply {idx}`) → workspace
+  project → `POST /api/alignment/run`. The comparison engine consumes the reference `.txt` addressed by
+  `import_source` (verified by `reference_sha256`; `work-10x.map.json` governs masking). **`basis-db.sqlite`
+  confidence does NOT flow into alignment — it is a report deliverable, not an alignment input, by design.**
+  E2e smoke test: apply idx108 via `_apply_gold_map` on the fixture, confirm workspace-resident, run a
+  word-overlap alignment vs a second ingested project (e.g. idx100 Challoner); assert the ingest→apply→align
+  path completes (no alignment-quality assertion).
+- **Inbound coupling pin (NEW rev 2026-07-08 PM — the fragile half of the loop).** OriginalDR's char-identity
+  gate imports Palimpsest's `spelling_glyph_model.fold_diplomatic` (as `G`), and the reconstruction lives
+  *inside* `core/tests/fixtures/gold/mask_engine/`. Add an **inbound contract test + version-pin** on
+  `fold_diplomatic` (and the mask-engine fixture schema) so a Palimpsest-side fold change cannot silently
+  re-score every gate and invalidate the committed `coverage-audit`.
 
 ---
 
@@ -620,6 +807,12 @@ for explicit approval**.
 
 ## 12 · Phase 4 — The hard path (full custom OCR · apparatus first-class · whole-work completeness)
 
+> **⚠ SUPERSEDED by §0′ (Revision 2026-07-08).** The hard-path intent below stands, but its execution is now
+> re-grounded by the locus-level QC contract: coverage = realized-quality per locus, the double-bind (forward
+> identity gate + backward E(v) flagging), char-level identity, contiguity localization, and removal of all
+> book-level gates. Follow §0′ + `partitioned-watching-dijkstra.md` for the current build order; read below for
+> the original hard-path rationale (P0.4 custom OCR, apparatus first-class, no-fallback archaic).
+
 **Why this phase exists.** §0 documented that P0→P3 shipped the design's *outputs* but not its
 *standard*: djvu-derived scripture-only OCR, apparatus prose stored nowhere, 199 archaic scripture
 gaps, a modern-shared apparatus. Phase 4 executes the plan **as written** — the custom-OCR hard path
@@ -633,50 +826,55 @@ nor reader-invisible — it is part of *completing* idx 109. Sub-phases are orde
 archaic-only coords, now OCR work-targets) and `archaic-apparatus-sourcing.json` (odr-com carries the
 archaic-spelling apparatus twin for ~39 books; everything else needs our OCR).
 
-### 12.1 · P4.1 — Acquire + OCR every scan (the unlock)
-- Complete **P0.3** acquisition: all page images + hOCR + text-PDF for the six archive.org items **and**
-  the annas-archive EEBO volumes; sha-pin in `sources-registry.json`.
-- Build/finish `ocr_pipeline.py` per **P0.4**: diplomatic-aware OCR (ſ/æ/œ/u-v/i-j/vv preserved, not
-  ſ→f), over **every** page of **both** scan lines, **scripture and apparatus/marginalia** (region-typed
-  via hOCR + marginalia geometry §4.4).
-- Ground-truth tune + score per **§6.4** (hold out s-dismas / odr-com / Janvier); iterate to a
-  diplomatic accuracy bar; emit `ocr-eval.json` (accuracy per source, per glyph class, per region type).
-- Emit fresh witness layers `reads/our_ocr_archive.json` + `reads/our_ocr_annas.json` (scripture **and**
-  apparatus), replacing the djvu-derived `ocr_consensus` scaffold with real reads.
-- **Gate:** ≥2× archaic depth over 100% of the work (scripture + apparatus); every interval below the
-  floor explicitly listed + explained (target: none).
+> **Sub-phases rewritten 2026-07-07 (Revision 4R).** The consensus **is** built (v2, `consensus-full/`); the
+> remaining work is the 4R course-correction. Order = Sir's: First → B → A → C/D → deliverables. R-numbers refer
+> to §0 (2026-07-07). Reuse `consensus_v2.py` primitives (`conservation`, `align_to_anchor`, `ref_chapter_tokens`,
+> `fold_tok`/`archaic_tok`); files at `core/.scratch/originaldr-project/ocr-spike/` +
+> `.../originaldr_reconstruction/`. pyright 0/0 each step; anchors (genesis, matthew) re-pass both gates each phase.
 
-### 12.2 · P4.2 — Reconstruct apparatus prose into the basis DB (first-class)
-- Extend detection/consensus (§4.2/§4.3) to apparatus prose: parse odr-com book arguments + chapter
-  annotations (the archaic twin; chapter-note blobs split on the verse-marker + `]` lemma delimiters,
-  whole-blob fallback), Janvier modern arguments/annotations/xrefs/refdocs, and the new OCR reads, into
-  apparatus channel coordinates; consensus-call each with **modern + archaic surfaces + confidence**.
-- Grow the apparatus element set from the current 102 placeholders to per-item/per-channel prose
-  granularity; populate `attestation.surface_modern/surface_archaic` + `render.modern_form/archaic_form`
-  in `basis-db.sqlite`; re-run the **P1.7 re-detection gate** over the enlarged set.
-- **Gate:** every apparatus element carries an archaic surface (attested or OCR'd — never
-  modern-substituted); re-detection 100%; counts + apparatus tests updated.
+### 12.1 · P4R.0 — First: master source list · design specs · reorg · matrix
+- Build the **canonical MASTER SOURCE LIST** from disk (every scan printing + every transcription + files,
+  sha256-pinned; excludes Haydock/Challoner; the two `Original-DR*.pdf` → Madueke a/b). This is the authoritative
+  denominator for every usage tally (**R10** reconciliation).
+- Lock concrete specs: two-stage MSA (**R3**), archaic-clean projection (**R2**), `modernize` rule table (**R4**),
+  apparatus-consensus incl. front/back matter (**R5/R6/R13**), measurement approach (**R11/R12**).
+- **File reorg + manifest rewrite** (**R9**) — archive-not-delete, grouped by source, keyed to the master list.
+- Emit the **source-overlay leverage matrix** (source × book/section; **R14iii-1**) for immediate visibility.
 
-### 12.3 · P4.3 — Fill the 199 (and any remaining) scripture gaps
-- For every archaic scripture element lacking an attested archaic surface (reopened **#5**), render from
-  the P4.1 OCR consensus + confidence and **drop the modern-fallback flag**. A coord whose page is
-  genuinely illegible becomes an explicitly-evidenced `unrecoverable` (with the scan cited) — still not a
-  modern substitute.
-- Re-fold the 55 archaic-only coords (**#4**) into the versification / confidence map at the new depth.
+### 12.2 · P4R.B — layout-aware re-OCR + hi-res (the unlock)
+- Visual-audit columnar/poetic (Psalms/Proverbs/Job/Canticle/Ecclesiastes) + any unusual-layout pages (tables,
+  genealogies, title pages, marginal-heavy); build **layout-aware segmentation** (column detect, verse-line
+  handling, marginal separation) + region-typing tune (**R7**).
+- **OCR hi-res S02 + S08 fully** (optimize decode) → primary witnesses; OCR any un-OCR'd sources (holiebible-ot2,
+  missed pages); re-OCR affected pages across **all** scan lines (**R8**).
+- Ground-truth score per **§6.4** (hold out transcriptions); emit `ocr-eval.json`.
 
-### 12.4 · P4.4 — Re-render both editions from the completed basis DB
-- Re-run `render_modern.py` / `render_archaic.py`: idx 108 modern throughout (intent unchanged); idx 109
-  **archaic everywhere, incl. apparatus, no fallbacks**. idx 109 sha **re-mints** (`08b75de16a84 → …`) —
-  record it. Gates: verify_map(108/109), oracle 76/76, structural parity, CLI+API apply sha-verified,
-  full suite green.
-- **§5.3 acceptance check:** a 108-vs-109 diff now exhibits apparatus spelling/typeset deltas (absent
-  pre-2026-07-06) as well as scripture — the whole-work delta.
+### 12.3 · P4R.A — apparatus into the basis (first-class, ALL apparatus)
+- Ingest odr_com apparatus from the raw scrape (not in `odr_com.json`); wire Sabates modern apparatus as %id
+  baseline; consume region-typed OCR marginalia from B; drive alignment with the apparatus-cross-map (**R5/R6**).
+- Extend `consensus_v2` to **all apparatus channels** — front/back-matter sections **and** book/chapter arguments,
+  footnotes, headers, xrefs — with two-layer + conservation + %id per apparatus block, within each
+  book/chapter/section/matter-component. Reference-copy (S1 3-vol) Tier-2 placement in `build_tome_map` (**R13/R14ii**).
+- **Gate:** every apparatus carries modern + archaic surfaces (attested/OCR'd, never modern-substituted);
+  per-block agreement threshold met or explicitly evidenced.
 
-### 12.5 · P4.5 — Whole-work deliverables + standalone academic report
-- Emit `source-accounting.json` + the **§7.4 per-source accounting**; the **whole-work source-overlay
-  map** and the **canonical confidence/error map** (§7.2) spanning apparatus; the OCR-eval figures (§6.4).
-- Rebuild the academic brief to stand alone as a guide to the standard set by, and state of, the
-  OriginalDR documents (§7.1) — every number traced to a committed artifact + source sha256.
+### 12.4 · P4R.C/D — depth completeness + full re-score
+- Implement the consolidated **scan-consensus** (Stage 1) + weighted **cross-consensus** (Stage 2) (**R3**).
+- Re-validate usage vs the **master source list**; raise locate/attest recall so every covering witness contributes
+  at every coord it attests; emit the **per-coord witness-usage map** (**R10**, very high priority).
+- Diagnose+fix apocrypha modern (3/4-Esdras versification vs Sabates + depth, **R11**); apply archaic measurement
+  for the 24 (odr_com ſ-folded + long-s rule validation, **R12**).
+- **Re-run whole-Bible** (scripture + apparatus); re-score all gates → modern ≥0.90 (target 76/76),
+  archaic **≥0.90** where measurable + ſ-rule-conformance elsewhere (per §0′; the stale 0.85 was a
+  pre-QC-framework relic), apparatus per-block bar.
+
+### 12.5 · P4R deliverables — visualization + accounting + re-render + report
+- Emit the **source-overlay matrix** + the **genome-browser-like report figure** (each source a track across the
+  whole work; **R14iii-2**) + `source-accounting.json` (§7.4) + the confidence/error map (§7.2) spanning apparatus.
+- Re-render both editions from the completed basis (idx 108 modern; idx 109 archaic everywhere incl. apparatus, no
+  fallbacks); record the re-minted idx-109 sha; §5.3 whole-work-delta acceptance check.
+- Rebuild the standalone academic brief (§7.1); every number traced to a committed artifact + source sha256.
+- *Follow-on (not this revision):* interactive browser-track group for user investigation (**R14iii-3**).
 
 **Effort / risk.** The largest phase: GBs of image acquisition + hours of OCR + a tuned diplomatic
 pipeline + apparatus reconstruction + basis-DB element growth + re-render + report. Risks & mitigations:
