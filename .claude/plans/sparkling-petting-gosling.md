@@ -34,9 +34,12 @@ resolution; layout-understanding and resolution go hand in hand.
   identity but must still localize. **Madueke_a NOT independent** (localization aid for Madueke_b). **One witness per
   physical source, highest-res raster ONLY. `archive-*` pre-existing OCR EXCLUDED** until further notice.
 - **Localization = anchors found AND contiguous span** (no column/marginalia/inline-annotation interleaving).
-- **OCR identity bar (char-level, uniform 0.90, OCR-only, 5-step bootstrap):** modernize→char≥0.90 vs Janvier
-  (Madueke_b fallback); archaicize→char≥0.90 vs s-dismas (odr_com fallback), ſ-folded + separate long-ſ RULE check;
-  PASS iff modern≥0.90 AND (archaic≥0.90 OR no archaic ref). Identity is CHARACTER-level (today's sim() is token-level).
+- **Identity bar (char-level, ≥0.90, verse/element grain — REVISED 2026-07-10: ARCHAIC-PREEMINENT):** two backfilled
+  references — **archaic = s-dismas ⊕ odr_com** backfill; **modern = janvier(sabates_a) ⊕ madueke_b** backfill. The
+  **archaic gate GOVERNS wherever an archaic ref exists** (PASS iff archaic≥0.90, ſ-folded + separate long-ſ RULE check;
+  `modern_id` recorded as a signal, NOT a gate — a faithful 1582 OCR must not fail on modern-edition divergence);
+  **modern governs ONLY where no archaic ref exists** (PASS iff modern≥0.90). Scored per **verse/element**, not chapter
+  (partial coverage handled where each ref exists). Identity is CHARACTER-level (today's sim() is token-level).
   **Metric = normalized Levenshtein** `1−editdist/max(len)` post-fold (`char_identity.edit_ratio`, currently dead — activate it; difflib is a skip-prefilter only). **No-archaic-ref → `long_s_rule.rule_pass`**, NOT auto-pass (dijkstra §1.4).
 - **Consensus:** finest MSA preserved (verse/item pileups); ALL gating/scoring/reporting per chapter/element — "no
   book-level" = no book pass/drop, not coarser assembly. Scripture chapters HARD-BLOCK until every containing source
@@ -50,14 +53,14 @@ resolution; layout-understanding and resolution go hand in hand.
 - **P0 — Provenance spine + gate-removal verification.** Unify the `master-source-list.json` witness record (single schema + `kind` discriminant), add `sha256` (14 scan witnesses; the 7 non-scan already carry it) + `lineage_group` + `independent` (all 21); keep the per-source ought-to-contain index (`source_index.py` — named backward-E(v) owner). Confirm `guard_no_book_gates.py` green; **delete dead `consensus_spike.py`**; drop the orphaned `sources-registry.json`. *(The 4 book gates are already EXTIRPATED — COVER_FLOOR / NOISE_FRACTION / BOOK_FLOOR / BOOK_ALIAS_FLOOR removed at constant + site; per-verse ATTEST + per-locus char-identity replace them, `guard_no_book_gates.py` is the AST anti-drift enforcement.)*
 - **P1a — Fix measurement primitives** (paradigm-independent, mandatory before any harness): `char_identity` activate `edit_ratio` + wire `long_s_rule.rule_pass` no-ref gate + `floor_modern` + f→s pre-check; `detect_our_ocr` order-aware coverage + `PREC_FLOOR`; `consensus_v2` depth/gap-plurality fixes.
 - **P1b — Doc reconciliation (THIS revision):** metric decision, dual-grain, scoped re-OCR triggers, cross-lineage independence floor, key-space-only + SHORTFALL/NOVEL + novel-span grammar, coverage-audit=derived-view, stale-0.85 delete, error-map banding, asymmetric-pass rule, backward transcribed owner, Palimpsest handoff.
-- **P2 — PILOT** (eebo-vol4 Psalms + S06; **the one human pause**): Vulgate-vs-Masoretic Psalm-numbering pre-check; `pilot-report.json` (unlock >0 chapters @≥0.90; ROC-calibrated `ATTEST_THRESHOLD` + identity bar; **BRAINSTORM approve/defer**; verse/chapter grain; vision-LLM cost); **autonomy safety envelope** (hard budget cap + per-locus escalation ceiling + monotonic-improvement stop + `parked: bar-unreachable` state, *enforced* in `reocr_ladder.py`).
+- **P2 — PILOT** (eebo-vol4 Psalms + S06; **the one human pause**): Vulgate-vs-Masoretic Psalm-numbering pre-check; `pilot-report.json` (unlock >0 chapters @≥0.90; ROC-calibrated `ATTEST_THRESHOLD` + identity bar; **BRAINSTORM approve/defer**; verse/chapter grain; vision-LLM cost); **autonomy convergence-alerting envelope** (REVISED 2026-07-10, no-silent-degradation invariant): ladder-exhaustion → `needs-approach-redesign` (open, blocks ship); plateau-within-rung → escalate to next rung; trial-run budget → **halt+alert** for exploratory/calibration runs only; **NO `parked: bar-unreachable` acceptance state** — a fired safeguard alerts Sir+Jarvis to redesign the approach, never accepts a below-threshold locus. *Enforced* in `reocr_ladder.py`.
 - **P3 — QC harness** (`qc_audit.py` → `coverage-audit.json`, the derived authority) in the paradigm chosen at P2.
 - **OCR-improvement protocol (P3/P4/P5) — MANDATORY:** BEFORE any re-OCR, layout, transcription, or post-correction work, INVOKE the `AI_OCR` skill (SOTA method map onto this ladder). Rung-0 visual gate is mandatory (never redesign a method from a score alone); layout errors → Surya / YOLOv11-OBB / XY-Cut++; glyph errors → Kraken v5 + CATMuS-Print (preserves long-ſ); vision-LLM → CHURRO / olmOCR-2 local (MLX), Gemini 2.5 Pro cloud reserve (NOT GPT-4o — 59% over-historicization); judge on DUAL-TRACK CER (content NFKC-normalized vs surface raw; our ≥0.90 is a surface bar); multi-witness voting before any LLM pass. Skill citations are research-surfaced — verify before building on them.
 - **P4 — Exhaustive best-raster layout-aware re-OCR to E(v), worst-first** (`reocr_ladder.py`, autonomous under the envelope); **S02** (Gen–Job) + **S9-OT2** (Psalms–2 Machabees) named first-wave gaps, distinct sources.
 - **P5 — Apparatus first-class, channel-typed**; cross-lineage ≥3-witness unblock; SHORTFALL/NOVEL applied.
 - **P6 — Consensus rebuild** (two-stage MSA, R3) + deliverables: idx108/109 from one basis-db (no modern fallbacks), source-overlay + confidence/error map, per-source accounting, Palimpsest gold register + e2e smoke test, inbound fold-pin.
 - **P7 — Final verification gate.**
-- **Execution: one deliberate pause after P2, fully autonomous to completion thereafter, bounded by the P2 safety envelope.** Details + full critical-file map: dijkstra Parts 2–4.
+- **Execution: one deliberate pause after P2, fully autonomous to completion thereafter, bounded by the P2 convergence-alerting envelope** (a fired safeguard halts for approach-redesign; never accepts a below-threshold locus — see the no-silent-degradation invariant, dijkstra Context). Details + full critical-file map: dijkstra Parts 2–4.
 
 ---
 
@@ -846,6 +849,16 @@ archaic-spelling apparatus twin for ~39 books; everything else needs our OCR).
 - Visual-audit columnar/poetic (Psalms/Proverbs/Job/Canticle/Ecclesiastes) + any unusual-layout pages (tables,
   genealogies, title pages, marginal-heavy); build **layout-aware segmentation** (column detect, verse-line
   handling, marginal separation) + region-typing tune (**R7**).
+- **Drop-cap-glyph stream-ordering defect (empirical, pilot 2026-07-11) — the concrete P4R.B unlock case.**
+  pdftotext linearizes the decorated initial *after* its own verse-1 text, so the flat-text block-cleaner's
+  "keep from the drop-cap onward" rule discards the pre-drop-cap scripture. **Genesis 8** collapses to a 1-verse
+  blob ("ANoe opening the windowe…"; verses 1–6 "And God remembred Noe…" lost). The **same mechanism** regresses
+  ~10 non-pilot OT books' verse counts (judges, kings, tobias, judith, esther…) vs. the old detector. Unsolvable
+  from the flat text layer (argument vs. scripture both prose; decorated-initial position inconsistent) → needs
+  layout-aware re-OCR with explicit **decorated-initial (drop-cap) region handling**. Distinct from the
+  chapter-heading *structure* defect (text-layer-solvable; FIXED 2026-07-11 via drop-cap-anchored `detect_s_dismas`).
+  **No silent acceptance:** Gen 8 stays a shortfall in the pilot audit (interim odr_com backfill covers content
+  downstream; the s_dismas archaic surface stays OPEN on the re-OCR worklist).
 - **OCR hi-res S02 + S08 fully** (optimize decode) → primary witnesses; OCR any un-OCR'd sources (holiebible-ot2,
   missed pages); re-OCR affected pages across **all** scan lines (**R8**).
 - Ground-truth score per **§6.4** (hold out transcriptions); emit `ocr-eval.json`.

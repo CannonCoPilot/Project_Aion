@@ -17,6 +17,25 @@ Sir's review found execution *again* took the cheap path and, worse, drew **simp
 
 The fix Sir specified is a **granular quality-control contract** enforced at the **locus** level (every chapter, every apparatus element, all front/back matter), scored as **character-level % identity** against **two references at once** — janvier (modern) and s-dismas⊕odr_com (archaic) — with **post-OCR consensus, gating, and reporting all moved off book-level**. Intended outcome: an auditable, per-locus map where every Douay-Rheims chapter and apparatus element reaches its expected witness depth at ≥90% fidelity, with garbage caught early and driven to resolution by exhaustive, layout-aware, best-raster re-OCR.
 
+> ### Design invariant — NO SILENT DEGRADATION (Sir, 2026-07-10; supersedes any "strategic back-off")
+> The aim is **absolute**: iterate the algorithm until **every locus reaches the targeted threshold** (≥0.90
+> identity vs the *correct* standard, at its E(v) depth). **No design clause may quietly accept, cap, or "park" a
+> below-threshold locus** so that a run can report success while degraded. Safeguards are permitted **only** as
+> circuit-breakers that keep *trial / preliminary / calibration* runs from failing infinitely — and **every time a
+> safeguard fires it must alert both Sir and Jarvis that the current APPROACH needs to be carefully redesigned**,
+> never stand as a terminal acceptance. "The method can't reach it" always means **"redesign the method,"** never
+> "lower the aim." A below-threshold locus is an **OPEN** work item that **blocks the deliverable** until the
+> algorithm is improved enough to clear it. This is the same anti-laundering posture as the extirpated book-level
+> gates (`guard_no_book_gates.py`), now enforced at the autonomy / re-OCR layer — where a fired safeguard is a
+> signal to *stop and rethink the approach*, not a license to continue to a degraded completion.
+>
+> **Escalation ≠ off-ramp (Sir, 2026-07-10).** When a locus escalates to human review, the **default expectation is
+> that review returns a request for further retooling/adaptation to re-approach bar-passing automation** — not a
+> decision to accept a gap. We hold the high threshold precisely to **rigorously expose the real limits of the
+> source material and OCR capability, and then meet them** — never to short-cut below those real limits before every
+> avenue to the optimum is exhausted. Even a genuine physical floor (e.g. an illegible page in the sole surviving
+> scan) resolves to an **explicit, documented human decision**, never an automated acceptance.
+
 ---
 
 ## Part 1 — The QC contract (the 20 decisions, codified)
@@ -30,7 +49,7 @@ The fix Sir specified is a **granular quality-control contract** enforced at the
   - **Forward:** an OCR read counts as a witness at a locus **iff it passes localization AND the identity bar**; below-bar → re-OCR + retry until it passes.
   - **Backward:** a locus that fails to reach its E(v) is **flagged**, which triggers investigation of *every source that ought to contain it* (via the per-source index) for localization/identity errors. This holds **transcribed** sources accountable, not just OCR. Neither gate alone catches both garbage-in and silent-drops; together they close the loop.
   - **Backward-gate owner (transcribed path) — DECIDED (rev 2026-07-08 PM):** `source_index.py` owns the ought-to-contain denominator; it is **manifest-seeded then detection-refined** (manifest spans give the initial per-source book/element set; `reads/{name}.json` actual detections refine it). A **transcribed-source** shortfall (a source that ought to localize a locus but does not) has no re-OCR analog — its disposition is **re-parse then human-review flag** (not silent), recorded in the audit as `shortfall_flag` with `reason=transcribed-localization-miss`. Every synthesis fix targets OCR mechanics; this bullet gives the backward gate a named owner and action for the transcribed half so it is not merely asserted.
-- **Grain — DECIDED (dual-grain, rev 2026-07-08 PM; see §1.4):** localization + witness-counting operate at **verse grain** (Janvier coordinate JOIN); **identity scoring** is **chapter grain** for archaic sources with known versal drift (s_dismas, drifting OCR) and **verse grain** for stable modern-spine sources (Janvier, Madueke_b, clean OCR). `evaluate_locus` stays grain-agnostic; `qc_audit.py` selects grain per source type.
+- **Grain — REVISED 2026-07-10 (Sir): uniform verse/element grain** (supersedes the 2026-07-08 dual-grain split). Localization, witness-counting, AND identity scoring all operate at **verse grain** (`scripture/{b}/{c}/{v}`) or **apparatus-element grain** — so partial coverage (a half-transcribed chapter, a lone marginal note, a locus present in only one archaic source) is scored exactly where each reference exists, not smeared across a chapter average. **Versal drift** (s_dismas ±1–3) is absorbed in the *localization JOIN* (§1.3, `detect_s_dismas.validate` ±3 tolerance) so reads are correctly skeleton-keyed **before** per-verse scoring — the drift is a matching problem, not a reason to coarsen the scoring grain. `evaluate_locus` stays grain-agnostic; `qc_audit.py` scores one locus at a time.
 
 ### 1.2 Coverage semantics (individual-source count)
 - **Reverse** the old "combined OCR = one witness." Coverage is an **individual-source count per locus**.
@@ -44,20 +63,27 @@ The fix Sir specified is a **granular quality-control contract** enforced at the
 - **Localized = start/end anchors found AND the body is a *contiguous* span** — no interleaving from an adjacent column or from marginalia/inline annotations folded into the text. Same test for transcribed + OCR. (This is exactly what eebo-vol4 Psalms violates.)
 - **Localization scoring — CORRECTED (rev 2026-07-08 PM).** Today's `tight_window`/`locate_region` use order-blind **set-recall** (`|probe_types ∩ window_types| / |probe_types|`, `detect_our_ocr.py:271-299`) at an **uncalibrated `ATTEST_THRESHOLD 0.5`** with **no precision term** — so scrambled-order matches and function-word overlap inflate attestation, which inflates the E(v) witness counts the *backward* gate depends on (false positives → backward gate fails to fire on genuine shortfalls). Replace with **in-order matched-token coverage** under a monotone-position constraint (the pattern already in `consensus_v2.extract_source_verses`), score = Σ(in-order matched token lengths)/probe_len; **add a precision floor** — require `matched/probe_len ≥ ATTEST_THRESHOLD` **AND** `matched/window_len ≥ PREC_FLOOR (~0.25)` (F-β, β=2 acceptable) so diluted windows fail. `ATTEST_THRESHOLD` value stays 0.5 but is **calibrated at the P2 pilot** via an ROC sweep on a ≥20-verse hand-labelled Genesis+Psalms gold (promoted to a committed fixture). This is a **prerequisite for `qc_audit.py`'s forward pass**, not parallel to it.
 
-### 1.4 The OCR identity bar (char-level, uniform 90%, OCR-only)
-Transcribed sources auto-pass. For each OCR locus text, the **bootstrap**:
-1. **Modernize** — reverse-apply the ſ-rule + archaic conventions → `ocr_mod`.
-2. **Modern identity** — char-level ≥**0.90** of `ocr_mod` vs **Janvier** (Madueke_b fallback), both sides spelling-folded to modern.
-3. **Archaicize/normalize** — apply the ſ-rule + archaic conventions → `ocr_arch`.
-4. **Archaic identity** — char-level ≥**0.90** of `ocr_arch` vs **s-dismas** (odr_com fallback), **ſ-folded on both sides** (measures letters/spelling), **plus a separate deterministic long-ſ *rule* placement check** (reference-free, per R12).
-5. **PASS iff** modern ≥0.90 **AND** (archaic ≥0.90 **OR** no archaic reference exists for the locus).
+### 1.4 The identity bar (char-level, ≥90%, verse/element grain) — REVISED 2026-07-10: ARCHAIC-PREEMINENT
+Transcribed sources auto-pass identity (they *are* the references). For each OCR locus text the gate scores against **two backfilled references**, and the **archaic reference governs wherever it exists** — because it is in the same edition family as the 1582/1610 print the OCR came from, so a faithful OCR clears it (the modern reference measures edition-agreement, not OCR fidelity, and is the correct yardstick **only** where no archaic reference exists). This makes "right yardstick, not excused failure" the primary code path, not a special case.
+
+**The two references (built once, per-locus, verse/element grain — Sir 2026-07-10):**
+- **Archaic reference = `s_dismas` content, backfilled from `odr_com`.** `archaic_ref[locus] = s_dismas[locus] if present else odr_com[locus] if present else None`. (s_dismas is the ſ-diplomatic gold Genesis→Wisdom + NT; odr_com fills loci s_dismas lacks — later-OT, gaps, apparatus.)
+- **Modern reference = `janvier` (`sabates_a`) content, backfilled from `madueke_b`.** `modern_ref[locus] = sabates_a[locus] if present else madueke_b[locus] if present else None`.
+- **Grain = verse (`scripture/{b}/{c}/{v}`) or apparatus element**, NOT chapter — so marginalia, apparatus, partially-completed chapters, and any locus missing from one archaic source are scored exactly where each reference exists (a chapter average would hide a half-covered chapter). (Supersedes the earlier chapter-grain-for-archaic decision, §1.1/§10.1; versal drift is absorbed in the *localization* JOIN, §1.3, before per-verse scoring — reads are already skeleton-keyed.)
+
+**The gate (per locus):**
+1. Compute BOTH scores for reporting: **`modern_id`** = char-level (normalized Levenshtein, both sides modern-folded) of the OCR vs `modern_ref`; **`archaic_id`** = char-level (both sides ſ-folded) of the OCR vs `archaic_ref`, **plus a separate deterministic long-ſ *rule* placement check** (reference-free, per R12).
+2. **PASS rule — archaic-preeminent:**
+   - **If `archaic_ref` exists at the locus →** PASS iff **`archaic_id ≥ 0.90`** (+ long-ſ rule check). The archaic gate is the governing quality bar here; `modern_id` is recorded as a signal but does **not** gate (a faithful 1582 OCR that diverges from Janvier's modern edition must not fail on that divergence).
+   - **Else (no `archaic_ref`) →** PASS iff **`modern_id ≥ 0.90`**. This is the only place the modern gate governs.
+   - Neither reference present → `needs-reference` (loud OPEN alert per §1.4 scoped-trigger rule 1; never a silent pass or park).
 - **Identity unit = character-level** (normalized edit ratio, post-fold) — a real change; today's `sim()` is token-level.
 - **Metric — DECIDED (rev 2026-07-08 PM).** The char metric is **normalized Levenshtein** = `1 − editdist(a,b)/max(len(a),len(b))` post-fold, post-whitespace-collapse. This is the `edit_ratio` already implemented at `char_identity.py:71-86` but **currently dead code** — the live gate wrongly calls `char_ratio` (difflib `SequenceMatcher.ratio`, `:89-94`), which is not edit distance and slightly over-scores. Activate `edit_ratio` as the gate; keep difflib only as a fast skip-prefilter (`if char_ratio < 0.80: return 0.0`). "0.90" is meaningless without naming the function — this names it.
-- **No-archaic-ref gate — CORRECTED (rev 2026-07-08 PM).** `evaluate_locus:109` currently **auto-passes** the archaic gate when no s_dismas reference exists — silently defeating R12 for the ~24 later-OT books (s_dismas reaches only Genesis→Wisdom). **Fix:** when `archaic_ref is None`, set `archaic_pass = long_s_rule.rule_pass(ocr_text)` (the deterministic ſ-placement conformance check), not `True`. Add an **f→s ſ-misread pre-check** (OCR with no ſ but f in initial/medial ſ-positions → flag suspected ſ→f, route to re-OCR rather than accept as surface variant).
-- **Scoped re-OCR trigger — NEW (rev 2026-07-08 PM; the 0.90 bar must never loop where it is unreachable by construction).** The modern gate measures *edition-agreement*, not OCR fidelity, so a **perfect OCR can FAIL** where the 1582/1610 printing genuinely diverges from Janvier's modern edition. Three sub-rules, applied in `qc_audit.py` before any re-OCR trigger fires:
-  1. **Short loci (< ~500 folded chars: apparatus, front/back-matter, chapter summaries, annotations):** do **not** use `modern_id` as a re-OCR trigger — score against the best-matching *other scan witness of the same printing* (intra-scan-family consensus); if only one scan witness exists, **park** as `identity-unverifiable-by-modern-gate` and report, do **not** loop.
-  2. **Chronically-divergent books (empirical s_dismas-vs-madueke_a token agreement < 0.80: Acts, 2Paralipomenon, 2Esdras, Romans, Mark, Psalms):** treat `modern_id` as a **signal, not a gate** — re-OCR only when `modern_id < 0.90 AND archaic_id < 0.90`, or when the shortfall is confirmed intra-scan-family.
-  3. **All loci:** compute a cheap `floor_modern = align(transcribed-archaic, Janvier)` under the same fold; if `floor_modern < 0.90` the bar is partially unreachable by construction — report it so investigators don't burn compute. The **archaic gate is unchanged** — it scores within the same edition family and a perfect OCR passes it.
+- **No-archaic-ref locus — REVISED 2026-07-10 (under archaic-preeminent gating).** Where **no archaic reference exists** (even after the odr_com backfill), the **modern gate governs** (`modern_id ≥ 0.90`) — this is the only place modern gates. It must **never auto-pass** (the old `evaluate_locus:109` bug silently defeated R12). Independently of which reference gates, apply the reference-free **long-ſ placement rule** (`long_s_rule.rule_pass`) as an **auxiliary ſ-conformance signal** on any archaic-spelling OCR, and the **f→s ſ-misread pre-check** (OCR with no ſ but f in initial/medial ſ-positions → flag suspected ſ→f, route to re-OCR rather than accept as surface variant). These surface the ſ-fidelity that the modern (ſ-folded) gate would otherwise hide.
+- **Scoped re-OCR trigger — NEW (rev 2026-07-08 PM; REVISED 2026-07-10). Don't loop re-OCR against a yardstick that doesn't measure OCR fidelity — but never let that become silent acceptance.** The modern gate measures *edition-agreement*, not OCR fidelity, so a **perfect OCR can FAIL** it where the 1582/1610 printing genuinely diverges from Janvier's modern edition; no amount of re-OCR makes the 1582 text into a modern edition. The disposition is therefore **switch to the correct verifier, not lower the aim** — the locus must still reach ≥0.90 against a *valid in-edition* reference. Three sub-rules, applied in `qc_audit.py` before any re-OCR trigger fires:
+  1. **Short loci (< ~500 folded chars: apparatus, front/back-matter, chapter summaries, annotations):** don't gate on `modern_id` — verify against the best-matching *other scan witness of the same printing* (intra-scan-family consensus) or the archaic gate. If **no valid in-edition reference exists** (e.g. a single scan witness with no archaic ref), raise `needs-reference` — a **loud OPEN alert** (acquire/transcribe a reference, or human-adjudicate); the locus stays open and blocks ship. **Never** a silent `park`.
+  2. **Chronically-divergent books (empirical s_dismas-vs-madueke_a token agreement < 0.80: Acts, 2Paralipomenon, 2Esdras, Romans, Mark, Psalms):** treat `modern_id` as a **signal, not a gate** — the *archaic* gate (in-edition) governs quality here; re-OCR fires when `archaic_id < 0.90` (or modern+archaic both low, or an intra-scan-family shortfall is confirmed). The aim is unchanged; the correct in-family instrument does the gating.
+  3. **All loci:** compute a cheap `floor_modern = align(transcribed-archaic, Janvier)` under the same fold; if `floor_modern < 0.90` the *modern yardstick itself* is partially invalid here — **flag it and redirect verification to the archaic / in-family instrument** (don't burn re-OCR compute chasing the modern number, and don't accept the locus on the modern number either). The **archaic gate is unchanged** — it scores within the same edition family, so a faithful OCR passes it; it remains the real quality gate for these loci.
 
 ### 1.5 Consensus gating (finest MSA, locus-level gates)
 - **Keep the finest assembly unit** — verse-level (scripture) / item-level (apparatus) MSA + consensus + variant pileups. "No book-level" means **no book-level pass/drop**, not coarser assembly.
@@ -120,11 +146,32 @@ A per-locus × per-source scorecard spanning the **full skeleton** (front/back m
   `ATTEST_THRESHOLD` + identity bar on the ≥20-verse Genesis+Psalms committed gold; (c) the **BRAINSTORM
   approve/defer decision** (gates P3 architecture); (d) verse/chapter grain confirmed; (e) measured **vision-LLM
   per-page cost/time**.
-- **Autonomy safety envelope (co-equal pilot deliverable — the largest omission the review caught):** a hard
-  token/$ budget for the P3/P4 fan-out (from measured per-page vision cost × loci-below-E(v)), a
-  max-escalation-attempts-per-locus ceiling, a **monotonic-improvement stop** (abort a locus if attempt N+1 doesn't
-  raise identity over N by a min-delta), and an explicit terminal **`parked: bar-unreachable`** state distinct from
-  "retry". **Enforced in `reocr_ladder.py`, not merely measured.** Autonomous only after Sir's explicit go-ahead.
+- **Autonomy convergence-alerting envelope (co-equal pilot deliverable) — REVISED 2026-07-10 per the
+  no-silent-degradation invariant.** The aim is absolute (every locus → ≥0.90 vs the correct standard at E(v)); the
+  algorithm iterates until it gets there. This envelope exists ONLY to keep an *unattended* autonomous run from
+  looping infinitely on a locus the *current method* cannot yet solve — and when any part of it fires it is a **loud
+  ALERT to Sir + Jarvis that the APPROACH must be redesigned, never a terminal acceptance of a below-threshold
+  locus.** In `reocr_ladder.py`:
+  - **Ladder-exhaustion alert (replaces the attempt-ceiling):** a locus escalates through **every** rung (baseline →
+    layout-aware → region/half-page → vision-LLM). Reaching the top rung still below 0.90 does **not** cap the locus
+    — it raises `needs-approach-redesign`: the current ladder is inadequate for this failure class and a *new method*
+    is required (better model, different segmentation, manual transcription, corrected reference). The locus stays
+    OPEN and blocks ship.
+  - **Plateau ⇒ escalate, not abort (replaces the monotonic-improvement *stop*):** if attempt N+1 within a rung
+    doesn't beat N by a min-delta, that **rung** is exhausted → **advance to the next rung**. A plateau across the
+    *whole* ladder is the ladder-exhaustion alert above — never a locus abandonment.
+  - **Trial-run resource budget (preliminary analysis only):** a measured token/$/time bound for *exploratory /
+    calibration* runs so they can't fail infinitely. Hitting it **HALTS and ALERTS** ("budget exhausted before
+    convergence — redesign before spending more"); it does **not** silently mark loci done or let a run report
+    "complete". The *production* push to threshold carries **no acceptance-cap** — it is bounded only by "a fired
+    safeguard stops for redesign."
+  - **No `parked: bar-unreachable` terminal state.** Every locus not yet at threshold is an **OPEN** item that
+    **blocks the deliverable** (Part 4 / §11) and is enumerated in the run's terminal ALERT.
+  - **Continue-but-flag, never silently-skip:** an autonomous run MAY keep working *other* loci while a stuck locus
+    is flagged `needs-approach-redesign` (throughput preserved) — but the terminal report **loudly lists every open
+    locus and refuses to declare success** while any remain. Systemic failure (many loci firing, or budget
+    exhaustion) escalates to a full halt-for-redesign.
+  - **Enforced in `reocr_ladder.py`, not merely measured.** Autonomous only after Sir's explicit go-ahead.
 
 **P3 — QC harness = `qc_audit.py` + `coverage-audit.json`** (built in the paradigm chosen at P2). Forward gate =
 fixed localization + identity with the scoped re-OCR routing (§1.4). Backward gate = witness_count vs E(v) per
@@ -153,13 +200,16 @@ shortfall_flag) + per-source accounting. Register into Palimpsest gold + run the
 **inbound contract test + version-pin on `spelling_glyph_model.fold_diplomatic`** (a Palimpsest-side fold change
 must not silently re-score every gate).
 
-**P7 — Final verification gate.** idx108 ≥0.90 every chapter; idx109 ≥0.90 where measurable + ſ-rule-conformance
-elsewhere; every scripture chapter reaches E(v) or is flagged; apparatus cross-lineage 3-witness unblock enforced;
-every coverage-audit source resolves to a master-source-list witness with sha256/lineage/independent; Palimpsest
-ingest→apply→align smoke test green.
+**P7 — Final verification gate (ship gate; nothing below threshold passes).** idx108 ≥0.90 every chapter; idx109
+≥0.90 where measurable + ſ-rule-conformance elsewhere; **every scripture chapter reaches E(v) at ≥0.90** — any
+locus still short is an **OPEN `needs-approach-redesign` item that BLOCKS this gate** ("flagged" is an in-progress
+state, never a ship state; a flagged-but-unresolved locus does **not** pass P7); apparatus cross-lineage 3-witness
+unblock enforced; every coverage-audit source resolves to a master-source-list witness with
+sha256/lineage/independent; Palimpsest ingest→apply→align smoke test green.
 
 > Execution model (Sir): one deliberate pause after **P2**; **fully autonomous to completion** thereafter (report
-> on completion or if blocked), **bounded by the P2 safety envelope**. HOLD commit/push per §11.
+> on completion or if blocked), **bounded by the P2 convergence-alerting envelope** (a fired safeguard halts for
+approach-redesign; it never accepts a below-threshold locus — see the no-silent-degradation invariant). HOLD commit/push per §11.
 
 ---
 
@@ -200,7 +250,7 @@ ingest→apply→align smoke test green.
 ## Part 4 — Verification
 
 - **Harness:** the audit scores every locus×source for char-level modern + archaic identity, localization (contiguous), pass/fail, and witness_count vs E(v). No book-level pass/drop survives (grep the removed gates).
-- **Pilot (Phase-2 gate):** eebo-vol4 Psalms localizes **>0 chapters** after contiguity fix + re-OCR; its chapters clear modern ≥0.90 and archaic ≥0.90 (ſ-folded); their consensus unblocks. Report real per-page cost incl. vision-LLM rung.
+- **Pilot (Phase-2 gate):** eebo-vol4 Psalms localizes **>0 chapters** after contiguity fix + re-OCR; its verses clear the **governing gate** (archaic≥0.90 ſ-folded where an archaic ref exists — Psalms has s_dismas; modern≥0.90 only where none does); their consensus unblocks. Report real per-page cost incl. vision-LLM rung.
 - **Coverage:** every scripture chapter reaches **E(v)** (NT=12, OT=6..10) or carries a warning + source-by-source investigation flag; every source that "ought to contain X" is checked (backward gate).
 - **Apparatus:** per-element identity vs Sabates/odr_com; **cross-lineage** ≥3-witness unblock (≥1 outside Madueke/Sabates/Janvier); thin elements warned, not dropped; SHORTFALL/NOVEL kept, never dropped.
 - **Provenance (NEW):** every source cited in `coverage-audit.json` resolves to a `master-source-list.json` witness carrying non-null `sha256` + `lineage_group` + `independent` — closes the §9 audit trail within this doc's scope.
@@ -236,13 +286,13 @@ Source: workflow run `w7ojgfgxw` (46 agents — 5 reader digests → 5 review le
 | F5 | technical / M | MSA `conservation()` normalized by n (erases depth); gaps win plurality | FOLDED (code→P1a) | Part 3 Modify `consensus_v2`; `sparkling` §4.3/§7.2 depth_fraction |
 | F6 | technical / M | Reference-BLAST under-specified on seeding + gapped chaining | FOLDED | BRAINSTORM §5 (spaced-seed char k-mers; affine-gap chaining DP `g(d)=a+b·d`; weighted interval-scheduling; LIS dropped) |
 | F7 | gaps / L | Reciprocal OriginalDR→Palimpsest gold-set handoff never specified | FOLDED | `sparkling` §9 handoff path + e2e smoke test |
-| F8 | gaps / M | Verse-grain vs chapter-grain identity is an open fork the E(v) gate depends on | FOLDED | §1.1/§1.4 dual-grain; §10.1 DECIDED (verse=modern spine, chapter=archaic) |
+| F8 | gaps / M | Verse-grain vs chapter-grain identity is an open fork the E(v) gate depends on | FOLDED, **REVISED 2026-07-10** | §1.1/§1.4 now **uniform verse/element grain** (Sir); drift absorbed in the localization JOIN, not by coarsening scoring grain (supersedes the earlier verse=modern/chapter=archaic split) |
 | F9 | gaps / M | Apparatus coordinate-authority + correlated-source unblock loophole | FOLDED | §1.5 one-lineage-vote independence floor + key-space-only content rule; §10.4/§10.5 DECIDED |
 | F10 | gaps / M | `coverage-audit.json` and basis-db are two disconnected authorities | FOLDED | §1.6 derived-view of basis-db (join key `element.id`); `sparkling` §4.6 schema |
 | F11 | gaps / M | `sources-registry.json` orphaned; no provenance spine on witnesses | FOLDED (code→P0) | Part 2 P0 + Part 3 Modify `build_master_source_list` (sha256/lineage_group/independent); Part 4 check |
 | F12 | gaps / L | Novel-OCR spans lack an ID grammar | FOLDED | §1.5 `apparatus/novel/{book}/{ch}/{page}/{reading_order_idx}` + promotion rule |
 | F13 | gaps / M | Error/uncertainty uses 3 unreconciled thresholds + 2 vocabularies | FOLDED | `sparkling` §12.4 delete stale 0.85; §7.2 banding; §1.4 metric named |
-| F14 | buildorder / M | P2 pilot gate under-specifies cost / kill-criteria | FOLDED | Part 2 P2 decision-forcing + autonomy safety envelope (see C1) |
+| F14 | buildorder / M | P2 pilot gate under-specifies cost / kill-criteria | FOLDED (reframed 2026-07-10) | Part 2 P2 decision-forcing + convergence-alerting envelope — "kill-criteria" are alert-and-redesign triggers, NOT locus-acceptance (see C1 + no-silent-degradation invariant) |
 | F15 | buildorder / M | S02 (1609 OT, 10pp OCR'd) silently caps OT E(v); not in Phase-0 sizing | SCHEDULED P4 | Part 2 P4 S02/S08 named worst-first, `reocr_needed=true`, distinct from S1 |
 | F16 | buildorder / M | BRAINSTORM proposes a different build order that would rebuild Phase 1 | FOLDED | Part 2 P2 forces BRAINSTORM approve/defer BEFORE `qc_audit.py` |
 | F17 | buildorder / L | Two-stage MSA (R3) scheduled last, silently dropped from dijkstra | SCHEDULED P6 | Part 2 P6 R3 explicit; open-decision logged; `feather` pointer |
@@ -259,7 +309,7 @@ Source: workflow run `w7ojgfgxw` (46 agents — 5 reader digests → 5 review le
 
 | # | Sev | Item | Disposition | Landed |
 |---|---|---|---|---|
-| C1 | **H** | Phase-3 autonomy safety envelope unspecified (no budget cap, per-locus escalation ceiling, monotonic-improvement stop, or "parked" terminal state) | FOLDED (enforcement code→P4) | Part 2 P2 autonomy safety envelope as a BLOCKING pre-condition on P4 |
+| C1 | **H** | Phase-3 autonomy envelope unspecified — the review originally proposed a budget cap, per-locus escalation ceiling, monotonic-improvement stop, and a "parked" terminal state | FOLDED, then **REVISED 2026-07-10** (enforcement code→P4) | Part 2 P2 **convergence-alerting** envelope. NB: the review's original ceiling/stop/parked mechanisms were **rejected** as silent-degradation (they laundered locus-failure into run-success, the same anti-pattern as the book gates). Reframed: ladder-exhaustion → `needs-approach-redesign` (open, blocks ship); plateau → escalate rung; budget → halt+alert for *trial* runs only; no `parked` terminal state. See the no-silent-degradation invariant. |
 | C2 | **H** | Backward double-bind gate has no owner/algorithm for the TRANSCRIBED-source path; `source_index.py` denominator fork unresolved | FOLDED | §1.1 backward-gate transcribed owner (`source_index` manifest-seeded + detection-refined; transcribed shortfall → re-parse + human-review) |
 | C3 | **H** | Deliverable-parity: what ships at a modern-PASS / archaic-FAIL locus is unspecified (vs §10.8 no-fallback + §9 parity) | FOLDED | Part 4 asymmetric-pass; `sparkling` §5/§9 rule (no modern-for-archaic fallback; parity + `verify_map==[]` preserved) |
 | C4 | M | MSL schema heterogeneous across witness kinds; sha256 already on the 7 non-scan witnesses (contradicts "all 21") | FOLDED | Part 3 unify witness record FIRST; add sha256 to the 14 scans only; lineage/independent to all 21 |
@@ -350,7 +400,7 @@ BookData: {book, book_title, short_title, hebrew_title,
 - Marker-anchored alignment is more robust than fuzzy text-match on the hard columnar cases (Psalms).
 
 ## 10. Open decisions / forks (three DECIDED by the 2026-07-08 PM review; rest fall out of the pilot)
-1. **Verse-grain vs chapter-grain BLAST — DECIDED:** verse cells for the **modern spine**, chapter-level for **archaic identity** (versal-drift robust). This is exactly the dual-grain the identity bar already encodes — modern scored per verse, archaic scored per chapter — see **§1.4** (and §1.1 dual-grain owner). No longer open.
+1. **Verse-grain vs chapter-grain BLAST — DECIDED, then REVISED 2026-07-10 (Sir): uniform verse/element grain for BOTH references.** Archaic is no longer coarsened to chapter grain; versal drift is absorbed in the localization JOIN (`detect_s_dismas.validate` ±3) so reads are correctly skeleton-keyed before per-verse scoring. Archaic-identity is **preeminent** where present and scored per verse/element; modern governs only where no archaic reference exists — see **§1.4** (and §1.1 grain). No longer open.
 2. **Prove-on-transcribed-first vs OCR-segmenter-first** — prototype outer-join + per-cell identity on already-structured transcribed sources immediately (zero segmentation risk, proves the metric collapse), while spiking the typed-line/cue/BLAST segmenter on 2 calibration books in parallel. Jarvis lean: both in parallel. (Sequencing detail, settled at P1a/P1b in Part 2.)
 3. **Calibration** — genesis@S06 (clean prose) + psalms@eebo-vol4 (columnar) as the two bracket books; sweep length-diff + string-diff cutoffs off the ROC rather than guessing. (Operationalized as the P2 pilot ROC calibration, §1.3.)
 4. **Janvier completeness caveat — DECIDED:** Janvier is the canonical COORDINATE FRAME + modern-content ref, but is NOT treated as omniscient on apparatus selection. A reference marker absent in OCR = **SHORTFALL**; an OCR marker/​span absent from Janvier = **NOVEL** — both are first-class dispositions kept and investigated, never dropped, per the SHORTFALL/NOVEL grammar and novel-span id in **§1.5**. No longer open.
