@@ -30,7 +30,7 @@ RELAY_LOG="$LOG_DIR/relay.log"
 
 # Dashboard notification endpoint (reads from registry, falls back to default)
 DASHBOARD_ENDPOINT=""  # Set after yq is available
-DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8600}"
+DASHBOARD_URL="${DASHBOARD_URL:-http://localhost:8701}"
 
 # Shared utilities (colors, logging, require_yq, reg_get)
 # shellcheck disable=SC2034 # Used by sourced common.sh
@@ -275,6 +275,24 @@ ${summary}
 
 
 # Deliver a single event — dashboard always, Telegram only if severity qualifies
+# Stale-notification guard: beyond this age, non-critical notifications are
+# expired (marked delivered, not sent) rather than blasted — prevents a stale
+# backlog from flooding Telegram when the relay restarts after downtime.
+MAX_NOTIFICATION_AGE_S="${MAX_NOTIFICATION_AGE_S:-172800}"  # 48h
+
+# Echo age-in-seconds of an event's ISO8601 created_at. Echoes 0 (treat as
+# fresh -> deliver) if missing/unparseable, so the guard never silently drops.
+event_age_seconds() {
+    local created_at ts now
+    created_at=$(echo "$1" | jq -r '.created_at // empty')
+    [ -z "$created_at" ] && { echo 0; return 0; }
+    created_at="${created_at%%.*}"; created_at="${created_at%%Z*}"; created_at="${created_at%%+*}"
+    ts=$(date -j -u -f "%Y-%m-%dT%H:%M:%S" "$created_at" +%s 2>/dev/null || echo "")
+    [ -z "$ts" ] && { echo 0; return 0; }
+    now=$(date -u +%s)
+    echo $(( now - ts ))
+}
+
 deliver_event() {
     local event="$1"
     local msg_id event_type severity job
@@ -283,6 +301,15 @@ deliver_event() {
     event_type=$(echo "$event" | jq -r '.event_type')
     severity=$(echo "$event" | jq -r '.severity')
     job=$(echo "$event" | jq -r '.data.job // "unknown"')
+
+    # Stale-notification guard (critical always passes through)
+    local age
+    age=$(event_age_seconds "$event")
+    if [ "$age" -gt "$MAX_NOTIFICATION_AGE_S" ] && [ "$severity" != "critical" ]; then
+        log "Expired stale notification: [$msg_id] $event_type ($severity) for $job — age ${age}s > ${MAX_NOTIFICATION_AGE_S}s, suppressed"
+        "$MSGBUS" deliver --id "$msg_id" --by relay-expired > /dev/null 2>&1 || true
+        return 0
+    fi
 
     # 1. Deliver to dashboard (records history + web push)
     #    Skip internal bookkeeping events
@@ -325,7 +352,7 @@ done
 YQ=$(require_yq)
 
 # Resolve dashboard endpoint from registry
-DASHBOARD_ENDPOINT=$("$YQ" '.notification_preferences.channels.dashboard.endpoint // "http://localhost:8600/api/pipeline/notify"' "$REGISTRY" 2>/dev/null)
+DASHBOARD_ENDPOINT=$("$YQ" '.notification_preferences.channels.dashboard.endpoint // "http://localhost:8701/api/pipeline/notify"' "$REGISTRY" 2>/dev/null)
 
 # Ensure log directory
 mkdir -p "$LOG_DIR"

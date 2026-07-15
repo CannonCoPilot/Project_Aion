@@ -1213,9 +1213,13 @@ def main():
     if LOCK_FILE.exists():
         try:
             pid = int(LOCK_FILE.read_text().strip())
-            os.kill(pid, 0)
-            log.error("Another instance running (PID %d) — exiting", pid)
-            sys.exit(1)
+            if pid == os.getpid():
+                # Our own stale lock (e.g. container PID-1 reuse after an unclean stop) — reclaim it
+                LOCK_FILE.unlink(missing_ok=True)
+            else:
+                os.kill(pid, 0)
+                log.error("Another instance running (PID %d) — exiting", pid)
+                sys.exit(1)
         except (ValueError, ProcessLookupError):
             LOCK_FILE.unlink(missing_ok=True)
 
