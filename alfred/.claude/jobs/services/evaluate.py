@@ -203,9 +203,15 @@ def main():
 
     is_safe = result.get("safe", True)
     pre_assigned = next((l.split(":", 1)[1] for l in labels if l.startswith("assigned:")), None)
+    # Validate a pre-assigned persona actually exists — a stale/typo'd assigned:<x>
+    # label (e.g. a removed persona like the old systems-engineer) must not reach the
+    # executor as prompt_load_failed; drop it and let normal matching pick a real one.
+    if pre_assigned and pre_assigned not in personas:
+        log.warning("Pre-assigned persona '%s' not found in personas — ignoring stale label", pre_assigned)
+        pre_assigned = None
     suggested_persona = result.get("persona", "autofix-executor")
     if suggested_persona not in personas and suggested_persona != "autofix-executor":
-        log.warning("Persona '%s' not found — falling back to pre-assigned or autofix-executor", suggested_persona)
+        log.warning("Persona '%s' not found — falling back to autofix-executor", suggested_persona)
         suggested_persona = "autofix-executor"
     persona = pre_assigned if pre_assigned else suggested_persona
     decompose = result.get("decompose", False)

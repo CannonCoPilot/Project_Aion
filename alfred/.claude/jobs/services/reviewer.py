@@ -27,11 +27,16 @@ import requests
 sys.path.insert(0, os.path.dirname(__file__))
 from _shared import archive_task, call_ollama, conditional_claim, extract_json, get_ollama_telemetry, log_activity, pulse_patch, pulse_post, remove_sidecar, write_sidecar
 from observability import log_decision
+from observability.notify import notify_msgbus
 from observability.thread import ensure_thread_id
 
 logging.basicConfig(level=logging.INFO, format="[%(asctime)s] [reviewer] %(message)s",
                     datefmt="%Y-%m-%d %H:%M:%S")
 log = logging.getLogger("reviewer")
+
+# Cap consecutive review-engine (Ollama) failures before parking + alerting,
+# so a persistent LLM outage cannot thrash (re-review every cycle).
+MAX_REVIEW_INFRA_ATTEMPTS = int(os.environ.get("MAX_REVIEW_INFRA_ATTEMPTS", "3"))
 
 TASK_ID = os.environ.get("TASK_ID", "")
 PULSE_API = os.environ.get("PULSE_API", "http://localhost:8800/api/v1")
@@ -294,17 +299,49 @@ def main():
     engine = "ollama"
     response = call_ollama(prompt, model_used)
     if not response:
-        log.warning("No Ollama response — reverting to completed:no for retry")
+        # No Silent Degradation: cap consecutive engine failures. Below the cap we
+        # revert for retry (transient blip); at the cap we PARK the ticket OPEN and
+        # ALERT — never silently accept, never thrash forever.
+        infra_attempts = (metadata.get("review_infra_attempts", 0) or 0) + 1
+        if infra_attempts >= MAX_REVIEW_INFRA_ATTEMPTS:
+            log.warning("Task %s: review engine unreachable after %d attempts — parking + alerting",
+                        TASK_ID, infra_attempts)
+            log_decision(
+                "persona:reviewer", "review_outcome", "engine_unavailable_parked",
+                rationale=f"Ollama unreachable for {infra_attempts} consecutive review attempts",
+                confidence=1.0,
+                downstream_effect={"engine": "ollama", "model": MODEL,
+                                   "set_labels": ["blocked:yes", "reason:review-engine-unavailable"]},
+                task_id=TASK_ID,
+            )
+            pulse_post(f"/tasks/{TASK_ID}/conditional-update", {
+                "precondition": {"label_value": "completed:reviewing"},
+                "set_labels": ["blocked:yes", "reason:review-engine-unavailable"],
+                "remove_labels": ["completed:reviewing", "blocked:no"],
+                "metadata": {"review_infra_attempts": infra_attempts},
+                "actor": "reviewer",
+            })
+            notify_msgbus(
+                source="persona:reviewer", severity="warning",
+                summary=(f"Task {TASK_ID} parked: review engine (Ollama) unreachable after "
+                         f"{infra_attempts} attempts. Pipeline review is down — check Ollama at "
+                         f"host.docker.internal:11434. Ticket held OPEN (blocked), not accepted."),
+                data={"job": "reviewer", "task_id": TASK_ID,
+                      "reason": "review-engine-unavailable", "attempts": infra_attempts},
+            )
+            return
+        log.warning("No Ollama response — reverting to completed:no for retry (attempt %d/%d)",
+                    infra_attempts, MAX_REVIEW_INFRA_ATTEMPTS)
         log_decision(
-            "persona:reviewer",
-            "review_outcome",
-            "engine_failed",
+            "persona:reviewer", "review_outcome", "engine_failed",
             rationale="Ollama returned no response",
             confidence=0.0,
             downstream_effect={"engine": "ollama", "model": MODEL,
-                               "revert_to_label": "completed:no"},
+                               "revert_to_label": "completed:no", "infra_attempts": infra_attempts},
             task_id=TASK_ID,
         )
+        pulse_patch(f"/tasks/{TASK_ID}", {
+            "metadata": {"review_infra_attempts": infra_attempts}, "actor": "reviewer"})
         conditional_claim(TASK_ID, "completed:reviewing", "completed:no",
                           actor="reviewer")
         return
@@ -325,6 +362,7 @@ def main():
                   "summary": "Ground-truth gate: host-captured git evidence shows no changes."}
 
     review_meta = {
+        "review_infra_attempts": 0,  # reset: engine responded this cycle
         "review_output": result or {"passed": False, "summary": "LLM output unparseable — defaulted to fail"},
         "reviewed_at": datetime.now(timezone.utc).isoformat(),
         "reviewed_by": model_used,

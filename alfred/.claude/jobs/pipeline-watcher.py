@@ -619,7 +619,12 @@ def process_task(task: dict):
 
     # Blocked → Diagnose (failure recovery — root-cause and redesign)
     # Skip dependency-blocked tasks — they are waiting for parents, not failed
-    if has_label(labels, "blocked:yes") and has_label(labels, "reason:dependency"):
+    if has_label(labels, "blocked:yes") and (
+            has_label(labels, "reason:dependency")
+            or has_label(labels, "reason:review-engine-unavailable")):
+        # dependency-blocked waits for parents; review-engine-parked waits for infra
+        # (Ollama) to return — neither is a task failure, so do NOT diagnose (would
+        # re-thrash on the same dead engine).
         return
     if has_label(labels, "blocked:yes"):
         meta = task.get("metadata") or {}
@@ -1257,6 +1262,15 @@ def main():
         register_webhook()
         webhook_thread = threading.Thread(target=run_webhook_server, daemon=True)
         webhook_thread.start()
+
+        # Werkzeug's dev-server startup raises the effective log level and suppresses
+        # our INFO heartbeats; re-assert INFO once the server thread has initialized so
+        # heartbeat/telemetry observability keeps flowing.
+        time.sleep(1)
+        logging.getLogger().setLevel(logging.INFO)
+        log.setLevel(logging.INFO)
+        for _h in logging.getLogger().handlers:
+            _h.setLevel(logging.INFO)
 
     try:
         while True:
