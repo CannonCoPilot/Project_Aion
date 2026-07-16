@@ -2,7 +2,8 @@
 # Launch Aion (Jarvis + Alfred unified Archon session) in a tmux session for autonomous control
 # This enables auto-command execution via tmux send-keys
 #
-# Layout (Aion Quartet + Commands):
+# Window layout — authoritative source is window_target_index() below; the ASCII
+# sketch that follows is legacy and may not match current indices.
 # ┌─────────────────────────────────────────┐
 # │            Claude Code (window 0)       │
 # └─────────────────────────────────────────┘
@@ -41,7 +42,8 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-06-04 — v3.0: Aion monorepo launcher (replaces launch-jarvis-tmux.sh)
+# Updated: 2026-07-15 — v3.2: default model Claude Fable 5 @ max effort (W0 + Jarvis-dev);
+#          Jarvis-dev cross-codebase --add-dir (Projects, GitRepos); refreshed awareness doc
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 SESSION_NAME="${TMUX_SESSION:-aion}"
@@ -52,7 +54,7 @@ ALFRED_DIR="$PROJECT_DIR/alfred"
 # stay on the same model: executor tasks fork from W0's warm session to inherit
 # its prefix cache, and a model mismatch invalidates that shared cache. Exported
 # so an explicit `AION_MODEL=… ./launch-aion.sh` override propagates to children.
-export AION_MODEL="${AION_MODEL:-claude-opus-4-8[1M]}"
+export AION_MODEL="${AION_MODEL:-claude-fable-5}"
 
 # ── Window Index Map ──────────────────────────────────────────────────
 # Permanent window ordering. Core sessions first, infrastructure second,
@@ -825,9 +827,9 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
             fi
             DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
             if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
-                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --add-dir .claude/personas/jarvis --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
             else
-                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --add-dir .claude/personas/jarvis --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
             fi
             DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
             "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
@@ -945,7 +947,22 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_A
 # --add-dir loads .claude/personas/jarvis/CLAUDE.md with @-import processing.
 # Jarvis identity, psyche, and force-loaded context are in that persona CLAUDE.md,
 # NOT in the root CLAUDE.md (which is shared with Alfred to avoid external-import conflicts).
-CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+
+# Cross-project workspace dirs (Pyright LSP + cross-repo awareness).
+# Each path in .claude/context/.active-projects (one per line; blanks/#comments OK)
+# becomes a `--add-dir <path>` so the LSP discovers per-project pyrightconfig.json
+# and treats the dir as a workspace folder. ~ is expanded; missing dirs are skipped.
+ACTIVE_PROJECTS_FILE="$PROJECT_DIR/.claude/context/.active-projects"
+if [[ -f "$ACTIVE_PROJECTS_FILE" ]]; then
+    while IFS= read -r _line || [[ -n "$_line" ]]; do
+        [[ -z "$_line" || "$_line" =~ ^[[:space:]]*# ]] && continue
+        _line="${_line/#\~/$HOME}"
+        if [[ -d "$_line" ]]; then
+            CLAUDE_BASE="$CLAUDE_BASE --add-dir '$_line'"
+        fi
+    done < "$ACTIVE_PROJECTS_FILE"
+fi
 
 # W0 session file rotation — archive if > 5MB to prevent unbounded growth
 W0_SESSION_MAX_BYTES=5242880  # 5MB
@@ -1109,9 +1126,9 @@ if [[ "$DEV_MODE" == "true" ]]; then
     fi
     DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
-        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --add-dir .claude/personas/jarvis --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
     else
-        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --add-dir .claude/personas/jarvis --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
     fi
     DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \

@@ -62,6 +62,24 @@ You are inside a **tmux session** named `aion` with 12 fixed windows (chain wind
 
 ---
 
+## Codebase Map — Four Workspaces You Have Access To
+
+Your cwd is `/Users/nathanielcannon/Claude/Project_Aion` (reached via the `~/Claude/Jarvis`
+symlink). All four workspaces below are within your launcher `--add-dir` grants — read and
+edit freely (subject to the Filesystem Policy in CLAUDE.md).
+
+| Workspace | Path | What lives here |
+|-----------|------|-----------------|
+| **Jarvis (this repo)** | `/Users/nathanielcannon/Claude/Project_Aion` | Aion core: `.claude/` (capabilities, scripts, hooks, skills, agents, JICM, personas, context), `infrastructure/` (Docker, MLX, LiteLLM, RAG/Graphiti MCP servers), `projects/` (dev artifacts). Your PRIMARY domain. |
+| **Alfred (Ops Archon)** | `/Users/nathanielcannon/Claude/Project_Aion/alfred` | Nested Ops Archon: Pulse task API (:8800), Nexus job pipeline (`.claude/jobs/` — dispatcher, executor, services, personas), Styx host-executor bridge, dashboard (:8701 / :8702 vite), `docker-compose.dev.yml`. Own `.claude/CLAUDE.md` identity + `pulse` CLI. |
+| **Projects (deliverables)** | `/Users/nathanielcannon/Claude/Projects` | Standalone deliverable codebases, EACH ITS OWN git repo: DwarfCron/chronicler, palimpsest, seasonal-wildlife, AnnasTools, ScholarGateway, neural-canvas, etc. |
+| **GitRepos (reference)** | `/Users/nathanielcannon/Claude/GitRepos` | Read-only upstream reference repos (e.g. `df-structures`, `dfhack-latest`). Consult for facts; do not commit. |
+
+**Git boundary:** `Project_Aion` (including `alfred/`) is ONE repo → `CannonCoPilot/Project_Aion`.
+Each `Projects/<name>` is a SEPARATE repo. Never stage changes across that boundary in one commit.
+
+---
+
 ## Available Tools
 
 ### Dev Scripts (`.claude/scripts/dev/`)
@@ -110,7 +128,7 @@ sleep 0.3
 
 | File | Effect |
 |------|--------|
-| `.claude/context/.command-signal` | Triggers command handler (W4) to inject command into W0 |
+| `.claude/context/.command-signal` | Triggers the Commands handler (W9) to inject command into W0 |
 | `.claude/context/.jicm-exit-mode.signal` | Pauses JICM watcher during exit protocol |
 | `.claude/context/.jicm-sleep.signal` | Pauses JICM watcher (Ulfhedthnar override) |
 
@@ -173,11 +191,11 @@ When the user tasks you with DwarfCron work, read the relevant docs on demand. D
 | W0 idle detection false negative | Capture output, grep for `❯` directly |
 | Script permission denied | `chmod +x .claude/scripts/dev/*.sh` |
 | JICM stuck in COMPRESSING | Check `.compression-in-progress` flag, remove if stale |
-| Watcher not running | Check W1 pane, restart with `restart-watcher.sh` |
-| Command signal not consumed | Verify W4 command-handler running, check W4 pane |
+| Watcher not running | Check W8 pane, restart with `restart-watcher.sh` |
+| Command signal not consumed | Verify W9 command-handler (Commands) running, check W9 pane |
 | send-keys text not submitting | MUST split text and Enter into separate send-keys calls |
 | Context compaction mid-test | Document progress to files, read back after compaction |
 
 ---
 
-*Jarvis-dev Session Instructions v2.0.0 — Autonomous Test Driver*
+*Jarvis-dev Session Instructions v2.1.0 — Autonomous Test Driver (+ Codebase Map; model=Claude Fable 5 @ max effort)*
