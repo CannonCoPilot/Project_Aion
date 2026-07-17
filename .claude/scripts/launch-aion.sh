@@ -811,6 +811,14 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
             echo "Adding Jarvis-dev window (W5) to existing session..."
             JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
             JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
+            # Prefer the live dev-session UUID recorded by session-start.sh (Claude Code keeps
+            # one lastSessionId per project dir, so per-lane resume needs this file). Mirrors
+            # W0's .current-w0-uuid loop; self-corrects UUID drift so the dev window resumes
+            # the working session, not the stale deterministic seed.
+            if [[ -s "$PROJECT_DIR/.claude/context/.current-dev-uuid" ]]; then
+                JARVIS_DEV_SESSION_ID="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-dev-uuid")"
+                JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
+            fi
             CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
             DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
             DEV_SESSION_MAX_BYTES=5242880
@@ -1110,6 +1118,14 @@ if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
     JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
+    # Prefer the live dev-session UUID recorded by session-start.sh (Claude Code keeps
+    # one lastSessionId per project dir, so per-lane resume needs this file). Mirrors
+    # W0's .current-w0-uuid loop; self-corrects UUID drift so the dev window resumes
+    # the working session, not the stale deterministic seed.
+    if [[ -s "$PROJECT_DIR/.claude/context/.current-dev-uuid" ]]; then
+        JARVIS_DEV_SESSION_ID="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-dev-uuid")"
+        JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
+    fi
     CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
     DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
     DEV_SESSION_MAX_BYTES=5242880

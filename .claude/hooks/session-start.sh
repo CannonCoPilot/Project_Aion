@@ -44,13 +44,18 @@ STATE_DIR="$CLAUDE_PROJECT_DIR/.claude/state/components"
 mkdir -p "$LOG_DIR" "$STATE_DIR"
 echo "$TIMESTAMP | SessionStart | source=$SOURCE | session=$SESSION_ID | local_time=$LOCAL_TIME" >> "$LOG_DIR/session-start-diagnostic.log"
 
-# ============== W0 UUID TRACKING (Option A) ==============
-# Write current session UUID to state file so tmux launcher can resume it.
-# Only for W0 (JARVIS_WINDOW unset or "0"); skip W5 (dev) and lite sessions.
-if [[ "${JARVIS_WINDOW:-0}" == "0" ]] && [[ "$JARVIS_LITE" != "true" ]]; then
-    W0_UUID_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
-    if [[ "$SESSION_ID" != "unknown" ]]; then
-        echo "$SESSION_ID" > "$W0_UUID_FILE"
+# ============== PER-LANE SESSION UUID TRACKING ==============
+# Each lane records its OWN live session UUID so the tmux launcher can resume the
+# correct session (Claude Code keeps only one lastSessionId per project dir) and
+# jicm-self.sh can checkpoint the right transcript. Dev lane = JARVIS_SESSION_ROLE
+# =dev; W0 = JARVIS_WINDOW unset/0. Role check FIRST so the dev window (which may
+# leave JARVIS_WINDOW unset) can no longer clobber W0's .current-w0-uuid.
+if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
+    if [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-dev-uuid"
+        echo "$TIMESTAMP | SessionStart | DEV UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "${JARVIS_WINDOW:-0}" == "0" ]]; then
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
         echo "$TIMESTAMP | SessionStart | W0 UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     fi
 fi
