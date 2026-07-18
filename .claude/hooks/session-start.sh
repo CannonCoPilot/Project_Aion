@@ -59,12 +59,21 @@ echo "$TIMESTAMP | SessionStart | source=$SOURCE | session=$SESSION_ID | local_t
 # =dev; W0 = JARVIS_WINDOW unset/0. Role check FIRST so the dev window (which may
 # leave JARVIS_WINDOW unset) can no longer clobber W0's .current-w0-uuid.
 if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
-    if [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
-        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-dev-uuid"
-        echo "$TIMESTAMP | SessionStart | DEV UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
-    elif [[ "${JARVIS_WINDOW:-0}" == "0" ]]; then
+    # Precedence aligned to jicm_derive_key (window-first) so the two never drift: a
+    # leaked JARVIS_SESSION_ROLE=dev in W0's env can't misfile W0's UUID under
+    # .current-dev-uuid (which launch-aion.sh:resolve_dev_session reads to pick the dev
+    # resume candidate — misfiling feeds cross-lane confusion back into the launcher).
+    # `${JARVIS_WINDOW:-}` (no :-0 default) means a dev window that left JARVIS_WINDOW
+    # unset still falls to the role arm, not the w0 arm.
+    if [[ "${JARVIS_WINDOW:-}" == "0" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
         echo "$TIMESTAMP | SessionStart | W0 UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-dev-uuid"
+        echo "$TIMESTAMP | SessionStart | DEV UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ -z "${JARVIS_WINDOW:-}" ]]; then
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
+        echo "$TIMESTAMP | SessionStart | W0 UUID tracked (unset-window recovery): $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     fi
 fi
 
@@ -384,37 +393,65 @@ $(head -30 "$f")
 JICM_CYCLE_SIGNAL="${JICM_CLEAR_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.signal}"
 V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
 
-# ============== JICM DEV-LANE SELF-CLEAR (Phase 0.3a) ==============
-# The dev lane (W11, JARVIS_SESSION_ROLE=dev) runs its OWN deliberative
-# self-refresh via jicm-self.sh, namespaced so it never touches W0's state.
-# A dev /clear must resume from the DEV checkpoint — never W0's shared
-# .compressed-context-ready.md, which carries an unrelated W0 task (the
-# "generate a CV" mis-inject observed 2026-07-18). This branch is placed
-# BEFORE the W0 block and guarded on role==dev so W0 clears never enter it;
-# it fires whenever a dev checkpoint exists, and reads the dev clear-signal
-# only to distinguish an active self-refresh cycle from a manual dev clear.
-DEV_CKPT="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.dev.md"
-DEV_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.dev.signal"
-DEV_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.dev.signal"
+# JICM v9: derive this session's key + per-key paths (JK_*). Config (sourced above)
+# provides jicm_derive_key/jicm_key_paths; if it failed to load, fall back inline so
+# behavior never regresses (dev → legacy .dev.* paths; anything else → legacy w0).
+if command -v jicm_derive_key >/dev/null 2>&1 && command -v jicm_key_paths >/dev/null 2>&1; then
+    JICM_KEY="$(jicm_derive_key "$SESSION_ID")"
+    jicm_key_paths "$JICM_KEY"
+else
+    # config unavailable — mirror jicm_derive_key's EXACT precedence inline (window-first,
+    # then role, then unset-window→w0), then set legacy paths by key. A genuine stray
+    # (window set, !=0, not dev) stays session_id → matches neither injection branch →
+    # routes to the safety fallback, NOT blanket-forced to w0 (which would mis-inject).
+    if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then JICM_KEY="w0"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then JICM_KEY="dev"
+    elif [[ -z "${JARVIS_WINDOW:-}" ]];             then JICM_KEY="w0"
+    else JICM_KEY="$SESSION_ID"; fi
+    if [[ "$JICM_KEY" == "dev" ]]; then
+        JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.dev.md"
+        JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.dev.signal"
+        JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.dev.signal"
+    elif [[ "$JICM_KEY" == "w0" ]]; then
+        JK_COMPRESSED="$V6_COMPRESSED"; JK_CLEAR_SIGNAL="$JICM_CYCLE_SIGNAL"
+        JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
+    fi
+fi
 
-if [[ "$SOURCE" == "clear" ]] && [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]] && [[ -f "$DEV_CKPT" ]]; then
+# ============== JICM DEV-LANE SELF-CLEAR (Phase 0.3a → v9 per-key) ==============
+# The dev lane (W11, key=dev) resumes from its OWN checkpoint — never W0's shared
+# .compressed-context-ready.md (the "generate a CV" mis-inject observed 2026-07-18).
+# v9: prefer the per-key paths (jicm-actuate.sh writes JK_*); fall back to the legacy
+# .dev.* paths (jicm-self.sh writes them) so the current dev self-clear keeps working
+# until jicm-self.sh retires (Phase 2) — drop the *_LEGACY fallbacks then. Key-guarded
+# on JICM_KEY==dev so W0 clears never enter it, and the safety fallback below EXCLUDES
+# dev so a dev clear with no checkpoint can never mis-inject W0's checkpoint.
+DEV_CKPT_LEGACY="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.dev.md"
+DEV_CLEAR_LEGACY="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.dev.signal"
+DEV_RESUME_LEGACY="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.dev.signal"
+DEV_CKPT_EFF="$JK_COMPRESSED";    [[ -f "$DEV_CKPT_EFF" ]]  || DEV_CKPT_EFF="$DEV_CKPT_LEGACY"
+DEV_CLEAR_EFF="$JK_CLEAR_SIGNAL"; [[ -f "$DEV_CLEAR_EFF" ]] || DEV_CLEAR_EFF="$DEV_CLEAR_LEGACY"
+
+if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" == "dev" ]] && [[ -f "$DEV_CKPT_EFF" ]]; then
     DEV_CYCLE="manual"
-    [[ -f "$DEV_CLEAR_SIGNAL" ]] && DEV_CYCLE="self-refresh-cycle"
+    [[ -f "$DEV_CLEAR_EFF" ]] && DEV_CYCLE="self-refresh-cycle"
     echo "$TIMESTAMP | SessionStart | JICM dev-lane: injecting DEV checkpoint (mode=$DEV_CYCLE)" >> "$LOG_DIR/session-start-diagnostic.log"
 
-    DEV_CONTEXT=$(cat "$DEV_CKPT")
+    DEV_CONTEXT=$(cat "$DEV_CKPT_EFF")
 
     # No-Silent-Degradation: a manual /clear (no actuator) may resume from a
     # checkpoint built hours ago — surface its age LOUDLY rather than presenting
     # stale context as current. The self-refresh-cycle path just built it fresh,
     # so it is never warned.
+    # Judge staleness by the CHECKPOINT'S OWN mtime — NOT by DEV_CYCLE, because
+    # "self-refresh-cycle" is inferred from a signal file that a crashed prior actuator
+    # may have left behind, which would mask a genuinely old checkpoint (a No-Silent-
+    # Degradation gap). A freshly-built cycle checkpoint is <1m old → no warning fires.
     DEV_STALE_WARN=""
-    if [[ "$DEV_CYCLE" == "manual" ]]; then
-        DEV_AGE_MIN=$(( ( $(date +%s) - $(stat -f %m "$DEV_CKPT" 2>/dev/null || echo "$(date +%s)") ) / 60 ))
-        if [[ "$DEV_AGE_MIN" -gt 15 ]]; then
-            DEV_STALE_WARN="⚠️ STALENESS — this dev checkpoint is ${DEV_AGE_MIN}m old and was NOT rebuilt for this manual /clear; it may omit recent work. Reconcile against .scratchpad.dev.md and the tail of your transcript before trusting it; rebuild with 'jicm-self.sh refresh' if in doubt."
-            echo "$TIMESTAMP | SessionStart | JICM dev-lane: STALE checkpoint (${DEV_AGE_MIN}m) on manual clear — warned inline" >> "$LOG_DIR/session-start-diagnostic.log"
-        fi
+    DEV_AGE_MIN=$(( ( $(date +%s) - $(stat -f %m "$DEV_CKPT_EFF" 2>/dev/null || echo "$(date +%s)") ) / 60 ))
+    if [[ "$DEV_AGE_MIN" -gt 15 ]]; then
+        DEV_STALE_WARN="⚠️ STALENESS — this dev checkpoint is ${DEV_AGE_MIN}m old (cycle=$DEV_CYCLE); it may omit recent work. Reconcile against .scratchpad.dev.md and the tail of your transcript before trusting it; rebuild with 'jicm-self.sh refresh' if in doubt."
+        echo "$TIMESTAMP | SessionStart | JICM dev-lane: STALE checkpoint (${DEV_AGE_MIN}m, cycle=$DEV_CYCLE) — warned inline" >> "$LOG_DIR/session-start-diagnostic.log"
     fi
 
     MESSAGE="JICM dev-lane: context refreshed from DEV checkpoint.$ENV_STATUS"
@@ -446,14 +483,22 @@ interruption point recorded in the checkpoint above."
         }
       }'
 
-    # Signal the detached dev actuator (jicm-self.sh) that resume injection landed.
-    # DEV-namespaced so it never collides with W0's .jicm-resume-complete.signal.
-    echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$DEV_CKPT" 2>/dev/null | tr -d ' '),\"source\":\"dev-clear\",\"cycle\":\"$DEV_CYCLE\"}" > "$DEV_RESUME_SIGNAL" 2>/dev/null || true
+    # Signal that resume injection landed. Write BOTH targets so either detached
+    # actuator's wait is satisfied during migration: JK_RESUME_SIGNAL (v9
+    # jicm-actuate.sh) + the legacy .dev signal (jicm-self.sh). Both DEV-namespaced,
+    # never colliding with W0's. Drop the legacy write when jicm-self.sh retires.
+    mkdir -p "$(dirname "$JK_RESUME_SIGNAL")" 2>/dev/null
+    DEV_RESUME_JSON="{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$DEV_CKPT_EFF" 2>/dev/null | tr -d ' '),\"source\":\"dev-clear\",\"cycle\":\"$DEV_CYCLE\"}"
+    echo "$DEV_RESUME_JSON" > "$JK_RESUME_SIGNAL" 2>/dev/null || true
+    [[ "$JK_RESUME_SIGNAL" != "$DEV_RESUME_LEGACY" ]] && echo "$DEV_RESUME_JSON" > "$DEV_RESUME_LEGACY" 2>/dev/null || true
 
     exit 0
 fi
 
-if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
+if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" == "w0" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
+    # JICM v9: key-guarded (== w0) so a dev/stray clear can never enter W0's injection.
+    # For w0, JICM_CYCLE_SIGNAL/V6_COMPRESSED are the legacy paths (== JK_*), so this
+    # block stays byte-identical to the v7.9 behavior.
     V6_STATE="JICM_CYCLE_ACTIVE"
     echo "$TIMESTAMP | SessionStart | JICM v7.9: Detected active cycle (signal present)" >> "$LOG_DIR/session-start-diagnostic.log"
 
@@ -554,10 +599,38 @@ fi
 # v5 used two-mechanism resume: hook injection + idle-hands keystroke monitor.
 # v7.9 uses .jicm-clear-now.signal + .jicm-resume-complete.signal + stop-and-wait architecture (above).
 
+# ============== JICM v9 DEV CLEAR — NO CHECKPOINT ==============
+# A dev clear that reached here has NO dev checkpoint (the dev-branch above required
+# one). Give a minimal nudge — NEVER W0's checkpoint or prep — so a first-ever dev
+# clear (before any self-refresh cycle) starts oriented, not blank, and never inherits
+# W0's context (the mis-inject class). Dev never reaches the W0 safety fallback below.
+if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" == "dev" ]]; then
+    echo "$TIMESTAMP | SessionStart | JICM dev-lane: clear with no dev checkpoint — minimal nudge" >> "$LOG_DIR/session-start-diagnostic.log"
+    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": false, \"restart_type\": \"dev_clear_no_checkpoint\"}" > "$STATE_DIR/AC-01-launch.json"
+    jq -n \
+      --arg msg "JICM dev-lane: context cleared — no dev checkpoint found.$ENV_STATUS" \
+      --arg ctx "Dev context cleared, $LOCAL_DATE at $LOCAL_TIME. No dev checkpoint was available.
+You are W11 Jarvis-dev. Read .claude/context/.scratchpad.dev.md for your working state
+(it is NOT force-loaded), then continue from there or start fresh. Do NOT load W0's
+.compressed-context-ready.md — that is a different lane's context." \
+      '{
+        "systemMessage": $msg,
+        "hookSpecificOutput": {
+          "hookEventName": "SessionStart",
+          "additionalContext": $ctx
+        }
+      }'
+    exit 0
+fi
+
 # ============== CLEAR WITHOUT JICM (safety fallback) ==============
 # Legacy .soft-restart-checkpoint.md handling removed (v7 refurbishment).
 # Nothing creates that file anymore. Only .compressed-context-ready.md matters.
-if [[ "$SOURCE" == "clear" ]]; then
+if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" != "dev" ]]; then
+    # JICM v9: EXCLUDE dev — this fallback runs W0's prep (find_best_jsonl → W0's
+    # transcript) and injects W0's checkpoint. A dev clear that reached here (no dev
+    # checkpoint at all) must NOT get W0's context — that is exactly the mis-inject
+    # bug (2026-07-18); it simply starts clean instead.
     # Clear without JICM — run prep script to create backup context
     PREP_SCRIPT="${JICM_PREP_SCRIPT:-$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-prep-context.sh}"
     if [[ -x "$PREP_SCRIPT" ]]; then

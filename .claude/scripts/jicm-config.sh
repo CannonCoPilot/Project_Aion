@@ -109,14 +109,22 @@ jicm_registry_get()  { jq -r "${2:?field}" "$JICM_REGISTRY_DIR/${1:?key}.json" 2
 # Jarvis hook domain only ever sees w0 + dev (Protos/chains run Alfred's hooks and
 # register via the bridge). launch-aion.sh exports JARVIS_WINDOW=0 for W0 and
 # JARVIS_SESSION_ROLE=dev for the dev lane; both propagate to hook child processes.
-# Precedence: JARVIS_WINDOW==0 → w0 FIRST (a per-pane value W0 always sets), so a
-# leaked ambient JARVIS_SESSION_ROLE=dev in W0's launch env can NEVER misroute W0's
-# state into dev's namespace ([[reference_dev_lane_hook_testing_role_leak]] class).
-# dev sets JARVIS_WINDOW=5 (or leaves it unset) + ROLE=dev → caught by the role arm.
-# `${JARVIS_WINDOW:-}` uses NO :-0 default, so an unset window never false-matches w0.
+# Precedence (order is load-bearing):
+#   1. JARVIS_WINDOW==0 → w0 FIRST (a per-pane value W0 always sets), so a leaked
+#      ambient JARVIS_SESSION_ROLE=dev in W0's env can NEVER misroute W0's state into
+#      dev's namespace ([[reference_dev_lane_hook_testing_role_leak]] class).
+#   2. ROLE==dev → dev. dev sets JARVIS_WINDOW=5 OR leaves it unset; either way the
+#      role arm (checked before the unset-window arm) claims it.
+#   3. JARVIS_WINDOW UNSET (and not dev) → w0. A W0 session resumed OUTSIDE the
+#      launcher wrapper (`claude --resume <w0-uuid>`) has no JARVIS_WINDOW; it is still
+#      W0 and must land on the legacy state/signal the watcher polls — NOT a stray
+#      session_id namespace (which would silently blind the watcher + exclude it from
+#      its own session-start injection).
+#   4. else → the session_id (a genuine non-w0/non-dev lane; routes to safety paths).
 jicm_derive_key() {
     if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then echo "w0"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then echo "dev"
+    elif [[ -z "${JARVIS_WINDOW:-}" ]];             then echo "w0"
     else echo "${1:-unknown}"; fi
 }
 # Canonical tmux window per key (w0→:0, dev→:11). Resolved at CALL time (JICM_TMUX_SESSION
