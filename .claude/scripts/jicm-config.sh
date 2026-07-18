@@ -104,6 +104,31 @@ jicm_registry_upsert() {   # jicm_registry_upsert <key> [field=value ...]
 jicm_registry_keys() { ls -1 "$JICM_REGISTRY_DIR"/*.json 2>/dev/null | sed 's|.*/||; s|\.json$||'; }
 jicm_registry_get()  { jq -r "${2:?field}" "$JICM_REGISTRY_DIR/${1:?key}.json" 2>/dev/null; }  # get <key> <jq-filter>
 
+# Identity derivation — shared by jicm-gate.sh + jicm-stop.sh so they ALWAYS agree on
+# the key. ROLE=dev → dev; JARVIS_WINDOW=0 → w0; else the given session_id ($1). This
+# Jarvis hook domain only ever sees w0 + dev (Protos/chains run Alfred's hooks and
+# register via the bridge). launch-aion.sh exports JARVIS_WINDOW=0 for W0 and
+# JARVIS_SESSION_ROLE=dev for the dev lane; both propagate to hook child processes.
+# Precedence: JARVIS_WINDOW==0 → w0 FIRST (a per-pane value W0 always sets), so a
+# leaked ambient JARVIS_SESSION_ROLE=dev in W0's launch env can NEVER misroute W0's
+# state into dev's namespace ([[reference_dev_lane_hook_testing_role_leak]] class).
+# dev sets JARVIS_WINDOW=5 (or leaves it unset) + ROLE=dev → caught by the role arm.
+# `${JARVIS_WINDOW:-}` uses NO :-0 default, so an unset window never false-matches w0.
+jicm_derive_key() {
+    if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then echo "w0"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then echo "dev"
+    else echo "${1:-unknown}"; fi
+}
+# Canonical tmux window per key (w0→:0, dev→:11). Resolved at CALL time (JICM_TMUX_SESSION
+# is defined later in this file). Empty for unknown keys — registry/actuator handle that.
+jicm_default_target() {
+    case "${1:-}" in
+        w0)  echo "${JICM_TMUX_SESSION}:0"  ;;
+        dev) echo "${JICM_TMUX_SESSION}:11" ;;
+        *)   echo "" ;;
+    esac
+}
+
 # --- Session state files (read by prep script) -------------------------------
 JICM_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 JICM_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"

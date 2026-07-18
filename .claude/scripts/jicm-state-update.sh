@@ -27,7 +27,17 @@
 set -o pipefail
 
 PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
-STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
+# JICM v9: per-session state file. JICM_HOOK_STATE_FILE (distinct name — NOT the
+# JICM_STATE_FILE HUD-global in jicm-config.sh) lets the generalized gate/stop hooks
+# target each key's own state. UNSET → legacy single-session path (byte-identical, W0).
+# SET-BUT-EMPTY → a caller bug (e.g. a failed config load left JK_STATE=""); refuse
+# LOUD rather than silently corrupting the shared legacy file (No Silent Degradation).
+# The `-` (not `:-`) means ONLY an unset var takes the default; empty stays empty.
+STATE_FILE="${JICM_HOOK_STATE_FILE-$PROJECT_DIR/.claude/context/.jicm-state-hook.json}"
+if [[ -z "$STATE_FILE" ]]; then
+    echo "jicm-state-update: JICM_HOOK_STATE_FILE is set but empty — refusing to write (caller bug)" >&2
+    exit 1
+fi
 TMP_FILE="${STATE_FILE}.tmp.$$"
 
 trap 'rm -f "$TMP_FILE" 2>/dev/null' EXIT

@@ -34,13 +34,21 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
-STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
-SIGNAL_FILE="$PROJECT_DIR/.claude/context/.jicm-clear-now.signal"
 STATE_UPDATE="$PROJECT_DIR/.claude/scripts/jicm-state-update.sh"
 LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-stop.log"
-
 mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
 NOW_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# JICM v9: shared config provides jicm_derive_key / jicm_key_paths (JK_*). GUARD the
+# load: if config is missing/broken the key resolves to "" and (via jicm-state-update)
+# state could collapse onto W0's legacy file. Fail SAFE: log loud + exit 0 (no signal).
+# Key derivation itself is deferred until after the recursion/disable short-circuits.
+JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
+[[ -r "$JICM_CONFIG" ]] && . "$JICM_CONFIG"
+if ! command -v jicm_key_paths >/dev/null 2>&1 || ! command -v jicm_derive_key >/dev/null 2>&1; then
+    echo "$NOW_ISO | FATAL | jicm-config.sh failed to load — skipping (no signal written)" >> "$LOG_FILE"
+    exit 0
+fi
 
 # ─── Recursion guard ─────────────────────────────────────────────────────────
 STOP_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
@@ -49,13 +57,11 @@ if [[ "$STOP_ACTIVE" == "true" ]]; then
     exit 0
 fi
 
-# ─── W5 exclusion: dev/test window must not trigger W0 JICM cycles ──────────
-# If jicm-gate.sh's W5 exclusion fires (JARVIS_SESSION_ROLE=dev), the state
-# file retains W0's pending_action. Without this guard, W5's Stop event would
-# read that pending_action and write .jicm-clear-now.signal, interrupting W0.
-if [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
-    exit 0
-fi
+# ─── JICM v9: W5/dev exclusion DELETED ──────────────────────────────────────
+# Was needed because gate/stop shared ONE state+signal file, so a dev Stop would
+# fire W0's pending clear. Now each key reads its OWN JK_STATE and writes its OWN
+# JK_CLEAR_SIGNAL (derived below) — a dev Stop can only ever raise dev's signal,
+# never W0's. So dev participates (its clear-signal feeds the v9 supervisor).
 
 # ─── Disable check ───────────────────────────────────────────────────────────
 if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
@@ -63,13 +69,19 @@ if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/cont
     exit 0
 fi
 
+# ─── JICM v9: derive key + per-key paths (JK_STATE, JK_CLEAR_SIGNAL) ─────────
+SESSION_ID_IN=$(echo "$INPUT" | jq -r '.session_id // ""' 2>/dev/null)
+[[ "$SESSION_ID_IN" == "null" ]] && SESSION_ID_IN=""
+JICM_KEY="$(jicm_derive_key "$SESSION_ID_IN")"
+jicm_key_paths "$JICM_KEY"
+
 # ─── Read state file ─────────────────────────────────────────────────────────
-if [[ ! -f "$STATE_FILE" ]]; then
-    echo "$NOW_ISO | SKIP | no state file at $STATE_FILE" >> "$LOG_FILE"
+if [[ ! -f "$JK_STATE" ]]; then
+    echo "$NOW_ISO | SKIP | key=$JICM_KEY no state file at $JK_STATE" >> "$LOG_FILE"
     exit 0
 fi
 
-PENDING=$(jq -r '.pending_action // ""' "$STATE_FILE" 2>/dev/null)
+PENDING=$(jq -r '.pending_action // ""' "$JK_STATE" 2>/dev/null)
 [[ "$PENDING" == "null" ]] && PENDING=""
 
 if [[ "$PENDING" != "HALT_AFTER_RESPONSE" ]]; then
@@ -78,20 +90,23 @@ if [[ "$PENDING" != "HALT_AFTER_RESPONSE" ]]; then
 fi
 
 # ─── Threshold tripped: write signal ─────────────────────────────────────────
-TOKENS=$(jq -r '.tokens // 0' "$STATE_FILE" 2>/dev/null)
-ACTION=$(jq -r '.action // "unknown"' "$STATE_FILE" 2>/dev/null)
-SESSION_ID=$(jq -r '.session_id // "unknown"' "$STATE_FILE" 2>/dev/null)
-THRESHOLD_TOKENS=$(jq -r '.hard_threshold_tokens // 0' "$STATE_FILE" 2>/dev/null)
+TOKENS=$(jq -r '.tokens // 0' "$JK_STATE" 2>/dev/null)
+ACTION=$(jq -r '.action // "unknown"' "$JK_STATE" 2>/dev/null)
+SESSION_ID=$(jq -r '.session_id // "unknown"' "$JK_STATE" 2>/dev/null)
+THRESHOLD_TOKENS=$(jq -r '.hard_threshold_tokens // 0' "$JK_STATE" 2>/dev/null)
 
-cat > "$SIGNAL_FILE" <<JSON
+# Signal JSON schema UNCHANGED (byte-identical for w0 — the watcher parses these exact
+# fields; the key is encoded in the signal's PATH, so no extra field is added).
+mkdir -p "$(dirname "$JK_CLEAR_SIGNAL")" 2>/dev/null
+cat > "$JK_CLEAR_SIGNAL" <<JSON
 {"threshold_type":"$ACTION","tokens":$TOKENS,"threshold_tokens":$THRESHOLD_TOKENS,"session_id":"$SESSION_ID","ts":"$NOW_ISO"}
 JSON
 
-echo "$NOW_ISO | SIGNAL | wrote .jicm-clear-now.signal | tokens=$TOKENS action=$ACTION session=$SESSION_ID" >> "$LOG_FILE"
+echo "$NOW_ISO | SIGNAL | key=$JICM_KEY wrote $(basename "$JK_CLEAR_SIGNAL") | tokens=$TOKENS action=$ACTION session=$SESSION_ID" >> "$LOG_FILE"
 
-# ─── Clear pending_action atomically ─────────────────────────────────────────
+# ─── Clear pending_action atomically (per-key state file) ────────────────────
 if [[ -x "$STATE_UPDATE" ]]; then
-    "$STATE_UPDATE" --clear-pending
+    JICM_HOOK_STATE_FILE="$JK_STATE" "$STATE_UPDATE" --clear-pending
 fi
 
 # Rotate log if > 100KB

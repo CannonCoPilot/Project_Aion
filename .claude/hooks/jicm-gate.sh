@@ -62,14 +62,24 @@ fi
 # ─── Config ─────────────────────────────────────────────────────────────────
 PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-gate.log"
-STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 STATE_UPDATE="$PROJECT_DIR/.claude/scripts/jicm-state-update.sh"
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null
+
+# JICM v9: shared config provides jicm_derive_key, jicm_key_paths (JK_*), and
+# jicm_registry_upsert. GUARD the load: if config is missing/broken, the key would
+# resolve to "" → state silently collapses onto W0's legacy file (dev data corrupting
+# W0). Fail SAFE: log loud + pass through WITHOUT writing any state.
+JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
+[[ -r "$JICM_CONFIG" ]] && . "$JICM_CONFIG"
+if ! command -v jicm_key_paths >/dev/null 2>&1 || ! command -v jicm_derive_key >/dev/null 2>&1; then
+    echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | FATAL | jicm-config.sh failed to load — NOT writing state (would corrupt W0's shared file)" >> "$LOG_FILE"
+    echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
+    exit 0
+fi
 
 # Default thresholds in TOKENS (User encoding directive: not percentages)
 JICM_SOFT_TOKENS="${JICM_SOFT_TOKENS:-250000}"   # 25% of 1M default
 JICM_HARD_TOKENS="${JICM_HARD_TOKENS:-300000}"   # 30% of 1M default
-
-mkdir -p "$(dirname "$LOG_FILE")" "$(dirname "$STATE_FILE")" 2>/dev/null
 
 # ─── Disable check ──────────────────────────────────────────────────────────
 if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
@@ -77,24 +87,24 @@ if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/cont
     exit 0
 fi
 
-# ─── W5 exclusion: skip state write for dev/test sessions ───────────────────
-# W5:Jarvis-dev shares CLAUDE_PROJECT_DIR with W0. Without this guard, W5
-# prompts overwrite .jicm-state-hook.json with W5 session data (Sonnet 4.6,
-# 200K window), causing the watcher to monitor W5 instead of W0. JICM
-# thresholds (250K/300K) are above W5's max window → JICM never fires for W0.
-# JARVIS_SESSION_ROLE=dev is set by launch-aion.sh for W5's Claude process
-# and propagated to hook child processes.
-JARVIS_W5_UUID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
-if [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
-    echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
-    exit 0
-fi
+# ─── JICM v9: W5/dev exclusion DELETED ──────────────────────────────────────
+# The exclusion existed ONLY because dev + W0 shared one .jicm-state-hook.json, so
+# dev prompts clobbered W0's state (Sonnet/200K masking Opus/1M) and blinded the
+# watcher. Now that state is namespaced per <key> (JK_STATE below), dev writes its
+# OWN file and can no longer touch W0's — so dev is SENSED (required for the v9
+# supervisor + registry), not excluded. Key derivation replaces the guard.
 
 # ─── Extract identifiers from stdin ─────────────────────────────────────────
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null)
 TRANSCRIPT=$(echo "$INPUT" | jq -r '.transcript_path // ""' 2>/dev/null)
 [[ "$SESSION_ID" == "null" ]] && SESSION_ID="unknown"
 [[ "$TRANSCRIPT" == "null" ]] && TRANSCRIPT=""
+
+# ─── JICM v9: derive session key + per-key paths (replaces the exclusion) ────
+JICM_KEY="$(jicm_derive_key "$SESSION_ID")"
+KEY_TARGET="$(jicm_default_target "$JICM_KEY")"
+jicm_key_paths "$JICM_KEY"
+mkdir -p "$(dirname "$JK_STATE")" 2>/dev/null
 
 # ─── Parse JSONL for latest assistant usage (CANONICAL SOURCE) ──────────────
 # Phase 0.2 refactor: extract ephemeral cache breakdown so .jicm-state-hook.json
@@ -179,9 +189,9 @@ WIN_SOFT=$(( WINDOW * 66 / 100 ))
 # ─── Burn-rate tracking (delta vs. previous state) ──────────────────────────
 PREV_TOKENS=0
 PREV_TS=0
-if [[ -f "$STATE_FILE" ]]; then
-    PREV_TOKENS=$(jq -r '.tokens // 0' "$STATE_FILE" 2>/dev/null)
-    PREV_TS=$(jq -r '.ts_epoch // 0' "$STATE_FILE" 2>/dev/null)
+if [[ -f "$JK_STATE" ]]; then
+    PREV_TOKENS=$(jq -r '.tokens // 0' "$JK_STATE" 2>/dev/null)
+    PREV_TS=$(jq -r '.ts_epoch // 0' "$JK_STATE" 2>/dev/null)
     [[ "$PREV_TOKENS" == "null" ]] && PREV_TOKENS=0
     [[ "$PREV_TS" == "null" ]] && PREV_TS=0
 fi
@@ -224,7 +234,7 @@ fi
 
 # ─── Atomic state write via helper ──────────────────────────────────────────
 if [[ -x "$STATE_UPDATE" ]]; then
-    cat <<JSON | "$STATE_UPDATE" --write
+    cat <<JSON | JICM_HOOK_STATE_FILE="$JK_STATE" "$STATE_UPDATE" --write
 {
   "version": "7.9",
   "ts": "$NOW_ISO",
@@ -256,8 +266,18 @@ if [[ -x "$STATE_UPDATE" ]]; then
 JSON
 fi
 
+# ─── JICM v9: registry heartbeat (supervisor reads this; last_seen = liveness) ───
+# Additive — never read by the legacy watcher, so W0 stays byte-identical. Refreshes
+# the LIVE transcript_path every prompt (each session = a new UUID) so the supervisor
+# always has the current transcript. steward_shared_memory=true only for w0.
+REG_EXTRA=""
+[[ "$JICM_KEY" == "w0" ]] && REG_EXTRA="steward_shared_memory=true"
+jicm_registry_upsert "$JICM_KEY" \
+    session_id="$SESSION_ID" transcript_path="$TRANSCRIPT" tmux_target="$KEY_TARGET" \
+    class=interactive reset_policy=preserve-restore owner=jarvis $REG_EXTRA
+
 # ─── Log ────────────────────────────────────────────────────────────────────
-echo "$NOW_ISO | $ACTION | tokens=$TOKENS/$WINDOW (${USED_PCT}%) | thresholds soft=$JICM_SOFT_TOKENS hard=$JICM_HARD_TOKENS | burn=${BURN_RATE_TPM}tpm | model=$MODEL | session=$SESSION_ID" >> "$LOG_FILE"
+echo "$NOW_ISO | $ACTION | key=$JICM_KEY | tokens=$TOKENS/$WINDOW (${USED_PCT}%) | thresholds soft=$JICM_SOFT_TOKENS hard=$JICM_HARD_TOKENS | burn=${BURN_RATE_TPM}tpm | model=$MODEL | session=$SESSION_ID" >> "$LOG_FILE"
 
 # Rotate log if > 100KB
 LOG_SIZE=$(wc -c < "$LOG_FILE" 2>/dev/null | tr -d ' ' || echo 0)
