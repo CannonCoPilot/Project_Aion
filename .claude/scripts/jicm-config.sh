@@ -41,6 +41,69 @@ JICM_PID_FILE="$PROJECT_DIR/.claude/context/.jicm-watcher.pid"
 JICM_STATE_FILE="$PROJECT_DIR/.claude/context/.jicm-state"            # read by HUD (jicm-watcher-hud.sh)
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"          # current W0 session UUID (launcher reads, session-start writes)
 
+# --- Multi-session (JICM v9) — registry + per-key namespaced paths ------------
+# v9 manages N sessions, each with a stable <key> (w0, dev, protos, chain-<id>…).
+# `jicm_key_paths <key>` populates JK_* for that session:
+#   key=w0  → the LEGACY single-session paths above, BYTE-IDENTICAL (back-compat
+#             during migration — the v7.9 watcher keeps working until Phase 3).
+#   else    → namespaced under jicm/ so no two sessions ever collide.
+JICM_DIR="$PROJECT_DIR/.claude/context/jicm"
+JICM_REGISTRY_DIR="$JICM_DIR/registry"
+JICM_SIGNALS_DIR="$JICM_DIR/signals"
+JICM_STATES_DIR="$JICM_DIR/state"
+JICM_CHECKPOINTS_DIR="$JICM_DIR/checkpoints"
+
+jicm_key_paths() {
+    local key="${1:?jicm_key_paths: key required}"
+    JK_KEY="$key"
+    JK_REGISTRY="$JICM_REGISTRY_DIR/$key.json"
+    if [[ "$key" == "w0" ]]; then
+        # Byte-identical legacy paths — DO NOT change (W0 back-compat).
+        JK_STATE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
+        JK_CLEAR_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-clear-now.signal"
+        JK_RESUME_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
+        JK_COMPRESSION_SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
+        JK_COMPRESSED="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
+        JK_COMPRESSION_GUARD="$PROJECT_DIR/.claude/context/.compression-in-progress"
+        JK_METADATA="$PROJECT_DIR/.claude/context/.jicm-last-compression.json"
+        JK_METRICS="$PROJECT_DIR/.claude/logs/context-window-metrics.jsonl"
+        JK_JSONL_STATS="$PROJECT_DIR/.claude/context/.jsonl-compression-stats.json"
+        JK_SCROLLBACK="$PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
+        JK_SCROLLBACK_SUMMARY="$PROJECT_DIR/.claude/context/.pre-clear-scrollback-summary.md"
+    else
+        JK_STATE="$JICM_STATES_DIR/$key.json"
+        JK_CLEAR_SIGNAL="$JICM_SIGNALS_DIR/clear-now.$key.signal"
+        JK_RESUME_SIGNAL="$JICM_SIGNALS_DIR/resume-complete.$key.signal"
+        JK_COMPRESSION_SIGNAL="$JICM_SIGNALS_DIR/compression-done.$key.signal"
+        JK_COMPRESSED="$JICM_CHECKPOINTS_DIR/$key.compressed.md"
+        JK_COMPRESSION_GUARD="$JICM_SIGNALS_DIR/compression-in-progress.$key"
+        JK_METADATA="$JICM_STATES_DIR/$key.last-compression.json"
+        JK_METRICS="$PROJECT_DIR/.claude/logs/context-window-metrics.$key.jsonl"
+        JK_JSONL_STATS="$JICM_STATES_DIR/$key.jsonl-compression-stats.json"
+        JK_SCROLLBACK="$JICM_CHECKPOINTS_DIR/$key.scrollback.md"
+        JK_SCROLLBACK_SUMMARY="$JICM_CHECKPOINTS_DIR/$key.scrollback-summary.md"
+    fi
+}
+
+# Registry helpers (shared by gate upsert, supervisor read/GC, chain bridge).
+# One JSON file per key under registry/. Merge-upsert keeps registered_at, stamps last_seen.
+jicm_registry_upsert() {   # jicm_registry_upsert <key> [field=value ...]
+    local key="${1:?jicm_registry_upsert: key required}"; shift
+    mkdir -p "$JICM_REGISTRY_DIR" 2>/dev/null
+    local f="$JICM_REGISTRY_DIR/$key.json" now base filter kv k v
+    now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    base='{}'; [[ -f "$f" ]] && base="$(cat "$f" 2>/dev/null || echo '{}')"
+    local jqargs=(--arg key "$key" --arg ls "$now")
+    filter='.key=$key | .last_seen=$ls | (.registered_at //= $ls)'
+    for kv in "$@"; do
+        k="${kv%%=*}"; v="${kv#*=}"
+        jqargs+=(--arg "f_$k" "$v"); filter="$filter | .[\"$k\"]=\$f_$k"
+    done
+    printf '%s' "$base" | jq "${jqargs[@]}" "$filter" > "$f.tmp.$$" 2>/dev/null && mv "$f.tmp.$$" "$f" || rm -f "$f.tmp.$$" 2>/dev/null
+}
+jicm_registry_keys() { ls -1 "$JICM_REGISTRY_DIR"/*.json 2>/dev/null | sed 's|.*/||; s|\.json$||'; }
+jicm_registry_get()  { jq -r "${2:?field}" "$JICM_REGISTRY_DIR/${1:?key}.json" 2>/dev/null; }  # get <key> <jq-filter>
+
 # --- Session state files (read by prep script) -------------------------------
 JICM_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 JICM_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"

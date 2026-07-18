@@ -69,6 +69,8 @@ Every Phase 0 / Phase 1 item carries: **objective · deliverable (real cited tar
 
 *Status 2026-07-17 —* the per-lane checkpoint/signal/scratchpad plumbing and the detached actuator are **built and dry-validated**; W0-uncontamination is **proven for the prep path**. What remains for 2.1: the one supervised canary fire, the un-gate, and the autonomic-floor trigger (ii).
 
+*Status 2026-07-18 —* 2.1(ii) has been **generalized to its pinnacle** as **JICM v9 — Unified Multi-Session Context Steward** (design: `designs/jicm-v9-multi-session-steward.md`, plan approved): one registry-driven supervisor manages **every** live Claude Code session — W0 folded in as a first-class citizen (legacy watcher retired), plus W11, Protos (custom zero-state reset), and ephemeral task-board chains — with per-session namespacing, transient detached actuators, and pluggable reset policies. Phase 0 (design) done; Phase 1 (foundation) in progress.
+
 **2.2–2.3 — Reflex re-animation and escalation** *(directional — buildable acceptance deferred until each reflex's live trigger-state is audited, so as not to spec fiction — this roadmap's cardinal rule)*
 - Wire the dormant reflexes — AC-05 reflection, AC-08 maintenance, AC-07 R&D — to **genuine autonomic triggers** (idle, threshold, event) *and* to deliberate self-invocation; fix the will-triggered-masquerading-as-autonomic gap.
 - Convert the correct-not-resolve log into an **escalation** (3rd recurrence → an auto-filed fix task, not another logged shrug).
