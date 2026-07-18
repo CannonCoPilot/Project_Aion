@@ -72,7 +72,14 @@ jicm/
 - **Phase 4 — Cross-project:** bridge registers Protos + chains; supervisor senses/actuates Alfred sessions; Protos `zero-state`; tmux-discovery failsafe.
 - **Phase 5 — Multi-session HUD:** `jicm-watcher-hud.sh` → registry-iterating N rows.
 
-**Phase status:** Phase 0 ✅ (this doc + runbook + roadmap pointer). Phase 1 — **foundation done** (`jicm-config.sh`: `jicm_key_paths <key>` with `key=w0` byte-identical to legacy, verified; `jicm_registry_upsert`/`_keys`/`_get` helpers). **Next in Phase 1:** `jicm-actuate.sh <key>` (generalize `cmd_actuate` + fold in watcher steps 5.5–5.9 + policies), then gate/stop/session-start generalization (per-key, drop dev-exclusion, registry upsert).
+**Phase status:** Phase 0 ✅. **Phase 1 ✅ COMPLETE (2026-07-18)** — committed local (not pushed):
+- Foundation (`94beb8d`): `jicm-config.sh` — `jicm_key_paths <key>` (`key=w0` byte-identical), registry helpers, `jicm_derive_key`/`jicm_default_target`.
+- Step 1 (`a37e4b0`): `jicm-actuate.sh <key>` — generalized `cmd_actuate` + folded-in watcher steps 5.5–5.9; policies `preserve-restore`/`zero-state`/`monitor`; gate-sentinel + EXIT-trap + self-decapitation guards.
+- Step 2 (`3adf57d`): `jicm-gate.sh`/`jicm-stop.sh` per-`<key>` + `jicm-state-update.sh` `JICM_HOOK_STATE_FILE` override; **dev-exclusion deleted** (namespacing dissolves the collision).
+- Step 3 (`f1a39a9`): `session-start.sh` per-`<key>` clear-injection; migration bridge (JK_ preferred, legacy `.dev` fallback keeps `jicm-self.sh` working); W0→dev mis-inject fixed.
+- Validation: 3 adversarial code-review cycles (2 CRITICAL + 1 HIGH + 2 MEDIUM + notes, all fixed) + 54 isolation-harness assertions green. `key=w0` byte-identical throughout; the v7.9 watcher runs untouched until Phase 3.
+
+**Next: Phase 2 — Supervisor; prove on W11 (requires human hand for the canary).** `jicm-supervisor.sh` (registry loop + GC + detached actuators); canary-validate the detached actuator on a disposable session; then un-gate `jicm-actuate.sh --fire` (delete the `--canary` gate block). The live-fire canary cannot be run autonomously. Phase-2 follow-ups from review: shared `.jicm-exit-mode.signal` now spans dev; the supervisor must string-compare `steward_shared_memory` ("true").
 
 ## 6. Files & reuse
 
