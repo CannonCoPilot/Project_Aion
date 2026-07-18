@@ -55,7 +55,7 @@ USER_MSG_COUNT=10         # Number of recent user messages to include
 MSG_TRUNCATE_CHARS=2000   # Max chars per user message (was 500)
 INCLUDE_PLAN=true         # Include active plan context in checkpoint
 INCLUDE_ASSISTANT=true    # Include assistant messages for richer context
-JSONL_PATH=""             # Override JSONL path (for experiments)
+JSONL_PATH="${JICM_JSONL_PATH:-}"  # Override JSONL path (env: dev lane self-refresh; or .prep-override for experiments)
 LLM_SUMMARIZE=true        # Enable local LLM narrative pass (Tier 2)
 LLM_ENDPOINT="http://localhost:11434/api/chat"  # Ollama direct (LiteLLM adds 13s overhead)
 LLM_MODEL="qwen3:8b"
@@ -224,7 +224,7 @@ fi
 JSONL_COMPRESS_SCRIPT="$PROJECT_DIR/.claude/scripts/compress-jsonl.py"
 if [[ -f "$JSONL_COMPRESS_SCRIPT" ]] && [[ -n "$JSONL" ]]; then
     JSONL_COMPRESSED="${JSONL}.stage1.tmp"
-    JSONL_STATS="${PROJECT_DIR}/.claude/context/.jsonl-compression-stats.json"
+    JSONL_STATS="${JICM_JSONL_STATS:-${PROJECT_DIR}/.claude/context/.jsonl-compression-stats.json}"
     if python3 "$JSONL_COMPRESS_SCRIPT" \
         --input "$JSONL" \
         --output "$JSONL_COMPRESSED" \
@@ -694,7 +694,7 @@ echo "$(date +%s)" > "$SIGNAL"
 PREP_END_TIME=$(date +%s)
 PREP_DURATION=$(( PREP_END_TIME - PREP_START_TIME ))
 
-METADATA_FILE="$PROJECT_DIR/.claude/context/.jicm-last-compression.json"
+METADATA_FILE="${JICM_METADATA_FILE:-$PROJECT_DIR/.claude/context/.jicm-last-compression.json}"
 JSONL_BASENAME=""
 JSONL_SIZE=0
 if [[ -n "$JSONL" ]] && [[ -f "$JSONL" ]]; then
@@ -739,7 +739,7 @@ METADATA_EOF
 # Each compression marks the end of a context window. Emit metrics for
 # cross-window comparison, /meditate-session review, and Pulse UI visualization.
 
-METRICS_FILE="$PROJECT_DIR/.claude/logs/context-window-metrics.jsonl"
+METRICS_FILE="${JICM_METRICS_FILE:-$PROJECT_DIR/.claude/logs/context-window-metrics.jsonl}"
 # v7.9.6c: read telemetry from .jicm-state-hook.json (canonical v7.9 state file).
 # Legacy .jicm-state was a v7.3 → v7.9 back-compat shim, removed at 7.9.6c.
 JICM_STATE_HOOK_FILE="${JICM_STATE_HOOK_FILE:-$PROJECT_DIR/.claude/context/.jicm-state-hook.json}"

@@ -25,8 +25,15 @@ JICM_CLEAR_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-clear-now.signal"
 JICM_RESUME_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
 
 # --- Active state files -------------------------------------------------------
-JICM_COMPRESSED_FILE="$PROJECT_DIR/.claude/context/.compressed-context-ready.md"
-JICM_COMPRESSION_SIGNAL="$PROJECT_DIR/.claude/context/.compression-done.signal"
+# COMPRESSED_FILE / COMPRESSION_SIGNAL are DEFAULT-guarded (not clobbered) so a
+# consumer may override the output target per-invocation before sourcing — e.g.
+# the dev-lane self-refresh actuator (jicm-self.sh) redirects them to
+# .compressed-context-ready.dev.md / .compression-done.dev.signal so its prep run
+# never overwrites W0's shared checkpoint. Unset → identical W0 default (no-op).
+# This also makes jicm-prep-context.sh's `OUTPUT="${JICM_COMPRESSED_FILE:-…}"`
+# override actually take effect (previously dead — clobbered by this source).
+JICM_COMPRESSED_FILE="${JICM_COMPRESSED_FILE:-$PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
+JICM_COMPRESSION_SIGNAL="${JICM_COMPRESSION_SIGNAL:-$PROJECT_DIR/.claude/context/.compression-done.signal}"
 JICM_COMPRESSION_GUARD="$PROJECT_DIR/.claude/context/.compression-in-progress"
 JICM_EXIT_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal"
 JICM_SLEEP_SIGNAL="$PROJECT_DIR/.claude/context/.jicm-sleep.signal"   # written by AC-10 Ulfhedthnar to suppress JICM
@@ -45,8 +52,9 @@ JICM_INJECT_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-inject.sh"
 
 # --- Logs, archives, metadata -----------------------------------------------
 JICM_LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-watcher.log"
+JICM_WATCHER_LOOP_LOG="$PROJECT_DIR/.claude/logs/jicm-watcher-loop.log"
 JICM_ARCHIVE_DIR="$PROJECT_DIR/.claude/logs/jicm/archive"
-JICM_METADATA_FILE="$PROJECT_DIR/.claude/context/.jicm-last-compression.json"
+JICM_METADATA_FILE="${JICM_METADATA_FILE:-$PROJECT_DIR/.claude/context/.jicm-last-compression.json}"
 
 # --- JSONL transcript directory ---------------------------------------------
 JICM_PROJECT_SLUG=$(echo "$PROJECT_DIR" | tr '/' '-')

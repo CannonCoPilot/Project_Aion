@@ -23,11 +23,20 @@ set -o pipefail
 # --- Source shared configuration --------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pwd)}}"
+# W0-safety: strip ambient per-invocation overrides so a stray operator export can't
+# silently redirect W0's checkpoint/telemetry. The watcher is W0-only; the dev
+# actuator overrides prep command-scoped, never through this process's environment.
+unset JICM_COMPRESSED_FILE JICM_COMPRESSION_SIGNAL JICM_JSONL_PATH \
+      JICM_METADATA_FILE JICM_METRICS_FILE JICM_JSONL_STATS
 . "$SCRIPT_DIR/jicm-config.sh"
 
 # --- Logging ----------------------------------------------------------------
-mkdir -p "$(dirname "$JICM_LOG_FILE")" "$(dirname "$JICM_PID_FILE")"
-log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$JICM_LOG_FILE"; }
+mkdir -p "$(dirname "$JICM_LOG_FILE")" "$(dirname "$JICM_WATCHER_LOOP_LOG")" "$(dirname "$JICM_PID_FILE")"
+# Fix #3 (2026-06-23): watcher loop log split from shared subprocess-output log.
+# log() writes to JICM_WATCHER_LOOP_LOG (clean stream of watcher cycle/threshold/signal events).
+# Subprocess captures (Graphiti, ingest, consolidate, rotate) STILL redirect to JICM_LOG_FILE
+# so per-job debugging keeps its full stdout/stderr in one place.
+log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$JICM_WATCHER_LOOP_LOG"; }
 
 # --- Singleton guard --------------------------------------------------------
 if [[ -f "$JICM_PID_FILE" ]]; then

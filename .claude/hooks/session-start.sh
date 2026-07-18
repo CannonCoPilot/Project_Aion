@@ -25,6 +25,14 @@ INPUT=$(cat)
 # Source shared JICM config (defines all paths)
 PROJECT_DIR="$CLAUDE_PROJECT_DIR"
 JICM_CONFIG="$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-config.sh"
+# W0-safety: strip any ambient per-invocation overrides before sourcing config, so
+# a stray operator `export JICM_COMPRESSED_FILE=...dev...` in the shell that started
+# the tmux server can never silently redirect W0's checkpoint/telemetry. The dev
+# actuator sets these command-scoped on its prep call only (jicm-prep-context.sh
+# does NOT unset), so its legitimate override still works; the dev branch below
+# uses literal .dev paths, not these vars.
+unset JICM_COMPRESSED_FILE JICM_COMPRESSION_SIGNAL JICM_JSONL_PATH \
+      JICM_METADATA_FILE JICM_METRICS_FILE JICM_JSONL_STATS
 if [[ -f "$JICM_CONFIG" ]]; then
     source "$JICM_CONFIG"
 fi
@@ -375,6 +383,75 @@ $(head -30 "$f")
 # removes it during step-9 cleanup post-RESUME).
 JICM_CYCLE_SIGNAL="${JICM_CLEAR_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.signal}"
 V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
+
+# ============== JICM DEV-LANE SELF-CLEAR (Phase 0.3a) ==============
+# The dev lane (W11, JARVIS_SESSION_ROLE=dev) runs its OWN deliberative
+# self-refresh via jicm-self.sh, namespaced so it never touches W0's state.
+# A dev /clear must resume from the DEV checkpoint — never W0's shared
+# .compressed-context-ready.md, which carries an unrelated W0 task (the
+# "generate a CV" mis-inject observed 2026-07-18). This branch is placed
+# BEFORE the W0 block and guarded on role==dev so W0 clears never enter it;
+# it fires whenever a dev checkpoint exists, and reads the dev clear-signal
+# only to distinguish an active self-refresh cycle from a manual dev clear.
+DEV_CKPT="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.dev.md"
+DEV_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.dev.signal"
+DEV_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.dev.signal"
+
+if [[ "$SOURCE" == "clear" ]] && [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]] && [[ -f "$DEV_CKPT" ]]; then
+    DEV_CYCLE="manual"
+    [[ -f "$DEV_CLEAR_SIGNAL" ]] && DEV_CYCLE="self-refresh-cycle"
+    echo "$TIMESTAMP | SessionStart | JICM dev-lane: injecting DEV checkpoint (mode=$DEV_CYCLE)" >> "$LOG_DIR/session-start-diagnostic.log"
+
+    DEV_CONTEXT=$(cat "$DEV_CKPT")
+
+    # No-Silent-Degradation: a manual /clear (no actuator) may resume from a
+    # checkpoint built hours ago — surface its age LOUDLY rather than presenting
+    # stale context as current. The self-refresh-cycle path just built it fresh,
+    # so it is never warned.
+    DEV_STALE_WARN=""
+    if [[ "$DEV_CYCLE" == "manual" ]]; then
+        DEV_AGE_MIN=$(( ( $(date +%s) - $(stat -f %m "$DEV_CKPT" 2>/dev/null || echo "$(date +%s)") ) / 60 ))
+        if [[ "$DEV_AGE_MIN" -gt 15 ]]; then
+            DEV_STALE_WARN="⚠️ STALENESS — this dev checkpoint is ${DEV_AGE_MIN}m old and was NOT rebuilt for this manual /clear; it may omit recent work. Reconcile against .scratchpad.dev.md and the tail of your transcript before trusting it; rebuild with 'jicm-self.sh refresh' if in doubt."
+            echo "$TIMESTAMP | SessionStart | JICM dev-lane: STALE checkpoint (${DEV_AGE_MIN}m) on manual clear — warned inline" >> "$LOG_DIR/session-start-diagnostic.log"
+        fi
+    fi
+
+    MESSAGE="JICM dev-lane: context refreshed from DEV checkpoint.$ENV_STATUS"
+    CONTEXT="JICM DEV-LANE CONTEXT RESTORATION — NOT a new session.
+You are W11 Jarvis-dev. Your context was cleared via the dev-lane self-refresh cycle.
+Resume work immediately. Do NOT greet. Do NOT ask what to work on.
+${DEV_STALE_WARN:+
+$DEV_STALE_WARN
+}
+Current datetime: $LOCAL_DATE at $LOCAL_TIME
+
+Dev Checkpoint (.compressed-context-ready.dev.md):
+$DEV_CONTEXT
+
+Before continuing, read .claude/context/.scratchpad.dev.md — your dev working-state
+(it is NOT force-loaded; only the W0 .scratchpad.md is). Then resume from the
+interruption point recorded in the checkpoint above."
+
+    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"compression_type\": \"jicm_dev\", \"restart_type\": \"dev_self_clear\", \"dev_cycle\": \"$DEV_CYCLE\"}" > "$STATE_DIR/AC-01-launch.json"
+
+    jq -n \
+      --arg msg "$MESSAGE" \
+      --arg ctx "$CONTEXT" \
+      '{
+        "systemMessage": $msg,
+        "hookSpecificOutput": {
+          "hookEventName": "SessionStart",
+          "additionalContext": $ctx
+        }
+      }'
+
+    # Signal the detached dev actuator (jicm-self.sh) that resume injection landed.
+    # DEV-namespaced so it never collides with W0's .jicm-resume-complete.signal.
+    echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$DEV_CKPT" 2>/dev/null | tr -d ' '),\"source\":\"dev-clear\",\"cycle\":\"$DEV_CYCLE\"}" > "$DEV_RESUME_SIGNAL" 2>/dev/null || true
+
+    exit 0
+fi
 
 if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
     V6_STATE="JICM_CYCLE_ACTIVE"
