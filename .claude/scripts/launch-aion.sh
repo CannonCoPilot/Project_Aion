@@ -42,7 +42,8 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-07-15 — v3.2: default model Claude Fable 5 @ max effort (W0 + Jarvis-dev);
+# Updated: 2026-07-17 — v3.3: default model Claude Opus 4.8 1M @ max effort, unified across
+#          W0 (Jarvis) + W1 (Protos/Alfred seed) + W11 (Jarvis-dev) via AION_MODEL;
 #          Jarvis-dev cross-codebase --add-dir (Projects, GitRepos); refreshed awareness doc
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
@@ -54,7 +55,7 @@ ALFRED_DIR="$PROJECT_DIR/alfred"
 # stay on the same model: executor tasks fork from W0's warm session to inherit
 # its prefix cache, and a model mismatch invalidates that shared cache. Exported
 # so an explicit `AION_MODEL=… ./launch-aion.sh` override propagates to children.
-export AION_MODEL="${AION_MODEL:-claude-fable-5}"
+export AION_MODEL="${AION_MODEL:-claude-opus-4-8[1m]}"
 
 # ── Window Index Map ──────────────────────────────────────────────────
 # Permanent window ordering. Core sessions first, infrastructure second,

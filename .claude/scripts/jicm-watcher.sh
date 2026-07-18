@@ -355,7 +355,7 @@ refresh_state_from_jsonl() {
     local transcript window
     transcript=$(jq -r '.transcript_path // empty' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
     [[ -n "$transcript" && -f "$transcript" ]] || return 0
-    window=$(jq -r '.context_window_size // 1000000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+    window=$(jq -r '.context_window_size // 250000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)  # 250K conservative default when window unknown
 
     local usage input_t cache_r cache_c cache_5m cache_1h tokens used_pct now_iso now_epoch
     usage=$(jq -c 'select(.type=="assistant") | .message.usage' "$transcript" 2>/dev/null | tail -1)

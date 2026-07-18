@@ -37,6 +37,10 @@
 #   JICM_DISABLED=true        Skip the hook entirely (e.g., during /end-session)
 #   JICM_SOFT_TOKENS=250000   Soft threshold in TOKENS (default 250K = 25% of 1M)
 #   JICM_HARD_TOKENS=300000   Hard threshold in TOKENS (default 300K = 30% of 1M)
+#     Both are CLAMPED per detected window: for windows < 1M — including the
+#     conservative 250K default used for an UNIDENTIFIED model — hard=window*0.80
+#     and soft=window*0.66. So an unknown model gets a 250K window with a 200K
+#     reset; on a 1M window the clamp is a no-op (250K/300K stand).
 #   JICM_PROJECT_DIR=...      Override CLAUDE_PROJECT_DIR (rare)
 #
 # OUTPUT (always JSON to stdout, exit 0):
@@ -109,7 +113,11 @@ MODEL=""
 
 if [[ -f "$TRANSCRIPT" ]]; then
     # Latest assistant message's usage object
-    USAGE=$(tail -n 200 "$TRANSCRIPT" 2>/dev/null | jq -s 'last(.[] | select(.type=="assistant") | .message.usage)' 2>/dev/null)
+    # Skip assistant entries with no usage object (e.g. "<synthetic>" hook/system
+    # messages). Taking the last assistant message unconditionally would read a
+    # synthetic tail's absent usage as 0 tokens — blinding JICM to the real
+    # context size. Take the last assistant message that actually carries usage.
+    USAGE=$(tail -n 200 "$TRANSCRIPT" 2>/dev/null | jq -s 'last(.[] | select(.type=="assistant" and .message.usage != null) | .message.usage)' 2>/dev/null)
     if [[ -n "$USAGE" ]] && [[ "$USAGE" != "null" ]]; then
         INPUT_T=$(echo "$USAGE" | jq -r '.input_tokens // 0' 2>/dev/null)
         CACHE_R=$(echo "$USAGE" | jq -r '.cache_read_input_tokens // 0' 2>/dev/null)
@@ -131,21 +139,42 @@ if [[ -f "$TRANSCRIPT" ]]; then
             HIT_RATE=$(awk -v r="$CACHE_R" -v d="$DENOM" 'BEGIN { printf "%.4f", r/d }')
         fi
     fi
-    # Latest assistant message's model id
-    MODEL=$(tail -n 200 "$TRANSCRIPT" 2>/dev/null | jq -rs 'last(.[] | select(.type=="assistant") | .message.model)' 2>/dev/null)
+    # Latest assistant message's REAL model id. Skip entries whose model is
+    # "<synthetic>" or null (hook-injected / system messages) so a synthetic tail
+    # message can't mask the deployed model and drop us to the conservative
+    # default window.
+    MODEL=$(tail -n 200 "$TRANSCRIPT" 2>/dev/null | jq -rs 'last(.[] | select(.type=="assistant") | .message.model | select(. != null and . != "<synthetic>" and . != ""))' 2>/dev/null)
     [[ "$MODEL" == "null" || -z "$MODEL" ]] && MODEL=""
 fi
 
+# Fallback: when the transcript has no real model yet (a brand-new session's
+# first prompt), use the launcher's declared model so JICM still "expects" the
+# correct window for this lane rather than defaulting conservatively. Empty if
+# AION_MODEL isn't inherited — then TOKENS is ~0 anyway, so the default is safe.
+[[ -z "$MODEL" ]] && MODEL="${AION_MODEL:-}"
+
 # ─── Window-size lookup (from model id) ─────────────────────────────────────
 case "$MODEL" in
-    *opus-4-8*1m*)  WINDOW=1000000 ;;
-    *opus-4-8*)     WINDOW=1000000 ;;  # Jarvis W0 runs the opus-4-8 1M variant
-    *opus-4-7*)     WINDOW=1000000 ;;  # legacy opus 1M sessions (resumed)
-    *opus-4-6*)     WINDOW=1000000 ;;  # legacy opus 1M sessions (resumed)
-    *sonnet-4-6*)   WINDOW=200000  ;;
-    *haiku-4-5*)    WINDOW=200000  ;;
-    *)              WINDOW=1000000 ;;  # safe upper bound (Jarvis runs 1M opus)
+    *opus-4-8*)                        WINDOW=1000000 ;;  # Opus 4.8 1M — W0/W1/W11 unified default
+    *opus-4-7*|*opus-4-6*|*opus-4-5*)  WINDOW=1000000 ;;  # legacy 1M opus (resumed sessions)
+    *fable-5*|*mythos-5*)              WINDOW=1000000 ;;  # Fable 5 / Mythos 5 = 1M
+    *sonnet-5*)                        WINDOW=1000000 ;;  # Sonnet 5 = 1M
+    *sonnet-4-6*)                      WINDOW=200000  ;;  # launched as the 200K tier
+    *haiku-4-5*)                       WINDOW=200000  ;;  # Haiku 4.5 = 200K
+    *)                                 WINDOW=250000  ;;  # UNKNOWN model → conservative 250K default (User directive)
 esac
+
+# ─── Per-window threshold clamp ─────────────────────────────────────────────
+# Global soft/hard thresholds (250K/300K) are tuned for a 1M window. For any
+# smaller window — including the conservative 250K default used for an
+# unidentified model — clamp the reset (hard) threshold to 80% of the window and
+# the soft nudge to 66%, so we always clear well before overflow. On a 1M window
+# the clamp is a no-op (250K/300K unchanged). Per User directive: an unknown
+# model gets a 250K window with a 200K reset (250K x 0.80 = 200K).
+WIN_HARD=$(( WINDOW * 80 / 100 ))
+WIN_SOFT=$(( WINDOW * 66 / 100 ))
+[[ "$WIN_HARD" -lt "$JICM_HARD_TOKENS" ]] && JICM_HARD_TOKENS="$WIN_HARD"
+[[ "$WIN_SOFT" -lt "$JICM_SOFT_TOKENS" ]] && JICM_SOFT_TOKENS="$WIN_SOFT"
 
 # ─── Burn-rate tracking (delta vs. previous state) ──────────────────────────
 PREV_TOKENS=0
