@@ -35,8 +35,8 @@
 #
 # ENV OVERRIDES:
 #   JICM_DISABLED=true        Skip the hook entirely (e.g., during /end-session)
-#   JICM_SOFT_TOKENS=250000   Soft threshold in TOKENS (default 250K = 25% of 1M)
-#   JICM_HARD_TOKENS=300000   Hard threshold in TOKENS (default 300K = 30% of 1M)
+#   JICM_SOFT_TOKENS=550000   Soft threshold in TOKENS (default 550K = 55% of 1M)
+#   JICM_HARD_TOKENS=600000   Hard threshold in TOKENS (default 600K = 60% of 1M)
 #     Both are CLAMPED per detected window: for windows < 1M — including the
 #     conservative 250K default used for an UNIDENTIFIED model — hard=window*0.80
 #     and soft=window*0.66. So an unknown model gets a 250K window with a 200K
@@ -78,8 +78,8 @@ if ! command -v jicm_key_paths >/dev/null 2>&1 || ! command -v jicm_derive_key >
 fi
 
 # Default thresholds in TOKENS (User encoding directive: not percentages)
-JICM_SOFT_TOKENS="${JICM_SOFT_TOKENS:-250000}"   # 25% of 1M default
-JICM_HARD_TOKENS="${JICM_HARD_TOKENS:-300000}"   # 30% of 1M default
+JICM_SOFT_TOKENS="${JICM_SOFT_TOKENS:-550000}"   # 55% of 1M (config sets this; inline = fail-safe default)
+JICM_HARD_TOKENS="${JICM_HARD_TOKENS:-600000}"   # 60% of 1M — above W0's ~380K resume baseline
 
 # ─── Disable check ──────────────────────────────────────────────────────────
 if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
