@@ -79,7 +79,11 @@ jicm/
 - Step 3 (`f1a39a9`): `session-start.sh` per-`<key>` clear-injection; migration bridge (JK_ preferred, legacy `.dev` fallback keeps `jicm-self.sh` working); W0→dev mis-inject fixed.
 - Validation: 3 adversarial code-review cycles (2 CRITICAL + 1 HIGH + 2 MEDIUM + notes, all fixed) + 54 isolation-harness assertions green. `key=w0` byte-identical throughout; the v7.9 watcher runs untouched until Phase 3.
 
-**Next: Phase 2 — Supervisor; prove on W11 (requires human hand for the canary).** `jicm-supervisor.sh` (registry loop + GC + detached actuators); canary-validate the detached actuator on a disposable session; then un-gate `jicm-actuate.sh --fire` (delete the `--canary` gate block). The live-fire canary cannot be run autonomously. Phase-2 follow-ups from review: shared `.jicm-exit-mode.signal` now spans dev; the supervisor must string-compare `steward_shared_memory` ("true").
+**Phase 2 — Supervisor BUILT (staged gated), `132fb34` (2026-07-19).** `jicm-supervisor.sh` (registry loop + GC + signal-driven detached-actuator spawn). STAGED GATED: default = sense + GC + log only; firing is DOUBLE-gated (`JICM_SUPERVISOR_ACTUATE=1` env AND the actuator's `--fire` un-gated). w0 excluded (watcher owns it until Phase 3; `JICM_SUPERVISOR_INCLUDE_W0=1` folds in). Review (1 CRIT + 1 ERR + 3 WARN) fixed: reclaim by worker liveness not TTL; `--once` defers to a live daemon; GC corroborates transcript mtime; atomic mkdir PID singleton. 21-assertion harness green. NOT wired into launch-aion.sh.
+
+**Phase 2 EXIT (requires human hand):** (a) canary `jicm-actuate.sh <disposable> --fire --canary` on a throwaway session; (b) delete the `--canary` block in `jicm-actuate.sh:cmd_fire`; (c) launch the supervisor with `JICM_SUPERVISOR_ACTUATE=1` + wire into launch-aion.sh. The `--canary` gate is a **temporary** one-time interlock (validate a decapitation-capable mechanism live on a disposable target before trusting it unattended) — the end state IS live autonomous firing. Pre-un-gate hardening: finding-4 actuator abort-retry backoff/ALERT. Other follow-ups: shared `.jicm-exit-mode.signal` now spans dev; the supervisor string-compares `steward_shared_memory` ("true").
+
+**Then:** Phase 3 (fold W0: `INCLUDE_W0` shadow + md5-parity + retire watcher), Phase 4 (Protos/chains), Phase 5 (multi-session HUD).
 
 ## 6. Files & reuse
 
