@@ -66,10 +66,13 @@ SUP_PID_FILE="$JICM_DIR/supervisor.pid"
 POLL_SEC="${JICM_SUPERVISOR_POLL:-5}"
 GC_STALE_SEC="${JICM_SUPERVISOR_GC_SEC:-7200}"        # last_seen older than this → GC (2h)
 LOCK_TTL_SEC="${JICM_SUPERVISOR_LOCK_TTL:-1200}"      # SIGKILL backstop only; liveness is primary
-# NOTE (review finding 4, deferred): an actuator that aborts a structurally-unresolvable
-# key (bad transcript / stale uuid) will retry each Stop with no backoff. Before un-gating
-# autonomous firing, add per-key consecutive-failure tracking + ALERT here so repeated
-# aborts don't look like healthy arms. Not live while JICM_SUPERVISOR_ACTUATE=0.
+# Circuit breaker (review finding 4): a key that fires too many times in a window is
+# STUCK — an actuator aborting a structurally-unresolvable key (bad transcript / stale
+# uuid) that retries every Stop, OR a session whose baseline sits over threshold. Back
+# off + ALERT instead of hammering /clear at it forever. This is a circuit-breaker that
+# ALERTS for human redesign, never a silent terminal acceptance (No Silent Degradation).
+FIRE_MAX="${JICM_SUPERVISOR_FIRE_MAX:-3}"             # max arms per key per window before backoff
+FIRE_WINDOW_SEC="${JICM_SUPERVISOR_FIRE_WINDOW:-3600}"  # rolling window (1h); self-resets when it rolls
 ACTUATE_ENABLED="${JICM_SUPERVISOR_ACTUATE:-0}"       # THE GATE (0 = sense-only)
 INCLUDE_W0="${JICM_SUPERVISOR_INCLUDE_W0:-0}"         # Phase 3 flag; default skip w0
 
@@ -120,7 +123,8 @@ _gc_key() {
     jicm_key_paths "$1"
     rm -f "$JK_REGISTRY" "$JK_STATE" "$JK_CLEAR_SIGNAL" "$JK_RESUME_SIGNAL" \
           "$JK_COMPRESSION_SIGNAL" "$JK_COMPRESSION_GUARD" \
-          "$JICM_SIGNALS_DIR/actuating.$1" "$JICM_SIGNALS_DIR/pending-noted.$1" 2>/dev/null
+          "$JICM_SIGNALS_DIR/actuating.$1" "$JICM_SIGNALS_DIR/pending-noted.$1" \
+          "$JICM_SIGNALS_DIR/fire-log.$1" "$JICM_SIGNALS_DIR/fire-log.$1.alerted" 2>/dev/null
     _log "GC: removed dead key=$1 (stale last_seen; registry + state + signals)"
 }
 
@@ -134,10 +138,35 @@ _reap_lock() {
     fi
 }
 
+# Circuit breaker (finding 4): count actual arm attempts per key in a rolling window.
+# Returns 1 (BACK OFF — do not fire) once a key exceeds FIRE_MAX within FIRE_WINDOW_SEC,
+# ALERTing once per breach. Self-resets when the window rolls (a key that stops needing
+# clears decays back to healthy). Marker: signals/fire-log.<key> = "count|window_start".
+_fire_ok() {
+    local key="$1" f="$JICM_SIGNALS_DIR/fire-log.$1" now count wstart
+    now="$(_now)"
+    [[ -f "$f" ]] && IFS='|' read -r count wstart < "$f"
+    [[ "$count" =~ ^[0-9]+$ ]] || count=0
+    [[ "$wstart" =~ ^[0-9]+$ ]] || wstart="$now"
+    if [[ $(( now - wstart )) -gt "$FIRE_WINDOW_SEC" ]]; then   # window rolled → reset
+        count=0; wstart="$now"; rm -f "$f.alerted" 2>/dev/null
+    fi
+    count=$(( count + 1 ))
+    echo "$count|$wstart" > "$f"
+    if [[ "$count" -gt "$FIRE_MAX" ]]; then
+        if [[ ! -f "$f.alerted" ]]; then
+            _log "ALERT ⚠️ CIRCUIT-BREAKER key=$key — armed $count× in <$(( FIRE_WINDOW_SEC/60 ))m; a clear that never resolves = a STUCK key (unresolvable transcript, or a resume baseline already over threshold). BACKING OFF until the window resets. NEEDS A HUMAN: check the actuator log + this key's thresholds vs its baseline."
+            echo "$now" > "$f.alerted"
+        fi
+        return 1
+    fi
+    return 0
+}
+
 # Fire the detached actuator for a key — via `--fire` so the actuator's own gate +
 # safety checks (idle-wait, transcript verification, checkpoint non-empty) all apply.
 # Writes an actuating lock ONLY on a successful arm, so a --canary-blocked call never
-# wedges the key. No-op if already actuating (unless the lock is stale).
+# wedges the key. No-op if already actuating (unless the lock is stale) or backed off.
 _fire() {
     jicm_key_paths "$1"
     local lock="$JICM_SIGNALS_DIR/actuating.$1" age
@@ -148,6 +177,7 @@ _fire() {
         _log "ALERT: stale actuating lock key=$1 (${age}s, no live worker) — clearing + re-evaluating"
         rm -f "$lock"
     fi
+    _fire_ok "$1" || return 0    # circuit breaker: a stuck key is backed off (ALERTed), not hammered
     if bash "$ACTUATOR" "$1" --fire >> "$SUP_LOG" 2>&1; then
         echo "$(_now)" > "$lock"
         _log "ACTUATE: armed detached actuator for key=$1 via --fire (lock set)"
