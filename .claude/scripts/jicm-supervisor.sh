@@ -75,6 +75,7 @@ FIRE_MAX="${JICM_SUPERVISOR_FIRE_MAX:-3}"             # max arms per key per win
 FIRE_WINDOW_SEC="${JICM_SUPERVISOR_FIRE_WINDOW:-3600}"  # rolling window (1h); self-resets when it rolls
 ACTUATE_ENABLED="${JICM_SUPERVISOR_ACTUATE:-0}"       # THE GATE (0 = sense-only)
 INCLUDE_W0="${JICM_SUPERVISOR_INCLUDE_W0:-0}"         # Phase 3 flag; default skip w0
+SIGNAL_MAX_AGE_SEC="${JICM_SUPERVISOR_SIGNAL_MAX_AGE:-900}"  # C2 backstop: an unresolved clear-now older than this is reaped
 
 mkdir -p "$JICM_DIR" "$JICM_SIGNALS_DIR" "$JICM_REGISTRY_DIR" "$(dirname "$SUP_LOG")" 2>/dev/null
 
@@ -186,6 +187,64 @@ _fire() {
     fi
 }
 
+# C2 — validate a clear-now signal BEFORE honoring it. Returns 0 = fire-worthy; 1 = refused
+# (and reaps the offending signal). Guards, in order:
+#   (a) DEAD raiser   — the session that raised it is gone → nothing to clear.
+#   (b) MISDIRECTED   — the raiser is NOT the live occupant of the key's pane (e.g. a
+#                       background /fork wrote the pane key's signal). Firing would clear
+#                       the WRONG session. The pane-occupancy anchor is sound even while
+#                       the registry is last-writer-wins polluted (pre-R1).
+#   (c) EDGE-PERSISTED— a live re-sense shows it's no longer over threshold.
+#   (d) AGED backstop — an unresolved signal older than SIGNAL_MAX_AGE_SEC.
+# A valid signal is left in place (so a GATED supervisor still logs ACTUATE-PENDING).
+_signal_valid() {
+    local key="$1" sid target pane_sid tokens hard now sig_mt age
+    jicm_key_paths "$key"
+    [[ -f "$JK_CLEAR_SIGNAL" ]] || return 1
+    sid="$(jq -r '.session_id // empty' "$JK_CLEAR_SIGNAL" 2>/dev/null)"
+
+    # (a) dead raiser
+    if [[ -n "$sid" ]] && ! jicm_session_alive "$sid"; then
+        _log "SIGNAL-STALE key=$key raiser=$sid not alive — reaping (no live session to clear)"
+        rm -f "$JK_CLEAR_SIGNAL"; return 1
+    fi
+    # (b) misdirected — raiser ≠ live pane occupant
+    target="$(jicm_registry_get "$key" '.tmux_target')"
+    [[ -z "$target" || "$target" == "null" ]] && target="$(jicm_default_target "$key")"
+    if [[ -n "$target" ]]; then
+        pane_sid="$(jicm_pane_session "$target")"
+        # Fail CLOSED on an unverifiable pane (review F3): if the key HAS a pane but its
+        # occupant can't be resolved (tmux hiccup / probe race), we cannot prove the signal
+        # is correctly directed — so do NOT fire this pass. Retain the signal (no reap) and
+        # ALERT; a later pass re-checks once tmux recovers. (Self-keys have no target and
+        # never reach here.)
+        if [[ -z "$pane_sid" ]]; then
+            _log "SIGNAL-UNVERIFIABLE key=$key pane=$target occupancy unresolvable — NOT firing this pass (signal retained for retry)"
+            return 1
+        fi
+        if [[ -n "$sid" && "$pane_sid" != "$sid" ]]; then
+            _log "SIGNAL-MISDIRECTED key=$key raiser=$sid but pane $target runs $pane_sid — REFUSING (would clear the wrong session); reaping. [pre-R1 keying pollution]"
+            rm -f "$JK_CLEAR_SIGNAL"; return 1
+        fi
+    fi
+    # (c) edge-persisted — re-sense no longer over threshold
+    IFS='|' read -r tokens _ hard < <(_sense "$key")
+    [[ "$hard"   =~ ^[0-9]+$ ]] || hard=0
+    [[ "$tokens" =~ ^[0-9]+$ ]] || tokens=0
+    if [[ "$hard" -gt 0 && "$tokens" -lt "$hard" ]]; then
+        _log "SIGNAL-EDGE key=$key tokens=$tokens < hard=$hard — no longer over threshold; reaping."
+        rm -f "$JK_CLEAR_SIGNAL"; return 1
+    fi
+    # (d) aged backstop
+    now="$(_now)"; sig_mt="$(stat -f %m "$JK_CLEAR_SIGNAL" 2>/dev/null || echo "$now")"
+    age=$(( now - sig_mt ))
+    if [[ "$age" -gt "$SIGNAL_MAX_AGE_SEC" ]]; then
+        _log "SIGNAL-AGED key=$key (${age}s > ${SIGNAL_MAX_AGE_SEC}s, unresolved) — reaping backstop."
+        rm -f "$JK_CLEAR_SIGNAL"; return 1
+    fi
+    return 0
+}
+
 # One supervision pass over the registry.
 _pass() {
     local key tokens pending hard now ls_epoch age noted
@@ -210,20 +269,59 @@ _pass() {
         _reap_lock "$key"
         jicm_key_paths "$key"
         noted="$JICM_SIGNALS_DIR/pending-noted.$key"
-        # 4. Trigger = the stop hook raised this key's clear-now signal.
-        if [[ -f "$JK_CLEAR_SIGNAL" ]]; then
-            if [[ "$ACTUATE_ENABLED" == "1" ]]; then
-                _fire "$key"
-            elif [[ ! -f "$noted" ]]; then
-                IFS='|' read -r tokens pending hard < <(_sense "$key")
-                _log "ACTUATE-PENDING key=$key tokens=$tokens pending=$pending (clear-now raised; supervisor GATED — set JICM_SUPERVISOR_ACTUATE=1 after canary to fire)"
-                echo "$now" > "$noted"
+        # 4. Trigger = the stop hook raised this key's clear-now signal — but VALIDATE it
+        #    (C2) before honoring: live raiser, correctly directed (raiser occupies the
+        #    pane), still over threshold. _signal_valid reaps a bad signal + returns 1.
+        #    NOT while a cycle is genuinely in flight for this key: the actuator re-arms
+        #    JK_CLEAR_SIGNAL as an internal marker, and _signal_valid's parse/age checks
+        #    must not race it (review F5). The actuating lock + a live worker = in flight.
+        if [[ -f "$JICM_SIGNALS_DIR/actuating.$key" ]] && _worker_alive "$key"; then
+            :   # actuation in flight — leave its signal untouched
+        elif [[ -f "$JK_CLEAR_SIGNAL" ]]; then
+            if _signal_valid "$key"; then
+                if [[ "$ACTUATE_ENABLED" == "1" ]]; then
+                    _fire "$key"
+                elif [[ ! -f "$noted" ]]; then
+                    IFS='|' read -r tokens pending hard < <(_sense "$key")
+                    _log "ACTUATE-PENDING key=$key tokens=$tokens pending=$pending (clear-now raised + VALIDATED; supervisor GATED — set JICM_SUPERVISOR_ACTUATE=1 after canary to fire)"
+                    echo "$now" > "$noted"
+                fi
+            else
+                # signal was reaped as invalid → reset the once-per-episode marker
+                rm -f "$noted" 2>/dev/null
             fi
         else
             # Signal gone → clear the once-per-episode marker so a new signal re-logs.
             rm -f "$noted" 2>/dev/null
         fi
     done
+}
+
+# Hook-staleness self-check (review F2). A live claude session whose <pid>.json was created
+# BEFORE the current jicm-config.sh mtime is running hooks cached from before the last edit —
+# it will NOT honor the current keying/validation until relaunched. Surface loudly so drift
+# is visible before a relaunch.
+cmd_staleness() {
+    local cfg="$PROJECT_DIR/.claude/scripts/jicm-config.sh" cfg_mt f pid sid birth stale=0 total=0
+    cfg_mt="$(stat -f %m "$cfg" 2>/dev/null || echo 0)"
+    echo "jicm hook-staleness · jicm-config.sh edited $(date -r "$cfg_mt" '+%Y-%m-%d %H:%M' 2>/dev/null)"
+    for f in "$HOME"/.claude/sessions/*.json; do
+        [[ -f "$f" ]] || continue
+        pid="$(basename "$f" .json)"
+        [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null || continue
+        case "$(ps -o command= -p "$pid" 2>/dev/null)" in *[Cc]laude*) ;; *) continue ;; esac
+        total=$((total+1))
+        sid="$(jq -r '.sessionId // "?"' "$f" 2>/dev/null)"
+        birth="$(stat -f %B "$f" 2>/dev/null || echo 0)"
+        if [[ "$birth" -gt 0 && "$cfg_mt" -gt "$birth" ]]; then
+            echo "  ⚠️ STALE  ${sid:0:8} (pid $pid) — started before the config edit; RELAUNCH to load current JICM hooks"
+            stale=$((stale+1))
+        else
+            echo "  ✓ fresh  ${sid:0:8} (pid $pid)"
+        fi
+    done
+    if [[ "$stale" -gt 0 ]]; then echo "⚠️  $stale/$total live session(s) need relaunch to activate the current hooks."
+    else echo "✓ all $total live session(s) post-date the current config."; fi
 }
 
 cmd_status() {
@@ -279,6 +377,9 @@ cmd_stop() {
     fi
 }
 
+# Only run the CLI dispatcher when executed directly. Sourcing (e.g. the R0 unit-test
+# harness) loads the functions without starting the daemon.
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
 case "${1:-}" in
     --once)
         # Defer to a live daemon: if one owns the singleton it will actuate, so this
@@ -288,11 +389,13 @@ case "${1:-}" in
             _log "--once: a daemon owns the singleton — sensing + GC only (no actuation)"
         fi
         _pass ;;
-    --status)  cmd_status ;;
-    --stop)    cmd_stop ;;
+    --status)     cmd_status ;;
+    --staleness)  cmd_staleness ;;
+    --stop)       cmd_stop ;;
     -h|--help) echo "usage: jicm-supervisor.sh [--once | --status | --stop]   (no arg = daemon loop)"
                echo "  GATE: default is sense-only. JICM_SUPERVISOR_ACTUATE=1 enables live firing"
                echo "        (also needs jicm-actuate.sh --fire un-gated). JICM_SUPERVISOR_INCLUDE_W0=1 folds w0 in." ;;
     "")        _daemon ;;
     *)         echo "jicm-supervisor: unknown arg '$1'" >&2; exit 64 ;;
 esac
+fi

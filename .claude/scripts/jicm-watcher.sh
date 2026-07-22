@@ -716,6 +716,40 @@ check_autonomous_threshold() {
     fi
 }
 
+# --- F1 stopgap (JICM v9 M-A): validate a w0 clear-now signal before actuating --------
+# The legacy watcher owns w0 until R3 folds it into the supervisor. Until then it fired
+# on bare signal presence — no raiser/occupancy check — so a misdirected signal (a fork,
+# or a pre-C3 cached-hook session writing w0's shared signal) could /clear the wrong pane.
+# This gate mirrors the supervisor's C2: honor the signal ONLY if its raiser occupies w0's
+# pane (aion:0), is live, and w0 re-senses over threshold. Raiser comes from the signal
+# (jicm-stop path) or, for the watcher's own autonomous fire (no session_id), from w0's
+# state file. Reuses jicm_pane_session / jicm_session_alive (sourced from jicm-config.sh).
+_w0_clear_valid() {
+    local sid pane_sid tokens hard
+    sid="$(jq -r '.session_id // empty' "$JICM_CLEAR_SIGNAL" 2>/dev/null)"
+    [[ -z "$sid" ]] && sid="$(jq -r '.session_id // empty' "$JICM_STATE_HOOK_FILE" 2>/dev/null)"
+    # dead raiser
+    if [[ -n "$sid" ]] && ! jicm_session_alive "$sid"; then
+        log "W0-SIGNAL-STALE raiser=$sid not alive — reaping, not clearing"; rm -f "$JICM_CLEAR_SIGNAL"; return 1
+    fi
+    # occupancy — fail CLOSED on an unresolvable pane (retain, retry next poll)
+    pane_sid="$(jicm_pane_session "$JICM_TMUX_TARGET")"
+    if [[ -z "$pane_sid" ]]; then
+        log "W0-SIGNAL-UNVERIFIABLE pane=$JICM_TMUX_TARGET occupancy unresolvable — NOT clearing this pass (signal retained)"; return 1
+    fi
+    if [[ -n "$sid" && "$pane_sid" != "$sid" ]]; then
+        log "W0-SIGNAL-MISDIRECTED raiser=$sid but pane $JICM_TMUX_TARGET runs $pane_sid — REFUSING (wrong-pane clear); reaping"; rm -f "$JICM_CLEAR_SIGNAL"; return 1
+    fi
+    # re-sense — w0 must still be over its hard threshold
+    tokens="$(jq -r '.tokens // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null)"
+    hard="$(jq -r '.hard_threshold_tokens // 0' "$JICM_STATE_HOOK_FILE" 2>/dev/null)"
+    [[ "$tokens" =~ ^[0-9]+$ ]] || tokens=0; [[ "$hard" =~ ^[0-9]+$ ]] || hard=0
+    if [[ "$hard" -gt 0 && "$tokens" -lt "$hard" ]]; then
+        log "W0-SIGNAL-EDGE tokens=$tokens < hard=$hard — no longer over threshold; reaping"; rm -f "$JICM_CLEAR_SIGNAL"; return 1
+    fi
+    return 0
+}
+
 # --- Main loop --------------------------------------------------------------
 log "main loop (poll ${JICM_POLL_INTERVAL}s, target $JICM_TMUX_TARGET, backend $JICM_INJECTION_BACKEND)"
 declare -i REFRESH_COUNTER=0
@@ -726,7 +760,7 @@ while true; do
         sleep "$JICM_POLL_INTERVAL"
         continue
     fi
-    if [[ -f "$JICM_CLEAR_SIGNAL" ]]; then
+    if [[ -f "$JICM_CLEAR_SIGNAL" ]] && _w0_clear_valid; then
         actuate_jicm_cycle
     fi
 

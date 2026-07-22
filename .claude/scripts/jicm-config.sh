@@ -70,6 +70,10 @@ jicm_key_paths() {
         JK_JSONL_STATS="$PROJECT_DIR/.claude/context/.jsonl-compression-stats.json"
         JK_SCROLLBACK="$PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
         JK_SCROLLBACK_SUMMARY="$PROJECT_DIR/.claude/context/.pre-clear-scrollback-summary.md"
+        # H3 — shared-memory inputs. w0 = the legacy shared files (byte-identical).
+        JK_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
+        JK_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"
+        JK_ACTIVE_PLAN="$PROJECT_DIR/.claude/context/.active-plan"
     else
         JK_STATE="$JICM_STATES_DIR/$key.json"
         JK_CLEAR_SIGNAL="$JICM_SIGNALS_DIR/clear-now.$key.signal"
@@ -82,6 +86,11 @@ jicm_key_paths() {
         JK_JSONL_STATS="$JICM_STATES_DIR/$key.jsonl-compression-stats.json"
         JK_SCROLLBACK="$JICM_CHECKPOINTS_DIR/$key.scrollback.md"
         JK_SCROLLBACK_SUMMARY="$JICM_CHECKPOINTS_DIR/$key.scrollback-summary.md"
+        # H3 — per-session shared-memory inputs (never share w0's global session-state /
+        # scratchpad / active-plan). Consumed once the actuator's prep is wired (R2).
+        JK_SESSION_STATE="$JICM_STATES_DIR/$key.session-state.md"
+        JK_SCRATCHPAD="$JICM_CHECKPOINTS_DIR/$key.scratchpad.md"
+        JK_ACTIVE_PLAN="$JICM_STATES_DIR/$key.active-plan"
     fi
 }
 
@@ -92,6 +101,24 @@ jicm_registry_upsert() {   # jicm_registry_upsert <key> [field=value ...]
     mkdir -p "$JICM_REGISTRY_DIR" 2>/dev/null
     local f="$JICM_REGISTRY_DIR/$key.json" now base filter kv k v
     now="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    # C1 — occupancy-anchored compare-and-swap (JICM v9 R1). Refuse to clobber the key's
+    # session_id ONLY when the stored (different) claimant is LIVE and actually OCCUPIES the
+    # key's pane — a genuine same-pane conflict (H2). A stale/fork claimant that is not in
+    # the pane is NOT a conflict: the real occupant is allowed to reclaim (prevents a
+    # migration deadlock where a leftover polluted entry blocks the pane's rightful owner).
+    local incoming_sid="" stored_sid pane_sid
+    for kv in "$@"; do [[ "${kv%%=*}" == "session_id" ]] && incoming_sid="${kv#*=}"; done
+    if [[ -f "$f" && -n "$incoming_sid" ]]; then
+        stored_sid="$(jq -r '.session_id // empty' "$f" 2>/dev/null)"
+        if [[ -n "$stored_sid" && "$stored_sid" != "$incoming_sid" ]] && jicm_session_alive "$stored_sid"; then
+            pane_sid="$(jicm_pane_session "$(jicm_default_target "$key")")"
+            if [[ -n "$pane_sid" && "$pane_sid" == "$stored_sid" ]]; then
+                printf '%s registry-conflict key=%s stored=%s(live,in-pane) incoming=%s — refusing clobber\n' \
+                    "$now" "$key" "$stored_sid" "$incoming_sid" >> "$PROJECT_DIR/.claude/logs/jicm-registry-conflicts.log" 2>/dev/null
+                return 3
+            fi
+        fi
+    fi
     base='{}'; [[ -f "$f" ]] && base="$(cat "$f" 2>/dev/null || echo '{}')"
     local jqargs=(--arg key "$key" --arg ls "$now")
     filter='.key=$key | .last_seen=$ls | (.registered_at //= $ls)'
@@ -121,11 +148,23 @@ jicm_registry_get()  { jq -r "${2:?field}" "$JICM_REGISTRY_DIR/${1:?key}.json" 2
 #      session_id namespace (which would silently blind the watcher + exclude it from
 #      its own session-start injection).
 #   4. else → the session_id (a genuine non-w0/non-dev lane; routes to safety paths).
-jicm_derive_key() {
-    if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then echo "w0"
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then echo "dev"
-    elif [[ -z "${JARVIS_WINDOW:-}" ]];             then echo "w0"
-    else echo "${1:-unknown}"; fi
+jicm_derive_key() {                          # <my_session_id>
+    local my_sid="${1:-}" candidate
+    if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then candidate="w0"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then candidate="dev"
+    elif [[ -z "${JARVIS_WINDOW:-}" ]];             then candidate="w0"
+    else echo "${my_sid:-unknown}"; return; fi
+    # C3 OCCUPANCY GATE (JICM v9 R1): claim a pane-actuated key ONLY if I actually occupy
+    # its pane. A session that carries the role but is NOT the pane's live occupant is a
+    # background /fork (daemon-hosted PTY) — it gets its OWN first-class key
+    # (<candidate>-bg-<sid8>): namespaced state, own HUD row, self-actuation; it can never
+    # actuate the parent's pane. Pane unresolvable (empty) → keep the canonical key (no
+    # regression; the supervisor's C2 re-checks occupancy at fire time as the backstop).
+    if [[ -n "$my_sid" ]]; then
+        local pane_sid; pane_sid="$(jicm_pane_session "$(jicm_default_target "$candidate")")"
+        [[ -n "$pane_sid" && "$pane_sid" != "$my_sid" ]] && { echo "${candidate}-bg-${my_sid:0:8}"; return; }
+    fi
+    echo "$candidate"
 }
 # Canonical tmux window per key (w0→:0, dev→:11). Resolved at CALL time (JICM_TMUX_SESSION
 # is defined later in this file). Empty for unknown keys — registry/actuator handle that.
@@ -135,6 +174,55 @@ jicm_default_target() {
         dev) echo "${JICM_TMUX_SESSION}:11" ;;
         *)   echo "" ;;
     esac
+}
+
+# --- Occupancy / liveness helpers (JICM v9 R0/R1) ----------------------------
+# Shared read-only probes for the supervisor's C2 signal-validation and the R1
+# occupancy-keying fix. All resolve at CALL time (JICM_TMUX_BIN defined later).
+# tmux calls are timeout-guarded — a WEDGED tmux server (distinct from an absent one,
+# which fails fast) must never hang the gate hook, which runs on every prompt (review F4).
+# Session files are named <pid>.json.
+JICM_TO="$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)"  # short-timeout wrapper ("" → run bare)
+#
+# session-id currently running in a tmux target's pane ("" if none / no claude child).
+jicm_pane_session() {                        # <tmux_target>
+    local target="$1" ppid child sid
+    [[ -n "$target" ]] || return 0
+    ppid="$(${JICM_TO} ${JICM_TO:+2} "$JICM_TMUX_BIN" display -t "$target" -p '#{pane_pid}' 2>/dev/null)" || return 0
+    [[ -n "$ppid" ]] || return 0
+    for child in $(pgrep -P "$ppid" 2>/dev/null); do
+        sid="$(_jicm_pid_session "$child")"
+        [[ -n "$sid" ]] && { printf '%s' "$sid"; return 0; }
+    done
+}
+# session-id for a pid — sessions files are named <pid>.json (direct read, no scan).
+_jicm_pid_session() {                        # <pid>
+    local pid="$1" f="$HOME/.claude/sessions/$1.json"
+    [[ -n "$pid" && -f "$f" ]] || return 0
+    jq -r '.sessionId // empty' "$f" 2>/dev/null
+}
+# Is a session-id held by a LIVE claude process? (return 0 = alive). The command==claude
+# check closes a pid-reuse false-positive: a stale <pid>.json whose pid was recycled by an
+# unrelated process must NOT read as alive (review F6).
+jicm_session_alive() {                       # <session_id>
+    local sid="$1" f pid
+    [[ -n "$sid" ]] || return 1
+    for f in "$HOME"/.claude/sessions/*.json; do
+        [[ -f "$f" ]] || continue
+        grep -q "\"sessionId\":\"$sid\"" "$f" 2>/dev/null || continue
+        pid="$(basename "$f" .json)"
+        [[ "$pid" =~ ^[0-9]+$ ]] || pid="$(jq -r '.pid // empty' "$f" 2>/dev/null)"
+        if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+            case "$(ps -o command= -p "$pid" 2>/dev/null)" in *[Cc]laude*) return 0 ;; esac
+        fi
+    done
+    return 1
+}
+# Actuation mode for a key: 'pane' if it has a canonical tmux pane to inject into, else
+# 'self' — a background /fork clears itself from within (no external pane). Consumed by
+# the supervisor/actuator (R2) and the multi-session HUD (R4).
+jicm_actuation_mode() {                      # <key>
+    [[ -n "$(jicm_default_target "$1")" ]] && echo "pane" || echo "self"
 }
 
 # --- Session state files (read by prep script) -------------------------------

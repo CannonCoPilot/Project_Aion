@@ -272,8 +272,10 @@ fi
 # always has the current transcript. steward_shared_memory=true only for w0.
 REG_EXTRA=""
 [[ "$JICM_KEY" == "w0" ]] && REG_EXTRA="steward_shared_memory=true"
+ACTUATION_MODE="$(jicm_actuation_mode "$JICM_KEY")"   # pane (w0/dev occupant) | self (background /fork)
 jicm_registry_upsert "$JICM_KEY" \
     session_id="$SESSION_ID" transcript_path="$TRANSCRIPT" tmux_target="$KEY_TARGET" \
+    actuation_mode="$ACTUATION_MODE" \
     class=interactive reset_policy=preserve-restore owner=jarvis $REG_EXTRA
 
 # ─── Log ────────────────────────────────────────────────────────────────────
