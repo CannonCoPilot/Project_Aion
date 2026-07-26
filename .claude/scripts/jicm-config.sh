@@ -225,6 +225,85 @@ jicm_actuation_mode() {                      # <key>
     [[ -n "$(jicm_default_target "$1")" ]] && echo "pane" || echo "self"
 }
 
+# --- R2 reconciliation: pane truth wins -------------------------------------
+# Every namespaced artifact a key owns. Promotion migrates the WHOLE set: a partial
+# move would strand state under a dead key, which is worse than not moving at all.
+JICM_KEY_ARTIFACT_VARS="JK_REGISTRY JK_STATE JK_CLEAR_SIGNAL JK_RESUME_SIGNAL \
+JK_COMPRESSION_SIGNAL JK_COMPRESSED JK_COMPRESSION_GUARD JK_METADATA JK_METRICS \
+JK_JSONL_STATS JK_SCROLLBACK JK_SCROLLBACK_SUMMARY JK_SESSION_STATE JK_SCRATCHPAD \
+JK_ACTIVE_PLAN"
+
+# jicm_reconcile_pane_key <canonical>   (w0|dev)
+# Reconciles a pane-actuated key against the session ACTUALLY in its pane.
+#
+# WHY: jicm_derive_key is correct but races at startup. A session's session-start hook
+# can fire while the pane still shows the OUTGOING occupant; it then reads "occupant is
+# not me", concludes it is a background /fork, and self-demotes to <canonical>-bg-<sid8>.
+# It stays mis-keyed for its whole life: its namespaced state lives under the bg key, the
+# canonical key is left to a stale claimant (or, once GC'd, to nobody), and the breadcrumb
+# chases whichever hook wrote last. Derive-time cannot fix this — only a later observation
+# of the settled pane can. So: the pane is the truth, and this reconciles to it.
+#
+# Returns 0 reconciled/in-sync · 1 nothing to do (or unverifiable) · 2 genuine conflict.
+# Sets JICM_RECONCILE_NOTE for the caller to log.
+jicm_reconcile_pane_key() {
+    local canonical="${1:?jicm_reconcile_pane_key: key required}"
+    local target pane_sid cur bgkey crumb v i n moved=0
+    JICM_RECONCILE_NOTE=""
+    target="$(jicm_default_target "$canonical")"
+    [[ -n "$target" ]] || return 1                  # self-key: no pane, nothing to reconcile
+    pane_sid="$(jicm_pane_session "$target")"
+    # Fail SAFE: an unresolvable pane proves nothing. Never reconcile on a blind probe —
+    # that is how the startup race wrote the wrong answer in the first place.
+    [[ -n "$pane_sid" ]] || return 1
+
+    # (1) Breadcrumb — write from the UUID ACTUALLY in the pane, never the last hook
+    #     writer. This alone stops the transcript resolver chasing orphaned forks.
+    crumb="$PROJECT_DIR/.claude/context/.current-${canonical}-uuid"
+    if [[ "$(cat "$crumb" 2>/dev/null)" != "$pane_sid" ]]; then
+        printf '%s' "$pane_sid" > "$crumb" 2>/dev/null
+        JICM_RECONCILE_NOTE="breadcrumb ${canonical} -> ${pane_sid:0:8}"
+    fi
+
+    # (2) Key — does the canonical key already belong to the occupant?
+    cur="$(jicm_registry_get "$canonical" '.session_id')"
+    [[ "$cur" == "$pane_sid" ]] && return 0
+
+    # The occupant self-demoted at derive time; its state lives under the bg key.
+    bgkey="${canonical}-bg-${pane_sid:0:8}"
+    [[ -f "$JICM_REGISTRY_DIR/$bgkey.json" ]] || return 1
+    [[ "$(jicm_registry_get "$bgkey" '.session_id')" == "$pane_sid" ]] || return 1
+
+    # Safety: never yank files out from under a cycle in flight, on EITHER key.
+    if [[ -f "$JICM_SIGNALS_DIR/actuating.$canonical" || -f "$JICM_SIGNALS_DIR/actuating.$bgkey" ]]; then
+        JICM_RECONCILE_NOTE="defer ${canonical}: actuation in flight"; return 1
+    fi
+    # Safety: never displace a canonical key still held by a DIFFERENT LIVE session. Two
+    # live sessions claiming one pane is a real conflict for a human, not a thing to
+    # silently resolve (No-Silent-Degradation).
+    if [[ -n "$cur" && "$cur" != "null" ]] && jicm_session_alive "$cur"; then
+        JICM_RECONCILE_NOTE="CONFLICT ${canonical}: pane runs ${pane_sid:0:8} but live ${cur:0:8} holds the key — NOT reconciling"
+        return 2
+    fi
+
+    # PROMOTE bgkey -> canonical, migrating every artifact.
+    local srcs dsts; srcs=(); dsts=()
+    jicm_key_paths "$bgkey";     for v in $JICM_KEY_ARTIFACT_VARS; do srcs+=("${!v}"); done
+    jicm_key_paths "$canonical"; for v in $JICM_KEY_ARTIFACT_VARS; do dsts+=("${!v}"); done
+    n=${#srcs[@]}
+    for (( i=0; i<n; i++ )); do
+        [[ -e "${srcs[$i]}" ]] || continue
+        mkdir -p "$(dirname "${dsts[$i]}")" 2>/dev/null
+        rm -f "${dsts[$i]}" 2>/dev/null            # prior holder proven dead above
+        mv "${srcs[$i]}" "${dsts[$i]}" 2>/dev/null && moved=$((moved+1))
+    done
+    # The migrated registry row still says key=<bgkey> and has no pane; restate both.
+    jicm_registry_upsert "$canonical" "session_id=$pane_sid" "tmux_target=$target"
+    rm -f "$JICM_REGISTRY_DIR/$bgkey.json" 2>/dev/null
+    JICM_RECONCILE_NOTE="PROMOTED ${bgkey} -> ${canonical} (${moved} artifact(s), target=${target})"
+    return 0
+}
+
 # --- Session state files (read by prep script) -------------------------------
 JICM_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 JICM_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"

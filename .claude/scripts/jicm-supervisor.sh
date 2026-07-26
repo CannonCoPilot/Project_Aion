@@ -262,8 +262,19 @@ _signal_valid() {
 
 # One supervision pass over the registry.
 _pass() {
-    local key tokens pending hard now ls_epoch age noted
+    local key tokens pending hard now ls_epoch age noted ck rc
     now="$(_now)"
+    # R2 — reconcile pane-actuated keys to the session ACTUALLY in the pane BEFORE any
+    # GC/sense/fire decision reads the registry. Ordering matters: reconciling first
+    # promotes a startup-race-demoted occupant back to its canonical key, so GC cannot
+    # collect the key out from under a live session and the pass senses the right head.
+    for ck in w0 dev; do
+        jicm_reconcile_pane_key "$ck"; rc=$?
+        if [[ -n "${JICM_RECONCILE_NOTE:-}" ]]; then
+            if [[ "$rc" -eq 2 ]]; then _log "RECONCILE-$JICM_RECONCILE_NOTE"
+            else                       _log "RECONCILE: $JICM_RECONCILE_NOTE"; fi
+        fi
+    done
     for key in $(jicm_registry_keys); do
         # 1. GC dead sessions first. NEVER GC w0 (watcher owns it), and never a key
         #    with a live actuating lock (a cycle is in flight — don't yank its files).
