@@ -532,7 +532,7 @@ cmd_plan() {
 
 # ARM the detached actuator. GATED behind --canary in Phase 1 (see SAFETY header).
 cmd_fire() {
-    local key="$1" canary="$2"
+    local key="$1" canary="$2" expect_sid="${3:-}" expect_target="${4:-}"
     # ---- SAFETY GATE (JICM v9 Phase 1). Un-gate = delete this block (Phase 2, Sir's hand). ----
     if [[ "$canary" != "1" ]]; then
         echo "  [BLOCKED] live-fire gated (JICM v9 Phase 2 canary pending)."
@@ -547,6 +547,26 @@ cmd_fire() {
     policy="$(_resolve_policy)"
     transcript="$(_resolve_transcript)"
     target="$(_resolve_target)"
+    # ---- M2 (JICM v9 R2): IDENTITY PINNING — refuse on registry drift ------------
+    # The caller (supervisor) PROVED which session it validated: raiser alive, and
+    # raiser == live pane occupant (C2 guards a/b). That proof is about a specific
+    # session_id at a specific instant. Between that validation and this arming turn
+    # the registry can move (a relaunch re-claims the key), and re-resolving here
+    # would then actuate a session that never asked to be cleared. So when the caller
+    # states its expectation, it must still hold. Silence (empty) = unpinned legacy
+    # caller / operator, which keeps the old behaviour.
+    if [[ -n "$expect_sid" ]]; then
+        local actual_sid; actual_sid="$(_session_id)"
+        if [[ "$actual_sid" != "$expect_sid" ]]; then
+            echo "  [ABORT] registry drift for '$key': caller validated session=$expect_sid but the registry now resolves $actual_sid — refusing (would clear the wrong session)."
+            return 2
+        fi
+    fi
+    if [[ -n "$expect_target" && -n "$target" && "$expect_target" != "$target" ]]; then
+        echo "  [ABORT] target drift for '$key': caller validated target=$expect_target but the registry now resolves $target — refusing (would clear the wrong pane)."
+        return 2
+    fi
+    # ---- end M2 -----------------------------------------------------------------
     if [[ "$policy" == "preserve-restore" ]]; then
         [[ -n "$transcript" ]] || { echo "  [ABORT] no verified transcript for '$key' — refusing to guess (self-decapitation guard)."; return 2; }
         [[ -n "$target"     ]] || { echo "  [ABORT] no tmux target for '$key'."; return 2; }
@@ -578,21 +598,33 @@ esac
 #           <key> --fire [--canary] → ARM the detached actuator (gated)
 # A verb (sense|prepare) and a key are both positional + order-independent. Keys are
 # never literally "sense"/"prepare" (w0|dev|protos|chain-*|*-bg-*), so no collision.
-KEY=""; VERB=""; FIRE=0; CANARY=0
+KEY=""; VERB=""; FIRE=0; CANARY=0; EXPECT_SID=""; EXPECT_TARGET=""
 for a in "$@"; do
     case "$a" in
-        --fire)         FIRE=1 ;;
-        --canary)       CANARY=1 ;;
-        -h|--help)      echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> [--fire [--canary]]  |  __run <key>"; exit 0 ;;
+        --fire)             FIRE=1 ;;
+        --canary)           CANARY=1 ;;
+        # M2 identity pinning: the caller states the session/pane it validated. Uses the
+        # `=` form so the positional parser stays a simple for-loop. Visible in ps/logs
+        # (deliberately a flag, not an env var — a safety interlock should be greppable).
+        --expect-sid=*)     EXPECT_SID="${a#*=}" ;;
+        --expect-target=*)  EXPECT_TARGET="${a#*=}" ;;
+        --expect-sid|--expect-target)
+                            echo "jicm-actuate: $a requires the '=' form, e.g. ${a}=<value>" >&2; exit 64 ;;
+        -h|--help)      echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> [--fire [--canary]] [--expect-sid=<sid>] [--expect-target=<pane>]  |  __run <key>"; exit 0 ;;
         sense|prepare)  [[ -z "$VERB" ]] && VERB="$a" || { echo "jicm-actuate: one verb at a time" >&2; exit 64; } ;;
         -*)             echo "jicm-actuate: unknown flag '$a'" >&2; exit 64 ;;
         *)              [[ -z "$KEY" ]] && KEY="$a" || { echo "jicm-actuate: unexpected arg '$a'" >&2; exit 64; } ;;
     esac
 done
+# An --expect-* pin is only meaningful when arming; silently honouring it on a
+# dry-run/verb would imply a check that never ran.
+if [[ -n "$EXPECT_SID$EXPECT_TARGET" && "$FIRE" -ne 1 ]]; then
+    echo "jicm-actuate: --expect-sid/--expect-target are only valid with --fire" >&2; exit 64
+fi
 [[ -n "$KEY" ]] || { echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> [--fire [--canary]]  |  __run <key>" >&2; exit 64; }
 
 case "$VERB" in
     sense)   cmd_sense   "$KEY" ;;
     prepare) cmd_prepare "$KEY" ;;
-    "")      if [[ "$FIRE" -eq 1 ]]; then cmd_fire "$KEY" "$CANARY"; else cmd_plan "$KEY"; fi ;;
+    "")      if [[ "$FIRE" -eq 1 ]]; then cmd_fire "$KEY" "$CANARY" "$EXPECT_SID" "$EXPECT_TARGET"; else cmd_plan "$KEY"; fi ;;
 esac

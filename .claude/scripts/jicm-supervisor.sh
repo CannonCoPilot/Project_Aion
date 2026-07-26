@@ -179,11 +179,17 @@ _fire() {
         rm -f "$lock"
     fi
     _fire_ok "$1" || return 0    # circuit breaker: a stuck key is backed off (ALERTed), not hammered
-    if bash "$ACTUATOR" "$1" --fire >> "$SUP_LOG" 2>&1; then
+    # M2 — pin the actuator to the identity _signal_valid just PROVED, so a registry
+    # move between validation and arming aborts the cycle instead of redirecting it at
+    # whoever now holds the key. Unset pins (nothing proven) omit the flags entirely.
+    local pin=()
+    [[ -n "${SIGVALID_SID:-}"    ]] && pin+=("--expect-sid=${SIGVALID_SID}")
+    [[ -n "${SIGVALID_TARGET:-}" ]] && pin+=("--expect-target=${SIGVALID_TARGET}")
+    if bash "$ACTUATOR" "$1" --fire ${pin[@]+"${pin[@]}"} >> "$SUP_LOG" 2>&1; then
         echo "$(_now)" > "$lock"
-        _log "ACTUATE: armed detached actuator for key=$1 via --fire (lock set)"
+        _log "ACTUATE: armed detached actuator for key=$1 via --fire (lock set)${SIGVALID_SID:+ · pinned sid=${SIGVALID_SID}}"
     else
-        _log "ACTUATE-BLOCKED key=$1 (--fire rc≠0 — likely --canary gated, or unresolved transcript/target; see the actuator log for the exact cause)"
+        _log "ACTUATE-BLOCKED key=$1 (--fire rc≠0 — identity drift (M2), --canary gate, or unresolved transcript/target; see the actuator log for the exact cause)"
     fi
 }
 
@@ -199,6 +205,9 @@ _fire() {
 # A valid signal is left in place (so a GATED supervisor still logs ACTUATE-PENDING).
 _signal_valid() {
     local key="$1" sid target pane_sid tokens hard now sig_mt age
+    # M2: the identity this pass PROVES, published for _fire to pin the actuator to.
+    # Reset per call so a later pass can never inherit an earlier pass's proof.
+    SIGVALID_SID=""; SIGVALID_TARGET=""
     jicm_key_paths "$key"
     [[ -f "$JK_CLEAR_SIGNAL" ]] || return 1
     sid="$(jq -r '.session_id // empty' "$JK_CLEAR_SIGNAL" 2>/dev/null)"
@@ -242,6 +251,12 @@ _signal_valid() {
         _log "SIGNAL-AGED key=$key (${age}s > ${SIGNAL_MAX_AGE_SEC}s, unresolved) — reaping backstop."
         rm -f "$JK_CLEAR_SIGNAL"; return 1
     fi
+    # M2 — publish the proven identity for _fire. Prefer the live pane occupant: guard
+    # (b) has just established pane_sid == sid, and occupancy is the anchor (C3), sound
+    # even when the registry is last-writer-wins polluted. Self-keys (no pane) fall back
+    # to the raiser's own sid. Empty => nothing proven => _fire leaves the pin off.
+    SIGVALID_SID="${pane_sid:-$sid}"
+    SIGVALID_TARGET="$target"
     return 0
 }
 
