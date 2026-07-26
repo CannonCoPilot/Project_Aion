@@ -197,6 +197,14 @@ _wait_for_signal() {
     return 1
 }
 
+# --- Perception primitives (statusline read; ported from jicm-self.sh) --------
+# Read the target pane's Claude statusline to sense context fullness. Pane-based:
+# a self-mode key (no tmux pane) has no statusline and reports honestly-unavailable
+# rather than fabricating a number (No-Silent-Degradation). Consume TMUX_TARGET.
+_strip_ansi() { sed $'s/\x1b\\[[0-9;]*m//g'; }
+_bar_row()   { [[ -n "$TMUX_TARGET" ]] || return 0; "$TMUX_BIN" capture-pane -t "$TMUX_TARGET" -p 2>/dev/null | _strip_ansi | grep -E '\] +[0-9]+%' | tail -1; }
+_model_row() { [[ -n "$TMUX_TARGET" ]] || return 0; "$TMUX_BIN" capture-pane -t "$TMUX_TARGET" -p 2>/dev/null | _strip_ansi | grep -oE '(opus|sonnet|haiku|fable)-[0-9]+-?[0-9]*' | head -1; }
+
 # ---------------------------------------------------------------------------
 # Fold-forward memory steps (W0 watcher 5.5–5.9), per-key namespaced via JK_*.
 # Each is defensive + non-fatal: a missing dependency logs + skips, never aborts
@@ -442,6 +450,55 @@ cmd_run() {
     esac
 }
 
+# DELIBERATIVE PERCEPTION (sense) — read the key's own context vitals; advice only,
+# NO action. The "add-the-volition" half, ported + generalized from jicm-self.sh:cmd_sense.
+# Pane keys (w0/dev) read the tmux statusline; a self-mode key reports honestly-unavailable.
+cmd_sense() {
+    local key="$1"
+    jicm_key_paths "$key"
+    TMUX_TARGET="$(_resolve_target)"
+    local row pct tokens model p
+    row="$(_bar_row)"; model="$(_model_row)"
+    pct="$(printf '%s' "$row" | grep -oE '[0-9]+%' | head -1)"
+    tokens="$(printf '%s' "$row" | grep -oE '[0-9.]+[KM]' | head -1)"
+    echo "jicm-actuate · sense · key=$key · target=${TMUX_TARGET:-<none>} · ${model:-?}"
+    if [[ -z "$TMUX_TARGET" ]]; then
+        echo "  context : (self-mode key — no tmux pane; pane-based sense unavailable)"
+        echo "  advice  : this session judges its own fullness; cycle with 'jicm-actuate.sh $key --fire --canary' when heavy"
+        return 0
+    fi
+    echo "  context : ${pct:-?} used  (${tokens:-?} tokens)"
+    p="${pct%\%}"
+    if [[ "$p" =~ ^[0-9]+$ ]]; then
+        if   [[ "$p" -ge 85 ]]; then echo "  advice  : HIGH — refresh soon"
+        elif [[ "$p" -ge 65 ]]; then echo "  advice  : MODERATE — plan a refresh at the next natural break"
+        else                          echo "  advice  : AMPLE — continue working"; fi
+    else echo "  advice  : (could not read statusline for $TMUX_TARGET)"; fi
+}
+
+# DELIBERATIVE PRE-FLIGHT (prepare) — save-gate over the key's durable state; NO clear.
+# Ported + generalized from jicm-self.sh:cmd_prepare (per-key scratchpad via _scratchpad_rel).
+cmd_prepare() {
+    local key="$1"
+    jicm_key_paths "$key"
+    local scratch="$PROJECT_DIR/$(_scratchpad_rel)" now age ready=1
+    now="$(date +%s)"
+    echo "jicm-actuate · prepare · key=$key · deliberate save-gate (NO clear performed):"
+    if [[ -f "$scratch" ]]; then
+        age=$(( (now - $(stat -f %m "$scratch" 2>/dev/null || echo "$now")) / 60 ))
+        echo "  scratchpad : present, ${age}m ago  ($(_scratchpad_rel))"
+        [[ "$age" -gt 30 ]] && ready=0
+    else
+        echo "  scratchpad : MISSING — write working state to $(_scratchpad_rel) first"; ready=0
+    fi
+    if [[ -f "$JK_COMPRESSED" ]]; then
+        echo "  checkpoint : present, $(( (now - $(stat -f %m "$JK_COMPRESSED" 2>/dev/null || echo "$now")) / 60 ))m old"
+    else
+        echo "  checkpoint : absent (a --fire cycle will build one from the transcript)"
+    fi
+    if [[ "$ready" -eq 1 ]]; then echo "  verdict    : READY"; else echo "  verdict    : NOT READY — save working-state (<=30m) first"; fi
+}
+
 # DRY-RUN: resolve + print the plan, take NO action. Safe; the default no-flag path.
 cmd_plan() {
     local key="$1"
@@ -515,20 +572,27 @@ case "${1:-}" in
     __run) shift; cmd_run "$@"; exit $? ;;
 esac
 
-KEY=""; FIRE=0; CANARY=0
+# Grammar:  <key>                 → DRY-RUN plan (safe default)
+#           <key> sense           → perception (statusline read; no action)
+#           <key> prepare         → deliberative save-gate (no action)
+#           <key> --fire [--canary] → ARM the detached actuator (gated)
+# A verb (sense|prepare) and a key are both positional + order-independent. Keys are
+# never literally "sense"/"prepare" (w0|dev|protos|chain-*|*-bg-*), so no collision.
+KEY=""; VERB=""; FIRE=0; CANARY=0
 for a in "$@"; do
     case "$a" in
-        --fire)     FIRE=1 ;;
-        --canary)   CANARY=1 ;;
-        -h|--help)  echo "usage: jicm-actuate.sh <key> [--fire [--canary]]   |   __run <key>"; exit 0 ;;
-        -*)         echo "jicm-actuate: unknown flag '$a'" >&2; exit 64 ;;
-        *)          [[ -z "$KEY" ]] && KEY="$a" ;;
+        --fire)         FIRE=1 ;;
+        --canary)       CANARY=1 ;;
+        -h|--help)      echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> [--fire [--canary]]  |  __run <key>"; exit 0 ;;
+        sense|prepare)  [[ -z "$VERB" ]] && VERB="$a" || { echo "jicm-actuate: one verb at a time" >&2; exit 64; } ;;
+        -*)             echo "jicm-actuate: unknown flag '$a'" >&2; exit 64 ;;
+        *)              [[ -z "$KEY" ]] && KEY="$a" || { echo "jicm-actuate: unexpected arg '$a'" >&2; exit 64; } ;;
     esac
 done
-[[ -n "$KEY" ]] || { echo "usage: jicm-actuate.sh <key> [--fire [--canary]]   |   __run <key>" >&2; exit 64; }
+[[ -n "$KEY" ]] || { echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> [--fire [--canary]]  |  __run <key>" >&2; exit 64; }
 
-if [[ "$FIRE" -eq 1 ]]; then
-    cmd_fire "$KEY" "$CANARY"
-else
-    cmd_plan "$KEY"
-fi
+case "$VERB" in
+    sense)   cmd_sense   "$KEY" ;;
+    prepare) cmd_prepare "$KEY" ;;
+    "")      if [[ "$FIRE" -eq 1 ]]; then cmd_fire "$KEY" "$CANARY"; else cmd_plan "$KEY"; fi ;;
+esac
