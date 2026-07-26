@@ -21,12 +21,18 @@ TMUX_BIN="${TMUX_BIN:-/Users/nathanielcannon/bin/tmux}"
 SESSION_NAME="aion"
 SESSIONS_DIR="$HOME/.claude/sessions"
 
-MODE="dryrun"; CONFIRM_KILL="no"
+MODE="dryrun"; CONFIRM_KILL="no"; DO_WINDOWS="no"
+# H4 — Alfred seed/chain TTL. A chain window idle longer than this is a leaked task
+# window (its work finished or died without cleanup). Generous by default: chains can
+# legitimately sit idle mid-task while a predecessor runs.
+CHAIN_TTL_SEC="${JICM_CHAIN_TTL_SEC:-7200}"        # 2h
+SEED_STALE_SEC="${JICM_SEED_STALE_SEC:-86400}"     # 24h — ALERT only, never auto-killed
 for a in "$@"; do
   case "$a" in
     --execute) MODE="execute" ;;
     --yes)     CONFIRM_KILL="yes" ;;
-    -h|--help) echo "usage: session-reap.sh [--execute --yes]   (dry-run default; kills ONLY orphaned+idle; never touches transcripts)"; exit 0 ;;
+    --windows) DO_WINDOWS="yes" ;;
+    -h|--help) echo "usage: session-reap.sh [--windows] [--execute --yes]   (dry-run default; kills ONLY orphaned+idle processes and, with --windows, chain-* windows idle > \$JICM_CHAIN_TTL_SEC; never touches transcripts)"; exit 0 ;;
     *) echo "unknown arg: $a" >&2; exit 64 ;;
   esac
 done
@@ -122,10 +128,9 @@ if [ "$MODE" = "dryrun" ]; then
   say ""; say "DRY-RUN — nothing changed."
   [ "$N_KILL" -gt 0 ] && say "Would kill $N_KILL orphaned+idle pids (with --execute --yes): $(printf '%s ' $ORPHAN_KILL)"
   say "Re-run with --execute --yes to kill ONLY the orphaned+idle processes above."
-  exit 0
-fi
-
-if [ "$CONFIRM_KILL" = "yes" ] && [ "$N_KILL" -gt 0 ]; then
+  # NOTE: deliberately NO early exit here — the --windows TTL section below must run in
+  # dry-run too (dry-run is the DEFAULT, so an early exit made it unreachable).
+elif [ "$CONFIRM_KILL" = "yes" ] && [ "$N_KILL" -gt 0 ]; then
   for p in $ORPHAN_KILL; do
     if kill "$p" 2>/dev/null; then say "✓ killed orphaned pid $p"; else say "✗ could not kill pid $p"; fi
   done
@@ -133,3 +138,56 @@ elif [ "$N_KILL" -gt 0 ]; then
   say "(orphaned processes left alive — add --yes to kill them)"
 fi
 say "Done."
+
+# ---------------------------------------------------------------------------
+# H4 (second half) — Alfred seed/chain TTL.
+# Chain windows (chain-*, stacked at W12+) are per-task and are supposed to be
+# kill-window'd when their chain completes; a leaked one idles forever. Only these
+# are reapable, and only by IDLE AGE.
+# The seed (Protos, W1) is a FIXED launcher window backing the fork cache — killing it
+# would break every subsequent fork, so staleness there ALERTs for a human/launcher
+# recycle and is never auto-killed (No-Silent-Degradation: surface it, don't paper over
+# it, and don't "fix" it by breaking something else).
+# Fixed windows W0-W11 are never candidates under any circumstance.
+# ---------------------------------------------------------------------------
+if [ "$DO_WINDOWS" = "yes" ]; then
+  NOW="$(date +%s)"
+  hr; say "WINDOW TTL  —  chain idle>${CHAIN_TTL_SEC}s reapable · seed stale>${SEED_STALE_SEC}s alerts"; hr
+  WIN_KILL=""
+  while read -r idx name act; do
+    [ -n "${idx:-}" ] || continue
+    age=$(( NOW - ${act:-$NOW} ))
+    case "$name" in
+      chain-*)
+        if [ "$idx" -lt 12 ]; then
+          say "  SKIP      $name (index $idx < 12 — a fixed window, never reapable)"
+        elif [ "$age" -gt "$CHAIN_TTL_SEC" ]; then
+          say "  STALE     $name (idx=$idx idle=${age}s > ${CHAIN_TTL_SEC}s) → reapable"
+          WIN_KILL="$WIN_KILL $idx"
+        else
+          say "  live      $name (idx=$idx idle=${age}s)"
+        fi ;;
+      Protos)
+        if [ "$age" -gt "$SEED_STALE_SEC" ]; then
+          say "  ⚠ ALERT   seed $name idle=${age}s > ${SEED_STALE_SEC}s — recycle the seed (NOT auto-killed:"
+          say "            the fork cache depends on it; killing it breaks every later fork)"
+        else
+          say "  seed ok   $name (idle=${age}s)"
+        fi ;;
+    esac
+  done <<WEOF
+$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_index} #{window_name} #{window_activity}' 2>/dev/null)
+WEOF
+  N_WIN=$(printf '%s\n' $WIN_KILL | grep -c . 2>/dev/null); N_WIN=${N_WIN:-0}
+  if [ "$MODE" = "dryrun" ]; then
+    [ "$N_WIN" -gt 0 ] && say "  DRY-RUN — would kill-window:$WIN_KILL" || say "  DRY-RUN — no stale chain windows."
+  elif [ "$CONFIRM_KILL" = "yes" ] && [ "$N_WIN" -gt 0 ]; then
+    for w in $WIN_KILL; do
+      if "$TMUX_BIN" kill-window -t "${SESSION_NAME}:$w" 2>/dev/null; then say "  ✓ killed window $w"; else say "  ✗ could not kill window $w"; fi
+    done
+    say "  NOTE: any claude left behind by kill-window becomes ORPHANED — re-run without"
+    say "        --windows to reap those processes."
+  elif [ "$N_WIN" -gt 0 ]; then
+    say "  (stale chain windows left alive — add --yes to kill them)"
+  fi
+fi

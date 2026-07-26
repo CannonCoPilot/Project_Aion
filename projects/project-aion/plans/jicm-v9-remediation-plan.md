@@ -82,7 +82,24 @@ The full patch design is in **Part D**. Net effect: only the pane's actual occup
   is a human's conflict, not a thing to silently resolve.
   Live repair on first run: breadcrumb `91bcac6a`→`fbd7528a`; promoted `dev-bg-fbd7528a`→`dev`.
   Harness 14/14 (`tmp/r2-reconcile-harness.sh`), incl. defer/conflict/blind-probe branches.
-- **Reaper (Styx) enhancement:** reap detached claude **processes** whose tmux window is gone (beyond `kill-window`); give Alfred seeds/chains a TTL. (H4)
+- **H4 — DONE (`f160498` + TTL follow-up).** `.claude/scripts/dev/session-reap.sh`.
+  PROCESSES: classifies every live claude by ancestry — WINDOW (launcher pane, never
+  touched) · HOSTED (bg job/subagent under a live host; left to its host's lifecycle) ·
+  ORPHANED (window gone AND parent chain dead — the only kill candidate, and only when
+  idle). Transcripts never touched. Dry-run default; `--execute --yes` to act.
+  **Fail-closed fix:** an absent `ps` entry previously fell through to ORPHANED, making an
+  UNVERIFIABLE process a kill candidate (a transient probe failure on a live session could
+  select it). Now split GONE (pid absent → stale registry row) / UNVERIFIABLE (pid exists,
+  ancestry unwalkable); neither is ever killed.
+  WINDOW TTL (`--windows`): `chain-*` windows idle > `JICM_CHAIN_TTL_SEC` (2h) are reapable,
+  and ONLY at index ≥ 12 — fixed windows W0–W11 are immune. The **seed (Protos, W1) is never
+  auto-killed**: the fork cache depends on it, so staleness > `JICM_SEED_STALE_SEC` (24h)
+  ALERTs for a human/launcher recycle instead (No-Silent-Degradation — surface it, don't
+  "fix" it by breaking every later fork).
+  Harness 19/19 (`tmp/h4-reap-harness.sh`), incl. live-orphan reap with zero collateral,
+  dead-pid exclusion, and synthetic stale-chain reap with all 12 fixed windows intact.
+  **Note:** registry-key GC was never broken — one supervisor pass collects stale keys.
+  H4's gap was orphaned PROCESSES and leaked WINDOWS.
 - **M1 — DONE (`b09e489`, pushed).** `sense`/`prepare` ported into `jicm-actuate.sh` and
   generalized per-key (were dev-only); grammar extended to `<key> [sense|prepare]`;
   `jicm-self.sh` reduced 340→53 lines as a forwarding shim (retired `__actuate` exits 64),
