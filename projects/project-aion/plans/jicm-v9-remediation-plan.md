@@ -120,7 +120,29 @@ The full patch design is in **Part D**. Net effect: only the pane's actual occup
   while pane `aion:11` ran `fbd7528a`) — the defect R2 reconciliation then root-caused.
 
 ### R3 — Fold W0 into the supervisor (v9 Phase 3)
-- `JICM_SUPERVISOR_INCLUDE_W0=1` shadow-run W0 sense-only for ≥1 real cycle; md5-parity of W0's checkpoint vs the legacy watcher (RAG/Graphiti/consolidation/scrollback all fire); then cut over; retire the v7.9 watcher; rehearse rollback. **HALT-handshake parity decision** resolved here (documented Phase-3 checkpoint).
+- **Step 1 — shadow SAFETY: DONE.** Prerequisite discovered 2026-07-25, before any flag flip:
+  **`JICM_SUPERVISOR_INCLUDE_W0=1` was NOT "sense-only".** For `key=w0`, `JK_CLEAR_SIGNAL`
+  resolves to `.claude/context/.jicm-clear-now.signal` — **byte-identical to the legacy v7.9
+  watcher's `JICM_CLEAR_SIGNAL`** — and `_signal_valid` reaps at 4 sites. Flipping the flag
+  with the watcher running would have let the supervisor DELETE the clear request the watcher
+  was acting on: two managers, one signal file. The plan's "shadow-run sense-only" step was
+  therefore unsafe as written.
+  Fix: `_w0_shadow()` (true while `jicm-watcher.sh` is alive) + `_reap_signal <key> <reason>`;
+  all 4 reap sites now route through it, and `_fire` returns early for a shadowed w0
+  (belt-and-braces behind the two existing gates). Shadow suppresses every w0 mutation and
+  **logs what it WOULD have done** (`SHADOW-W0: would reap … / would ARM …`) — which is
+  exactly the parity evidence this phase needs. Shadow ends by itself: retire the watcher
+  process and w0 becomes fully managed, no flag to remember.
+  Harness 7/7 (`tmp/r3-shadow-harness.sh`): a planted INVALID w0 signal SURVIVES an
+  `INCLUDE_W0=1` pass and the would-be reap is logged, while a non-w0 dead-raiser signal is
+  still reaped (shadow is correctly w0-scoped). Regressions green: M2 12/12, R2 14/14, H4 19/19.
+- **Step 2 — shadow OBSERVATION: PENDING, needs elapsed time.** Run the supervisor with
+  `JICM_SUPERVISOR_INCLUDE_W0=1` across ≥1 real W0 cycle and collect the `SHADOW-W0` lines.
+  Cannot be forced: W0 sits at ~217K vs soft 550K / hard 600K, so a natural cycle is far off.
+- **Step 3 — parity + cutover: BLOCKED on step 2.** md5-parity of W0's checkpoint vs the
+  legacy watcher (RAG/Graphiti/consolidation/scrollback all fire); then cut over; retire the
+  v7.9 watcher; rehearse rollback; retire the `_w0_clear_valid` stopgap in `jicm-watcher.sh`.
+  **HALT-handshake parity decision** resolved here (documented Phase-3 checkpoint).
 
 ### R4 — Multi-session HUD (v9 Phase 5 / L3) — observability precondition
 N-row registry-iterating HUD (Part B). Land **before** un-gate.

@@ -112,6 +112,27 @@ _managed() {
     return 0
 }
 
+# --- R3 — W0 SHADOW MODE ------------------------------------------------------
+# While the legacy v7.9 watcher still owns w0, the supervisor may only OBSERVE it.
+# The two share ONE signal file: for key=w0, JK_CLEAR_SIGNAL IS the watcher's
+# .jicm-clear-now.signal. So INCLUDE_W0=1 is NOT "sense-only" by itself — _signal_valid
+# reaps, and a supervisor reap would delete the request the watcher is acting on
+# (two managers, one file). Shadow mode suppresses every w0 mutation and logs what it
+# WOULD have done — which is precisely the parity evidence R3 needs before cutover.
+# Shadow ends by itself: retire the watcher process and w0 becomes fully managed.
+_legacy_watcher_alive() { pgrep -f 'jicm-watcher\.sh' >/dev/null 2>&1; }
+_w0_shadow() { [[ "$1" == "w0" ]] && _legacy_watcher_alive; }
+
+# Reap a clear-now signal — unless we are only shadowing this key.
+_reap_signal() {   # <key> <reason>
+    if _w0_shadow "$1"; then
+        _log "SHADOW-W0: would reap signal ($2) — legacy watcher owns w0; observing only"
+        return 0
+    fi
+    jicm_key_paths "$1"
+    rm -f "$JK_CLEAR_SIGNAL"
+}
+
 # Sense a key from the gate-written state file. Echoes "tokens|pending|hard".
 _sense() {
     jicm_key_paths "$1"
@@ -178,6 +199,13 @@ _fire() {
         _log "ALERT: stale actuating lock key=$1 (${age}s, no live worker) — clearing + re-evaluating"
         rm -f "$lock"
     fi
+    # R3 — never actuate w0 while the legacy watcher still owns it. Belt-and-braces
+    # behind the two existing gates: shadow mode must be observe-only even if a future
+    # change opens them. Logged so the shadow run shows what cutover WOULD have done.
+    if _w0_shadow "$1"; then
+        _log "SHADOW-W0: would ARM the actuator now — suppressed (legacy watcher owns w0)"
+        return 0
+    fi
     _fire_ok "$1" || return 0    # circuit breaker: a stuck key is backed off (ALERTed), not hammered
     # M2 — pin the actuator to the identity _signal_valid just PROVED, so a registry
     # move between validation and arming aborts the cycle instead of redirecting it at
@@ -215,7 +243,7 @@ _signal_valid() {
     # (a) dead raiser
     if [[ -n "$sid" ]] && ! jicm_session_alive "$sid"; then
         _log "SIGNAL-STALE key=$key raiser=$sid not alive — reaping (no live session to clear)"
-        rm -f "$JK_CLEAR_SIGNAL"; return 1
+        _reap_signal "$key" "stale: dead raiser"; return 1
     fi
     # (b) misdirected — raiser ≠ live pane occupant
     target="$(jicm_registry_get "$key" '.tmux_target')"
@@ -233,7 +261,7 @@ _signal_valid() {
         fi
         if [[ -n "$sid" && "$pane_sid" != "$sid" ]]; then
             _log "SIGNAL-MISDIRECTED key=$key raiser=$sid but pane $target runs $pane_sid — REFUSING (would clear the wrong session); reaping. [pre-R1 keying pollution]"
-            rm -f "$JK_CLEAR_SIGNAL"; return 1
+            _reap_signal "$key" "misdirected: raiser not the pane occupant"; return 1
         fi
     fi
     # (c) edge-persisted — re-sense no longer over threshold
@@ -242,14 +270,14 @@ _signal_valid() {
     [[ "$tokens" =~ ^[0-9]+$ ]] || tokens=0
     if [[ "$hard" -gt 0 && "$tokens" -lt "$hard" ]]; then
         _log "SIGNAL-EDGE key=$key tokens=$tokens < hard=$hard — no longer over threshold; reaping."
-        rm -f "$JK_CLEAR_SIGNAL"; return 1
+        _reap_signal "$key" "edge: no longer over threshold"; return 1
     fi
     # (d) aged backstop
     now="$(_now)"; sig_mt="$(stat -f %m "$JK_CLEAR_SIGNAL" 2>/dev/null || echo "$now")"
     age=$(( now - sig_mt ))
     if [[ "$age" -gt "$SIGNAL_MAX_AGE_SEC" ]]; then
         _log "SIGNAL-AGED key=$key (${age}s > ${SIGNAL_MAX_AGE_SEC}s, unresolved) — reaping backstop."
-        rm -f "$JK_CLEAR_SIGNAL"; return 1
+        _reap_signal "$key" "aged backstop"; return 1
     fi
     # M2 — publish the proven identity for _fire. Prefer the live pane occupant: guard
     # (b) has just established pane_sid == sid, and occupancy is the anchor (C3), sound
