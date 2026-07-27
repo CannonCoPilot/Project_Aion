@@ -325,8 +325,14 @@ JICM_PROJECTS_DIR="$HOME/.claude/projects/${JICM_PROJECT_SLUG}"
 
 # --- Thresholds (token-primary per User encoding directive) -----------------
 # Token thresholds preferred over percentages; pct fields display-only.
-JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-550000}    # 55% of 1M — above W0's ~380K resume baseline (2026-07-19)
-JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-600000}    # 60% of 1M — clears with real headroom, not into the baseline
+# 2026-07-27 (Sir, R3 step 2): lowered 550K/600K → 300K/330K so W0 can reach a REAL cycle
+# inside one work sprint — 550K was unreachable in practice, blocking the R3 shadow
+# observation. ⚠ These sit close to W0's observed operating band (255K–307K) and the older
+# "~380K resume baseline" note below; if a post-clear W0 resumes ABOVE 330K it will want to
+# clear again immediately. That is a circuit-breaker case (FIRE_MAX/hour + ALERT), not a
+# silent loop — but restore 550K/600K once the R3 shadow evidence is captured.
+JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-300000}    # was 550000 (55% of 1M)
+JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # was 600000 (60% of 1M)
 JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-600000}   # legacy v7.x alias (= new hard)
 # NOTE: the gate's per-window clamp (WINDOW*0.80 hard / *0.66 soft) still applies — on a
 # 1M window these pass through (800K/660K caps > 600K/550K); smaller windows clamp DOWN.
