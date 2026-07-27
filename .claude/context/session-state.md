@@ -5,6 +5,41 @@
 
 ---
 
+## ACTIVE (2026-07-27) — Palimpsest OriginalDR reOCR · M12 SPRINT: tiers A, B, C1 CLOSED
+Long autonomous sprint (Sir approved A–D; he worked GT-3 calls in parallel). **98 tests green**, 6 module
+self-checks pass, **nothing committed (HOLD for Sir)**.
+- **The measuring instrument was the bug.** Per-verse gold had been cut by the INCUMBENT aligner, so every
+  M5–M11 figure scored a challenger on the incumbent's grid. `gold_grid.py` now cuts gold at the PRINTED verse
+  markers (98% of boundaries; the 2% janvier sets are counted) and WITHDRAWS labels it cannot justify. On the
+  fair reference the hybrid localizer **worsens ZERO verses** (the biased grid showed 11) and the entire
+  "selector cost" recorded in M7 **did not exist**.
+- **Gate MET again:** four alarms, **recall 1.000 @ τx=0.90 → 24% escalation, 18 false alarms**. The one
+  verse it was reopened for turned out to be a REFERENCE bug, not a gate bug. Alarm 5 (span vs printed verse
+  number) is BUILT and KEPT but DEFAULT OFF — measured 40% escalation for zero extra catches.
+- **Composable block grammar + regime detection** replaces per-book models (book identity = prior, never key).
+  Swept all 6 curated sources / 33 pages: ot-dagger 20 · nt-numeral 7 · no-scripture 3 · **unmatched 3 = 9.1%**
+  (honest coverage gap, reported not forced). **The NT numeral regime is NOT Matthew-specific — S1, S4, S6.**
+- **Verse numbers recovered**: the DR DOES number its verses (`N †` psalms, `N.` NT); kraken's polygons start
+  at the dagger so they were never read. 45 recovered + cached. PINNED: anchors must NOT rewrite spans.
+- **NEXT: Tier C2** (ſ-faithful in-agent arbiter, 21 debts, in-session vision, NO paid API) **then Tier D**
+  (REP-2/4/5 · production audit · report artifact · COMPLETENESS REVIEW). OPEN ledger 55, blocks delivery.
+- Resume anchor: `ocr-spike/SPRINT-STATUS.md` (RESUME header at top) · master plan §12.5 rev 4 · scratchpad.
+
+---
+
+## SUPERSEDED (2026-07-25) — M5 R3 PRODUCTIONIZED
+Autonomous sprint: the reOCR gate now ROUTES end-to-end (flagged verse → pixel crop → local olmOCR → janvier-cut
+re-score → OPEN ledger). 5 new modules, **46 TDD tests green**, adversarial code-review (2 HIGH anti-laundering
+gaps fixed), statistically validated on 13 gold pages. **Prose content pass 0→76%; psalms 0→28% (olmOCR
+high-variance); 0/23 accepted verses worse-vs-gold than R2 (No-Silent-Degradation proven).** Report artifact:
+https://claude.ai/code/artifact/94b9a36c-18dc-4823-9a13-debf16d40193
+- **RESUME**: read `Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/SESSION-HANDOFF-2026-07-25.md`
+  (self-contained), then `SPRINT-STATUS.md` (top) + `R3-PRODUCTIONIZATION-REPORT-2026-07-25.md`.
+- **NEXT LEVER**: layout-aware column-band crop for psalms (§8 R3-4) · then ſ-faithful in-agent arbiter · GT-3 breadth (Sir-review).
+- Nothing committed (`ocr-spike/` gitignored — on-disk deliverables). See [[project_originaldr_reocr_path]].
+
+---
+
 **Status**: **PALIMPSEST — POST-AUDIT VERIFICATION + REMEDIATION (2026-06-15 PM)**. Re-verification of the 43-request sprint found two prior claims OVERSTATED: (1) track-toggle perf was NOT actually fixed — the W2 cleanup deleted the half-built `useTrackVisibility` selector while all 7 consumers still subscribed to the whole tracks map (O(N) re-render intact); (2) number-key track toggles were silently broken by a `keyboard.ts` store-shape crash (read `getState().paragraphs` after the multi-project refactor moved it under `getActiveProject`). Both fixed this session + full tsc cleanup (44→0 errors, build GREEN). 315 backend + 21 frontend tests pass. COMMITTED & PUSHED to origin/main 2026-06-15 PM (3 commits, latest 12c9df4).
 **Date**: 2026-06-15
 **Version**: v5.15.1
