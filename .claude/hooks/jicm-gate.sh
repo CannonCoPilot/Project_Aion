@@ -165,7 +165,12 @@ fi
 
 # ─── Window-size lookup (from model id) ─────────────────────────────────────
 case "$MODEL" in
-    *opus-4-8*)                        WINDOW=1000000 ;;  # Opus 4.8 1M — W0/W1/W11 unified default
+    # NOTE: match the SPECIFIC 200K tiers before any broad family glob, and keep every
+    # shipping model listed. A model absent from this map is not "safe by default" — it
+    # silently lands on the 250K unknown branch, whose 200K clamp then reads a real 1M
+    # session as permanently over-threshold (see R4/R5 finding, 2026-07-27).
+    *opus-5*)                          WINDOW=1000000 ;;  # Opus 5 = 1M — the current launcher default
+    *opus-4-8*)                        WINDOW=1000000 ;;  # Opus 4.8 1M
     *opus-4-7*|*opus-4-6*|*opus-4-5*)  WINDOW=1000000 ;;  # legacy 1M opus (resumed sessions)
     *fable-5*|*mythos-5*)              WINDOW=1000000 ;;  # Fable 5 / Mythos 5 = 1M
     *sonnet-5*)                        WINDOW=1000000 ;;  # Sonnet 5 = 1M

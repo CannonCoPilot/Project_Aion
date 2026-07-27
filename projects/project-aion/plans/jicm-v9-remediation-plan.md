@@ -170,6 +170,31 @@ N-row registry-iterating HUD (Part B). Land **before** un-gate.
 > This is precisely the class of defect Part B predicted the single-session HUD was hiding.
 
 ### R5 — Launcher/session-model alignment
+- **Model→window alignment: DONE (2026-07-27).** The R4 HUD showed every `dev-bg-*` key at
+  144–194% of threshold. **My first read ("background forks fail model detection") was WRONG
+  and is corrected here.** Real cause, from the transcripts: `dev-bg-c6ce7be7` and the `dev`
+  PANE both report `claude-opus-5`; `w0` reports `claude-opus-4-8`. `jicm-gate.sh`'s
+  model→window map had **no `*opus-5*` case at all**, so *any* Opus 5 session — pane or fork —
+  fell to the UNKNOWN branch (250K window → 200K hard clamp) and read permanently
+  over-threshold. Not a fork quirk: a systemic, model-wide mis-threshold.
+  Root cause of the root cause: the launcher is mid-migration Opus 4.8 → Opus 5, and the gate's
+  map never followed. Fix: `*opus-5*` → 1M, plus a comment recording that a model ABSENT from
+  this map is not "safe by default" — it silently lands on the 250K branch.
+  Harness 17/17 (`tmp/r5-window-harness.sh`) pins every shipping model (1M tiers, the 200K
+  tiers that must NOT be caught by a broad glob, unknown-stays-conservative) and asserts all
+  three LIVE sessions resolve to 1M.
+- **Launcher default-expansion typo: FIXED IN PLACE, NOT COMMITTED.** The uncommitted launcher
+  migration contains `export AION_MODEL="${AION_MODEL:claude-opus-5}"` — missing the `-`, so it
+  is *substring* expansion, not default-value: unset → `[]` (the default is never applied),
+  and an explicit override → `[8[1m]]` (last 5 chars, corrupted). The committed version
+  (`${AION_MODEL:-claude-opus-4-8[1m]}`) was correct; the dash was lost in the in-flight edit,
+  which defeats the very override the comment above it promises. Corrected in the working tree
+  because every relaunch was actively affected, but **`launch-aion.sh` is deliberately left
+  uncommitted** — it carries 88/74 lines of someone else's in-flight Opus-5 migration that is
+  not mine to land. **→ Sir: review and commit that migration; the one-character fix is in it.**
+- Remaining R5 items (untouched): cwd/symlink-safe resume (`Jarvis`↔`Project_Aion` realpath
+  split); never `--resume` a live UUID without `--fork-session`; stop pinning seed UUIDs as
+  source of truth; M3 launcher-row registration + GC pass.
 - cwd/symlink-safe resume (the `Jarvis`↔`Project_Aion` realpath split; `sessions.md:25`).
 - **Never `--resume` a live UUID without `--fork-session`.**
 - Stop pinning seed UUIDs as the source of truth; treat the pane's live session as authoritative (observe, don't assume). Embrace agent-view/background sessions rather than fighting them.
