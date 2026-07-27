@@ -64,6 +64,7 @@ PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pw
 JICM_STATE_HOOK_FILE="${JICM_STATE_HOOK_FILE:-$PROJECT_DIR/.claude/context/.jicm-state-hook.json}"
 JICM_STATE_FILE="${JICM_STATE_FILE:-$PROJECT_DIR/.claude/context/.jicm-state}"
 JICM_LOG_FILE="${JICM_LOG_FILE:-$PROJECT_DIR/.claude/logs/jicm-watcher.log}"
+JICM_WATCHER_LOOP_LOG="${JICM_WATCHER_LOOP_LOG:-$PROJECT_DIR/.claude/logs/jicm-watcher-loop.log}"
 JICM_PID_FILE="${JICM_PID_FILE:-$PROJECT_DIR/.claude/context/.jicm-watcher.pid}"
 JICM_METADATA_FILE="${JICM_METADATA_FILE:-$PROJECT_DIR/.claude/context/.jicm-last-compression.json}"
 JICM_NLP_META="$PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
@@ -502,13 +503,21 @@ load_signals() {
 
 load_log_tail() {
     HUD_LOG_LINES=()
-    [[ -f "$JICM_LOG_FILE" ]] || return 0
+    # Fix #3 (2026-06-23): tail the WATCHER LOOP log (watcher cycle/threshold events only),
+    # not the shared log (which is dominated by Graphiti/ingest HTTP chatter).
+    local target_log="$JICM_WATCHER_LOOP_LOG"
+    [[ -f "$target_log" ]] || target_log="$JICM_LOG_FILE"   # fallback if loop log not yet present
+    [[ -f "$target_log" ]] || return 0
     local line
     while IFS= read -r line; do
         HUD_LOG_LINES+=("$line")
-    done < <(tail -n "$HUD_LOG_TAIL" "$JICM_LOG_FILE" 2>/dev/null)
-    # Cycle count via grep
-    HUD_CYCLE_COUNT=$(grep -c "cycle: complete" "$JICM_LOG_FILE" 2>/dev/null || echo 0)
+    done < <(tail -n "$HUD_LOG_TAIL" "$target_log" 2>/dev/null)
+    # Cycle count via grep — also from loop log
+    # Note: drop "|| echo 0" — grep -c always emits a number, so the fallback
+    # only fires when grep exits 1 (no matches), producing "0\n0" which breaks
+    # later arithmetic. ${VAR:-0} handles the file-missing case safely.
+    HUD_CYCLE_COUNT=$(grep -c "cycle: complete" "$target_log" 2>/dev/null)
+    HUD_CYCLE_COUNT=${HUD_CYCLE_COUNT:-0}
     return 0
 }
 
@@ -1032,7 +1041,7 @@ render_log_tail() {
 render_footer() {
     local width="$1"
     local left=" Refresh ${HUD_REFRESH}s  |  Press q to quit  |  HUD v${HUD_VERSION}"
-    local right="$JICM_LOG_FILE "
+    local right="${JICM_WATCHER_LOOP_LOG:-$JICM_LOG_FILE} "
     local r_short
     r_short=$(truncate_str "$right" $(( width / 2 - 4 )))
     local pad=$(( width - 2 - ${#left} - ${#r_short} ))
