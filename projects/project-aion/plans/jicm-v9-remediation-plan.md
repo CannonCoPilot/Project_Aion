@@ -144,8 +144,30 @@ The full patch design is in **Part D**. Net effect: only the pane's actual occup
   v7.9 watcher; rehearse rollback; retire the `_w0_clear_valid` stopgap in `jicm-watcher.sh`.
   **HALT-handshake parity decision** resolved here (documented Phase-3 checkpoint).
 
-### R4 — Multi-session HUD (v9 Phase 5 / L3) — observability precondition
+### R4 — Multi-session HUD (v9 Phase 5 / L3) — observability precondition — **DONE**
 N-row registry-iterating HUD (Part B). Land **before** un-gate.
+- Folded INTO `jicm-watcher-hud.sh` (not a parallel view): `load_sessions` +
+  `render_sessions_section`, wired into the existing load/render pipeline. One row per
+  `jicm_registry_keys`, sensed exactly the way the supervisor senses (the gate-written
+  per-key state file), so HUD and supervisor cannot disagree about what they see.
+- Columns: KEY · SID(8) · TARGET · TOKENS/hard · USE% (per-key, colour-graded) ·
+  ACTION · LIVE/stale · **OCC**. OCC compares the registry's `session_id` to the LIVE
+  pane occupant — `ok` / `DRIFT` / `?` (unresolvable probe, never read as agreement).
+  DRIFT is the startup-race / registry-drift class R2 repairs, now visible instead of silent.
+- Verified live: 6 keys; `dev`=fbd7528a@aion:11 and `w0`=f56d4d98@aion:0 both `OCC=ok`
+  (R2 reconciliation holding); demo mode and the full `--once` frame unregressed.
+
+> **FINDING surfaced immediately by the new panel (belongs to R5 — session-model alignment).**
+> Every `dev-bg-*` fork renders at **144–194%** of its hard threshold: bg keys carry
+> `hard=200000` while `dev`/`w0` carry `hard=600000`. Cause: `jicm-gate.sh`'s model→window
+> map falls through to the UNKNOWN-model default (250K window / 200K hard) for background
+> fork sessions, even though a fork inherits its parent's **1M** model. Empirical proof: the
+> authoring session (`dev-bg-c6ce7be7`) sat at 389.5K with no compaction — impossible under a
+> real 200K window. Consequence: those keys read permanently over-threshold, so the supervisor
+> perpetually wants to fire at them (`ACTUATE-PENDING`) — the exact stuck-key case the R0
+> circuit breaker exists to absorb. Fix belongs in R5 (launcher/session-model alignment):
+> make model/window detection work for background forks rather than defaulting them.
+> This is precisely the class of defect Part B predicted the single-session HUD was hiding.
 
 ### R5 — Launcher/session-model alignment
 - cwd/symlink-safe resume (the `Jarvis`↔`Project_Aion` realpath split; `sessions.md:25`).

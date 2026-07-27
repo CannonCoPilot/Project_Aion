@@ -604,6 +604,7 @@ load_all() {
         load_watcher_proc
         load_aion_quartet
         load_signals
+        load_sessions
         load_log_tail
         load_pulse_counts
         load_project_status
@@ -1008,6 +1009,85 @@ render_thresholds_section() {
     return 0
 }
 
+# --- R4 (JICM v9 Phase 5 / finding L3) — MULTI-SESSION PANEL -----------------
+# The rest of this HUD renders ONE session from the legacy .jicm-state files. Under v9
+# there are N concurrent keys (w0, dev, dev-bg-*, protos, chain-*), and un-gating
+# autonomous multi-session clearing without a view of which session is where would mean
+# firing /clear at panes blind — exactly where the identity bugs manifest. So: one row
+# per registry key, read the same way the supervisor reads them.
+#
+# OCC is the column that earns its place. It compares the registry's session_id against
+# the LIVE pane occupant: a mismatch (✗) is the startup-race demotion / registry-drift
+# class that R2 reconciliation repairs, made visible instead of silent.
+HUD_SESSION_ROWS=()
+load_sessions() {
+    HUD_SESSION_ROWS=()
+    command -v jicm_registry_keys >/dev/null 2>&1 || return 0
+    local key sid target st tokens pending hard alive occ pane
+    for key in $(jicm_registry_keys 2>/dev/null); do
+        sid="$(jicm_registry_get "$key" '.session_id' 2>/dev/null)"
+        target="$(jicm_registry_get "$key" '.tmux_target' 2>/dev/null)"
+        [[ "$target" == "null" || -z "$target" ]] && target="-"
+        # Same sensor the supervisor uses: the gate-written per-key state file.
+        jicm_key_paths "$key" 2>/dev/null
+        if [[ -f "$JK_STATE" ]]; then
+            st="$(jq -r '[(.tokens // 0), (.pending_action // "none"), (.hard_threshold_tokens // 0)] | join("|")' "$JK_STATE" 2>/dev/null)"
+        fi
+        [[ -z "${st:-}" ]] && st="0|none|0"
+        IFS='|' read -r tokens pending hard <<< "$st"
+        alive="stale"; jicm_session_alive "$sid" 2>/dev/null && alive="live"
+        # OCC: does the registry agree with who is actually in the pane?
+        occ="-"
+        if [[ "$target" != "-" ]]; then
+            pane="$(jicm_pane_session "$target" 2>/dev/null)"
+            if   [[ -z "$pane" ]];        then occ="?"      # pane unresolvable — prove nothing
+            elif [[ "$pane" == "$sid" ]]; then occ="ok"
+            else                               occ="DRIFT"; fi
+        fi
+        HUD_SESSION_ROWS+=("${key}|${sid}|${target}|${tokens}|${hard}|${pending}|${alive}|${occ}")
+    done
+    return 0
+}
+
+render_sessions_section() {
+    local width="$1"
+    section_hr "$width" "SESSIONS — v9 registry (${#HUD_SESSION_ROWS[@]})"
+    if [[ "${#HUD_SESSION_ROWS[@]}" -eq 0 ]]; then
+        content_row "$width" "  ${C_DIM}(no registered sessions — is jicm-config.sh loadable?)${C_NC}"
+        return 0
+    fi
+    content_row "$width" "  ${C_DIM}$(printf '%-18s %-9s %-9s %13s %6s  %-22s %-6s %s' \
+        KEY SID TARGET TOKENS USE ACTION LIVE OCC)${C_NC}"
+    local row key sid target tokens hard pending alive occ pct bar_c live_c occ_c sid8
+    for row in "${HUD_SESSION_ROWS[@]}"; do
+        IFS='|' read -r key sid target tokens hard pending alive occ <<< "$row"
+        sid8="${sid:0:8}"; [[ -z "$sid8" ]] && sid8="-"
+        # % of the key's OWN hard threshold — keys can carry different windows.
+        if [[ "${hard:-0}" =~ ^[0-9]+$ ]] && [[ "$hard" -gt 0 ]]; then
+            pct=$(( tokens * 100 / hard ))
+        else pct=0; fi
+        if   [[ "$pct" -ge 90 ]]; then bar_c="$C_RED"
+        elif [[ "$pct" -ge 70 ]]; then bar_c="$C_ORANGE"
+        elif [[ "$pct" -ge 50 ]]; then bar_c="$C_YELLOW"
+        else                           bar_c="$C_GREEN"; fi
+        [[ "$alive" == "live" ]] && live_c="$C_GREEN" || live_c="$C_GRAY"
+        case "$occ" in
+            DRIFT) occ_c="$C_RED"   ;;   # registry disagrees with the pane — the identity bug
+            ok)    occ_c="$C_GREEN" ;;
+            \?)    occ_c="$C_YELLOW";;   # unresolvable probe — never treated as agreement
+            *)     occ_c="$C_DIM"   ;;
+        esac
+        content_row "$width" "$(printf '  %-18s %-9s %-9s %6s/%-6s %s%5s%%%s  %-22s %s%-6s%s %s%s%s' \
+            "$(truncate_str "$key" 18)" "$sid8" "$(truncate_str "$target" 9)" \
+            "$(human_int "$tokens")" "$(human_int "$hard")" \
+            "$bar_c" "$pct" "$C_NC" \
+            "$(truncate_str "$pending" 22)" \
+            "$live_c" "$alive" "$C_NC" \
+            "$occ_c" "$occ" "$C_NC")"
+    done
+    return 0
+}
+
 render_log_tail() {
     local width="$1"
     section_hr "$width" "WATCHER LOG (live tail, last $HUD_LOG_TAIL lines)"
@@ -1071,6 +1151,7 @@ render_dashboard() {
     render_signals_quartet_row "$width"
     render_project_pulse_section "$width"
     render_thresholds_section "$width"
+    render_sessions_section "$width"
     render_log_tail "$width"
     render_footer "$width"
     # Erase any rows below the new frame (handles shrinking content from prior frame).
