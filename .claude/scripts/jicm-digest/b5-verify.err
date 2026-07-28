@@ -1,0 +1,2 @@
+ALERT input-budget: 01d1ae83 needed 40472 tok > budget 37460; trimmed 3087 tok oldest-first
+ALERT input-budget: 01d1ae83 needed 40472 tok > budget 37460; trimmed 3087 tok oldest-first

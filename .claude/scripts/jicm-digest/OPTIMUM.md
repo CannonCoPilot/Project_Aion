@@ -239,3 +239,49 @@ axis is SOLVED" is now **overstated** and should read *0 fabrications of real-lo
 files; 1 schematic name in 27 runs*. The correlation worth watching is that it happened in the
 run that named the MOST identifiers — richer naming buys recovery and appears to cost a little
 precision.
+
+---
+
+# B5 FIXED — fixed fact-sheet allowance (2026-07-28)
+
+`--fs-allowance` (default **900 tok**) replaces `len(factsheet)` in the input budget. The trim
+point now depends ONLY on the transcript, so sheet variants — and a session that has GROWN since
+the last run — share a byte-identical prefix.
+
+## Root cause, restated precisely
+B1's fix and B2's fix were coupled through a variable neither considered. B1 budgeted as
+`nctx − npred − len(factsheet) − 400`: correct arithmetic, but it made the transcript's FIRST
+token a function of the APPENDIX. On 01d1ae83 the two sheets differ by 14 tokens (354 vs 368),
+which gave budgets 37992 vs 38006, different trim points, divergent prefixes, and a void cache.
+The trim marker compounded it by interpolating the dropped-token count into the prompt's opening
+line — that number ALSO varies with the budget, so it would have re-broken the prefix on its own
+even with the trim point fixed. The count now lives only in the result row.
+
+## Verification — `b5-verify-2026-07-28.jsonl`, the transcript that previously defeated the cache
+Budget and trim are now IDENTICAL across orders (was 37992/38006 and 2559/2559):
+```
+ALERT input-budget: 01d1ae83 needed 40472 tok > budget 37460; trimmed 3087 tok oldest-first
+ALERT input-budget: 01d1ae83 needed 40472 tok > budget 37460; trimmed 3087 tok oldest-first
+```
+| | prompt_eval run1 → run2 | elapsed run1 → run2 | recovery |
+|---|---|---|---|
+| before (factorial) | 388.3s → 389.1s (NO reuse) | 512.2s → 480.5s | 0.381 / 0.333 |
+| **after** | 364.4s → **10.4s** | 495.4s → **118.4s** (−76%) | 0.381 / 0.333 |
+
+Recovery is UNCHANGED to three decimals — the cache reuse cost nothing in quality.
+**All 5 transcripts now exhibit prefix reuse; pre-warm is no longer blocked on large sessions.**
+
+## The trade this makes, stated plainly
+Reserving a constant 900 where the sheet actually needs 354–368 spends ~530 tokens of transcript
+window. On 01d1ae83 that trimmed 3087 tok instead of 2559 — ~530 more of the OLDEST turns
+dropped. That is the honest price of prefix stability, and it is the right side of the trade: the
+lost turns are the least relevant ones, while the cache reuse is worth ~380s on every subsequent
+run of a growing session. Measured sheet sizes across all 5 transcripts: 136–368 tok, so 900
+carries ~2.4x headroom.
+
+## Guard (No Silent Degradation)
+If a sheet ever exceeds the allowance, budgeting against the too-small reservation would overflow
+num_ctx and hand clipping back to the RUNTIME — the exact silent failure B1 removed. Instead the
+run falls back to actual-size budgeting (correct and safe), records `prefix_stable: false`, and
+ALERTs. A recurring alert means the allowance is mis-sized and must be RAISED; it never means the
+run is acceptable as-is. New row fields: `factsheet_tok`, `prefix_stable`.

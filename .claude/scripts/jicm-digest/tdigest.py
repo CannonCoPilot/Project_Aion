@@ -141,6 +141,9 @@ if __name__=="__main__":
     a.add_argument("--grounded",action="store_true"); a.add_argument("--show",action="store_true")
     a.add_argument("--tag",default=""); a.add_argument("--order",default="freq")
     a.add_argument("--layout",default="tx",choices=["tx","fs"])
+    # B5: constant reservation for the fact sheet. Must EXCEED any sheet this config can emit,
+    # or the run falls back to actual-size budgeting and forfeits prefix reuse (it alerts).
+    a.add_argument("--fs-allowance",type=int,default=900)
     z=a.parse_args()
     f,prose,gp,gh,pc,hc,mc,nseg,last=extract(z.sid,z.reason_cap,z.tail)
     # ---- B1 FIX: explicit input-budget enforcement -------------------------------
@@ -148,7 +151,31 @@ if __name__=="__main__":
     # losing the newest turns (exactly what a handoff needs) while every metric reported
     # success. Now: measure first, trim OLDEST-first so the newest survive, and RECORD it.
     fs_pre = factsheet(pc,hc,mc,40,last,z.order) if z.grounded else ""
-    budget_tok = z.nctx - z.npred - (len(fs_pre)//4) - 400   # 400 = system prompt + margin
+    fs_tok = len(fs_pre)//4
+    # ---- B5 FIX: the trim point must not depend on the fact sheet ------------------
+    # B1's fix and B2's fix collided. B1 budgeted against len(factsheet) — correct arithmetic,
+    # but it made the transcript's FIRST token a function of the APPENDIX: two runs whose sheets
+    # differed by 14 tokens (37992 vs 38006 budget on 01d1ae83) trimmed at different points, so
+    # the prefixes diverged and the KV cache was void. That is why the one trimmed transcript was
+    # the one with no cache reuse, killing pre-warm on exactly the large sessions it exists for.
+    # So reserve a CONSTANT allowance instead. The sheet is bounded by construction (topn files +
+    # 8 hashes + 24 metrics), so a fixed reservation is honest, and the trim point now depends
+    # only on the transcript — identical prefixes across sheet variants and across a GROWING
+    # session, which is the precondition for pre-warm.
+    reserve_tok  = z.fs_allowance
+    prefix_stable = True
+    if fs_tok > z.fs_allowance:
+        # NO SILENT DEGRADATION: budgeting against a too-small reservation would overflow num_ctx
+        # and hand the clipping back to the runtime — the exact silent failure B1 removed. Fall
+        # back to actual size (correct, still safe) and ALERT that THIS run forfeits prefix reuse.
+        # A recurring alert here means the allowance is mis-sized and should be raised, not that
+        # the run should be accepted as-is.
+        reserve_tok = fs_tok
+        prefix_stable = False
+        sys.stderr.write(f"ALERT fact-sheet allowance: {z.sid} sheet is {fs_tok} tok > allowance "
+                         f"{z.fs_allowance}; budgeting against ACTUAL size — prefix stability "
+                         f"FORFEITED for this run (raise --fs-allowance)\n")
+    budget_tok = z.nctx - z.npred - reserve_tok - 400        # 400 = system prompt + margin
     est_tok = len(prose)//4
     trimmed_tok = 0
     if est_tok > budget_tok:
@@ -157,8 +184,12 @@ if __name__=="__main__":
             parts.pop(0)                                     # drop OLDEST segment
         new = "\n\n".join(parts)
         trimmed_tok = est_tok - (len(new)//4)
-        prose = ("[EARLIER TURNS TRIMMED TO FIT CONTEXT — %d tokens dropped from the START of "
-                 "this session. The FACT SHEET still covers the WHOLE session.]\n\n" % trimmed_tok) + new
+        # The marker leads the prompt, so its TEXT is part of the cached prefix. It may only
+        # contain values that are themselves sheet-independent — hence no token count here:
+        # under the old budgeting an interpolated number would have re-broken the prefix by
+        # itself, even with the trim point fixed. The exact figure lives in the row instead.
+        prose = ("[EARLIER TURNS TRIMMED TO FIT CONTEXT — the oldest turns of this session were "
+                 "dropped. The FACT SHEET still covers the WHOLE session.]\n\n") + new
         sys.stderr.write(f"ALERT input-budget: {z.sid} needed {est_tok} tok > budget {budget_tok}; "
                          f"trimmed {trimmed_tok} tok oldest-first\n")
     fs=fs_pre
@@ -192,7 +223,7 @@ if __name__=="__main__":
       style=z.style,focus=z.focus,cave=z.caveman,rcap=z.reason_cap,tail=z.tail,size=z.size,
       elapsed=round(el,1),prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
       in_tok=j.get("prompt_eval_count",0),out_tok=oc,words=len(out.split()),
-      input_trimmed_tok=trimmed_tok,
+      input_trimmed_tok=trimmed_tok,factsheet_tok=fs_tok,prefix_stable=prefix_stable,
       runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx),
       truncated=bool(trunc),soft_end=bool(soft_end),halluc=round(au["halluc"],3),recovery=au["recovery_topk"],echo=er,
       out_ids=au["out_ids"],bad=au["bad_paths"])))
