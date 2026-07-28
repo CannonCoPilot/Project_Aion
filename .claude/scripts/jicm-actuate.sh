@@ -343,6 +343,21 @@ _cycle_preserve_restore() {
         return 3
     fi
     _log "step4: idle re-confirmed; sending /clear"
+
+    # 4a. STAGE ① — write the lineage edge BEFORE the clear. `/clear` mints a new session with no
+    # inherited history and records the edge nowhere, so this is the last moment the outgoing
+    # identity is knowable. Deliberate policy on failure: ALERT and PROCEED. A missing ledger row
+    # is detectable after the fact (the successor's bind finds no unbound capture); refusing to
+    # clear a session that has already hit its threshold is the WORSE failure, and the checkpoint
+    # at step 2 is already on disk. This is a logged degradation of BOOKKEEPING, never of the
+    # resume path — the successor still gets its checkpoint either way.
+    _outgoing_sid="$(basename "$TRANSCRIPT" .jsonl)"
+    if ! "$SCRIPT_DIR/jicm-chain.sh" capture "$JK_KEY" "$_outgoing_sid" 2>>"$JICM_LOG_FILE"; then
+        _log "step4a: ALERT — continuity capture FAILED for ${_outgoing_sid:0:8}; proceeding with /clear, this cycle's lineage edge is UNRECORDED"
+    else
+        _log "step4a: continuity edge captured (${_outgoing_sid:0:8})"
+    fi
+
     _inject clear-input; sleep 0.3
     _inject text "/clear"; sleep 0.3
     _inject submit;       sleep 0.5

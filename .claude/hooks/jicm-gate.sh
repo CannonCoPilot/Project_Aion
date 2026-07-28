@@ -275,6 +275,19 @@ fi
 # Additive — never read by the legacy watcher, so W0 stays byte-identical. Refreshes
 # the LIVE transcript_path every prompt (each session = a new UUID) so the supervisor
 # always has the current transcript. steward_shared_memory=true only for w0.
+
+# ─── JICM v9 STAGE ②: continuity bind ────────────────────────────────────────
+# Close the lineage edge that stage ① opened just before the /clear. Only worth attempting on
+# this session's FIRST gate write — detected by the registry still naming a DIFFERENT session_id.
+# (jicm-chain.sh bind is idempotent regardless; this guard just avoids a jq on every prompt.)
+# Failure is non-fatal by design: the gate's contract is to update state and always pass through,
+# so a bookkeeping problem must never block the user's turn. It ALERTs into the JICM log instead.
+if [[ "$(jicm_registry_get "$JICM_KEY" '.session_id')" != "$SESSION_ID" ]]; then
+    if ! "$(dirname "${BASH_SOURCE[0]}")/../scripts/jicm-chain.sh" bind "$JICM_KEY" "$SESSION_ID" 2>>"$LOG_FILE"; then
+        echo "$NOW_ISO | ALERT | key=$JICM_KEY | continuity bind FAILED for ${SESSION_ID:0:8} — succession edge unrecorded" >> "$LOG_FILE"
+    fi
+fi
+
 REG_EXTRA=""
 [[ "$JICM_KEY" == "w0" ]] && REG_EXTRA="steward_shared_memory=true"
 ACTUATION_MODE="$(jicm_actuation_mode "$JICM_KEY")"   # pane (w0/dev occupant) | self (background /fork)

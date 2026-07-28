@@ -172,3 +172,70 @@ small transcripts matters; the 32B is never wrong, which is the property the led
 - **B3** output-truncation detector still false-positive prone.
 - **B4** ordering test still confounded (recency sheet drops the (N×) counts; freq keeps them).
 - Recovery ceiling ~0.85; no config reached 1.0 under the neutral metric.
+
+---
+
+# B2 + B3 + B4 resolved — 2×2×5 factorial (2026-07-28)
+
+`sweep-b2b4-2026-07-28.jsonl` — 20 runs, 32B, grounded, rcap 300, temp 0, npred 2200.
+Layout {tx,fs} × order {recency,freq} × 5 transcripts. Both factors now vary INDEPENDENTLY.
+
+## B2 — prompt layout: FIXED, and the win is time, not quality
+`--layout tx` (default) puts the TRANSCRIPT first and the FACT SHEET last; `fs` is the old layout.
+
+**Prefix-cache reuse is real and enormous.** Within a transcript the two orderings differ only in
+the appendix under `tx`, so the second run reuses the cached transcript prefix:
+
+| transcript | tx prompt_eval | fs prompt_eval (control) |
+|---|---|---|
+| 91bcac6a | 90.7s → **3.5s** | 92.6s → 87.1s |
+| f56d4d98 | 124.5s → **2.8s** | 113.3s → 113.3s |
+| bc145f04 | 241.1s → **8.5s** | 241.2s → 241.8s |
+| ca5d3fee | 269.4s → **7.4s** | 279.0s → 279.0s |
+| 01d1ae83 | 388.3s → 389.1s | 388.3s → 370.1s |
+
+Under `fs` the sheet sits at token 0, so changing it voids the entire cache — the control shows
+NO reuse in any of the 5. Mean elapsed **tx 236s vs fs 288s**.
+
+**Quality is a wash**: layout marginal 0.446 tx vs 0.408 fs, paired 5 wins / 4 losses / 1 tie.
+Adopt `tx` for the time and the truncation semantics, not for recovery.
+
+### NEW BLOCKER — B5: trimming destroys prefix stability
+01d1ae83 is the one transcript that got NO reuse, and it is exactly the one that was TRIMMED
+(2559 tok). The trim budget is `nctx − npred − len(factsheet) − 400`, so a DIFFERENT fact sheet
+gives a different budget, a different trim point, and therefore a different FIRST token — the
+prefix diverges and the cache is void. Trimming and prefix-caching are in direct conflict as
+built. FIX: compute the budget from a FIXED fact-sheet allowance (a constant reservation, not the
+sheet's actual length) so the trim point depends only on the transcript. **This blocks the
+soft-threshold pre-warm on exactly the large sessions the pre-warm exists for.**
+
+## B3 — output-truncation detector: FIXED
+`truncated` is now solely `out_tok >= npred−2`; the "must end in terminal punctuation" clause moved
+to a separate non-verdict `soft_end` field. Across 20 runs: **truncated 0/20, soft_end 1/20** —
+that single run (f56d4d98 tx/recency, 478 words, complete) is precisely the false positive the old
+detector would have reported as truncation.
+
+## B4 — ordering: DECONFOUNDED, recency retained
+The recency sheet now carries the `(N×)` counts the freq sheet always had, so the two differ ONLY
+in order. Recency still wins, but weakly: marginal **0.442 vs 0.412** (+0.031), paired **5 wins /
+2 losses / 3 ties**. Conclusion unchanged from the validation run — ordering is second-order and
+recovery stays transcript-dominated (0.100–0.947 across cells). The earlier confound was not
+masking a large effect.
+
+## Best cell — new shipping config
+`tx` + `recency` = **recovery 0.527 mean**, the best of the four cells and above the previous
+32B best of 0.496. (tx/freq 0.364 · fs/recency 0.358 · fs/freq 0.459.)
+```
+tdigest.py <sid> --model qwen3-32b-nothink:latest \
+  --grounded --reason-cap 300 --temp 0 --npred 2200 --order recency --layout tx
+```
+
+## HONEST REGRESSION — grounding is not absolute
+`bc145f04 tx/recency` produced **halluc 0.048** — the first non-zero on the 32B in 27 grounded
+runs. The invented identifier was `page_NN.json`, a SCHEMA PATTERN rather than a claimed real
+file, and it appeared in the run with the highest recovery (0.947) and most identifiers (42 of
+them). It is not being exempted from the metric: the standing claim "hallucination = 0.000, this
+axis is SOLVED" is now **overstated** and should read *0 fabrications of real-looking specific
+files; 1 schematic name in 27 runs*. The correlation worth watching is that it happened in the
+run that named the MOST identifiers — richer naming buys recovery and appears to cost a little
+precision.

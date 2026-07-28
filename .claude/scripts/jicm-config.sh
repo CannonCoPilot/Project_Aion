@@ -52,11 +52,16 @@ JICM_REGISTRY_DIR="$JICM_DIR/registry"
 JICM_SIGNALS_DIR="$JICM_DIR/signals"
 JICM_STATES_DIR="$JICM_DIR/state"
 JICM_CHECKPOINTS_DIR="$JICM_DIR/checkpoints"
+# Continuity ledger (v9 stage ①/②). `/clear` mints a NEW session with zero inherited history and
+# records the lineage edge NOWHERE, so we write that edge ourselves: one append-only JSONL per key.
+# Uniform for every key including w0 — the file is new, so there is no legacy layout to preserve.
+JICM_CHAIN_DIR="$JICM_DIR/chain"
 
 jicm_key_paths() {
     local key="${1:?jicm_key_paths: key required}"
     JK_KEY="$key"
     JK_REGISTRY="$JICM_REGISTRY_DIR/$key.json"
+    JK_CHAIN="$JICM_CHAIN_DIR/$key.jsonl"
     if [[ "$key" == "w0" ]]; then
         # Byte-identical legacy paths — DO NOT change (W0 back-compat).
         JK_STATE="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
@@ -297,6 +302,29 @@ jicm_reconcile_pane_key() {
         rm -f "${dsts[$i]}" 2>/dev/null            # prior holder proven dead above
         mv "${srcs[$i]}" "${dsts[$i]}" 2>/dev/null && moved=$((moved+1))
     done
+    # The CHAIN is deliberately NOT in JICM_KEY_ARTIFACT_VARS: that loop does `rm dst; mv src`,
+    # which is right for a state snapshot and catastrophic for an append-only ledger — the
+    # canonical chain holds EVERY prior session on this key and would be erased by the bg key's
+    # short one. Lineage merges, it never replaces. Dedupe by whole line, re-sort by ts.
+    local src_chain dst_chain tmp_chain
+    jicm_key_paths "$bgkey";     src_chain="$JK_CHAIN"
+    jicm_key_paths "$canonical"; dst_chain="$JK_CHAIN"
+    if [[ -s "$src_chain" ]]; then
+        mkdir -p "$JICM_CHAIN_DIR" 2>/dev/null
+        tmp_chain="${dst_chain}.merge.$$"
+        if cat "$dst_chain" "$src_chain" 2>/dev/null | awk 'NF && !seen[$0]++' \
+             | jq -s -c 'sort_by(.ts)[]' > "$tmp_chain" 2>/dev/null && [[ -s "$tmp_chain" ]]; then
+            mv "$tmp_chain" "$dst_chain"
+        else
+            # jq unavailable or a malformed row: NEVER drop lineage to a formatting failure.
+            # Append raw and leave the file unsorted rather than losing an edge.
+            rm -f "$tmp_chain" 2>/dev/null
+            cat "$src_chain" >> "$dst_chain" 2>/dev/null
+        fi
+        rm -f "$src_chain" 2>/dev/null
+        moved=$((moved+1))
+    fi
+
     # The migrated registry row still says key=<bgkey> and has no pane; restate both.
     jicm_registry_upsert "$canonical" "session_id=$pane_sid" "tmux_target=$target"
     rm -f "$JICM_REGISTRY_DIR/$bgkey.json" 2>/dev/null

@@ -50,13 +50,17 @@ def extract(sid, reason_cap=0, tail_turns=0):
 
 def factsheet(pc,hc,mc,topn=40,last=None,order='freq'):
     """order='recency' ranks by LAST mention — what the session was doing when it died is
-    what the successor most needs. order='freq' ranks by total mentions."""
+    what the successor most needs. order='freq' ranks by total mentions.
+
+    B4 FIX: the two orderings must differ ONLY in ORDER. The recency branch previously
+    dropped the "(N x)" mention counts that the freq branch kept, so order and format varied
+    together and the ordering comparison was confounded. Counts now appear in BOTH."""
     rec = (order=="recency" and last)
     pl,hl,ml = last if last else ({},{},{})
     if rec:
         pk=sorted(pc,key=lambda k:-pl.get(k,0))[:topn]
         L=["## FACT SHEET — the ONLY identifiers you may use","### Files (most recent first)"]
-        L+=[f"- {x}" for x in pk]
+        L+=[f"- {x}  ({pc[x]}×)" for x in pk]
         hk=[x for x in sorted(hc,key=lambda k:-hl.get(k,0))[:8] if not x.isdigit()]
         mk=sorted(mc,key=lambda k:-ml.get(k,0))[:24]
     else:
@@ -136,6 +140,7 @@ if __name__=="__main__":
     a.add_argument("--reason-cap",type=int,default=0); a.add_argument("--tail",type=int,default=0)
     a.add_argument("--grounded",action="store_true"); a.add_argument("--show",action="store_true")
     a.add_argument("--tag",default=""); a.add_argument("--order",default="freq")
+    a.add_argument("--layout",default="tx",choices=["tx","fs"])
     z=a.parse_args()
     f,prose,gp,gh,pc,hc,mc,nseg,last=extract(z.sid,z.reason_cap,z.tail)
     # ---- B1 FIX: explicit input-budget enforcement -------------------------------
@@ -157,20 +162,38 @@ if __name__=="__main__":
         sys.stderr.write(f"ALERT input-budget: {z.sid} needed {est_tok} tok > budget {budget_tok}; "
                          f"trimmed {trimmed_tok} tok oldest-first\n")
     fs=fs_pre
-    user=(fs+"\n\n## TRANSCRIPT\n"+prose) if z.grounded else prose
+    # ---- B2: prompt layout -------------------------------------------------------
+    # 'tx' (default) puts the TRANSCRIPT first and the FACT SHEET last. Two reasons:
+    #  (1) semantics — the transcript is the part that grows and gets trimmed, so it belongs
+    #      where growth is natural; the sheet is a fixed-size appendix that must never be the
+    #      thing an overflow eats.
+    #  (2) prefix-cache reuse — the transcript is chronological, so a later run of a LONGER
+    #      session EXTENDS the earlier prompt's prefix instead of invalidating it. With the
+    #      sheet first, every new file mention rewrites token 0 and voids the whole KV cache.
+    #      This is the precondition for the soft-threshold pre-warm (142s -> 53s measured).
+    # 'fs' reproduces the original sheet-first layout for comparison.
+    if not z.grounded:      user=prose
+    elif z.layout=="fs":    user=fs+"\n\n## TRANSCRIPT\n"+prose
+    else:                   user="## TRANSCRIPT\n"+prose+"\n\n"+fs
     sp=sysprompt(z.size,z.focus,z.style,z.caveman,z.grounded)
     out,el,j=run(z.model,sp,user,z.nctx,z.npred,z.temp)
     if out is None: sys.exit("LLM failed")
     au=audit(out,gp,gh,pc,15,last)
     oc=j.get("eval_count",0)
     er=echo_rate(out,fs)
-    trunc = (oc>=z.npred-2) or not re.search(r'(##\s*END|[.!?]”?\s*)$',out.strip())
-    print(json.dumps(dict(tag=z.tag,order=z.order,model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
+    # B3 FIX: genuine output truncation is ONLY "ran into the generation cap". The old
+    # detector also flagged any digest not ending in terminal punctuation — a leftover from
+    # the removed "## END" instruction — which fired on perfectly complete digests ending in
+    # a heading, a list item or an identifier. `soft_end` keeps that weaker signal visible
+    # for inspection without letting it contaminate the truncation verdict.
+    trunc = oc >= z.npred-2
+    soft_end = not re.search(r'[.!?]”?\s*$', out.strip())
+    print(json.dumps(dict(tag=z.tag,order=z.order,layout=z.layout,model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
       style=z.style,focus=z.focus,cave=z.caveman,rcap=z.reason_cap,tail=z.tail,size=z.size,
       elapsed=round(el,1),prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
       in_tok=j.get("prompt_eval_count",0),out_tok=oc,words=len(out.split()),
       input_trimmed_tok=trimmed_tok,
       runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx),
-      truncated=bool(trunc),halluc=round(au["halluc"],3),recovery=au["recovery_topk"],echo=er,
+      truncated=bool(trunc),soft_end=bool(soft_end),halluc=round(au["halluc"],3),recovery=au["recovery_topk"],echo=er,
       out_ids=au["out_ids"],bad=au["bad_paths"])))
     if z.show: print("----- DIGEST -----"); print(out)
