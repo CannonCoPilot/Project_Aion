@@ -117,3 +117,58 @@ prompt_eval 89.3s -> 0.1s. Two architectures follow:
    process group, and stamp result rows with a run id.
 7. The recovery metric originally scored against frequency-top-K, giving the freq ordering a
    home-field advantage. Now scored against the UNION of freq-top-K and recency-top-K.
+
+---
+
+# B1 FIXED + full grounded 8B-vs-32B sweep (2026-07-27)
+
+## B1 — silent input clipping: FIXED
+Budget is computed BEFORE the call (`num_ctx − num_predict − factsheet − 400`). On overflow the
+prose is trimmed **oldest-first** (newest turns survive — they are what a handoff needs), an ALERT
+goes to stderr with exact numbers, and the row records `input_trimmed_tok` + `runtime_clipped`.
+The FACT SHEET is built from the WHOLE session before trimming, so identifier coverage stays
+complete, and a marker tells the model earlier turns were dropped rather than letting it assume it
+saw everything. Verified: 01d1ae83 trimmed 2559 tok explicitly; **runtime_clipped=0/10 across the
+whole sweep.**
+
+## Sweep — 5 transcripts × 2 models, all grounded, recency, rcap300, temp 0
+| transcript/model | time | in_tok | words | halluc | recovery | trim |
+|---|---|---|---|---|---|---|
+| 91bcac6a/32B | 147s | 13815 | 539 | 0.000 | 0.357 | 0 |
+| 91bcac6a/8B | 61s | 13815 | 769 | 0.000 | **0.857** | 0 |
+| f56d4d98/32B | 166s | 17014 | 405 | 0.000 | 0.400 | 0 |
+| f56d4d98/8B | 50s | 17014 | 711 | **0.125** | 0.700 | 0 |
+| bc145f04/32B | 367s | 29540 | 710 | 0.000 | **0.842** | 0 |
+| bc145f04/8B | 95s | 29540 | 441 | 0.000 | 0.474 | 0 |
+| ca5d3fee/32B | 356s | 31737 | 665 | 0.000 | **0.550** | 0 |
+| ca5d3fee/8B | 102s | 31737 | 702 | 0.000 | **0.050** | 0 |
+| 01d1ae83/32B | 508s | 39402 | 1061 | 0.000 | 0.333 | 2559 |
+| 01d1ae83/8B | 128s | 39402 | 779 | **0.250** | 0.095 | 2559 |
+
+**32B: recovery 0.496 mean, 309s, hallucination 0.000 — 0 of 5 runs affected.**
+**8B: recovery 0.435 mean, 87s, hallucination 0.075 — 2 of 5 runs affected.**
+
+## VERDICT: use the 32B. Size-dependent crossover.
+| in_tok | 32B rec | 8B rec | winner |
+|---|---|---|---|
+| 13.8K | 0.357 | 0.857 | 8B +0.50 |
+| 17.0K | 0.400 | 0.700 | 8B +0.30 (but halluc 0.125) |
+| 29.5K | 0.842 | 0.474 | 32B +0.37 |
+| 31.7K | 0.550 | 0.050 | 32B +0.50 |
+| 39.4K | 0.333 | 0.095 | 32B +0.24 |
+
+The 8B wins BELOW ~20K tokens and degrades sharply above it — recovery 0.050 on a 31.7K input
+(702 words naming almost nothing), and both of its fabrications were on the two largest inputs.
+**Abandoned sessions are large BY DEFINITION** — that is why they hit the clear threshold — so the
+operating regime that matters is exactly where the 8B fails. Both 8B fabrications were plausible
+near-misses of REAL files (`compressed-context-ready.md` for `.compressed-context-ready.md`;
+`memory.md`), the failure mode that is hardest for a reader to detect.
+
+Optional: route by size — 8B under ~20K tokens, 32B above. Only worth it if the ~200s saving on
+small transcripts matters; the 32B is never wrong, which is the property the ledger depends on.
+
+## Still open
+- **B2** prompt layout (transcript first, fact sheet last) — enables prefix-cache reuse. Not done.
+- **B3** output-truncation detector still false-positive prone.
+- **B4** ordering test still confounded (recency sheet drops the (N×) counts; freq keeps them).
+- Recovery ceiling ~0.85; no config reached 1.0 under the neutral metric.

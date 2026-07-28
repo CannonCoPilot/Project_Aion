@@ -138,7 +138,25 @@ if __name__=="__main__":
     a.add_argument("--tag",default=""); a.add_argument("--order",default="freq")
     z=a.parse_args()
     f,prose,gp,gh,pc,hc,mc,nseg,last=extract(z.sid,z.reason_cap,z.tail)
-    fs=factsheet(pc,hc,mc,40,last,z.order) if z.grounded else ""
+    # ---- B1 FIX: explicit input-budget enforcement -------------------------------
+    # Previously a >num_ctx prompt was clipped by the RUNTIME, silently, from the TAIL —
+    # losing the newest turns (exactly what a handoff needs) while every metric reported
+    # success. Now: measure first, trim OLDEST-first so the newest survive, and RECORD it.
+    fs_pre = factsheet(pc,hc,mc,40,last,z.order) if z.grounded else ""
+    budget_tok = z.nctx - z.npred - (len(fs_pre)//4) - 400   # 400 = system prompt + margin
+    est_tok = len(prose)//4
+    trimmed_tok = 0
+    if est_tok > budget_tok:
+        parts = prose.split("\n\n")
+        while parts and (len("\n\n".join(parts))//4) > budget_tok:
+            parts.pop(0)                                     # drop OLDEST segment
+        new = "\n\n".join(parts)
+        trimmed_tok = est_tok - (len(new)//4)
+        prose = ("[EARLIER TURNS TRIMMED TO FIT CONTEXT — %d tokens dropped from the START of "
+                 "this session. The FACT SHEET still covers the WHOLE session.]\n\n" % trimmed_tok) + new
+        sys.stderr.write(f"ALERT input-budget: {z.sid} needed {est_tok} tok > budget {budget_tok}; "
+                         f"trimmed {trimmed_tok} tok oldest-first\n")
+    fs=fs_pre
     user=(fs+"\n\n## TRANSCRIPT\n"+prose) if z.grounded else prose
     sp=sysprompt(z.size,z.focus,z.style,z.caveman,z.grounded)
     out,el,j=run(z.model,sp,user,z.nctx,z.npred,z.temp)
@@ -151,6 +169,8 @@ if __name__=="__main__":
       style=z.style,focus=z.focus,cave=z.caveman,rcap=z.reason_cap,tail=z.tail,size=z.size,
       elapsed=round(el,1),prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
       in_tok=j.get("prompt_eval_count",0),out_tok=oc,words=len(out.split()),
+      input_trimmed_tok=trimmed_tok,
+      runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx),
       truncated=bool(trunc),halluc=round(au["halluc"],3),recovery=au["recovery_topk"],echo=er,
       out_ids=au["out_ids"],bad=au["bad_paths"])))
     if z.show: print("----- DIGEST -----"); print(out)
