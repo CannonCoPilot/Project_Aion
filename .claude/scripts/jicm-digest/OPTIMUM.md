@@ -285,3 +285,70 @@ num_ctx and hand clipping back to the RUNTIME — the exact silent failure B1 re
 run falls back to actual-size budgeting (correct and safe), records `prefix_stable: false`, and
 ALERTs. A recurring alert means the allowance is mis-sized and must be RAISED; it never means the
 run is acceptable as-is. New row fields: `factsheet_tok`, `prefix_stable`.
+
+---
+
+# PRE-WARM — built and wired (2026-07-28)
+
+Pay prompt evaluation at the SOFT threshold, so the HARD threshold pays generation only.
+
+## Measured — `prewarm-2026-07-28.jsonl`, 01d1ae83
+| stage | elapsed | prompt_eval |
+|---|---|---|
+| pre-warm (`--prewarm`, num_predict=1) | 354.9s | 354.8s — i.e. ALL of it |
+| digest immediately after | **170.8s** | **0.1s** |
+| (cold baseline, same transcript) | 495.4s | 364.4s |
+
+**Hard-threshold latency 495s → 171s (−65%)**, and the 355s is spent while nothing waits on it.
+
+## The problem pre-warm had to solve first: a GROWING session moves the anchor
+B5 made the trim anchor independent of the FACT SHEET. But the session keeps growing between soft
+and hard, and every new turn pushed the minimal anchor forward a little — so the prompt's first
+token changed continuously and the warm was void by the time it was needed, on exactly the large
+sessions pre-warm exists for.
+
+**Fix: quantise the anchor in TOKENS** (`--trim-quantum`, default 4000). The amount DROPPED is
+rounded up to a Q-token boundary, so the anchor moves in jumps and the guarantee is stated in the
+unit that matters: *a warm survives up to Q tokens of transcript growth, for an average cost of
+Q/2 of the oldest turns.*
+
+Measured on 01d1ae83 (570 segments) over 8000 tok of simulated growth:
+| Q | anchor moves | growth survived per anchor | extra tokens dropped |
+|---|---|---|---|
+| 1 (off) | 51 | 100–700 tok | — |
+| **4000 tok** | **2** | **3000–4000 tok** | **961** |
+| 32 *segments* (first attempt) | 3 | 1500–2500 tok | 1926 |
+
+Quantising by SEGMENT COUNT was the first attempt and is the wrong unit — segments vary in size,
+so it bought less stability for twice the cost, with neither number controllable. Choose Q against
+the soft→hard gap.
+
+## Wiring
+- `tdigest.py --prewarm` — same prompt, `num_predict=1`. `keep_alive:-1` holds model AND cache.
+- `tdigest.py --anchor-only` — reports the trim anchor with NO model call, **0.29s**. Uses the same
+  `assemble()`, so the anchor is BY CONSTRUCTION the one the real prompt will use. (`assemble()` is
+  now the single source of truth for prompt construction — pre-warm and digest cannot drift, and a
+  missed cache is invisible: it just looks like a slow model.)
+- `.claude/scripts/jicm-prewarm.sh <key>` — the scheduler. **Trigger is "the anchor moved", not
+  "soft crossed" and not a timer**, because the anchor moving is the only thing that invalidates
+  the cache. Self-guarding: re-checks soft, single-flights on a PID lock, skips while an actuation
+  is in flight, detaches. Steady-state tick: **0.32s, zero log output**.
+- `jicm-watcher.sh` — called in the sub-hard branch, deliberately OUTSIDE the `HEALTH_WARN_EVERY`
+  rate limit (that is a LOGGING cadence; gating a functional trigger on it would fire the warm at
+  most once per warn interval for reasons unrelated to cache validity).
+- `JICM_DIGEST_ARGS` — ONE definition of the shipping flags, shared by warm and digest. If those
+  sets ever drift the prefixes differ and every warm is silently wasted.
+
+## Failure posture
+A failed or skipped warm is a PERFORMANCE loss only: the hard-threshold digest still runs and
+produces identical output, just ~4x slower. So nothing here blocks or escalates — it logs. Two
+things it must not do, both handled: claim a warm it did not achieve (the state file records the
+anchor ACTUALLY warmed, so a mismatch simply re-warms), and report a success as a failure (a warm
+that hits a valid cache finishes in <1s, indistinguishable from a crash by liveness — so the
+launch check asks the RESULT, not the process).
+
+## Incidental, n=1, NOT a finding
+The post-warm digest scored recovery 0.667 against 0.381 for the same transcript cold. The only
+difference is the larger quantised trim (4048 vs 3087 tok of the OLDEST turns). Plausible that
+dropping more stale content concentrates salience, but this is one observation and the recovery
+target is computed from the WHOLE session either way. Worth a deliberate sweep, not a claim.

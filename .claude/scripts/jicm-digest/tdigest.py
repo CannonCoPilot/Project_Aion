@@ -130,6 +130,78 @@ def run(model,sp,user,nctx,npred,temp):
     except: return None,el,{}
     return j.get("message",{}).get("content",""),el,j
 
+def assemble(z):
+    """Build the EXACT prompt for a session. SINGLE source of truth: pre-warm and the real
+    digest MUST produce byte-identical prefixes, and the only way to guarantee that is to have
+    one code path. Two paths that merely look the same would drift, and a missed cache is
+    invisible — it just looks like a slow model."""
+    f,prose,gp,gh,pc,hc,mc,nseg,last=extract(z.sid,z.reason_cap,z.tail)
+    # ---- B1: explicit input-budget enforcement ----------------------------------------
+    # A >num_ctx prompt used to be clipped by the RUNTIME, silently, from the TAIL — losing the
+    # newest turns (what a handoff needs most) while every metric reported success.
+    fs_pre = factsheet(pc,hc,mc,40,last,z.order) if z.grounded else ""
+    fs_tok = len(fs_pre)//4
+    # ---- B5: the trim point must not depend on the fact sheet --------------------------
+    # Budgeting against len(factsheet) made the transcript's FIRST token a function of the
+    # APPENDIX (sheets 354 vs 368 tok -> budgets 37992 vs 38006 -> different trim points ->
+    # void cache). A CONSTANT reservation makes the trim point depend only on the transcript.
+    reserve_tok, prefix_stable = z.fs_allowance, True
+    if fs_tok > z.fs_allowance:
+        # NO SILENT DEGRADATION: budgeting against a too-small reservation would overflow
+        # num_ctx and hand clipping back to the runtime — the exact failure B1 removed.
+        reserve_tok, prefix_stable = fs_tok, False
+        sys.stderr.write(f"ALERT fact-sheet allowance: {z.sid} sheet is {fs_tok} tok > allowance "
+                         f"{z.fs_allowance}; budgeting against ACTUAL size — prefix stability "
+                         f"FORFEITED for this run (raise --fs-allowance)\n")
+    budget_tok = z.nctx - z.npred - reserve_tok - 400        # 400 = system prompt + margin
+    est_tok = len(prose)//4
+    trimmed_tok = 0; anchor = 0
+    if est_tok > budget_tok:
+        parts = prose.split("\n\n")
+        # Suffix sizes, so finding the anchor is linear rather than a quadratic pile of joins.
+        n=len(parts); suf=[0]*(n+1)
+        for i in range(n-1,-1,-1): suf[i]=suf[i+1]+len(parts[i])+(2 if i<n-1 else 0)
+        i=0
+        while i<n and suf[i]//4 > budget_tok: i+=1
+        # ---- PRE-WARM: quantise the anchor in TOKENS ------------------------------------
+        # B5 fixed the anchor against the FACT SHEET, but a GROWING session moves it too: every
+        # new turn pushes the minimal anchor forward a little, so the prompt's first token
+        # changes continuously and the pre-warmed cache is void by the time the hard threshold
+        # arrives — on exactly the large sessions pre-warm exists for.
+        #
+        # So round the amount DROPPED up to a multiple of Q TOKENS. The anchor then moves in
+        # jumps, and the guarantee is stated in the unit that matters: a warm survives up to Q
+        # tokens of transcript growth, for an average waste of Q/2 of the OLDEST turns. Choose Q
+        # against the soft->hard gap. (Quantising by SEGMENT COUNT was the first attempt and is
+        # the wrong unit — segments vary in size, so it bought an unpredictable 1500-2500 tok of
+        # growth for a 1926 tok cost, with neither number controllable.)
+        Q=max(1,z.trim_quantum)
+        need   = est_tok - budget_tok                # tokens that MUST go
+        target = ((need + Q - 1)//Q)*Q               # ...rounded up to a Q boundary
+        while i < n-1 and (est_tok - suf[i]//4) < target: i+=1
+        anchor=i
+        new="\n\n".join(parts[anchor:])
+        trimmed_tok = est_tok - (len(new)//4)
+        # The marker LEADS the prompt, so its text is part of the cached prefix and may contain
+        # only prefix-stable values — hence no token count (that number varies with the budget
+        # and would re-break the prefix by itself). The figure lives in the result row instead.
+        prose = ("[EARLIER TURNS TRIMMED TO FIT CONTEXT — the oldest turns of this session were "
+                 "dropped. The FACT SHEET still covers the WHOLE session.]\n\n") + new
+        sys.stderr.write(f"ALERT input-budget: {z.sid} needed {est_tok} tok > budget {budget_tok}; "
+                         f"trimmed {trimmed_tok} tok oldest-first (anchor seg {anchor}/{n}, Q={Q})\n")
+    # ---- B2: prompt layout -------------------------------------------------------------
+    # 'tx' puts the TRANSCRIPT first and the FACT SHEET last: (1) the transcript is what grows
+    # and gets trimmed, so it belongs where growth is natural and can never evict the sheet;
+    # (2) chronological order means a LONGER session EXTENDS the earlier prefix instead of
+    # invalidating it. With the sheet first, one new file mention rewrites token 0 and voids
+    # the entire KV cache. This is what makes pre-warm possible at all.
+    if not z.grounded:      user=prose
+    elif z.layout=="fs":    user=fs_pre+"\n\n## TRANSCRIPT\n"+prose
+    else:                   user="## TRANSCRIPT\n"+prose+"\n\n"+fs_pre
+    return dict(user=user, sp=sysprompt(z.size,z.focus,z.style,z.caveman,z.grounded),
+                fs=fs_pre, gp=gp, gh=gh, pc=pc, last=last, fs_tok=fs_tok,
+                prefix_stable=prefix_stable, trimmed_tok=trimmed_tok, anchor=anchor, nseg=nseg)
+
 if __name__=="__main__":
     a=argparse.ArgumentParser()
     a.add_argument("sid"); a.add_argument("--model",default="qwen3-32b-nothink:latest")
@@ -144,87 +216,59 @@ if __name__=="__main__":
     # B5: constant reservation for the fact sheet. Must EXCEED any sheet this config can emit,
     # or the run falls back to actual-size budgeting and forfeits prefix reuse (it alerts).
     a.add_argument("--fs-allowance",type=int,default=900)
+    # Pre-warm: TOKEN quantum for the trim anchor. A pre-warm survives up to Q tokens of
+    # transcript growth; average cost is Q/2 of the oldest turns. Set against the soft->hard gap.
+    # Q=1 disables quantisation (reproduces the pre-pre-warm behaviour exactly).
+    a.add_argument("--trim-quantum",type=int,default=4000)
+    # Populate the KV cache and STOP. Same prompt, num_predict=1 — no digest is produced.
+    a.add_argument("--prewarm",action="store_true")
+    # Report the trim anchor WITHOUT contacting the model. The pre-warm scheduler needs to know
+    # whether the prefix has moved, and that question must be answerable for the price of a
+    # transcript read — asking the GPU on every watcher tick would cost more than it saves.
+    a.add_argument("--anchor-only",action="store_true")
     z=a.parse_args()
-    f,prose,gp,gh,pc,hc,mc,nseg,last=extract(z.sid,z.reason_cap,z.tail)
-    # ---- B1 FIX: explicit input-budget enforcement -------------------------------
-    # Previously a >num_ctx prompt was clipped by the RUNTIME, silently, from the TAIL —
-    # losing the newest turns (exactly what a handoff needs) while every metric reported
-    # success. Now: measure first, trim OLDEST-first so the newest survive, and RECORD it.
-    fs_pre = factsheet(pc,hc,mc,40,last,z.order) if z.grounded else ""
-    fs_tok = len(fs_pre)//4
-    # ---- B5 FIX: the trim point must not depend on the fact sheet ------------------
-    # B1's fix and B2's fix collided. B1 budgeted against len(factsheet) — correct arithmetic,
-    # but it made the transcript's FIRST token a function of the APPENDIX: two runs whose sheets
-    # differed by 14 tokens (37992 vs 38006 budget on 01d1ae83) trimmed at different points, so
-    # the prefixes diverged and the KV cache was void. That is why the one trimmed transcript was
-    # the one with no cache reuse, killing pre-warm on exactly the large sessions it exists for.
-    # So reserve a CONSTANT allowance instead. The sheet is bounded by construction (topn files +
-    # 8 hashes + 24 metrics), so a fixed reservation is honest, and the trim point now depends
-    # only on the transcript — identical prefixes across sheet variants and across a GROWING
-    # session, which is the precondition for pre-warm.
-    reserve_tok  = z.fs_allowance
-    prefix_stable = True
-    if fs_tok > z.fs_allowance:
-        # NO SILENT DEGRADATION: budgeting against a too-small reservation would overflow num_ctx
-        # and hand the clipping back to the runtime — the exact silent failure B1 removed. Fall
-        # back to actual size (correct, still safe) and ALERT that THIS run forfeits prefix reuse.
-        # A recurring alert here means the allowance is mis-sized and should be raised, not that
-        # the run should be accepted as-is.
-        reserve_tok = fs_tok
-        prefix_stable = False
-        sys.stderr.write(f"ALERT fact-sheet allowance: {z.sid} sheet is {fs_tok} tok > allowance "
-                         f"{z.fs_allowance}; budgeting against ACTUAL size — prefix stability "
-                         f"FORFEITED for this run (raise --fs-allowance)\n")
-    budget_tok = z.nctx - z.npred - reserve_tok - 400        # 400 = system prompt + margin
-    est_tok = len(prose)//4
-    trimmed_tok = 0
-    if est_tok > budget_tok:
-        parts = prose.split("\n\n")
-        while parts and (len("\n\n".join(parts))//4) > budget_tok:
-            parts.pop(0)                                     # drop OLDEST segment
-        new = "\n\n".join(parts)
-        trimmed_tok = est_tok - (len(new)//4)
-        # The marker leads the prompt, so its TEXT is part of the cached prefix. It may only
-        # contain values that are themselves sheet-independent — hence no token count here:
-        # under the old budgeting an interpolated number would have re-broken the prefix by
-        # itself, even with the trim point fixed. The exact figure lives in the row instead.
-        prose = ("[EARLIER TURNS TRIMMED TO FIT CONTEXT — the oldest turns of this session were "
-                 "dropped. The FACT SHEET still covers the WHOLE session.]\n\n") + new
-        sys.stderr.write(f"ALERT input-budget: {z.sid} needed {est_tok} tok > budget {budget_tok}; "
-                         f"trimmed {trimmed_tok} tok oldest-first\n")
-    fs=fs_pre
-    # ---- B2: prompt layout -------------------------------------------------------
-    # 'tx' (default) puts the TRANSCRIPT first and the FACT SHEET last. Two reasons:
-    #  (1) semantics — the transcript is the part that grows and gets trimmed, so it belongs
-    #      where growth is natural; the sheet is a fixed-size appendix that must never be the
-    #      thing an overflow eats.
-    #  (2) prefix-cache reuse — the transcript is chronological, so a later run of a LONGER
-    #      session EXTENDS the earlier prompt's prefix instead of invalidating it. With the
-    #      sheet first, every new file mention rewrites token 0 and voids the whole KV cache.
-    #      This is the precondition for the soft-threshold pre-warm (142s -> 53s measured).
-    # 'fs' reproduces the original sheet-first layout for comparison.
-    if not z.grounded:      user=prose
-    elif z.layout=="fs":    user=fs+"\n\n## TRANSCRIPT\n"+prose
-    else:                   user="## TRANSCRIPT\n"+prose+"\n\n"+fs
-    sp=sysprompt(z.size,z.focus,z.style,z.caveman,z.grounded)
-    out,el,j=run(z.model,sp,user,z.nctx,z.npred,z.temp)
+
+    A=assemble(z)
+    common=dict(tag=z.tag,order=z.order,layout=z.layout,
+                model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
+                factsheet_tok=A["fs_tok"],prefix_stable=A["prefix_stable"],
+                input_trimmed_tok=A["trimmed_tok"],trim_anchor=A["anchor"],quantum=z.trim_quantum)
+
+    if z.anchor_only:
+        # Same assemble() as every other mode — the anchor reported here is BY CONSTRUCTION the
+        # anchor the real prompt will use. Deriving it separately would be the classic drift bug:
+        # a scheduler confidently tracking a number the prompt no longer depends on.
+        print(json.dumps(dict(common,mode="anchor",sid=z.sid,prompt_chars=len(A["user"]))))
+        sys.exit(0)
+
+    if z.prewarm:
+        # Generation is the part we are deliberately NOT paying for here; num_predict=1 makes
+        # the request cost ~= prompt evaluation alone. keep_alive=-1 (set in run()) is what
+        # holds the model — and its cache — resident until the hard threshold arrives.
+        out,el,j=run(z.model,A["sp"],A["user"],z.nctx,1,z.temp)
+        if out is None: sys.exit("prewarm: LLM failed")
+        print(json.dumps(dict(common,mode="prewarm",elapsed=round(el,1),
+              prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
+              in_tok=j.get("prompt_eval_count",0),
+              runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx))))
+        sys.exit(0)
+
+    out,el,j=run(z.model,A["sp"],A["user"],z.nctx,z.npred,z.temp)
     if out is None: sys.exit("LLM failed")
-    au=audit(out,gp,gh,pc,15,last)
+    au=audit(out,A["gp"],A["gh"],A["pc"],15,A["last"])
     oc=j.get("eval_count",0)
-    er=echo_rate(out,fs)
-    # B3 FIX: genuine output truncation is ONLY "ran into the generation cap". The old
-    # detector also flagged any digest not ending in terminal punctuation — a leftover from
-    # the removed "## END" instruction — which fired on perfectly complete digests ending in
-    # a heading, a list item or an identifier. `soft_end` keeps that weaker signal visible
-    # for inspection without letting it contaminate the truncation verdict.
+    er=echo_rate(out,A["fs"])
+    # B3: genuine output truncation is ONLY "ran into the generation cap". The old detector also
+    # flagged any digest not ending in terminal punctuation — a leftover from the removed
+    # "## END" instruction — firing on complete digests that ended in a heading or identifier.
+    # `soft_end` keeps that weaker signal visible without contaminating the verdict.
     trunc = oc >= z.npred-2
     soft_end = not re.search(r'[.!?]”?\s*$', out.strip())
-    print(json.dumps(dict(tag=z.tag,order=z.order,layout=z.layout,model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
+    print(json.dumps(dict(common,mode="digest",
       style=z.style,focus=z.focus,cave=z.caveman,rcap=z.reason_cap,tail=z.tail,size=z.size,
       elapsed=round(el,1),prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
       in_tok=j.get("prompt_eval_count",0),out_tok=oc,words=len(out.split()),
-      input_trimmed_tok=trimmed_tok,factsheet_tok=fs_tok,prefix_stable=prefix_stable,
       runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx),
-      truncated=bool(trunc),soft_end=bool(soft_end),halluc=round(au["halluc"],3),recovery=au["recovery_topk"],echo=er,
-      out_ids=au["out_ids"],bad=au["bad_paths"])))
+      truncated=bool(trunc),soft_end=bool(soft_end),halluc=round(au["halluc"],3),
+      recovery=au["recovery_topk"],echo=er,out_ids=au["out_ids"],bad=au["bad_paths"])))
     if z.show: print("----- DIGEST -----"); print(out)

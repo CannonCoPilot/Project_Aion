@@ -704,14 +704,29 @@ check_autonomous_threshold() {
             "$tokens" "$hard_threshold" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$JICM_CLEAR_SIGNAL"
         LAST_AUTO_TRIGGER=$now_epoch
         log "autonomous fire: tokens=$tokens hard=$hard_threshold — wrote $JICM_CLEAR_SIGNAL"
-    elif [[ $((now_epoch - LAST_HEALTH_WARN)) -ge "$HEALTH_WARN_EVERY" ]]; then
-        # Health observability: log token state periodically so we can see the
-        # daemon IS watching even when it doesn't fire (refutes "lazy" claims).
-        local soft_threshold
-        soft_threshold=$(jq -r '.soft_threshold_tokens // 250000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
-        if [[ "$tokens" -ge "$soft_threshold" ]]; then
-            log "soft-threshold (no fire): tokens=$tokens soft=$soft_threshold hard=$hard_threshold age=${state_age}s"
-            LAST_HEALTH_WARN=$now_epoch
+    else
+        # ── Digest pre-warm (soft threshold) ─────────────────────────────────────────
+        # ~370s of the ~495s digest is PROMPT EVALUATION, which is cacheable. Paying it
+        # here, early, leaves only generation for the hard threshold (495s -> 118s
+        # measured). Deliberately OUTSIDE the HEALTH_WARN_EVERY rate limit below: that is
+        # a LOGGING cadence, and gating a functional trigger on it would mean the warm
+        # fires at most once per warn interval for reasons that have nothing to do with
+        # cache validity. jicm-prewarm.sh is self-guarding — it re-checks the soft
+        # threshold, single-flights on a lock, and no-ops unless the TRIM ANCHOR has
+        # actually moved (the only thing that invalidates the cache), so calling it every
+        # tick is cheap. It detaches, so this never blocks the loop; a failed warm costs
+        # speed, never correctness, so its exit status is not acted on here.
+        "$SCRIPT_DIR/jicm-prewarm.sh" w0 >/dev/null 2>&1
+
+        if [[ $((now_epoch - LAST_HEALTH_WARN)) -ge "$HEALTH_WARN_EVERY" ]]; then
+            # Health observability: log token state periodically so we can see the
+            # daemon IS watching even when it doesn't fire (refutes "lazy" claims).
+            local soft_threshold
+            soft_threshold=$(jq -r '.soft_threshold_tokens // 250000' "$JICM_STATE_HOOK_FILE" 2>/dev/null)
+            if [[ "$tokens" -ge "$soft_threshold" ]]; then
+                log "soft-threshold (no fire): tokens=$tokens soft=$soft_threshold hard=$hard_threshold age=${state_age}s"
+                LAST_HEALTH_WARN=$now_epoch
+            fi
         fi
     fi
 }
