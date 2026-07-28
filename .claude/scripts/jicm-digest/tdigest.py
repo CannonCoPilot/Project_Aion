@@ -12,6 +12,7 @@ def extract(sid, reason_cap=0, tail_turns=0):
     if not f: sys.exit(f"no transcript {sid}")
     f=f[0]
     pc=collections.Counter(); hc=collections.Counter(); mc=collections.Counter()
+    plast={}; hlast={}; mlast={}; _i=[0]
     segs=[]; gt_paths=set(); gt_hash=set()
     for line in open(f,errors="replace"):
         try: r=json.loads(line)
@@ -31,9 +32,10 @@ def extract(sid, reason_cap=0, tail_turns=0):
                 elif b.get("type")=="thinking": blocks.append(("thinking",b.get("thinking","")))
         for kind,txt in blocks:
             if not txt or not txt.strip(): continue
-            for m in RE_METRIC.findall(txt): mc[m]+=1
-            for m in RE_PATH.findall(txt): pc[base(m)]+=1
-            for m in RE_HASH.findall(txt): hc[m]+=1
+            _i[0]+=1
+            for m in RE_METRIC.findall(txt): mc[m]+=1; mlast[m]=_i[0]
+            for m in RE_PATH.findall(txt): pc[base(m)]+=1; plast[base(m)]=_i[0]
+            for m in RE_HASH.findall(txt): hc[m]+=1; hlast[m]=_i[0]
             if r["type"]=="user":
                 if re.search(r'<system-reminder>|hook success|<local-command-|<command-name>|Caveat: The messages',txt): continue
                 segs.append(("USER",txt.strip()))
@@ -44,15 +46,26 @@ def extract(sid, reason_cap=0, tail_turns=0):
             else: segs.append(("ASSISTANT",txt.strip()))
     if tail_turns: segs=segs[:2]+segs[-tail_turns:]
     prose="\n\n".join(f"{k}: {v}" for k,v in segs)
-    return f,prose,gt_paths,gt_hash,pc,hc,mc,len(segs)
+    return f,prose,gt_paths,gt_hash,pc,hc,mc,len(segs),(plast,hlast,mlast)
 
-def factsheet(pc,hc,mc,topn=40):
-    L=["## FACT SHEET — the ONLY identifiers you may use","### Files (by mentions)"]
-    L+= [f"- {p}  ({n}×)" for p,n in pc.most_common(topn) if n>=1]
-    h=[f"- {x}" for x,n in hc.most_common(8) if n>1 and not x.isdigit()]
-    if h: L+=["### Commit-like hashes"]+h
-    m=[f"- {x}" for x,n in mc.most_common(24) if n>=1]
-    if m: L+=["### Key numbers / metrics"]+m
+def factsheet(pc,hc,mc,topn=40,last=None,order='freq'):
+    """order='recency' ranks by LAST mention — what the session was doing when it died is
+    what the successor most needs. order='freq' ranks by total mentions."""
+    rec = (order=="recency" and last)
+    pl,hl,ml = last if last else ({},{},{})
+    if rec:
+        pk=sorted(pc,key=lambda k:-pl.get(k,0))[:topn]
+        L=["## FACT SHEET — the ONLY identifiers you may use","### Files (most recent first)"]
+        L+=[f"- {x}" for x in pk]
+        hk=[x for x in sorted(hc,key=lambda k:-hl.get(k,0))[:8] if not x.isdigit()]
+        mk=sorted(mc,key=lambda k:-ml.get(k,0))[:24]
+    else:
+        L=["## FACT SHEET — the ONLY identifiers you may use","### Files (by mentions)"]
+        L+=[f"- {p}  ({n}\u00d7)" for p,n in pc.most_common(topn)]
+        hk=[x for x,n in hc.most_common(8) if not x.isdigit()]
+        mk=[x for x,n in mc.most_common(24)]
+    if hk: L+=["### Commit-like hashes"]+[f"- {x}" for x in hk]
+    if mk: L+=["### Key numbers / metrics"]+[f"- {x}" for x in mk]
     return "\n".join(L)
 
 def sysprompt(size,focus,style,caveman,grounded):
@@ -88,11 +101,15 @@ def echo_rate(out, fs):
     if not ol: return 0.0
     return round(sum(1 for l in ol if l in fl)/len(ol),3)
 
-def audit(out,gt_paths,gt_hash,pc,topk=15):
+def audit(out,gt_paths,gt_hash,pc,topk=15,last=None):
     op={base(m) for m in RE_PATH.findall(out)}; oh=set(RE_HASH.findall(out))
     badp=sorted(x for x in op if x not in gt_paths); badh=sorted(x for x in oh if x not in gt_hash)
     tot=len(op)+len(oh); bad=len(badp)+len(badh)
+    # NEUTRAL target: union of top-K by frequency AND top-K by recency. Scoring only
+    # against frequency-salience gave the freq-ordered sheet a home-field advantage.
     salient=[p for p,_ in pc.most_common(topk)]
+    if last:
+        salient=list(dict.fromkeys(salient+sorted(pc,key=lambda k:-last[0].get(k,0))[:topk]))
     rec=sum(1 for s in salient if s in op)/len(salient) if salient else 0
     return dict(halluc=(bad/tot if tot else 0.0),bad_paths=badp[:5],bad_hashes=badh[:3],
                 recovery_topk=round(rec,3),out_ids=tot)
@@ -118,19 +135,19 @@ if __name__=="__main__":
     a.add_argument("--temp",type=float,default=0.0)
     a.add_argument("--reason-cap",type=int,default=0); a.add_argument("--tail",type=int,default=0)
     a.add_argument("--grounded",action="store_true"); a.add_argument("--show",action="store_true")
-    a.add_argument("--tag",default="")
+    a.add_argument("--tag",default=""); a.add_argument("--order",default="freq")
     z=a.parse_args()
-    f,prose,gp,gh,pc,hc,mc,nseg=extract(z.sid,z.reason_cap,z.tail)
-    fs=factsheet(pc,hc,mc) if z.grounded else ""
+    f,prose,gp,gh,pc,hc,mc,nseg,last=extract(z.sid,z.reason_cap,z.tail)
+    fs=factsheet(pc,hc,mc,40,last,z.order) if z.grounded else ""
     user=(fs+"\n\n## TRANSCRIPT\n"+prose) if z.grounded else prose
     sp=sysprompt(z.size,z.focus,z.style,z.caveman,z.grounded)
     out,el,j=run(z.model,sp,user,z.nctx,z.npred,z.temp)
     if out is None: sys.exit("LLM failed")
-    au=audit(out,gp,gh,pc)
+    au=audit(out,gp,gh,pc,15,last)
     oc=j.get("eval_count",0)
     er=echo_rate(out,fs)
     trunc = (oc>=z.npred-2) or not re.search(r'(##\s*END|[.!?]”?\s*)$',out.strip())
-    print(json.dumps(dict(tag=z.tag,model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
+    print(json.dumps(dict(tag=z.tag,order=z.order,model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
       style=z.style,focus=z.focus,cave=z.caveman,rcap=z.reason_cap,tail=z.tail,size=z.size,
       elapsed=round(el,1),prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
       in_tok=j.get("prompt_eval_count",0),out_tok=oc,words=len(out.split()),
