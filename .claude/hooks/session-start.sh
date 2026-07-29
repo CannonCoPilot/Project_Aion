@@ -623,10 +623,60 @@ You are W11 Jarvis-dev. Read .claude/context/.scratchpad.dev.md for your working
     exit 0
 fi
 
-# ============== CLEAR WITHOUT JICM (safety fallback) ==============
+# ============== JICM v9 — ANY OTHER KEY'S CLEAR (key-generic) ==============
+# Every key that is not w0 and not dev used to fall through to the W0 "safety fallback" below,
+# which runs W0's prep (find_best_jsonl → W0's TRANSCRIPT) and injects W0's checkpoint. dev was
+# hardened against exactly that in 2026-07-18; no other key was.
+#
+# Observed live 2026-07-29: a protos session was handed W0's current task — "Review and optimize
+# Genesis OCR processing for Genesis chapter 1 … run the kraken re-run" — and did it, launching a
+# real 25-minute pipeline against a live project. It obeyed the context it was given. The bug was
+# that we gave it another lane's context.
+#
+# So: a key with its own checkpoint gets ITS OWN, and writes the per-key resume signal the
+# actuator waits on (previously only dev and w0 wrote one, so every other key made the actuator
+# time out after 60s and nudge blind). A key with no checkpoint gets a minimal nudge to its own
+# scratchpad — the same treatment dev gets, and NEVER W0's context.
+if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" != "w0" ]] && [[ "$JICM_KEY" != "dev" ]]; then
+    KEY_SCRATCH=".claude/context/.scratchpad.${JICM_KEY}.md"
+    if [[ -f "$JK_COMPRESSED" ]]; then
+        echo "$TIMESTAMP | SessionStart | JICM key=$JICM_KEY: injecting OWN checkpoint ($(wc -c < "$JK_COMPRESSED" | tr -d ' ') bytes)" >> "$LOG_DIR/session-start-diagnostic.log"
+        KEY_CTX="Context cleared, $LOCAL_DATE at $LOCAL_TIME (lane: $JICM_KEY).
+
+$(cat "$JK_COMPRESSED")
+
+--- Resume ---
+Read $KEY_SCRATCH for transient working details (it is NOT force-loaded), then resume.
+Do NOT load .claude/context/.compressed-context-ready.md or session-state.md — those belong to
+the W0 lane, not to you."
+        echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"compression_type\": \"jicm_key\", \"restart_type\": \"key_clear\", \"jicm_key\": \"$JICM_KEY\"}" > "$STATE_DIR/AC-01-launch.json"
+        jq -n --arg msg "JICM ($JICM_KEY): context cleared — checkpoint restored.$ENV_STATUS" --arg ctx "$KEY_CTX" \
+          '{"systemMessage": $msg, "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": $ctx}}'
+        # Tell the waiting actuator the injection landed. Without this it waits the full 60s and
+        # then nudges blind, unable to distinguish "resumed" from "never came back".
+        if [[ -n "$JK_RESUME_SIGNAL" ]]; then
+            mkdir -p "$(dirname "$JK_RESUME_SIGNAL")" 2>/dev/null
+            echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$JK_COMPRESSED" 2>/dev/null | tr -d ' '),\"source\":\"key-clear\",\"key\":\"$JICM_KEY\"}" > "$JK_RESUME_SIGNAL" 2>/dev/null || true
+        fi
+    else
+        echo "$TIMESTAMP | SessionStart | JICM key=$JICM_KEY: clear with no checkpoint — minimal nudge" >> "$LOG_DIR/session-start-diagnostic.log"
+        echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": false, \"restart_type\": \"key_clear_no_checkpoint\", \"jicm_key\": \"$JICM_KEY\"}" > "$STATE_DIR/AC-01-launch.json"
+        jq -n --arg msg "JICM ($JICM_KEY): context cleared — no checkpoint found.$ENV_STATUS" \
+              --arg ctx "Context cleared, $LOCAL_DATE at $LOCAL_TIME. No checkpoint was available for lane '$JICM_KEY'.
+Read $KEY_SCRATCH for your working state, then continue or start fresh.
+Do NOT load .claude/context/.compressed-context-ready.md or session-state.md — that is a
+different lane's context." \
+          '{"systemMessage": $msg, "hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": $ctx}}'
+    fi
+    exit 0
+fi
+
+# ============== CLEAR WITHOUT JICM (W0 safety fallback) ==============
 # Legacy .soft-restart-checkpoint.md handling removed (v7 refurbishment).
 # Nothing creates that file anymore. Only .compressed-context-ready.md matters.
-if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" != "dev" ]]; then
+# NOW RESERVED TO w0: this runs W0's prep and injects W0's checkpoint, which is correct ONLY
+# for W0. Every other key is handled by the key-generic branch above.
+if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" == "w0" ]]; then
     # JICM v9: EXCLUDE dev — this fallback runs W0's prep (find_best_jsonl → W0's
     # transcript) and injects W0's checkpoint. A dev clear that reached here (no dev
     # checkpoint at all) must NOT get W0's context — that is exactly the mis-inject

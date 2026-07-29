@@ -58,6 +58,30 @@ else
     bad "$T" "$WHY — it has a private if-chain instead"
 fi
 
+T=T1.4; WHY="a non-w0/dev key clearing does NOT receive W0's context (mis-inject class)"
+# RED at time of writing: the "/clear safety" fallback is guarded `!= dev`, so EVERY key other
+# than dev and w0 enters it — and by its own comment it runs W0's prep (find_best_jsonl -> W0's
+# transcript) and injects W0's checkpoint. Observed: a protos session was handed W0's current
+# task ("Review and optimize Genesis OCR processing...") and went and did it on a live project.
+HK_OUT="$SANDBOX/hook-nonw0.json"
+echo "{\"session_id\":\"tst-nonw0-0001\",\"source\":\"clear\",\"cwd\":\"$PROJECT_DIR\",\"hook_event_name\":\"SessionStart\"}" \
+  | env -u JARVIS_SESSION_ROLE JARVIS_WINDOW=1 CLAUDE_PROJECT_DIR="$PROJECT_DIR" \
+        JICM_PREP_SCRIPT=/usr/bin/true bash "$HOOKS/session-start.sh" > "$HK_OUT" 2>/dev/null
+INJ="$(jq -r '.hookSpecificOutput.additionalContext // ""' "$HK_OUT" 2>/dev/null)"
+if printf '%s' "$INJ" | grep -qiE "PALIMPSEST|ORIGINALDR|Genesis OCR|kraken"; then
+    bad "$T" "$WHY — it was handed another lane's task"
+else
+    ok "$T" "$WHY"
+fi
+
+T=T1.5; WHY="the W0 prep fallback is reserved to w0 (never runs for another key)"
+if grep -q 'JICM_KEY" == "w0" \]\]; then$' "$HOOKS/session-start.sh" 2>/dev/null \
+   && ! grep -q 'SOURCE" == "clear" \]\] && \[\[ "\$JICM_KEY" != "dev"' "$HOOKS/session-start.sh" 2>/dev/null; then
+    ok "$T" "$WHY"
+else
+    bad "$T" "$WHY — the fallback still admits every non-dev key"
+fi
+
 # ═══ GROUP 2 — no cross-lane contamination ════════════════════════════════════
 # The OriginalDR incident: a protos checkpoint carried W0's shared session-state.md, so the
 # test lane read another lane's status as its own orders and launched a real pipeline.
