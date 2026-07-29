@@ -59,7 +59,12 @@ cmd_capture() {
     if [[ -z "$tokens" && -f "$JK_STATE" ]]; then
         tokens="$(jq -r '.tokens // empty' "$JK_STATE" 2>/dev/null)"
     fi
-    [[ -n "$tokens" ]] || tokens="null"
+    # 0 means NOT YET KNOWN, not "an empty session". The gate writes state on UserPromptSubmit,
+    # one turn BEFORE the assistant's usage lands in the transcript, so a session captured just
+    # after a resume reads 0. Recording that as a number states a measurement nobody took, and a
+    # later reader cannot tell it apart from a genuinely empty session. Record null and let
+    # `show` print "?" — an admitted gap beats a confident wrong number.
+    [[ -n "$tokens" && "$tokens" != "0" ]] || tokens="null"
 
     local plan="" ckpt=""
     [[ -f "$JK_ACTIVE_PLAN" ]] && plan="$(head -1 "$JK_ACTIVE_PLAN" 2>/dev/null)"

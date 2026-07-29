@@ -216,12 +216,24 @@ _step_prep() {   # build the resume checkpoint into JK_COMPRESSED; return non-em
     else
         : > "$JK_COMPRESSION_GUARD"
         _log "prep: building checkpoint (transcript=$(basename "$TRANSCRIPT"))"
+        # CROSS-LANE CONTAMINATION FIX (2026-07-29). The six vars below were passed; the three
+        # MEMORY inputs were not — so prep fell back to its defaults, which are W0's SHARED
+        # session-state.md / .scratchpad.md / .active-plan. The per-key values existed in
+        # jicm-config.sh all along and were simply never handed over.
+        # Consequence, observed live: the protos checkpoint carried W0's session status
+        # ("PALIMPSEST — POST-AUDIT VERIFICATION…", frozen 2026-06-15). The successor read
+        # another lane's work as its own orders and launched a real 25-minute OCR pipeline
+        # against a live project. Same class as the "generate a CV" mis-inject of 2026-07-18.
+        # A key's checkpoint must be built ONLY from that key's own memory.
         JICM_JSONL_PATH="$TRANSCRIPT" \
         JICM_COMPRESSED_FILE="$JK_COMPRESSED" \
         JICM_COMPRESSION_SIGNAL="$JK_COMPRESSION_SIGNAL" \
         JICM_METADATA_FILE="$JK_METADATA" \
         JICM_METRICS_FILE="$JK_METRICS" \
         JICM_JSONL_STATS="$JK_JSONL_STATS" \
+        JICM_SESSION_STATE="$JK_SESSION_STATE" \
+        JICM_SCRATCHPAD="$JK_SCRATCHPAD" \
+        JICM_ACTIVE_PLAN="$JK_ACTIVE_PLAN" \
             bash "$PREP" >> "$ACT_LOG" 2>&1
     fi
     [[ -s "$JK_COMPRESSED" ]]

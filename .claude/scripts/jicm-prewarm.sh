@@ -72,11 +72,31 @@ fi
 # --- Has the prefix moved? ---------------------------------------------------------------
 # Cheap: --anchor-only computes the trim anchor through the SAME assemble() the real prompt
 # uses, without contacting the model. Costs a transcript read, not a GPU second.
+# --- COST GATE (found by live testing, 2026-07-29) ----------------------------------------
+# --anchor-only re-reads and re-parses the ENTIRE transcript. On a small session that is 0.29s;
+# on an 88MB W0 transcript it is 55 SECONDS. Running that every watcher tick would pin a core
+# for no reason, so gate it on a stat(): the anchor cannot possibly have moved if the transcript
+# has not GROWN. Below a growth threshold it is very unlikely to have moved, and being wrong
+# costs only a missed warm — the digest still runs, just cold. That is why a heuristic is
+# acceptable HERE and would not be acceptable in the digest itself.
+TX_PATH="$(jq -r '.transcript_path // empty' "$JK_STATE" 2>/dev/null)"
+[[ -n "$TX_PATH" && -f "$TX_PATH" ]] || TX_PATH="$(ls -S "$HOME/.claude/projects"/*/"$SID"*.jsonl 2>/dev/null | head -1)"
+TX_SIZE=0
+[[ -f "$TX_PATH" ]] && TX_SIZE="$(stat -f %z "$TX_PATH" 2>/dev/null || echo 0)"
+LAST_SIZE="$(jq -r '.tx_size // 0' "$PW_STATE" 2>/dev/null)"
+[[ "$LAST_SIZE" =~ ^[0-9]+$ ]] || LAST_SIZE=0
+MIN_GROWTH="${JICM_PREWARM_MIN_GROWTH_BYTES:-2000000}"
+WARM_SID_PRE="$(jq -r '.sid // empty' "$PW_STATE" 2>/dev/null)"
+if [[ "$WARM_SID_PRE" == "$SID" && "$TX_SIZE" -gt 0 && $((TX_SIZE - LAST_SIZE)) -lt "$MIN_GROWTH" ]]; then
+    exit 0        # same session, negligible growth → the anchor cannot have moved meaningfully
+fi
+
 # stderr is CAPTURED, not appended: this runs on EVERY watcher tick, and tdigest emits a routine
 # budget ALERT on any trimmed session. Appending it each tick would bury the real events under
 # thousands of identical lines within a day — a log nobody can read is a log nobody reads. It is
 # surfaced only when the anchor computation actually fails, which is when it means something.
 PW_ERRF="$PW_DIR/.$KEY.anchor.err"
+ANCHOR_T0="$(date +%s)"
 ANCHOR_JSON="$(cd "$DIGEST_DIR" && python3 tdigest.py "$SID" $JICM_DIGEST_ARGS --anchor-only 2>"$PW_ERRF")"
 ANCHOR="$(printf '%s' "$ANCHOR_JSON" | jq -r '.trim_anchor // empty' 2>/dev/null)"
 if [[ -z "$ANCHOR" ]]; then
@@ -86,6 +106,14 @@ if [[ -z "$ANCHOR" ]]; then
     exit 0
 fi
 rm -f "$PW_ERRF" 2>/dev/null
+
+# Surface a scheduler that has become too expensive for the transcript it watches, rather than
+# quietly burning a core every tick. This is a redesign signal (incremental parsing, or a
+# cheaper anchor proxy), never something to accept as normal.
+ANCHOR_SECS=$(( $(date +%s) - ANCHOR_T0 ))
+if [[ "$ANCHOR_SECS" -ge 10 ]]; then
+    _log "ALERT anchor computation took ${ANCHOR_SECS}s (transcript $(( TX_SIZE / 1048576 ))MB) — the per-tick cost gate is holding, but this scales with transcript size and needs a cheaper anchor"
+fi
 
 WARM_SID="$(jq -r '.sid // empty'    "$PW_STATE" 2>/dev/null)"
 WARM_ANCHOR="$(jq -r '.anchor // empty' "$PW_STATE" 2>/dev/null)"
@@ -111,7 +139,8 @@ _log "warm needed: sid=${SID:0:8} anchor=$ANCHOR (was sid=${WARM_SID:0:8} anchor
         A_OUT="$(printf '%s' "$OUT" | jq -r '.trim_anchor // empty')"
         jq -nc --arg sid "$SID" --argjson anchor "${A_OUT:-$ANCHOR}" \
                --arg ts "$(date -u +%Y-%m-%dT%H:%M:%SZ)" --arg p "$P_S" --arg i "$IN_T" \
-            '{sid:$sid,anchor:$anchor,ts:$ts,prompt_s:($p|tonumber?),in_tok:($i|tonumber?)}' \
+               --argjson txs "${TX_SIZE:-0}" \
+            '{sid:$sid,anchor:$anchor,ts:$ts,tx_size:$txs,prompt_s:($p|tonumber?),in_tok:($i|tonumber?)}' \
             > "$PW_STATE" 2>/dev/null
         echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $KEY | warmed sid=${SID:0:8} anchor=${A_OUT:-$ANCHOR} prompt_s=${P_S} in_tok=${IN_T}" >> "$PW_LOG"
     else

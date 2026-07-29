@@ -362,9 +362,16 @@ jicm_reconcile_pane_key() {
 }
 
 # --- Session state files (read by prep script) -------------------------------
-JICM_SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
-JICM_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.md"
-JICM_ACTIVE_PLAN="$PROJECT_DIR/.claude/context/.active-plan"
+# DEFAULTS ONLY — must not clobber a caller's per-key choice (`:-`, not bare `=`).
+# These are W0's SHARED memory files. jicm-actuate.sh exports the per-key JK_* equivalents
+# before invoking the prep script, but prep SOURCES THIS FILE, so an unconditional assignment
+# here silently overwrote them and prep read W0's files no matter which key it was building for.
+# That is how the protos checkpoint came to carry "PALIMPSEST — POST-AUDIT VERIFICATION…" and
+# sent the test lane off to run a real OCR pipeline on a live project (2026-07-29).
+# A caller that has already decided which lane's memory to read must win.
+JICM_SESSION_STATE="${JICM_SESSION_STATE:-$PROJECT_DIR/.claude/context/session-state.md}"
+JICM_SCRATCHPAD="${JICM_SCRATCHPAD:-$PROJECT_DIR/.claude/context/.scratchpad.md}"
+JICM_ACTIVE_PLAN="${JICM_ACTIVE_PLAN:-$PROJECT_DIR/.claude/context/.active-plan}"
 
 # --- Scripts -----------------------------------------------------------------
 JICM_PREP_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-prep-context.sh"
