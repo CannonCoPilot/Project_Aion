@@ -42,8 +42,7 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-07-25 — v3.4: default model Claude Opus 5 (1M-native) @ max effort, unified across
-#          W0 (Jarvis) + W1 (Protos/Alfred seed) + W11 (Jarvis-dev) via AION_MODEL;
+# Updated: 2026-07-15 — v3.2: default model Claude Fable 5 @ max effort (W0 + Jarvis-dev);
 #          Jarvis-dev cross-codebase --add-dir (Projects, GitRepos); refreshed awareness doc
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
@@ -55,7 +54,7 @@ ALFRED_DIR="$PROJECT_DIR/alfred"
 # stay on the same model: executor tasks fork from W0's warm session to inherit
 # its prefix cache, and a model mismatch invalidates that shared cache. Exported
 # so an explicit `AION_MODEL=… ./launch-aion.sh` override propagates to children.
-export AION_MODEL="${AION_MODEL:-claude-opus-5}"
+export AION_MODEL="${AION_MODEL:-claude-fable-5}"
 
 # ── Window Index Map ──────────────────────────────────────────────────
 # Permanent window ordering. Core sessions first, infrastructure second,
@@ -227,86 +226,6 @@ find_latest_w0_session() {
     return 1
 }
 
-# ──────────────────────────────────────────────────────────────────────────
-# Dev lane (W11:Jarvis-dev) session resolution + window launch — single source
-# of truth shared by the fresh-launch and existing-session paths, which had
-# drifted (the existing-session path was missing proxy routing, JARVIS_WINDOW,
-# attribution headers, resume-UUID validation, and a survivability loop).
-#
-# Deterministic dev seed: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL.
-DEV_SEED_UUID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
-
-# Resolve which dev session to attach and how. Prints "<uuid> <resume|new>".
-# Mirrors W0's trust model but pinned to the dev breadcrumb + deterministic
-# seed — never a latest-scan, since dev and W0 share one project slug dir and a
-# scan could cross-contaminate. session_resumable() (defined above) validates
-# JSONL existence + recorded-cwd match + not-in-use.
-resolve_dev_session() {
-    local candidate=""
-    [[ -s "$PROJECT_DIR/.claude/context/.current-dev-uuid" ]] && \
-        candidate="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-dev-uuid")"
-    if [[ -n "$candidate" ]] && session_resumable "$candidate"; then
-        echo "$candidate resume"; return 0
-    fi
-    if session_resumable "$DEV_SEED_UUID"; then
-        echo "$DEV_SEED_UUID resume"; return 0
-    fi
-    # Breadcrumb phantom and seed not resumable. If the seed JSONL is simply
-    # absent, create the session UNDER the seed so it is resumable next time.
-    if [[ ! -f "$JARVIS_PROJECTS_DIR/${DEV_SEED_UUID}.jsonl" ]]; then
-        echo "$DEV_SEED_UUID new"; return 0
-    fi
-    # Seed JSONL exists but is unresumable (in use / cwd mismatch): a fresh id
-    # avoids "--session-id already exists" and starts a clean lane.
-    echo "$(uuidgen) new"
-}
-
-# Create the W11:Jarvis-dev tmux window. Caller reorders afterward if needed.
-launch_dev_window() {
-    local dev_uuid dev_mode
-    read -r dev_uuid dev_mode < <(resolve_dev_session)
-    local dev_file="$JARVIS_PROJECTS_DIR/${dev_uuid}.jsonl"
-
-    # Session-file rotation — archive if > 5MB to prevent unbounded growth.
-    local max_bytes=5242880
-    local archive_dir="$PROJECT_DIR/.claude/exports/dev/sessions"
-    if [[ -f "$dev_file" ]]; then
-        local fsize
-        fsize=$(stat -f%z "$dev_file" 2>/dev/null || echo 0)
-        if [[ "$fsize" -gt "$max_bytes" ]]; then
-            mkdir -p "$archive_dir"
-            local aname="dev-session-$(date +%Y%m%d-%H%M%S).jsonl"
-            mv "$dev_file" "$archive_dir/$aname"
-            echo -e "  ${YELLOW}Dev session file rotated ($(( fsize / 1024 ))KB > 5MB) -> $aname${NC}"
-            ls -t "$archive_dir"/dev-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
-            # Rotated away -> uuid now has no JSONL; start fresh under the same id.
-            dev_mode="new"
-        fi
-    fi
-
-    local proxy_url="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
-    local dev_headers="x-aion-project: project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-session-id: $(uuidgen)"
-    local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$proxy_url"
-    local sysappend="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
-    local first
-    if [[ "$dev_mode" == "resume" ]]; then
-        first="$base --resume $dev_uuid"
-    else
-        first="$base --session-id $dev_uuid"
-    fi
-    # Loop resume targets the KNOWN dev uuid (never --continue, which would grab
-    # the newest JSONL in the shared slug dir — often W0's live session).
-    local loop_resume="$base --resume $dev_uuid"
-    local instr="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
-    local init="Please load these files into context: @${instr}"
-
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
-        "cd '$CLAUDE_LAUNCH_DIR' && export $env_dev && export ANTHROPIC_CUSTOM_HEADERS='$dev_headers' && $first '$init'; while true; do echo ''; echo 'Jarvis-dev exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
-    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis-dev" automatic-rename off 2>/dev/null || true
-    echo -e "  ${GREEN}✓${NC} Jarvis-dev window (${dev_mode}: ${dev_uuid})"
-}
-
 # JICM v6 watcher (v5 removed in v6.1)
 WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
 WATCHER_VERSION="v6"
@@ -382,7 +301,7 @@ if [[ "$LITE_MODE" == "true" ]]; then
 
     # Claude command — no deterministic UUID, no resume, dangerously-skip-permissions
     LITE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_LITE=true"
-    LITE_CLAUDE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --add-dir .claude/personas/jarvis --verbose"
+    LITE_CLAUDE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort medium --add-dir .claude/personas/jarvis --verbose"
 
     # Wrapper: run Claude, clean up JSONL on exit so --continue can't find it
     LITE_WRAPPER="export $LITE_ENV && $LITE_CLAUDE; echo ''; echo 'Lite session ended. Cleaning up...'; rm -f ${LITE_PROJECTS_DIR}/*.jsonl 2>/dev/null; echo 'Session data removed. Press Enter to close, or run claude for another session.'; read; $LITE_CLAUDE"
@@ -890,8 +809,33 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
             echo "Adding Jarvis-dev window (W5) to existing session..."
-            launch_dev_window
-            reorder_windows
+            JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+            JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
+            CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
+            DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
+            DEV_SESSION_MAX_BYTES=5242880
+            DEV_SESSION_ARCHIVE_DIR="$PROJECT_DIR/.claude/exports/dev/sessions"
+            if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
+                DEV_FILE_SIZE=$(stat -f%z "$JARVIS_DEV_SESSION_FILE" 2>/dev/null || echo 0)
+                if [[ "$DEV_FILE_SIZE" -gt "$DEV_SESSION_MAX_BYTES" ]]; then
+                    mkdir -p "$DEV_SESSION_ARCHIVE_DIR"
+                    ARCHIVE_NAME="dev-session-$(date +%Y%m%d-%H%M%S).jsonl"
+                    mv "$JARVIS_DEV_SESSION_FILE" "$DEV_SESSION_ARCHIVE_DIR/$ARCHIVE_NAME"
+                    echo -e "  ${YELLOW}Session file rotated ($(( DEV_FILE_SIZE / 1024 ))KB > 5MB) → $ARCHIVE_NAME${NC}"
+                    ls -t "$DEV_SESSION_ARCHIVE_DIR"/dev-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
+                fi
+            fi
+            DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+            if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
+            else
+                CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
+            fi
+            DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
+            "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
+                "cd '$CLAUDE_LAUNCH_DIR' && export $CLAUDE_ENV_DEV && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
+            "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis-dev" automatic-rename off 2>/dev/null || true
+            echo -e "  ${GREEN}✓${NC} Jarvis-dev window created"
         else
             echo "  Jarvis-dev window already exists."
         fi
@@ -991,11 +935,11 @@ W0_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-w0,x-aion-ses
 DEV_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-session-id: $JARVIS_SESSION_UUID"
 
 #CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING=1 MAX_THINKING_TOKENS=16000"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
-# W0: bypass permissions, full Opus 5 (1M) context, exclude dynamic system prompts
+# W0: bypass permissions, full Opus 4.8 1M context, exclude dynamic system prompts
 # Permission bypass: two complementary flags
 #   --dangerously-skip-permissions: skips workspace trust dialog + enables bypass
 #   --permission-mode bypassPermissions: explicitly sets session permission mode
@@ -1003,7 +947,7 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_A
 # --add-dir loads .claude/personas/jarvis/CLAUDE.md with @-import processing.
 # Jarvis identity, psyche, and force-loaded context are in that persona CLAUDE.md,
 # NOT in the root CLAUDE.md (which is shared with Alfred to avoid external-import conflicts).
-CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # Cross-project workspace dirs (Pyright LSP + cross-repo awareness).
 # Each path in .claude/context/.active-projects (one per line; blanks/#comments OK)
@@ -1164,7 +1108,32 @@ fi
 # UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL = fbd7528a-c1bd-414a-bdaa-c3cc23f53215
 if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
-    launch_dev_window
+    JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+    JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
+    CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
+    DEV_INSTRUCTIONS="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
+    DEV_SESSION_MAX_BYTES=5242880
+    DEV_SESSION_ARCHIVE_DIR="$PROJECT_DIR/.claude/exports/dev/sessions"
+    if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
+        DEV_FILE_SIZE=$(stat -f%z "$JARVIS_DEV_SESSION_FILE" 2>/dev/null || echo 0)
+        if [[ "$DEV_FILE_SIZE" -gt "$DEV_SESSION_MAX_BYTES" ]]; then
+            mkdir -p "$DEV_SESSION_ARCHIVE_DIR"
+            ARCHIVE_NAME="dev-session-$(date +%Y%m%d-%H%M%S).jsonl"
+            mv "$JARVIS_DEV_SESSION_FILE" "$DEV_SESSION_ARCHIVE_DIR/$ARCHIVE_NAME"
+            echo -e "  ${YELLOW}Session file rotated ($(( DEV_FILE_SIZE / 1024 ))KB > 5MB) → $ARCHIVE_NAME${NC}"
+            ls -t "$DEV_SESSION_ARCHIVE_DIR"/dev-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
+        fi
+    fi
+    DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+    if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
+    else
+        CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort max --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --session-id $JARVIS_DEV_SESSION_ID"
+    fi
+    DEV_INIT_PROMPT="Please load these files into context: @${DEV_INSTRUCTIONS}"
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
+        "cd '$CLAUDE_LAUNCH_DIR' && export $CLAUDE_ENV_DEV && export ANTHROPIC_CUSTOM_HEADERS='$DEV_HEADERS' && $CLAUDE_CMD_DEV '$DEV_INIT_PROMPT'"
+    "$TMUX_BIN" set-window-option -t "$SESSION_NAME:5" automatic-rename off 2>/dev/null || true
 fi
 
 # MLX-Embed window — always present; starts server if not already running

@@ -291,6 +291,67 @@ _step_scratchpad_rotate() {   # 5.8 — rotate the shared .scratchpad.md (SHARED
     _log "5.8 scratchpad rotated"
 }
 
+_step_digest() {   # STAGE ③ — distil the OUTGOING transcript, then fold it into the checkpoint
+    # WHY HERE (before the /clear, blocking): the digest's whole purpose is to reach the SUCCESSOR,
+    # and the successor is fed from JK_COMPRESSED at session-start. Running it after the clear
+    # would produce a fine artifact that arrives one cycle too late. The pre-warm exists precisely
+    # to make this blocking step affordable: ~170s warm vs ~495s cold, paid while the session sits
+    # idle awaiting its own clear.
+    #
+    # This step is ADVISORY: a missing digest costs the successor context, but a session stuck
+    # above its hard threshold costs it everything. So every failure path here logs and returns 0.
+    [[ "${JICM_DIGEST_ENABLED:-true}" == "true" ]] || { _log "3.5 digest disabled"; return 0; }
+    local sid td out row degen trunc words
+    sid="$(basename "$TRANSCRIPT" .jsonl)"
+    td="$SCRIPT_DIR/jicm-digest/tdigest.py"
+    [[ -f "$td" ]] || { _log "3.5 digest skipped (no tdigest.py)"; return 0; }
+    [[ -n "$JICM_DIGEST_ARGS" ]] || { _log "3.5 digest skipped (JICM_DIGEST_ARGS unset)"; return 0; }
+
+    mkdir -p "$JICM_DIGESTS_DIR" 2>/dev/null
+    out="$JICM_DIGESTS_DIR/${JK_KEY}-${sid:0:8}.md"
+    _log "3.5 digest: distilling ${sid:0:8} (pre-warm makes this ~170s; cold ~495s)"
+    row="$(cd "$SCRIPT_DIR/jicm-digest" && python3 tdigest.py "$sid" $JICM_DIGEST_ARGS \
+             --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE")"
+    if [[ -z "$row" || ! -s "$out" ]]; then
+        _log "3.5 ALERT: digest produced nothing — successor resumes WITHOUT session history"
+        return 0
+    fi
+
+    # Honour the harness's own verdict fields rather than re-deriving them. `degenerate` exists
+    # because a 26-word continuation-mode reply once passed every other guard and would have been
+    # shipped as a handoff; shipping a known-bad digest is worse than shipping none, because the
+    # successor cannot tell it is reading a failure.
+    degen="$(printf '%s' "$row" | jq -r '.degenerate // false' 2>/dev/null)"
+    trunc="$(printf '%s' "$row" | jq -r '.truncated  // false' 2>/dev/null)"
+    words="$(printf '%s' "$row" | jq -r '.words // 0' 2>/dev/null)"
+    if [[ "$degen" == "true" ]]; then
+        _log "3.5 ALERT: digest DEGENERATE (${words} words — continuation-mode) — NOT folding into the checkpoint; kept at $out for inspection"
+        return 0
+    fi
+    [[ "$trunc" == "true" ]] && _log "3.5 WARN: digest hit the generation cap (${words} words) — folding it in anyway, it is truncated not wrong"
+
+    # Fold INTO the existing checkpoint rather than adding a second injection path: the resume
+    # route already carries JK_COMPRESSED, and a parallel channel would be one more thing to keep
+    # in sync (and to forget). Appended, never overwriting what prep built.
+    {
+        echo
+        echo "---"
+        echo
+        echo "## Session History Digest (previous session ${sid:0:8})"
+        echo
+        echo "*What actually happened in the session before this one — distilled from its full"
+        echo "transcript. The checkpoint above is curated working state; this is the record.*"
+        echo
+        cat "$out"
+    } >> "$JK_COMPRESSED"
+    _log "3.5 digest folded into checkpoint (${words} words, $out)"
+
+    # Record it against the chain row, so the succession carries a pointer to its own history.
+    "$SCRIPT_DIR/jicm-chain.sh" digest "$JK_KEY" "$sid" "$out" 2>>"$JICM_LOG_FILE" \
+        || _log "3.5 note: chain digest attach failed (digest itself is fine)"
+    return 0
+}
+
 _step_graphiti() {   # 5.9 — checkpoint → L5 Graphiti episode (async, non-blocking)
     [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" ]] || return 0
     [[ -x "$VENV_PY" ]] || { _log "5.9 graphiti skipped (no venv)"; return 0; }
@@ -334,6 +395,24 @@ _cycle_preserve_restore() {
     _step_scratchpad_rotate   # 5.8  scratchpad rotation (SHARED)
     _step_graphiti            # 5.9  L5 Graphiti episode (async)
 
+    # 3.4 STAGE ① — write the lineage edge. `/clear` mints a new session with no inherited history
+    # and records the edge NOWHERE, so we write it ourselves. Placed BEFORE the digest for two
+    # reasons: the digest attaches to this row (it cannot attach to a row that does not exist),
+    # and the edge is cheap while the digest is minutes long — recording it first means a digest
+    # failure cannot also cost us the succession.
+    # Failure policy: ALERT and PROCEED. A missing ledger row is detectable afterwards (the
+    # successor's bind finds no unbound capture); refusing to clear a session already past its
+    # hard threshold is the WORSE failure, and step 2's checkpoint is already on disk. This
+    # degrades BOOKKEEPING only, never the resume path.
+    _outgoing_sid="$(basename "$TRANSCRIPT" .jsonl)"
+    if ! "$SCRIPT_DIR/jicm-chain.sh" capture "$JK_KEY" "$_outgoing_sid" 2>>"$JICM_LOG_FILE"; then
+        _log "step3.4: ALERT — continuity capture FAILED for ${_outgoing_sid:0:8}; proceeding, this cycle's lineage edge is UNRECORDED"
+    else
+        _log "step3.4: continuity edge captured (${_outgoing_sid:0:8})"
+    fi
+
+    _step_digest              # 3.5  STAGE ③ — distil the outgoing transcript into the checkpoint
+
     # 4. Arm the per-key clear-signal (session-start branches on it), then /clear.
     echo "$(date +%s)" > "$JK_CLEAR_SIGNAL"
     rm -f "$JK_RESUME_SIGNAL"
@@ -343,20 +422,6 @@ _cycle_preserve_restore() {
         return 3
     fi
     _log "step4: idle re-confirmed; sending /clear"
-
-    # 4a. STAGE ① — write the lineage edge BEFORE the clear. `/clear` mints a new session with no
-    # inherited history and records the edge nowhere, so this is the last moment the outgoing
-    # identity is knowable. Deliberate policy on failure: ALERT and PROCEED. A missing ledger row
-    # is detectable after the fact (the successor's bind finds no unbound capture); refusing to
-    # clear a session that has already hit its threshold is the WORSE failure, and the checkpoint
-    # at step 2 is already on disk. This is a logged degradation of BOOKKEEPING, never of the
-    # resume path — the successor still gets its checkpoint either way.
-    _outgoing_sid="$(basename "$TRANSCRIPT" .jsonl)"
-    if ! "$SCRIPT_DIR/jicm-chain.sh" capture "$JK_KEY" "$_outgoing_sid" 2>>"$JICM_LOG_FILE"; then
-        _log "step4a: ALERT — continuity capture FAILED for ${_outgoing_sid:0:8}; proceeding with /clear, this cycle's lineage edge is UNRECORDED"
-    else
-        _log "step4a: continuity edge captured (${_outgoing_sid:0:8})"
-    fi
 
     _inject clear-input; sleep 0.3
     _inject text "/clear"; sleep 0.3

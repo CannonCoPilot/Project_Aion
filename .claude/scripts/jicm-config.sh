@@ -56,6 +56,25 @@ JICM_CHECKPOINTS_DIR="$JICM_DIR/checkpoints"
 # records the lineage edge NOWHERE, so we write that edge ourselves: one append-only JSONL per key.
 # Uniform for every key including w0 — the file is new, so there is no legacy layout to preserve.
 JICM_CHAIN_DIR="$JICM_DIR/chain"
+JICM_DIGESTS_DIR="$JICM_DIR/digests"
+
+# Session-digest shipping config — ONE definition, shared by the pre-warm (jicm-prewarm.sh) and
+# the real digest (jicm-actuate.sh step 3.5). These MUST be identical: the warm's whole value is
+# that the digest re-sends a byte-identical prompt prefix, so any drift between the two silently
+# wastes every warm — and the symptom is invisible, indistinguishable from a slow model.
+# Settled empirically (see .claude/scripts/jicm-digest/OPTIMUM.md):
+#   32B over 8B          — 8B wins under ~20K tok but collapses above it, and abandoned sessions
+#                          are large BY DEFINITION; both its fabrications were on large inputs.
+#   --grounded           — fact-sheet grounding; what drove hallucination to ~0.
+#   --reason-cap 300     — faster AND better (215s->131s, recovery doubled). Cliff at 150.
+#   --order recency      — +0.03 over freq, deconfounded (B4).
+#   --layout tx          — transcript first: enables prefix reuse at all (B2).
+#   --fs-allowance 900   — constant reservation so the trim point is sheet-independent (B5).
+#   --trim-quantum 4000  — a warm survives ~4000 tok of growth. NOT free: trimming costs recovery,
+#                          so keep this as small as the soft->hard gap allows.
+JICM_DIGEST_MODEL="${JICM_DIGEST_MODEL:-qwen3-32b-nothink:latest}"
+JICM_DIGEST_ARGS="--model $JICM_DIGEST_MODEL --grounded --reason-cap 300 --temp 0 --npred 2200 \
+--order recency --layout tx --fs-allowance 900 --trim-quantum 4000"
 
 jicm_key_paths() {
     local key="${1:?jicm_key_paths: key required}"

@@ -37,11 +37,9 @@ PW_STATE="$PW_DIR/$KEY.json"
 PW_LOCK="$PW_DIR/$KEY.lock"
 PW_LOG="$PROJECT_DIR/.claude/logs/jicm-prewarm.log"
 
-# SHIPPING CONFIG — the pre-warm and the real digest MUST pass identical flags or the prefixes
-# differ and the warm is wasted. Single definition, exported for whoever runs the real digest.
-JICM_DIGEST_ARGS="--model qwen3-32b-nothink:latest --grounded --reason-cap 300 --temp 0 \
---npred 2200 --order recency --layout tx --fs-allowance 900 --trim-quantum 4000"
-export JICM_DIGEST_ARGS
+# SHIPPING CONFIG comes from jicm-config.sh — see the JICM_DIGEST_ARGS block there. It is defined
+# ONCE precisely so the warm and the digest cannot drift apart; do not restate the flags here.
+[[ -n "$JICM_DIGEST_ARGS" ]] || { echo "jicm-prewarm: JICM_DIGEST_ARGS unset — refusing to warm with ad-hoc flags (a mismatched prefix wastes the warm silently)" >&2; exit 1; }
 
 _log() { echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $KEY | $*" >> "$PW_LOG"; }
 

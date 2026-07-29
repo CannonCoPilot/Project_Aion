@@ -238,6 +238,10 @@ if __name__=="__main__":
     # Experimental: force-drop this fraction of the OLDEST transcript even when the budget does
     # not require it. Research lever only — 0.0 leaves the shipping path bit-identical.
     a.add_argument("--drop-frac",type=float,default=0.0)
+    # Write the digest TEXT here. The JSON row still goes to stdout, so a caller gets the
+    # verdict fields (degenerate/truncated/halluc) and the artifact separately — parsing the
+    # digest back out of stdout would couple the actuator to this script's print formatting.
+    a.add_argument("--out",default="")
     z=a.parse_args()
 
     A=assemble(z)
@@ -299,4 +303,11 @@ if __name__=="__main__":
       runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx),
       truncated=bool(trunc),soft_end=bool(soft_end),degenerate=bool(degenerate),halluc=round(au["halluc"],3),
       recovery=au["recovery_topk"],echo=er,out_ids=au["out_ids"],bad=au["bad_paths"])))
+    if z.out:
+        # Write only AFTER the verdict fields are computed, so a caller that checks the row can
+        # trust that the file it is about to read corresponds to the row it just parsed.
+        try:
+            with open(z.out,"w") as fh: fh.write(out)
+        except Exception as e:
+            sys.stderr.write(f"ALERT: could not write digest to {z.out}: {e}\n"); sys.exit(1)
     if z.show: print("----- DIGEST -----"); print(out)
