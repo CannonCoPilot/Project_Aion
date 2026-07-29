@@ -285,7 +285,13 @@ launch_dev_window() {
     fi
 
     local proxy_url="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
-    local dev_headers="x-aion-project: project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-session-id: $(uuidgen)"
+    # NEWLINE-delimited, not comma. ANTHROPIC_CUSTOM_HEADERS is parsed as one "Name: Value" per
+    # LINE; a comma-joined string is read as a SINGLE header whose value swallows the rest. That
+    # is why the proxy recorded project="project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-..."
+    # with agent_name and session_id NULL on every row: the data was being sent, just collapsed
+    # into one field. The \n stay literal here (backslash-n inside double quotes) and are expanded
+    # by the $'...' quoting in the wrapper below, which keeps the tmux command on one line.
+    local dev_headers="x-aion-project: project-aion\nx-aion-agent-name: jarvis-dev-w5\nx-aion-session-id: $(uuidgen)"
     local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$proxy_url"
     local sysappend="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
@@ -302,7 +308,7 @@ launch_dev_window() {
     local init="Please load these files into context: @${instr}"
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
-        "cd '$CLAUDE_LAUNCH_DIR' && export $env_dev && export ANTHROPIC_CUSTOM_HEADERS='$dev_headers' && $first '$init'; while true; do echo ''; echo 'Jarvis-dev exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$CLAUDE_LAUNCH_DIR' && export $env_dev && export ANTHROPIC_CUSTOM_HEADERS=$'$dev_headers' && $first '$init'; while true; do echo ''; echo 'Jarvis-dev exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis-dev" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Jarvis-dev window (${dev_mode}: ${dev_uuid})"
 }
@@ -987,8 +993,10 @@ USAGE_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
 # when body metadata is absent — they survive the SDK's body-redaction layer.
 # Single UUID for both windows so cross-window calls correlate by session_id.
 JARVIS_SESSION_UUID="${JARVIS_SESSION_UUID:-$(uuidgen)}"
-W0_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-w0,x-aion-session-id: $JARVIS_SESSION_UUID"
-DEV_HEADERS="x-aion-project: project-aion,x-aion-agent-name: jarvis-dev-w5,x-aion-session-id: $JARVIS_SESSION_UUID"
+W0_HEADERS="x-aion-project: project-aion\nx-aion-agent-name: jarvis-w0\nx-aion-session-id: $JARVIS_SESSION_UUID"
+# NOTE: DEV_HEADERS is currently UNUSED — the dev lane builds its own `dev_headers` at line ~288.
+# Kept (and fixed) so it is correct if ever wired up, rather than a comma-joined trap in waiting.
+DEV_HEADERS="x-aion-project: project-aion\nx-aion-agent-name: jarvis-dev-w5\nx-aion-session-id: $JARVIS_SESSION_UUID"
 
 #CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
 CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
@@ -1110,7 +1118,7 @@ fi
 # Restart loop: --continue is safe here because W0's JSONL was the most recently
 # modified file (it just exited). W5 contamination only affects initial launch.
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
-W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS='$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
+W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS=$'$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
 "$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$CLAUDE_LAUNCH_DIR" "$W0_WRAPPER"
 

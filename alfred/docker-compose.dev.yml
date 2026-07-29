@@ -184,6 +184,23 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
+    # Log rotation — added 2026-07-29 after `docker logs` was found frozen for 16 DAYS.
+    # A single BLANK line at 2026-07-13T20:33 (line 112595 of the json-file log, the classic
+    # signature of the Docker Desktop VM being suspended mid-write on macOS sleep) makes the
+    # docker logs reader stop parsing and never recover. The file kept growing to 22MB and kept
+    # receiving real entries — 3,626 of them on the day this was found — while `docker logs`
+    # served a 16-day-stale view. That is the worst kind of failure: it does not look broken,
+    # it looks quiet, and it cost most of an incident diagnosis (a frozen log reads as "no
+    # traffic is flowing", which is exactly the wrong conclusion).
+    # Rotation is the mitigation, not the cure: it cannot prevent a blank line, but it bounds
+    # the blindness to one 10MB window instead of forever, because the next rotation starts a
+    # clean file the reader can parse. The health check and the DB were both fine throughout —
+    # only the log reader was blind, so nothing else surfaced it.
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
 volumes:
   postgres-dev-data:
