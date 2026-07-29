@@ -1,0 +1,63 @@
+{
+  "_doc": "Recreate the dev stack so the json-file log rotation committed in docker-compose.dev.yml (max-size 10m, max-file 5 on usage-proxy) actually takes effect. A `docker restart` is NOT enough — log options are fixed at container CREATE time, so the container must be recreated. Why this needs the worker: W0 and W5 both route through :9800, so recreating the proxy from either window kills its own API path mid-command.",
+
+  "name": "usage-proxy-log-rotation",
+
+  "preflight": {
+    "_doc": "The symlink matters: /Users/nathanielcannon/Claude/Alfred-Dev is a SYMLINK to Project_Aion/alfred (same inode), and the running containers record their working_dir as the Alfred-Dev path. Use that path so compose sees the project exactly as it was brought up.",
+    "expected_dir": "/Users/nathanielcannon/Claude/Alfred-Dev/docker-compose.dev.yml",
+    "expected_containers_up": [
+      "aifred-dev-usage-proxy",
+      "aifred-dev-postgres",
+      "aifred-dev-pulse"
+    ]
+  },
+
+  "down": {
+    "_doc": "project_name is MANDATORY here. This stack is documented (alfred/README.dev.md:24) as requiring --project-name=aifred-pro-dev; neither directory basename derives it. Without it, down matches nothing and up builds a duplicate stack on fresh volumes.",
+    "project_dir": "/Users/nathanielcannon/Claude/Alfred-Dev",
+    "compose_files": ["docker-compose.yml", "docker-compose.dev.yml"],
+    "project_name": "aifred-pro-dev"
+  },
+
+  "repairs": [
+    {
+      "type": "shell",
+      "description": "Confirm the committed logging block is present in the compose file BEFORE bringing the stack back up. If it is missing, the whole recreate is pointless and we would take an outage for nothing.",
+      "cmd": "grep -A3 'logging:' /Users/nathanielcannon/Claude/Alfred-Dev/docker-compose.dev.yml | grep -q 'max-size' && grep -A4 'logging:' /Users/nathanielcannon/Claude/Alfred-Dev/docker-compose.dev.yml | grep -q 'max-file'"
+    },
+    {
+      "type": "shell",
+      "description": "Confirm the stack is genuinely down before up, so we never stack a second copy on top of a half-running one.",
+      "cmd": "test -z \"$(/usr/local/bin/docker ps -q --filter label=com.docker.compose.project=aifred-pro-dev 2>/dev/null || /opt/homebrew/bin/docker ps -q --filter label=com.docker.compose.project=aifred-pro-dev)\""
+    }
+  ],
+
+  "up": {
+    "project_dir": "/Users/nathanielcannon/Claude/Alfred-Dev",
+    "compose_files": ["docker-compose.yml", "docker-compose.dev.yml"],
+    "project_name": "aifred-pro-dev",
+    "wait_for_healthy": [
+      "aifred-dev-postgres",
+      "aifred-dev-usage-proxy",
+      "aifred-dev-pulse"
+    ]
+  },
+
+  "validate": {
+    "_doc": ":9800 listening is the check that actually matters — it is W0's API path. If this fails, W0 cannot reach the API at all and that is an incident, not a maintenance blip.",
+    "ports_listening": [9800, 8800],
+    "container_status": {
+      "aifred-dev-usage-proxy": "healthy",
+      "aifred-dev-postgres": "healthy"
+    }
+  },
+
+  "timeout_seconds": 600,
+
+  "rollback": {
+    "_doc": "Both rollbacks are the same action — get the stack back up under the correct project name. There is no state to revert: this recipe changes no files, it only recreates containers against an already-committed compose change.",
+    "on_repair_failure": "cd /Users/nathanielcannon/Claude/Alfred-Dev && (/usr/local/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml --project-name=aifred-pro-dev up -d || /opt/homebrew/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml --project-name=aifred-pro-dev up -d)",
+    "on_up_failure": "cd /Users/nathanielcannon/Claude/Alfred-Dev && (/usr/local/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml --project-name=aifred-pro-dev up -d || /opt/homebrew/bin/docker compose -f docker-compose.yml -f docker-compose.dev.yml --project-name=aifred-pro-dev up -d)"
+  }
+}

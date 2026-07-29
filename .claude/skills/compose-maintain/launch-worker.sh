@@ -11,6 +11,13 @@
 SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRATCH_DIR="/Users/nathanielcannon/Claude/Project_Aion/.claude/scratch"
 TMUX_BIN="$HOME/bin/tmux"
+# Target tmux session. Was hardcoded to "jarvis:" — a leftover from before the workspace was
+# renamed to Aion, so every spawn failed with "Is jarvis session running?". RESOLVE it instead
+# of assuming: explicit override, then the session we are actually running inside, then the
+# current default. A maintenance tool that cannot find its own tmux session is worse than no
+# tool, because it fails at the moment you need it.
+TMUX_SESSION="${COMPOSE_MAINTAIN_SESSION:-${TMUX_SESSION:-$("$TMUX_BIN" display-message -p '#{session_name}' 2>/dev/null)}}"
+[[ -n "$TMUX_SESSION" ]] || TMUX_SESSION="aion"
 LOCK_DIR="$SCRATCH_DIR/compose-maintain.lock"
 POLL_INTERVAL=3
 
@@ -101,8 +108,17 @@ PROTOCOL (sequential; write status after each phase):
 
 4. Write status: {phase:"down"}.
    Run from recipe.down.project_dir:
-   \`docker compose -f <each compose_file> down\`
-   (use absolute path to docker; compose project name derives from cwd).
+   \`docker compose -f <each compose_file> [--project-name <recipe.down.project_name>] down\`
+   (use absolute path to docker.)
+   PROJECT NAME IS LOAD-BEARING: if recipe.down.project_name is set you MUST pass
+   \`--project-name <that value>\`. Compose otherwise derives the name from the cwd
+   basename, which for a stack brought up with an explicit --project-name matches
+   NOTHING: the down silently no-ops, and the later up creates a SECOND parallel
+   stack with FRESH volumes (an empty database) and a port conflict against the
+   containers still running. Verify the name is right by checking that the
+   containers in recipe.preflight.expected_containers_up carry the label
+   com.docker.compose.project == that value BEFORE running down; if they do not
+   match, write {phase:"failed", error:"project-name mismatch: expected <X>, containers say <Y>"} and exit WITHOUT running down.
    On failure: write {phase:"failed", error:"down: <stderr>"}; exit.
 
 5. For each repair in recipe.repairs[] (sequential, index from 0):
@@ -120,7 +136,10 @@ PROTOCOL (sequential; write status after each phase):
 
 6. Write status: {phase:"up"}.
    Run from recipe.up.project_dir:
-   \`docker compose -f <each compose_file> up -d\`
+   \`docker compose -f <each compose_file> [--project-name <recipe.up.project_name>] up -d\`
+   Pass --project-name whenever recipe.up.project_name is set — it MUST match the
+   name used for the down, or you will bring up a duplicate stack alongside the
+   old one instead of restoring the one you took down.
    On failure: write {phase:"failed", error:"up: <stderr>"};
    if recipe.rollback.on_up_failure exists, execute it; exit.
 
@@ -219,7 +238,7 @@ if [[ "$DRY_RUN" == "1" ]]; then
   echo "         status:  $STATUS_PATH"
   echo "         log:     $LOG_PATH"
   echo "         prompt:  $PROMPT_PATH ($(wc -l < "$PROMPT_PATH") lines)"
-  echo "         window:  $WINDOW_NAME (would be: jarvis:$WINDOW_NAME)"
+  echo "         window:  $WINDOW_NAME (would be: $TMUX_SESSION:$WINDOW_NAME)"
   exit 0
 fi
 
@@ -254,21 +273,21 @@ fi
 
 WORKER_CMD="cd /Users/nathanielcannon/Claude/Project_Aion && env -u ANTHROPIC_BASE_URL claude --print \"\$(cat $PROMPT_PATH)\" > $LOG_PATH 2>&1; $WORKER_FINISH"
 
-# Spawn worker tmux window. New window in jarvis session, detached.
-echo "Spawning worker window: jarvis:$WINDOW_NAME"
+# Spawn worker tmux window. New window in the resolved tmux session, detached.
+echo "Spawning worker window: $TMUX_SESSION:$WINDOW_NAME"
 echo "  Recipe:  $RECIPE_PATH"
 echo "  Status:  $STATUS_PATH"
 echo "  Log:     $LOG_PATH"
 echo "  Timeout: ${TIMEOUT}s"
 
-"$TMUX_BIN" new-window -t jarvis: -n "$WINDOW_NAME" -d "$WORKER_CMD" 2>&1
+"$TMUX_BIN" new-window -t "$TMUX_SESSION:" -n "$WINDOW_NAME" -d "$WORKER_CMD" 2>&1
 SPAWN_EC=$?
 if [[ $SPAWN_EC -ne 0 ]]; then
-  echo "Error: tmux new-window failed (exit $SPAWN_EC). Is jarvis session running?" >&2
+  echo "Error: tmux new-window failed (exit $SPAWN_EC). Is the '$TMUX_SESSION' session running?" >&2
   exit 1
 fi
 
-WORKER_WINDOW="jarvis:$WINDOW_NAME"
+WORKER_WINDOW="$TMUX_SESSION:$WINDOW_NAME"
 
 # Poll status file
 DEADLINE=$(($(date +%s) + TIMEOUT))
