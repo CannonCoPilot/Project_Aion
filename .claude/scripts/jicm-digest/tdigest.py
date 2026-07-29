@@ -156,7 +156,13 @@ def assemble(z):
     budget_tok = z.nctx - z.npred - reserve_tok - 400        # 400 = system prompt + margin
     est_tok = len(prose)//4
     trimmed_tok = 0; anchor = 0
-    if est_tok > budget_tok:
+    # EXPERIMENTAL LEVER (--drop-frac): drop a FRACTION of the oldest transcript regardless of
+    # whether the budget requires it. Exists because the trim-vs-recovery question cannot be
+    # studied otherwise — only the largest transcript overflows the budget at all, so without
+    # this there is exactly one data point and no way to vary it. Default 0.0 = no effect on
+    # the shipping path.
+    forced_tok = int(z.drop_frac * est_tok) if getattr(z,"drop_frac",0.0) > 0 else 0
+    if est_tok > budget_tok or forced_tok > 0:
         parts = prose.split("\n\n")
         # Suffix sizes, so finding the anchor is linear rather than a quadratic pile of joins.
         n=len(parts); suf=[0]*(n+1)
@@ -176,7 +182,10 @@ def assemble(z):
         # the wrong unit — segments vary in size, so it bought an unpredictable 1500-2500 tok of
         # growth for a 1926 tok cost, with neither number controllable.)
         Q=max(1,z.trim_quantum)
-        need   = est_tok - budget_tok                # tokens that MUST go
+        # The budget requirement and the experimental lever are both LOWER BOUNDS on what must
+        # go; the binding one wins. Taking the max (not the sum) keeps --drop-frac 0 exactly
+        # equal to the shipping path, so the lever cannot perturb the config it is measuring.
+        need   = max(est_tok - budget_tok, forced_tok)
         target = ((need + Q - 1)//Q)*Q               # ...rounded up to a Q boundary
         while i < n-1 and (est_tok - suf[i]//4) < target: i+=1
         anchor=i
@@ -226,13 +235,17 @@ if __name__=="__main__":
     # whether the prefix has moved, and that question must be answerable for the price of a
     # transcript read — asking the GPU on every watcher tick would cost more than it saves.
     a.add_argument("--anchor-only",action="store_true")
+    # Experimental: force-drop this fraction of the OLDEST transcript even when the budget does
+    # not require it. Research lever only — 0.0 leaves the shipping path bit-identical.
+    a.add_argument("--drop-frac",type=float,default=0.0)
     z=a.parse_args()
 
     A=assemble(z)
     common=dict(tag=z.tag,order=z.order,layout=z.layout,
                 model=("32B" if "32b" in z.model else "8B"),grounded=z.grounded,
                 factsheet_tok=A["fs_tok"],prefix_stable=A["prefix_stable"],
-                input_trimmed_tok=A["trimmed_tok"],trim_anchor=A["anchor"],quantum=z.trim_quantum)
+                input_trimmed_tok=A["trimmed_tok"],trim_anchor=A["anchor"],quantum=z.trim_quantum,
+                drop_frac=z.drop_frac)
 
     if z.anchor_only:
         # Same assemble() as every other mode — the anchor reported here is BY CONSTRUCTION the
@@ -264,11 +277,26 @@ if __name__=="__main__":
     # `soft_end` keeps that weaker signal visible without contaminating the verdict.
     trunc = oc >= z.npred-2
     soft_end = not re.search(r'[.!?]”?\s*$', out.strip())
+    # DEGENERATE-OUTPUT GUARD (No Silent Degradation). Found by the trim sweep: f56d4d98 at
+    # drop-frac 0.10 returned 26 words — "I've pruned the scratchpad to 80 lines... Done." The
+    # model had slipped into CONTINUATION mode, answering as the assistant inside the transcript
+    # instead of digesting it. Every existing guard passed it: not truncated (it stopped on its
+    # own), terminal punctuation present, zero hallucination (it named nothing), echo 0.0. A
+    # failed digest was reported as a clean success, which is exactly the failure class we do not
+    # permit. Length is the cheap tell: a digest asked for ~N words that returns a small fraction
+    # of N did not do the task. This FLAGS and ALERTS; it never silently retries or accepts.
+    n_words = len(out.split())
+    degenerate = n_words < max(40, z.size//4)
+    if degenerate:
+        sys.stderr.write(f"ALERT degenerate output: {z.sid} produced {n_words} words for a "
+                         f"{z.size}-word request — likely continuation-mode (model answered AS "
+                         f"the transcript's assistant instead of digesting it). NOT a usable "
+                         f"digest; do not ship this run.\n")
     print(json.dumps(dict(common,mode="digest",
       style=z.style,focus=z.focus,cave=z.caveman,rcap=z.reason_cap,tail=z.tail,size=z.size,
       elapsed=round(el,1),prompt_s=round(j.get("prompt_eval_duration",0)/1e9,1),
       in_tok=j.get("prompt_eval_count",0),out_tok=oc,words=len(out.split()),
       runtime_clipped=bool(j.get("prompt_eval_count",0)>=z.nctx),
-      truncated=bool(trunc),soft_end=bool(soft_end),halluc=round(au["halluc"],3),
+      truncated=bool(trunc),soft_end=bool(soft_end),degenerate=bool(degenerate),halluc=round(au["halluc"],3),
       recovery=au["recovery_topk"],echo=er,out_ids=au["out_ids"],bad=au["bad_paths"])))
     if z.show: print("----- DIGEST -----"); print(out)

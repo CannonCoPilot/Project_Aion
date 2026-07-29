@@ -352,3 +352,59 @@ The post-warm digest scored recovery 0.667 against 0.381 for the same transcript
 difference is the larger quantised trim (4048 vs 3087 tok of the OLDEST turns). Plausible that
 dropping more stale content concentrates salience, but this is one observation and the recovery
 target is computed from the WHOLE session either way. Worth a deliberate sweep, not a claim.
+
+---
+
+# Trim-vs-recovery sweep — HYPOTHESIS REFUTED (2026-07-28)
+
+`sweep-trim-2026-07-28.jsonl` — 5 transcripts x 4 forced-drop levels, shipping config,
+`--trim-quantum 1` so quantisation adds no second varying factor. New lever `--drop-frac` drops a
+fraction of the OLDEST prose regardless of budget (only 01d1ae83 overflows naturally, so without
+it the question has exactly one data point). Verified inert at 0.0, and it combines with the budget
+requirement via `max()`, never a sum, so it can only ever BE the binding constraint.
+
+The metric stays neutral by construction: recovery scores against top-15-by-frequency UNION
+top-15-by-recency computed from the WHOLE session BEFORE trimming. Dropping content cannot shrink
+the target — otherwise the sweep would confirm its own hypothesis by construction.
+
+## Result: trimming more HURTS. The n=1 observation did not replicate.
+| drop | mean recovery | values |
+|---|---|---|
+| **0%** | **0.527** | 0.357 · 0.500 · 0.947 · 0.450 · 0.381 |
+| 10% | 0.276 | 0.000 · 0.000 · 0.263 · 0.450 · 0.667 |
+| 20% | 0.463 | 0.286 · 0.400 · 0.947 · 0.350 · 0.333 |
+| 30% | 0.429 | 0.214 · 0.400 · 0.842 · 0.450 · 0.238 |
+
+Paired against each transcript's own 0% baseline: **trimmed-more WINS 1, LOSES 11, TIES 3.**
+The 0.667 that prompted this sweep was an outlier, not a trend — the same transcript scores 0.333
+at 20% and 0.238 at 30%. **Do not trim beyond what the budget requires.** This also retires the
+idea that a bigger `--trim-quantum` is free: Q buys prefix stability and costs recovery, so keep it
+as small as the soft->hard gap allows rather than "generously" large.
+
+## FAILURE MODE FOUND — continuation-mode collapse (the important part)
+`f56d4d98` at 10% drop returned **26 words**:
+> *"I've pruned the scratchpad to 80 lines by removing outdated entries and consolidating
+> information. The scratchpad now reflects the current state of the project accurately. Done."*
+
+The model slipped into CONTINUATION mode — answering AS the assistant inside the transcript
+instead of digesting it. Dropping the session's opening turns removed the context that made the
+input obviously a transcript-to-summarise.
+
+**Every existing guard passed it**: `truncated` false (it stopped on its own), `soft_end` false
+(terminal punctuation present), `halluc` 0.000 (it named nothing), `echo` 0.000. A failed digest
+was reported as a clean success — precisely the failure class we do not permit.
+
+**FIX (shipped): `degenerate` guard.** `words < max(40, size/4)` flags and ALERTs to stderr; it
+never retries or accepts silently. Across the 20 sweep rows it flags exactly 1 — the 26-word run —
+while the next-lowest legitimate output is 417 words, so the 150-word floor sits in a wide empty
+band. Note the collapse is NOT monotonic: the same transcript recovers to 0.400 at 20% and 30%, so
+this is a fragile point, not a threshold. Length is a cheap tell, not a proof of quality.
+
+## METRIC LIMITATION — recovery 0.000 does not always mean a bad digest
+`91bcac6a` at 10% scored recovery 0.000 with **648 words and out_ids 0** — yet the digest is
+substantive and accurate. It simply refers to work CONCEPTUALLY (`psalms-001`, `reocr_page`,
+"left margin reduced from 0.310 to 0.161") rather than by filename, and `recovery` only counts
+basenames carrying a file extension. So recovery measures *"names salient FILES"*, which is a
+proxy for usefulness, not usefulness itself. Two runs with identical 0.000 can be a total failure
+(26 words) or a good digest in a different register (648 words). Read `words` and `out_ids`
+alongside it; never read recovery alone.
