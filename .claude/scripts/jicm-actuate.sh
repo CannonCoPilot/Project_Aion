@@ -603,7 +603,7 @@ cmd_plan() {
         echo "  shared-mem   : no — skips shared-memory mutation (5.7/5.8)"
     fi
     case "$policy" in
-        preserve-restore) echo "  steps        : idle → prep → [5.5 RAG, 5.6 scrollback, 5.6c RAG, ${shared_steps}5.9 graphiti] → /clear → resume" ;;
+        preserve-restore) echo "  steps        : idle → prep → [5.5 RAG, 5.6 scrollback, 5.6c RAG, ${shared_steps}5.9 graphiti] → 3.4 chain-capture → 3.5 digest → /clear → resume" ;;
         zero-state)       echo "  steps        : kill+relaunch seed, core-only reload (Phase-4 wiring; Phase-1 ALERTs)" ;;
         monitor)          echo "  steps        : detect + HUD only (no clear)" ;;
     esac

@@ -176,6 +176,11 @@ jicm_derive_key() {                          # <my_session_id>
     local my_sid="${1:-}" candidate
     if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then candidate="w0"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then candidate="dev"
+    # protos (aion:1) — the test lane. Checked BEFORE the unset-JARVIS_WINDOW fallback below,
+    # which would otherwise hand a Protos session the w0 candidate and (via the occupancy gate)
+    # a w0-bg-* key: self-actuating, no pane target, invisible to the pane-driven path we are
+    # trying to test. Requires JARVIS_WINDOW=1 to be set explicitly at launch.
+    elif [[ "${JARVIS_WINDOW:-}" == "1" ]];         then candidate="protos"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then candidate="w0"
     else echo "${my_sid:-unknown}"; return; fi
     # C3 OCCUPANCY GATE (JICM v9 R1): claim a pane-actuated key ONLY if I actually occupy
@@ -194,9 +199,14 @@ jicm_derive_key() {                          # <my_session_id>
 # is defined later in this file). Empty for unknown keys — registry/actuator handle that.
 jicm_default_target() {
     case "${1:-}" in
-        w0)  echo "${JICM_TMUX_SESSION}:0"  ;;
-        dev) echo "${JICM_TMUX_SESSION}:11" ;;
-        *)   echo "" ;;
+        w0)     echo "${JICM_TMUX_SESSION}:0"  ;;
+        dev)    echo "${JICM_TMUX_SESSION}:11" ;;
+        # protos (aion:1) — the TEST lane. A first-class pane-actuated key so live cycles
+        # exercise the REAL path (pane injection, actuator, pre-warm) instead of the
+        # second-class self-actuating bg key a keyless window would otherwise get. It owns
+        # no work, so a cycle that goes wrong there costs nothing.
+        protos) echo "${JICM_TMUX_SESSION}:1"  ;;
+        *)      echo "" ;;
     esac
 }
 
