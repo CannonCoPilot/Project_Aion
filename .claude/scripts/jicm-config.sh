@@ -395,8 +395,16 @@ JICM_PROJECTS_DIR="$HOME/.claude/projects/${JICM_PROJECT_SLUG}"
 # "~380K resume baseline" note below; if a post-clear W0 resumes ABOVE 330K it will want to
 # clear again immediately. That is a circuit-breaker case (FIRE_MAX/hour + ALERT), not a
 # silent loop — but restore 550K/600K once the R3 shadow evidence is captured.
-JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-300000}    # was 550000 (55% of 1M)
-JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # was 600000 (60% of 1M)
+# RESTORED to 550K/600K on 2026-08-01. These were lowered to 300K/330K on the mistaken premise
+# that JICM's token reading for W0 was live; it was not — the reading was pinned to a dormant
+# pre-clear session (the anchor bug), so lowering the bar could not have made cycles fire.
+# Lowering thresholds to fix a blindness problem treats the symptom of a broken measurement.
+# Restoring them now because a relaunch resets the stale identity, and because at W0's current
+# 527K a 330K hard threshold would clear a freshly-resumed session immediately.
+# Override per-session with JICM_SOFT_TOKENS/JICM_HARD_TOKENS if you want aggressive cycling
+# (the protos test lane runs at 20K/25K for exactly that reason).
+JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-550000}    # 55% of 1M
+JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-600000}    # 60% of 1M
 JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-600000}   # legacy v7.x alias (= new hard)
 # NOTE: the gate's per-window clamp (WINDOW*0.80 hard / *0.66 soft) still applies — on a
 # 1M window these pass through (800K/660K caps > 600K/550K); smaller windows clamp DOWN.
