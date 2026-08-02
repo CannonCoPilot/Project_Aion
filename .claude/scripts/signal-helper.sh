@@ -489,8 +489,21 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
             watcher_status
             ;;
         context-status|ctx)
-            # Read context from statusline capture (no TUI scraping needed)
+            # Read context from statusline capture (no TUI scraping needed).
+            #
+            # The shared path is last-writer-wins across every lane that renders
+            # a statusline — W0, W11:Jarvis-dev and W1:Protos all write it, and
+            # Protos runs a different window size, so a read here could report
+            # another lane's context as W0's. Prefer the per-session snapshot
+            # keyed by the session id the JICM state file names as the target.
             STATUSLINE_FILE="$HOME/.claude/logs/statusline-input.json"
+            _hook_state="${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/context/.jicm-state-hook.json"
+            if [[ -f "$_hook_state" ]] && command -v jq >/dev/null 2>&1; then
+                _sid=$(jq -r '.session_id // ""' "$_hook_state" 2>/dev/null)
+                if [[ -n "$_sid" && -f "$HOME/.claude/logs/statusline-input-${_sid}.json" ]]; then
+                    STATUSLINE_FILE="$HOME/.claude/logs/statusline-input-${_sid}.json"
+                fi
+            fi
             if [[ -f "$STATUSLINE_FILE" ]]; then
                 USED=$(jq -r '.context_window.used_percentage // 0' "$STATUSLINE_FILE")
                 REMAINING=$(jq -r '.context_window.remaining_percentage // 100' "$STATUSLINE_FILE")

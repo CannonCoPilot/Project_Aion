@@ -181,3 +181,7 @@ alfred/.claude/jobs/logs/*.log
 
 # Embedded scratch git repo used by Alfred canary tests — never a submodule of this repo
 alfred/.claude/scratch/canary-repo/
+
+# Runtime rate-limit cache (refresh-ratelimit-cache.sh, Stop hook)
+.claude/context/.ratelimit-cache.json
+.claude/context/.ratelimit-refresh.lock

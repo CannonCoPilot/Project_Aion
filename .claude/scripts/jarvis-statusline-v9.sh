@@ -11,17 +11,39 @@
 #   2. macOS-compatible PID-file concurrency lock (prevents stacked invocations)
 #   3. TTL-cached Pulse API (15s) + git status (5s) under stable filenames
 #   4. Multi-line output (3 rows; ≤20% of CC window per User mandate)
-#   5. `effort.level` REMOVED — confirmed absent from statusline payload
+#   5. `effort.level` — see v9.1 note below; it is PRESENT as of CC 2.1.220
 #   6. `exceeds_200k_tokens` early-warning indicator (fires before SOFT_NUDGE)
 #   7. Rate-limit `resets_at` countdown rendering ("5h:75% ↺1h23m")
 #   8. Output-style indicator (📖 Explanatory, 🎓 Learning, etc.)
 #   9. Jarvis-unique panels: eph_1h adoption %, JICM action, Pulse active task
 #  10. Action-driven color cascade across all rows (HARD_HALT bleeds red)
 #
+# ── v9.1 (2026-08-01) ──────────────────────────────────────────────────────
+#   a. RATE LIMITS NO LONGER GO BLANK. CC emits `rate_limits` only when its
+#      state holds a five_hour/seven_day claim; under overage upstream sends
+#      only `-overage-*` headers, the key disappears, and v9.0 rendered empty
+#      string — a missing capacity signal that looked like a healthy one.
+#      Now: stdin → proxy-DB cache (marked `~`) → explicit `5h:—`, plus an
+#      `OVG:N%` badge when overage is in use.
+#   b. CATEGORICAL BAR RESTORED (the W1:Protos look) but honestly sourced —
+#      measured `/context` categories when available (marked `[C]`), otherwise
+#      the live cache decomposition. Never constants dressed as measurements.
+#      See derive_segments().
+#   c. `blk:` ccusage panel restored — the Stop hook had been refreshing
+#      .ccusage-blocks.json for a reader that no longer existed.
+#   d. Payload snapshot written per-session, fixing cross-lane contamination
+#      in every out-of-band reader of ~/.claude/logs/statusline-input.json.
+#   e. effort / fast_mode / thinking surfaced (all present in CC 2.1.220).
+#   f. Free space drawn as '·' — v9.0 used '░' for both filled and empty.
+#
 # Layout (full width, ~100-200 cols):
-#   Row 1: ICON model|cwd-relative-or-Project  branch +N-N  STYLE_IND  PRE_WARN
-#   Row 2: [bar with soft/hard/auto ticks] PCT%  Δburn  S:eta H:eta  cache% eph1h%
-#   Row 3: $cost  ⏱wall api%  5h:%↺reset  7d:%↺reset  ◆ pulse-task
+#   Row 1: ICON model  project/sub  branch +N-N  STYLE  effort ⚡  PRE_WARN
+#   Row 2: [categorical bar + soft│hard┃auto╿ ticks] PCT% tokens  Δburn
+#          S:eta H:eta  cache% eph1h%  legend
+#   Row 3: $cost blk:$X  ⏱wall api%  5h:%↺  7d:%↺  OVG  NLP  ◆ pulse-task
+#
+# PARSED CONTRACT: jicm-actuate.sh `_bar_row()` greps the rendered pane for
+# '\] +[0-9]+%'. Row 2 must keep "] " + spaces + integer + "%".
 #
 # Layout (narrow, <100 cols): drops Row 3, shortens bar to 20 chars.
 #
@@ -65,8 +87,17 @@ SL_GIT_CACHE="/tmp/jarvis-statusline-git.cache"
 SL_GIT_TTL=5
 SL_PULSE_URL="${SL_PULSE_URL:-http://localhost:8700/api/v1/tasks?status=open&label=agent:jarvis&limit=1}"
 SL_PULSE_TIMEOUT=1
-SL_BAR_WIDTH=22
-SL_VERSION="9.0.0"
+SL_BAR_WIDTH=28
+SL_VERSION="9.1.0"
+SL_RL_CACHE="$SL_PROJECT_DIR/.claude/context/.ratelimit-cache.json"
+SL_CCUSAGE_CACHE="$SL_PROJECT_DIR/.claude/context/.ccusage-blocks.json"
+# Per-session payload snapshot. signal-helper.sh and the self-ops/autonom-ops
+# skills read ~/.claude/logs/statusline-input.json as "authoritative context
+# usage" — but only the v7.4 user-level script ever wrote it, so every session
+# on v9 was reading WHOEVER wrote last (in practice W1:Protos, a different lane
+# with a different window size). Write both: a per-session file that is
+# unambiguously ours, and the legacy path for the existing readers.
+SL_SNAPSHOT_DIR="$HOME/.claude/logs"
 
 # ─── COLORS (256-color ANSI) ───────────────────────────────────────────────
 NC=$'\033[0m'
@@ -92,7 +123,10 @@ PINK=$'\033[38;5;213m'
 BAR_FILL_NORMAL='▒'
 BAR_FILL_WARN='▓'
 BAR_FILL_DANGER='█'
-BAR_EMPTY='░'
+# Free space uses a glyph no segment uses. v9.0 drew filled and empty with the
+# same '░', which made the bar unreadable the moment segments were introduced —
+# and unreadable in any ANSI-stripped capture (logs, jicm-actuate, scrollback).
+BAR_EMPTY='·'
 TICK_SOFT='│'
 TICK_HARD='┃'
 TICK_AUTO='╿'
@@ -271,34 +305,105 @@ model_short() {
     return 0
 }
 
-# Build a stack progress bar with soft/hard/auto-compact ticks
+# ─── CATEGORICAL CONTEXT BAR ────────────────────────────────────────────────
+#
+# v9.0 drew a single-hue "how full" bar. v9.1 restores the categorical stacked
+# bar (the shape W1:Protos shows via the v7.4 user-level statusline) but sources
+# it honestly. Two modes, and the bar always says which one it is:
+#
+#   MEASURED  [C]  — `context-categories.json` exists and is fresh. Real
+#                    per-category token counts parsed from a `/context` dump.
+#                    Segments: ▓ tools · ▒ other overhead · ░ messages.
+#
+#   LIVE      (no marker) — the default. The statusline payload carries NO
+#                    category breakdown (verified against CC 2.1.220: the only
+#                    decomposition present is `current_usage`'s cache fields).
+#                    So we segment by what IS real per render — cache
+#                    composition: ▓ warm cache-read · ▒ cache-write this turn ·
+#                    ░ uncached input.
+#
+# The v7.4 script fills its categories from HARD-CODED constants in .jicm-config
+# whenever the cache file is absent — and that file is absent right now, so the
+# pretty breakdown on W1 is currently an estimate wearing the costume of a
+# measurement. v9.1 never does that: if there is nothing measured, it shows the
+# live cache decomposition, which is measured, rather than a plausible constant.
+#
+# CONTRACT — jicm-actuate.sh `_bar_row()` greps the rendered pane for
+# '\] +[0-9]+%'. Row 2 MUST keep the literal "] " + spaces + integer + "%".
 build_bar() {
-    local width="${1:-22}" pct="${2:-0}" soft_pct="${3:-30}" hard_pct="${4:-65}" auto_pct="${5:-70}"
+    local width="${1:-28}" pct="${2:-0}" soft_pct="${3:-30}" hard_pct="${4:-33}" auto_pct="${5:-80}"
+    [[ "$pct" =~ ^[0-9]+$ ]] || pct="${pct%%.*}"
     [[ "$pct" =~ ^[0-9]+$ ]] || pct=0
     [[ "$pct" -gt 100 ]] && pct=100
+
     local soft_pos=$(( soft_pct * width / 100 ))
     local hard_pos=$(( hard_pct * width / 100 ))
     local auto_pos=$(( auto_pct * width / 100 ))
+    [[ "$hard_pos" -eq "$soft_pos" ]] && hard_pos=$(( soft_pos + 1 ))
     local filled=$(( pct * width / 100 ))
+
+    # Segment widths, scaled against the SAME denominator as `filled` so the
+    # three segments tile the filled region exactly (no drift, no overshoot).
+    local s1=0 s2=0 s3=0
+    if [[ "$SEG_TOTAL" -gt 0 && "$filled" -gt 0 ]]; then
+        s1=$(( SEG_A * filled / SEG_TOTAL ))
+        s2=$(( SEG_B * filled / SEG_TOTAL ))
+        s3=$(( filled - s1 - s2 ))          # remainder absorbs rounding
+        [[ "$s3" -lt 0 ]] && s3=0
+        # A non-zero category must never render as zero cells — that would read
+        # as "absent" when it is merely small.
+        [[ "$SEG_A" -gt 0 && "$s1" -eq 0 && "$filled" -ge 3 ]] && { s1=1; s3=$(( s3 > 0 ? s3 - 1 : 0 )); }
+        [[ "$SEG_B" -gt 0 && "$s2" -eq 0 && "$filled" -ge 3 ]] && { s2=1; s3=$(( s3 > 0 ? s3 - 1 : 0 )); }
+    else
+        s3=$filled
+    fi
+    local e1=$s1 e2=$(( s1 + s2 )) e3=$(( s1 + s2 + s3 ))
+
     local i=0 out=""
     while [[ "$i" -lt "$width" ]]; do
-        if [[ "$i" -eq "$soft_pos" ]]; then
-            out+="${YELLOW}${TICK_SOFT}${NC}"
-        elif [[ "$i" -eq "$hard_pos" ]]; then
-            out+="${RED}${TICK_HARD}${NC}"
-        elif [[ "$i" -eq "$auto_pos" ]]; then
-            out+="${MAGENTA}${TICK_AUTO}${NC}"
-        elif [[ "$i" -lt "$filled" ]]; then
-            if   [[ "$i" -ge "$hard_pos" ]]; then out+="${RED}${BAR_FILL_DANGER}${NC}"
-            elif [[ "$i" -ge "$soft_pos" ]]; then out+="${YELLOW}${BAR_FILL_WARN}${NC}"
-            else                                  out+="${GREEN}${BAR_FILL_NORMAL}${NC}"
-            fi
-        else
-            out+="${GRAY}${BAR_EMPTY}${NC}"
+        if   [[ "$i" -eq "$soft_pos" ]]; then out+="${YELLOW}${TICK_SOFT}${NC}"
+        elif [[ "$i" -eq "$hard_pos" ]]; then out+="${RED}${TICK_HARD}${NC}"
+        elif [[ "$i" -eq "$auto_pos" ]]; then out+="${MAGENTA}${TICK_AUTO}${NC}"
+        elif [[ "$i" -lt "$e1" ]];      then out+="${BLUE}${SEG_CH_A}${NC}"
+        elif [[ "$i" -lt "$e2" ]];      then out+="${CYAN}${SEG_CH_B}${NC}"
+        elif [[ "$i" -lt "$e3" ]];      then out+="${MAGENTA}${SEG_CH_C}${NC}"
+        else                                 out+="${GRAY}${BAR_EMPTY}${NC}"
         fi
         i=$(( i + 1 ))
     done
     printf '%s' "$out"
+    return 0
+}
+
+# Decide the bar's segmentation and set SEG_A/SEG_B/SEG_TOTAL + legend.
+# SEG_A → ▓ (blue), SEG_B → ▒ (cyan), remainder → ░ (magenta).
+derive_segments() {
+    SEG_CH_A='▓'; SEG_CH_B='▒'; SEG_CH_C='░'
+    SEG_MODE="live"; SEG_LEGEND=""
+
+    local catfile="$HOME/.claude/logs/context-categories.json"
+    if [[ -f "$catfile" ]] && cache_fresh "$catfile" "${SL_CATEGORY_TTL:-1800}"; then
+        local tools oh msgs sp ag me sk cp
+        tools=$(jq -r '.categories.system_tools // 0' "$catfile" 2>/dev/null)
+        sp=$(jq -r '.categories.system_prompt // 0' "$catfile" 2>/dev/null)
+        ag=$(jq -r '.categories.custom_agents // 0' "$catfile" 2>/dev/null)
+        me=$(jq -r '.categories.memory_files // 0' "$catfile" 2>/dev/null)
+        sk=$(jq -r '.categories.skills // 0' "$catfile" 2>/dev/null)
+        cp=$(jq -r '.categories.compact_buffer // 0' "$catfile" 2>/dev/null)
+        msgs=$(jq -r '.categories.messages // 0' "$catfile" 2>/dev/null)
+        oh=$(( sp + ag + me + sk + cp ))
+        if [[ "$(( tools + oh + msgs ))" -gt 0 ]]; then
+            SEG_A="$tools"; SEG_B="$oh"; SEG_TOTAL=$(( tools + oh + msgs ))
+            SEG_MODE="measured"
+            SEG_LEGEND="${DIM}tool/ovh/msg${NC}"
+            return 0
+        fi
+    fi
+
+    # LIVE mode — cache composition, the only decomposition the payload carries.
+    SEG_A="${CACHE_READ:-0}"; SEG_B="${CACHE_CREATE:-0}"
+    SEG_TOTAL=$(( ${CACHE_READ:-0} + ${CACHE_CREATE:-0} + ${INPUT_TURN:-0} ))
+    SEG_LEGEND="${DIM}warm/write/new${NC}"
     return 0
 }
 
@@ -348,6 +453,42 @@ get_git_state() {
     return 0
 }
 
+# Populate RATE_5H/RATE_7D (+ overage) from the usage-proxy DB cache when the
+# CLI omitted `rate_limits` from stdin. Returns 0 only if it filled something.
+#
+# The CLI emits `rate_limits` only when its state holds a five_hour or seven_day
+# claim: `...(I.five_hour||I.seven_day)&&{rate_limits:I}`. Under overage the
+# upstream response headers carry ONLY the `-overage-*` family, so both claims
+# go missing and the key vanishes. The proxy has recorded every raw header all
+# along; refresh-ratelimit-cache.sh distils the last known values here.
+load_ratelimit_fallback() {
+    [[ -f "$SL_RL_CACHE" ]] || return 1
+    local j; j=$(cat "$SL_RL_CACHE" 2>/dev/null) || return 1
+    [[ -n "$j" ]] || return 1
+
+    RL_OVERAGE_IN_USE=$(jq -r '.overage.in_use // "false"' <<<"$j" 2>/dev/null)
+    RL_OVERAGE_UTIL=$(jq -r '.overage.utilization // ""' <<<"$j" 2>/dev/null)
+
+    local u5 r5 u7 r7
+    u5=$(jq -r '.five_hour.utilization // ""' <<<"$j" 2>/dev/null)
+    r5=$(jq -r '.five_hour.reset_epoch // 0' <<<"$j" 2>/dev/null)
+    u7=$(jq -r '.seven_day.utilization // ""' <<<"$j" 2>/dev/null)
+    r7=$(jq -r '.seven_day.reset_epoch // 0' <<<"$j" 2>/dev/null)
+
+    local filled=1
+    # A reset epoch in the past means the window rolled since the observation —
+    # the utilisation is not merely stale, it is WRONG (it describes a window
+    # that no longer exists). Drop it rather than show a confident stale number.
+    local now; now=$(date +%s)
+    if [[ -n "$u5" && "$u5" != "null" ]] && [[ "$r5" -gt "$now" ]]; then
+        RATE_5H=$(awk -v v="$u5" 'BEGIN{printf "%d", v*100}'); RATE_5H_RESET="$r5"; filled=0
+    fi
+    if [[ -n "$u7" && "$u7" != "null" ]] && [[ "$r7" -gt "$now" ]]; then
+        RATE_7D=$(awk -v v="$u7" 'BEGIN{printf "%d", v*100}'); RATE_7D_RESET="$r7"; filled=0
+    fi
+    return $filled
+}
+
 # Read JICM state-hook JSON (Jarvis-unique data)
 read_state_hook() {
     [[ -f "$SL_STATE_FILE" ]] || { printf ''; return 0; }
@@ -392,6 +533,9 @@ synthesize() {
     DEMO_HK_EPH1H=100
     DEMO_HK_SOFT_TOK=250000
     DEMO_HK_HARD_TOK=300000
+    # Cache composition drives the categorical bar; demos need it or every
+    # demo bar renders as one undifferentiated block.
+    CACHE_READ=120000; CACHE_CREATE=18000; INPUT_TURN=7000
 
     case "$s" in
         idle|1)
@@ -530,6 +674,16 @@ EOF
 parse_stdin() {
     local input
     input="$(cat)"
+    # Snapshot the payload for out-of-band readers (signal-helper.sh, self-ops).
+    # Best-effort, never fatal, and written per-session so lanes cannot read
+    # each other's context numbers.
+    if [[ -n "$input" ]]; then
+        mkdir -p "$SL_SNAPSHOT_DIR" 2>/dev/null
+        local _sid
+        _sid=$(printf '%s' "$input" | jq -r '.session_id // "unknown"' 2>/dev/null)
+        printf '%s' "$input" > "$SL_SNAPSHOT_DIR/statusline-input-${_sid}.json" 2>/dev/null
+        printf '%s' "$input" > "$SL_SNAPSHOT_DIR/statusline-input.json" 2>/dev/null
+    fi
     if [[ -z "$input" ]]; then
         printf '%sno-stdin%s\n' "$RED" "$NC"
         exit 0
@@ -563,7 +717,10 @@ parse_stdin() {
         @sh "CWD=\(.cwd // "")",
         @sh "VIM_MODE=\(.vim.mode // "")",
         @sh "AGENT_NAME=\(.agent.name // "")",
-        @sh "WORKTREE_BRANCH=\(.worktree.branch // "")"' 2>/dev/null)
+        @sh "WORKTREE_BRANCH=\(.worktree.branch // "")",
+        @sh "EFFORT=\(.effort.level // "")",
+        @sh "FAST_MODE=\(.fast_mode // false)",
+        @sh "THINKING=\(.thinking.enabled // false)"' 2>/dev/null)
     eval "$parsed"
     return 0
 }
@@ -703,22 +860,38 @@ build_row1() {
     local agent_disp=""
     [[ -n "$AGENT_NAME" ]] && agent_disp=" ${PINK}@${AGENT_NAME}${NC}"
 
+    # Reasoning-effort / fast-mode / thinking. v9.0's header claimed
+    # `effort.level` was "confirmed absent from the statusline payload" — that
+    # was true of the CC version it was written against; 2.1.220 ships all three.
+    # Effort is the single largest lever on burn rate, so it belongs on row 1.
+    local eff_disp=""
+    case "$EFFORT" in
+        max|xhigh) eff_disp=" ${ORANGE}e:${EFFORT}${NC}" ;;
+        high)      eff_disp=" ${GOLD}e:high${NC}" ;;
+        medium)    eff_disp=" ${DIM}e:med${NC}" ;;
+        low)       eff_disp=" ${DIM}e:low${NC}" ;;
+    esac
+    [[ "$FAST_MODE" == "true" ]] && eff_disp+=" ${LIME}⚡${NC}"
+    [[ "$THINKING" == "false" ]] && eff_disp+=" ${DIM}nothink${NC}"
+
     printf '%s %s  %s  %s%s%s%s\n' \
         "$act_icon" \
         "${act_color}${model_disp}${NC}" \
         "$proj_disp" \
         "$branch_disp" \
         "$diff_disp" \
-        "$style_ind$vim_disp$agent_disp" \
+        "$style_ind$vim_disp$agent_disp$eff_disp" \
         "$pre_warn"
     return 0
 }
 
 build_row2() {
     local bar pct_color hit_color
+    derive_segments
     bar=$(build_bar "$SL_BAR_WIDTH" "$HK_USED_PCT" \
         "$(( HK_SOFT_TOK * 100 / WINDOW ))" \
-        "$(( HK_HARD_TOK * 100 / WINDOW ))" 70)
+        "$(( HK_HARD_TOK * 100 / WINDOW ))" \
+        "${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-80}")
     pct_color=$(color_pct "$HK_USED_PCT")
     hit_color=$(color_hit "$HK_HIT_PCT")
 
@@ -751,14 +924,22 @@ build_row2() {
         burn_field="Δ${burn_color}${burn_disp}${NC}/m"
     fi
 
-    printf '[%s] %s%s%%%s %s   %s  S:%s H:%s  cache:%s%s%%%s eph1h:%s%s%%%s\n' \
-        "$bar" \
+    # [C] marks a bar drawn from MEASURED /context categories. Its absence means
+    # the live cache decomposition — never a constant dressed as a measurement.
+    local mode_mark=""
+    [[ "$SEG_MODE" == "measured" ]] && mode_mark="${LIME}[C]${NC}"
+
+    # NOTE: the "] " + spaces + int + "%" sequence below is a parsed contract
+    # (jicm-actuate.sh `_bar_row`). Do not reformat it.
+    printf '[%s]%s %s%s%%%s %s  %s  S:%s H:%s  cache:%s%s%%%s eph1h:%s%s%%%s  %s\n' \
+        "$bar" "$mode_mark" \
         "$pct_color" "$HK_USED_PCT" "$NC" \
         "${DIM}${tok_disp}${NC}" \
         "$burn_field" \
         "${LGRAY}${soft_eta}${NC}" "${LGRAY}${hard_eta}${NC}" \
         "$hit_color" "$HK_HIT_PCT" "$NC" \
-        "$(color_hit "$HK_EPH1H_PCT")" "$HK_EPH1H_PCT" "$NC"
+        "$(color_hit "$HK_EPH1H_PCT")" "$HK_EPH1H_PCT" "$NC" \
+        "$SEG_LEGEND"
     return 0
 }
 
@@ -779,21 +960,47 @@ build_row3() {
     else                                api_color="$ORANGE"
     fi
 
-    # Rate limits
-    local rate5_disp="" rate7_disp=""
-    if [[ -n "$RATE_5H" ]] && [[ "$RATE_5H" != "" ]]; then
-        local r5_color
-        r5_color=$(color_pct "$RATE_5H")
-        local r5_cd
-        r5_cd=$(countdown_from_epoch "$RATE_5H_RESET")
-        rate5_disp="  5h:${r5_color}${RATE_5H}%${NC}${DIM}↺${r5_cd}${NC}"
+    # ─── Rate limits: stdin → proxy-DB cache → explicit unknown ─────────────
+    # Never render a blank here. A missing capacity signal must LOOK missing.
+    local rate5_disp="" rate7_disp="" ovg_disp="" src_mark=""
+
+    if [[ -z "$RATE_5H$RATE_7D" ]] && ! demo_mode_active; then
+        load_ratelimit_fallback && src_mark="${DIM}~${NC}"
     fi
-    if [[ -n "$RATE_7D" ]] && [[ "$RATE_7D" != "" ]]; then
-        local r7_color
-        r7_color=$(color_pct "$RATE_7D")
-        local r7_cd
-        r7_cd=$(countdown_from_epoch "$RATE_7D_RESET")
-        rate7_disp="  7d:${r7_color}${RATE_7D}%${NC}${DIM}↺${r7_cd}${NC}"
+
+    if [[ -n "$RATE_5H" ]]; then
+        rate5_disp="  ${DIM}5h:${NC}$(color_pct "$RATE_5H")${RATE_5H}%${NC}${src_mark}${DIM}↺$(countdown_from_epoch "$RATE_5H_RESET")${NC}"
+    else
+        rate5_disp="  ${DIM}5h:${NC}${ORANGE}—${NC}"
+    fi
+    if [[ -n "$RATE_7D" ]]; then
+        rate7_disp="  ${DIM}7d:${NC}$(color_pct "$RATE_7D")${RATE_7D}%${NC}${src_mark}${DIM}↺$(countdown_from_epoch "$RATE_7D_RESET")${NC}"
+    else
+        rate7_disp="  ${DIM}7d:${NC}${ORANGE}—${NC}"
+    fi
+
+    # Overage is the reason the 5h/7d claims disappear upstream — surface it
+    # rather than letting it read as a rendering glitch.
+    if [[ "${RL_OVERAGE_IN_USE:-false}" == "true" ]]; then
+        local ovg_pct="${RL_OVERAGE_UTIL:-}"
+        if [[ -n "$ovg_pct" && "$ovg_pct" != "null" ]]; then
+            ovg_pct=$(awk -v v="$ovg_pct" 'BEGIN{printf "%d", v*100}')
+            ovg_disp="  ${RED}${BOLD}OVG:${ovg_pct}%${NC}"
+        else
+            ovg_disp="  ${RED}${BOLD}OVG${NC}"
+        fi
+    fi
+
+    # ─── 5h billing block (ccusage) — produced by refresh-ccusage-cache.sh on
+    # the Stop hook. v8 rendered it, v9.0 dropped it, so the Stop hook has been
+    # refreshing a file nothing read. Restored.
+    local blk_disp=""
+    if [[ -f "$SL_CCUSAGE_CACHE" ]] && cache_fresh "$SL_CCUSAGE_CACHE" 900 && ! demo_mode_active; then
+        local blk
+        blk=$(jq -r '[.blocks[]? | select(.isActive==true)] | first | .costUSD // empty' "$SL_CCUSAGE_CACHE" 2>/dev/null)
+        if [[ -n "$blk" && "$blk" != "null" ]]; then
+            blk_disp="  ${DIM}blk:${NC}${GOLD}$(awk -v c="$blk" 'BEGIN{printf "$%.1f", c}')${NC}"
+        fi
     fi
 
     # NLP compression panel (read .jicm-nlp-compression.json directly,
@@ -831,11 +1038,11 @@ build_row3() {
         pulse_disp="  ${VIOLET}◆${NC} ${pulse_short}"
     fi
 
-    printf '%s%s%s  ⏱%s api:%s%s%%%s%s%s%s%s\n' \
-        "$cost_color" "$cost_disp" "$NC" \
+    printf '%s%s%s%s  ⏱%s api:%s%s%%%s%s%s%s%s%s\n' \
+        "$cost_color" "$cost_disp" "$NC" "$blk_disp" \
         "${LGRAY}${wall_disp}${NC}" \
         "$api_color" "$api_pct" "$NC" \
-        "$rate5_disp" "$rate7_disp" "$nlp_disp" "$pulse_disp"
+        "$rate5_disp" "$rate7_disp" "$ovg_disp" "$nlp_disp" "$pulse_disp"
     return 0
 }
 

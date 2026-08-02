@@ -112,9 +112,14 @@ pulse_dev.api_requests  (docker aifred-dev-postgres, port 5432)
      │
      └─►  Dashboard UsagePage  (Alfred-Dev/dashboard/frontend, port 8702)
 
-Independent path (NOT proxy-fed, NOT lagged):
+Independent path (NOT proxy-fed, NOT lagged) — PRIMARY, but INTERMITTENT:
   Claude Code stdin ──► jarvis-statusline-v9.sh
   (CC delivers rate_limits.five_hour.* per render — authoritative live reading)
+
+Declared fallback (proxy-fed, lagged, marked `~` on screen):
+  api_requests.raw_headers ──► refresh-ratelimit-cache.sh (Stop hook)
+                          ──► .claude/context/.ratelimit-cache.json
+                          ──► statusline  AND  jicm-gate.sh rate_5h_pct/7d_pct
 ```
 
 ---
@@ -124,6 +129,28 @@ Independent path (NOT proxy-fed, NOT lagged):
 ### §4.1 Statusline (`jarvis-statusline-v9.sh`)
 
 Authoritative for live burn weight: the `5h:NN%` segment (sources CC stdin `rate_limits.five_hour.used_percentage`).
+
+**The 5h/7d segment can vanish, and its absence is not "no news".** Claude Code
+emits `rate_limits` only when its state carries a `five_hour` or `seven_day`
+claim (`...(I.five_hour||I.seven_day)&&{rate_limits:I}`). When the account is
+being served under **overage**, upstream returns only the
+`anthropic-ratelimit-unified-overage-*` headers with
+`representative-claim: overage` — no 5h/7d headers at all — so the CLI drops the
+whole key and every reader of it goes blank. Verified 2026-08-01 against the
+proxy DB: `representative_claim` alternated between `five_hour` and `overage`
+within the same hour, so the segment *flickers* rather than failing cleanly.
+
+Read the segment as a three-state signal, not two:
+
+| Rendered | Means |
+|---|---|
+| `5h:34%↺10m` | Live from CC stdin. Trust it. |
+| `5h:33%~↺10m` | Fallback from the proxy DB. Correct as of the last recorded response; may lag minutes. |
+| `5h:—` | **No source has a current value.** Not zero, not healthy — unknown. Check `OVG`. |
+| `OVG:N%` | Overage in use. The 5h/7d claims are superseded; capacity reasoning must switch to the overage window. |
+
+A value whose window has already reset is dropped, never displayed: a utilisation
+for an expired window is not stale data, it is wrong data.
 
 **Traps**:
 

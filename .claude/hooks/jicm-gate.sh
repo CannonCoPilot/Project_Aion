@@ -268,6 +268,31 @@ if [[ "$WINDOW" -gt 0 ]]; then
     USED_PCT=$((TOKENS * 100 / WINDOW))
 fi
 
+# ─── Rate limits (out-of-band) ──────────────────────────────────────────────
+# UserPromptSubmit stdin carries no `rate_limits` (nor cost, nor context_window)
+# — see .claude/metrics/jicm/v7-9-baseline-2026-05-02.md. These two fields were
+# therefore hardcoded `null`, which left jicm-watcher-hud.sh's 5h/7d columns
+# permanently blank while the data sat in the usage-proxy DB the whole time.
+# Read the cache refresh-ratelimit-cache.sh maintains. Stale-window values are
+# dropped rather than shown: a utilisation for a window that already reset is
+# not stale, it is wrong.
+RATE_5H_PCT=null
+RATE_7D_PCT=null
+_RL_CACHE="$PROJECT_DIR/.claude/context/.ratelimit-cache.json"
+if [[ -f "$_RL_CACHE" ]] && command -v jq >/dev/null 2>&1; then
+    _rl=$(cat "$_RL_CACHE" 2>/dev/null)
+    if [[ -n "$_rl" ]]; then
+        _u5=$(jq -r '.five_hour.utilization // ""' <<<"$_rl" 2>/dev/null)
+        _r5=$(jq -r '.five_hour.reset_epoch // 0' <<<"$_rl" 2>/dev/null)
+        _u7=$(jq -r '.seven_day.utilization // ""' <<<"$_rl" 2>/dev/null)
+        _r7=$(jq -r '.seven_day.reset_epoch // 0' <<<"$_rl" 2>/dev/null)
+        [[ -n "$_u5" && "$_u5" != "null" && "$_r5" -gt "$NOW_TS" ]] && \
+            RATE_5H_PCT=$(awk -v v="$_u5" 'BEGIN{printf "%d", v*100}')
+        [[ -n "$_u7" && "$_u7" != "null" && "$_r7" -gt "$NOW_TS" ]] && \
+            RATE_7D_PCT=$(awk -v v="$_u7" 'BEGIN{printf "%d", v*100}')
+    fi
+fi
+
 # ─── Atomic state write via helper ──────────────────────────────────────────
 if [[ -x "$STATE_UPDATE" ]]; then
     cat <<JSON | JICM_HOOK_STATE_FILE="$JK_STATE" "$STATE_UPDATE" --write
@@ -293,8 +318,8 @@ if [[ -x "$STATE_UPDATE" ]]; then
   "hard_eta_min": $HARD_ETA_MIN,
   "used_percentage": $USED_PCT,
   "cost_usd": null,
-  "rate_5h_pct": null,
-  "rate_7d_pct": null,
+  "rate_5h_pct": $RATE_5H_PCT,
+  "rate_7d_pct": $RATE_7D_PCT,
   "action": "$ACTION",
   "pending_action": $PENDING_ACTION,
   "transcript_path": "$TRANSCRIPT"

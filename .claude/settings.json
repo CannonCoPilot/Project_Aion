@@ -121,6 +121,15 @@
             "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/refresh-ccusage-cache.sh &"
           }
         ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/scripts/refresh-ratelimit-cache.sh &"
+          }
+        ]
       }
     ],
     "PreToolUse": [

@@ -161,7 +161,13 @@ SCROLLBACK_NOISE_PATTERNS = [
     re.compile(r"^\s*<system-reminder>.*$"),
     re.compile(r"^\s*</system-reminder>\s*$"),
     re.compile(r"^⏺ (?:Read|Write|Edit|Bash|Agent|Glob|Grep)\(.*\)\s*$"),
-    re.compile(r"^\s*\[▒░│┃╿\s\d%]+.*tokens\s*$"),  # HUD/statusline
+    # HUD/statusline bar rows. The previous pattern was
+    #   r"^\s*\[▒░│┃╿\s\d%]+.*tokens\s*$"
+    # which never opened a character class — `\[` is a literal '[', so the glyphs
+    # that follow were matched as a fixed sequence and the `+` applied only to
+    # ']'. It matched nothing in practice. Rewritten as a real class, widened for
+    # the v9.1 categorical glyph set (▓ segments, '·' free space).
+    re.compile(r"^\s*\[[▓▒░·█│┃╿\s\d%]+\].*$"),
     re.compile(r"^\s*🟢.*opus.*Project_Aion.*$"),      # Status line
     re.compile(r"^─{20,}\s*$"),                         # Long horizontal dividers
     re.compile(r"^━{20,}\s*$"),                         # Heavy horizontal dividers
