@@ -1,6 +1,6 @@
 ---
 name: claude-code-pane-state-signals
-description: "How to classify a Claude Code tmux pane's state (active/waiting/paused/menu/composing) for automated watchers, plus the send-keys gotchas that make naive automation dangerous."
+description: "How to classify a Claude Code tmux pane's state (active/waiting/paused/menu/ghost-text-autofill) for automated watchers, plus the send-keys gotchas that make naive automation dangerous. KEY correction (2026-07-04): text on the input line does NOT mean human input — most often it's ghost-text autofill needing Tab+Enter."
 metadata: 
   node_type: memory
   type: reference
@@ -24,11 +24,22 @@ Look for `● <verbing…> (Xm Ys` — the bullet is `●`, the verb ends in `�
 **5. Interactive menu — numbered options with menu chrome**
 `1. <label> <description>  2. <label> …` followed by `Enter to select · ↑/↓ to navigate · Esc to cancel`. Claude Code menus almost always include a `Type something.` escape hatch (usually option 4). See menu-safe send pattern below.
 
-**6. Sir composing / stale prior fire — input line has text, no active marker**
-`❯ <text>` on the input line with no `● <verbing…>` marker. Either Sir is at the keyboard mid-composition, or a prior automated fire's text is stuck un-submitted. Distinguish by content: if the text starts with the standard continue-prompt string, it's stuck-stale; otherwise treat as Sir composing and DO NOT touch.
+**6. Paused with ghost-text autofill — input line has text, no active marker**
+`❯ <text>` on the input line with no `● <verbing…>` marker. **Text visibility on the input line does NOT indicate submitted human input.** Claude Code offers **autofill/ghost-text suggestions** that render on the input line but are unsubmitted — a human would press `Tab` + `Enter` to accept them. This is the most common state that looks like "Sir composing" but is actually **paused, awaiting Enter**.
+
+Three sub-cases, all treated the same (target is idle, needs a nudge):
+- (a) Ghost-text autofill suggestion (most common — Claude Code's inline recommendation for the next prompt)
+- (b) Sir mid-composition (rare — humans typically submit within seconds)
+- (c) Stale prior fire (text got into the buffer without Enter submitting — starts with the standard continue-prompt string)
+
+**How to send in this case:** the ghost text itself is often the ideal prompt to submit ("the prompt you see is the one that ought to run"). Two send options:
+1. **Preferred (ghost-text pass-through):** paste the exact visible text via `send-keys -l '<text>'` + `send-keys Enter`. This mirrors what Tab+Enter would produce, and Claude Code treats it as a fresh submission.
+2. **Fallback (generic):** send the standard continue-prompt. Works but ignores the more targeted ghost-text hint.
+
+**Do NOT back off on the assumption that a human is composing** — that heuristic mis-fires because ghost text sits on the input line indefinitely. If the pane has no active-marker and no delegating indicator, send a prompt regardless of input-line contents.
 
 **7. Silent premature pause — bare `❯ `, everything else absent**
-Empty input line, no active-verb marker, no subagents, no background-task counter, no menu. This is the only state where sending the continue-prompt is safe.
+Empty input line, no active-verb marker, no subagents, no background-task counter, no menu. Also safe to send the continue-prompt — identical treatment to case 6.
 
 ---
 
@@ -38,7 +49,7 @@ Empty input line, no active-verb marker, no subagents, no background-task counte
 
 - **Menus consume the first keystroke as selection.** If a numbered menu is up and you `send-keys -l 'continue working…'`, the first `c` may be interpreted as a filter-navigation keystroke, and your subsequent Enter selects the highlighted option (usually option 1). This silently commits a decision. Menu-safe pattern: `send-keys -l '4'` + `send-keys Enter` FIRST to route to "Type something" (dismissing the menu into free-text mode), THEN send the free text + Enter.
 
-- **Stale input from a prior fire looks the same as Sir composing.** Distinguish by string match — if the text starts with the standard continue-prompt string, it's your own leftover; safe to send single Enter to submit. Any other content: back off.
+- **Text on the input line ≠ submitted human input.** Ghost-text autofill, stale prior fires, and mid-composition all present as "❯ <text>" and cannot be distinguished by visual inspection alone. See classifier Rule 6 — do not back off on assumed-human-composition; the ghost-text case is the majority. If the text starts with the standard continue-prompt string, single Enter submits your own leftover. Otherwise: paste-and-Enter the visible text (preferred, mirrors Tab+Enter) or send the generic continue-prompt (fallback).
 
 - **From sandboxed bash, tmux calls need `env -u TMUX`** — see [[reference-nexus-pipeline-gotchas]]. Never combine text+Enter into one `send-keys` call — always separate calls, never multi-line `-l`.
 

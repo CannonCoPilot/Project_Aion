@@ -1,0 +1,12 @@
+{
+  "key": "dev-bg-ef57d6b4",
+  "last_seen": "2026-07-28T20:49:54Z",
+  "registered_at": "2026-07-27T21:03:17Z",
+  "session_id": "ef57d6b4-f306-4d41-8829-de7cb852a889",
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/ef57d6b4-f306-4d41-8829-de7cb852a889.jsonl",
+  "tmux_target": "",
+  "actuation_mode": "self",
+  "class": "interactive",
+  "reset_policy": "preserve-restore",
+  "owner": "jarvis"
+}

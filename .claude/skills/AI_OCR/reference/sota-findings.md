@@ -133,3 +133,36 @@ ACL 2018 P18-1220, EMNLP 2021, TACL Neural OCR Post-Hoc, 2603.25761 (metrics sur
 - [ ] Confirm archive.org scan DPI per witness before assuming 300 DPI for region re-OCR.
 - [ ] Write the diplomatic transcription guideline (grapheme preserve/collapse table).
 - [ ] Implement per-character (ſ, u/v, ligature) frequency audit to catch silent normalization.
+
+---
+
+## 2026-07-21 UPDATE — per-SOURCE redesign (consensus removed from the ladder, Sir)
+
+Deep-research pass (13 claims adversarially verified 3-0; synthesis step hit session limit, merged by hand).
+Full output: session task `wckpo8fq3.output`. Report Artifact: https://claude.ai/code/artifact/6f8cccac-cacd-44d7-a0cd-5d89b51bc8ee
+
+**Reframe:** the ladder improves ONE source's OCR vs gold, per page — NOT an aggregate/consensus (Sir ruled
+consensus/voting-across-sources OUT of the ladder). Metric must be per-source and honest.
+
+**THE decisive finding — recognizer fine-tuning is the provable workhorse (redesigns "Rung 2"):**
+- OCRopus LSTM on period GT → CER **0.02–0.05**, BELOW the 0.10 target (arXiv:1809.05501, 3-0).
+- Fine-tune from a historical-Latin BASE → Early-Modern Latin **CER 1.47%** (arXiv:2106.07881, 3-0).
+- Transfer from Latin mixed model → **−43% err @60 gold lines, −26% @150** (arXiv:1712.05586, 3-0).
+- Calamari book-specific on **~50 lines → ~10% CER** vs ~50% generic (arXiv:1807.02004, 3-0).
+- Run WITHOUT dictionary/LM → archaic surface (ſ,u/v) preserved by construction (1807.02004). We HAVE gold lines.
+
+**Within-image voting (in-scope, NOT cross-source):** 5-fold confidence vote on the SAME image cuts Calamari
+CER 0.155→0.114% (1807.02004, 3-0). Surface-safe. = new "Rung 2.5".
+
+**Preprocessing/SR:** naive distortion/perceptual SR is char-error-blind → won't reliably lower CER; must be
+TEXT-AWARE (arXiv:2510.26339, 3-0). PreP-OCR −64–70% but on DEGRADED docs, compound, no surface CER (2505.20429).
+Our pages are clean → SR is a lever for the ~800px scans ONLY.
+
+**Local vision-LLMs:** CHURRO 3B open-weight, 82.3% NLS printed (~0.18 CER avg) fine-tunable (2509.19768, 3-0);
+olmOCR-2 = 7B Qwen2.5-VL, MLX-runnable (allenai, 2-0). Both ABOVE 0.10 alone → bulk/base, not drop-in. Claude
+vision (0.95–0.99 surface, this project) stays the reserve ceiling.
+
+**Redesigned per-source ladder:** 0 diagnostic (keep) · 1 targeted preprocessing (800px-only, text-aware) ·
+**2 transfer-learned recognizer fine-tuning (THE lift to ≤0.10, local, surface-safe)** · 2.5 within-image voting ·
+3 vision-LLM gated (CHURRO/olmOCR-2 bulk, Claude residual). Build order: fix metric → Rung 2 → Rung 1(800px) →
+2.5 → 3. CAVEAT: most fine-tune numbers are on gothic incunabula/Latin, not DR roman+italic — measure on our type.

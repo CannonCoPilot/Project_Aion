@@ -178,3 +178,6 @@ alfred/.claude/jobs/logs/*.log
 # Config backups
 *.backup
 .claude/settings.json.pre-*
+
+# Embedded scratch git repo used by Alfred canary tests — never a submodule of this repo
+alfred/.claude/scratch/canary-repo/

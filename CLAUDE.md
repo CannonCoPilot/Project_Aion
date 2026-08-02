@@ -43,6 +43,14 @@ They live in `.claude/personas/jarvis/CLAUDE.md` (Jarvis) and `alfred/.claude/CL
 - Skip confirmation for destructive ops
 - Over-engineer or wait passively
 - Write to `/tmp`, `/var`, or system dirs (see Filesystem Policy)
+- **Convert a below-threshold result into a terminal "accepted" state so a pipeline can report success (see No Silent Degradation below)**
+
+### No Silent Degradation (MANDATORY — all projects, at all times)
+NEVER let any code, design, architecture, component, or aim convert a below-threshold result into a terminal "accepted" state so that a pipeline can report success while degraded. The aim is absolute: **iterate the algorithm until every unit reaches its targeted threshold against the *correct* standard.** No strategic back-off, cap, ceiling, "parked/unreachable" terminal state, or graceful-degradation fallback may quietly accept sub-threshold output.
+- Safeguards are permitted **only** as circuit-breakers that keep *trial / preliminary / calibration* runs from failing infinitely.
+- When a safeguard fires it must **ALERT** (Sir + Jarvis) that the current **approach** needs redesign — it is never a terminal acceptance. A below-threshold unit stays **OPEN** and **blocks the deliverable**.
+- Escalation to human review carries the **implicit expectation of further retooling/adaptation to re-approach bar-passing automation** — not a request to accept a gap. We hold the threshold precisely to expose real limits and then exhaust every avenue to meet them.
+- "The method can't reach it" always means **"redesign the method,"** never "lower the aim." Same anti-laundering posture as the extirpated book-level gates.
 
 ### Overriding rule
 Do NOT short-cut Chronicler app functionality with ad-hoc commands/scripts. No Phase complete unless a stand-alone executable exists, packaged hands-off, user-controlled.

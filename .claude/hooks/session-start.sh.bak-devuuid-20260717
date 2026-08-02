@@ -1,0 +1,597 @@
+#!/bin/bash
+# Session Start Hook - Self-Launch Protocol (AC-01)
+# Fires on: startup, resume, clear, compact
+# Output: JSON with systemMessage and additionalContext
+#
+# Features (PR-12.1):
+# - Phase A: Greeting & Orientation (time-aware greeting)
+# - Phase B: System Review (context loading, baseline check)
+# - Phase C: User Briefing (status, autonomous initiation)
+# - Checkpoint loading for context restoration
+# - MCP suggestions based on work type
+# - Auto-clear watcher launch
+#
+# JICM v7 Integration:
+# - Context injection via additionalContext (hook → Claude)
+# - v7.9 watcher handles all state transitions via .jicm-clear-now.signal + .jicm-resume-complete.signal
+# - v7 prep script replaces LLM compression agent (0.03s vs 210s)
+# - See: .claude/context/designs/jicm-v6-design.md
+#
+# Updated: 2026-02-11 (v6.1 — v5 code paths removed)
+
+# Read input from stdin (JSON)
+INPUT=$(cat)
+
+# Source shared JICM config (defines all paths)
+PROJECT_DIR="$CLAUDE_PROJECT_DIR"
+JICM_CONFIG="$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-config.sh"
+if [[ -f "$JICM_CONFIG" ]]; then
+    source "$JICM_CONFIG"
+fi
+
+# Parse source from input
+SOURCE=$(echo "$INPUT" | jq -r '.source // "unknown"')
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"')
+TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+LOCAL_TIME=$(date +"%H:%M")
+LOCAL_DATE=$(date +"%A, %B %d, %Y")
+# Use %k to avoid leading zero (octal interpretation bug with %H)
+HOUR=$(date +"%k" | tr -d ' ')
+
+# Log to diagnostic file
+LOG_DIR="$CLAUDE_PROJECT_DIR/.claude/logs"
+STATE_DIR="$CLAUDE_PROJECT_DIR/.claude/state/components"
+mkdir -p "$LOG_DIR" "$STATE_DIR"
+echo "$TIMESTAMP | SessionStart | source=$SOURCE | session=$SESSION_ID | local_time=$LOCAL_TIME" >> "$LOG_DIR/session-start-diagnostic.log"
+
+# ============== W0 UUID TRACKING (Option A) ==============
+# Write current session UUID to state file so tmux launcher can resume it.
+# Only for W0 (JARVIS_WINDOW unset or "0"); skip W5 (dev) and lite sessions.
+if [[ "${JARVIS_WINDOW:-0}" == "0" ]] && [[ "$JARVIS_LITE" != "true" ]]; then
+    W0_UUID_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
+    if [[ "$SESSION_ID" != "unknown" ]]; then
+        echo "$SESSION_ID" > "$W0_UUID_FILE"
+        echo "$TIMESTAMP | SessionStart | W0 UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+fi
+
+# ============== AUTONOMY CONFIG CHECK ==============
+CONFIG_FILE="$CLAUDE_PROJECT_DIR/.claude/config/autonomy-config.yaml"
+SKIP_GREETING="false"
+AUTO_CONTINUE="true"
+
+# Check environment overrides
+if [[ "$JARVIS_DISABLE_AC01" == "true" ]]; then
+    echo "$TIMESTAMP | SessionStart | AC-01 disabled via environment" >> "$LOG_DIR/session-start-diagnostic.log"
+    echo "{}"
+    exit 0
+fi
+
+if [[ "$JARVIS_QUICK_MODE" == "true" ]]; then
+    SKIP_GREETING="true"
+fi
+
+if [[ "$JARVIS_MANUAL_MODE" == "true" ]]; then
+    AUTO_CONTINUE="false"
+fi
+
+# ============== STALE SIGNAL CLEANUP (MAINT-004 failsafe) ==============
+# If .jicm-exit-mode.signal exists at session start, a prior end-session was
+# interrupted. Remove it so JICM isn't permanently suppressed.
+STALE_EXIT_SIGNAL="${JICM_EXIT_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-exit-mode.signal}"
+if [[ -f "$STALE_EXIT_SIGNAL" ]]; then
+    rm -f "$STALE_EXIT_SIGNAL"
+    echo "$TIMESTAMP | SessionStart | CLEANUP: Removed stale .jicm-exit-mode.signal from interrupted exit" >> "$LOG_DIR/session-start-diagnostic.log"
+fi
+
+# ============== PHASE A: TIME-OF-DAY GREETING ==============
+# Determine greeting based on hour
+if (( HOUR >= 5 && HOUR < 12 )); then
+    TIME_OF_DAY="morning"
+    GREETING="Good morning"
+elif (( HOUR >= 12 && HOUR < 17 )); then
+    TIME_OF_DAY="afternoon"
+    GREETING="Good afternoon"
+elif (( HOUR >= 17 && HOUR < 21 )); then
+    TIME_OF_DAY="evening"
+    GREETING="Good evening"
+else
+    TIME_OF_DAY="night"
+    GREETING="Good evening"
+fi
+
+echo "$TIMESTAMP | SessionStart | time_of_day=$TIME_OF_DAY" >> "$LOG_DIR/session-start-diagnostic.log"
+
+# ============== WEATHER INTEGRATION (evo-2026-01-017) ==============
+# Fetch weather from wttr.in (no API key required)
+# Default location: Salt Lake City (configurable via JARVIS_WEATHER_LOCATION)
+WEATHER_INFO=""
+WEATHER_LOCATION="${JARVIS_WEATHER_LOCATION:-Salt+Lake+City}"
+
+if [[ "$SOURCE" == "startup" ]] && [[ "$JARVIS_DISABLE_WEATHER" != "true" ]]; then
+    # Fetch weather data (timeout 3s to not block startup)
+    WEATHER_JSON=$(curl -s --max-time 3 "wttr.in/${WEATHER_LOCATION}?format=j1" 2>/dev/null)
+
+    if [[ -n "$WEATHER_JSON" ]] && echo "$WEATHER_JSON" | jq -e '.current_condition[0]' >/dev/null 2>&1; then
+        # Parse weather data
+        TEMP_F=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].temp_F // "?"')
+        WEATHER_DESC=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].weatherDesc[0].value // "Unknown"')
+        FEELS_LIKE=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].FeelsLikeF // "?"')
+        HUMIDITY=$(echo "$WEATHER_JSON" | jq -r '.current_condition[0].humidity // "?"')
+
+        # Build weather string
+        WEATHER_INFO="${TEMP_F}°F (feels like ${FEELS_LIKE}°F), ${WEATHER_DESC}, ${HUMIDITY}% humidity"
+
+        echo "$TIMESTAMP | SessionStart | Weather: $WEATHER_INFO" >> "$LOG_DIR/session-start-diagnostic.log"
+    else
+        echo "$TIMESTAMP | SessionStart | Weather: fetch failed or invalid response" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+fi
+
+# Clean up clear-pending marker from previous session
+PENDING_FILE="$CLAUDE_PROJECT_DIR/.claude/context/.clear-pending"
+if [[ -f "$PENDING_FILE" ]]; then
+    rm -f "$PENDING_FILE"
+    echo "$TIMESTAMP | SessionStart | Cleaned up .clear-pending marker" >> "$LOG_DIR/session-start-diagnostic.log"
+fi
+
+    # v5 debounce REMOVED (v6.1) — v7.9 state machine handles clear dedup via .jicm-clear-now.signal
+
+# ============== JICM RESET (AC-04 Integration) ==============
+# context-estimate.json write REMOVED (Tier 3+ cleanup) — no production code reads it.
+# Watcher writes .watcher-status with live context percentage instead.
+COMPACTION_FLAG="$CLAUDE_PROJECT_DIR/.claude/context/.compaction-in-progress"
+
+if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
+    # Clear compaction-in-progress flag if exists
+    if [[ -f "$COMPACTION_FLAG" ]]; then
+        rm -f "$COMPACTION_FLAG"
+        echo "$TIMESTAMP | SessionStart | JICM: Cleared compaction-in-progress flag" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Clear compression-in-progress flag if exists (skill still writes this)
+    COMPRESSION_FLAG="${JICM_COMPRESSION_GUARD:-$CLAUDE_PROJECT_DIR/.claude/context/.compression-in-progress}"
+    if [[ -f "$COMPRESSION_FLAG" ]]; then
+        rm -f "$COMPRESSION_FLAG"
+        echo "$TIMESTAMP | SessionStart | JICM: Cleared compression-in-progress flag" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Clear exit-guard signal files if stale from previous session
+    rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-guard-passed" 2>/dev/null
+    rm -f "$CLAUDE_PROJECT_DIR/.claude/context/.exit-ceremony-done" 2>/dev/null
+
+    # v5 idle-hands cleanup removed (v7 refurbishment) — nothing creates these files anymore
+fi
+
+# ============================================================================
+# WATCHER LAUNCH DISABLED — Handled by launch-jarvis-tmux.sh (2026-02-05)
+# ============================================================================
+# Previously launched watcher here, but this caused duplicate watchers:
+# 1. launch-jarvis-tmux.sh creates watcher window (primary)
+# 2. session-start.sh hook fires ~simultaneously (race condition)
+# 3. Both pass duplicate checks before either fully registers → 2 watchers
+#
+# Fix: Watcher is now ONLY launched by launch-jarvis-tmux.sh
+# This hook focuses on context injection; tmux launcher handles process management
+# ============================================================================
+if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
+    # Watcher launch removed - see comment above
+    echo "$TIMESTAMP | SessionStart | Watcher launch skipped (handled by tmux launcher)" >> "$LOG_DIR/session-start-diagnostic.log"
+
+    # JICM agent spawn signal removed (Tier 1 pruning) — nobody reads .jicm-agent-spawn-signal.
+    # JICM is fully managed by jicm-watcher.sh (v6 stop-and-wait).
+fi
+
+# ============== MCP SUGGESTIONS ==============
+# Post-decomposition (v5.9.0): All Tier 1 MCPs phagocytosed into skills.
+# Only 5 MCPs remain (memory, local-rag, fetch, git, playwright) — no suggestions needed.
+MCP_SUGGESTION=""
+
+# ============== PHASE B ENHANCEMENTS (evo-2026-01-018, evo-2026-01-019) ==============
+
+# --- AIfred Baseline Sync Check ---
+# Removed (v7 refurbishment): ~/Claude/AIfred archived. AIFred-Pro is read-only production.
+AIFRED_SYNC_STATUS=""
+
+# --- Claude Code Docs Sync (B.1 integration) ---
+CLAUDE_DOCS_REPO="$HOME/Claude/GitRepos/claude-code-docs"
+if [[ -d "$CLAUDE_DOCS_REPO/.git" ]] && [[ "$SOURCE" == "startup" ]]; then
+    cd "$CLAUDE_DOCS_REPO" 2>/dev/null
+    if git pull --quiet origin main 2>/dev/null; then
+        echo "$TIMESTAMP | SessionStart | Claude docs: synced" >> "$LOG_DIR/session-start-diagnostic.log"
+    else
+        echo "$TIMESTAMP | SessionStart | Claude docs: sync failed (using cached)" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+    cd "$CLAUDE_PROJECT_DIR" 2>/dev/null
+fi
+
+# --- JICM Session ID (v7 simplified) ---
+# Session dirs removed (v7 refurbishment) — only write session ID for hooks that read it
+if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
+    JICM_SESSION_ID=$(date +"%Y%m%d-%H%M%S")
+    echo "$JICM_SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/jicm/.current-session-id"
+    echo "$TIMESTAMP | SessionStart | JICM session ID: $JICM_SESSION_ID" >> "$LOG_DIR/session-start-diagnostic.log"
+fi
+
+# --- Environment Validation (evo-2026-01-019) ---
+ENV_ISSUES=""
+ENV_WARNINGS=""
+
+if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
+    # Check 1: Git status (uncommitted changes)
+    cd "$CLAUDE_PROJECT_DIR" 2>/dev/null
+    GIT_STATUS=$(git status --porcelain 2>/dev/null | head -20)
+    if [[ -n "$GIT_STATUS" ]]; then
+        CHANGE_COUNT=$(echo "$GIT_STATUS" | wc -l | xargs)
+        ENV_WARNINGS="${ENV_WARNINGS}- $CHANGE_COUNT uncommitted changes in workspace\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: $CHANGE_COUNT uncommitted changes" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Check 2: Current branch
+    CURRENT_BRANCH=$(git branch --show-current 2>/dev/null)
+    if [[ "$CURRENT_BRANCH" != "main" ]] && [[ "$CURRENT_BRANCH" != "master" ]] && [[ "$CURRENT_BRANCH" != "Project_Aion" ]]; then
+        ENV_WARNINGS="${ENV_WARNINGS}- On branch '$CURRENT_BRANCH' (not main/Project_Aion)\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: On branch $CURRENT_BRANCH" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Check 3: Hooks directory exists and has content
+    HOOKS_DIR="$CLAUDE_PROJECT_DIR/.claude/hooks"
+    if [[ ! -d "$HOOKS_DIR" ]] || [[ -z "$(ls -A $HOOKS_DIR 2>/dev/null)" ]]; then
+        ENV_ISSUES="${ENV_ISSUES}- Hooks directory missing or empty\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: ISSUE - hooks directory problem" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Check 4: Settings.json exists
+    if [[ ! -f "$CLAUDE_PROJECT_DIR/.claude/settings.json" ]]; then
+        ENV_ISSUES="${ENV_ISSUES}- Settings.json missing\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: ISSUE - settings.json missing" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Check 5: Context files exist
+    if [[ ! -f "$CLAUDE_PROJECT_DIR/.claude/context/session-state.md" ]]; then
+        ENV_WARNINGS="${ENV_WARNINGS}- session-state.md missing (run /setup)\n"
+    fi
+
+    # Check 6: Watcher health (evo-2026-02-001)
+    WATCHER_COUNT=$(pgrep -f "jicm-watcher.sh" 2>/dev/null | wc -l | xargs)
+    if [[ "$WATCHER_COUNT" -eq 0 ]]; then
+        ENV_WARNINGS="${ENV_WARNINGS}- JICM watcher not running (will be started by tmux launcher)\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: Watcher not running" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "$WATCHER_COUNT" -gt 1 ]]; then
+        ENV_WARNINGS="${ENV_WARNINGS}- Multiple JICM watchers detected ($WATCHER_COUNT) — check for duplicates\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: WARNING - $WATCHER_COUNT watchers running" >> "$LOG_DIR/session-start-diagnostic.log"
+    else
+        echo "$TIMESTAMP | SessionStart | EnvCheck: Watcher healthy (1 instance)" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+fi
+
+# Build environment status message
+ENV_STATUS=""
+if [[ -n "$ENV_ISSUES" ]]; then
+    ENV_STATUS="\n\n--- ENVIRONMENT ISSUES ---\n$ENV_ISSUES---"
+fi
+if [[ -n "$ENV_WARNINGS" ]]; then
+    ENV_STATUS="${ENV_STATUS}\n\n--- ENVIRONMENT NOTES ---\n$ENV_WARNINGS---"
+fi
+if [[ -n "$AIFRED_SYNC_STATUS" ]]; then
+    ENV_STATUS="${ENV_STATUS}\n\n--- AIFRED BASELINE ---\n$AIFRED_SYNC_STATUS\n---"
+fi
+
+echo "$TIMESTAMP | SessionStart | EnvValidation complete" >> "$LOG_DIR/session-start-diagnostic.log"
+
+# ============== SESSION STATE CHECK ==============
+SESSION_STATE_FILE="$CLAUDE_PROJECT_DIR/.claude/context/session-state.md"
+# Priorities now consolidated into session-state.md (Session 28b)
+PRIORITIES_FILE="$CLAUDE_PROJECT_DIR/.claude/context/session-state.md"
+CURRENT_WORK=""
+NEXT_STEP=""
+
+if [[ -f "$SESSION_STATE_FILE" ]]; then
+    # Extract current work status
+    CURRENT_WORK=$(grep -A 1 "Current Work" "$SESSION_STATE_FILE" 2>/dev/null | tail -1 | sed 's/\*\*//g' | xargs)
+fi
+
+if [[ -f "$PRIORITIES_FILE" ]]; then
+    # Extract next step
+    NEXT_STEP=$(grep "Next Step" "$PRIORITIES_FILE" 2>/dev/null | head -1 | sed 's/.*Next Step.*: //' | xargs)
+fi
+
+echo "$TIMESTAMP | SessionStart | current_work='$CURRENT_WORK' next_step='$NEXT_STEP'" >> "$LOG_DIR/session-start-diagnostic.log"
+
+# ============== BUILD SELF-LAUNCH PROTOCOL INSTRUCTIONS ==============
+build_protocol_instructions() {
+    local source_type="$1"
+    local has_checkpoint="$2"
+
+    if [[ "$SKIP_GREETING" == "true" ]]; then
+        echo "QUICK MODE: Skip greeting, proceed directly to work."
+        return
+    fi
+
+    # Build weather context if available
+    local weather_context=""
+    if [[ -n "$WEATHER_INFO" ]]; then
+        weather_context=" | Weather: $WEATHER_INFO"
+    fi
+
+    # Build AIfred baseline notice if behind
+    local aifred_notice=""
+    if [[ -n "$AIFRED_SYNC_STATUS" ]]; then
+        aifred_notice="
+AIfred baseline has new commits. Run /sync-aifred-baseline after greeting."
+    fi
+
+    cat << PROTOCOL
+SESSION START — $LOCAL_DATE at $LOCAL_TIME (${TIME_OF_DAY})${weather_context}
+Status: ${CURRENT_WORK:-No active work} | Next: ${NEXT_STEP:-Check priorities}${aifred_notice}
+Read session-state.md (includes priorities), then begin work. Do NOT just greet.
+After orientation:
+1. Query jarvis-rag search with collection 'sessions' for prior session summaries relevant to your current task (limit 3).
+2. Query jarvis-graphiti search for prior knowledge relevant to your current task.
+Use insights from both to inform your work approach.
+PROTOCOL
+}
+
+# ============== RECENT ARCHIVE HELPER ==============
+# Gather compressed context archives less than 3 hours old for deeper continuity.
+# The current .compressed-context-ready.md has the latest state;
+# recent archives provide a sliding window of context history.
+gather_recent_archives() {
+    local archive_dir="$CLAUDE_PROJECT_DIR/.claude/logs/jicm/archive"
+    local max_age=10800  # 3 hours in seconds
+    local now
+    now=$(date +%s)
+    local archive_context=""
+
+    if [[ -d "$archive_dir" ]]; then
+        for f in $(ls -1t "$archive_dir"/compressed-*.md 2>/dev/null | head -5); do
+            local file_age=$(( now - $(stat -f %m "$f" 2>/dev/null || echo "$now") ))
+            if [[ "$file_age" -lt "$max_age" ]]; then
+                local basename
+                basename=$(basename "$f")
+                local file_lines
+                file_lines=$(wc -l < "$f" | tr -d ' ')
+                archive_context="${archive_context}
+--- Archive: ${basename} (${file_age}s ago, ${file_lines} lines) ---
+$(head -30 "$f")
+..."
+            fi
+        done
+    fi
+
+    echo "$archive_context"
+}
+
+# ============== JICM v7.9 — STOP-AND-WAIT ARCHITECTURE ==============
+# JICM v7.9 uses native signal files (.jicm-clear-now.signal +
+# .jicm-resume-complete.signal); the .jicm-state shim was retired at 7.9.6c.
+# The watcher handles all state transitions; this hook just injects context.
+# Detection: .jicm-clear-now.signal exists (watcher wrote it before /clear,
+# removes it during step-9 cleanup post-RESUME).
+JICM_CYCLE_SIGNAL="${JICM_CLEAR_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.signal}"
+V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
+
+if [[ "$SOURCE" == "clear" ]] && [[ -f "$JICM_CYCLE_SIGNAL" ]]; then
+    V6_STATE="JICM_CYCLE_ACTIVE"
+    echo "$TIMESTAMP | SessionStart | JICM v7.9: Detected active cycle (signal present)" >> "$LOG_DIR/session-start-diagnostic.log"
+
+    # NOTE (Phase 2C, 2026-05-17): Scratchpad rotation and memory consolidation
+    # MOVED to jicm-watcher.sh steps 5.7/5.8 (fire BEFORE /clear, not after).
+    # Rationale: consolidation is about OLD session data; should run pre-/clear
+    # while watcher has async time budget. SessionStart is RETRIEVAL-ONLY now.
+
+    if true; then
+
+        V6_CONTEXT=""
+        if [[ -f "$V6_COMPRESSED" ]]; then
+            V6_CONTEXT=$(cat "$V6_COMPRESSED")
+            echo "$TIMESTAMP | SessionStart | JICM v7: Loaded compressed context ($(wc -c < "$V6_COMPRESSED") bytes)" >> "$LOG_DIR/session-start-diagnostic.log"
+        fi
+
+        # Gather recent archives for deeper continuity
+        RECENT_ARCHIVES=$(gather_recent_archives)
+        if [[ -n "$RECENT_ARCHIVES" ]]; then
+            echo "$TIMESTAMP | SessionStart | JICM v7: Found recent archives for continuity" >> "$LOG_DIR/session-start-diagnostic.log"
+        fi
+
+        # NOTE: Session-state.md deliberately NOT loaded for mid-session restores.
+        # It is stale during active work. Compressed context contains current state.
+        # Session-state is for NEW session starts only (created at session end).
+
+        # L1 retrieval: include NLP-compressed scrollback summary (Phase 2C)
+        # Prefers .pre-clear-scrollback-summary.md (NLP-compressed by watcher step 5.6b)
+        # Falls back to raw scrollback (last 100 lines) if summary not available
+        SCROLLBACK_SUMMARY="$CLAUDE_PROJECT_DIR/.claude/context/.pre-clear-scrollback-summary.md"
+        SCROLLBACK_RAW="$CLAUDE_PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
+        SCROLLBACK_EXCERPT=""
+        if [[ -f "$SCROLLBACK_SUMMARY" ]] && [[ -s "$SCROLLBACK_SUMMARY" ]]; then
+            SCROLLBACK_EXCERPT=$(cat "$SCROLLBACK_SUMMARY")
+            echo "$TIMESTAMP | SessionStart | JICM v7: Scrollback summary loaded ($(wc -c < "$SCROLLBACK_SUMMARY" | tr -d ' ') bytes, NLP-compressed)" >> "$LOG_DIR/session-start-diagnostic.log"
+        elif [[ -f "$SCROLLBACK_RAW" ]]; then
+            SCROLLBACK_EXCERPT=$(tail -100 "$SCROLLBACK_RAW")
+            echo "$TIMESTAMP | SessionStart | JICM v7: Scrollback raw fallback (last 100 lines)" >> "$LOG_DIR/session-start-diagnostic.log"
+        fi
+
+        # B3/B4: Extract task keywords from checkpoint for targeted MCP searches
+        TASK_KEYWORDS=""
+        if [[ -n "$V6_CONTEXT" ]]; then
+            TASK_KEYWORDS=$(echo "$V6_CONTEXT" | grep -A2 '## Current Task' 2>/dev/null | tail -1 | sed 's/[^a-zA-Z0-9 _-]//g' | head -c 80 | xargs)
+        fi
+        TASK_KEYWORDS="${TASK_KEYWORDS:-current session work}"
+
+        MESSAGE="JICM v7: Context compressed and cleared.$ENV_STATUS"
+        CONTEXT="JICM v7 CONTEXT RESTORATION — NOT a new session.
+You are Jarvis. Context was cleared via stop-and-wait JICM cycle.
+Resume work immediately. Do NOT greet. Do NOT ask what to work on.
+
+Current datetime: $LOCAL_DATE at $LOCAL_TIME
+
+Compressed Context (current):
+$V6_CONTEXT
+${RECENT_ARCHIVES:+
+Recent Archives (for additional continuity):
+$RECENT_ARCHIVES
+}${SCROLLBACK_EXCERPT:+
+Terminal Scrollback (last 50 lines before /clear — use for context recovery):
+$SCROLLBACK_EXCERPT
+}
+MANDATORY CONTEXT RETRIEVAL — Execute these two searches BEFORE any other work:
+1. Call mcp__jarvis-rag__search with query=\"$TASK_KEYWORDS\", collection=\"sessions\", limit=3
+2. Call mcp__jarvis-graphiti__search with query=\"$TASK_KEYWORDS\"
+Integrate any relevant findings into your understanding. If either returns no results, proceed without.
+Do NOT skip these searches — they connect you to prior session knowledge.
+
+Resume: Parse the compressed context above, check .scratchpad.md (force-loaded), execute the mandatory retrieval above, then continue from the interruption point."
+
+        # Write state file (AC-01)
+        echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"compression_type\": \"jicm_v6\", \"restart_type\": \"v6_stop_and_wait\"}" > "$STATE_DIR/AC-01-launch.json"
+
+        # NO .idle-hands-active flag — v6 watcher handles resume directly
+        jq -n \
+          --arg msg "$MESSAGE" \
+          --arg ctx "$CONTEXT" \
+          '{
+            "systemMessage": $msg,
+            "hookSpecificOutput": {
+              "hookEventName": "SessionStart",
+              "additionalContext": $ctx
+            }
+          }'
+
+        # Phase 7.9.1 (v7.9) — signal slim watcher that resume injection succeeded.
+        # Watcher (Phase 7.9.3) polls .jicm-resume-complete.signal to advance the actuator chain.
+        # Production (v7.3 watcher) ignores this signal; harmless additive code, forward-compatible.
+        RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
+        echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$V6_COMPRESSED" 2>/dev/null | tr -d ' '),\"source\":\"clear-v7\"}" > "$RESUME_SIGNAL" 2>/dev/null || true
+
+        exit 0
+    fi
+fi
+
+# JICM v5 code path REMOVED (v6.1, 2026-02-11)
+# v5 used two-mechanism resume: hook injection + idle-hands keystroke monitor.
+# v7.9 uses .jicm-clear-now.signal + .jicm-resume-complete.signal + stop-and-wait architecture (above).
+
+# ============== CLEAR WITHOUT JICM (safety fallback) ==============
+# Legacy .soft-restart-checkpoint.md handling removed (v7 refurbishment).
+# Nothing creates that file anymore. Only .compressed-context-ready.md matters.
+if [[ "$SOURCE" == "clear" ]]; then
+    # Clear without JICM — run prep script to create backup context
+    PREP_SCRIPT="${JICM_PREP_SCRIPT:-$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-prep-context.sh}"
+    if [[ -x "$PREP_SCRIPT" ]]; then
+        bash "$PREP_SCRIPT" 2>>"$LOG_DIR/session-start-diagnostic.log" || true
+        echo "$TIMESTAMP | SessionStart | /clear safety: ran jicm-prep-context.sh" >> "$LOG_DIR/session-start-diagnostic.log"
+    fi
+
+    # Gather recent archives for continuity
+    RECENT_ARCHIVES=$(gather_recent_archives)
+
+    # Check if compressed context is now available
+    if [[ -f "$V6_COMPRESSED" ]]; then
+        BACKUP_CONTEXT=$(cat "$V6_COMPRESSED")
+        MESSAGE="CONTEXT CLEARED — backup context prepared.$ENV_STATUS"
+        CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. Backup context auto-prepared.
+
+Compressed Context (current):
+$BACKUP_CONTEXT
+${RECENT_ARCHIVES:+
+Recent Archives (for additional continuity):
+$RECENT_ARCHIVES
+}
+Resume: Review above context, check the active plan referenced in CLAUDE.md, then continue or start fresh."
+    else
+        MESSAGE="CONTEXT CLEARED — No checkpoint found.$ENV_STATUS"
+        CONTEXT="Context cleared, $LOCAL_DATE at $LOCAL_TIME. No checkpoint found.
+${RECENT_ARCHIVES:+
+Recent Archives (may contain relevant context):
+$RECENT_ARCHIVES
+}
+Read session-state.md, offer to continue previous work or start fresh."
+    fi
+
+    # Write state file
+    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": false, \"auto_continue\": false, \"restart_type\": \"clear_no_checkpoint\"}" > "$STATE_DIR/AC-01-launch.json"
+
+    jq -n \
+      --arg msg "$MESSAGE" \
+      --arg ctx "$CONTEXT" \
+      '{
+        "systemMessage": $msg,
+        "hookSpecificOutput": {
+          "hookEventName": "SessionStart",
+          "additionalContext": $ctx
+        }
+      }'
+
+elif [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
+    # Normal startup - Full Self-Launch Protocol
+    PROTOCOL_INSTRUCTIONS=$(build_protocol_instructions "$SOURCE" "false")
+
+    if [[ "$AUTO_CONTINUE" == "true" ]] && [[ -n "$NEXT_STEP" ]]; then
+        CONTEXT="$PROTOCOL_INSTRUCTIONS
+AUTO: Proceed with $NEXT_STEP without waiting for confirmation."
+    else
+        CONTEXT="$PROTOCOL_INSTRUCTIONS
+Present status and offer to continue with pending work."
+    fi
+
+    MESSAGE="Session started ($SOURCE)$ENV_STATUS"
+
+    # Write state file
+    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": false, \"auto_continue\": $AUTO_CONTINUE}" > "$STATE_DIR/AC-01-launch.json"
+
+    jq -n \
+      --arg msg "$MESSAGE" \
+      --arg ctx "$CONTEXT" \
+      '{
+        "systemMessage": $msg,
+        "hookSpecificOutput": {
+          "hookEventName": "SessionStart",
+          "additionalContext": $ctx
+        }
+      }'
+
+elif [[ "$SOURCE" == "compact" ]]; then
+    # Native autocompact fired — Claude Code summarized old context, new window starts.
+    # Inject compressed context + scratchpad pointer so Claude can recover orientation.
+    COMPACT_CONTEXT=""
+    if [[ -f "$V6_COMPRESSED" ]]; then
+        COMPACT_CONTEXT=$(cat "$V6_COMPRESSED")
+    fi
+
+    RECENT_ARCHIVES=$(gather_recent_archives)
+
+    MESSAGE="Context compacted by Claude Code.$ENV_STATUS"
+    CONTEXT="AUTOCOMPACT — Claude Code's native compaction ran.
+Context was summarized, NOT cleared. Your conversation summary is above this block.
+Current datetime: $LOCAL_DATE at $LOCAL_TIME
+
+Check .claude/context/.scratchpad.md for transient session details (force-loaded).
+${COMPACT_CONTEXT:+
+Last JICM checkpoint (may be stale — prefer your conversation summary):
+$COMPACT_CONTEXT
+}${RECENT_ARCHIVES:+
+Recent Archives:
+$RECENT_ARCHIVES
+}Resume from your conversation summary above. Do NOT re-greet."
+
+    echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"restart_type\": \"compact\"}" > "$STATE_DIR/AC-01-launch.json"
+
+    jq -n \
+      --arg msg "$MESSAGE" \
+      --arg ctx "$CONTEXT" \
+      '{
+        "systemMessage": $msg,
+        "hookSpecificOutput": {
+          "hookEventName": "SessionStart",
+          "additionalContext": $ctx
+        }
+      }'
+
+else
+    # Unknown source - minimal output
+    echo "{}"
+fi
+
+# Exit success
+exit 0

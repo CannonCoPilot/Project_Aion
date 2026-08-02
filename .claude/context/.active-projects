@@ -1,0 +1,13 @@
+# .active-projects — cross-project workspace dirs for Jarvis sessions
+#
+# Each non-blank, non-comment line is appended as `--add-dir <path>` to the
+# claude invocation in launch-aion.sh. The LSP (pyright-lsp) will then walk
+# UP from files in these dirs to discover per-project pyrightconfig.json.
+#
+# Format: one absolute path per line. ~ is expanded. Missing dirs are skipped.
+#
+# Uncomment a project below when actively collaborating on it from Jarvis:
+
+# /Users/nathanielcannon/Claude/Projects/palimpsest
+# /Users/nathanielcannon/Claude/Projects/DwarfCron
+# /Users/nathanielcannon/Claude/Projects/AnnasTools

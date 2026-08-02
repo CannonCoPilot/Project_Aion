@@ -1,0 +1,29 @@
+{
+  "pythonVersion": "3.12",
+  "venvPath": "infrastructure",
+  "venv": ".venv",
+  "include": [
+    "infrastructure/rag-service",
+    "infrastructure/scripts",
+    ".claude/scripts"
+  ],
+  "exclude": [
+    "**/.venv",
+    "**/node_modules",
+    "**/__pycache__",
+    "**/target",
+    "**/.git",
+    "alfred",
+    "projects",
+    ".claude/projects",
+    ".claude/context",
+    ".claude/scratch",
+    "infrastructure/qwen3-embeddings-mlx"
+  ],
+  "extraPaths": [
+    "infrastructure/rag-service"
+  ],
+  "reportMissingImports": "warning",
+  "reportUnusedFunction": "none",
+  "reportUnusedVariable": "warning"
+}

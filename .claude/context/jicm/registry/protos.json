@@ -1,0 +1,12 @@
+{
+  "key": "protos",
+  "last_seen": "2026-08-01T02:10:37Z",
+  "registered_at": "2026-07-29T18:26:17Z",
+  "session_id": "42e424d3-ef7e-48ec-80af-39faa8080ef1",
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/42e424d3-ef7e-48ec-80af-39faa8080ef1.jsonl",
+  "tmux_target": "aion:1",
+  "actuation_mode": "pane",
+  "class": "interactive",
+  "reset_policy": "preserve-restore",
+  "owner": "jarvis"
+}

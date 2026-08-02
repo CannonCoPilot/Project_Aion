@@ -1,0 +1,4 @@
+[2026-06-18 00:42:23 MDT] START pid=50912 target_epoch=1781779104 (2026-06-18 04:38:24 MDT) window=aion:0.0
+[2026-06-18 04:38:24 MDT] TARGET REACHED — writing signal + injecting resume prompt
+[2026-06-18 04:38:28 MDT] INJECTED resume prompt into aion:0.0
+[2026-06-18 04:38:28 MDT] DONE pid=50912

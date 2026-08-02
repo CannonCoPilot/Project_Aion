@@ -30,7 +30,7 @@ scan matched the whole-Bible approbatio). No higher rung fires without a rung-0 
 |------|---------|--------------------------------|
 | **0 diagnostic** | rasterize worst pages → visual inspection (MANDATORY GATE) | `reocr_ladder.py` (fitz, content-anchored page resolution) |
 | **1 layout-aware** | fix SEGMENTATION errors (columns, marginalia, headers, drop-caps) | **Surya** (layout + reading-order, Apple-Silicon), **YOLOv11-OBB** region typing, **XY-Cut++** column reading order |
-| **2 region-targeted** | fix GLYPH errors at higher DPI (ſ/f, ligatures, u/v) | **Kraken v5 + CATMuS-Print** (preserves long-ſ), **Calamari** ensemble, Tesseract/eMOP |
+| **2 region-targeted** | fix GLYPH errors at higher DPI (ſ/f, ligatures, u/v) | **Kraken v5 + `reichenau_lat`** (VERIFIED ſ-faithful here) · ⚠ local **`catmus-print-large` MODERNIZES ſ→s** (see Verified findings) · **Calamari** ensemble, Tesseract/eMOP |
 | **3 vision-LLM** | last-resort transcription of a rasterized region | **CHURRO 3B** / **olmOCR-2-7B** (local MLX), **Gemini 2.5 Pro** (cloud reserve) |
 
 Diagnose the failure class at rung 0, then pick the rung: layout error → rung 1; glyph error → rung 2;
@@ -59,6 +59,56 @@ Our ≥0.90 bar is a SURFACE bar (surface CER ≤ 0.10). A step that lowers cont
 surface CER is *modernizing, not correcting* — reject it. (LLM post-correction inflated English CER
 by ~23 points purely from modernization; "No Free Lunches." Always compare pre/post surface CER and
 discard corrections that worsen it — this is the No-Silent-Degradation guardrail in metric form.)
+
+**Implementation caveat (verified 2026-07-12):** this project's gate metric `char_identity.edit_ratio` runs under `fold_archaic`, which collapses ſ→s BEFORE comparing — so edit_ratio is effectively the CONTENT track and is BLIND to ſ loss. A recognizer that erases every long-ſ can RAISE edit_ratio while destroying the surface. You MUST run a separate ſ check every time: `output.count('ſ')` vs `reference.count('ſ')` plus `long_s_rule`. Near-zero ſ against a ſ-rich reference = modernization = REJECT regardless of edit_ratio.
+
+## Verified on THIS project (empirical, 2026-07-12 — first live rung-1/2 run)
+
+These SUPERSEDE the research claims above where they conflict (verify-before-use, in action):
+
+- **Recognizer: use `reichenau_lat.mlmodel` for the archaic surface; `catmus-print-large.mlmodel`
+  MODERNIZES ſ→s.** On Genesis 24 (S1) the reference carries 54 long-ſ; reichenau output 55 (faithful),
+  catmus output **0** — every ſ destroyed, despite the research claim that CATMuS-Print preserves long-ſ.
+  catmus scored a *higher* edit_ratio (0.889 vs 0.863) ONLY because the archaic fold hides ſ loss. Reject
+  catmus for the surface bar; it is content-only here.
+- **edit_ratio is ſ-blind — always run the companion ſ-count check** (see DUAL-TRACK caveat above).
+- **Rung-1 region suppression is GEOMETRIC, not from kraken labels.** `blla.segment` types only generic
+  "text" regions (2 on a scripture page) — it does NOT separate marginalia / running-header / verse-rail.
+  Geometry on the recognized lines (running header `y_center < ~0.065`, left signature column
+  `x_center < 0.11`, right-margin footnote `x_center > ~0.80`, watermark `y_center > ~0.965`) raised ONE
+  isolated page (Genesis 24 S1 p99: 0.846 -> 0.862, +0.016) but DID NOT generalise — see next bullet.
+- **⚠ SCORER-VALIDATED — the authoritative result (2026-07-12): uniform geometric suppression is NOT a
+  net win; do NOT adopt it.** Folded into `detect_our_ocr.load_stream` and run across the whole pilot
+  through `qc_audit`'s per-verse content-anchored scorer (`coverage-audit-verse-rung1.json` vs baseline),
+  a SINGLE fixed threshold set helps the polluted layout it was tuned on (genesis S1 +0.067, john S1
+  +0.044) but REGRESSES cleaner scans of the SAME locus (genesis S6 -0.048, psalms/77 S6 -0.048,
+  matthew/27 S10 -0.066) and dropped Psalms S1/S3 to no-output. Aggregate gate did not move: **6438/6438
+  verses still short in both runs; nothing approaches 0.90** (best single-scan archaic ~0.78). Rung-1 was
+  REVERTED (`detect_our_ocr.py.rung1-attempt` kept as artifact). Lesson: a uniform x/y band is the wrong
+  tool — region typing must be PER-LAYOUT, and re-filtering EXISTING OCR cannot cross the bar.
+- **Redesign direction (what CAN reach 0.90):** (1) real re-OCR (segment->recognize) with a per-layout
+  region model (Surya / YOLOv11-OBB), not re-filtering old OCR; (2) multi-witness CONSENSUS across the
+  4-9 scans per locus — NO single scan clears 0.90, so a reconstructed per-verse consensus
+  (`consensus_v2.py`) is the only architecturally-plausible path over the bar. 0.78->0.90 on the surface
+  is a recognition + line-segmentation problem, not a body-region-selection one.
+- **⚠ RUNG-1 REAL RE-OCR — rigorous single-page result (2026-07-12, Genesis 24 S1 p99, via detect_book):**
+  Built Surya `fast_layout` (torch/MPS, NO llama-server; the default `surya.layout` needs llama.cpp) for
+  per-layout region typing + kraken/reichenau recognize (`ocr-spike/rung1_surya.py`). Surya correctly types
+  the centered running-header (`PageHeader`) and right-margin apparatus (a separate `Text` box) the fixed
+  x-band could NOT. Scored through the audit's OWN detect_book on the SAME page/verses: EXISTING diplomatic
+  OCR 0.5506 -> Surya re-OCR **0.5704 (+0.020)**, ſ preserved. So the layout lever is REAL and beats existing
+  OCR — but small. **300 DPI did NOT help** (0.52 < the 150-DPI 0.57): naive DPI scaling is not a lever, the
+  reichenau RECOGNIZER is the ceiling (~0.55 content, DPI-invariant). The 0.55->0.90 gap is
+  RECOGNITION-dominated (~0.35); layout contributes only ~0.02. Path to the bar = attack RECOGNITION
+  (multi-witness CONSENSUS across the 4-9 scans, and/or a stronger / fine-tuned or vision-LLM recognizer),
+  NOT more re-OCR with the same engine. Surya body/margin share the `Text` label -> body = largest-area
+  central Text region (works cleanly on Genesis; retune area-fraction for columnar Psalms / degraded scans).
+- **Residual gap to 0.90 is (a) footnote text FUSED into body lines** (needs finer LINE segmentation, not a
+  geometric line-drop) **and (b) genuine recognition misses** — NOT a ſ problem. Do not reach for a
+  modernizing recognizer to close it.
+- **Engine reality:** kraken loads `.mlmodel` via **coremltools** (NOT mlx); working venv is
+  `originaldr-project/ocr-venv`; models in `ocr-spike/models/`; driver is `ocr-spike/rung1_reocr.py`
+  (segment → recognize → geometric suppression → dual-track score).
 
 ## Multi-witness consensus (we have several scans of the same text — use it)
 

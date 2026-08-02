@@ -1,0 +1,27 @@
+fix(nexus): pipeline path + completion-signal reliability for doc-writing tickets
+
+Unblocks write-to-canonical-path research tickets that looped or false-failed
+(neural-canvas Phase A A4/A5/A7 false-failed review; A8 execute->reset looped):
+
+- executor.py _resolve_output_dir: honor an explicit absolute output_dir
+  override (metadata/stage_output) before the generic alfred/output/<project>
+  default. Stops the injected "Output Directory" from contradicting an explicit
+  path in the task description, which split deliverables across two locations.
+- reviewer.py _verify_filesystem: reconcile same-basename dual-writes. If a
+  deliverable was reported in two locations and only one landed, copy from the
+  existing copy so a location split cannot produce a false "missing" verdict.
+- host-executor-bridge.sh inject_and_wait: accept a freshly-written output file
+  (find -newer marker, 20s stability grace) as a completion signal in addition
+  to the sentinel file. Forks reliably write their deliverable but not always
+  the trailing `echo DONE > sentinel`, which caused execute->timeout->reset
+  loops on work that had actually completed.
+
+The bridge file also carries prior uncommitted seed-handling fixes that were
+already in the working tree (TMUX_SESSION auto-detect for oneshot invocations;
+_refresh_seed_if_stale to stop forks resuming a dead seed) — same subsystem,
+not authored in this change.
+
+Validated end-to-end with a pipeline canary: stage->execute->review->close,
+lifecycle_resets=0, deliverable at the canonical path.
+
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>

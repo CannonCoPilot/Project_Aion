@@ -35,7 +35,15 @@
     "methodology:pattern. Fix: split into",
     "methodology:pattern that checks for",
     "error_debug:error /Users",
-    "methodology:pattern index (8 platfor"
+    "methodology:pattern index (8 platfor",
+    "methodology:Pattern 1 — skip silently when",
+    "error_debug:Error: Failed to fetch' respon",
+    "error_debug:broken**: hds.md:23 loads `.cl",
+    "error_debug:Broken pre-migration symlinks ",
+    "error_debug:Error()` that appends to `.cla",
+    "methodology:pattern: data went to",
+    "error_debug:crashes: $(grep -c 'rc=1 ' .ca",
+    "error_debug:crashed=$(grep -c 'rc=1 ' .cam"
   ],
   "recent_projects": [
     "chronicler",

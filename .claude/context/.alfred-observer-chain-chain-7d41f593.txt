@@ -1,0 +1,8 @@
+⏺ seed_unavailable fires when ensure_seed returns non-zero. The daemon (11594, env TMUX_SESSION=aion) handled v2 fine, but the oneshot bridge spawned by event-watcher.sh:281 claimed v3
+  first and failed ensure_seed — likely missing the TMUX_SESSION=aion env so its tmux lookups fail. Let me confirm by reading ensure_seed and the event-watcher spawn context.
+  Read 1 file (ctrl+o to expand)
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  alfred (main) | 146.6k [▓▓▒░░░░░░░│░░░░····▪] 73%⚡ | M:0 | $0 | BLK:$50.5/9h8m | 14:51:22 | 0m                                                                          82% context used
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← for agents

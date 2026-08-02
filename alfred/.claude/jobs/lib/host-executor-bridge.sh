@@ -34,6 +34,17 @@ log() {
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [host-bridge] $*" >&2
 }
 
+# Lowest free tmux window index >= 12. Index 11 is reserved for W11:Jarvis-dev
+# so the dev lane and Alfred chain workers never collide (chains previously
+# claimed the lowest free slot, grabbing 11 whenever the dev window was absent).
+# base-index 0 + renumber-windows off (set by launch-aion.sh) keep indices stable.
+_next_chain_index() {
+    local idx=12 used
+    used=$("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_index}' 2>/dev/null)
+    while printf '%s\n' "$used" | grep -qx "$idx"; do idx=$((idx + 1)); done
+    echo "$idx"
+}
+
 # ── Seed Management ──────────────────────────────────────────────────
 
 _claude_running_in_window() {
@@ -239,7 +250,7 @@ get_or_create_chain_window() {
     done
 
     log "Forking seed → ${window_name} for chain ${chain_id:0:12}"
-    "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
+    "$TMUX_BIN" new-window -d -t "${TMUX_SESSION}:$(_next_chain_index)" -n "${window_name}" \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
 
     local waited=0
@@ -694,11 +705,25 @@ if [ "${1:-}" = "--daemon" ]; then
     HEALTH_FILE="${STATE_DIR}/.bridge-heartbeat"
     log "Starting host-executor-bridge v2 (chain-interactive, poll=${POLL_INTERVAL}s)"
 
+    # Daemon singleton — only ONE bridge daemon may run. Duplicates (auto-spawned by
+    # the launchd watchdog) contend for the single seed session and make every chain
+    # fork fail. A second daemon detects the live owner here and exits cleanly.
+    DAEMON_PIDFILE="${STATE_DIR}/.styx-daemon.pid"
+    if [ -f "$DAEMON_PIDFILE" ]; then
+        _other=$(cat "$DAEMON_PIDFILE" 2>/dev/null)
+        if [ -n "$_other" ] && [ "$_other" != "$$" ] && kill -0 "$_other" 2>/dev/null \
+           && ps -p "$_other" -o command= 2>/dev/null | grep -q 'host-executor-bridge.sh --daemon'; then
+            log "Singleton: another bridge daemon (pid $_other) already running — exiting"
+            exit 0
+        fi
+    fi
+    echo "$$" > "$DAEMON_PIDFILE"
+
     mkdir -p "$CHAIN_MAP_DIR" 2>/dev/null
     ensure_seed
 
     cleanup() {
-        rm -f "$HEALTH_FILE"
+        rm -f "$HEALTH_FILE" "$DAEMON_PIDFILE"
         # Clean up all chain windows
         if [ -d "$CHAIN_MAP_DIR" ]; then
             for f in "$CHAIN_MAP_DIR"/*; do

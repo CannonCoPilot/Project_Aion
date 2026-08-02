@@ -545,3 +545,109 @@ proposals:
 # REFL-026: CDM composite PK migration (chronicler/db/schema.sql)
 # REFL-029: DF performance patience protocol
 # REFL-030: Population cross-validation rule
+
+  - id: REFL-031
+    date: "2026-08-01"
+    source: reflection-18
+    priority: high
+    status: queued
+    summary: "Triage rules that say SKIP/IGNORE/CEILING must enumerate the signal's other causes first"
+    problem: |
+      Authoring the OriginalDR round-template router, a signal ("all four sources fail the same verse")
+      was classified as a single cause ("edition divergence") and encoded as "a ceiling — never chase it."
+      The bucket in fact contained five REFERENCE DEFECTS worth 20 cells, recovered the same day once the
+      rule was questioned. The taxonomy error alone would have been cheap; encoding it as a suppression
+      rule made it self-sealing — no later session would have looked inside that bucket.
+      Generalizes well beyond this project: any router, triage doc, or heuristic that tells a future agent
+      NOT to investigate is a permanent blind spot if its premise is wrong.
+    proposal: |
+      Adopt a standing rule for authoring triage/routing guidance: before writing SKIP, IGNORE, CEILING or
+      "never chase", (a) enumerate every cause that produces the same signal, (b) dismiss each on evidence,
+      (c) prefer a SPLITTING TEST over a classification wherever two causes share a signal, and (d) require
+      a MEASUREMENT for any ceiling claim, never an argument from premises.
+    implementation:
+      - Add the rule to .claude/context/psyche/self-knowledge/patterns-observed.md
+      - When writing any workflow/router doc, include a "what else produces this signal?" line per row
+      - Where two causes share a signal, ship the discriminator alongside the rule
+    estimated_effort: low
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/CHAPTER-WORKFLOW.md"
+      - ".claude/context/psyche/self-knowledge/self-corrections.md"
+
+  - id: REFL-032
+    date: "2026-08-01"
+    source: reflection-18
+    priority: medium
+    status: queued
+    summary: "Audit a new rule as a DELTA against the incumbent, never against an empty baseline"
+    problem: |
+      A proposed page-model bound was audited as "65 tokens removed, all apparatus" — a compelling result.
+      The bound already in force was removing most of them. Measured as a delta the intervention was 18
+      tokens and +1 cell. The same failure shape produced a wrong headline board figure the same session
+      (n_cells - n_open re-derived instead of reading n_pass, which credits BLOCKED cells as passing).
+    proposal: |
+      Two habits. (1) Any audit of a new rule must run the OLD configuration first and diff — the question
+      is never "what does this change?" but "what does this change that is not already changed?".
+      (2) When a struct publishes a computed field, read it; if deriving, reconcile against the published
+      value before quoting, and treat disagreement as yours until proven otherwise.
+    implementation:
+      - Note the delta requirement in the OriginalDR CHAPTER-WORKFLOW rule section
+      - Prefer published fields (n_pass, rate) over derived arithmetic in any reporting script
+    estimated_effort: low
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/CAMPAIGN-STATUS.md"
+
+  - id: REFL-033
+    date: "2026-08-01"
+    source: reflection-18
+    priority: medium
+    status: queued
+    summary: "OriginalDR: acquire a 1635 reference so S6 is scored against the edition it actually prints"
+    problem: |
+      S6 (jp2-S06) is the 1635 SECOND edition; two of the four governing references (s_dismas, odr_com) are
+      1609. S6 is the worst source in 15 of the 16 chapters in the 0.85-0.90 band, and in ch12 the other
+      three witnesses score 1.000 while S6 scores 0.500. Measured this session: S6's modern-vs-archaic arm
+      gap is +0.0115 mean against -0.0125 for all three 1609 witnesses (identical to four decimals), so the
+      divergence is real and source-specific. ch8/8:14 is the pinned proof — the transcription is CORRECT
+      and no reading of those pixels can satisfy both editions.
+      This is the highest-leverage UNBUILT item on the campaign, and it is an acquisition/policy task rather
+      than an OCR one. It has sat unasked for three sessions because the loop has no step that surfaces
+      policy questions.
+    proposal: |
+      Escalate as a decision for Sir: either acquire a 1635-edition reference witness and score S6 against
+      it, or admit an edition-divergence verdict distinct from a transcription failure. Do NOT lower the
+      bar; the standard holds and the cells stay OPEN until the instrument is right.
+    implementation:
+      - Search for a 1635 DR second-edition digital text (Anna's Archive, EEBO successor, Internet Archive)
+      - If found, wire as a fifth reference scored on the archaic arm for S6 only
+      - Until then, keep the ch8/8:14 collation flag surfaced in the report, never auto-passed
+    estimated_effort: medium
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/CHAPTER-WORKFLOW.md"
+      - "collation-flags.json"
+
+  - id: REFL-034
+    date: "2026-08-01"
+    source: reflection-18
+    priority: medium
+    status: queued
+    summary: "OriginalDR: build the per-verse reference-defect detector (the all-fail split test)"
+    problem: |
+      ref_gaps detects only an ABSENT verse. Chapter-mean tests detect only chapter-scale defects. Genesis 30
+      already proved a reference can be PRESENT BUT HOLED and pass every count test. So a single corrupted
+      reference verse is indistinguishable from an OCR failure — and the one signal that exposes it
+      (all four sources failing) had been routed to "never chase". Five such loci were found by hand this
+      session; there is no instrument that would find the next five.
+    proposal: |
+      Add the split test to ref_alignment_audit as a per-verse pass over the all-fail set: for each
+      reference, does EVERY source fail against it while all four PASS the other three? Report candidates
+      with word counts; do NOT auto-excise. Excision stays enumerated (trim_apparatus's first general
+      version destroyed 149 loci of real scripture).
+    implementation:
+      - Implement the split test in ref_alignment_audit.py as a reporting pass
+      - Run over Genesis; then over each new book as part of its Phase 1
+      - Keep APPARATUS_EXCISIONS enumerated and test-pinned
+    estimated_effort: low
+    related:
+      - "/Users/nathanielcannon/Claude/Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/ref_renumber.py"
+      - "/Users/nathanielcannon/Claude/Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/tests/test_apparatus_excisions.py"

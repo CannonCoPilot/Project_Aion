@@ -94,3 +94,106 @@
 # 2026-06-08T04:13:20Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 2294m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
 # 2026-06-09T15:28:51Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 4410m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
 # 2026-06-17T14:56:45Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 2235m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-06-23T15:50:14Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 10928m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-06-23T15:55:53Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 10934m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-06-25T04:28:57Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 13127m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-06-29T00:26:03Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 18644m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-04T06:25:26Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 26203m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-06T18:09:55Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 29788m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-06T18:10:41Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 29788m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-07T05:28:21Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 30466m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-07T19:39:56Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 31318m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-14T01:31:27Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 40310m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-14T17:00:37Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 41239m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-15T06:03:09Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 42022m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-15T19:10:15Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 42809m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-29T19:06:50Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 2847m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-07-29T19:09:08Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 2849m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+
+---
+
+## 2026-08-01 — Palimpsest OriginalDR campaign (measurement-design failures)
+
+Four errors this session, all in the same family: **how a measurement is constructed decides what it can
+report.** None was a coding mistake; every one was a design choice that made a wrong answer unfalsifiable.
+
+### SC-A · A test whose statistic is derived from the thing under test always passes
+
+Built a leaf "separability" probe defining `body_right` as *the max right edge among rows ending BELOW
+margin_left*. That is < `margin_left` by construction, so the verdict `body_right < margin_left` was a
+tautology and every leaf returned SEPARABLE. Page furniture (a catchword, a folio number) was also being
+counted as the margin column, so even `margin_left` was wrong.
+
+**Caught by**: the result being too good — 23 of 23 leaves separable. Suspicion of a unanimous result is
+the only thing that saved it.
+**Root cause**: defining the control variable in terms of the treatment variable.
+**Prevention**: *before* running a new detector, state what a NEGATIVE looks like and confirm the statistic
+can produce one. If no input could return "no", the test is decoration. Related: the project's own
+"DEAD METRIC IS NOT A TIE" family — a metric that cannot move is not evidence.
+
+### SC-B · Measure the DELTA against the incumbent, never against zero
+
+Audited proposed margin-column cuts and reported "65 tokens removed, all apparatus". The existing bound
+(0.815) was already removing most of them. Measured properly as a delta the intervention was **18 tokens**,
+and the eventual score was **+1 cell**, not the tens implied.
+
+**Root cause**: scoring an intervention against an empty baseline rather than against what is already in
+force.
+**Prevention**: an audit of a NEW rule must run the OLD rule first and diff. "What does this remove?" is the
+wrong question; "what does this remove *that is not already removed*?" is the right one.
+
+### SC-C · Read the authoritative field; do not re-derive it from its neighbours
+
+Reported the campaign board as 5,228 by computing `n_cells - n_open`. `build_reocr_report.py` said 5,225.
+The report was right: BLOCKED cells appear in neither `n_pass` nor `open`, so subtracting `open` silently
+credits them as passing. **A wrong headline figure reached the user and had to be retracted.**
+
+**Root cause**: reconstructing a published metric from raw fields instead of reading the field the pipeline
+publishes, without checking they agree.
+**Prevention**: when a struct exposes a computed field (`n_pass`, `rate`), USE IT. If you must derive,
+reconcile against the published value before quoting — and treat any disagreement as yours until proven
+otherwise. Matches the standing memory *Empirical Before Claim*.
+
+### SC-D · Scope an escape hatch to the thing that needed escaping
+
+`core/.scratch` is gitignored but force-tracked, so staging needs `git add -f`. I then ran `git add -f -A`,
+which applied the override to the WHOLE repo and began staging embedded git repositories and gigabytes of
+scratch. It timed out; `git reset` recovered it and nothing unintended was committed.
+
+**Root cause**: combining a narrow override (`-f`, needed for specific paths) with a global selector (`-A`).
+**Prevention**: `-f` and `-A` must never appear in the same `git add`. Force-add by explicit path, always.
+
+### SC-E · THE BIG ONE — a signal with two causes must never be routed to one verdict, least of all "ignore"
+
+Authoring a triage router, I wrote: *"all four sources fail the same verse = edition divergence, a ceiling,
+never chase it."* Both halves were wrong. The reasoning ("divergence is a property of the page all four
+photographed, so it cannot fail in one source alone") is false for a witness of a DIFFERENT EDITION. And the
+instruction sent the whole bucket to the bin — it contained **five reference defects worth 20 cells**, which
+were then recovered the same day.
+
+**Root cause**: collapsing a two-cause signal into a single classification, then *encoding that
+classification as a routing rule that suppresses further investigation*. The taxonomy error would have been
+cheap; turning it into "never chase" made it self-sealing — no future session would look.
+
+**Prevention**, and this is the durable one:
+- Before writing any triage rule that says SKIP, IGNORE, or CEILING, ask **"what else produces this
+  signal?"** and enumerate. A bucket only earns "never chase" when its causes have been enumerated and each
+  independently dismissed.
+- **Prefer a splitting test to a classification.** The fix was not a better label, it was a discriminator:
+  *if exactly one reference binds and all four sources pass the other three, it is a reference defect.*
+- A ceiling claim needs a MEASUREMENT, not an argument. "Capped at 33" was arithmetic on a premise that was
+  never checked. The corrected ceiling is 7.
+
+### What went RIGHT, and is worth repeating
+
+- **The control that made the S6 finding trustworthy.** Comparing archaic vs modern reference arms is
+  confounded (the modern fold is looser). Using S1/S3/S9 — three witnesses of the SAME edition as the
+  archaic references — as controls isolated the artifact: their gap was identical to four decimals, so S6's
+  divergence was real. *When a metric may be biased, find a population where the effect must be zero.*
+- **Testing a hypothesis instead of asserting it.** The `MAXW = 2200` downsample looked like an obvious
+  hidden ceiling (up to 81% of pixel area discarded, never swept, and MISREAD is exactly the fine-stroke
+  confusions a downsample should destroy). Measured: flat, +0.3pp / +0.8pp. Pinned as a NEGATIVE so no
+  future session pays for it. A compelling story is not a finding.
+- **Refusing to relax a criterion to manufacture a win.** The strict empty-strip test yielded one page in
+  three witnesses. Loosening the threshold would have produced more "wins"; instead the criterion was
+  re-derived from what a cut must actually SEPARATE.
