@@ -179,6 +179,37 @@ case "$MODEL" in
     *)                                 WINDOW=250000  ;;  # UNKNOWN model → conservative 250K default (User directive)
 esac
 
+# ─── Suffix audit against the launcher's declared intent ────────────────────
+# The case map above is a HEURISTIC standing in for a fact it cannot observe.
+# 1M is not a property of a model family — it is an opt-in beta window selected
+# by the `[1m]` ID suffix, and the CLI STRIPS that suffix before the request goes
+# out. So the transcript's .message.model reads `claude-opus-5` for a 1M session
+# and for a 200K session alike: the real window is UNRECOVERABLE from the
+# transcript. AION_MODEL, however, is the launcher's declared intent and DOES
+# carry the suffix — it is the only authoritative signal we have.
+#
+# This is not hypothetical. On 2026-08-01 launch-aion.sh was found seeding a bare
+# `claude-opus-5` (the suffix was lost in the 4.7->5 migration). Every lane ran at
+# 200K while this map asserted 1M, so JICM's hard threshold sat ABOVE the entire
+# real window and could not fire once. Native autocompact took every cycle
+# instead. The map agreeing with the INTENT while disagreeing with REALITY is
+# exactly what made it silent for weeks — nothing that only consults the map can
+# ever catch it.
+#
+# So when AION_MODEL is available, audit it. A 1M-family model declared WITHOUT
+# the suffix means the session really is 200K: use the truth and ALERT. Do NOT
+# "helpfully" assume 1M — that assumption IS the bug.
+if [[ -n "${AION_MODEL:-}" && "$WINDOW" -eq 1000000 ]]; then
+    case "$AION_MODEL" in
+        *\[1m\]|*\[1M\]) : ;;   # suffix present — the 1M mapping is genuine
+        *)
+            WINDOW=200000
+            # NOTE: NOW_ISO is not assigned until later in this script, so stamp inline.
+            echo "$(date -u +"%Y-%m-%dT%H:%M:%SZ") | ALERT | key=$JICM_KEY | AION_MODEL='$AION_MODEL' declares a 1M-family model WITHOUT the [1m] suffix — real window is 200K, not 1M. JICM thresholds clamped to 200K. FIX THE LAUNCHER (launch-aion.sh AION_MODEL default); do not tune around this." >> "$LOG_FILE"
+            ;;
+    esac
+fi
+
 # ─── Per-window threshold clamp ─────────────────────────────────────────────
 # Global soft/hard thresholds (250K/300K) are tuned for a 1M window. For any
 # smaller window — including the conservative 250K default used for an

@@ -73,7 +73,9 @@ def _seed_model() -> str:
                 return v
     except Exception:
         pass
-    return os.environ.get("AION_MODEL", "claude-opus-4-8[1M]")
+    # Fallback only when AION_MODEL is unset. The [1m] suffix selects the 1M beta
+    # window; a bare model ID silently yields 200K. Match launch-aion.sh's default.
+    return os.environ.get("AION_MODEL", "claude-opus-5[1m]")
 EXECUTOR_MAX_BUDGET_USD = float(os.environ.get("EXECUTOR_MAX_BUDGET_USD", "1.50"))
 
 # Auth-class regex — translated from executor.sh:832

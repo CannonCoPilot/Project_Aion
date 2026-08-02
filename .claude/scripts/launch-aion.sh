@@ -42,7 +42,7 @@
 #   Use --iterm2 flag to attach with tmux -CC for native iTerm2 tabs
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
-# Updated: 2026-07-25 — v3.4: default model Claude Opus 5 (1M-native) @ max effort, unified across
+# Updated: 2026-07-25 — v3.4: default model Claude Opus 5 @ 1M via the `[1m]` suffix, unified across
 #          W0 (Jarvis) + W1 (Protos/Alfred seed) + W11 (Jarvis-dev) via AION_MODEL;
 #          Jarvis-dev cross-codebase --add-dir (Projects, GitRepos); refreshed awareness doc
 
@@ -55,7 +55,29 @@ ALFRED_DIR="$PROJECT_DIR/alfred"
 # stay on the same model: executor tasks fork from W0's warm session to inherit
 # its prefix cache, and a model mismatch invalidates that shared cache. Exported
 # so an explicit `AION_MODEL=… ./launch-aion.sh` override propagates to children.
-export AION_MODEL="${AION_MODEL:-claude-opus-5}"
+#
+# THE `[1m]` SUFFIX IS LOAD-BEARING — DO NOT DROP IT.
+# No Opus model is "1M-native". 1M is an opt-in beta window selected by the model
+# ID suffix (`claude-opus-5[1m]`); a bare `claude-opus-5` gets the 200K default.
+# The CLI strips the suffix case-insensitively (/\[1m\]$/i) once it has used it to
+# pick the window, so the suffix never reaches the API as part of the model name.
+# NOTE an explicit --model on the command line OVERRIDES `"model": "opus[1m]"` in
+# ~/.claude/settings.json, so the setting cannot rescue a launcher that omits it.
+#
+# HISTORY (2026-08-01): the suffix was lost in the Opus 4.7 -> Opus 5 migration
+# (the retired line read `--model 'claude-opus-4-7[1M]'`) and every launched lane
+# silently ran at 200K. It was not a small regression — it broke JICM outright:
+#   * jicm-gate.sh maps *opus-5* -> WINDOW=1000000, so JICM's accounting assumed a
+#     1M window while the real session held 200K.
+#   * JICM's hard threshold therefore sat ABOVE the entire real context window and
+#     was mathematically unreachable — JICM could never fire a single cycle.
+#   * Native autocompact won every race by default, and because it fires the
+#     PreCompact path rather than the actuator, every checkpoint was produced by
+#     the legacy unguarded qwen3:8b summariser instead of stage 3's grounded digest.
+#   * With the old PCT_OVERRIDE=50 the compactor triggered at 50% of 200K = 100K,
+#     which is what made autocompact feel early and relentless.
+# One dropped suffix; four downstream symptoms that each looked like its own bug.
+export AION_MODEL="${AION_MODEL:-claude-opus-5[1m]}"
 
 # ── Window Index Map ──────────────────────────────────────────────────
 # Permanent window ordering. Core sessions first, infrastructure second,

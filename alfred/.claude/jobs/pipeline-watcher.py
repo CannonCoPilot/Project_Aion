@@ -62,7 +62,9 @@ def _seed_model() -> str:
                 return v
     except Exception:
         pass
-    return os.environ.get("AION_MODEL", "claude-opus-4-8[1M]")
+    # Fallback only when AION_MODEL is unset. The [1m] suffix selects the 1M beta
+    # window; a bare model ID silently yields 200K. Match launch-aion.sh's default.
+    return os.environ.get("AION_MODEL", "claude-opus-5[1m]")
 PULSE_PORT = int(os.environ.get("PULSE_PORT", "8800"))
 PULSE_API = os.environ.get("PULSE_API") or f"http://localhost:{PULSE_PORT}/api/v1"
 os.environ["PULSE_API"] = PULSE_API

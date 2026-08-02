@@ -49,7 +49,10 @@ ensure_seed() {
     fi
 
     log "Starting seed session in ${SEED_WINDOW}"
-    local seed_model="${AION_MODEL:-claude-opus-4-8[1M]}"
+    # Fallback only when AION_MODEL is unset (cron/direct invocation outside
+    # launch-aion.sh). Keep the [1m] suffix — it selects the 1M beta window and a
+    # bare ID silently yields 200K. Keep in step with launch-aion.sh's default.
+    local seed_model="${AION_MODEL:-claude-opus-5[1m]}"
     # Publish the seed model so Python executors fork tasks on the SAME model
     # (prefix-cache match). Read by executor.py / pipeline-watcher.py.
     printf '%s' "$seed_model" > "${STATE_DIR}/seed-model" 2>/dev/null || true
