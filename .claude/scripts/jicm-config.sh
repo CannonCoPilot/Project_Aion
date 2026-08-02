@@ -395,17 +395,28 @@ JICM_PROJECTS_DIR="$HOME/.claude/projects/${JICM_PROJECT_SLUG}"
 # "~380K resume baseline" note below; if a post-clear W0 resumes ABOVE 330K it will want to
 # clear again immediately. That is a circuit-breaker case (FIRE_MAX/hour + ALERT), not a
 # silent loop — but restore 550K/600K once the R3 shadow evidence is captured.
-# RESTORED to 550K/600K on 2026-08-01. These were lowered to 300K/330K on the mistaken premise
-# that JICM's token reading for W0 was live; it was not — the reading was pinned to a dormant
-# pre-clear session (the anchor bug), so lowering the bar could not have made cycles fire.
-# Lowering thresholds to fix a blindness problem treats the symptom of a broken measurement.
-# Restoring them now because a relaunch resets the stale identity, and because at W0's current
-# 527K a 330K hard threshold would clear a freshly-resumed session immediately.
+# SET TO 300K/330K on 2026-08-01 (Sir's directive), together with native autocompact
+# re-enabled at 80% (~800K on a 1M window) in launch-aion.sh.
+#
+# THRESHOLD ORDERING IS THE POINT — verify it on every change to either side:
+#     JICM soft 300K  <  JICM hard 330K  <<  native autocompact ~800K
+# JICM always acts first and the native compactor is a true last-resort backstop with
+# ~470K of headroom. This ordering was INVERTED between 2026-07-?? and 2026-08-01: the
+# launcher pinned autocompact to 50% (=500K) while these thresholds sat at 550K/600K,
+# so native compaction preempted every JICM cycle and W0 could never reach soft.
+# The percentage is expressed relative to the WINDOW; these are ABSOLUTE. They are
+# coupled only through this comment, so re-derive the pct whenever these move.
+#
+# History: lowered to 300K/330K once before on the mistaken premise that JICM's W0 token
+# reading was live; it was not (pinned to a dormant pre-clear session — the anchor bug),
+# so lowering the bar could not have made cycles fire. That reasoning was wrong then and
+# is not the reason now: the anchor bug is fixed, so 300K/330K now means what it says.
+#
 # Override per-session with JICM_SOFT_TOKENS/JICM_HARD_TOKENS if you want aggressive cycling
 # (the protos test lane runs at 20K/25K for exactly that reason).
-JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-550000}    # 55% of 1M
-JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-600000}    # 60% of 1M
-JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-600000}   # legacy v7.x alias (= new hard)
+JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-300000}    # 30% of 1M
+JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # 33% of 1M
+JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-330000}   # legacy v7.x alias (= new hard)
 # NOTE: the gate's per-window clamp (WINDOW*0.80 hard / *0.66 soft) still applies — on a
 # 1M window these pass through (800K/660K caps > 600K/550K); smaller windows clamp DOWN.
 JICM_POLL_INTERVAL=${JICM_POLL_INTERVAL:-1}     # 1s in v7.9 (was 5s in v7.x)

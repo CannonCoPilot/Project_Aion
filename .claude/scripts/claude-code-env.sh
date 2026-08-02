@@ -30,12 +30,19 @@
 # With default 95%:
 #   Effective trigger: ~85% of context window (~170K tokens)
 #
-# We intentionally leave this at DEFAULT (unset) to keep auto-compact
-# as high as possible. JICM triggers compression at 55%, giving 30%
-# headroom (60K tokens) for current work to complete + compression to run.
+# SET IN THE LAUNCHER, NOT HERE (2026-08-01).
+# launch-aion.sh exports CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 for every lane —
+# ~800K on a 1M window, a last-resort backstop far above JICM's 300K soft /
+# 330K hard (jicm-config.sh). JICM owns the normal clear+resume cycle.
 #
-# Uncomment only if you need to lower the auto-compact trigger:
-# export CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=70
+# ORDERING INVARIANT: JICM soft < JICM hard << autocompact pct * window.
+# The override is a PERCENTAGE of the window; JICM's thresholds are ABSOLUTE
+# tokens in a different file, so nothing enforces the ordering automatically.
+# It has already broken once: a surviving 50% override (=500K) fired BEFORE a
+# 550K JICM soft threshold and preempted every cycle it was meant to backstop.
+# If you change either side, re-derive the other.
+#
+# Do not set a second value here — two sources for one knob is how it drifts.
 
 # -----------------------------------------------------------------------------
 # NOTES ON THRESHOLDS (v5.7.0)

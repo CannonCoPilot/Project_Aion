@@ -292,7 +292,7 @@ launch_dev_window() {
     # into one field. The \n stay literal here (backslash-n inside double quotes) and are expanded
     # by the $'...' quoting in the wrapper below, which keeps the tmux command on one line.
     local dev_headers="x-aion-project: project-aion\nx-aion-agent-name: jarvis-dev-w5\nx-aion-session-id: $(uuidgen)"
-    local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$proxy_url"
+    local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$proxy_url"
     local sysappend="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
     local first
@@ -387,7 +387,7 @@ if [[ "$LITE_MODE" == "true" ]]; then
     echo ""
 
     # Claude command — no deterministic UUID, no resume, dangerously-skip-permissions
-    LITE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_LITE=true"
+    LITE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_LITE=true"
     LITE_CLAUDE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --add-dir .claude/personas/jarvis --verbose"
 
     # Wrapper: run Claude, clean up JSONL on exit so --continue can't find it
@@ -973,8 +973,27 @@ fi
 # Context management environment variables
 # - ENABLE_TOOL_SEARCH: Enable MCP tool search to reduce context usage
 # - CLAUDE_CODE_MAX_OUTPUT_TOKENS: Set max output to 20K (affects effective context budget)
-# Note: CLAUDE_AUTOCOMPACT_PCT_OVERRIDE set to 50% (500K at 1M window) as backstop
-#       JICM triggers at 300K tokens (absolute); native autocompact is the safety net
+# - CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80: native autocompact as a LAST-RESORT backstop at
+#   ~800K on a 1M window. JICM owns the normal clear+resume cycle and must always fire first.
+#
+#   ORDERING INVARIANT — re-derive this whenever EITHER side moves:
+#       JICM soft 300K  <  JICM hard 330K  <<  native autocompact ~800K   (jicm-config.sh)
+#   ~470K of headroom above JICM hard. Native compaction should never be reached in
+#   normal operation; if it fires, that is a signal JICM failed to act, not a success.
+#
+#   HISTORY (2026-08-01) — why this invariant is written down. The override was 50%
+#   (=500K) with the comment "JICM triggers at 300K; native autocompact is the safety net".
+#   True when written. After 11a90fe moved JICM to soft=550K/hard=600K, nobody re-derived
+#   the percentage — so the 500K "backstop" fired BEFORE JICM's 550K soft threshold and
+#   preempted every cycle it was meant to catch. W0 could never reach soft at all.
+#   The override is a PERCENTAGE of the window; JICM's are ABSOLUTE tokens in another
+#   file. Nothing enforces the ordering but this comment. Check it, or the bug returns.
+#
+#   Claude Code gates autocompact on three switches (DISABLE_COMPACT flag,
+#   DISABLE_AUTO_COMPACT env, autoCompactEnabled setting — default TRUE). All three are
+#   left permissive; only the percentage is tuned. Note the CLI parses this as
+#   `testPctOverride` and internal reserves may make the effective trigger somewhat
+#   below the nominal 80% — treat 800K as an upper bound, not an exact firing point.
 # Determine session type
 if [[ "$FRESH_MODE" == "true" ]]; then
     JARVIS_SESSION_TYPE="fresh"
@@ -998,8 +1017,8 @@ W0_HEADERS="x-aion-project: project-aion\nx-aion-agent-name: jarvis-w0\nx-aion-s
 # Kept (and fixed) so it is correct if ever wired up, rather than a comma-joined trap in waiting.
 DEV_HEADERS="x-aion-project: project-aion\nx-aion-agent-name: jarvis-dev-w5\nx-aion-session-id: $JARVIS_SESSION_UUID"
 
-#CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
-CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=50 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
+#CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
+CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_TYPE=$JARVIS_SESSION_TYPE JARVIS_WINDOW=0 ANTHROPIC_BASE_URL=$USAGE_PROXY_URL"
 
 # Create new tmux session with Claude in the main pane
 # W0 runs in a restart loop: first launch per mode, then --resume on re-entry
