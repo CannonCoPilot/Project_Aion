@@ -59,15 +59,32 @@ SID="$(jq -r '.session_id // empty' "$JK_STATE" 2>/dev/null)"
 [[ "$TOKENS" =~ ^[0-9]+$ && "$SOFT" =~ ^[0-9]+$ && -n "$SID" ]] || { _log "skip: unusable state"; exit 0; }
 [[ "$SOFT" -gt 0 && "$TOKENS" -ge "$SOFT" ]] || exit 0        # below soft: nothing to warm, quietly
 
-# Single-flight. A second warm would queue behind the first on the GPU and finish against a
-# staler anchor than the one already in progress.
-if [[ -f "$PW_LOCK" ]]; then
-    LOCK_PID="$(cat "$PW_LOCK" 2>/dev/null)"
+# Single-flight, acquired ATOMICALLY IN THE PARENT.
+# Previously the lock file was written inside the detached subshell, so the parent returned
+# before the lock existed: a second tick arriving in that window saw no lock and launched a
+# duplicate warm. Observed exactly that — two warms for the same sid and anchor, 2s apart,
+# both loading a 20GB model. `mkdir` is the test-and-set primitive here because it is atomic
+# on every filesystem we care about; a check-then-write pair never is, no matter how small
+# the window looks. The holder PID goes INSIDE the directory, so staleness is still detectable.
+if ! mkdir "$PW_LOCK" 2>/dev/null; then
+    LOCK_PID="$(cat "$PW_LOCK/pid" 2>/dev/null)"
     if [[ -n "$LOCK_PID" ]] && kill -0 "$LOCK_PID" 2>/dev/null; then
-        _log "skip: warm already running (pid $LOCK_PID)"; exit 0
+        exit 0                                                # warm genuinely in flight — quiet
     fi
-    rm -f "$PW_LOCK" 2>/dev/null                              # stale lock, holder is gone
+    # Holder is gone: stale lock from a killed warm. Reclaim it, and SAY so — a lock that
+    # needs reclaiming means a warm died without cleaning up, which is worth knowing.
+    _log "reclaiming stale warm lock (holder pid ${LOCK_PID:-unknown} is gone)"
+    rm -rf "$PW_LOCK" 2>/dev/null
+    mkdir "$PW_LOCK" 2>/dev/null || { _log "skip: could not acquire warm lock"; exit 0; }
 fi
+# Stamp OUR pid immediately. The lock must never exist without a live pid inside it: a tick that
+# finds an empty pid file concludes "holder is gone" and reclaims a lock that is genuinely held,
+# which is exactly how two warms launched 2s apart despite an atomic mkdir. The directory being
+# atomic is necessary but not sufficient — the staleness probe has to be answerable at ALL times.
+echo $$ > "$PW_LOCK/pid"
+# From here on the lock is HELD by this process; every exit path below must release it.
+_release_lock() { rm -rf "$PW_LOCK" 2>/dev/null; }
+trap _release_lock EXIT
 
 # --- Has the prefix moved? ---------------------------------------------------------------
 # Cheap: --anchor-only computes the trim anchor through the SAME assemble() the real prompt
@@ -128,7 +145,6 @@ fi
 _log "warm needed: sid=${SID:0:8} anchor=$ANCHOR (was sid=${WARM_SID:0:8} anchor=${WARM_ANCHOR:-none})"
 (
     cd "$DIGEST_DIR" || exit 1
-    echo $$ > "$PW_LOCK"
     OUT="$(python3 tdigest.py "$SID" $JICM_DIGEST_ARGS --prewarm --tag "prewarm|$KEY" 2>>"$PW_LOG")"
     RC=$?
     if [[ $RC -eq 0 && -n "$OUT" ]]; then
@@ -146,9 +162,18 @@ _log "warm needed: sid=${SID:0:8} anchor=$ANCHOR (was sid=${WARM_SID:0:8} anchor
     else
         echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | $KEY | ALERT warm FAILED rc=$RC — hard-threshold digest will run COLD (correct, just ~4x slower)" >> "$PW_LOG"
     fi
-    rm -f "$PW_LOCK" 2>/dev/null
+    rm -rf "$PW_LOCK" 2>/dev/null     # the CHILD releases; ownership passed to it below
 ) >/dev/null 2>&1 &
 PW_PID=$!
+# Hand the lock to the child ATOMICALLY-ENOUGH: the pid file already holds this (still-live)
+# parent, and is overwritten with the child's pid the instant the child exists. There is no
+# moment where the pid names a dead process, so no tick can wrongly reclaim.
+echo "$PW_PID" > "$PW_LOCK/pid" 2>/dev/null
+# Ownership of the lock now belongs to the detached child, which releases it when the warm
+# finishes. Disarm the parent's trap or exiting this script (immediately, by design) would
+# delete the lock out from under a warm that is still running — reintroducing the duplicate
+# launch this lock exists to prevent.
+trap - EXIT
 sleep 1
 if kill -0 "$PW_PID" 2>/dev/null; then
     _log "warm launched (pid $PW_PID)"
