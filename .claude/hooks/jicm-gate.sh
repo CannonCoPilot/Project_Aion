@@ -112,6 +112,12 @@ mkdir -p "$(dirname "$JK_STATE")" 2>/dev/null
 # cache hit rate). See .claude/context/reference/jicm-token-formulas.md for the
 # canonical formulas shared between this hook and cache-telemetry-extractor-v2.py.
 TOKENS=0
+# Did we actually READ a usage record this invocation? Distinguishes "the context is
+# empty" from "we could not measure the context" — two states this hook used to
+# collapse into a confident 0, which is the failure mode this flag exists to end.
+# Resolved into a real value after the previous-state read below.
+TOKENS_MEASURED=0
+TOKENS_SOURCE="fresh"
 INPUT_T=0
 CACHE_R=0
 CACHE_C=0
@@ -142,6 +148,8 @@ if [[ -f "$TRANSCRIPT" ]]; then
         [[ "$CACHE_1H" == "null" || -z "$CACHE_1H" ]] && CACHE_1H=0
         [[ "$OUTPUT_T" == "null" || -z "$OUTPUT_T" ]] && OUTPUT_T=0
         TOKENS=$((INPUT_T + CACHE_R + CACHE_C))
+        TOKENS_MEASURED=1
+        TOKENS_SOURCE="measured"
         # Cache hit rate: cache_read / (cache_read + cache_creation_total + input_tokens)
         # awk used because bash integer arithmetic truncates; 4-decimal-place precision.
         DENOM=$((CACHE_R + CACHE_C + INPUT_T))
@@ -225,11 +233,46 @@ WIN_SOFT=$(( WINDOW * 66 / 100 ))
 # ─── Burn-rate tracking (delta vs. previous state) ──────────────────────────
 PREV_TOKENS=0
 PREV_TS=0
+PREV_SID=""
 if [[ -f "$JK_STATE" ]]; then
     PREV_TOKENS=$(jq -r '.tokens // 0' "$JK_STATE" 2>/dev/null)
     PREV_TS=$(jq -r '.ts_epoch // 0' "$JK_STATE" 2>/dev/null)
+    PREV_SID=$(jq -r '.session_id // ""' "$JK_STATE" 2>/dev/null)
     [[ "$PREV_TOKENS" == "null" ]] && PREV_TOKENS=0
     [[ "$PREV_TS" == "null" ]] && PREV_TS=0
+    [[ "$PREV_SID" == "null" ]] && PREV_SID=""
+fi
+
+# ─── Resolve an UNMEASURABLE reading (no confident zeros) ───────────────────
+#
+# Until now, a failed measurement was written as `tokens: 0`. A zero and an unknown
+# are not the same claim, and recording the second as the first is precisely the
+# silent degradation the workspace guardrails forbid: JICM would believe a lane that
+# is actually at 300K is empty, and would never fire.
+#
+# The two causes look identical in the state file but are opposite in meaning, so we
+# split them with a test rather than a label — the session id:
+#
+#   NEW session id  → the lane genuinely reset (a /clear mints a fresh session, whose
+#                     transcript carries no assistant usage yet). Zero is TRUE. This is
+#                     the common case and the one observed after Genie's first cycle.
+#   SAME session id → the same conversation is still running but we could not read its
+#                     usage (transcript absent mid-rotation, unparseable tail, a racing
+#                     writer). Zero is FALSE. Carry the last known value forward.
+#
+# Carrying forward is the fail-LOUD direction: if the lane really was near threshold,
+# a carried value keeps it near threshold and JICM still acts. Writing 0 would have
+# silently disarmed it. And it cannot loop — a cycle changes the session id, which
+# routes the next read to the "fresh" arm.
+if [[ "$TOKENS_MEASURED" -eq 0 ]]; then
+    if [[ -n "$PREV_SID" && "$SESSION_ID" == "$PREV_SID" && "$PREV_TOKENS" -gt 0 ]]; then
+        TOKENS="$PREV_TOKENS"
+        TOKENS_SOURCE="carried"
+        echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) [$JICM_KEY] gate: usage unreadable for live session ${SESSION_ID:0:8} — carried ${PREV_TOKENS} forward (NOT zero)" \
+            >> "$PROJECT_DIR/.claude/logs/jicm-gate-anomaly.log" 2>/dev/null
+    else
+        TOKENS_SOURCE="fresh"
+    fi
 fi
 NOW_TS=$(date +%s)
 NOW_ISO=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
@@ -303,6 +346,7 @@ if [[ -x "$STATE_UPDATE" ]]; then
   "session_id": "$SESSION_ID",
   "model_id": "$MODEL",
   "tokens": $TOKENS,
+  "tokens_source": "$TOKENS_SOURCE",
   "input_tokens": $INPUT_T,
   "cache_read_tokens": $CACHE_R,
   "cache_creation_tokens": $CACHE_C,

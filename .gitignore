@@ -185,3 +185,9 @@ alfred/.claude/scratch/canary-repo/
 # Runtime rate-limit cache (refresh-ratelimit-cache.sh, Stop hook)
 .claude/context/.ratelimit-cache.json
 .claude/context/.ratelimit-refresh.lock
+
+# LiteLLM exit failsafe — runtime state (health snapshot, incident ledger, lock)
+.claude/context/.litellm-health.json
+.claude/context/.litellm-incidents.jsonl
+.claude/context/.litellm-incidents.jsonl.*.bak
+.claude/context/.litellm-failsafe.lock
