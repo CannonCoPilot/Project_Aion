@@ -251,6 +251,21 @@ jicm_default_target() {
 JICM_TO="$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)"  # short-timeout wrapper ("" → run bare)
 #
 # session-id currently running in a tmux target's pane ("" if none / no claude child).
+# CALLER-BLINDNESS (verified 2026-08-12) — this probe CANNOT resolve the pane that the
+# calling process itself lives in. macOS `pgrep` does not match the caller's ancestors,
+# and this function is built on `pgrep -P <pane_pid>`. Demonstrated by contrast: from
+# inside W11's own subtree, `pgrep -P 17378` returned empty and `pgrep -x claude` omitted
+# pid 17381, while plain `ps` saw it fine; the identical probe run under the tmux server
+# (via `tmux run-shell`) returned 17381 and resolved aion:11 to its true session id.
+#
+# CONSEQUENCES:
+#   · A supervisor run BY HAND from a Claude pane is blind to that pane and will log
+#     SIGNAL-UNVERIFIABLE and refuse to fire — correctly, but for a reason that looks
+#     like a defect. Cost ~20 minutes of misdiagnosis before the contrast test.
+#   · Under launchd/cron the supervisor descends from launchd, not from any Claude, so
+#     every pane resolves. That is the supported production path.
+#   · Any SELF-actuation path built on this probe is blind to its own pane by
+#     construction. Do not build one without a different occupancy test.
 jicm_pane_session() {                        # <tmux_target>
     local target="$1" ppid child sid
     [[ -n "$target" ]] || return 0

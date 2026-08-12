@@ -17,8 +17,8 @@
 #
 # USAGE
 #   jicm-actuate.sh <key>                    DRY-RUN — resolve + print the cycle plan; no action (default; safe)
-#   jicm-actuate.sh <key> --fire             ARM the detached actuator. GATED (Phase 1): needs --canary.
-#   jicm-actuate.sh <key> --fire --canary    ARM (canary): spawn the detached worker for a supervised run.
+#   jicm-actuate.sh <key> --fire             ARM the detached actuator (un-gated 2026-08-12).
+#   jicm-actuate.sh <key> --fire --canary    Same; --canary is accepted and ignored (legacy call sites).
 #   jicm-actuate.sh __run <key>              INTERNAL — the detached worker. preserve-restore REFUSES
 #                                            unless JICM_ACTUATE_GATE_OK=1 (set by cmd_fire or a validated
 #                                            supervisor); a bare __run can never live-/clear a session.
@@ -39,10 +39,14 @@
 #   DELIBERATE, DOCUMENTED parity checkpoint to validate when W0 is folded in (Phase 3), NOT a silent
 #   omission. W0 stays on its legacy watcher (with HALT) until then.
 #
-# SAFETY: live-fire stays GATED behind --canary until a human-supervised canary run validates the
-#   detached mechanism (Phase 2, Sir's hand). The gate is a circuit-breaker that ALERTS; un-gating is
-#   a single-block deletion. preserve-restore refuses to /clear on a verified-busy head or without a
-#   non-empty checkpoint, and refuses to guess a transcript (self-decapitation guard).
+# SAFETY: the --canary gate was REMOVED 2026-08-12 after 7 validated cycles (see cmd_fire).
+#   `--fire` is now live. What still guards it: M2 identity pinning (refuses on registry drift),
+#   transcript + target verification, the __run worker's own JICM_ACTUATE_GATE_OK requirement, the
+#   supervisor's C2 occupancy checks, and its FIRE_MAX circuit breaker. preserve-restore still
+#   refuses to /clear a verified-busy head, to proceed without a non-empty checkpoint, or to guess
+#   a transcript (self-decapitation guard).
+#   NOTE: `<key> --fire` with no other argument now ARMS A REAL CYCLE. The safe inspection command
+#   is `<key>` alone (DRY-RUN) — do not reach for --fire to "check whether it works".
 #
 # Author: Jarvis (W11), 2026-07-18 — JICM v9 Phase 1.
 # ============================================================================
@@ -645,15 +649,28 @@ cmd_plan() {
 # ARM the detached actuator. GATED behind --canary in Phase 1 (see SAFETY header).
 cmd_fire() {
     local key="$1" canary="$2" expect_sid="${3:-}" expect_target="${4:-}"
-    # ---- SAFETY GATE (JICM v9 Phase 1). Un-gate = delete this block (Phase 2, Sir's hand). ----
-    if [[ "$canary" != "1" ]]; then
-        echo "  [BLOCKED] live-fire gated (JICM v9 Phase 2 canary pending)."
-        echo "           The detached actuator is BUILT and ready. Validate on a DISPOSABLE session:"
-        echo "             jicm-actuate.sh $key --fire --canary"
-        echo "           Un-gate plain --fire only AFTER a clean canary cycle. Not firing on a live head."
-        return 2
-    fi
-    # ---- end gate ----
+    # ---- SAFETY GATE REMOVED 2026-08-12, by Sir's instruction, after the canary
+    #      requirement was satisfied SEVEN times across three lanes:
+    #        5 × protos, 1 × genie (2026-08-11), 1 × jaques (2026-08-12)
+    #      The jaques cycle was the decisive one: 18 steps, 75s, full lane isolation
+    #      verified (W0 shared memory + genie's own lane files byte-unchanged), and it
+    #      was the first cycle to prove the per-key L4/L5 routing through the DETACHED
+    #      actuator — jaques-sessions 0→19, jaques-core 0→21, every other namespace
+    #      unmoved. The mechanism is validated; the gate had become the only thing
+    #      standing between a raised clear-now signal and the cycle that answers it.
+    #
+    #      `--canary` is now accepted and ignored, so existing call sites keep working.
+    #
+    #      WHAT STILL GUARDS THIS PATH — none of it was part of the gate:
+    #        · M2 identity pinning below: refuses if the registry moved between the
+    #          caller's validation and this arming turn (would clear the wrong session)
+    #        · transcript verification (self-decapitation guard) and target verification
+    #        · the __run worker independently refuses without JICM_ACTUATE_GATE_OK=1
+    #        · the supervisor's own C2 checks: raiser alive AND raiser == pane occupant
+    #        · the supervisor's circuit breaker: FIRE_MAX per key per rolling window,
+    #          which ALERTS rather than accepting a stuck lane
+    #      Re-gating is a one-line `[[ "$canary" != "1" ]] && return 2` if ever needed.
+    # ---- end note ----
     jicm_key_paths "$key"
     local policy transcript target
     policy="$(_resolve_policy)"
