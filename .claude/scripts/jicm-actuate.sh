@@ -78,6 +78,33 @@ ACT_LOG="$PROJECT_DIR/.claude/logs/jicm-actuate.log"
 
 _log() { printf '%s [%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "${JK_KEY:-?}" "$*" >> "$ACT_LOG"; }
 
+# Portable timeout binary. macOS ships neither `timeout` nor `setsid`; Homebrew coreutils
+# supplies `timeout`, MacPorts `gtimeout`. Resolved once, empty if genuinely absent.
+TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)}"
+JICM_INGEST_TIMEOUT_RAG="${JICM_INGEST_TIMEOUT_RAG:-600}"
+JICM_INGEST_TIMEOUT_GRAPHITI="${JICM_INGEST_TIMEOUT_GRAPHITI:-900}"
+
+# Run a detached ingest under a hard time bound.  _bounded <label> <seconds> <cmd...>
+# These run as `( … ) &` children, and an unbounded hang in one is worse than it looks:
+# a bash subshell inherits its parent's argv, so a stuck ingest impersonates a live
+# actuator to anything matching on cmdline (this is what wedged key=dev 2026-08-12 —
+# graphiti-auto-ingest.py has no timeout of its own and ran 15+ minutes past the cycle).
+# Killing one costs MEMORY DEPTH only — the checkpoint is already on disk and resume is
+# unaffected — so the kill is the right trade. It must never be silent, hence the ALERT:
+# a repeated timeout means a degraded backend, which is a problem to fix, not absorb.
+_bounded() {
+    local label="$1" secs="$2" rc; shift 2
+    if [[ -z "$TIMEOUT_BIN" ]]; then
+        _log "$label running UNBOUNDED (no timeout binary found — install coreutils)"
+        "$@"; return $?
+    fi
+    "$TIMEOUT_BIN" -s TERM -k 15 "$secs" "$@"; rc=$?
+    if [[ "$rc" -eq 124 || "$rc" -eq 137 ]]; then
+        _log "ALERT ⚠️ $label exceeded ${secs}s and was KILLED — this cycle's ingest is LOST (checkpoint + resume unaffected). Repeated hits = a degraded backend; check LiteLLM/Ollama/Neo4j/Qdrant."
+    fi
+    return "$rc"
+}
+
 # ---------------------------------------------------------------------------
 # Resolution helpers — registry is the source of truth; env overrides for the
 # throwaway test harness; per-key defaults; then refuse (empty) on ambiguity.
@@ -264,7 +291,8 @@ _step_rag_ingest() {   # 5.5 — checkpoint → L4 RAG (async, non-blocking)
                JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
         export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION"
         export JICM_COMPRESSED_FILE="$JK_COMPRESSED" JICM_SESSION_ID="$sid"
-        "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+        _bounded "5.5 RAG ingest" "$JICM_INGEST_TIMEOUT_RAG" \
+            "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
     ) &
     _log "5.5 RAG ingest launched (pid $!, collection=$JK_RAG_COLLECTION)"
 }
@@ -300,7 +328,8 @@ _step_scrollback() {   # 5.6 capture + 5.6b NLP compress + 5.6c summary → RAG
                    JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
             export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION"
             export JICM_COMPRESSED_FILE="$JK_SCROLLBACK_SUMMARY" JICM_SESSION_ID="$sid"
-            "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+            _bounded "5.6c scrollback RAG ingest" "$JICM_INGEST_TIMEOUT_RAG" \
+                "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
         ) &
         _log "5.6c scrollback → RAG ingest launched (pid $!, collection=$JK_RAG_COLLECTION)"
     fi
@@ -393,11 +422,13 @@ _step_graphiti() {   # 5.9 — checkpoint → L5 Graphiti episode (async, non-bl
         # the RAG steps above.
         ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED"
           export GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
-          "$VENV_PY" "$g" >> "$JICM_LOG_FILE" 2>&1 ) &
+          _bounded "5.9 Graphiti ingest" "$JICM_INGEST_TIMEOUT_GRAPHITI" \
+              "$VENV_PY" "$g" >> "$JICM_LOG_FILE" 2>&1 ) &
         _log "5.9 Graphiti episode ingest launched (pid $!, group=$JK_GRAPHITI_GROUP)"
     elif [[ -f "$JICM_GRAPHITI_INGEST_SCRIPT" ]]; then
         ( export GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
-          "$VENV_PY" "$JICM_GRAPHITI_INGEST_SCRIPT" --file "$JK_COMPRESSED" >> "$JICM_LOG_FILE" 2>&1 ) &
+          _bounded "5.9 Graphiti ingest (prepopulate fallback)" "$JICM_INGEST_TIMEOUT_GRAPHITI" \
+              "$VENV_PY" "$JICM_GRAPHITI_INGEST_SCRIPT" --file "$JK_COMPRESSED" >> "$JICM_LOG_FILE" 2>&1 ) &
         _log "5.9 Graphiti via prepopulate fallback (pid $!)"
     else
         _log "5.9 graphiti skipped (no ingest script)"
@@ -709,8 +740,18 @@ cmd_fire() {
     JICM_ACTUATE_TRANSCRIPT="$transcript" \
     JICM_TMUX_TARGET_OVERRIDE="$target" \
         nohup bash "$SELF_PATH" __run "$key" >> "$ACT_LOG" 2>&1 &
+    _worker_pid=$!
     disown 2>/dev/null || true
-    echo "  [CANARY-FIRE] detached actuator armed for key=$key (pid $!)."
+    # The ARMING side owns the lock, because it is the only place that knows the worker's
+    # PID. Format is "epoch|pid": the epoch drives the supervisor's TTL backstop, the PID
+    # is an OWNER TOKEN. Without it, liveness has to be inferred from argv — and every
+    # `( ... ) &` ingest this worker detaches inherits that same argv, so a hung ingest
+    # reads as a live cycle and wedges the key forever (observed on key=dev 2026-08-12).
+    # Writing it here also closes a second hole: a human running `--fire` by hand used to
+    # leave no lock at all, so the supervisor could arm a SECOND actuator over the top.
+    mkdir -p "$JICM_SIGNALS_DIR" 2>/dev/null
+    echo "$(date +%s)|${_worker_pid}" > "$JICM_SIGNALS_DIR/actuating.$key"
+    echo "  [CANARY-FIRE] detached actuator armed for key=$key (pid ${_worker_pid})."
     echo "                policy=$policy · target=${target:-n/a} · log: $ACT_LOG"
     echo "                Reply ONCE and STOP so the actuator observes idle and can /clear you."
     return 0

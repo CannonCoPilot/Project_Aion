@@ -90,11 +90,41 @@ _iso_epoch() {
     TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$iso" +%s 2>/dev/null || echo 0
 }
 
-# Is a detached actuator worker for this key actually alive? (finding-1 fix — reclaim
-# the lock by real process liveness, never a timeout guess, so a slow-but-healthy cycle
-# can't be reclaimed + double-fired.) Matches the worker's cmdline; the key is anchored
-# by ( |$) so "dev" can't match "dev2". pgrep is read-only (no pkill self-match risk).
-_worker_alive() { pgrep -f "jicm-actuate\.sh __run ${1}( |\$)" >/dev/null 2>&1; }
+# Age of a key's actuating lock, in seconds. Absent lock → 0.
+_lock_age() {
+    local lock="$JICM_SIGNALS_DIR/actuating.$1" born
+    [[ -f "$lock" ]] || { echo 0; return; }
+    born="$(cut -d'|' -f1 "$lock" 2>/dev/null)"
+    [[ "$born" =~ ^[0-9]+$ ]] || born=0
+    echo $(( $(_now) - born ))
+}
+
+# Is a detached actuator worker for this key actually alive? (finding-1 fix — reclaim the
+# lock by real process liveness, never a timeout guess, so a slow-but-healthy cycle can't
+# be reclaimed + double-fired.) That principle stands; what changed is WHICH process is
+# measured. Liveness now resolves through the lock's OWNER TOKEN — the worker PID written
+# by `--fire` — because argv cannot identify the cycle: the worker detaches its RAG /
+# scrollback / Graphiti ingests as `( ... ) &` subshells, and a bash subshell INHERITS its
+# parent's argv verbatim. So `pgrep -f "…__run dev"` matched a hung fire-and-forget child
+# long after the cycle finished, wedging the key (observed on key=dev 2026-08-12: a
+# 10-minute graphiti-auto-ingest held the lock past `preserve-restore complete`).
+# `kill -0` alone would be fooled by PID reuse, so the argv match is retained — demoted
+# from primary signal to CORROBORATOR of the token.
+# A tokenless (pre-2026-08-12) lock has no owner to check, so it degrades to the old argv
+# match, but only while it is younger than the TTL — that way the transitional case is
+# still guarded yet cannot wedge a lane permanently the way the unbounded version did.
+_worker_alive() {
+    local lock="$JICM_SIGNALS_DIR/actuating.$1" pid
+    [[ -f "$lock" ]] || return 1
+    pid="$(cut -d'|' -f2 -s "$lock" 2>/dev/null)"
+    if [[ "$pid" =~ ^[0-9]+$ ]]; then
+        kill -0 "$pid" 2>/dev/null || return 1
+        ps -p "$pid" -o command= 2>/dev/null | grep -qE "jicm-actuate\.sh __run ${1}( |$)"
+        return $?
+    fi
+    [[ "$(_lock_age "$1")" -lt "$LOCK_TTL_SEC" ]] || return 1   # legacy lock: expires
+    pgrep -f "jicm-actuate\.sh __run ${1}( |\$)" >/dev/null 2>&1
+}
 
 # Is the key's transcript inactive? (finding-3 fix — corroborate GC liveness. Claude
 # writes the transcript on every tool-use, so it stays fresh through a long tool-heavy
@@ -145,7 +175,8 @@ _gc_key() {
     jicm_key_paths "$1"
     rm -f "$JK_REGISTRY" "$JK_STATE" "$JK_CLEAR_SIGNAL" "$JK_RESUME_SIGNAL" \
           "$JK_COMPRESSION_SIGNAL" "$JK_COMPRESSION_GUARD" \
-          "$JICM_SIGNALS_DIR/actuating.$1" "$JICM_SIGNALS_DIR/pending-noted.$1" \
+          "$JICM_SIGNALS_DIR/actuating.$1" "$JICM_SIGNALS_DIR/actuating.$1.alerted" \
+          "$JICM_SIGNALS_DIR/pending-noted.$1" \
           "$JICM_SIGNALS_DIR/fire-log.$1" "$JICM_SIGNALS_DIR/fire-log.$1.alerted" 2>/dev/null
     _log "GC: removed dead key=$1 (stale last_seen; registry + state + signals)"
 }
@@ -156,7 +187,9 @@ _reap_lock() {
     local lock="$JICM_SIGNALS_DIR/actuating.$1"
     [[ -f "$lock" ]] || return 0
     if ! _worker_alive "$1" && [[ ! -f "$JK_CLEAR_SIGNAL" ]]; then
-        rm -f "$lock"; _log "reap: key=$1 actuation cycle complete (lock released)"
+        local held; held="$(_lock_age "$1")"   # read BEFORE the rm, or it always reports 0
+        rm -f "$lock" "$lock.alerted"
+        _log "reap: key=$1 actuation cycle complete (lock released after ${held}s)"
     fi
 }
 
@@ -193,11 +226,24 @@ _fire() {
     jicm_key_paths "$1"
     local lock="$JICM_SIGNALS_DIR/actuating.$1" age
     if [[ -f "$lock" ]]; then
-        _worker_alive "$1" && return 0                         # cycle genuinely in flight — never double-fire
-        age=$(( $(_now) - $(cat "$lock" 2>/dev/null || echo 0) ))
+        age="$(_lock_age "$1")"     # NOT `cat $lock`: the lock is "epoch|pid", not a bare epoch
+        if _worker_alive "$1"; then
+            # Cycle genuinely in flight — NEVER double-fire. But a cycle that outlives the
+            # TTL is a fault, not a healthy slow run, and must not be waited on in silence
+            # (No Silent Degradation): the lane is un-actuatable for as long as it hangs,
+            # and this used to `return 0` with no age check at all, which is what made the
+            # stale-lock backstop below UNREACHABLE. Alerting rather than killing is
+            # deliberate — SIGKILLing a worker sitting between `/clear` and the resume
+            # nudge would strand the session mid-cycle, a strictly worse failure.
+            if [[ "$age" -ge "$LOCK_TTL_SEC" && ! -f "$lock.alerted" ]]; then
+                _log "ALERT ⚠️ OVERDUE actuation key=$1 — worker pid $(cut -d'|' -f2 -s "$lock" 2>/dev/null) is alive but has held the lock ${age}s (TTL ${LOCK_TTL_SEC}s). This lane is BLOCKED until it exits. NEEDS A HUMAN: check the actuator log for the step it is stuck on."
+                echo "$(_now)" > "$lock.alerted"
+            fi
+            return 0
+        fi
         [[ "$age" -lt "$LOCK_TTL_SEC" ]] && return 0           # young lock, worker not yet visible (starting) — wait
         _log "ALERT: stale actuating lock key=$1 (${age}s, no live worker) — clearing + re-evaluating"
-        rm -f "$lock"
+        rm -f "$lock" "$lock.alerted"
     fi
     # R3 — never actuate w0 while the legacy watcher still owns it. Belt-and-braces
     # behind the two existing gates: shadow mode must be observe-only even if a future
@@ -214,8 +260,14 @@ _fire() {
     [[ -n "${SIGVALID_SID:-}"    ]] && pin+=("--expect-sid=${SIGVALID_SID}")
     [[ -n "${SIGVALID_TARGET:-}" ]] && pin+=("--expect-target=${SIGVALID_TARGET}")
     if bash "$ACTUATOR" "$1" --fire ${pin[@]+"${pin[@]}"} >> "$SUP_LOG" 2>&1; then
-        echo "$(_now)" > "$lock"
-        _log "ACTUATE: armed detached actuator for key=$1 via --fire (lock set)${SIGVALID_SID:+ · pinned sid=${SIGVALID_SID}}"
+        # The lock is written by `--fire` itself, which is the only side that knows the
+        # worker's PID (the owner token _worker_alive needs). We only verify it landed —
+        # a missing lock means an unguarded cycle, so say so loudly rather than assume.
+        if [[ -f "$lock" ]]; then
+            _log "ACTUATE: armed detached actuator for key=$1 via --fire (lock set by worker, owner=$(cut -d'|' -f2 -s "$lock" 2>/dev/null))${SIGVALID_SID:+ · pinned sid=${SIGVALID_SID}}"
+        else
+            _log "ALERT ⚠️ key=$1 armed but NO actuating lock appeared — the cycle is running UNGUARDED (a second arm could double-fire it). NEEDS A HUMAN: check that jicm-actuate.sh cmd_fire still writes signals/actuating.<key>."
+        fi
     else
         _log "ACTUATE-BLOCKED key=$1 (--fire rc≠0 — identity drift (M2), --canary gate, or unresolved transcript/target; see the actuator log for the exact cause)"
     fi
@@ -383,13 +435,21 @@ cmd_staleness() {
 }
 
 cmd_status() {
-    local gate; [[ "$ACTUATE_ENABLED" == "1" ]] && gate="ENABLED (live firing)" || gate="GATED (sense-only)"
-    echo "jicm-supervisor · actuate=$gate · include_w0=$INCLUDE_W0 · poll=${POLL_SEC}s"
-    local running="stopped"
+    # Report the DAEMON's effective config, not this invocation's env (see _daemon).
+    local act="$ACTUATE_ENABLED" iw0="$INCLUDE_W0" poll="$POLL_SEC" src="this shell (no daemon running)"
+    local running="stopped" p=""
     if [[ -f "$SUP_PID_FILE" ]]; then
-        local p; p="$(cat "$SUP_PID_FILE" 2>/dev/null)"
+        p="$(cat "$SUP_PID_FILE" 2>/dev/null)"
         kill -0 "$p" 2>/dev/null && running="running (pid $p)" || running="stale pid ($p)"
     fi
+    if [[ "$running" == running* && -f "$SUP_PID_FILE.runtime" ]]; then
+        IFS='|' read -r act iw0 poll < "$SUP_PID_FILE.runtime"
+        src="live daemon"
+    elif [[ "$running" == running* ]]; then
+        src="UNKNOWN — daemon predates runtime publishing; restart it to get a true reading"
+    fi
+    local gate; [[ "$act" == "1" ]] && gate="ENABLED (live firing)" || gate="GATED (sense-only)"
+    echo "jicm-supervisor · actuate=$gate · include_w0=$iw0 · poll=${poll}s   [config source: $src]"
     echo "  daemon: $running"
     local key tokens pending hard
     local keys; keys="$(jicm_registry_keys)"
@@ -417,7 +477,13 @@ _daemon() {
         mkdir "$SUP_PID_FILE.lock" 2>/dev/null || { echo "jicm-supervisor: lost singleton race"; exit 0; }
     fi
     echo "$$" > "$SUP_PID_FILE"
-    trap 'rm -f "$SUP_PID_FILE"; rmdir "$SUP_PID_FILE.lock" 2>/dev/null; _log "==== supervisor stopped (pid $$) ===="' EXIT
+    # Publish the EFFECTIVE config so `--status` can report the daemon instead of itself.
+    # These come from the launchd plist, so a hand-run `--status` inherits none of them and
+    # used to print its own defaults over the daemon's — announcing "GATED (sense-only)"
+    # one line above "daemon: running" while that daemon was firing live. A safety gate
+    # that misreports as OFF while it is ON is worse than no status command at all.
+    printf '%s|%s|%s\n' "$ACTUATE_ENABLED" "$INCLUDE_W0" "$POLL_SEC" > "$SUP_PID_FILE.runtime"
+    trap 'rm -f "$SUP_PID_FILE" "$SUP_PID_FILE.runtime"; rmdir "$SUP_PID_FILE.lock" 2>/dev/null; _log "==== supervisor stopped (pid $$) ===="' EXIT
     _log "==== supervisor start (pid $$, poll=${POLL_SEC}s, actuate=$ACTUATE_ENABLED, include_w0=$INCLUDE_W0) ===="
     while true; do
         _pass
