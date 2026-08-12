@@ -96,7 +96,13 @@ export AION_MODEL="${AION_MODEL:-claude-opus-5[1m]}"
 #   9: Commands     — Signal injection
 #  10: Styx         — Host executor daemon + reaper
 #  11: Jarvis-dev   — Dev test driver (when invoked)
-#  12+: chain-*     — Alfred fork-resume task windows (auto-stacked)
+#  12: Genie        — Research Archon (cwd Projects/WVU)
+#  13+: chain-*     — Alfred fork-resume task windows (auto-stacked)
+#
+# NOTE: chain windows previously started at 12. Genie now owns 12, so
+# alfred/.claude/jobs/lib/host-executor-bridge.sh `_next_chain_index()` starts at 13.
+# Those two numbers must move together — a chain fork landing on Genie's pane would
+# inject an Alfred task into a live research session.
 
 window_target_index() {
     case "$1" in
@@ -112,11 +118,13 @@ window_target_index() {
         Commands)   echo 9 ;;
         Styx)       echo 10 ;;
         Jarvis-dev) echo 11 ;;
+        Genie)      echo 12 ;;
         *)          echo "" ;;
     esac
 }
 
-WINDOW_ORDER="Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
+# Highest index FIRST — reorder_windows() relies on this to avoid collisions.
+WINDOW_ORDER="Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
 
 reorder_windows() {
     # Move each named window to its assigned index. Process in the order
@@ -171,6 +179,13 @@ JARVIS_W5_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
 JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
+# W12:Genie launches from Projects/WVU, so Claude Code files its sessions under a
+# DIFFERENT project slug than W0/W5. That separation is deliberate and load-bearing:
+# Genie gets its own JSONL dir and its own L2 memory dir for free, and can never be
+# picked up by W0's latest-session scan.
+GENIE_PROJECT_SLUG="-Users-nathanielcannon-Claude-Projects-WVU"
+GENIE_PROJECTS_DIR="$HOME/.claude/projects/${GENIE_PROJECT_SLUG}"
+
 # ──────────────────────────────────────────────────────────────────────────
 # Session resumability validation (added 2026-06-04 after launcher v3.0 cwd-
 # mismatch incident: cached UUIDs pointed at sessions whose recorded cwd was
@@ -189,17 +204,21 @@ W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 # both matches Claude's behavior. Reason this filter still exists: prevents
 # the launcher from selecting sessions that belong to OTHER unrelated
 # projects (e.g. lite-workspace) that share a JSONL store via symlink.
+# $2 = expected launch dir (default: CLAUDE_LAUNCH_DIR, i.e. the W0/dev Jarvis symlink).
+# Parameterized for W12:Genie, which launches from Projects/WVU — hardcoding the Jarvis
+# path made every Genie session look cwd-mismatched and therefore unresumable.
 session_cwd_matches() {
     local jsonl="$1"
+    local want_dir="${2:-$CLAUDE_LAUNCH_DIR}"
     [[ -f "$jsonl" ]] || return 1
     local launch_real
-    launch_real="$(cd "$CLAUDE_LAUNCH_DIR" 2>/dev/null && pwd -P)"
+    launch_real="$(cd "$want_dir" 2>/dev/null && pwd -P)"
     grep -m1 '"cwd"' "$jsonl" 2>/dev/null | python3 -c "
 import sys, json
 try:
     d = json.loads(sys.stdin.read())
     cwd = d.get('cwd', '')
-    sys.exit(0 if cwd == '$CLAUDE_LAUNCH_DIR' or cwd == '$launch_real' else 1)
+    sys.exit(0 if cwd == '$want_dir' or cwd == '$launch_real' else 1)
 except Exception:
     sys.exit(1)
 " 2>/dev/null
@@ -222,12 +241,21 @@ session_uuid_in_use() {
 }
 
 # Composite check: 0 = safely resumable from this launcher, 1 = skip.
+# $2 = projects (JSONL) dir, $3 = expected launch dir. Both default to the W0/dev pair,
+# so w0 and dev behavior is byte-identical. W12:Genie must pass its own: Claude Code files
+# sessions under a slug derived from cwd, and Genie's cwd is Projects/WVU — its JSONLs are
+# in a DIFFERENT directory than W0's. Left unparameterized, session_resumable could never
+# find Genie's seed, resolve_genie_session fell through to `uuidgen new`, and Genie minted
+# a fresh random session on every launch — no resume, no continuity, a new L2 identity
+# each time. Caught on the second launch of the install.
 session_resumable() {
     local uuid="$1"
+    local pdir="${2:-$JARVIS_PROJECTS_DIR}"
+    local ldir="${3:-$CLAUDE_LAUNCH_DIR}"
     [[ -n "$uuid" ]] || return 1
-    local jsonl="$JARVIS_PROJECTS_DIR/${uuid}.jsonl"
+    local jsonl="$pdir/${uuid}.jsonl"
     [[ -f "$jsonl" ]] || return 1
-    session_cwd_matches "$jsonl" || return 1
+    session_cwd_matches "$jsonl" "$ldir" || return 1
     ! session_uuid_in_use "$uuid"
 }
 
@@ -333,6 +361,94 @@ launch_dev_window() {
         "cd '$CLAUDE_LAUNCH_DIR' && export $env_dev && export ANTHROPIC_CUSTOM_HEADERS=$'$dev_headers' && $first '$init'; while true; do echo ''; echo 'Jarvis-dev exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis-dev" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Jarvis-dev window (${dev_mode}: ${dev_uuid})"
+}
+
+# ──────────────────────────────────────────────────────────────────────────
+# Genie lane (W12) — Research Archon. Scientific coding, analysis, research and
+# writing for the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE
+# system. Structurally mirrors launch_dev_window() above; the differences that
+# matter are called out inline.
+#
+# Deterministic seed: UUID v5 of "project_aion_genie_w12" in NAMESPACE_URL.
+#   python3 -c 'import uuid;print(uuid.uuid5(uuid.NAMESPACE_URL,"project_aion_genie_w12"))'
+# (Verified by round-trip. Note W0's seed reproduces from its documented string but
+# DEV_SEED_UUID above does NOT reproduce from "project_aion_jarvis_dev" — that comment
+# is inaccurate. Genie's is checked, so it can be regenerated if the file is ever lost.)
+GENIE_SEED_UUID="468a0010-55cd-5c85-b152-fdb34d7c607b"
+
+# Genie's cwd is Projects/WVU, NOT the monorepo. Claude Code derives its project slug
+# from PWD at launch, so this also gives Genie its own L2 memory directory
+# (~/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/) with no extra wiring —
+# and, critically, its own JSONL project dir, so the "shared slug" hazard that forces
+# W0/dev to avoid --continue does not apply here.
+GENIE_LAUNCH_DIR="/Users/nathanielcannon/Claude/Projects/WVU"
+
+# Resolve which Genie session to attach and how. Prints "<uuid> <resume|new>".
+# Same trust model as resolve_dev_session(): breadcrumb → deterministic seed → fresh id.
+resolve_genie_session() {
+    local candidate=""
+    [[ -s "$PROJECT_DIR/.claude/context/.current-genie-uuid" ]] && \
+        candidate="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-genie-uuid")"
+    # Genie's own projects dir + launch dir — see session_resumable's note on why these
+    # must be passed rather than defaulted.
+    if [[ -n "$candidate" ]] && session_resumable "$candidate" "$GENIE_PROJECTS_DIR" "$GENIE_LAUNCH_DIR"; then
+        echo "$candidate resume"; return 0
+    fi
+    if session_resumable "$GENIE_SEED_UUID" "$GENIE_PROJECTS_DIR" "$GENIE_LAUNCH_DIR"; then
+        echo "$GENIE_SEED_UUID resume"; return 0
+    fi
+    if [[ ! -f "$GENIE_PROJECTS_DIR/${GENIE_SEED_UUID}.jsonl" ]]; then
+        echo "$GENIE_SEED_UUID new"; return 0
+    fi
+    echo "$(uuidgen) new"
+}
+
+# Create the W12:Genie tmux window. Caller reorders afterward if needed.
+launch_genie_window() {
+    [[ -d "$GENIE_LAUNCH_DIR" ]] || {
+        echo -e "  ${YELLOW}⊘${NC} Genie skipped (no $GENIE_LAUNCH_DIR)"
+        return 0
+    }
+
+    local genie_uuid genie_mode
+    read -r genie_uuid genie_mode < <(resolve_genie_session)
+
+    local proxy_url="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
+    # NEWLINE-delimited, not comma — see the dev-lane comment above for why.
+    local genie_headers="x-aion-project: wvu-genesis\nx-aion-agent-name: genie-w12\nx-aion-session-id: $(uuidgen)"
+    # GRAPHITI_GROUP_ID scopes Genie's L5 writes to its own graph. graphiti-auto-ingest.py
+    # reads this env var (it was hardcoded to jarvis-core until the Genie install).
+    # JICM_PROJECT_DIR is load-bearing, not decorative. Genie's cwd is Projects/WVU, so
+    # CLAUDE_PROJECT_DIR points there and every hook would write its lane state, registry
+    # heartbeat and breadcrumb into WVU/.claude/ — where the supervisor, the actuator and
+    # this launcher (all of which read the monorepo) would never look. Empirically
+    # confirmed on the first Genie launch: zero hooks fired, no registry row appeared.
+    # Honored by jicm-gate.sh, jicm-stop.sh, session-start.sh and the v9 statusline.
+    local env_genie="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=genie JARVIS_WINDOW=12 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=genie-core JICM_RAG_COLLECTION=genie-sessions ANTHROPIC_BASE_URL=$proxy_url"
+    local sysappend="You are W12:Genie, the Research Archon of Project Aion — co-developer and co-researcher to the User on scientific coding, analysis, research, writing, and automation. Your domain is the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE microbiome genotype-to-phenotype system. Your memory namespace is genie-* / genie-core; never write to Jarvis jarvis-* collections or the jarvis-core graph. Never invent a figure and never attribute an unresolved citation. Aion core engineering belongs to W5:Jarvis-dev; Chronicler and Palimpsest belong to W0:Jarvis."
+    # --add-dir Project_Aion is what makes the shared .claude/ capabilities (skills, agents,
+    # patterns, hooks context) reachable from a cwd outside the monorepo.
+    # --mcp-config + --strict-mcp-config: Genie gets EXACTLY the server set in its own
+    # mcp.json, replacing the root one. This is what actually binds GRAPHITI_GROUP_ID to
+    # genie-core — the root .mcp.json hardcodes "jarvis-core" as a literal env value, and
+    # an env value declared there overrides the launching process's environment, so
+    # exporting GRAPHITI_GROUP_ID here alone would silently do nothing.
+    local genie_mcp="$PROJECT_DIR/.claude/personas/genie/mcp.json"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/genie --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$genie_mcp' --strict-mcp-config --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-genie.log"
+
+    local first
+    if [[ "$genie_mode" == "resume" ]]; then
+        first="$base --resume $genie_uuid"
+    else
+        first="$base --session-id $genie_uuid"
+    fi
+    local loop_resume="$base --resume $genie_uuid"
+    local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/genie/CLAUDE.md"
+
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Genie" -d \
+        "cd '$GENIE_LAUNCH_DIR' && export $env_genie && export ANTHROPIC_CUSTOM_HEADERS=$'$genie_headers' && $first '$init'; while true; do echo ''; echo 'Genie exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Genie" automatic-rename off 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} Genie window (${genie_mode}: ${genie_uuid})"
 }
 
 # JICM v6 watcher (v5 removed in v6.1)
@@ -925,6 +1041,20 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         fi
     fi
 
+    # Genie (W12) — add to a running session if missing. Not flag-gated; Genie is a
+    # permanent Archon. This is also the install path: an existing aion session picks
+    # Genie up without a full relaunch.
+    if [[ "${GENIE:-on}" != "off" ]]; then
+        EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
+        if ! echo "$EXISTING_WINDOWS" | grep -q "^Genie$"; then
+            echo "Adding Genie window (W12) to existing session..."
+            launch_genie_window
+            reorder_windows
+        else
+            echo "  Genie window already exists."
+        fi
+    fi
+
     # Add missing service windows to existing session
     EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
     if ! echo "$EXISTING_WINDOWS" | grep -q "^MLX-Embed$"; then
@@ -1214,6 +1344,14 @@ fi
 if [[ "$DEV_MODE" == "true" ]]; then
     echo "Launching Jarvis-dev (developer's seat) in tmux window..."
     launch_dev_window
+fi
+
+# W12: Genie (Research Archon). Unlike Jarvis-dev this is NOT flag-gated — Genie is a
+# permanent Archon, not an on-demand test driver. It self-skips if Projects/WVU is absent,
+# and GENIE=off suppresses it for a lean launch.
+if [[ "${GENIE:-on}" != "off" ]]; then
+    echo "Launching Genie (Research Archon) in tmux window..."
+    launch_genie_window
 fi
 
 # MLX-Embed window — always present; starts server if not already running

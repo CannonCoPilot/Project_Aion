@@ -22,9 +22,19 @@
 # Read input from stdin (JSON)
 INPUT=$(cat)
 
-# Source shared JICM config (defines all paths)
-PROJECT_DIR="$CLAUDE_PROJECT_DIR"
-JICM_CONFIG="$CLAUDE_PROJECT_DIR/.claude/scripts/jicm-config.sh"
+# Source shared JICM config (defines all paths).
+#
+# JICM_PROJECT_DIR override (added with the W12:Genie install, matching the seam
+# jicm-gate.sh:63 and jicm-stop.sh:36 already used): a lane may run with a cwd OUTSIDE
+# the monorepo — Genie launches from Projects/WVU so it earns its own Claude Code project
+# slug and therefore its own L2 memory directory. CLAUDE_PROJECT_DIR is then WVU, and
+# every JICM artifact this hook touches (breadcrumbs, lane state, checkpoints, the
+# registry) would be written into that lane's own tree where the supervisor, the actuator
+# and the launcher — all of which read the monorepo — would never find them.
+# Unset for every other lane, so w0/dev/protos behavior is byte-identical.
+PROJECT_DIR="${JICM_PROJECT_DIR:-$CLAUDE_PROJECT_DIR}"
+CLAUDE_PROJECT_DIR="$PROJECT_DIR"
+JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
 # W0-safety: strip any ambient per-invocation overrides before sourcing config, so
 # a stray operator `export JICM_COMPRESSED_FILE=...dev...` in the shell that started
 # the tmux server can never silently redirect W0's checkpoint/telemetry. The dev
@@ -71,6 +81,13 @@ if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-dev-uuid"
         echo "$TIMESTAMP | SessionStart | DEV UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then
+        # W12:Genie. Ordered to mirror jicm_derive_key exactly — the two must not drift,
+        # or the launcher's resume candidate and the JICM lane key disagree. Genie's
+        # breadcrumb lives in Project_Aion (not its own cwd) so the launcher, the
+        # actuator and this hook all read one path.
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-genie-uuid"
+        echo "$TIMESTAMP | SessionStart | GENIE UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     elif [[ -z "${JARVIS_WINDOW:-}" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
         echo "$TIMESTAMP | SessionStart | W0 UUID tracked (unset-window recovery): $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
@@ -406,9 +423,15 @@ else
     # routes to the safety fallback, NOT blanket-forced to w0 (which would mis-inject).
     if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then JICM_KEY="w0"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then JICM_KEY="dev"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then JICM_KEY="genie"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then JICM_KEY="w0"
     else JICM_KEY="$SESSION_ID"; fi
-    if [[ "$JICM_KEY" == "dev" ]]; then
+    if [[ "$JICM_KEY" == "genie" ]]; then
+        # Non-w0 keys use the namespaced jicm/ tree; mirror jicm_key_paths' else-branch.
+        JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/genie.compressed.md"
+        JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/clear-now.genie.signal"
+        JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/resume-complete.genie.signal"
+    elif [[ "$JICM_KEY" == "dev" ]]; then
         JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.dev.md"
         JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.dev.signal"
         JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.dev.signal"

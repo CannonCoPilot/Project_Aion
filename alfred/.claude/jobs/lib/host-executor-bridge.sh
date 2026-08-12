@@ -34,12 +34,19 @@ log() {
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [host-bridge] $*" >&2
 }
 
-# Lowest free tmux window index >= 12. Index 11 is reserved for W11:Jarvis-dev
-# so the dev lane and Alfred chain workers never collide (chains previously
-# claimed the lowest free slot, grabbing 11 whenever the dev window was absent).
+# Lowest free tmux window index >= 13. Indices 11 and 12 are reserved for
+# W11:Jarvis-dev and W12:Genie so those lanes and Alfred chain workers never
+# collide (chains previously claimed the lowest free slot, grabbing 11 whenever
+# the dev window was absent — and would have grabbed 12 whenever Genie was).
+#
+# The floor must stay in lockstep with launch-aion.sh's window_target_index().
+# A chain fork landing on Genie's pane would inject an Alfred task into a live
+# research session — the same class of cross-lane mis-inject documented in
+# jicm-actuate.sh's _step_prep.
+#
 # base-index 0 + renumber-windows off (set by launch-aion.sh) keep indices stable.
 _next_chain_index() {
-    local idx=12 used
+    local idx=13 used
     used=$("$TMUX_BIN" list-windows -t "$TMUX_SESSION" -F '#{window_index}' 2>/dev/null)
     while printf '%s\n' "$used" | grep -qx "$idx"; do idx=$((idx + 1)); done
     echo "$idx"

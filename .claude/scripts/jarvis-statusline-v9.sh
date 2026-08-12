@@ -78,7 +78,10 @@ echo "$$" > "$LOCK_FILE"
 trap 'rm -f "$LOCK_FILE"' EXIT INT TERM
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────
-SL_PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
+# JICM_PROJECT_DIR first: a lane whose cwd sits outside the monorepo (W12:Genie runs from
+# Projects/WVU) still reads its JICM state, thresholds and caches from the monorepo tree.
+# Same seam as jicm-gate.sh:63, jicm-stop.sh:36 and session-start.sh. Unset elsewhere.
+SL_PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 SL_STATE_FILE="$SL_PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 SL_NLP_FILE="$SL_PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
 SL_PULSE_CACHE="/tmp/jarvis-statusline-pulse.cache"

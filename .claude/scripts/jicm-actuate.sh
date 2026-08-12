@@ -114,8 +114,12 @@ _resolve_transcript() {
     if [[ -z "$t" || "$t" == "null" || ! -f "$t" ]]; then
         local uuid_file="" u hit
         case "$JK_KEY" in
-            w0)  uuid_file="$W0_UUID_FILE" ;;
-            dev) uuid_file="$PROJECT_DIR/.claude/context/.current-dev-uuid" ;;
+            w0)    uuid_file="$W0_UUID_FILE" ;;
+            dev)   uuid_file="$PROJECT_DIR/.claude/context/.current-dev-uuid" ;;
+            # genie runs from Projects/WVU, so its JSONL lives under a DIFFERENT
+            # project slug. The glob below already searches all persona project dirs
+            # by exact uuid, so this needs only the breadcrumb.
+            genie) uuid_file="$PROJECT_DIR/.claude/context/.current-genie-uuid" ;;
         esac
         if [[ -n "$uuid_file" && -f "$uuid_file" ]]; then
             u="$(cat "$uuid_file" 2>/dev/null)"
@@ -133,9 +137,10 @@ _resolve_target() {
     [[ -n "${JICM_TMUX_TARGET_OVERRIDE:-}" ]] && tt="$JICM_TMUX_TARGET_OVERRIDE"
     if [[ -z "$tt" || "$tt" == "null" ]]; then
         case "$JK_KEY" in
-            w0)  tt="$JICM_TMUX_SESSION:0"  ;;
-            dev) tt="$JICM_TMUX_SESSION:11" ;;
-            *)   tt="" ;;
+            w0)    tt="$JICM_TMUX_SESSION:0"  ;;
+            dev)   tt="$JICM_TMUX_SESSION:11" ;;
+            genie) tt="$JICM_TMUX_SESSION:12" ;;
+            *)     tt="" ;;
         esac
     fi
     echo "$tt"

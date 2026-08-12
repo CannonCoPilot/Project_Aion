@@ -1,0 +1,63 @@
+persona: genie
+tier: implement
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Write
+  - Edit
+  - ToolSearch
+  # Memory — genie-* collections and the genie-core graph only. The collection and
+  # group_id are arguments, so scoping is enforced by the prompt and reviewed in
+  # output, not by the tool surface. Treat a write to a jarvis-* namespace as a defect.
+  - mcp__jarvis-rag__search
+  - mcp__jarvis-rag__multi_search
+  - mcp__jarvis-rag__ingest
+  - mcp__jarvis-rag__list_collections
+  - mcp__jarvis-graphiti__search
+  - mcp__jarvis-graphiti__search_nodes
+  - mcp__jarvis-graphiti__add_episode
+  - mcp__jarvis-graphiti__get_episodes
+  # Literature
+  - mcp__scholar-gateway__searchPapers
+  - mcp__scholar-gateway__searchAuthor
+  - mcp__scholar-gateway__getPaperDetails
+  - mcp__scholar-gateway__getBibtex
+  - mcp__scholar-gateway__downloadPDF
+
+denied_tools:
+  - Agent
+  # Deleting from the vector store is not a job-scoped action. If a headless run
+  # concludes something must be removed, it says so and a human does it.
+  - mcp__jarvis-rag__delete_file
+
+allowed_bash:
+  - "pulse create:*"
+  - "pulse update:*"
+  - "pulse close:*"
+  - "pulse list:*"
+  - "pulse show:*"
+  - "ls:*"
+  - "find:*"
+  - "wc:*"
+  - "file:*"
+  - "head:*"
+  - "mkdir:*"
+  - "git status:*"
+  - "git log:*"
+  - "git diff:*"
+  # Driveline is read/inspect-only from a headless job. `pull`, `push` and `dehydrate`
+  # mutate the Drive, the remote, or local disk and stay under interactive control.
+  - "driveline status:*"
+  - "driveline manifest:*"
+  - "driveline hydrate:*"
+
+pre_approved:
+  - "Search and ingest into genie-* Qdrant collections and the genie-core graph"
+  - "Search Google Scholar and download PDFs to Projects/WVU/refs/papers"
+  - "Read WVU project documents, datasets and manifests"
+  - "Write analysis reports and notebooks under Projects/WVU/reports and /analysis"
+  - "Create and close Pulse tasks labelled agent:genie for research tracking"
+  - "Inspect Driveline sync state without mutating Drive, remote, or local data"

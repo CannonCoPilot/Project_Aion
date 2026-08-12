@@ -41,7 +41,12 @@ OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen3-8b-nothink")
 EMBED_MODEL = os.getenv("EMBED_MODEL", "qwen3-embedding:4b")
 EMBED_DIM = int(os.getenv("EMBEDDING_DIM", "2560"))
-GROUP_ID = "jarvis-core"
+# Per-Archon L5 namespace. Was hardcoded "jarvis-core", which meant a Genie checkpoint
+# would have written its microbiology entities into Jarvis's graph with no way to opt out
+# — while the RAG sibling (jicm-auto-ingest.py, JICM_RAG_COLLECTION) had been
+# env-parameterized all along. Closing that asymmetry. Genie's launcher exports
+# GRAPHITI_GROUP_ID=genie-core; every other lane keeps the historical default.
+GROUP_ID = os.getenv("GRAPHITI_GROUP_ID", "jarvis-core")
 MAX_CONTENT_CHARS = 8000
 
 

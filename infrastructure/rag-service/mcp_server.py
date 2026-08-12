@@ -31,7 +31,14 @@ VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
                      "dfhack", "dwarf-therapist", "df-wiki",
                      "df-ai", "weblegends", "df-structures",
                      "df-narrator", "dfhack-client-python",
-                     "df-logger", "mydfhack-scripts"}
+                     "df-logger", "mydfhack-scripts",
+                     # Genie (Research Archon) — a namespace of its own, not a
+                     # subdivision of Jarvis's. Kept separate because the domains
+                     # collide on their own vocabulary: "Genesis" already names an
+                     # OriginalDR OCR campaign in jarvis-context, and would otherwise
+                     # retrieve against the DOE GENESIS grant.
+                     "genie-context", "genie-research",
+                     "genie-sessions", "genie-codebase"}
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")
@@ -116,6 +123,18 @@ def file_to_collection(file_path: str) -> str:
         return "df-logger"
     if "/projects/mydfhackscripts/" in p:
         return "mydfhack-scripts"
+    # Genie / WVU — MUST precede the generic rules below. Projects/WVU has its own
+    # research/, reports/ and analysis/ directories; without this block they would be
+    # swept into Jarvis's shared "research"/"codebase" collections and the namespace
+    # separation would exist only on paper.
+    if "/projects/wvu/" in p:
+        if ".jsonl" in p or "/sessions/" in p:
+            return "genie-sessions"
+        if "/tools/" in p or "/analysis/" in p or "/notebooks/" in p:
+            return "genie-codebase"
+        if "/refs/" in p or "/reports/" in p or "/proposal/" in p or "/research/" in p:
+            return "genie-research"
+        return "genie-context"
     # Jarvis internal
     if "/reports/" in p or "/deep-research/" in p or "/research/" in p:
         return "research"

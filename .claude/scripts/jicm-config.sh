@@ -181,6 +181,12 @@ jicm_derive_key() {                          # <my_session_id>
     # a w0-bg-* key: self-actuating, no pane target, invisible to the pane-driven path we are
     # trying to test. Requires JARVIS_WINDOW=1 to be set explicitly at launch.
     elif [[ "${JARVIS_WINDOW:-}" == "1" ]];         then candidate="protos"
+    # genie (aion:12) — the Research Archon. Checked BEFORE the unset-JARVIS_WINDOW
+    # fallback for the same reason as protos: falling through would hand Genie the w0
+    # candidate and, via the occupancy gate, a w0-bg-* key — self-actuating, paneless,
+    # and sharing W0's legacy state paths. Both the role and the window are accepted so
+    # the lane still resolves if one env var is lost across a resume.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then candidate="genie"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then candidate="w0"
     else echo "${my_sid:-unknown}"; return; fi
     # C3 OCCUPANCY GATE (JICM v9 R1): claim a pane-actuated key ONLY if I actually occupy
@@ -206,6 +212,10 @@ jicm_default_target() {
         # second-class self-actuating bg key a keyless window would otherwise get. It owns
         # no work, so a cycle that goes wrong there costs nothing.
         protos) echo "${JICM_TMUX_SESSION}:1"  ;;
+        # genie (aion:12) — the Research Archon. Pane-actuated like w0/dev: it holds
+        # real work (a funded grant), so it gets the full cycle, not the second-class
+        # self-actuating path. Must stay in step with launch-aion.sh window_target_index().
+        genie)  echo "${JICM_TMUX_SESSION}:12" ;;
         *)      echo "" ;;
     esac
 }
