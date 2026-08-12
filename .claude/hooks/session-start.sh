@@ -88,6 +88,11 @@ if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
         # actuator and this hook all read one path.
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-genie-uuid"
         echo "$TIMESTAMP | SessionStart | GENIE UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then
+        # W13:Jaques. Mirrors jicm_derive_key exactly — the two must not drift or the
+        # launcher's resume candidate and the JICM lane key disagree.
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-jaques-uuid"
+        echo "$TIMESTAMP | SessionStart | JAQUES UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     elif [[ -z "${JARVIS_WINDOW:-}" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
         echo "$TIMESTAMP | SessionStart | W0 UUID tracked (unset-window recovery): $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
@@ -424,9 +429,14 @@ else
     if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then JICM_KEY="w0"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then JICM_KEY="dev"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then JICM_KEY="genie"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then JICM_KEY="jaques"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then JICM_KEY="w0"
     else JICM_KEY="$SESSION_ID"; fi
-    if [[ "$JICM_KEY" == "genie" ]]; then
+    if [[ "$JICM_KEY" == "jaques" ]]; then
+        JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/jaques.compressed.md"
+        JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/clear-now.jaques.signal"
+        JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/resume-complete.jaques.signal"
+    elif [[ "$JICM_KEY" == "genie" ]]; then
         # Non-w0 keys use the namespaced jicm/ tree; mirror jicm_key_paths' else-branch.
         JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/genie.compressed.md"
         JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/clear-now.genie.signal"

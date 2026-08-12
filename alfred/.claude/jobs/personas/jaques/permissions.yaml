@@ -1,0 +1,54 @@
+persona: jaques
+tier: implement
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Write
+  - Edit
+  - ToolSearch
+  # Memory — jaques-* / jaques-core only. Collection and group_id are arguments, so the
+  # scoping is enforced by prompt and reviewed in output. A write to jarvis-*/genie-* is a defect.
+  - mcp__jarvis-rag__search
+  - mcp__jarvis-rag__multi_search
+  - mcp__jarvis-rag__ingest
+  - mcp__jarvis-rag__list_collections
+  - mcp__jarvis-graphiti__search
+  - mcp__jarvis-graphiti__search_nodes
+  - mcp__jarvis-graphiti__add_episode
+  - mcp__jarvis-graphiti__get_episodes
+
+denied_tools:
+  - Agent
+  - mcp__jarvis-rag__delete_file
+
+allowed_bash:
+  - "pulse create:*"
+  - "pulse update:*"
+  - "pulse close:*"
+  - "pulse list:*"
+  - "pulse show:*"
+  - "ls:*"
+  - "find:*"
+  - "wc:*"
+  - "file:*"
+  - "head:*"
+  - "mkdir:*"
+  - "git status:*"
+  - "git log:*"
+  - "git diff:*"
+  # Driveline is inspect-only from a headless job; push/dehydrate mutate Drive or disk.
+  - "driveline status:*"
+  - "driveline manifest:*"
+  - "driveline hydrate:*"
+  # Gate verification is READ-ONLY analysis here. Actually RUNNING solve.sh/test.sh builds
+  # containers and belongs to an interactive session with the User present.
+
+pre_approved:
+  - "Search and ingest into jaques-* collections and the jaques-core graph"
+  - "Read SnorkelTasks task bundles, run-record JSON, briefings and guidelines"
+  - "Write analysis notes and reports under SnorkelTasks (never into environment/)"
+  - "Create and close Pulse tasks labelled agent:jaques"
+  - "Inspect Driveline sync state without mutating Drive or local data"

@@ -725,6 +725,22 @@ parse_stdin() {
         @sh "FAST_MODE=\(.fast_mode // false)",
         @sh "THINKING=\(.thinking.enabled // false)"' 2>/dev/null)
     eval "$parsed"
+
+    # Normalise the rate-limit percentages to integers.
+    #
+    # Claude Code sends these as JSON numbers, and they arrive as floats often enough to
+    # matter: an observed value was `14.000000000000002`. That is ugly on screen, but the
+    # real defect is in color_pct(), whose `[[ "$p" =~ ^[0-9]+$ ]] || p=0` guard treats any
+    # non-integer as ZERO — so "84.0" renders GREEN while "84" renders RED. The colour
+    # inverts exactly when the warning matters most. Verified both ways before fixing.
+    #
+    # Round rather than truncate: 84.7% of a rate limit is nearer 85 than 84.
+    for _v in RATE_5H RATE_7D; do
+        eval "_raw=\${$_v:-}"
+        if [[ -n "$_raw" && ! "$_raw" =~ ^[0-9]+$ ]]; then
+            eval "$_v=\$(awk -v n=\"\$_raw\" 'BEGIN{printf \"%d\", (n<0?0:n)+0.5}' 2>/dev/null)"
+        fi
+    done
     return 0
 }
 

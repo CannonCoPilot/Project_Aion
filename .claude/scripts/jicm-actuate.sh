@@ -120,6 +120,7 @@ _resolve_transcript() {
             # project slug. The glob below already searches all persona project dirs
             # by exact uuid, so this needs only the breadcrumb.
             genie) uuid_file="$PROJECT_DIR/.claude/context/.current-genie-uuid" ;;
+            jaques) uuid_file="$PROJECT_DIR/.claude/context/.current-jaques-uuid" ;;
         esac
         if [[ -n "$uuid_file" && -f "$uuid_file" ]]; then
             u="$(cat "$uuid_file" 2>/dev/null)"
@@ -140,6 +141,7 @@ _resolve_target() {
             w0)    tt="$JICM_TMUX_SESSION:0"  ;;
             dev)   tt="$JICM_TMUX_SESSION:11" ;;
             genie) tt="$JICM_TMUX_SESSION:12" ;;
+            jaques) tt="$JICM_TMUX_SESSION:13" ;;
             *)     tt="" ;;
         esac
     fi

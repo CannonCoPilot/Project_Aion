@@ -38,7 +38,14 @@ VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
                      # OriginalDR OCR campaign in jarvis-context, and would otherwise
                      # retrieve against the DOE GENESIS grant.
                      "genie-context", "genie-research",
-                     "genie-sessions", "genie-codebase"}
+                     "genie-sessions", "genie-codebase",
+                     # Jaques (Contract Archon) — Snorkel AI evaluation-task authoring.
+                     # Separate for the same reason as Genie's: the domains collide on
+                     # shared vocabulary. "task", "environment", "solution" and "tests"
+                     # all mean something specific and different in Harbor bundles than
+                     # they do in Aion's own codebase collection.
+                     "jaques-context", "jaques-research",
+                     "jaques-sessions", "jaques-codebase"}
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")
@@ -135,6 +142,18 @@ def file_to_collection(file_path: str) -> str:
         if "/refs/" in p or "/reports/" in p or "/proposal/" in p or "/research/" in p:
             return "genie-research"
         return "genie-context"
+    # Jaques / SnorkelTasks — MUST precede the generic rules for the same reason as WVU.
+    # This repo has its own docs/, scripts/, tasks/ and source-materials/; without this
+    # block they would be swept into Jarvis's shared collections and the namespace
+    # separation would exist only on paper.
+    if "/projects/snorkeltasks/" in p:
+        if ".jsonl" in p or "/sessions/" in p:
+            return "jaques-sessions"
+        if "/scripts/" in p or "/tasks/" in p or "/submissions/" in p:
+            return "jaques-codebase"
+        if "/docs/" in p or "/source-materials/" in p or "/gdrive_files/" in p:
+            return "jaques-research"
+        return "jaques-context"
     # Jarvis internal
     if "/reports/" in p or "/deep-research/" in p or "/research/" in p:
         return "research"

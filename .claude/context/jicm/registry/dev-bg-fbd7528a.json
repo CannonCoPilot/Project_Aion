@@ -1,11 +1,11 @@
 {
-  "key": "dev",
-  "last_seen": "2026-08-12T17:12:18Z",
-  "registered_at": "2026-07-25T18:30:01Z",
+  "key": "dev-bg-fbd7528a",
+  "last_seen": "2026-08-02T03:18:31Z",
+  "registered_at": "2026-08-02T02:14:44Z",
   "session_id": "fbd7528a-c1bd-414a-bdaa-c3cc23f53215",
   "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/fbd7528a-c1bd-414a-bdaa-c3cc23f53215.jsonl",
-  "tmux_target": "aion:11",
-  "actuation_mode": "pane",
+  "tmux_target": "",
+  "actuation_mode": "self",
   "class": "interactive",
   "reset_policy": "preserve-restore",
   "owner": "jarvis"

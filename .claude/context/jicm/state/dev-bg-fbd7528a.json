@@ -1,9 +1,9 @@
 {
   "version": "7.9",
-  "ts": "2026-07-29T23:45:03Z",
-  "ts_epoch": 1785368703,
-  "session_id": "eaf6a847-cb8e-4b82-a91e-b66575786e60",
-  "model_id": "",
+  "ts": "2026-08-02T03:18:31Z",
+  "ts_epoch": 1785640711,
+  "session_id": "fbd7528a-c1bd-414a-bdaa-c3cc23f53215",
+  "model_id": "claude-opus-5[1m]",
   "tokens": 0,
   "input_tokens": 0,
   "cache_read_tokens": 0,
@@ -12,9 +12,9 @@
   "cache_creation_1h_tokens": 0,
   "cache_hit_rate": 0.0000,
   "output_tokens_last": 0,
-  "context_window_size": 250000,
-  "soft_threshold_tokens": 165000,
-  "hard_threshold_tokens": 200000,
+  "context_window_size": 1000000,
+  "soft_threshold_tokens": 300000,
+  "hard_threshold_tokens": 330000,
   "burn_rate_tpm": 0,
   "soft_eta_min": 0,
   "hard_eta_min": 0,
@@ -24,5 +24,5 @@
   "rate_7d_pct": null,
   "action": "WATCHING",
   "pending_action": null,
-  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/eaf6a847-cb8e-4b82-a91e-b66575786e60.jsonl"
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/fbd7528a-c1bd-414a-bdaa-c3cc23f53215.jsonl"
 }

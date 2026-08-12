@@ -127,8 +127,9 @@ jicm_key_paths() {
     # here puts the routing in the same place as every other per-key artifact, where it
     # cannot be bypassed by whoever happens to spawn the cycle.
     case "$key" in
-        genie|genie-bg-*) JK_RAG_COLLECTION="genie-sessions"; JK_GRAPHITI_GROUP="genie-core" ;;
-        *)                JK_RAG_COLLECTION="sessions";       JK_GRAPHITI_GROUP="jarvis-core" ;;
+        genie|genie-bg-*)   JK_RAG_COLLECTION="genie-sessions";  JK_GRAPHITI_GROUP="genie-core" ;;
+        jaques|jaques-bg-*) JK_RAG_COLLECTION="jaques-sessions"; JK_GRAPHITI_GROUP="jaques-core" ;;
+        *)                  JK_RAG_COLLECTION="sessions";        JK_GRAPHITI_GROUP="jarvis-core" ;;
     esac
 }
 
@@ -201,6 +202,10 @@ jicm_derive_key() {                          # <my_session_id>
     # and sharing W0's legacy state paths. Both the role and the window are accepted so
     # the lane still resolves if one env var is lost across a resume.
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then candidate="genie"
+    # jaques (aion:13) — the Contract Archon. Same placement rule as genie/protos: BEFORE
+    # the unset-JARVIS_WINDOW fallback, or it inherits the w0 candidate and a paneless
+    # w0-bg-* key sharing W0's legacy state paths.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then candidate="jaques"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then candidate="w0"
     else echo "${my_sid:-unknown}"; return; fi
     # C3 OCCUPANCY GATE (JICM v9 R1): claim a pane-actuated key ONLY if I actually occupy
@@ -230,6 +235,9 @@ jicm_default_target() {
         # real work (a funded grant), so it gets the full cycle, not the second-class
         # self-actuating path. Must stay in step with launch-aion.sh window_target_index().
         genie)  echo "${JICM_TMUX_SESSION}:12" ;;
+        # jaques (aion:13) — pane-actuated: it holds real paid client work, so it gets the
+        # full cycle. Must stay in step with launch-aion.sh window_target_index().
+        jaques) echo "${JICM_TMUX_SESSION}:13" ;;
         *)      echo "" ;;
     esac
 }

@@ -300,7 +300,7 @@ _pass() {
     # without reconciliation a startup-race demotion to genie-bg-* would never be
     # promoted back and the lane would silently run second-class forever. Any key with
     # a jicm_default_target() pane belongs in this list.
-    for ck in w0 dev genie; do
+    for ck in w0 dev genie jaques; do
         jicm_reconcile_pane_key "$ck"; rc=$?
         if [[ -n "${JICM_RECONCILE_NOTE:-}" ]]; then
             if [[ "$rc" -eq 2 ]]; then _log "RECONCILE-$JICM_RECONCILE_NOTE"

@@ -1,12 +1,13 @@
 {
   "key": "w0",
-  "last_seen": "2026-07-20T20:35:52Z",
+  "last_seen": "2026-08-12T17:02:51Z",
   "registered_at": "2026-07-20T20:35:52Z",
-  "session_id": "f56d4d98-5064-4567-bb33-74dc3ad263f4",
-  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/f56d4d98-5064-4567-bb33-74dc3ad263f4.jsonl",
+  "session_id": "1ee76596-b101-445f-a9b6-4f3a6d59518a",
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/1ee76596-b101-445f-a9b6-4f3a6d59518a.jsonl",
   "tmux_target": "aion:0",
   "class": "interactive",
   "reset_policy": "preserve-restore",
   "owner": "jarvis",
-  "steward_shared_memory": "true"
+  "steward_shared_memory": "true",
+  "actuation_mode": "pane"
 }
