@@ -251,12 +251,16 @@ _step_rag_ingest() {   # 5.5 — checkpoint → L4 RAG (async, non-blocking)
     fi
     local sid; sid="$(_session_id)"
     (
-        export PROJECT_DIR JICM_RAG_COLLECTION JICM_RAG_DEDUP_THRESHOLD \
+        # JK_RAG_COLLECTION, not the ambient JICM_RAG_COLLECTION: the actuator is
+        # detached and never inherits the lane's launcher env, so the ambient value is
+        # whatever shell fired the cycle (in practice the global `sessions` default).
+        export PROJECT_DIR JICM_RAG_DEDUP_THRESHOLD \
                JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
+        export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION"
         export JICM_COMPRESSED_FILE="$JK_COMPRESSED" JICM_SESSION_ID="$sid"
         "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
     ) &
-    _log "5.5 RAG ingest launched (pid $!)"
+    _log "5.5 RAG ingest launched (pid $!, collection=$JK_RAG_COLLECTION)"
 }
 
 _step_scrollback() {   # 5.6 capture + 5.6b NLP compress + 5.6c summary → RAG
@@ -283,12 +287,16 @@ _step_scrollback() {   # 5.6 capture + 5.6b NLP compress + 5.6c summary → RAG
 
     if [[ "${JICM_RAG_ENABLED:-true}" == "true" && -f "$JK_SCROLLBACK_SUMMARY" && -f "$JICM_AUTO_INGEST_SCRIPT" && -x "$VENV_PY" ]]; then
         (
-            export PROJECT_DIR JICM_RAG_COLLECTION="sessions" JICM_RAG_DEDUP_THRESHOLD \
+            # Was hardcoded JICM_RAG_COLLECTION="sessions" — which sent EVERY lane's
+            # scrollback into Jarvis's collection regardless of key, and would have
+            # defeated the per-key routing even after it was fixed upstream.
+            export PROJECT_DIR JICM_RAG_DEDUP_THRESHOLD \
                    JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
+            export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION"
             export JICM_COMPRESSED_FILE="$JK_SCROLLBACK_SUMMARY" JICM_SESSION_ID="$sid"
             "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
         ) &
-        _log "5.6c scrollback → RAG ingest launched (pid $!)"
+        _log "5.6c scrollback → RAG ingest launched (pid $!, collection=$JK_RAG_COLLECTION)"
     fi
 }
 
@@ -374,11 +382,16 @@ _step_graphiti() {   # 5.9 — checkpoint → L5 Graphiti episode (async, non-bl
     [[ -x "$VENV_PY" ]] || { _log "5.9 graphiti skipped (no venv)"; return 0; }
     local g="$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py"
     if [[ -f "$g" ]]; then
+        # GRAPHITI_GROUP_ID was never exported here, so every lane's episodes went to
+        # graphiti-auto-ingest.py's default group. Same detached-process blind spot as
+        # the RAG steps above.
         ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED"
+          export GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
           "$VENV_PY" "$g" >> "$JICM_LOG_FILE" 2>&1 ) &
-        _log "5.9 Graphiti episode ingest launched (pid $!)"
+        _log "5.9 Graphiti episode ingest launched (pid $!, group=$JK_GRAPHITI_GROUP)"
     elif [[ -f "$JICM_GRAPHITI_INGEST_SCRIPT" ]]; then
-        ( "$VENV_PY" "$JICM_GRAPHITI_INGEST_SCRIPT" --file "$JK_COMPRESSED" >> "$JICM_LOG_FILE" 2>&1 ) &
+        ( export GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
+          "$VENV_PY" "$JICM_GRAPHITI_INGEST_SCRIPT" --file "$JK_COMPRESSED" >> "$JICM_LOG_FILE" 2>&1 ) &
         _log "5.9 Graphiti via prepopulate fallback (pid $!)"
     else
         _log "5.9 graphiti skipped (no ingest script)"

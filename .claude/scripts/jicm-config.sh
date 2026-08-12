@@ -116,6 +116,20 @@ jicm_key_paths() {
         JK_SCRATCHPAD="$JICM_CHECKPOINTS_DIR/$key.scratchpad.md"
         JK_ACTIVE_PLAN="$JICM_STATES_DIR/$key.active-plan"
     fi
+
+    # L4/L5 namespace per key. Added 2026-08-11 after the first live Genie cycle put
+    # 93 points of microbiology into Jarvis's shared `sessions` collection.
+    #
+    # The namespace separation had been enforced ONLY in the interactive lane's launcher
+    # env (JICM_RAG_COLLECTION / GRAPHITI_GROUP_ID exported to the Claude process). The
+    # actuator is a DETACHED process spawned from whatever shell fired it — it never sees
+    # that env, so it fell through to the global `sessions` default. Deriving from the key
+    # here puts the routing in the same place as every other per-key artifact, where it
+    # cannot be bypassed by whoever happens to spawn the cycle.
+    case "$key" in
+        genie|genie-bg-*) JK_RAG_COLLECTION="genie-sessions"; JK_GRAPHITI_GROUP="genie-core" ;;
+        *)                JK_RAG_COLLECTION="sessions";       JK_GRAPHITI_GROUP="jarvis-core" ;;
+    esac
 }
 
 # Registry helpers (shared by gate upsert, supervisor read/GC, chain bridge).
