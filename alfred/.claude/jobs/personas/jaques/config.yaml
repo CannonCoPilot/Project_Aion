@@ -1,6 +1,6 @@
 persona: jaques
 
-# Nexus-side persona for HEADLESS execution. Distinct from the interactive W13:Jaques
+# Nexus-side persona for HEADLESS execution. Distinct from the interactive W13:Jacques
 # Archon (.claude/personas/jaques/CLAUDE.md); same remit, same memory namespace.
 # Scheduled/dispatched face of the Snorkel AI contract work.
 

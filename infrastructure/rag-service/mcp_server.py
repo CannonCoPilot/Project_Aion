@@ -39,7 +39,7 @@ VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
                      # retrieve against the DOE GENESIS grant.
                      "genie-context", "genie-research",
                      "genie-sessions", "genie-codebase",
-                     # Jaques (Contract Archon) — Snorkel AI evaluation-task authoring.
+                     # Jacques (Contract Archon) — Snorkel AI evaluation-task authoring.
                      # Separate for the same reason as Genie's: the domains collide on
                      # shared vocabulary. "task", "environment", "solution" and "tests"
                      # all mean something specific and different in Harbor bundles than
@@ -142,7 +142,7 @@ def file_to_collection(file_path: str) -> str:
         if "/refs/" in p or "/reports/" in p or "/proposal/" in p or "/research/" in p:
             return "genie-research"
         return "genie-context"
-    # Jaques / SnorkelTasks — MUST precede the generic rules for the same reason as WVU.
+    # Jacques / SnorkelTasks — MUST precede the generic rules for the same reason as WVU.
     # This repo has its own docs/, scripts/, tasks/ and source-materials/; without this
     # block they would be swept into Jarvis's shared collections and the namespace
     # separation would exist only on paper.

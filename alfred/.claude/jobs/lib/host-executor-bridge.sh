@@ -35,7 +35,7 @@ log() {
 }
 
 # Lowest free tmux window index >= 14. Indices 11, 12 and 13 are reserved for
-# W11:Jarvis-dev, W12:Genie and W13:Jaques so those lanes and Alfred chain workers
+# W11:Jarvis-dev, W12:Genie and W13:Jacques so those lanes and Alfred chain workers
 # never collide (chains previously claimed the lowest free slot, grabbing 11 whenever
 # the dev window was absent — and did in fact grab 12 during the Genie install,
 # forking chain-31bcc85d onto Genie's pane).

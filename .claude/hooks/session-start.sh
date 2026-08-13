@@ -89,7 +89,7 @@ if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-genie-uuid"
         echo "$TIMESTAMP | SessionStart | GENIE UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then
-        # W13:Jaques. Mirrors jicm_derive_key exactly — the two must not drift or the
+        # W13:Jacques. Mirrors jicm_derive_key exactly — the two must not drift or the
         # launcher's resume candidate and the JICM lane key disagree.
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-jaques-uuid"
         echo "$TIMESTAMP | SessionStart | JAQUES UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"

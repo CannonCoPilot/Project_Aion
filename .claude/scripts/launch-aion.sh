@@ -97,10 +97,10 @@ export AION_MODEL="${AION_MODEL:-claude-opus-5[1m]}"
 #  10: Styx         — Host executor daemon + reaper
 #  11: Jarvis-dev   — Dev test driver (when invoked)
 #  12: Genie        — Research Archon (cwd Projects/WVU)
-#  13: Jaques       — Contract Archon (cwd Projects/SnorkelTasks)
+#  13: Jacques       — Contract Archon (cwd Projects/SnorkelTasks)
 #  14+: chain-*     — Alfred fork-resume task windows (auto-stacked)
 #
-# NOTE: chain windows started at 12, then 13. Genie owns 12 and Jaques owns 13, so
+# NOTE: chain windows started at 12, then 13. Genie owns 12 and Jacques owns 13, so
 # alfred/.claude/jobs/lib/host-executor-bridge.sh `_next_chain_index()` starts at 14.
 # Those numbers must move together — a chain fork landing on an Archon's pane would
 # inject an Alfred task into a live session. This is not hypothetical: during the Genie
@@ -121,13 +121,13 @@ window_target_index() {
         Styx)       echo 10 ;;
         Jarvis-dev) echo 11 ;;
         Genie)      echo 12 ;;
-        Jaques)     echo 13 ;;
+        Jacques)     echo 13 ;;
         *)          echo "" ;;
     esac
 }
 
 # Highest index FIRST — reorder_windows() relies on this to avoid collisions.
-WINDOW_ORDER="Jaques Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
+WINDOW_ORDER="Jacques Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
 
 reorder_windows() {
     # Move each named window to its assigned index. Process in the order
@@ -455,14 +455,14 @@ launch_genie_window() {
 }
 
 # ──────────────────────────────────────────────────────────────────────────
-# Jaques lane (W13) — Contract Archon. Snorkel AI evaluation-task authoring across
+# Jacques lane (W13) — Contract Archon. Snorkel AI evaluation-task authoring across
 # ec-beech / ecs-otter / ec-starfish. Structurally mirrors launch_genie_window().
 #
 # Deterministic seed: UUID v5 of "project_aion_jaques_w13" in NAMESPACE_URL.
 #   python3 -c 'import uuid;print(uuid.uuid5(uuid.NAMESPACE_URL,"project_aion_jaques_w13"))'
 JAQUES_SEED_UUID="79e6488b-2ca4-5521-8e52-3ca110115cf0"
 
-# cwd is the SnorkelTasks repo, NOT the monorepo — that earns Jaques its own Claude Code
+# cwd is the SnorkelTasks repo, NOT the monorepo — that earns Jacques its own Claude Code
 # project slug (and therefore its own L2 memory dir and JSONL dir) for free. It also means
 # SnorkelTasks/CLAUDE.md is auto-discovered as the project file, so the Harbor domain law
 # loads without being duplicated into the persona.
@@ -475,9 +475,9 @@ resolve_jaques_session() {
     local candidate=""
     [[ -s "$PROJECT_DIR/.claude/context/.current-jaques-uuid" ]] && \
         candidate="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-jaques-uuid")"
-    # Pass Jaques' own projects dir + launch dir: session_resumable defaults to W0's, and
+    # Pass Jacques' own projects dir + launch dir: session_resumable defaults to W0's, and
     # Claude Code files sessions under a slug derived from cwd, so the defaults would never
-    # find Jaques' seed and every launch would mint a fresh random session.
+    # find Jacques' seed and every launch would mint a fresh random session.
     if [[ -n "$candidate" ]] && session_resumable "$candidate" "$JAQUES_PROJECTS_DIR" "$JAQUES_LAUNCH_DIR"; then
         echo "$candidate resume"; return 0
     fi
@@ -490,10 +490,10 @@ resolve_jaques_session() {
     echo "$(uuidgen) new"
 }
 
-# Create the W13:Jaques tmux window. Caller reorders afterward if needed.
+# Create the W13:Jacques tmux window. Caller reorders afterward if needed.
 launch_jaques_window() {
     [[ -d "$JAQUES_LAUNCH_DIR" ]] || {
-        echo -e "  ${YELLOW}⊘${NC} Jaques skipped (no $JAQUES_LAUNCH_DIR)"
+        echo -e "  ${YELLOW}⊘${NC} Jacques skipped (no $JAQUES_LAUNCH_DIR)"
         return 0
     }
 
@@ -508,13 +508,13 @@ launch_jaques_window() {
     local env_jaques="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=jaques JARVIS_WINDOW=13 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=jaques-core JICM_RAG_COLLECTION=jaques-sessions ANTHROPIC_BASE_URL=$proxy_url"
     # NO APOSTROPHES IN THIS STRING. It is interpolated into a single-quoted argument inside
     # the tmux command line; an apostrophe closes that quote early and the shell then glob-
-    # expands what follows. Observed on the first Jaques launch: "the User's" broke the quote,
+    # expands what follows. Observed on the first Jacques launch: "the User's" broke the quote,
     # zsh tried to glob jaques-* and jarvis-*, failed with "no matches found", and claude never
     # started at all — an empty pane and zero hooks, which looks exactly like the settings-root
     # bug but is not. Wildcards are fine INSIDE the quotes; unbalanced quotes are not.
-    local sysappend="You are W13:Jaques, the Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for Snorkel AI across three projects: ec-beech, ecs-otter, ec-starfish. The file SnorkelTasks/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on Harbor bundle rules, the auto-reject list and Gate 1/Gate 2 — never restate it from memory. Your memory namespace is jaques-context/research/sessions/codebase plus the jaques-core graph; never write to any jarvis- or genie- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING TO experts.snorkel-ai.com IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W5:Jarvis-dev; WVU and GENESIS research belong to W12:Genie."
-    local jaques_mcp="$PROJECT_DIR/.claude/personas/jaques/mcp.json"
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/jaques --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$jaques_mcp' --strict-mcp-config --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-jaques.log"
+    local sysappend="You are W13:Jacques, the Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for Snorkel AI across three projects: ec-beech, ecs-otter, ec-starfish. The file SnorkelTasks/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on Harbor bundle rules, the auto-reject list and Gate 1/Gate 2 — never restate it from memory. Your memory namespace is jaques-context/research/sessions/codebase plus the jaques-core graph; never write to any jarvis- or genie- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING TO experts.snorkel-ai.com IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W5:Jarvis-dev; WVU and GENESIS research belong to W12:Genie."
+    local jaques_mcp="$PROJECT_DIR/.claude/personas/jacques/mcp.json"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/jacques --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$jaques_mcp' --strict-mcp-config --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-jaques.log"
 
     local first
     if [[ "$jaques_mode" == "resume" ]]; then
@@ -523,12 +523,12 @@ launch_jaques_window() {
         first="$base --session-id $jaques_uuid"
     fi
     local loop_resume="$base --resume $jaques_uuid"
-    local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/jaques/CLAUDE.md"
+    local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/jacques/CLAUDE.md"
 
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jaques" -d \
-        "cd '$JAQUES_LAUNCH_DIR' && export $env_jaques && export ANTHROPIC_CUSTOM_HEADERS=$'$jaques_headers' && $first '$init'; while true; do echo ''; echo 'Jaques exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
-    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jaques" automatic-rename off 2>/dev/null || true
-    echo -e "  ${GREEN}✓${NC} Jaques window (${jaques_mode}: ${jaques_uuid})"
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jacques" -d \
+        "cd '$JAQUES_LAUNCH_DIR' && export $env_jaques && export ANTHROPIC_CUSTOM_HEADERS=$'$jaques_headers' && $first '$init'; while true; do echo ''; echo 'Jacques exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jacques" automatic-rename off 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} Jacques window (${jaques_mode}: ${jaques_uuid})"
 }
 
 # JICM v6 watcher (v5 removed in v6.1)
@@ -1135,15 +1135,15 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         fi
     fi
 
-    # Jaques (W13) — add to a running session if missing. Also the install path.
+    # Jacques (W13) — add to a running session if missing. Also the install path.
     if [[ "${JAQUES:-on}" != "off" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
-        if ! echo "$EXISTING_WINDOWS" | grep -q "^Jaques$"; then
-            echo "Adding Jaques window (W13) to existing session..."
+        if ! echo "$EXISTING_WINDOWS" | grep -q "^Jacques$"; then
+            echo "Adding Jacques window (W13) to existing session..."
             launch_jaques_window
             reorder_windows
         else
-            echo "  Jaques window already exists."
+            echo "  Jacques window already exists."
         fi
     fi
 
@@ -1402,8 +1402,14 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     # picks it up regardless of tmux session-level env. jicm-config.sh resolves
     # JICM_TMUX_SESSION="${TMUX_SESSION:-aion}" — without this inline export the
     # old default 'jarvis' caused every inject attempt to fail ("session not found").
+    # JICM_WATCHER_CYCLE_ENABLED=false (W0 cutover, 2026-08-12): jicm-supervisor now owns
+    # cycling for EVERY lane including w0. The watcher keeps running for the duties the
+    # supervisor does not have — REST/idle-hands (incl. the R5 scratchpad prune), MAINTAIN
+    # health pings, identity checks — but no longer consumes .jicm-clear-now.signal, which
+    # is the race that pinned INCLUDE_W0=0. Set back to true ONLY if the supervisor is
+    # stopped, or w0 has no context manager at all.
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' JICM_WATCHER_CYCLE_ENABLED='false' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)
@@ -1446,10 +1452,10 @@ if [[ "${GENIE:-on}" != "off" ]]; then
     launch_genie_window
 fi
 
-# W13: Jaques (Contract Archon). Permanent, not flag-gated; self-skips if SnorkelTasks
+# W13: Jacques (Contract Archon). Permanent, not flag-gated; self-skips if SnorkelTasks
 # is absent, and JAQUES=off suppresses it for a lean launch.
 if [[ "${JAQUES:-on}" != "off" ]]; then
-    echo "Launching Jaques (Contract Archon) in tmux window..."
+    echo "Launching Jacques (Contract Archon) in tmux window..."
     launch_jaques_window
 fi
 

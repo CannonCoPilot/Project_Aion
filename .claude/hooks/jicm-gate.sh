@@ -73,7 +73,7 @@ fi
 # This hook now serves BOTH UserPromptSubmit and PostToolUse.
 #
 # WHY: sampling only on UserPromptSubmit makes a long tool-heavy turn INVISIBLE.
-# Jaques went 0 -> 127K inside one turn; dev went ~300K -> 660K. JICM cannot act on
+# Jacques went 0 -> 127K inside one turn; dev went ~300K -> 660K. JICM cannot act on
 # growth it never sees, and the growth all happens between prompts.
 #
 # The PostToolUse pass is deliberately UPDATE-ONLY: it refreshes tokens/action/state
