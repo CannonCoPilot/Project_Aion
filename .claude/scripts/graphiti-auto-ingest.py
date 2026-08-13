@@ -49,6 +49,18 @@ EMBED_DIM = int(os.getenv("EMBEDDING_DIM", "2560"))
 GROUP_ID = os.getenv("GRAPHITI_GROUP_ID", "jarvis-core")
 MAX_CONTENT_CHARS = 8000
 
+# Hard bound on the whole ingest. This script had NO timeout of any kind, and on
+# 2026-08-12 it hung a JICM lane: it accumulated 4.8s of CPU across 16 minutes elapsed
+# and sat at 0.0% — blocked on a network read — while Neo4j, LiteLLM and Ollama were all
+# reachable, so the stall was inside the client, not the services.
+#
+# Deliberately set BELOW jicm-actuate.sh's external _bounded backstop (900s) so this
+# timeout wins the race. Both would stop the hang, but only this one can say what it was
+# doing; an external SIGTERM leaves no diagnosis. Slow is not the same as stuck — a
+# legitimate add_episode was measured at 347s in the watcher log — so the bound is
+# generous enough not to punish a merely slow graph write.
+INGEST_TIMEOUT_SEC = float(os.getenv("GRAPHITI_INGEST_TIMEOUT", "840"))
+
 
 def log_to_file(msg: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -120,8 +132,11 @@ async def main():
     name = f"JICM cycle {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
     source = f"jicm-compression-cycle — {Path(CHECKPOINT_FILE).name}"
 
+    started = time.time()
     try:
-        entities, edges, elapsed = await ingest_episode(content, name, source)
+        entities, edges, elapsed = await asyncio.wait_for(
+            ingest_episode(content, name, source), timeout=INGEST_TIMEOUT_SEC
+        )
         log_to_file(f"INGESTED: {entities} entities, {edges} edges in {elapsed:.1f}s")
 
         metadata = {
@@ -136,6 +151,18 @@ async def main():
         with open(meta_file, "w") as f:
             json.dump(metadata, f, indent=2)
 
+    except asyncio.TimeoutError:
+        # ALERT, never a silent skip: L5 depth for this cycle is genuinely lost, and a
+        # repeat means the backend is degraded — a thing to fix, not to absorb. The
+        # checkpoint and the resume path are unaffected (this is fire-and-forget).
+        log_to_file(
+            f"ALERT: TIMEOUT after {time.time() - started:.0f}s (limit {INGEST_TIMEOUT_SEC:.0f}s) — "
+            f"episode NOT ingested; L5 depth lost for this cycle (checkpoint + resume unaffected). "
+            f"Blocked inside the client, not the services: check LiteLLM {LITELLM_BASE_URL} "
+            f"(entity extraction), embeddings {OLLAMA_BASE_URL}, and Neo4j {NEO4J_URI}. "
+            f"Repeated timeouts = a degraded backend, NOT a reason to raise this limit."
+        )
+        sys.exit(1)
     except Exception as e:
         log_to_file(f"ERROR: {str(e)[:300]}")
         raise

@@ -524,7 +524,10 @@ for m in msgs[-5:]:
         LLM_INPUT_SIZE=$(wc -c < "$LLM_INPUT_FILE" | tr -d ' ')
         echo "LLM condensed input: ${LLM_INPUT_SIZE} bytes" >&2
 
-        # Call Ollama via python3 for safe JSON escaping
+        # Call Ollama via python3 for safe JSON escaping.
+        # Its stderr goes to a file, not /dev/null: the CAUSE= line it emits is the only
+        # thing that distinguishes a timeout from an API error from an empty completion.
+        LLM_ERR_FILE=$(mktemp)
         LLM_RESPONSE=$(PREP_INPUT="$LLM_INPUT_FILE" \
             PREP_MODEL="$LLM_MODEL" \
             PREP_TIMEOUT="$LLM_TIMEOUT" \
@@ -605,15 +608,36 @@ try:
 finally:
     os.unlink(payload_file.name)
 
-if result.returncode == 0 and result.stdout:
-    try:
-        r = json.loads(result.stdout)
-        print(r["message"]["content"])
-    except (KeyError, json.JSONDecodeError):
-        sys.exit(1)
-else:
+# Diagnose on the way out. Every failure here used to exit(1) into a discarded stderr,
+# so a curl timeout, an HTTP error body and a well-formed empty reply were indistinguishable
+# downstream — all three surfaced as the same "len=0". Name the cause instead.
+if result.returncode != 0:
+    # -s suppresses curls own message, so the exit code is usually all there is.
+    # Translate the ones that actually occur here rather than emit a bare number.
+    _CURL = {6: "DNS failure", 7: "connection refused (model server down?)",
+             22: "HTTP >=400 (reachable but rejected the request)",
+             28: "TIMEOUT (server up but too slow)", 52: "empty reply from server"}
+    _why = _CURL.get(result.returncode, "see curl exit codes")
+    _err = (result.stderr or "").strip()[:200]
+    sys.stderr.write(f"CAUSE=curl rc={result.returncode} ({_why}) err={_err}\n")
     sys.exit(1)
-' 2>/dev/null) || true
+if not result.stdout:
+    sys.stderr.write("CAUSE=empty-response (curl succeeded but returned no body)\n")
+    sys.exit(1)
+try:
+    r = json.loads(result.stdout)
+except json.JSONDecodeError:
+    sys.stderr.write(f"CAUSE=bad-json body={result.stdout.strip()[:200]}\n")
+    sys.exit(1)
+try:
+    print(r["message"]["content"])
+except KeyError:
+    # An API ERROR body is valid JSON and lands here — the single most useful case to name.
+    sys.stderr.write(f"CAUSE=unexpected-shape keys={list(r)[:8]} body={result.stdout.strip()[:200]}\n")
+    sys.exit(1)
+' 2>"$LLM_ERR_FILE") || true
+        LLM_CAUSE="$(tr -d '\r' < "$LLM_ERR_FILE" 2>/dev/null | grep -m1 '^CAUSE=' || true)"
+        rm -f "$LLM_ERR_FILE"
         rm -f "$LLM_INPUT_FILE"
 
         if [[ -n "$LLM_RESPONSE" ]] && [[ ${#LLM_RESPONSE} -gt 100 ]]; then
@@ -635,10 +659,18 @@ else:
             NARRATIVE_LINES=$(echo "$LLM_RESPONSE" | wc -l | tr -d ' ')
             echo "LLM enrichment applied (${NARRATIVE_LINES} lines)" >&2
         else
-            echo "LLM response insufficient (len=${#LLM_RESPONSE}) — keeping Tier 1" >&2
+            # NO SILENT DEGRADATION. A tier1-only checkpoint is a DEGRADED resume anchor —
+            # it lost the narrative that makes a checkpoint readable — and this used to be
+            # reported as an ordinary info line, so the cycle recorded a terminal success
+            # while handing the next session a thinner anchor. Observed 2026-08-12: dev got
+            # 12,642 bytes while protos got 21,432 the same minute, and nothing flagged it.
+            # The cause now comes from the CAUSE= line the enrichment call emits.
+            echo "ALERT ⚠️ LLM enrichment FAILED — checkpoint DEGRADED to Tier 1 (raw extraction, no narrative). len=${#LLM_RESPONSE} ${LLM_CAUSE:-CAUSE=short-response (call succeeded; model returned <100 chars)} · model=$LLM_MODEL endpoint=$LLM_ENDPOINT. Resume still works but the anchor is thinner. Repeated occurrences are a BACKEND problem to fix, not a threshold to lower." >&2
         fi
     else
-        echo "LiteLLM unavailable — keeping Tier 1 output" >&2
+        # NB: the probe is Ollama's /api/tags, and $LLM_ENDPOINT is Ollama direct
+        # (LiteLLM adds ~13s) — so name Ollama here, not LiteLLM.
+        echo "ALERT ⚠️ Ollama unreachable (http://localhost:11434/api/tags probe failed) — checkpoint DEGRADED to Tier 1 (raw extraction, no narrative). Resume still works but the anchor is thinner. Start the Ollama tmux window; do not treat this as normal." >&2
     fi
 fi
 

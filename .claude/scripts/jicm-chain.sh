@@ -36,12 +36,42 @@ _now()    { date -u +%Y-%m-%dT%H:%M:%SZ; }
 _epoch()  { date -u +%s; }
 _die()    { echo "jicm-chain: $*" >&2; exit 1; }
 
+# The project dir Claude Code derives from THIS repo's real path. It encodes the session cwd
+# by replacing BOTH "/" and "_" with "-", so /Users/x/Claude/Project_Aion becomes
+# -Users-x-Claude-Project-Aion. Getting only the "/" substitution gives ...-Project_Aion,
+# which ALSO exists on disk — that underscore variant is the third leg of the triplication
+# and is NOT the dir the live session is written to. Verified against the live transcript.
+# `pwd -P` resolves symlinks, which is the point: the legacy ~/Claude/Jarvis symlink targets
+# Project_Aion, so a session launched through it lands in yet another project dir.
+_canonical_project_dir() {
+    local real enc; real="$(cd "$PROJECT_DIR" 2>/dev/null && pwd -P)" || real="$PROJECT_DIR"
+    enc="${real//\//-}"; enc="${enc//_/-}"
+    echo "$HOME/.claude/projects/$enc"
+}
+
 # Resolve the transcript for a session id. Largest match wins: the same session is written to
 # multiple project dirs (the ~/Claude/Jarvis symlink plus underscore/hyphen path encodings
 # triplicate 137 of 173 sessions), and the largest copy is the complete one.
+#
+# TIE-BREAK (2026-08-12): when copies are the same size — the common case, since the symlinked
+# dirs are HARDLINKS to one inode, not divergent files — `ls -S | head -1` broke the tie on name,
+# so `-Claude-Jarvis` won and the ledger recorded a path derived from a legacy symlink while the
+# registry and state recorded the real one. The rows resolved, but the chain is APPEND-ONLY, so a
+# non-canonical path is permanent, and any consumer joining chain rows to registry rows on path
+# saw a mismatch. Prefer the canonical dir when it is not a SMALLER copy — that settles the tie
+# without weakening "largest wins", which still protects against a genuinely truncated duplicate.
 _transcript_for() {
-    local sid="$1"
-    ls -S "$HOME/.claude/projects"/*/"$sid"*.jsonl 2>/dev/null | head -1
+    local sid="$1" best canon
+    best="$(ls -S "$HOME/.claude/projects"/*/"$sid"*.jsonl 2>/dev/null | head -1)"
+    [[ -n "$best" ]] || return 0
+    canon="$(_canonical_project_dir)/$sid.jsonl"
+    if [[ -f "$canon" && "$canon" != "$best" ]]; then
+        local cz bz
+        cz="$(stat -f %z "$canon" 2>/dev/null || echo 0)"
+        bz="$(stat -f %z "$best"  2>/dev/null || echo 0)"
+        [[ "$cz" -ge "$bz" ]] && { echo "$canon"; return 0; }
+    fi
+    echo "$best"
 }
 
 # ---------------------------------------------------------------------------
