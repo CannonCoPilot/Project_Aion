@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# JICM v7.9 — Gate Hook (UserPromptSubmit)
+# JICM v7.10 — Gate Hook (UserPromptSubmit + PostToolUse)
 # ============================================================================
 #
 # Phase 7.9.1 task #2 — sensing + state update.
@@ -43,8 +43,18 @@
 #     reset; on a 1M window the clamp is a no-op (250K/300K stand).
 #   JICM_PROJECT_DIR=...      Override CLAUDE_PROJECT_DIR (rare)
 #
+#   JICM_SAMPLE_SEC=30        PostToolUse debounce in seconds (v7.10)
+#
+# EVENTS (v7.10):
+#   UserPromptSubmit — full pass: sense + state + registry + continuity bind.
+#   PostToolUse      — throttled UPDATE-ONLY sample. Same canonical formula (which is
+#                      why this lives in ONE hook and not two), but no continuity bind
+#                      and no signal. Exists because a tool-heavy turn was invisible:
+#                      all context growth happens BETWEEN prompts.
+#
 # OUTPUT (always JSON to stdout, exit 0):
-#   {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}
+#   UserPromptSubmit: {"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}
+#   PostToolUse:      {"continue":true}
 #
 # EXIT CODES: always 0 unless catastrophic (missing jq).
 # ============================================================================
@@ -58,6 +68,34 @@ if ! command -v jq >/dev/null 2>&1; then
     echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
     exit 0
 fi
+
+# ─── Event dispatch (v7.10) ─────────────────────────────────────────────────
+# This hook now serves BOTH UserPromptSubmit and PostToolUse.
+#
+# WHY: sampling only on UserPromptSubmit makes a long tool-heavy turn INVISIBLE.
+# Jaques went 0 -> 127K inside one turn; dev went ~300K -> 660K. JICM cannot act on
+# growth it never sees, and the growth all happens between prompts.
+#
+# The PostToolUse pass is deliberately UPDATE-ONLY: it refreshes tokens/action/state
+# and nothing else. It does NOT raise a clear signal — that belongs to jicm-stop.sh,
+# which reads pending_action at END of turn. This is what makes mid-turn sampling
+# safe: flagging HALT_AFTER_RESPONSE mid-turn cannot interrupt the turn, it just
+# means Stop finds it already set. Interrupting a turn in flight risks corrupting
+# work in progress, so nothing here may actuate.
+EVENT="$(printf '%s' "$INPUT" | jq -r '.hook_event_name // ""' 2>/dev/null)"
+[[ -z "$EVENT" || "$EVENT" == "null" ]] && EVENT="UserPromptSubmit"   # back-compat
+
+# Pass-through shaped for whichever event we are serving. PostToolUse takes no
+# additionalContext, so it gets a bare continue — emitting a UserPromptSubmit-shaped
+# object on a PostToolUse event would be a lie the harness might act on.
+_passthrough() {
+    if [[ "$EVENT" == "PostToolUse" ]]; then
+        echo '{"continue":true}'
+    else
+        echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
+    fi
+    exit 0
+}
 
 # ─── Config ─────────────────────────────────────────────────────────────────
 PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
@@ -73,8 +111,7 @@ JICM_CONFIG="$PROJECT_DIR/.claude/scripts/jicm-config.sh"
 [[ -r "$JICM_CONFIG" ]] && . "$JICM_CONFIG"
 if ! command -v jicm_key_paths >/dev/null 2>&1 || ! command -v jicm_derive_key >/dev/null 2>&1; then
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) | FATAL | jicm-config.sh failed to load — NOT writing state (would corrupt W0's shared file)" >> "$LOG_FILE"
-    echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
-    exit 0
+    _passthrough
 fi
 
 # Default thresholds in TOKENS (User encoding directive: not percentages)
@@ -83,8 +120,7 @@ JICM_HARD_TOKENS="${JICM_HARD_TOKENS:-600000}"   # 60% of 1M — above W0's ~380
 
 # ─── Disable check ──────────────────────────────────────────────────────────
 if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
-    echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
-    exit 0
+    _passthrough
 fi
 
 # ─── JICM v9: W5/dev exclusion DELETED ──────────────────────────────────────
@@ -105,6 +141,54 @@ JICM_KEY="$(jicm_derive_key "$SESSION_ID")"
 KEY_TARGET="$(jicm_default_target "$JICM_KEY")"
 jicm_key_paths "$JICM_KEY"
 mkdir -p "$(dirname "$JK_STATE")" 2>/dev/null
+
+# ─── PostToolUse: throttle BEFORE doing any work ────────────────────────────
+# This hook is not cheap (~15 jq forks, a JSONL tail, a registry upsert). On
+# UserPromptSubmit that cost is paid once per turn; on PostToolUse it would be paid
+# per TOOL CALL. So the debounce has to come before the parsing, not after it —
+# a throttle that runs after the expensive part throttles nothing.
+#
+# Cadence beats precision here: context grows over a turn, and one sample every
+# SAMPLE_SEC is enough to catch a 300K-in-one-turn burn long before it matters.
+SAMPLE_MARKER="$(dirname "$JK_STATE")/.last-sample.$JICM_KEY"
+if [[ "$EVENT" == "PostToolUse" ]]; then
+    JICM_SAMPLE_SEC="${JICM_SAMPLE_SEC:-30}"
+    if [[ -f "$SAMPLE_MARKER" ]]; then
+        _last="$(cat "$SAMPLE_MARKER" 2>/dev/null)"
+        [[ "$_last" =~ ^[0-9]+$ ]] || _last=0
+        [[ $(( $(date +%s) - _last )) -lt "$JICM_SAMPLE_SEC" ]] && _passthrough
+    fi
+fi
+# Stamped on BOTH events, not just PostToolUse: the throttle measures time since the last
+# sample, whoever took it. Stamping only in the branch above meant the first tool call of
+# every turn re-sampled ~1s after the prompt pass had already done identical work.
+date +%s > "$SAMPLE_MARKER" 2>/dev/null
+
+# ─── Payload tolerance: resolve the transcript if the event omitted it ───────
+# I could not PROVE that PostToolUse stdin carries transcript_path (no hook here read
+# it, and hooks cache at session start so a probe needs a restart). Rather than assume
+# either way, the code tolerates both and the log below RECORDS which happened — the
+# first live PostToolUse sample answers the question empirically instead of by claim.
+# Falling back to the registry is the same resolution jicm-actuate.sh already uses.
+#
+# The fallback is IDENTITY-GUARDED: it is only used when the registry still names THIS
+# session. A registry naming a different session is exactly the pollution R1 dealt with,
+# and borrowing its transcript would attribute another lane's tokens to this key — a
+# wrong reading is worse than a missing one, because a missing one is recoverable by the
+# carry-forward logic below while a wrong one is believed.
+TRANSCRIPT_SRC="payload"
+if [[ -z "$TRANSCRIPT" || ! -f "$TRANSCRIPT" ]]; then
+    _reg_sid="$(jicm_registry_get "$JICM_KEY" '.session_id' 2>/dev/null)"
+    _reg_tp="$(jicm_registry_get "$JICM_KEY" '.transcript_path' 2>/dev/null)"
+    if [[ "$_reg_sid" == "$SESSION_ID" && -n "$_reg_tp" && "$_reg_tp" != "null" && -f "$_reg_tp" ]]; then
+        TRANSCRIPT="$_reg_tp"
+        TRANSCRIPT_SRC="registry"
+    elif [[ -n "$_reg_sid" && "$_reg_sid" != "$SESSION_ID" ]]; then
+        TRANSCRIPT_SRC="unresolved (registry names ${_reg_sid:0:8}, not this session)"
+    else
+        TRANSCRIPT_SRC="unresolved"
+    fi
+fi
 
 # ─── Parse JSONL for latest assistant usage (CANONICAL SOURCE) ──────────────
 # Phase 0.2 refactor: extract ephemeral cache breakdown so .jicm-state-hook.json
@@ -382,7 +466,10 @@ fi
 # (jicm-chain.sh bind is idempotent regardless; this guard just avoids a jq on every prompt.)
 # Failure is non-fatal by design: the gate's contract is to update state and always pass through,
 # so a bookkeeping problem must never block the user's turn. It ALERTs into the JICM log instead.
-if [[ "$(jicm_registry_get "$JICM_KEY" '.session_id')" != "$SESSION_ID" ]]; then
+# EVENT guard: the bind closes a lineage edge at a session's FIRST prompt. A PostToolUse
+# sample is never that moment (a tool call implies a prompt already landed), so running it
+# there could only ever re-attempt an edge the prompt pass already handled.
+if [[ "$EVENT" != "PostToolUse" ]] && [[ "$(jicm_registry_get "$JICM_KEY" '.session_id')" != "$SESSION_ID" ]]; then
     if ! "$(dirname "${BASH_SOURCE[0]}")/../scripts/jicm-chain.sh" bind "$JICM_KEY" "$SESSION_ID" 2>>"$LOG_FILE"; then
         echo "$NOW_ISO | ALERT | key=$JICM_KEY | continuity bind FAILED for ${SESSION_ID:0:8} — succession edge unrecorded" >> "$LOG_FILE"
     fi
@@ -397,7 +484,7 @@ jicm_registry_upsert "$JICM_KEY" \
     class=interactive reset_policy=preserve-restore owner=jarvis $REG_EXTRA
 
 # ─── Log ────────────────────────────────────────────────────────────────────
-echo "$NOW_ISO | $ACTION | key=$JICM_KEY | tokens=$TOKENS/$WINDOW (${USED_PCT}%) | thresholds soft=$JICM_SOFT_TOKENS hard=$JICM_HARD_TOKENS | burn=${BURN_RATE_TPM}tpm | model=$MODEL | session=$SESSION_ID" >> "$LOG_FILE"
+echo "$NOW_ISO | $ACTION | key=$JICM_KEY | ev=$EVENT | tokens=$TOKENS/$WINDOW (${USED_PCT}%) | thresholds soft=$JICM_SOFT_TOKENS hard=$JICM_HARD_TOKENS | burn=${BURN_RATE_TPM}tpm | src=$TOKENS_SOURCE | tp=$TRANSCRIPT_SRC | model=$MODEL | session=$SESSION_ID" >> "$LOG_FILE"
 
 # Rotate log if > 100KB
 LOG_SIZE=$(wc -c < "$LOG_FILE" 2>/dev/null | tr -d ' ' || echo 0)
@@ -408,5 +495,4 @@ fi
 # ─── Always pass through ─────────────────────────────────────────────────────
 # Per v7.9 spec: hook ONLY updates state. NO additionalContext, NO decision:block.
 # Actuation belongs to the watcher, triggered by jicm-stop.sh writing .jicm-clear-now.signal.
-echo '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":""}}'
-exit 0
+_passthrough
