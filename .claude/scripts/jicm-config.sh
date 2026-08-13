@@ -113,7 +113,16 @@ jicm_key_paths() {
         # H3 — per-session shared-memory inputs (never share w0's global session-state /
         # scratchpad / active-plan). Consumed once the actuator's prep is wired (R2).
         JK_SESSION_STATE="$JICM_STATES_DIR/$key.session-state.md"
-        JK_SCRATCHPAD="$JICM_CHECKPOINTS_DIR/$key.scratchpad.md"
+        # SINGLE SOURCE OF TRUTH (2026-08-12). This pointed at
+        # $JICM_CHECKPOINTS_DIR/$key.scratchpad.md while session-start.sh and the
+        # actuator's resume nudge both sent the session to .claude/context/.scratchpad.$key.md
+        # — so the WRITE side and the READ side of the scratchpad named different files, and
+        # which one held the content varied by lane: dev's real 19.8KB working doc sat at
+        # .scratchpad.dev.md while prep was handed a checkpoints/ path that did not exist,
+        # and genie/jaques had it exactly backwards. Prep was therefore reading an absent
+        # file for dev. Aligned to the convention w0 already uses (.claude/context/
+        # .scratchpad.md) and that the resume path actually reads.
+        JK_SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.$key.md"
         JK_ACTIVE_PLAN="$JICM_STATES_DIR/$key.active-plan"
     fi
 

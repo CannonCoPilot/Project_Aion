@@ -151,7 +151,18 @@ _managed() {
 # WOULD have done — which is precisely the parity evidence R3 needs before cutover.
 # Shadow ends by itself: retire the watcher process and w0 becomes fully managed.
 _legacy_watcher_alive() { pgrep -f 'jicm-watcher\.sh' >/dev/null 2>&1; }
-_w0_shadow() { [[ "$1" == "w0" ]] && _legacy_watcher_alive; }
+
+# Does the legacy watcher still OWN w0 cycling? Process-liveness was the old test, and it
+# is now wrong: after the 2026-08-12 cutover the watcher keeps running (REST, MAINTAIN,
+# identity) while ceding cycling, so "alive" no longer implies "owns the signal". It
+# publishes the claim as a marker file instead.
+# BOTH conditions required, deliberately: a marker left behind by a dead watcher must not
+# shadow w0 forever, and a live watcher that ceded must not keep w0 shadowed either. The
+# conjunction fails safe in both directions.
+_legacy_owns_cycling() {
+    [[ -f "$JICM_DIR/watcher-owns-cycling" ]] && _legacy_watcher_alive
+}
+_w0_shadow() { [[ "$1" == "w0" ]] && _legacy_owns_cycling; }
 
 # Reap a clear-now signal — unless we are only shadowing this key.
 _reap_signal() {   # <key> <reason>
@@ -450,6 +461,10 @@ cmd_status() {
     fi
     local gate; [[ "$act" == "1" ]] && gate="ENABLED (live firing)" || gate="GATED (sense-only)"
     echo "jicm-supervisor · actuate=$gate · include_w0=$iw0 · poll=${poll}s   [config source: $src]"
+    # Adopt the daemon's setting for the per-key rows too. Reporting the header from the
+    # daemon while computing `managed=` from THIS shell's env is the same misreport in a
+    # subtler place: it showed "include_w0=1" and "w0 managed=no" in one breath.
+    INCLUDE_W0="$iw0"
     echo "  daemon: $running"
     local key tokens pending hard
     local keys; keys="$(jicm_registry_keys)"

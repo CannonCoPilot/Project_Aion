@@ -179,14 +179,11 @@ _resolve_target() {
     echo "$tt"
 }
 
-# Human-facing scratchpad hint for the resume nudge (dev keeps .scratchpad.dev.md).
-_scratchpad_rel() {
-    case "$JK_KEY" in
-        w0)  echo ".claude/context/.scratchpad.md" ;;
-        dev) echo ".claude/context/.scratchpad.dev.md" ;;
-        *)   echo ".claude/context/.scratchpad.$JK_KEY.md" ;;
-    esac
-}
+# Human-facing scratchpad hint for the resume nudge. DERIVED from JK_SCRATCHPAD rather
+# than re-cased here: this used to be a second, independent definition, and it disagreed
+# with jicm-config.sh's — the nudge sent the session to one file while prep read another.
+# One source of truth; a path can no longer drift between the two sides of a cycle.
+_scratchpad_rel() { echo "${JK_SCRATCHPAD#$PROJECT_DIR/}"; }
 _resume_prompt() {
     # "Watcher here." prefix = filter parity: jicm-prep-context.sh's user-message
     # filter excludes startswith("Watcher here.") so this nudge never pollutes a
@@ -248,6 +245,49 @@ _model_row() { [[ -n "$TMUX_TARGET" ]] || return 0; "$TMUX_BIN" capture-pane -t 
 # Each is defensive + non-fatal: a missing dependency logs + skips, never aborts
 # the cycle (the /clear must still happen once the checkpoint exists).
 # ---------------------------------------------------------------------------
+_step_flush() {   # 1.5 — ask the live session to flush working state before we take it away
+    # PHASE 3 PARITY, RESOLVED 2026-08-12. The legacy W0 watcher ran a HALT handshake
+    # (flush to the scratchpad, reply "Understood") that this actuator dropped, on the
+    # argument that wait_for_idle + a transcript-reading prep made it redundant. Checking
+    # that argument against the record rather than accepting it:
+    #
+    #   - The handshake was never a guarantee: 41 of 164 recorded cycles (25%) hit the ack
+    #     timeout and proceeded WITHOUT a flush.
+    #   - But 75% is not 0%. Dropping it outright IS a regression, and it showed: the dev
+    #     lane cycled HALT-less on 2026-08-12 and resumed onto a scratchpad 15 days stale
+    #     that actively misdescribed the system's state.
+    #
+    # So the step is folded FORWARD for every lane rather than kept as a W0 special case.
+    # Two deliberate improvements over the legacy version:
+    #   - Completion is detected with _wait_for_idle (transcript terminal stop_reason)
+    #     instead of grepping the pane for the literal string "Understood". Some of that
+    #     25% was likely ack-DETECTION failure, not non-compliance.
+    #   - The scratchpad named is this key's own (JK_SCRATCHPAD), so a lane can never be
+    #     told to flush into another lane's working file.
+    #
+    # Failure policy matches step 3.4's: ALERT and PROCEED. Refusing to clear a session
+    # already past its hard threshold is the worse failure, and prep still reads the full
+    # transcript — a missed flush costs curation, not the resume path.
+    [[ "${JICM_FLUSH_ENABLED:-true}" == "true" ]] || { _log "1.5 flush skipped (disabled)"; return 0; }
+    if [[ -z "$TMUX_TARGET" || ! -x "$INJECT_SCRIPT" ]]; then
+        _log "1.5 flush skipped (no pane to prompt — self/background key)"; return 0
+    fi
+    local rel; rel="$(_scratchpad_rel)"
+    # "Watcher here." prefix = the same filter parity the resume nudge relies on:
+    # jicm-prep-context.sh drops user messages starting with it, so this instruction
+    # never reads back as if the USER had asked for it.
+    _inject clear-input; sleep 0.3
+    _inject text "Watcher here. Context is heavy and a refresh is imminent — please save any in-progress working details to $rel (update it, don't append blindly; it is your resume doc), then stop. No need to reply at length."
+    sleep 0.5
+    _inject submit; sleep 0.5
+    _log "1.5 flush prompt sent (-> $rel)"
+    if _wait_for_idle "$TRANSCRIPT" "${JICM_FLUSH_TIMEOUT:-180}"; then
+        _log "1.5 flush complete"
+    else
+        _log "ALERT ⚠️ 1.5 flush did NOT complete within ${JICM_FLUSH_TIMEOUT:-180}s — proceeding to /clear anyway (prep reads the full transcript, so this costs curation, not resume). Repeated occurrences mean the flush prompt is not landing: check the pane target and the inject script."
+    fi
+}
+
 _step_prep() {   # build the resume checkpoint into JK_COMPRESSED; return non-empty
     if [[ -f "$JK_COMPRESSION_SIGNAL" || -f "$JK_COMPRESSION_GUARD" ]]; then
         _log "prep: skipped (signal/guard already present)"
@@ -447,6 +487,9 @@ _cycle_preserve_restore() {
         return 3
     fi
     _log "step1: idle confirmed"
+
+    # 1.5 FLUSH — the W0 HALT handshake, folded forward (Phase 3 parity checkpoint).
+    _step_flush
 
     # 2. Build the resume checkpoint; refuse to /clear without a non-empty anchor.
     if ! _step_prep; then

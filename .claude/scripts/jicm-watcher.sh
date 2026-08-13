@@ -765,6 +765,23 @@ _w0_clear_valid() {
     return 0
 }
 
+# --- Cycling-ownership marker (W0 cutover) ----------------------------------
+# The supervisor must know whether this watcher still owns w0 cycling. It cannot read
+# our env, and process-liveness is now the WRONG test — we keep running (REST, MAINTAIN,
+# identity) after ceding cycling. So publish the claim as a file it can see.
+# Removed on exit as well as when cycling is off: a marker outliving the process would
+# keep w0 shadowed forever, which is the failure this replaces.
+JICM_CYCLE_OWNER_MARKER="$PROJECT_DIR/.claude/context/jicm/watcher-owns-cycling"
+mkdir -p "$(dirname "$JICM_CYCLE_OWNER_MARKER")" 2>/dev/null
+if [[ "${JICM_WATCHER_CYCLE_ENABLED:-true}" == "true" ]]; then
+    echo "$$" > "$JICM_CYCLE_OWNER_MARKER"
+    log "cycling: OWNED by this watcher (legacy path)"
+else
+    rm -f "$JICM_CYCLE_OWNER_MARKER"
+    log "cycling: CEDED to jicm-supervisor (JICM_WATCHER_CYCLE_ENABLED=false) — this watcher still runs REST / MAINTAIN / identity"
+fi
+trap 'log "watcher exiting (pid $$)"; rm -f "$JICM_PID_FILE" "$JICM_CYCLE_OWNER_MARKER"; exit' EXIT INT TERM
+
 # --- Main loop --------------------------------------------------------------
 log "main loop (poll ${JICM_POLL_INTERVAL}s, target $JICM_TMUX_TARGET, backend $JICM_INJECTION_BACKEND)"
 declare -i REFRESH_COUNTER=0
@@ -775,15 +792,27 @@ while true; do
         sleep "$JICM_POLL_INTERVAL"
         continue
     fi
-    if [[ -f "$JICM_CLEAR_SIGNAL" ]] && _w0_clear_valid; then
-        actuate_jicm_cycle
+    # W0 CUTOVER (2026-08-12): when the supervisor manages w0, it — not this watcher —
+    # owns cycling. Both consuming one signal file is the race that kept INCLUDE_W0=0.
+    #
+    # This gates ONLY the cycling path, deliberately. This watcher also runs REST /
+    # idle-hands (incl. the R5 scratchpad prune), MAINTAIN health pings, and identity
+    # checks, and NONE of those exist in the supervisor yet. Stopping the process
+    # outright would silently drop three live capabilities to fix one race — so the
+    # process keeps running and only the contended duty moves.
+    if [[ "${JICM_WATCHER_CYCLE_ENABLED:-true}" == "true" ]]; then
+        if [[ -f "$JICM_CLEAR_SIGNAL" ]] && _w0_clear_valid; then
+            actuate_jicm_cycle
+        fi
     fi
 
     # Periodic state refresh (every 5 polls ≈ 5s)
     REFRESH_COUNTER=$(( REFRESH_COUNTER + 1 ))
     if [[ "$REFRESH_COUNTER" -ge "$REFRESH_EVERY" ]]; then
         refresh_state_from_jsonl
-        check_autonomous_threshold     # NEW: self-fire when over hard threshold
+        # Threshold self-firing is part of cycling — gated with it, or the watcher would
+        # raise clears for a lane it no longer actuates.
+        [[ "${JICM_WATCHER_CYCLE_ENABLED:-true}" == "true" ]] && check_autonomous_threshold
         REFRESH_COUNTER=0
     fi
 
