@@ -373,30 +373,64 @@ TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-}"   # resolved once in jicm-config.sh; empty =
 MAINT_QDRANT_URL="${JICM_HEALTH_QDRANT_URL:-http://localhost:6333}"
 MAINT_MLX_URL="${JICM_HEALTH_MLX_URL:-http://localhost:8000/health}"
 MAINT_NEO4J_URL="${JICM_HEALTH_NEO4J_URL:-http://localhost:7474}"
+# Probe budget. Overridable so the timeout branch is testable without saturating the
+# box. Steady-state latency is 1-13ms, so 2s is ~150x headroom — a probe that exceeds
+# it is reporting LOAD, and is now classified as `timeout` rather than as "down".
+MAINT_PROBE_TIMEOUT="${JICM_HEALTH_PROBE_TIMEOUT:-2}"
 
-# Probe a URL. Echoes "true|<ms>" or "false|<ms>". Latency comes from curl's own
+# Probe a URL. Echoes "<up>|<ms>|<cause>". Latency comes from curl's own
 # %{time_total} rather than bracketing the call with two python3 clock reads (the
 # watcher's approach, 6 interpreter launches per pass): it measures the REQUEST
 # instead of the request plus shell overhead, and costs nothing.
+#
+# The CAUSE is the point. `curl -sf` fails identically for three unrelated things,
+# and the old boolean collapsed all of them into the word "down":
+#   rc 7  connection refused  (~0.0002s) — genuinely down
+#   rc 28 timed out           (= max-time) — ALIVE but saturated; NOT down
+#   rc 22 HTTP >= 400         (~0.004s)  — ALIVE, wrong endpoint/contract
+# A saturated machine therefore reported three simultaneous outages, and a renamed
+# Qdrant endpoint would report Qdrant "down" while it served every other request.
+# Absence of a successful response is not evidence of a dead service — same defect
+# class as the confident zeros in the gate and the anonymous `len=0` checkpoints.
 _probe() {
-    local url="$1" t
-    if t="$(curl -sf --max-time 2 -o /dev/null -w '%{time_total}' "$url" 2>/dev/null)"; then
-        awk -v t="$t" 'BEGIN{printf "true|%d\n", t*1000}'
-    else
-        awk -v t="${t:-0}" 'BEGIN{printf "false|%d\n", t*1000}'
-    fi
+    local url="$1" t rc cause
+    t="$(curl -sf --max-time "$MAINT_PROBE_TIMEOUT" -o /dev/null -w '%{time_total}' "$url" 2>/dev/null)"; rc=$?
+    [[ "$rc" -eq 0 ]] && { awk -v t="$t" 'BEGIN{printf "true|%d|ok\n", t*1000}'; return; }
+    case "$rc" in
+        7)  cause="refused" ;;      # nothing listening — the only true "down"
+        28) cause="timeout" ;;      # alive but slower than the probe budget
+        22) cause="http-error" ;;   # alive, responded, status >= 400
+        6)  cause="dns" ;;
+        *)  cause="curl-rc-$rc" ;;
+    esac
+    awk -v t="${t:-0}" -v c="$cause" 'BEGIN{printf "false|%d|%s\n", t*1000, c}'
 }
 
 _maint_service_health() {   # M2 + M3
-    local health_file="$PROJECT_DIR/.claude/context/.memory-health.json"
+    # Writes .memory-health-SERVICES.json, NOT .memory-health.json.
+    #
+    # Both this and context-health-monitor.js (a UserPromptSubmit hook) used to
+    # writeFileSync the SAME .memory-health.json with DISJOINT, incompatible schemas —
+    # the hook's session-scoped {layers:{L1..L6}}, ours the machine-scoped {services}.
+    # Neither read before writing, so each pass destroyed the other's data and the
+    # /jarvis-memory dashboard (which spreads the file and expects `layers`) rendered
+    # empty whenever the supervisor happened to write last. A lock would not have
+    # fixed it: serialising two writers of incompatible schemas still yields a file
+    # that is one schema or the other at random.
+    # So: one writer per file. We own the machine-scoped probe results; the hook owns
+    # the canonical file and folds ours in on read (it is deliberately network-free,
+    # <200ms, so it cannot do these probes itself). The alert file is unchanged — it
+    # is a one-line fast path the hook already surfaces into context.
+    local health_file="$PROJECT_DIR/.claude/context/.memory-health-services.json"
     local alert_file="$PROJECT_DIR/.claude/context/.memory-health-alert"
-    local qdrant mlx neo4j qok qms mok mms nok nms sessions_count warn down
+    local qdrant mlx neo4j qok qms qc mok mms mc nok nms nc sessions_count warn
+    local unreachable degraded detail svc sname sok scause sms
 
-    qdrant="$(_probe "$MAINT_QDRANT_URL/collections")"; IFS='|' read -r qok qms <<<"$qdrant"
-    mlx="$(_probe "$MAINT_MLX_URL")";                   IFS='|' read -r mok mms <<<"$mlx"
-    neo4j="$(_probe "$MAINT_NEO4J_URL")";               IFS='|' read -r nok nms <<<"$neo4j"
+    qdrant="$(_probe "$MAINT_QDRANT_URL/collections")"; IFS='|' read -r qok qms qc <<<"$qdrant"
+    mlx="$(_probe "$MAINT_MLX_URL")";                   IFS='|' read -r mok mms mc <<<"$mlx"
+    neo4j="$(_probe "$MAINT_NEO4J_URL")";               IFS='|' read -r nok nms nc <<<"$neo4j"
 
-    sessions_count="$(curl -sf --max-time 2 "$MAINT_QDRANT_URL/collections/sessions" 2>/dev/null \
+    sessions_count="$(curl -sf --max-time "$MAINT_PROBE_TIMEOUT" "$MAINT_QDRANT_URL/collections/sessions" 2>/dev/null \
         | jq -r '.result.points_count // 0' 2>/dev/null || echo 0)"
     [[ "$sessions_count" =~ ^[0-9]+$ ]] || sessions_count=0
     warn=null
@@ -407,24 +441,39 @@ _maint_service_health() {   # M2 + M3
 {
   "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
   "source": "jicm-supervisor",
+  "probe_timeout_s": $MAINT_PROBE_TIMEOUT,
   "services": {
-    "qdrant": {"up": $qok, "latency_ms": $qms},
-    "mlx_embed": {"up": $mok, "latency_ms": $mms},
-    "neo4j": {"up": $nok, "latency_ms": $nms}
+    "qdrant": {"up": $qok, "latency_ms": $qms, "cause": "$qc"},
+    "mlx_embed": {"up": $mok, "latency_ms": $mms, "cause": "$mc"},
+    "neo4j": {"up": $nok, "latency_ms": $nms, "cause": "$nc"}
   },
   "collections": { "sessions_points": $sessions_count },
   "warnings": $warn
 }
 HEALTH
 
-    down=""
-    [[ "$qok" != "true" ]] && down="${down}Qdrant "
-    [[ "$mok" != "true" ]] && down="${down}MLX-Embed "
-    [[ "$nok" != "true" ]] && down="${down}Neo4j "
-    if [[ -n "$down" ]]; then
-        # Consumed by context-health-monitor.js — keep the file's contract identical.
-        echo "Memory services DOWN: ${down}— L4/L5 operations may fail" > "$alert_file"
-        _log "MAINTAIN: health alert — services down: $down"
+    # Split by cause, because the remedies are opposite: `refused`/`dns` means start
+    # the service; `timeout`/`http-error` means the service is RUNNING and the fault
+    # is load or contract. Both still ALERT — a degraded service is not an accepted
+    # state — but an alert that cannot name which one is not actionable.
+    unreachable=""; degraded=""; detail=""
+    for svc in "Qdrant|$qok|$qc|$qms" "MLX-Embed|$mok|$mc|$mms" "Neo4j|$nok|$nc|$nms"; do
+        IFS='|' read -r sname sok scause sms <<<"$svc"
+        [[ "$sok" == "true" ]] && continue
+        detail="${detail}${sname}(${scause},${sms}ms) "
+        case "$scause" in
+            refused|dns) unreachable="${unreachable}${sname} " ;;
+            *)           degraded="${degraded}${sname} " ;;
+        esac
+    done
+
+    if [[ -n "$unreachable" || -n "$degraded" ]]; then
+        # Consumed by context-health-monitor.js — keep it a single line of prose.
+        { [[ -n "$unreachable" ]] && printf 'Memory services UNREACHABLE: %s— L4/L5 operations will fail. ' "$unreachable"
+          [[ -n "$degraded"    ]] && printf 'Memory services DEGRADED (alive, not serving): %s— L4/L5 may be slow or erroring. ' "$degraded"
+          printf '[%s]\n' "${detail% }"
+        } > "$alert_file"
+        _log "MAINTAIN: health alert — ${unreachable:+unreachable: $unreachable}${degraded:+degraded: $degraded}· ${detail% }"
     else
         rm -f "$alert_file"
     fi

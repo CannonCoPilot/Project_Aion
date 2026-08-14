@@ -567,7 +567,14 @@ MAINTAIN_COUNTER=0
 LAST_PSYCHE_CHECK_EPOCH=0
 
 check_service_health() {
-    local health_file="$PROJECT_DIR/.claude/context/.memory-health.json"
+    # SUPERSEDED by jicm-supervisor's _maint_service_health (2026-08-14). This whole
+    # function is gated off via JICM_WATCHER_MAINT_ENABLED=false and survives only as
+    # a rollback path. It writes the SERVICES file, never .memory-health.json — that
+    # file has a single writer (context-health-monitor.js), and pointing this here too
+    # means flipping the gate back on cannot resurrect the schema-clobbering race.
+    # NOTE: this version cannot distinguish refused/timeout/http-error; the supervisor's
+    # can. Prefer the supervisor.
+    local health_file="$PROJECT_DIR/.claude/context/.memory-health-services.json"
     local alert_file="$PROJECT_DIR/.claude/context/.memory-health-alert"
     local qdrant_ok="false" mlx_ok="false" neo4j_ok="false"
     local qdrant_ms=0 mlx_ms=0 neo4j_ms=0

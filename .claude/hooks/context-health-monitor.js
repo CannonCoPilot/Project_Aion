@@ -140,6 +140,49 @@ function main(hookData) {
 
   health.layers.L4_declarative = l4;
 
+  // L4 service reachability — probed by jicm-supervisor's MAINTAIN pass, folded in
+  // here rather than measured. This hook is deliberately network-free (<200ms budget),
+  // so it cannot probe Qdrant/MLX/Neo4j itself; the supervisor already does, every
+  // ~100s, from the one process that outlives every lane.
+  //
+  // Previously BOTH wrote .memory-health.json wholesale with disjoint, incompatible
+  // schemas — ours {layers}, theirs {services} — so each destroyed the other and the
+  // dashboard rendered empty layers whenever the supervisor wrote last. Now there is
+  // exactly one writer per file: the supervisor owns SERVICES_FILE, we own this one
+  // and merge on read.
+  const SERVICES_FILE = path.join(PROJECT_DIR, ".claude/context/.memory-health-services.json");
+  try {
+    const svcStat = fs.statSync(SERVICES_FILE);
+    const svc = JSON.parse(fs.readFileSync(SERVICES_FILE, "utf8"));
+    const ageMin = Math.round((Date.now() - svcStat.mtimeMs) / 60000);
+    health.services = svc.services || {};
+    health.collections = svc.collections || {};
+    health.services_meta = { source: svc.source, probed_at: svc.timestamp, age_min: ageMin };
+
+    // A stale services file is not a healthy one. If the supervisor has stopped, the
+    // last probe results freeze and would otherwise read as a live all-clear forever.
+    if (ageMin > 10) {
+      health.services_meta.stale = true;
+      warnings.push(`L4: service probes stale (${ageMin}m old) — is jicm-supervisor running?`);
+    } else {
+      // Name the cause. `refused` means start it; `timeout`/`http-error` mean the
+      // service is alive and the fault is load or contract — opposite remedies.
+      for (const [name, s] of Object.entries(health.services)) {
+        if (s && s.up === false) {
+          warnings.push(`L4: ${name} ${s.cause || "unreachable"} (${s.latency_ms}ms)`);
+        }
+      }
+    }
+    if (svc.warnings) warnings.push(svc.warnings);
+  } catch {
+    // No services file at all — strictly worse than a stale one (the supervisor has
+    // never written here), so it must not be quieter than the stale branch. Report
+    // absence as absence: never an empty-but-green services block.
+    health.services = {};
+    health.services_meta = { source: null, stale: true, missing: true };
+    warnings.push("L4: no service probes on disk — jicm-supervisor has not run");
+  }
+
   // ═══════════════════════════════════════════════════════════════════════════
   // L5: Long-Term Procedural
   // ═══════════════════════════════════════════════════════════════════════════

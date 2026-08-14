@@ -179,6 +179,14 @@ alfred/.claude/jobs/logs/*.log
 *.backup
 .claude/settings.json.pre-*
 
+# Timestamped / tagged backups left by in-session edits (e.g. .bak-devuuid-*, .bak-phaseH, .bak-mcpfix-*)
+*.bak
+*.bak-*
+
+# Scratch workspaces (temp, per-lane — never tracked)
+.claude/scratch/
+alfred/.claude/scratch/
+
 # Embedded scratch git repo used by Alfred canary tests — never a submodule of this repo
 alfred/.claude/scratch/canary-repo/
 
@@ -191,3 +199,7 @@ alfred/.claude/scratch/canary-repo/
 .claude/context/.litellm-incidents.jsonl
 .claude/context/.litellm-incidents.jsonl.*.bak
 .claude/context/.litellm-failsafe.lock
+
+# Machine-scoped service probe results, rewritten by jicm-supervisor every ~100s.
+# Pure ephemeral telemetry — the canonical .memory-health.json folds it in on read.
+.claude/context/.memory-health-services.json
