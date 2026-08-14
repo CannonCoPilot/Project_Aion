@@ -155,20 +155,43 @@ else
     _log "WARNING: --force — skipping the idle check; an in-flight turn will be lost"
 fi
 
-# --- 7. Preserve context BEFORE the kill.
-# Policy note — this deliberately DIVERGES from jicm-actuate.sh, which ALERTs and PROCEEDS when
-# capture fails. There, refusing to clear a session already at its token threshold is the worse
-# failure. Here nothing is forcing the restart, so an unpreserved lane is a pure, avoidable loss:
-# we ABORT instead. Same reasoning, opposite answer, because the urgency is absent.
-if [[ "$DRY_RUN" -eq 0 ]]; then
-    if [[ -x "$ACTUATE" ]]; then
-        _log "preserve: jicm-actuate.sh $KEY prepare"
-        if ! "$ACTUATE" "$KEY" prepare >>"$LOG" 2>&1; then
-            _die "preserve (jicm-actuate prepare) FAILED for $KEY — not killing an unpreserved lane. Fix the checkpoint path or pass --force after preserving by hand."
-        fi
-    else
-        _die "jicm-actuate.sh not executable at $ACTUATE — cannot preserve"
-    fi
+# --- 7. Working-state gate BEFORE the kill.
+#
+# What actually preserves continuity here is `--resume`: the restarted process re-attaches to the
+# same transcript, so the conversation survives in full. That is NOT true of a JICM clear, and the
+# distinction matters — do not "improve" this by adding a compression cycle. The checkpoint and
+# scratchpad are the FALLBACK, for when the resume itself misbehaves.
+#
+# `jicm-actuate.sh <key> prepare` is a READ-ONLY ADVISORY gate: it inspects the scratchpad and
+# checkpoint and prints "verdict : READY|NOT READY". It writes no checkpoint, and it ALWAYS
+# EXITS 0 — the verdict exists only in stdout. An earlier version of this script tested its exit
+# status, which meant the guard could never fire for any lane under any condition: it reported
+# "preserve" in the log while verifying nothing. Parse the verdict, never the exit code.
+# The gate runs in DRY-RUN too. A preview that skips the checks cannot tell you the run would be
+# refused — which is the single most useful thing a preview can say.
+GATE_FAILED=0
+_gate_fail() { [[ "$DRY_RUN" -eq 1 ]] && { GATE_FAILED=1; _log "WOULD REFUSE: $*"; return 0; }; _die "$*"; }
+if true; then
+    [[ -x "$ACTUATE" ]] || _gate_fail "jicm-actuate.sh not executable at $ACTUATE — cannot check working state"
+    _log "working-state gate: jicm-actuate.sh $KEY prepare (advisory; verdict parsed from stdout)"
+    PREP_OUT="$("$ACTUATE" "$KEY" prepare 2>&1)"
+    printf '%s\n' "$PREP_OUT" >> "$LOG"
+    PREP_VERDICT="$(printf '%s' "$PREP_OUT" | grep -E '^\s*verdict' | head -1 | sed 's/.*: *//')"
+    case "$PREP_VERDICT" in
+        READY*)
+            _log "working-state gate: READY" ;;
+        NOT\ READY*)
+            # Diverges from jicm-actuate.sh, which ALERTs and PROCEEDS: there, refusing to clear a
+            # session already at its token threshold is the worse failure. Here nothing forces the
+            # restart, so stale working state is a pure avoidable risk. Same reasoning, opposite
+            # answer, because the urgency is absent.
+            [[ "$FORCE" -eq 1 ]] && _log "WARNING: working state NOT READY ($PREP_VERDICT) — proceeding under --force" \
+                || _gate_fail "working state NOT READY for $KEY ($PREP_VERDICT). Have the lane save its scratchpad (<=30m old), then retry — or --force if you accept the risk." ;;
+        *)
+            # An unparseable verdict means prepare changed shape; treat as unknown, not as pass.
+            [[ "$FORCE" -eq 1 ]] && _log "WARNING: could not parse prepare verdict — proceeding under --force" \
+                || _gate_fail "could not parse a verdict from 'jicm-actuate.sh $KEY prepare' — refusing to assume it passed (see $LOG)" ;;
+    esac
 fi
 
 # --- 8. Confirm (a restart is destructive to the live process).
@@ -183,6 +206,11 @@ if [[ "$DRY_RUN" -eq 0 && "$ASSUME_YES" -eq 0 && -t 0 ]]; then
 fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
+    if [[ "$GATE_FAILED" -eq 1 ]]; then
+        _log "DRY RUN VERDICT: would REFUSE (see WOULD REFUSE above) — no respawn. Command it would otherwise use:"
+    else
+        _log "DRY RUN VERDICT: would proceed."
+    fi
     _log "DRY RUN — would respawn $SESSION_NAME:$WIN with:"
     printf '%s\n' "$NEW_CMD" | fold -w 160 | sed 's/^/    /'
     exit 0
