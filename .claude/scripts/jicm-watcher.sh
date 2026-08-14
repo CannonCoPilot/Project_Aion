@@ -778,8 +778,17 @@ if [[ "${JICM_WATCHER_CYCLE_ENABLED:-true}" == "true" ]]; then
     log "cycling: OWNED by this watcher (legacy path)"
 else
     rm -f "$JICM_CYCLE_OWNER_MARKER"
-    log "cycling: CEDED to jicm-supervisor (JICM_WATCHER_CYCLE_ENABLED=false) — this watcher still runs REST / MAINTAIN / identity"
+    log "cycling: CEDED to jicm-supervisor (JICM_WATCHER_CYCLE_ENABLED=false)"
 fi
+if [[ "${JICM_WATCHER_MAINT_ENABLED:-true}" == "true" ]]; then
+    log "REST/MAINTAIN/identity: OWNED by this watcher (legacy path)"
+else
+    log "REST/MAINTAIN/identity: CEDED to jicm-supervisor (JICM_WATCHER_MAINT_ENABLED=false)"
+fi
+# With both ceded, the only duty left here is refresh_state_from_jsonl — W0's
+# between-turn state refresh. That one stays until W0's session turns over and picks
+# up the PostToolUse sampler (hooks are cached at session start), which supersedes it.
+# Retire this process only after that; see .scratchpad.dev.md.
 trap 'log "watcher exiting (pid $$)"; rm -f "$JICM_PID_FILE" "$JICM_CYCLE_OWNER_MARKER"; exit' EXIT INT TERM
 
 # --- Main loop --------------------------------------------------------------
@@ -817,15 +826,20 @@ while true; do
     fi
 
     # Phase VII: MAINTAIN health pings (every 100 polls ≈ 100s)
+    # CEDED 2026-08-14 — the supervisor now runs M2/M3/M4 for the whole machine.
+    # Both doing it would race on .memory-health.json and double-consume the M4
+    # reindex queue, which is the same two-managers-one-file bug the cycling
+    # cutover fixed. Gated, not deleted, so it can be handed back if needed.
     MAINTAIN_COUNTER=$(( MAINTAIN_COUNTER + 1 ))
-    if [[ "$MAINTAIN_COUNTER" -ge "$MAINTAIN_EVERY" ]]; then
+    if [[ "${JICM_WATCHER_MAINT_ENABLED:-true}" == "true" ]] && [[ "$MAINTAIN_COUNTER" -ge "$MAINTAIN_EVERY" ]]; then
         check_service_health
         check_identity_changes
         MAINTAIN_COUNTER=0
     fi
 
-    # Phase IV: REST stage detection (idle or high-activity threshold)
-    if rest_should_trigger; then
+    # Phase IV: REST stage detection (idle or high-activity threshold) — ceded with
+    # MAINTAIN above. Two REST runs would double-inject prompts into the same session.
+    if [[ "${JICM_WATCHER_MAINT_ENABLED:-true}" == "true" ]] && rest_should_trigger; then
         actuate_rest_stage
     fi
 

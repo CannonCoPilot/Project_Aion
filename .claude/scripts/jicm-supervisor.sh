@@ -366,6 +366,7 @@ _signal_valid() {
 # ---------------------------------------------------------------------------
 MAINT_EVERY_SEC="${JICM_SUPERVISOR_MAINT_SEC:-100}"
 declare -i LAST_MAINT=0
+TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-}"   # resolved once in jicm-config.sh; empty = unbounded
 # Overridable so the DOWN path can actually be exercised. The watcher hardcoded these,
 # which meant the branch that writes the alert file could only ever be tested by taking
 # a real service down — so in practice it never was.
@@ -456,10 +457,164 @@ _maintenance_pass() {
     _maint_identity_changes
 }
 
+# ---------------------------------------------------------------------------
+# REST (idle-hands) — ported from jicm-watcher.sh (2026-08-13), Phase IV.
+#
+# SCOPE, stated rather than assumed: REST runs for the SHARED-MEMORY STEWARD only
+# (w0), exactly as it did in the watcher. Its stages operate on shared artefacts
+# (MEMORY.md, the reindex queue, the log dir) and two of them INJECT PROMPTS into a
+# live session. Quietly widening that to all four lanes as part of a "port" would
+# start unprompted conversations in three sessions that never had them — a behaviour
+# change for Sir to choose, not a side effect of moving code. JICM_REST_KEYS makes
+# widening a one-variable decision when he wants it.
+#
+# Trigger and the once-a-day marker are the watcher's, unchanged: idle >= 30min OR
+# >= 50 tool-uses since the last REST.
+# ---------------------------------------------------------------------------
+REST_KEYS="${JICM_REST_KEYS:-w0}"
+REST_IDLE_THRESHOLD="${JICM_REST_IDLE_THRESHOLD:-1800}"
+REST_TOOL_THRESHOLD="${JICM_REST_TOOL_THRESHOLD:-50}"
+REST_ENABLED="${JICM_SUPERVISOR_REST:-1}"
+
+_rest_marker()  { echo "$PROJECT_DIR/.claude/context/.rest-ran-$(date +%Y-%m-%d)"; }
+_rest_toolfile(){ echo "$JICM_DIR/rest-tools.$1"; }
+
+# Tool-use count for a key, from its own transcript (the watcher read W0's global
+# state file; per-key state makes this lane-correct for free).
+_rest_tool_count() {
+    local tp; tp="$(jicm_registry_get "$1" '.transcript_path')"
+    [[ -n "$tp" && "$tp" != "null" && -f "$tp" ]] || { echo 0; return; }
+    jq -s '[.[] | select(.type=="assistant" and .message.stop_reason=="tool_use")] | length' "$tp" 2>/dev/null || echo 0
+}
+
+_rest_should_trigger() {
+    local key="$1" now last idle count prev
+    [[ -f "$(_rest_marker)" ]] && return 1        # once per day, all keys
+    jicm_key_paths "$key"
+    [[ -f "$JK_STATE" ]] || return 1
+    now="$(_now)"
+    last="$(jq -r '.ts_epoch // 0' "$JK_STATE" 2>/dev/null)"
+    [[ "$last" =~ ^[0-9]+$ ]] || last=0
+    # A state file we have never seen updated is not evidence of idleness — treat an
+    # unreadable timestamp as "not idle" rather than inventing a 55-year idle window.
+    [[ "$last" -gt 0 ]] || return 1
+    idle=$(( now - last ))
+    [[ "$idle" -ge "$REST_IDLE_THRESHOLD" ]] && return 0
+    count="$(_rest_tool_count "$key")"
+    prev="$(cat "$(_rest_toolfile "$key")" 2>/dev/null)"
+    # NO BASELINE IS NOT A BASELINE OF ZERO. The watcher initialised its counter to 0 in
+    # memory, so after any restart the first pass compared a full transcript's tool count
+    # against 0 and "crossed" the delta threshold instantly. Verified live before this
+    # guard existed: w0 was 3 SECONDS idle, mid-conversation, with 74 tool-uses and no
+    # stored baseline — REST would have fired and injected prompts into an active session.
+    # Absence of a measurement is not a measurement of zero (same class as the gate's
+    # confident-zero fix). Seed it and wait for the NEXT interval to judge a delta.
+    if [[ ! "$prev" =~ ^[0-9]+$ ]]; then
+        echo "$count" > "$(_rest_toolfile "$key")"
+        _log "REST: seeded tool baseline for $key at $count (no trigger — a first observation cannot be a delta)"
+        return 1
+    fi
+    [[ $(( count - prev )) -ge "$REST_TOOL_THRESHOLD" ]]
+}
+
+# Fire a nudge through the actuator, which owns pane interaction. Never blocks the
+# pass: a busy head returns 3 and we simply move on (see cmd_nudge's policy note).
+_rest_nudge() {
+    local key="$1" text="$2" rc
+    JICM_NUDGE_TEXT="$text" bash "$ACTUATOR" "$key" nudge >> "$SUP_LOG" 2>&1; rc=$?
+    [[ "$rc" -eq 0 ]] || _log "REST: nudge for $key returned rc=$rc (3 = head busy, skipped)"
+}
+
+_rest_run() {
+    local key="$1" py="$PROJECT_DIR/infrastructure/.venv/bin/python" sid n
+    jicm_key_paths "$key"
+    _log "REST: start key=$key"
+
+    # R1/R2 — this key's checkpoint into L4/L5. Bounded, unlike the watcher's version:
+    # an unbounded ingest here is the same defect that wedged a lane on 2026-08-12.
+    if [[ -x "$py" && -f "$JK_COMPRESSED" ]]; then
+        sid="$(jq -r '.session_id // "unknown"' "$JK_STATE" 2>/dev/null)"
+        if [[ "${JICM_RAG_ENABLED:-true}" == "true" && -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
+            ( export PROJECT_DIR JICM_RAG_DEDUP_THRESHOLD JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
+              export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION" JICM_COMPRESSED_FILE="$JK_COMPRESSED" JICM_SESSION_ID="$sid"
+              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 600} "$py" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1 ) &
+            _log "REST: R1 checkpoint → RAG launched (pid $!, collection=$JK_RAG_COLLECTION)"
+        fi
+        if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" && -f "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" ]]; then
+            ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED" GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
+              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 900} "$py" "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" >> "$JICM_LOG_FILE" 2>&1 ) &
+            _log "REST: R2 checkpoint → Graphiti launched (pid $!, group=$JK_GRAPHITI_GROUP)"
+        fi
+    fi
+
+    # R2b — drain the M4 reindex queue (GLOBAL artefact; steward only, or two lanes
+    # would race to consume and delete the same file).
+    local q="$PROJECT_DIR/.claude/context/.graphiti-reindex-queue"
+    local prepop="$PROJECT_DIR/.claude/scripts/graphiti-prepopulate.py"
+    if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" && -f "$q" && -x "$py" && -f "$prepop" ]] && _owns_shared "$key"; then
+        local cf full
+        while read -r cf; do
+            for cf in $cf; do
+                full="$PROJECT_DIR/.claude/context/psyche/$cf"
+                [[ -f "$full" ]] || continue
+                ( ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 900} "$py" "$prepop" --file "$full" >> "$JICM_LOG_FILE" 2>&1 ) &
+                _log "REST: R2b re-ingesting identity file $cf (pid $!)"
+            done
+        done < "$q"
+        rm -f "$q"
+    fi
+
+    # R4 — log rotation (GLOBAL; steward only).
+    local rot="$PROJECT_DIR/.claude/scripts/log-rotation.sh" kb=0
+    if _owns_shared "$key" && [[ -d "$PROJECT_DIR/.claude/logs" ]]; then
+        kb="$(du -sk "$PROJECT_DIR/.claude/logs" 2>/dev/null | awk '{print $1}')"; kb="${kb:-0}"
+        if [[ "$kb" -gt 102400 && -x "$rot" ]]; then
+            ( CLAUDE_PROJECT_DIR="$PROJECT_DIR" "$rot" >> "$JICM_LOG_FILE" 2>&1 ) &
+            _log "REST: R4 log rotation launched (logs=${kb}KB, pid $!)"
+        fi
+    fi
+
+    # R3 — MEMORY.md micro-audit, only if today actually produced work.
+    if _owns_shared "$key"; then
+        n="$(git -C "$PROJECT_DIR" log --since=midnight --oneline 2>/dev/null | wc -l | tr -d ' ')"
+        if [[ "${n:-0}" -gt 0 ]]; then
+            _rest_nudge "$key" "Watcher here. Session has been idle for a while. Please review MEMORY.md for entries that may be stale given today's work, update if needed, then reply Done."
+            _log "REST: R3 MEMORY.md micro-audit nudged (${n} commits today)"
+        fi
+    fi
+
+    # R5 — scratchpad prune. Per-key now that JK_SCRATCHPAD is per-key and correct.
+    if [[ -f "$JK_SCRATCHPAD" ]]; then
+        n="$(wc -l < "$JK_SCRATCHPAD" | tr -d ' ')"
+        if [[ "${n:-0}" -gt 60 ]]; then
+            _rest_nudge "$key" "Watcher here. Scratchpad ${JK_SCRATCHPAD#$PROJECT_DIR/} is at ${n} lines (limit 80). Please prune stale entries, then reply Done."
+            _log "REST: R5 scratchpad prune nudged (${n} lines)"
+        fi
+    fi
+
+    _rest_tool_count "$key" > "$(_rest_toolfile "$key")"
+    date -u +%Y-%m-%dT%H:%M:%SZ > "$(_rest_marker)"
+    _log "REST: complete key=$key (marker written)"
+}
+
+# Is this key the shared-memory steward? Mirrors the actuator's _owns_shared_memory.
+_owns_shared() { [[ "$(jicm_registry_get "$1" '.steward_shared_memory')" == "true" || "$1" == "w0" ]]; }
+
+_rest_pass() {
+    [[ "$REST_ENABLED" == "1" ]] || return 0
+    local k
+    for k in $REST_KEYS; do
+        _managed "$k" || continue
+        [[ -f "$JICM_SIGNALS_DIR/actuating.$k" ]] && continue   # never REST mid-cycle
+        _rest_should_trigger "$k" && _rest_run "$k"
+    done
+}
+
 _pass() {
     local key tokens pending hard now ls_epoch age noted ck rc
     now="$(_now)"
     _maintenance_pass
+    _rest_pass
     # R2 — reconcile pane-actuated keys to the session ACTUALLY in the pane BEFORE any
     # GC/sense/fire decision reads the registry. Ordering matters: reconciling first
     # promotes a startup-race-demoted occupant back to its canonical key, so GC cannot

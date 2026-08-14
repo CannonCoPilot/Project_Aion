@@ -643,6 +643,36 @@ cmd_run() {
 # DELIBERATIVE PERCEPTION (sense) — read the key's own context vitals; advice only,
 # NO action. The "add-the-volition" half, ported + generalized from jicm-self.sh:cmd_sense.
 # Pane keys (w0/dev) read the tmux statusline; a self-mode key reports honestly-unavailable.
+# <key> nudge  — inject a prompt into the key's pane once it is idle.
+# Text comes from JICM_NUDGE_TEXT (env, not a positional) so the arg parser stays a
+# simple order-independent for-loop and arbitrary prose never has to survive it.
+#
+# Exists so REST can live in the supervisor without duplicating pane interaction: this
+# script already owns _inject, _resolve_target and _wait_for_idle, along with every tmux
+# quirk they encode (text and Enter must be separate ops; clear-input first, or a stale
+# buffer concatenates with the new text).
+#
+# POLICY — opposite of _step_flush's, deliberately. A flush precedes a /clear that is
+# already going to happen, so it proceeds on timeout. A nudge is OPTIONAL housekeeping,
+# so a busy head means SKIP: interrupting real work to ask for a scratchpad prune is a
+# bad trade. Returns 3 on a busy head so the caller can tell "skipped" from "failed".
+cmd_nudge() {
+    local key="$1" text="${JICM_NUDGE_TEXT:-}"
+    [[ -n "$text" ]] || { echo "jicm-actuate: nudge requires JICM_NUDGE_TEXT" >&2; return 64; }
+    jicm_key_paths "$key"
+    TMUX_TARGET="$(_resolve_target)"
+    [[ -n "$TMUX_TARGET" ]] || { echo "jicm-actuate: nudge needs a pane for '$key'" >&2; return 2; }
+    TRANSCRIPT="$(_resolve_transcript)"
+    if [[ -n "$TRANSCRIPT" ]] && ! _wait_for_idle "$TRANSCRIPT" "${JICM_NUDGE_IDLE_TIMEOUT:-30}"; then
+        _log "nudge: SKIPPED for $key — head busy (optional work never interrupts a turn)"
+        return 3
+    fi
+    _inject clear-input; sleep 0.3
+    _inject text "$text";  sleep 0.5
+    _inject submit
+    _log "nudge: sent to $key (${#text} chars)"
+}
+
 cmd_sense() {
     local key="$1"
     jicm_key_paths "$key"
@@ -823,8 +853,8 @@ for a in "$@"; do
         --expect-target=*)  EXPECT_TARGET="${a#*=}" ;;
         --expect-sid|--expect-target)
                             echo "jicm-actuate: $a requires the '=' form, e.g. ${a}=<value>" >&2; exit 64 ;;
-        -h|--help)      echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> [--fire [--canary]] [--expect-sid=<sid>] [--expect-target=<pane>]  |  __run <key>"; exit 0 ;;
-        sense|prepare)  [[ -z "$VERB" ]] && VERB="$a" || { echo "jicm-actuate: one verb at a time" >&2; exit 64; } ;;
+        -h|--help)      echo "usage: jicm-actuate.sh <key> [sense|prepare]  |  <key> nudge  (text via JICM_NUDGE_TEXT)  |  <key> [--fire [--canary]] [--expect-sid=<sid>] [--expect-target=<pane>]  |  __run <key>"; exit 0 ;;
+        sense|prepare|nudge)  [[ -z "$VERB" ]] && VERB="$a" || { echo "jicm-actuate: one verb at a time" >&2; exit 64; } ;;
         -*)             echo "jicm-actuate: unknown flag '$a'" >&2; exit 64 ;;
         *)              [[ -z "$KEY" ]] && KEY="$a" || { echo "jicm-actuate: unexpected arg '$a'" >&2; exit 64; } ;;
     esac
@@ -839,5 +869,6 @@ fi
 case "$VERB" in
     sense)   cmd_sense   "$KEY" ;;
     prepare) cmd_prepare "$KEY" ;;
+    nudge)   cmd_nudge   "$KEY" ;;
     "")      if [[ "$FIRE" -eq 1 ]]; then cmd_fire "$KEY" "$CANARY" "$EXPECT_SID" "$EXPECT_TARGET"; else cmd_plan "$KEY"; fi ;;
 esac

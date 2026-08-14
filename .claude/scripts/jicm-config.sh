@@ -483,6 +483,13 @@ JICM_RESUME_TIMEOUT=${JICM_RESUME_TIMEOUT:-60}
 
 # --- tmux (overridable) -----------------------------------------------------
 JICM_TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
+
+# Portable timeout binary, resolved ONCE for every JICM component. macOS ships neither
+# `timeout` nor `setsid`; Homebrew coreutils provides `timeout`, MacPorts `gtimeout`.
+# Lives here rather than in each script because both the actuator and the supervisor
+# launch bounded background work, and two private copies of "how do I find timeout"
+# is precisely the kind of duplicated derivation that drifts.
+JICM_TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)}"
 # Default changed from 'jarvis' to 'aion' after monorepo migration (2026-06-05).
 # Session was renamed jarvis→aion in launch-aion.sh v3.1; the old default caused
 # every JICM inject attempt to fail with "tmux session 'jarvis' not found".
