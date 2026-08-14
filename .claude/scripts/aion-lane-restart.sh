@@ -82,11 +82,23 @@ esac
 
 _log "==== lane-restart requested: lane=$KEY window=$WIN dry_run=$DRY_RUN force=$FORCE ===="
 
-# --- 0. Guard: never restart the window we are running inside. Killing your own pane mid-script
-# --- leaves the restart half-done with no one to finish it or report what happened.
+# --- 0. Guard: a lane may never restart ITSELF. This is protocol, enforced in code.
+#
+# It is not etiquette — self-restart cannot be done safely, for two independent reasons:
+#   1. `respawn-window -k` (step 9) kills the process running THIS script, so steps 9-10 never
+#      execute. The verification — did the pane pid change, is a process actually alive — is
+#      exactly what distinguishes a restart from a silently dead window, and a dead window still
+#      appears in `list-windows`. You would be trading a verified operation for an unverified one.
+#   2. Nothing survives to report the outcome. A restart that half-failed would go unnoticed by
+#      the only party who wanted it.
+#
+# Protocol: REQUEST -> EXTERNAL EXECUTOR -> VERIFY -> REPORT. A lane asks another lane (or the
+# User) to restart it. The invariant is only "restarter != restartee" — no lane is privileged;
+# W5:Jarvis-dev is merely the usual executor because it owns this tooling. If W5 needs restarting,
+# another lane or the User runs it.
 if [[ -n "$TMUX_PANE" ]]; then
     self_win="$("$TMUX_BIN" display -p -t "$TMUX_PANE" '#{window_name}' 2>/dev/null)"
-    [[ "$self_win" == "$WIN" ]] && _die "refusing to restart the window this script is running in ($WIN)"
+    [[ "$self_win" == "$WIN" ]] && _die "a lane cannot restart itself ($WIN): the respawn would kill this very process before it could verify or report the result. Ask another lane (e.g. W5:Jarvis-dev) or the User to run: aion-lane-restart.sh $LANE"
 fi
 
 # --- 1. Window must exist.
