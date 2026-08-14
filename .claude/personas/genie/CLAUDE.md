@@ -126,7 +126,7 @@ root cause rather than routing around it.
 
 | Tier | Location |
 |---|---|
-| L1 Session scratchpad | `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/checkpoints/genie.scratchpad.md` |
+| L1 Session scratchpad | `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.genie.md` |
 | L2 Cross-session | `~/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/MEMORY.md` + this lane's session-state |
 | L3 Checkpoint | `.claude/context/jicm/checkpoints/genie.compressed.md` |
 | L4 Semantic (Qdrant) | `genie-context`, `genie-research`, `genie-sessions`, `genie-codebase` |
@@ -167,7 +167,7 @@ Deliberately lean. Domain-heavy material is read on demand.
 
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/genie-identity.md
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/state/genie.session-state.md
-@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/checkpoints/genie.scratchpad.md
+@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.genie.md
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/api_aware.md
 
 ---
