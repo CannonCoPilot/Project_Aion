@@ -352,9 +352,114 @@ _signal_valid() {
 }
 
 # One supervision pass over the registry.
+# ---------------------------------------------------------------------------
+# MAINTAIN — ported from jicm-watcher.sh (2026-08-13), Phase VII M2/M3/M4.
+#
+# These were the last things keeping the legacy watcher alive after the W0 cutover.
+# They are GLOBAL, not per-lane: service health and identity-file drift are properties
+# of the machine, not of any one session — which is exactly why they belong in the
+# one process that outlives every lane rather than in a single-target watcher.
+#
+# Cadence is wall-clock (MAINT_EVERY_SEC), not a poll counter. The watcher used
+# "every 100 polls", which silently means a different period whenever the poll
+# interval changes — and it did change (1s vs the 3s the launcher asked for).
+# ---------------------------------------------------------------------------
+MAINT_EVERY_SEC="${JICM_SUPERVISOR_MAINT_SEC:-100}"
+declare -i LAST_MAINT=0
+# Overridable so the DOWN path can actually be exercised. The watcher hardcoded these,
+# which meant the branch that writes the alert file could only ever be tested by taking
+# a real service down — so in practice it never was.
+MAINT_QDRANT_URL="${JICM_HEALTH_QDRANT_URL:-http://localhost:6333}"
+MAINT_MLX_URL="${JICM_HEALTH_MLX_URL:-http://localhost:8000/health}"
+MAINT_NEO4J_URL="${JICM_HEALTH_NEO4J_URL:-http://localhost:7474}"
+
+# Probe a URL. Echoes "true|<ms>" or "false|<ms>". Latency comes from curl's own
+# %{time_total} rather than bracketing the call with two python3 clock reads (the
+# watcher's approach, 6 interpreter launches per pass): it measures the REQUEST
+# instead of the request plus shell overhead, and costs nothing.
+_probe() {
+    local url="$1" t
+    if t="$(curl -sf --max-time 2 -o /dev/null -w '%{time_total}' "$url" 2>/dev/null)"; then
+        awk -v t="$t" 'BEGIN{printf "true|%d\n", t*1000}'
+    else
+        awk -v t="${t:-0}" 'BEGIN{printf "false|%d\n", t*1000}'
+    fi
+}
+
+_maint_service_health() {   # M2 + M3
+    local health_file="$PROJECT_DIR/.claude/context/.memory-health.json"
+    local alert_file="$PROJECT_DIR/.claude/context/.memory-health-alert"
+    local qdrant mlx neo4j qok qms mok mms nok nms sessions_count warn down
+
+    qdrant="$(_probe "$MAINT_QDRANT_URL/collections")"; IFS='|' read -r qok qms <<<"$qdrant"
+    mlx="$(_probe "$MAINT_MLX_URL")";                   IFS='|' read -r mok mms <<<"$mlx"
+    neo4j="$(_probe "$MAINT_NEO4J_URL")";               IFS='|' read -r nok nms <<<"$neo4j"
+
+    sessions_count="$(curl -sf --max-time 2 "$MAINT_QDRANT_URL/collections/sessions" 2>/dev/null \
+        | jq -r '.result.points_count // 0' 2>/dev/null || echo 0)"
+    [[ "$sessions_count" =~ ^[0-9]+$ ]] || sessions_count=0
+    warn=null
+    [[ "$sessions_count" -gt 10000 ]] && \
+        warn="\"sessions collection exceeds 10000 points ($sessions_count) — consider decay pruning\""
+
+    cat > "$health_file" <<HEALTH
+{
+  "timestamp": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+  "source": "jicm-supervisor",
+  "services": {
+    "qdrant": {"up": $qok, "latency_ms": $qms},
+    "mlx_embed": {"up": $mok, "latency_ms": $mms},
+    "neo4j": {"up": $nok, "latency_ms": $nms}
+  },
+  "collections": { "sessions_points": $sessions_count },
+  "warnings": $warn
+}
+HEALTH
+
+    down=""
+    [[ "$qok" != "true" ]] && down="${down}Qdrant "
+    [[ "$mok" != "true" ]] && down="${down}MLX-Embed "
+    [[ "$nok" != "true" ]] && down="${down}Neo4j "
+    if [[ -n "$down" ]]; then
+        # Consumed by context-health-monitor.js — keep the file's contract identical.
+        echo "Memory services DOWN: ${down}— L4/L5 operations may fail" > "$alert_file"
+        _log "MAINTAIN: health alert — services down: $down"
+    else
+        rm -f "$alert_file"
+    fi
+}
+
+_maint_identity_changes() {   # M4
+    local marker="$PROJECT_DIR/.claude/context/.graphiti-prepopulate-ran"
+    local psyche="$PROJECT_DIR/.claude/context/psyche"
+    [[ -f "$marker" && -d "$psyche" ]] || return 0
+    local mmt changed="" f fmt
+    mmt="$(stat -f %m "$marker" 2>/dev/null)" || return 0
+    while IFS= read -r f; do
+        fmt="$(stat -f %m "$f" 2>/dev/null)" || continue
+        [[ "$fmt" -gt "$mmt" ]] && changed="${changed}$(basename "$f") "
+    done < <(find "$psyche" -name "*.md" -o -name "*.yaml" 2>/dev/null)
+    if [[ -n "$changed" ]]; then
+        echo "$changed" > "$PROJECT_DIR/.claude/context/.graphiti-reindex-queue"
+        _log "MAINTAIN: M4 identity changes queued for re-ingestion: $changed"
+        # Advance the marker or every pass re-detects the same files until REST drains
+        # the queue — and REST runs at most once a day.
+        touch "$marker"
+    fi
+}
+
+_maintenance_pass() {
+    local now; now="$(_now)"
+    [[ $(( now - LAST_MAINT )) -lt "$MAINT_EVERY_SEC" ]] && return 0
+    LAST_MAINT="$now"
+    _maint_service_health
+    _maint_identity_changes
+}
+
 _pass() {
     local key tokens pending hard now ls_epoch age noted ck rc
     now="$(_now)"
+    _maintenance_pass
     # R2 — reconcile pane-actuated keys to the session ACTUALLY in the pane BEFORE any
     # GC/sense/fire decision reads the registry. Ordering matters: reconciling first
     # promotes a startup-race-demoted occupant back to its canonical key, so GC cannot
