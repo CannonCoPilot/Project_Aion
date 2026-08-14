@@ -571,7 +571,7 @@ _rest_should_trigger() {
 _rest_nudge() {
     local key="$1" text="$2" rc
     JICM_NUDGE_TEXT="$text" bash "$ACTUATOR" "$key" nudge >> "$SUP_LOG" 2>&1; rc=$?
-    [[ "$rc" -eq 0 ]] || _log "REST: nudge for $key returned rc=$rc (3 = head busy, skipped)"
+    [[ "$rc" -eq 0 ]] || _log "REST: nudge for $key returned rc=$rc (3 = head busy, skipped; 4 = keystrokes sent but NO user turn observed — treat as NOT delivered)"
 }
 
 _rest_run() {

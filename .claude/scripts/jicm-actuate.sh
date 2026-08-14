@@ -667,10 +667,48 @@ cmd_nudge() {
         _log "nudge: SKIPPED for $key — head busy (optional work never interrupts a turn)"
         return 3
     fi
+    # DELIVERY IS A TURN, NOT KEYSTROKES. Injecting text proves the PANE received it —
+    # not that a turn was created. An unsent line sits in the input box indefinitely, and
+    # the next nudge's clear-input silently discards it. Observed 2026-08-14: a nudge to
+    # jaques logged "sent", the retrier reported DELIVERED on attempt 10, and the target's
+    # transcript never grew a user record — the message was never read, for 30+ minutes,
+    # while every layer above reported success. Verify against the only artifact that can
+    # falsify it (a new "type":"user" record) and say UNVERIFIED rather than claim a
+    # delivery we cannot see. rc 4 = unverified, distinct from 3 (skipped) and 0 (real).
+    local before=0
+    if [[ -n "$TRANSCRIPT" && -f "$TRANSCRIPT" ]]; then
+        before=$(wc -c < "$TRANSCRIPT" 2>/dev/null | tr -d ' ')
+        [[ "$before" =~ ^[0-9]+$ ]] || before=0
+    fi
+
+    # clear-input is REQUIRED (a stale buffer concatenates with the new text) but it is
+    # destructive, and the buffer is not always junk: a HUMAN's unsent line lives in the
+    # same place. Snapshot the pane first so a discarded line is always recoverable from
+    # the log rather than lost silently. Cheap, and the only way to un-ring that bell.
+    local snap="${JICM_LOG_DIR:-$PROJECT_DIR/.claude/logs}/nudge-preclear.${key}.txt"
+    "$TMUX_BIN" capture-pane -p -t "$TMUX_TARGET" > "$snap" 2>/dev/null \
+        && _log "nudge: pane snapshot before clear-input -> $snap"
+
     _inject clear-input; sleep 0.3
     _inject text "$text";  sleep 0.5
     _inject submit
-    _log "nudge: sent to $key (${#text} chars)"
+
+    # ABSENT IS NOT CONFIRMED: with no transcript we cannot verify, so we must not claim.
+    if [[ -z "$TRANSCRIPT" || ! -f "$TRANSCRIPT" ]]; then
+        _log "nudge: UNVERIFIED for $key (${#text} chars) — keystrokes sent, no transcript to confirm a turn"
+        return 4
+    fi
+
+    local waited=0 max="${JICM_NUDGE_VERIFY_TIMEOUT:-20}"
+    while [[ "$waited" -lt "$max" ]]; do
+        if tail -c "+$(( before + 1 ))" "$TRANSCRIPT" 2>/dev/null | grep -q '"type":"user"'; then
+            _log "nudge: DELIVERED to $key (${#text} chars) — user turn observed after ${waited}s"
+            return 0
+        fi
+        sleep 2; waited=$(( waited + 2 ))
+    done
+    _log "nudge: UNVERIFIED for $key (${#text} chars) — keystrokes sent but NO user turn in ${max}s; text is probably sitting unsent in the input box (a human line already there blocks submit)"
+    return 4
 }
 
 cmd_sense() {
