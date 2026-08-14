@@ -181,28 +181,94 @@ fi
 # "preserve" in the log while verifying nothing. Parse the verdict, never the exit code.
 # The gate runs in DRY-RUN too. A preview that skips the checks cannot tell you the run would be
 # refused — which is the single most useful thing a preview can say.
-GATE_FAILED=0
+GATE_FAILED=0; GATE_REQUEST=0
 _gate_fail() { [[ "$DRY_RUN" -eq 1 ]] && { GATE_FAILED=1; _log "WOULD REFUSE: $*"; return 0; }; _die "$*"; }
+
+# Resolve the lane's canonical scratchpad from jicm-config (the single source of truth for that
+# path — it moved once already). Subshell so its JICM_*/JK_* exports cannot clobber ours.
+SCRATCHPAD="$(source "$PROJECT_DIR/.claude/scripts/jicm-config.sh" >/dev/null 2>&1; jicm_key_paths "$KEY" >/dev/null 2>&1; printf '%s' "$JK_SCRATCHPAD")"
+[[ -n "$SCRATCHPAD" ]] || SCRATCHPAD="$PROJECT_DIR/.claude/context/.scratchpad.$KEY.md"
+
+_prep_verdict() {   # echo READY / NOT READY / (empty if unparseable)
+    local out; out="$("$ACTUATE" "$KEY" prepare 2>&1)"
+    printf '%s\n' "$out" >> "$LOG"
+    printf '%s' "$out" | grep -E '^[[:space:]]*verdict' | head -1 | sed 's/.*: *//'
+}
+
+# Ask the lane to save its own working state, then WAIT for it to actually do so.
+# Rationale: a stale scratchpad is not a reason to refuse a restart the lane itself requested —
+# it is a reason to ask for a fresh one. The lane is running and can comply; refusing just makes
+# a human relay the request. We still never proceed on stale state, so nothing is degraded: the
+# wait either ends in a genuinely fresh save or in a refusal.
+_request_and_wait_for_save() {
+    local before after waited=0 nudged=0 rc
+    local poll="${AION_RESTART_SAVE_POLL:-5}" max="${AION_RESTART_SAVE_WAIT:-300}"
+    # ABSENT IS NOT ZERO: a missing scratchpad must not read as "mtime 0, therefore any file is
+    # newer". Track existence separately so we require a real write either way.
+    if [[ -f "$SCRATCHPAD" ]]; then before="$(stat -f %m "$SCRATCHPAD" 2>/dev/null || echo 0)"
+    else before=""; _log "save-request: scratchpad does not exist yet ($SCRATCHPAD)"; fi
+
+    while :; do
+        # (Re)send the request. nudge rc=3 means the head was busy — that is fine and expected
+        # while it works; retry on the next tick rather than giving up.
+        if [[ "$nudged" -eq 0 ]]; then
+            JICM_NUDGE_TEXT="${AION_RESTART_SAVE_MSG:+$AION_RESTART_SAVE_MSG
+
+}Restart requested for your lane ($KEY). Before it runs, SAVE YOUR WORKING STATE to $SCRATCHPAD now (what you are mid-way through, next step, anything not yet committed). The restart resumes this same session, so the conversation survives — this is the fallback if the resume misbehaves. Reply briefly once saved; the restart fires automatically when the file updates." \
+                "$ACTUATE" "$KEY" nudge >>"$LOG" 2>&1; rc=$?
+            case "$rc" in
+                0) nudged=1; _log "save-request: asked $KEY to update $(basename "$SCRATCHPAD")" ;;
+                3) _log "save-request: lane busy, will retry the ask (rc=3)" ;;
+                *) _log "save-request: nudge failed rc=$rc — will retry" ;;
+            esac
+        fi
+        if [[ -f "$SCRATCHPAD" ]]; then
+            after="$(stat -f %m "$SCRATCHPAD" 2>/dev/null || echo 0)"
+            if [[ -z "$before" || "$after" -gt "$before" ]]; then
+                _log "save-request: scratchpad updated ($(( $(date +%s) - after ))s ago) — re-checking verdict"
+                return 0
+            fi
+        fi
+        [[ "$waited" -ge "$max" ]] && return 1
+        sleep "$poll"; waited=$(( waited + poll ))
+        # Re-ask once at the halfway mark in case the first injection landed while it was mid-turn.
+        [[ "$waited" -ge $(( max / 2 )) ]] && nudged=0
+    done
+}
+
 if true; then
     [[ -x "$ACTUATE" ]] || _gate_fail "jicm-actuate.sh not executable at $ACTUATE — cannot check working state"
     _log "working-state gate: jicm-actuate.sh $KEY prepare (advisory; verdict parsed from stdout)"
-    PREP_OUT="$("$ACTUATE" "$KEY" prepare 2>&1)"
-    printf '%s\n' "$PREP_OUT" >> "$LOG"
-    PREP_VERDICT="$(printf '%s' "$PREP_OUT" | grep -E '^\s*verdict' | head -1 | sed 's/.*: *//')"
+    PREP_VERDICT="$(_prep_verdict)"
     case "$PREP_VERDICT" in
-        READY*)
-            _log "working-state gate: READY" ;;
-        NOT\ READY*)
-            # Diverges from jicm-actuate.sh, which ALERTs and PROCEEDS: there, refusing to clear a
-            # session already at its token threshold is the worse failure. Here nothing forces the
-            # restart, so stale working state is a pure avoidable risk. Same reasoning, opposite
-            # answer, because the urgency is absent.
-            [[ "$FORCE" -eq 1 ]] && _log "WARNING: working state NOT READY ($PREP_VERDICT) — proceeding under --force" \
-                || _gate_fail "working state NOT READY for $KEY ($PREP_VERDICT). Have the lane save its scratchpad (<=30m old), then retry — or --force if you accept the risk." ;;
+        READY*) _log "working-state gate: READY" ;;
         *)
-            # An unparseable verdict means prepare changed shape; treat as unknown, not as pass.
-            [[ "$FORCE" -eq 1 ]] && _log "WARNING: could not parse prepare verdict — proceeding under --force" \
-                || _gate_fail "could not parse a verdict from 'jicm-actuate.sh $KEY prepare' — refusing to assume it passed (see $LOG)" ;;
+            if [[ "$FORCE" -eq 1 ]]; then
+                _log "WARNING: working state not READY (${PREP_VERDICT:-unparseable}) — proceeding under --force"
+            elif [[ "$DRY_RUN" -eq 1 ]]; then
+                GATE_REQUEST=1
+                _log "WOULD REQUEST: working state not READY (${PREP_VERDICT:-unparseable}) — a live run would ask $KEY to save its scratchpad and wait up to ${AION_RESTART_SAVE_WAIT:-300}s"
+            else
+                _log "working state not READY (${PREP_VERDICT:-unparseable}) — asking the lane to save rather than refusing"
+                if _request_and_wait_for_save; then
+                    PREP_VERDICT="$(_prep_verdict)"
+                    case "$PREP_VERDICT" in
+                        READY*) _log "working-state gate: READY after save" ;;
+                        *) _die "scratchpad was updated but the verdict is still '${PREP_VERDICT:-unparseable}' — not restarting on state the gate still rejects" ;;
+                    esac
+                    # The nudge made the lane busy. Re-wait for idle or we would kill it mid-write.
+                    if [[ "$FORCE" -eq 0 ]]; then
+                        rewait=0
+                        while [[ "$(_idle_for)" -lt "$IDLE_SEC" ]]; do
+                            [[ "$rewait" -ge "$IDLE_WAIT_MAX" ]] && _die "lane busy again after saving and did not settle in ${IDLE_WAIT_MAX}s"
+                            sleep 5; rewait=$(( rewait + 5 ))
+                        done
+                        _log "lane idle again after save — proceeding"
+                    fi
+                else
+                    _die "asked $KEY to save its working state but $(basename "$SCRATCHPAD") did not change within ${AION_RESTART_SAVE_WAIT:-300}s — not restarting on stale state (retry, or --force to accept it)"
+                fi
+            fi ;;
     esac
 fi
 
@@ -220,6 +286,8 @@ fi
 if [[ "$DRY_RUN" -eq 1 ]]; then
     if [[ "$GATE_FAILED" -eq 1 ]]; then
         _log "DRY RUN VERDICT: would REFUSE (see WOULD REFUSE above) — no respawn. Command it would otherwise use:"
+    elif [[ "$GATE_REQUEST" -eq 1 ]]; then
+        _log "DRY RUN VERDICT: would ASK the lane to save, wait for a fresh scratchpad, then proceed (refusing only if it never saves). Command it would use:"
     else
         _log "DRY RUN VERDICT: would proceed."
     fi
