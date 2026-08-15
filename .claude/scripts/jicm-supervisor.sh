@@ -377,6 +377,16 @@ MAINT_NEO4J_URL="${JICM_HEALTH_NEO4J_URL:-http://localhost:7474}"
 # box. Steady-state latency is 1-13ms, so 2s is ~150x headroom — a probe that exceeds
 # it is reporting LOAD, and is now classified as `timeout` rather than as "down".
 MAINT_PROBE_TIMEOUT="${JICM_HEALTH_PROBE_TIMEOUT:-2}"
+# Leak thresholds. Healthy MLX-Embed measured 2.4 GB immediately after a restart; the leak reached
+# 59 GB over ~4 days. 12 GB is far above steady state and far below the thrash point, so it fires
+# early enough to be scheduled rather than urgent. Overridable so the alert branch stays testable
+# without waiting days for a real leak (same rationale as JICM_HEALTH_PROBE_TIMEOUT).
+MAINT_MLX_FOOTPRINT_GB="${JICM_HEALTH_MLX_FOOTPRINT_GB:-12}"
+# NOT free-swap. macOS RESIZES the swap file to match demand: after the MLX restart it shrank
+# 45 GB -> 15 GB, so "free swap" sat at ~940 MB while memory was 83% free. A first version of this
+# alerted on free-swap and fired on the first healthy pass — the metric is near-constant by design
+# and cannot express pressure. `memory_pressure`'s free percentage is the signal that actually moves.
+MAINT_MEM_FREE_PCT_MIN="${JICM_HEALTH_MEM_FREE_PCT_MIN:-15}"
 
 # Probe a URL. Echoes "<up>|<ms>|<cause>". Latency comes from curl's own
 # %{time_total} rather than bracketing the call with two python3 clock reads (the
@@ -406,6 +416,29 @@ _probe() {
     awk -v t="${t:-0}" -v c="$cause" 'BEGIN{printf "false|%d|%s\n", t*1000, c}'
 }
 
+# RSS IS NOT THE MEASUREMENT. MLX-Embed reached a 59 GB phys_footprint at 3d21h uptime while `ps`
+# reported 49 MB RSS, and the machine was down to 922 MB of free swap before anyone noticed — found
+# by accident during unrelated work, which is exactly the failure this closes. `footprint -p` is the
+# only honest number on macOS for a process using large unified-memory allocations.
+#
+# ALERT ONLY, never auto-restart: a restart mid-embedding corrupts an in-flight ingest, and the
+# remedy (bounce the window) is safe to defer by minutes but not safe to take blindly.
+_footprint_gb() {   # echo integer GB for a pid; empty when unmeasurable (absence != zero)
+    local pid="$1" line
+    [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null || return
+    line="$("$JICM_TIMEOUT_BIN" 15 footprint -p "$pid" 2>/dev/null \
+            | grep -oE 'phys_footprint: *[0-9.]+ *[MG]B' | tail -1)"
+    [[ -n "$line" ]] || return
+    awk -v s="$line" 'BEGIN{ n=s; gsub(/[^0-9.]/,"",n); if (n=="") exit;
+                             if (s ~ /MB/) printf "%d", (n/1024)+0.5; else printf "%d", n+0.5 }'
+}
+
+# Resolve the live MLX-Embed python (the tmux pane runs a zsh wrapper whose own footprint is ~1 MB —
+# measuring the wrapper would report a permanent all-clear).
+_mlx_pid() { pgrep -f "qwen3-embeddings-mlx" 2>/dev/null | while read -r p; do
+                 case "$(ps -o command= -p "$p" 2>/dev/null)" in *[Pp]ython*) echo "$p"; return ;; esac
+             done; }
+
 _maint_service_health() {   # M2 + M3
     # Writes .memory-health-SERVICES.json, NOT .memory-health.json.
     #
@@ -425,10 +458,18 @@ _maint_service_health() {   # M2 + M3
     local alert_file="$PROJECT_DIR/.claude/context/.memory-health-alert"
     local qdrant mlx neo4j qok qms qc mok mms mc nok nms nc sessions_count warn
     local unreachable degraded detail svc sname sok scause sms
+    local mlx_pid mlx_gb leak_note mem_free_pct
 
     qdrant="$(_probe "$MAINT_QDRANT_URL/collections")"; IFS='|' read -r qok qms qc <<<"$qdrant"
     mlx="$(_probe "$MAINT_MLX_URL")";                   IFS='|' read -r mok mms mc <<<"$mlx"
     neo4j="$(_probe "$MAINT_NEO4J_URL")";               IFS='|' read -r nok nms nc <<<"$neo4j"
+
+    # Leak watch. Threshold is deliberately well above a healthy steady state (~2.5 GB measured
+    # right after a restart) and well below the point where swap starts thrashing.
+    mlx_pid="$(_mlx_pid)"
+    mlx_gb="$(_footprint_gb "$mlx_pid")"
+    mem_free_pct="$("$JICM_TIMEOUT_BIN" 10 memory_pressure 2>/dev/null | grep -oE 'free percentage: [0-9]+' | grep -oE '[0-9]+$')"
+    [[ "$mem_free_pct" =~ ^[0-9]+$ ]] || mem_free_pct=""
 
     sessions_count="$(curl -sf --max-time "$MAINT_PROBE_TIMEOUT" "$MAINT_QDRANT_URL/collections/sessions" 2>/dev/null \
         | jq -r '.result.points_count // 0' 2>/dev/null || echo 0)"
@@ -448,6 +489,13 @@ _maint_service_health() {   # M2 + M3
     "neo4j": {"up": $nok, "latency_ms": $nms, "cause": "$nc"}
   },
   "collections": { "sessions_points": $sessions_count },
+  "memory": {
+    "mlx_embed_pid": ${mlx_pid:-null},
+    "mlx_embed_footprint_gb": ${mlx_gb:-null},
+    "mlx_embed_threshold_gb": $MAINT_MLX_FOOTPRINT_GB,
+    "mem_free_pct_min": $MAINT_MEM_FREE_PCT_MIN,
+    "mem_free_pct": ${mem_free_pct:-null}
+  },
   "warnings": $warn
 }
 HEALTH
@@ -467,13 +515,26 @@ HEALTH
         esac
     done
 
-    if [[ -n "$unreachable" || -n "$degraded" ]]; then
+    # A leak is a THIRD condition, independent of up/down: MLX-Embed answers /health in 1 ms while
+    # holding 59 GB. A probe that only asks "is it serving?" reports a perfect all-clear right up to
+    # the moment the machine starts swapping — which is precisely what happened.
+    leak_note=""
+    if [[ -n "$mlx_gb" ]] && [[ "$mlx_gb" -ge "$MAINT_MLX_FOOTPRINT_GB" ]]; then
+        leak_note="MLX-Embed footprint ${mlx_gb}GB (>= ${MAINT_MLX_FOOTPRINT_GB}GB threshold, pid ${mlx_pid})${mem_free_pct:+, memory free ${mem_free_pct}%} — RESTART aion:5 when no ingest is in flight. "
+    elif [[ -n "$mem_free_pct" ]] && [[ "$mem_free_pct" -lt "$MAINT_MEM_FREE_PCT_MIN" ]]; then
+        # Pressure can come from something other than MLX; say so rather than blaming the one
+        # process we happen to measure.
+        leak_note="Memory free ${mem_free_pct}% (< ${MAINT_MEM_FREE_PCT_MIN}%) with MLX-Embed at ${mlx_gb:-unmeasured}GB — find the consumer with 'footprint -p', NOT RSS. "
+    fi
+
+    if [[ -n "$unreachable" || -n "$degraded" || -n "$leak_note" ]]; then
         # Consumed by context-health-monitor.js — keep it a single line of prose.
         { [[ -n "$unreachable" ]] && printf 'Memory services UNREACHABLE: %s— L4/L5 operations will fail. ' "$unreachable"
           [[ -n "$degraded"    ]] && printf 'Memory services DEGRADED (alive, not serving): %s— L4/L5 may be slow or erroring. ' "$degraded"
+          [[ -n "$leak_note"   ]] && printf '%s' "$leak_note"
           printf '[%s]\n' "${detail% }"
         } > "$alert_file"
-        _log "MAINTAIN: health alert — ${unreachable:+unreachable: $unreachable}${degraded:+degraded: $degraded}· ${detail% }"
+        _log "MAINTAIN: health alert — ${unreachable:+unreachable: $unreachable}${degraded:+degraded: $degraded}${leak_note:+leak: ${leak_note% }}· ${detail% }"
     else
         rm -f "$alert_file"
     fi
@@ -839,8 +900,15 @@ case "${1:-}" in
         _pass ;;
     --status)     cmd_status ;;
     --staleness)  cmd_staleness ;;
+    # One health pass on demand. Exists so the alert branches are exercisable in situ — the leak
+    # threshold would otherwise take days to cross, and a guard that cannot be tested is a guard
+    # nobody has actually seen work. Writes the same files the MAINTAIN pass writes.
+    --health)     _maint_service_health; echo "health pass complete → .memory-health-services.json"
+                  [[ -f "$PROJECT_DIR/.claude/context/.memory-health-alert" ]] \
+                      && { echo "ALERT:"; cat "$PROJECT_DIR/.claude/context/.memory-health-alert"; } \
+                      || echo "no alert" ;;
     --stop)       cmd_stop ;;
-    -h|--help) echo "usage: jicm-supervisor.sh [--once | --status | --stop]   (no arg = daemon loop)"
+    -h|--help) echo "usage: jicm-supervisor.sh [--once | --status | --health | --stop]   (no arg = daemon loop)"
                echo "  GATE: default is sense-only. JICM_SUPERVISOR_ACTUATE=1 enables live firing"
                echo "        (also needs jicm-actuate.sh --fire un-gated). JICM_SUPERVISOR_INCLUDE_W0=1 folds w0 in." ;;
     "")        _daemon ;;
