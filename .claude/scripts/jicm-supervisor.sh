@@ -847,6 +847,67 @@ cmd_status() {
             "$([[ -f "$JK_CLEAR_SIGNAL" ]] && echo yes || echo no)" \
             "$(_managed "$key" && echo yes || echo no)"
     done
+    _audit_registry_coverage
+}
+
+# UNMANAGED-LANE AUDIT.
+#
+# jicm_registry_keys() is literally `ls registry/*.json`, so DELETING a registry file silently
+# removes a lane from management: no error, no warning, and the only symptom is an ABSENCE from a
+# list nobody diffs. Protos ran unmanaged for two days that way — no threshold monitoring, no
+# compression, transcript at 3.4 MB — and it surfaced by accident during unrelated work.
+#
+# An absence cannot announce itself. This makes it announce itself, in BOTH directions, because
+# both are silent today and the remedies differ:
+#   live session with no registry entry  → JICM is blind to a running lane   (register it)
+#   registry entry naming a dead session → JICM watches a ghost              (GC / rebind it)
+_audit_registry_coverage() {
+    local f pid sid win ppid found key regsid keys out=""
+    keys="$(jicm_registry_keys)"
+
+    for f in "$HOME"/.claude/sessions/*.json; do
+        [[ -f "$f" ]] || continue
+        pid="$(basename "$f" .json)"
+        [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null || continue
+        # bg-spare / bg-pty-host are Claude Code's own background scaffolding, not lanes. Counting
+        # them was already misreporting --staleness (a 20-day-old spare read as a session needing
+        # relaunch), so exclude them here rather than inherit the same false positive.
+        case "$(ps -o command= -p "$pid" 2>/dev/null)" in
+            *bg-spare*|*bg-pty-host*) continue ;;
+            *[Cc]laude*)              ;;
+            *)                        continue ;;
+        esac
+        sid="$(jq -r '.sessionId // empty' "$f" 2>/dev/null)"
+        [[ -n "$sid" && "$sid" != "null" ]] || continue
+
+        found=0
+        for key in $keys; do
+            regsid="$(jicm_registry_get "$key" '.session_id')"
+            [[ "$regsid" == "$sid" ]] && { found=1; break; }
+        done
+        [[ "$found" -eq 1 ]] && continue
+
+        ppid="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')"
+        # JICM_TMUX_BIN, not TMUX_BIN — the latter is unset here, and an empty command name makes
+        # this resolve to nothing SILENTLY, costing the warning its most actionable field.
+        win="$("$JICM_TMUX_BIN" list-panes -a -F '#{window_index}:#{window_name} #{pane_pid}' 2>/dev/null \
+               | awk -v x="$ppid" '$2==x{print $1}')"
+        out="${out}  ⚠️ UNMANAGED  ${sid:0:8} (pid $pid${win:+, $win}) — live session in NO registry entry; JICM is not watching it
+"
+    done
+
+    for key in $keys; do
+        regsid="$(jicm_registry_get "$key" '.session_id')"
+        [[ -n "$regsid" && "$regsid" != "null" ]] || continue
+        ls "$HOME"/.claude/sessions/*.json >/dev/null 2>&1 || continue
+        if ! grep -l "\"$regsid\"" "$HOME"/.claude/sessions/*.json >/dev/null 2>&1; then
+            out="${out}  ⚠️ GHOST      ${regsid:0:8} (key=$key) — registry names a session no live head is running
+"
+        fi
+    done
+
+    [[ -n "$out" ]] && printf '%s' "$out"
+    return 0
 }
 
 _daemon() {
