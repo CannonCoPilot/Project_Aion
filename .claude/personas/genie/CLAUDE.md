@@ -169,6 +169,7 @@ Deliberately lean. Domain-heavy material is read on demand.
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/state/genie.session-state.md
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.genie.md
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/api_aware.md
+@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/inbox/genie.md
 
 ---
 

@@ -148,6 +148,7 @@ auto-dispatches a Nexus worker, so file real work, not reminders.
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/state/jaques.session-state.md
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.jaques.md
 @/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/api_aware.md
+@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/inbox/jaques.md
 
 (`SnorkelTasks/CLAUDE.md` is auto-discovered from cwd — do not import it here, that would double it.)
 

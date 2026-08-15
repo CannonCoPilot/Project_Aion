@@ -172,6 +172,36 @@ case "$START_CMD" in *claude*) : ;; *) _die "pane_start_command does not launch 
 # --- 5. Rewrite the session id, and normalise --session-id to --resume. A first-ever launch
 # --- uses `--session-id <uuid>` (create); replaying that verbatim against an id that now exists
 # --- is a different operation than resuming it.
+# UNESCAPE BEFORE REUSE — `display -p '#{pane_start_command}'` returns an ESCAPED representation,
+# not the literal command. A never-restarted window already reports `\\n` where its launch line
+# contained `\n`. Feeding that back into respawn-window bakes the escaped form in as real text, so
+# every restart DOUBLES the backslashes: 1 -> 2 -> 4 -> 8. Measured live — Genie and Jacques, each
+# restarted twice, carried EIGHT backslashes in ANTHROPIC_CUSTOM_HEADERS, whose `$'...\n...'` is
+# supposed to separate three headers and had degenerated into one literal line.
+#
+# Collapsing each doubled backslash restores the launch line's real semantics and makes the reuse
+# IDEMPOTENT — the property it silently lacked. (This corruption is cosmetic-to-harmful depending on
+# what the string carries; it was NOT the cause of Genie's 401, which was credential-related. Fixed
+# on its own merits, not as a guess at that failure.)
+# Collapse REPEATEDLY, not once: a single pass only halves damage that has already compounded
+# (8 -> 4), and lanes restarted twice are already at 8. Iterating converges to the launch line's
+# original single backslash and is a no-op on a healthy command. Safe here because the only
+# backslashes these launch lines carry are the `\n` header separators — bounded so a pathological
+# string can never spin.
+_collapse_escapes() {
+    local s="$1" prev="" i=0
+    while [[ "$s" == *'\\'* && "$i" -lt 12 ]]; do
+        prev="$s"; s="$(printf '%s' "$s" | sed -E 's/\\\\/\\/g')"
+        [[ "$s" == "$prev" ]] && break
+        i=$(( i + 1 ))
+    done
+    printf '%s' "$s"
+}
+_ESC_BEFORE="$(printf '%s' "$START_CMD" | grep -oE '\\+n' | head -1 | tr -d 'n' | awk '{print length}')"
+START_CMD="$(_collapse_escapes "$START_CMD")"
+_ESC_AFTER="$(printf '%s' "$START_CMD" | grep -oE '\\+n' | head -1 | tr -d 'n' | awk '{print length}')"
+[[ -n "$_ESC_BEFORE" && "${_ESC_BEFORE:-0}" -gt 1 ]] && \
+    _log "escape repair: backslash run before 'n' ${_ESC_BEFORE} -> ${_ESC_AFTER:-0} (tmux re-escapes on every reuse; left uncorrected it doubles per restart)"
 NEW_CMD="$(printf '%s' "$START_CMD" \
     | sed -E "s/--session-id[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g; s/--resume[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g")"
 OLD_IDS="$(printf '%s' "$START_CMD" | grep -oE '(--resume|--session-id)[[:space:]]+[0-9a-fA-F-]{36}' | awk '{print $2}' | sort -u | tr '\n' ' ')"
