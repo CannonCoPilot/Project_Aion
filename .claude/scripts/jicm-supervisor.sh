@@ -377,11 +377,23 @@ MAINT_NEO4J_URL="${JICM_HEALTH_NEO4J_URL:-http://localhost:7474}"
 # box. Steady-state latency is 1-13ms, so 2s is ~150x headroom — a probe that exceeds
 # it is reporting LOAD, and is now classified as `timeout` rather than as "down".
 MAINT_PROBE_TIMEOUT="${JICM_HEALTH_PROBE_TIMEOUT:-2}"
-# Leak thresholds. Healthy MLX-Embed measured 2.4 GB immediately after a restart; the leak reached
-# 59 GB over ~4 days. 12 GB is far above steady state and far below the thrash point, so it fires
-# early enough to be scheduled rather than urgent. Overridable so the alert branch stays testable
-# without waiting days for a real leak (same rationale as JICM_HEALTH_PROBE_TIMEOUT).
-MAINT_MLX_FOOTPRINT_GB="${JICM_HEALTH_MLX_FOOTPRINT_GB:-12}"
+# Leak threshold, expressed as a MULTIPLE OF THE FRESH FOOTPRINT rather than a bare constant.
+# Measured 2026-08-15 on a clean restart of aion:5 (Qwen3-Embedding-4B-4bit-DWQ, 4-bit quantised):
+#   server up, model not yet exercised .... 2473 MB
+#   model loaded + serving requests ....... 2654 MB   <- the real steady state, and the baseline
+# The two differ because the model lazy-loads on first request. Anchoring on the pre-load number
+# would set a threshold the service crosses simply by being USED, so the baseline is the loaded one.
+MAINT_MLX_BASELINE_MB="${JICM_HEALTH_MLX_BASELINE_MB:-2654}"
+MAINT_MLX_LEAK_MULT="${JICM_HEALTH_MLX_LEAK_MULT:-3}"
+# Derived, not hand-maintained: re-measure the baseline and the trigger follows. 3x ~= 7.9 GB.
+MAINT_MLX_FOOTPRINT_GB="${JICM_HEALTH_MLX_FOOTPRINT_GB:-$(( (MAINT_MLX_BASELINE_MB * MAINT_MLX_LEAK_MULT + 1023) / 1024 ))}"
+# Auto-restart (Sir's standing instruction 2026-08-15: "always restart if it gets big, unless it is
+# in active use"). This is MITIGATION, never a fix: every automatic restart still ALERTs, and a
+# repeat inside the escalation window is reported as an approach failure, not absorbed silently.
+MAINT_MLX_AUTORESTART="${JICM_HEALTH_MLX_AUTORESTART:-1}"
+MAINT_MLX_RESTART_COOLDOWN_SEC="${JICM_HEALTH_MLX_COOLDOWN_SEC:-900}"    # never loop-restart
+MAINT_MLX_ESCALATE_SEC="${JICM_HEALTH_MLX_ESCALATE_SEC:-7200}"           # 2 restarts in 2h = escalate
+MAINT_MLX_TARGET="${JICM_HEALTH_MLX_TARGET:-${JICM_TMUX_SESSION}:5}"
 # NOT free-swap. macOS RESIZES the swap file to match demand: after the MLX restart it shrank
 # 45 GB -> 15 GB, so "free swap" sat at ~940 MB while memory was 83% free. A first version of this
 # alerted on free-swap and fired on the first healthy pass — the metric is near-constant by design
@@ -438,6 +450,61 @@ _footprint_gb() {   # echo integer GB for a pid; empty when unmeasurable (absenc
 _mlx_pid() { pgrep -f "qwen3-embeddings-mlx" 2>/dev/null | while read -r p; do
                  case "$(ps -o command= -p "$p" 2>/dev/null)" in *[Pp]ython*) echo "$p"; return ;; esac
              done; }
+
+# Is MLX-Embed IN ACTIVE USE? (0 = busy, leave it alone). There is no server-side in-flight
+# counter — /metrics reports model status and config only — so this is composed from independent
+# falsifiable signals. Any one of them is enough to refuse: killing the server mid-ingest corrupts
+# the ingest, which is strictly worse than carrying a leak for another poll.
+#   1. a JICM actuation lock — the actuator detaches ingests (5.5/5.6c/5.9) that embed
+#   2. a live auto-ingest process
+#   3. a saturated probe — `timeout` means ALIVE AND WORKING, not down (see _probe)
+#   4. footprint still CLIMBING across a short interval — the most direct evidence of work in
+#      progress, and it needs no knowledge of who the caller is
+_mlx_busy() {                                # <pid> <probe_cause>
+    local pid="$1" cause="${2:-}" a b
+    ls "$JICM_SIGNALS_DIR"/actuating.* >/dev/null 2>&1 && { echo "actuation-in-flight"; return 0; }
+    pgrep -f 'jicm-auto-ingest|graphiti-auto-ingest' >/dev/null 2>&1 && { echo "ingest-running"; return 0; }
+    [[ "$cause" == "timeout" ]] && { echo "probe-saturated"; return 0; }
+    a="$(_footprint_gb "$pid")"; sleep 5; b="$(_footprint_gb "$pid")"
+    # Absence is not zero: an unmeasurable footprint must read as BUSY (refuse), never as idle.
+    [[ -z "$a" || -z "$b" ]] && { echo "footprint-unmeasurable"; return 0; }
+    [[ "$b" -gt "$a" ]] && { echo "footprint-climbing(${a}->${b}GB)"; return 0; }
+    return 1
+}
+
+# Restart aion:5 in place. Reuses the pane's own start command rather than rebuilding it.
+# NOTE the escaping trap that bit restart-lane: `display -p '#{pane_start_command}'` returns an
+# ESCAPED representation, so respawning with it doubles backslashes on every restart (1->2->4->8).
+# This command contains none, so it round-trips — verified. If aion:5's launch line ever grows a
+# backslash or a $'...' quote, collapse it before reuse or this will compound the same way.
+_mlx_restart() {                             # <pid> <gb>
+    local pid="$1" gb="$2" now stamp="$PROJECT_DIR/.claude/context/.mlx-last-restart"
+    local last=0 cmd
+    now="$(_now)"
+    [[ -f "$stamp" ]] && last="$(cat "$stamp" 2>/dev/null)"
+    [[ "$last" =~ ^[0-9]+$ ]] || last=0
+    if [[ $(( now - last )) -lt "$MAINT_MLX_RESTART_COOLDOWN_SEC" ]]; then
+        _log "MAINTAIN: MLX ${gb}GB over threshold but restarted $(( now - last ))s ago — cooldown, NOT restarting."
+        return 1
+    fi
+    cmd="$("$JICM_TMUX_BIN" display -t "$MAINT_MLX_TARGET" -p '#{pane_start_command}' 2>/dev/null)"
+    if [[ -z "$cmd" ]]; then
+        _log "MAINTAIN: ALERT — MLX ${gb}GB over threshold but ${MAINT_MLX_TARGET} start command unresolvable; NOT restarting. Restart it by hand."
+        return 1
+    fi
+    "$JICM_TMUX_BIN" respawn-pane -k -t "$MAINT_MLX_TARGET" "$cmd" 2>/dev/null || {
+        _log "MAINTAIN: ALERT — respawn of ${MAINT_MLX_TARGET} FAILED (MLX at ${gb}GB). Restart it by hand."
+        return 1
+    }
+    printf '%s' "$now" > "$stamp"
+    # Escalation: a second restart inside the window means the leak rate is outrunning mitigation.
+    # Per No-Silent-Degradation this is an approach failure to surface, not a success to absorb.
+    if [[ "$last" -gt 0 ]] && [[ $(( now - last )) -lt "$MAINT_MLX_ESCALATE_SEC" ]]; then
+        _log "MAINTAIN: ESCALATE — MLX-Embed required a SECOND restart after only $(( (now-last)/60 ))min (hit ${gb}GB). Auto-restart is holding the machine up, NOT fixing the leak; the leak needs a real diagnosis."
+    fi
+    _log "MAINTAIN: auto-restarted MLX-Embed at ${MAINT_MLX_TARGET} — was ${gb}GB (>= ${MAINT_MLX_FOOTPRINT_GB}GB = ${MAINT_MLX_LEAK_MULT}x the ${MAINT_MLX_BASELINE_MB}MB baseline), old pid ${pid}. LEAK REMAINS OPEN."
+    return 0
+}
 
 _maint_service_health() {   # M2 + M3
     # Writes .memory-health-SERVICES.json, NOT .memory-health.json.
@@ -520,7 +587,23 @@ HEALTH
     # the moment the machine starts swapping — which is precisely what happened.
     leak_note=""
     if [[ -n "$mlx_gb" ]] && [[ "$mlx_gb" -ge "$MAINT_MLX_FOOTPRINT_GB" ]]; then
-        leak_note="MLX-Embed footprint ${mlx_gb}GB (>= ${MAINT_MLX_FOOTPRINT_GB}GB threshold, pid ${mlx_pid})${mem_free_pct:+, memory free ${mem_free_pct}%} — RESTART aion:5 when no ingest is in flight. "
+        local busy_reason="" acted=""
+        if [[ "$MAINT_MLX_AUTORESTART" == "1" ]]; then
+            busy_reason="$(_mlx_busy "$mlx_pid" "$mc")"
+            if [[ -n "$busy_reason" ]]; then
+                acted="IN ACTIVE USE (${busy_reason}) — deferred to the next pass"
+                _log "MAINTAIN: MLX ${mlx_gb}GB over threshold but in active use (${busy_reason}) — NOT restarting."
+            elif _mlx_restart "$mlx_pid" "$mlx_gb"; then
+                acted="AUTO-RESTARTED (was ${mlx_gb}GB); leak itself remains OPEN"
+            else
+                acted="auto-restart declined (cooldown or failure — see supervisor log)"
+            fi
+        else
+            acted="auto-restart disabled — RESTART ${MAINT_MLX_TARGET} when no ingest is in flight"
+        fi
+        # The alert fires whether or not we restarted. A leak that is being papered over every
+        # few hours is still a defect, and must never read as a healthy machine.
+        leak_note="MLX-Embed footprint ${mlx_gb}GB (>= ${MAINT_MLX_FOOTPRINT_GB}GB = ${MAINT_MLX_LEAK_MULT}x baseline, pid ${mlx_pid})${mem_free_pct:+, memory free ${mem_free_pct}%} — ${acted}. "
     elif [[ -n "$mem_free_pct" ]] && [[ "$mem_free_pct" -lt "$MAINT_MEM_FREE_PCT_MIN" ]]; then
         # Pressure can come from something other than MLX; say so rather than blaming the one
         # process we happen to measure.
