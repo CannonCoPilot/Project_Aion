@@ -48,7 +48,7 @@ SESSION_NAME="${TMUX_SESSION:-aion}"
 ACTUATE="$PROJECT_DIR/.claude/scripts/jicm-actuate.sh"
 LOG="$PROJECT_DIR/.claude/logs/aion-lane-restart.log"
 
-DRY_RUN=0; FORCE=0; ASSUME_YES=0; IDLE_SEC=20; ALLOW_BG_KILL=0
+DRY_RUN=0; FORCE=0; ASSUME_YES=0; IDLE_SEC=20; ALLOW_BG_KILL=0; FRESH=0
 # Overridable so the give-up branch is testable without sitting through the full wait — a guard
 # that takes 3 minutes to exercise is a guard that never gets exercised.
 IDLE_WAIT_MAX="${AION_RESTART_IDLE_WAIT_MAX:-180}"
@@ -68,6 +68,15 @@ while [[ $# -gt 0 ]]; do
         # restart of a lane running a trivial poller silently drop an unrelated guard. A guard
         # that can only be bypassed by disabling a second guard is a guard that will collapse.
         --allow-bg-kill) ALLOW_BG_KILL=1; shift ;;
+        # ZERO-STATE restart: come back on a BRAND-NEW session instead of resuming the current
+        # one. Strips --resume/--session-id rather than rewriting it, so Claude Code starts
+        # clean while every LAUNCH-TIME property is restored from the pane's own start command:
+        # MCP servers (--mcp-config), permissions (--permission-mode), --add-dir, model, the
+        # system prompt. That is the whole point — a /clear mints a new session but REUSES the
+        # process, so it can restore none of those; only a respawn can. Built for Protos, whose
+        # priority role is a seed: it must reset to the default tool/permission surface, NOT to
+        # its last conversation.
+        --fresh)    FRESH=1; shift ;;
         -h|--help)  echo "usage: aion-lane-restart.sh <jaques|genie|dev|w0> [--dry-run] [--force] [--allow-bg-kill] [--idle-sec N] [--yes]"; exit 0 ;;
         -*)         echo "unknown flag: $1" >&2; exit 64 ;;
         *)          LANE="$1"; shift ;;
@@ -82,7 +91,11 @@ case "$LANE" in
     genie|Genie|12)            KEY="genie";  WIN="Genie" ;;
     dev|Jarvis-dev|11)         KEY="dev";    WIN="Jarvis-dev" ;;
     w0|jarvis|Jarvis|0)        KEY="w0";     WIN="Jarvis" ;;
-    *) _die "unknown lane '$LANE' (expected jaques|genie|dev|w0)" ;;
+    # protos (aion:1) — the Alfred Pulse-Nexus seed. Its PRIORITY role is to be forked from,
+    # so `--fresh` is its normal reset: a seed must offer the default tool/permission surface,
+    # never the residue of whatever one-off interactive session last used it.
+    protos|Protos|1)           KEY="protos"; WIN="Protos" ;;
+    *) _die "unknown lane '$LANE' (expected jaques|genie|dev|w0|protos)" ;;
 esac
 
 _log "==== lane-restart requested: lane=$KEY window=$WIN dry_run=$DRY_RUN force=$FORCE ===="
@@ -126,7 +139,26 @@ if [[ -z "$SID" ]]; then
     [[ -s "$UUID_FILE" ]] && SID="$(tr -d '[:space:]' < "$UUID_FILE")"
     [[ -n "$SID" ]] && _log "session id from uuid-file fallback (registry had none): $SID"
 fi
-[[ -n "$SID" ]] || _die "cannot resolve current session id for $KEY — refusing to guess (a wrong resume silently restores stale context)"
+if [[ -z "$SID" ]]; then
+    # PANE fallback — read the session id off the live claude process. Sessions files are named
+    # <pid>.json. This is the only source that works for a lane with no registry entry and no
+    # uuid breadcrumb, which is exactly Protos's situation (it launches without JARVIS_WINDOW,
+    # so no gate ever registered it). Used for the transcript/idle checks, never to pick a
+    # resume target: the pane is authoritative about who is running, and nothing is guessed.
+    _pane_pid="$("$TMUX_BIN" display -p -t "$SESSION_NAME:$WIN" '#{pane_pid}' 2>/dev/null)"
+    for _c in $(pgrep -P "${_pane_pid:-0}" 2>/dev/null); do
+        _f="$HOME/.claude/sessions/$_c.json"
+        [[ -f "$_f" ]] && SID="$(jq -r '.sessionId // empty' "$_f" 2>/dev/null)" && [[ -n "$SID" ]] && break
+    done
+    [[ -n "$SID" ]] && _log "session id from PANE fallback (no registry entry, no uuid file): $SID"
+fi
+# --fresh does not resume anything, so an unresolvable id costs only the transcript-based idle
+# check — it must not block the reset. Say so explicitly rather than proceeding quietly.
+if [[ -z "$SID" ]]; then
+    [[ "$FRESH" -eq 1 ]] \
+        && _log "WARNING: no session id for $KEY — proceeding because --fresh resumes nothing, but the transcript idle check cannot run (falling back to the background-work check alone)" \
+        || _die "cannot resolve current session id for $KEY — refusing to guess (a wrong resume silently restores stale context)"
+fi
 
 # Transcript must exist, or --resume starts an empty session while claiming to resume one.
 #
@@ -202,13 +234,26 @@ START_CMD="$(_collapse_escapes "$START_CMD")"
 _ESC_AFTER="$(printf '%s' "$START_CMD" | grep -oE '\\+n' | head -1 | tr -d 'n' | awk '{print length}')"
 [[ -n "$_ESC_BEFORE" && "${_ESC_BEFORE:-0}" -gt 1 ]] && \
     _log "escape repair: backslash run before 'n' ${_ESC_BEFORE} -> ${_ESC_AFTER:-0} (tmux re-escapes on every reuse; left uncorrected it doubles per restart)"
-NEW_CMD="$(printf '%s' "$START_CMD" \
-    | sed -E "s/--session-id[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g; s/--resume[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g")"
 OLD_IDS="$(printf '%s' "$START_CMD" | grep -oE '(--resume|--session-id)[[:space:]]+[0-9a-fA-F-]{36}' | awk '{print $2}' | sort -u | tr '\n' ' ')"
-printf '%s' "$NEW_CMD" | grep -q -- "--resume $SID" || _die "uuid rewrite failed — refusing to respawn with an unverified command"
-_log "uuid rewrite: [$OLD_IDS] -> $SID"
-if [[ "$OLD_IDS" != *"$SID"* ]]; then
-    _log "NOTE: the window's baked uuid was STALE (the 'Press Enter to --resume' path would have resumed the wrong session)"
+if [[ "$FRESH" -eq 1 ]]; then
+    # STRIP, don't rewrite: no --resume at all, so Claude Code mints a new session and the
+    # lane comes up on its default context with the full launch-time surface intact.
+    NEW_CMD="$(printf '%s' "$START_CMD" \
+        | sed -E "s/--session-id[[:space:]]+[0-9a-fA-F-]{36}[[:space:]]*//g; s/--resume[[:space:]]+[0-9a-fA-F-]{36}[[:space:]]*//g")"
+    # Verify the removal actually happened. A silent sed miss would respawn the OLD session
+    # while the log claimed a zero-state reset — the exact shape of a laundered failure.
+    printf '%s' "$NEW_CMD" | grep -qE -- '(--resume|--session-id)[[:space:]]+[0-9a-fA-F-]{36}' \
+        && _die "--fresh: session flag survived the strip — refusing to respawn with an unverified command"
+    case "$NEW_CMD" in *claude*) : ;; *) _die "--fresh: rewrite destroyed the claude invocation — refusing" ;; esac
+    _log "FRESH (zero-state): stripped session flags [$OLD_IDS] — lane will start a NEW session on its default context"
+else
+    NEW_CMD="$(printf '%s' "$START_CMD" \
+        | sed -E "s/--session-id[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g; s/--resume[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g")"
+    printf '%s' "$NEW_CMD" | grep -q -- "--resume $SID" || _die "uuid rewrite failed — refusing to respawn with an unverified command"
+    _log "uuid rewrite: [$OLD_IDS] -> $SID"
+    if [[ "$OLD_IDS" != *"$SID"* ]]; then
+        _log "NOTE: the window's baked uuid was STALE (the 'Press Enter to --resume' path would have resumed the wrong session)"
+    fi
 fi
 
 # --- 6. Idle check. A respawn is a kill: whatever the lane is mid-turn is lost, and unlike a
@@ -341,7 +386,16 @@ _request_and_wait_for_save() {
     done
 }
 
-if true; then
+# The working-state gate exists to protect CONTINUITY: don't restart a lane whose in-progress
+# work isn't written down. A zero-state reset has the opposite intent — it is DISCARDING that
+# session deliberately — so asking the lane to save first would be incoherent, and for Protos it
+# would preserve exactly the one-off interactive residue the reset exists to remove.
+# Skipping it here is NOT a weakened guard: the idle check and the background-work refusal both
+# still apply, so unfinished BACKGROUND work still blocks the restart. What is dropped is only
+# the demand to persist a conversation the caller has asked to throw away.
+if [[ "$FRESH" -eq 1 ]]; then
+    _log "working-state gate: SKIPPED (--fresh discards this session by design; idle + background-work guards still enforced)"
+elif true; then
     [[ -x "$ACTUATE" ]] || _gate_fail "jicm-actuate.sh not executable at $ACTUATE — cannot check working state"
     _log "working-state gate: jicm-actuate.sh $KEY prepare (advisory; verdict parsed from stdout)"
     PREP_VERDICT="$(_prep_verdict)"

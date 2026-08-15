@@ -309,6 +309,12 @@ fi
 # the soft nudge to 66%, so we always clear well before overflow. On a 1M window
 # the clamp is a no-op (250K/300K unchanged). Per User directive: an unknown
 # model gets a 250K window with a 200K reset (250K x 0.80 = 200K).
+# Per-key thresholds FIRST, so the window clamp below still applies on top of them. Order
+# matters and only in this direction: the clamp exists to keep any threshold under the model's
+# real capacity, so it must be the last word. (Applying it before would let a per-key value
+# silently exceed the window.) Protos runs 20K/25K — see jicm_key_thresholds.
+type jicm_key_thresholds >/dev/null 2>&1 && jicm_key_thresholds "$JICM_KEY"
+
 WIN_HARD=$(( WINDOW * 80 / 100 ))
 WIN_SOFT=$(( WINDOW * 66 / 100 ))
 [[ "$WIN_HARD" -lt "$JICM_HARD_TOKENS" ]] && JICM_HARD_TOKENS="$WIN_HARD"

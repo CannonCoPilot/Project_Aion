@@ -116,7 +116,16 @@ _resolve_policy() {
     local p; p="$(_reg '.reset_policy')"
     case "$p" in
         preserve-restore|zero-state|monitor) echo "$p" ;;
-        *) echo "preserve-restore" ;;
+        # Key-aware fallback, not a bare default. Protos must default to zero-state even before
+        # anything writes its registry row — and it has had NO row at all (it launched without
+        # JARVIS_WINDOW, so it derived w0-bg-* and no gate ever registered `protos`). Depending
+        # on a registry field to select the policy would mean the very lane that needs
+        # zero-state silently getting preserve-restore, i.e. a seed carrying its last
+        # conversation into every fork taken from it.
+        *) case "$JK_KEY" in
+               protos|protos-bg-*) echo "zero-state" ;;
+               *)                  echo "preserve-restore" ;;
+           esac ;;
     esac
 }
 
@@ -565,8 +574,35 @@ _cycle_zero_state() {
     # (alfred/.claude/jobs/lib/host-executor-bridge.sh) is the seam — its exact CLI
     # is introspected + wired in Phase 4. Until then this ALERTS and refuses to
     # pretend a reset happened (No Silent Degradation).
-    _log "zero-state ALERT: Phase-1 skeleton — Protos reset is wired in Phase 4 (host-executor-bridge ensure_seed, core-only reload). No reset performed; not faking success."
-    return 4
+    #
+    # WIRED 2026-08-15. The reset is a RESPAWN, not a /clear, and that choice is the whole point.
+    # Sir's requirement: on reset Protos must come back with "all of the MCP servers available,
+    # task management awareness, and all of the permissions and other tool call options" — and
+    # every one of those is a LAUNCH-TIME property (--mcp-config, --permission-mode, --add-dir,
+    # --model, the system prompt). A /clear mints a new session but REUSES the process, so it
+    # restores none of them (the same reason a /clear can never clear hook staleness). Only a
+    # respawn from the pane's own start command can, so zero-state delegates to
+    # aion-lane-restart.sh --fresh, which strips --resume and verifies the strip took effect.
+    #
+    # It also deliberately does NOT preserve the session's work: for a lane whose priority role
+    # is to be forked from, carrying a one-off interactive conversation forward is contamination,
+    # not continuity.
+    local restart="$PROJECT_DIR/.claude/scripts/aion-lane-restart.sh" rc
+    if [[ ! -x "$restart" ]]; then
+        _log "zero-state ALERT: aion-lane-restart.sh missing/not executable at $restart — NO reset performed (not faking success)."
+        return 4
+    fi
+    # --yes: this path is already gated upstream (threshold + supervisor validation); an
+    # interactive confirm here would hang a detached worker forever.
+    "$restart" "$JK_KEY" --fresh --yes; rc=$?
+    if [[ "$rc" -ne 0 ]]; then
+        # Refusals are legitimate outcomes (busy lane, background work) and must surface as
+        # NOT-RESET rather than be smoothed into success.
+        _log "zero-state ALERT: aion-lane-restart.sh --fresh refused or failed (rc=$rc) — Protos NOT reset. See aion-lane-restart.log for the named cause."
+        return 4
+    fi
+    _log "==== zero-state complete (key=$JK_KEY): respawned on a NEW session with the full launch-time surface (MCP servers, permissions, add-dirs); prior session work deliberately discarded ===="
+    return 0
 }
 
 _cycle_monitor() {

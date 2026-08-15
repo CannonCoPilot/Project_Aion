@@ -542,8 +542,29 @@ JICM_PROJECTS_DIR="$HOME/.claude/projects/${JICM_PROJECT_SLUG}"
 #
 # Override per-session with JICM_SOFT_TOKENS/JICM_HARD_TOKENS if you want aggressive cycling
 # (the protos test lane runs at 20K/25K for exactly that reason).
+# Record whether these arrived from the ENVIRONMENT before the defaults below fire. Without
+# this, `${VAR:-default}` makes an explicit caller override indistinguishable from the default,
+# and jicm_key_thresholds could not honour "explicit env always wins".
+[[ -n "${JICM_SOFT_TOKENS:-}" ]] && _JICM_SOFT_FROM_ENV=1 || _JICM_SOFT_FROM_ENV=0
+[[ -n "${JICM_HARD_TOKENS:-}" ]] && _JICM_HARD_FROM_ENV=1 || _JICM_HARD_FROM_ENV=0
 JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-300000}    # 30% of 1M
 JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # 33% of 1M
+
+# Per-key threshold defaults. Called with the derived key AFTER the globals above.
+#
+# PROTOS runs far lower than an Archon lane, on purpose. Its priority role is the SEED that the
+# Alfred Pulse-Nexus manager forks tasks from, and a seed is valuable in proportion to how small
+# and how default it is: every token of accumulated one-off conversation is inherited by every
+# fork taken after it. So it resets early and often. It is also the cheapest lane to cycle —
+# zero-state discards the session rather than compressing it, so a cycle costs no digest.
+jicm_key_thresholds() {                      # <key>
+    case "${1:-}" in
+        protos|protos-bg-*)
+            [[ "$_JICM_SOFT_FROM_ENV" == "1" ]] || JICM_SOFT_TOKENS="${JICM_PROTOS_SOFT_TOKENS:-20000}"
+            [[ "$_JICM_HARD_FROM_ENV" == "1" ]] || JICM_HARD_TOKENS="${JICM_PROTOS_HARD_TOKENS:-25000}"
+            ;;
+    esac
+}
 JICM_TOKEN_THRESHOLD=${JICM_TOKEN_THRESHOLD:-330000}   # legacy v7.x alias (= new hard)
 # NOTE: the gate's per-window clamp (WINDOW*0.80 hard / *0.66 soft) still applies — on a
 # 1M window these pass through (800K/660K caps > 600K/550K); smaller windows clamp DOWN.
