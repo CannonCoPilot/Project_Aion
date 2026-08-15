@@ -129,10 +129,37 @@ fi
 [[ -n "$SID" ]] || _die "cannot resolve current session id for $KEY — refusing to guess (a wrong resume silently restores stale context)"
 
 # Transcript must exist, or --resume starts an empty session while claiming to resume one.
+#
+# A SESSION IS NOT WHERE THE REGISTRY SAYS IT IS. Claude Code derives the project dir from the
+# cwd it was LAUNCHED with, and the ~/Claude/Jarvis symlink means one workspace encodes to more
+# than one dir (see §1 transcript triplication). W0's registry names the canonical
+# -Claude-Project-Aion path while its transcript has always lived under -Claude-Jarvis, so a
+# search restricted to the registry's dir found nothing and the tool refused to restart a
+# perfectly healthy session.
+#
+# Two defects, both fixed here: the registry dir EXISTING was treated as the dir being RIGHT
+# (so no fallback ran), and the fallback itself was dead code — `-maxdepth 1` over
+# ~/.claude/projects can never match, because transcripts live one level deeper.
+_find_transcript() {
+    local sid="$1" hinted="$2" hits best
+    # 1. The registry's own dir, when it actually holds the file.
+    if [[ -n "$hinted" && -f "$hinted/$sid.jsonl" ]]; then echo "$hinted/$sid.jsonl"; return; fi
+    # 2. Every project dir. Copies are hardlinks of equal size, so "largest" does NOT decide it
+    #    — an unqualified `head -1` would silently fall back to ALPHABETICAL order and can pick
+    #    a legacy-symlink path (trap 15). Decide ties explicitly: newest mtime, then name.
+    hits="$(find "$HOME/.claude/projects" -maxdepth 2 -name "$sid.jsonl" 2>/dev/null)"
+    [[ -n "$hits" ]] || return
+    best="$(printf '%s\n' "$hits" | while IFS= read -r f; do
+                [[ -n "$f" ]] && printf '%s\t%s\t%s\n' "$(stat -f %m "$f" 2>/dev/null || echo 0)" "$(wc -c <"$f" 2>/dev/null || echo 0)" "$f"
+            done | sort -k1,1nr -k2,2nr -k3,3 | head -1 | cut -f3-)"
+    echo "$best"
+}
 TDIR="$(jq -r '.transcript_path // empty' "$REG" 2>/dev/null | sed 's|/[^/]*$||')"
-[[ -n "$TDIR" && -d "$TDIR" ]] || TDIR="$HOME/.claude/projects"
-TRANSCRIPT="$(find "$TDIR" -maxdepth 1 -name "$SID.jsonl" 2>/dev/null | head -1)"
-[[ -n "$TRANSCRIPT" ]] || _die "no transcript found for session $SID — resuming it would start an empty session"
+TRANSCRIPT="$(_find_transcript "$SID" "$TDIR")"
+[[ -n "$TRANSCRIPT" ]] || _die "no transcript found for session $SID in any project dir — resuming it would start an empty session"
+if [[ -n "$TDIR" && "$TRANSCRIPT" != "$TDIR/"* ]]; then
+    _log "NOTE: transcript is NOT where the registry says (registry: $TDIR) — using $TRANSCRIPT"
+fi
 _log "resolved live session: $SID ($(wc -c <"$TRANSCRIPT" | tr -d ' ') bytes)"
 
 # --- 4. Capture the window's real launch command (single source of truth: the launcher wrote it).
