@@ -11,8 +11,16 @@
     "     is the only place that actually binds.",
     "  2. Genie has no use for annas-archive, so it is deliberately absent — a smaller",
     "     tool surface and one less place the tracked ANNAS_SECRET_KEY has to travel.",
+    "     SUPERSEDED 2026-08-14: Genie requested it for the GENESIS literature work, and",
+    "     the secret objection is answered — scripts/annas_mcp_launch.sh reads the key at",
+    "     launch from files ALREADY outside the WVU tree, so nothing enters that repo.",
     "",
-    "Root .mcp.json is left untouched: W0 and W11 depend on it and neither needed to change."
+    "Root .mcp.json is left untouched: W0 and W11 depend on it and neither needed to change.",
+    "",
+    "annas-archive + arxiv were added here, NOT to WVU/.mcp.json, because this lane launches",
+    "with --strict-mcp-config: ONLY this file is read. A project .mcp.json is ignored just as",
+    "silently as the earlier settings.json attempt was — same class of failure, one layer out.",
+    "This file is the ONLY config that binds for W12."
   ],
   "mcpServers": {
     "jarvis-rag": {
@@ -58,6 +66,20 @@
       ],
       "env": {
         "SCHOLAR_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Projects/WVU/refs/papers"
+      }
+    },
+    "annas-archive": {
+      "type": "stdio",
+      "command": "/Users/nathanielcannon/Claude/Projects/WVU/scripts/annas_mcp_launch.sh",
+      "args": [],
+      "env": {}
+    },
+    "arxiv": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["arxiv-mcp-server"],
+      "env": {
+        "ARXIV_STORAGE_PATH": "/Users/nathanielcannon/Claude/Projects/WVU/data/raw/fulltext/arxiv"
       }
     }
   }
