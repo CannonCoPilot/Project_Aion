@@ -323,6 +323,69 @@ JK_COMPRESSION_SIGNAL JK_COMPRESSED JK_COMPRESSION_GUARD JK_METADATA JK_METRICS 
 JK_JSONL_STATS JK_SCROLLBACK JK_SCROLLBACK_SUMMARY JK_SESSION_STATE JK_SCRATCHPAD \
 JK_ACTIVE_PLAN"
 
+# _jicm_retire_duplicate_bg <canonical> <pane_sid>
+# Retire a `<canonical>-bg-<sid8>` key that names the SAME session as <canonical> itself.
+#
+# WHY THIS IS NOT THE GHOST CASE: a bg key is minted as `<candidate>-bg-<MY sid>`, so a
+# suffix that matches the canonical entry's session_id proves both records describe ONE
+# session, not a fork. The lane is double-registered: it inflates the managed set, gets a
+# second HUD row, and a second `.last-sample.*`. Retiring the duplicate CANNOT unmanage the
+# lane — that is precisely what distinguishes this from the delete that silently unmanaged
+# Protos, and it is why identity, not liveness, is the test.
+#
+# Archives rather than deletes (a registry row is evidence), and MERGES the chain forward:
+# lineage is append-only and must never be dropped to a cleanup.
+# Sets JICM_RECONCILE_NOTE. Returns 0 retired · 1 nothing to do / deferred.
+_jicm_retire_duplicate_bg() {
+    local canonical="${1:?}" pane_sid="${2:?}"
+    local bgkey="${canonical}-bg-${pane_sid:0:8}"
+    local reg="$JICM_REGISTRY_DIR/$bgkey.json"
+    [[ -f "$reg" ]] || return 1
+    # Identity must be EXACT. A bg key naming a different session is a real fork — leave it.
+    [[ "$(jicm_registry_get "$bgkey" '.session_id')" == "$pane_sid" ]] || return 1
+    # Never yank files out from under a cycle in flight, on EITHER key.
+    if [[ -f "$JICM_SIGNALS_DIR/actuating.$canonical" || -f "$JICM_SIGNALS_DIR/actuating.$bgkey" ]]; then
+        JICM_RECONCILE_NOTE="defer ${bgkey}: actuation in flight"; return 1
+    fi
+
+    # Merge the bg chain into the canonical one before anything is moved (same policy as
+    # the promotion path: dedupe by whole line, re-sort by ts, append raw if jq fails).
+    local src_chain dst_chain tmp_chain
+    jicm_key_paths "$bgkey";     src_chain="$JK_CHAIN"
+    jicm_key_paths "$canonical"; dst_chain="$JK_CHAIN"
+    if [[ -s "$src_chain" ]]; then
+        mkdir -p "$JICM_CHAIN_DIR" 2>/dev/null
+        tmp_chain="${dst_chain}.merge.$$"
+        if cat "$dst_chain" "$src_chain" 2>/dev/null | awk 'NF && !seen[$0]++' \
+             | jq -s -c 'sort_by(.ts)[]' > "$tmp_chain" 2>/dev/null && [[ -s "$tmp_chain" ]]; then
+            mv "$tmp_chain" "$dst_chain"
+        else
+            rm -f "$tmp_chain" 2>/dev/null
+            cat "$src_chain" >> "$dst_chain" 2>/dev/null
+        fi
+        rm -f "$src_chain" 2>/dev/null
+    fi
+
+    # Archive registry + state, then drop the duplicate's signals/markers.
+    local adir; adir="$JICM_DIR/archive/dup-$(date -u +%Y%m%d-%H%M%S)"
+    mkdir -p "$adir/registry" "$adir/state" 2>/dev/null
+    jicm_key_paths "$bgkey"
+    mv "$reg" "$adir/registry/$bgkey.json" 2>/dev/null
+    # The sample marker has no JK_ var; the gate builds it from JK_STATE's dirname
+    # (jicm-gate.sh SAMPLE_MARKER). Derive it the SAME way, and BEFORE JK_STATE moves.
+    local sample_marker="$(dirname "$JK_STATE")/.last-sample.$bgkey"
+    [[ -e "$JK_STATE" ]] && mv "$JK_STATE" "$adir/state/$bgkey.json" 2>/dev/null
+    rm -f "$JK_CLEAR_SIGNAL" "$JK_RESUME_SIGNAL" "$JK_COMPRESSION_SIGNAL" \
+          "$JK_COMPRESSION_GUARD" "$sample_marker" \
+          "$JICM_SIGNALS_DIR/actuating.$bgkey.alerted" \
+          "$JICM_SIGNALS_DIR/pending-noted.$bgkey" \
+          "$JICM_SIGNALS_DIR/fire-log.$bgkey" \
+          "$JICM_SIGNALS_DIR/fire-log.$bgkey.alerted" 2>/dev/null
+    jicm_key_paths "$canonical"          # leave caller's paths on the canonical key
+    JICM_RECONCILE_NOTE="RETIRED duplicate ${bgkey} (same session as ${canonical}; archived to ${adir##*/})"
+    return 0
+}
+
 # jicm_reconcile_pane_key <canonical>   (w0|dev)
 # Reconciles a pane-actuated key against the session ACTUALLY in its pane.
 #
@@ -357,7 +420,16 @@ jicm_reconcile_pane_key() {
 
     # (2) Key — does the canonical key already belong to the occupant?
     cur="$(jicm_registry_get "$canonical" '.session_id')"
-    [[ "$cur" == "$pane_sid" ]] && return 0
+    if [[ "$cur" == "$pane_sid" ]]; then
+        # In sync — but a startup-race demotion may STILL have left a duplicate bg key
+        # naming this very session. That happens whenever the sid survives the respawn
+        # (`restart-lane` resumes the same session), so promotion is never needed and the
+        # GC below can never collect it either: GC's guard asks "is this session's
+        # transcript stale?", and the transcript is LIVE — it belongs to the canonical
+        # key. Right question for a ghost, wrong question for a duplicate. Retire it here.
+        _jicm_retire_duplicate_bg "$canonical" "$pane_sid"
+        return 0
+    fi
 
     # The occupant self-demoted at derive time; its state lives under the bg key.
     bgkey="${canonical}-bg-${pane_sid:0:8}"
