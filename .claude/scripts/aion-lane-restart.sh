@@ -48,7 +48,7 @@ SESSION_NAME="${TMUX_SESSION:-aion}"
 ACTUATE="$PROJECT_DIR/.claude/scripts/jicm-actuate.sh"
 LOG="$PROJECT_DIR/.claude/logs/aion-lane-restart.log"
 
-DRY_RUN=0; FORCE=0; ASSUME_YES=0; IDLE_SEC=20
+DRY_RUN=0; FORCE=0; ASSUME_YES=0; IDLE_SEC=20; ALLOW_BG_KILL=0
 # Overridable so the give-up branch is testable without sitting through the full wait — a guard
 # that takes 3 minutes to exercise is a guard that never gets exercised.
 IDLE_WAIT_MAX="${AION_RESTART_IDLE_WAIT_MAX:-180}"
@@ -63,7 +63,12 @@ while [[ $# -gt 0 ]]; do
         --force)    FORCE=1; shift ;;
         --yes|-y)   ASSUME_YES=1; shift ;;
         --idle-sec) IDLE_SEC="${2:-20}"; shift 2 ;;
-        -h|--help)  echo "usage: aion-lane-restart.sh <jaques|genie|dev|w0> [--dry-run] [--force] [--idle-sec N] [--yes]"; exit 0 ;;
+        # Scoped override for the background-work refusal ONLY. Deliberately NOT folded into
+        # --force: --force also disables the idle check, so requiring it here would make every
+        # restart of a lane running a trivial poller silently drop an unrelated guard. A guard
+        # that can only be bypassed by disabling a second guard is a guard that will collapse.
+        --allow-bg-kill) ALLOW_BG_KILL=1; shift ;;
+        -h|--help)  echo "usage: aion-lane-restart.sh <jaques|genie|dev|w0> [--dry-run] [--force] [--allow-bg-kill] [--idle-sec N] [--yes]"; exit 0 ;;
         -*)         echo "unknown flag: $1" >&2; exit 64 ;;
         *)          LANE="$1"; shift ;;
     esac
@@ -165,6 +170,49 @@ if [[ "$FORCE" -eq 0 ]]; then
     done
 else
     _log "WARNING: --force — skipping the idle check; an in-flight turn will be lost"
+fi
+
+# --- 6.5 Background-work check. AN IDLE HEAD IS NOT AN IDLE LANE.
+#
+# The idle check above reads the TRANSCRIPT, so it only sees the conversation. A lane that
+# launched work in the background is idle by that measure while the work runs — and a respawn
+# kills the whole pane process tree, taking it with it. Observed 2026-08-14: the 15:27 genie
+# restart passed both the idle check and the scratchpad gate, and killed a 55-paper extraction
+# at 17 papers. Nothing warned, and the loss surfaced only because Genie mentioned it later.
+#
+# Losing unfinished work to a convenience restart is not an acceptable degradation, so this
+# REFUSES and names the processes rather than reporting success over a silent loss. --force
+# still overrides, but now it means "I accept killing these named jobs", not "I didn't know".
+_background_work() {   # echo one "pid etime command" line per agent-launched job
+    local pane="$1" head
+    [[ -n "$pane" ]] || return 0
+    # THE WORK IS A GRANDCHILD, NOT A CHILD. The pane's only direct child is the claude head;
+    # everything an agent starts hangs off the HEAD. A first version of this checked the pane's
+    # direct children, found only claude, filtered it, and reported a confident "nothing to
+    # lose" — the same false all-clear it was written to prevent.
+    head="$(ps -eo pid,ppid,comm 2>/dev/null | awk -v p="$pane" '$2==p && $3 ~ /claude/ {print $1; exit}')"
+    [[ -n "$head" ]] || return 0
+    # Claude Code routes EVERY Bash tool call through a shell-snapshot wrapper, so that path is
+    # an exact signature for agent-launched work. It is what separates a background job from the
+    # MCP servers and language server that are also children of the head — those are started BY
+    # the head and are meant to die with it (identical etime), whereas a job is not.
+    ps -eo pid,ppid,etime,command 2>/dev/null \
+        | awk -v h="$head" '$2==h && /shell-snapshots/ {print}' \
+        | cut -c1-160
+}
+BG_WORK="$(_background_work "$("$TMUX_BIN" display -p -t "$SESSION_NAME:$WIN" '#{pane_pid}' 2>/dev/null)")"
+if [[ -n "${BG_WORK//[[:space:]]/}" ]]; then
+    _log "background work detected under the pane — a respawn would kill it:"
+    printf '%s\n' "$BG_WORK" | while IFS= read -r l; do [[ -n "$l" ]] && _log "    $l"; done
+    if [[ "$FORCE" -eq 1 || "$ALLOW_BG_KILL" -eq 1 ]]; then
+        _log "WARNING: proceeding and killing the jobs listed above (override: $( [[ "$ALLOW_BG_KILL" -eq 1 ]] && echo --allow-bg-kill || echo --force ))"
+    elif [[ "$DRY_RUN" -eq 1 ]]; then
+        _log "WOULD REFUSE: background work is running; a live run would stop here"
+    else
+        _die "refusing: background work is running under this pane (listed above). Let it finish, stop it deliberately, or re-run with --allow-bg-kill to accept killing exactly those jobs (--force also works but additionally disables the idle check)"
+    fi
+else
+    _log "no background work under the pane — nothing to lose beyond the head"
 fi
 
 # --- 7. Working-state gate BEFORE the kill.
