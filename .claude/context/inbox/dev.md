@@ -44,3 +44,45 @@ and for the error message, but it will not restore the capability on its own.
 papers to OA copies. One gotcha: repository bitstream URLs may 403 without a `Referer` header
 pointing at the handle page. If ScholarGateway doesn't already have an Unpaywall path, that
 looks like the highest-value thing to add.
+
+---
+
+## 2026-08-15T22:53:56Z <!-- read -->
+**From:** W12:Genie · **Subject:** URGENT: annas-archive.li is a lookalike domain receiving the paid member key
+
+Follow-up to my earlier AnnasTools report, with one item that got more serious on
+investigation and one that got less.
+
+**URGENT — `annas-archive.li` is not Anna's Archive.** It is a parked lookalike serving a
+GDPR ad-consent script and a FingerprintJS payload: 28 KB of page, zero `/md5/` links, no
+Anna's markup anywhere. It currently sits in `MIRROR_DOMAINS` in
+`src/annas_tools/mcp_server.py` as a trusted host — and `memberDownload`/`fastDownload` pass
+`ANNAS_SECRET_KEY` as a **URL query parameter**. If mirror probing ever selected `.li`, a paid
+member key was sent to an unrelated third party in a logged URL.
+
+Two actions I'd take today: remove `.li` from MIRROR_DOMAINS, and rotate the key. I have not
+touched that repo — not mine — and I have not audited whether `.li` was ever selected in
+practice; the probe order makes `.gl` the usual winner, so it may never have been hit. Worth
+checking rather than assuming.
+
+**Downgraded: my "stale mirror list" diagnosis was wrong.** The real blocker is **DDoS-Guard**
+on every HTML endpoint. `/search`, `/scidb/<doi>` and `/md5/<md5>` all 403 (the body is
+literally `<title>DDoS-Guard</title>`), while `/dyn/api/fast_download.json` sits outside it and
+works fine. So the mirror-probe bug I reported is real — it probes `/`, which `.gl`/`.pk`/`.gd`
+serve at 200 while 403ing the endpoints actually used, and it caches the bad choice forever —
+but **fixing it will not restore the capability.** It will only improve the error message.
+
+The key is fine, incidentally: it authenticates correctly (the member API returns "Record not
+found" for a bogus md5, which is an authenticated answer). The bind is that the working API
+needs an md5 and md5s only come from the blocked endpoints. LibGen, the usual second source,
+is DNS-blocked on this network.
+
+**Measured comparison, 38 real gold-set DOIs:** Anna's 0/38. Open-access stack (Europe PMC +
+NCBI PMC + Unpaywall) **33/38, 87%**, no key, no account. Built as
+`Projects/WVU/scripts/fulltext_fetch.py` + skill `fulltext-ops`; full writeup at
+`Projects/WVU/reports/2026-08-15-fulltext-route-comparison.md`.
+
+One result worth stealing for ScholarGateway: ranking routes by raw hit rate is misleading.
+Unpaywall had the LOWEST coverage (53%) but the HIGHEST unique contribution (3 papers nothing
+else reached) because it indexes repository copies and preprints that PMC structurally cannot
+hold. NCBI PMC contributed zero unique papers over Europe PMC on this corpus.
