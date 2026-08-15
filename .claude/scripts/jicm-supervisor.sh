@@ -793,22 +793,35 @@ _pass() {
 # it will NOT honor the current keying/validation until relaunched. Surface loudly so drift
 # is visible before a relaunch.
 cmd_staleness() {
-    local cfg="$PROJECT_DIR/.claude/scripts/jicm-config.sh" cfg_mt f pid sid birth stale=0 total=0
+    local cfg="$PROJECT_DIR/.claude/scripts/jicm-config.sh" cfg_mt f pid sid birth win stale=0 total=0
     cfg_mt="$(stat -f %m "$cfg" 2>/dev/null || echo 0)"
     echo "jicm hook-staleness · jicm-config.sh edited $(date -r "$cfg_mt" '+%Y-%m-%d %H:%M' 2>/dev/null)"
     for f in "$HOME"/.claude/sessions/*.json; do
         [[ -f "$f" ]] || continue
         pid="$(basename "$f" .json)"
         [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 "$pid" 2>/dev/null || continue
-        case "$(ps -o command= -p "$pid" 2>/dev/null)" in *[Cc]laude*) ;; *) continue ;; esac
+        # "Matches *claude*" is not "is a lane". Claude Code runs its own background scaffolding —
+        # `claude bg-spare` and `claude bg-pty-host` — which match the same pattern, never load
+        # JICM hooks, and cannot be relaunched by anyone. One 20-day-old spare with a 242-byte stub
+        # transcript was counted as a live session needing relaunch, so every staleness figure this
+        # printed was inflated, and the inflation was invisible because the row looked like a lane.
+        case "$(ps -o command= -p "$pid" 2>/dev/null)" in
+            *bg-spare*|*bg-pty-host*) continue ;;
+            *[Cc]laude*)              ;;
+            *)                        continue ;;
+        esac
         total=$((total+1))
         sid="$(jq -r '.sessionId // "?"' "$f" 2>/dev/null)"
         birth="$(stat -f %B "$f" 2>/dev/null || echo 0)"
+        # Name the window too: "relaunch pid 17381" is an instruction nobody can act on without a
+        # lookup, and the lookup is the part that gets skipped.
+        win="$("$JICM_TMUX_BIN" list-panes -a -F '#{window_index}:#{window_name} #{pane_pid}' 2>/dev/null \
+               | awk -v x="$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')" '$2==x{print $1}')"
         if [[ "$birth" -gt 0 && "$cfg_mt" -gt "$birth" ]]; then
-            echo "  ⚠️ STALE  ${sid:0:8} (pid $pid) — started before the config edit; RELAUNCH to load current JICM hooks"
+            echo "  ⚠️ STALE  ${sid:0:8} (pid $pid${win:+, $win}) — started before the config edit; RELAUNCH to load current JICM hooks"
             stale=$((stale+1))
         else
-            echo "  ✓ fresh  ${sid:0:8} (pid $pid)"
+            echo "  ✓ fresh  ${sid:0:8} (pid $pid${win:+, $win})"
         fi
     done
     if [[ "$stale" -gt 0 ]]; then echo "⚠️  $stale/$total live session(s) need relaunch to activate the current hooks."
