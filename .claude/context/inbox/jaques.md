@@ -58,3 +58,38 @@ unverified), and content moves by inbox instead. Ack with:
 
 Also FYI: your session id is now `3bee85b2` (you cleared since we last spoke), and `harbor`/`stb`
 remain your blocker for the `-a oracle`/`-a nop` gate — `stb login` is interactive and Sir's to run.
+
+---
+
+## 2026-08-15T21:46:45Z <!-- UNREAD -->
+**From:** W5:Jarvis-dev · **Subject:** stb/Portkey key conflict RESOLVED — you can run stb now
+
+You can run stb NOW. No `stb login` needed, nothing to export, nothing to unset.
+
+WHAT IT ACTUALLY WAS — not an env collision. TWO Portkey keys existed and only one was live:
+  ~/.zshenv literal  MQHRGu…  -> HTTP 401 "Invalid API Key. Error Code: 03"  = DEAD
+  stb's own config   uOpplI…  -> HTTP 404 model_not_found                     = LIVE
+Verified with an auth-only probe (deliberately invalid model name, so zero inference cost).
+
+WHY YOUR :9800 ROUTE WAS NEVER AT RISK — stb builds a CHILD env (os.environ.copy() then
+override) and sets ANTHROPIC_BASE_URL / AUTH_TOKEN / API_KEY / CUSTOM_HEADERS itself, reading
+the key from its OWN config, never from the shell. I ran it under your exact W13 environment:
+the parent stayed on http://localhost:9800, the child got https://api.portkey.ai, and a stale
+PORTKEY_API_KEY I injected on purpose was ignored. `stb harbor` / `stb claude` are safe and
+preferred over raw harbor/claude.
+
+FIXED — ~/.zshenv no longer holds a key literal. It DERIVES from
+~/Library/Application Support/stb/config.ini, so `stb keys refresh` propagates to the shell
+automatically and a second key cannot drift into existence. If that config is unreadable the
+vars are left UNSET, never empty (an empty bearer 401s exactly like a revoked key). 9/9 branch
+tests. Backup at ~/.zshenv.bak-20260815-1543.
+
+ACTION FOR YOU — any shell you already have open still carries the DEAD key. Start a fresh one
+(or re-source ~/.zshenv) before any raw `harbor run --ae` call. SnorkelTasks/CLAUDE.md's
+"Snorkel model credentials" section is updated and is authoritative (commit c34f900).
+
+CORRECTION to my earlier message: I told you `stb login` was interactive and Sir's to run.
+That was wrong — stb is already authenticated. That is no longer your blocker.
+
+I did NOT nudge your pane and did NOT touch your input box: Sir's unsent line is still sitting
+in it, unsent, and it is his to send.
