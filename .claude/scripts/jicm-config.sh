@@ -552,16 +552,44 @@ JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # 33% of 1M
 
 # Per-key threshold defaults. Called with the derived key AFTER the globals above.
 #
-# PROTOS runs far lower than an Archon lane, on purpose. Its priority role is the SEED that the
+# PROTOS runs lower than an Archon lane, on purpose. Its priority role is the SEED that the
 # Alfred Pulse-Nexus manager forks tasks from, and a seed is valuable in proportion to how small
 # and how default it is: every token of accumulated one-off conversation is inherited by every
 # fork taken after it. So it resets early and often. It is also the cheapest lane to cycle —
 # zero-state discards the session rather than compressing it, so a cycle costs no digest.
+#
+# THE NUMBERS ARE MEASURED, NOT CHOSEN. Live on 2026-08-15, session eefddbdf on aion:1:
+#   baseline (first turn, system prompt + alfred CLAUDE.md + tools) .... 98,771 tokens
+#   +1 trivial message ................................................. 98,841  (+70)
+#   +1 ................................................................. 98,913  (+72)
+#   +1 ................................................................. 98,985  (+72)
+# So the FLOOR is ~98.7K and conversational climb is ~71 tok/turn. Tool-heavy turns are orders
+# of magnitude larger (jaques once went 0 -> 127K in a SINGLE turn), which is what the headroom
+# below is actually sized for — not the 71.
+#
+# An earlier version of this function set 20K/25K, copied from a stale code comment instead of
+# measured. That is BELOW the floor: Protos would have been 4x over its hard threshold at birth,
+# and since every zero-state reset respawns it right back to ~98.7K, it would have reset forever
+# — killing the seed the Nexus forks from, on a loop. Hence the guard at the end of this function.
+JICM_PROTOS_BASELINE_TOKENS="${JICM_PROTOS_BASELINE_TOKENS:-98771}"
 jicm_key_thresholds() {                      # <key>
     case "${1:-}" in
         protos|protos-bg-*)
-            [[ "$_JICM_SOFT_FROM_ENV" == "1" ]] || JICM_SOFT_TOKENS="${JICM_PROTOS_SOFT_TOKENS:-20000}"
-            [[ "$_JICM_HARD_FROM_ENV" == "1" ]] || JICM_HARD_TOKENS="${JICM_PROTOS_HARD_TOKENS:-25000}"
+            # baseline + working headroom (~41K soft / ~61K hard).
+            [[ "$_JICM_SOFT_FROM_ENV" == "1" ]] || JICM_SOFT_TOKENS="${JICM_PROTOS_SOFT_TOKENS:-140000}"
+            [[ "$_JICM_HARD_FROM_ENV" == "1" ]] || JICM_HARD_TOKENS="${JICM_PROTOS_HARD_TOKENS:-160000}"
+            # FLOOR GUARD — a threshold at or below the session's unavoidable baseline is not a
+            # tight threshold, it is an infinite reset loop, and it would present as "JICM is
+            # cycling Protos constantly" rather than as a config error. Refuse it and say so.
+            # Applies to whoever set it, env included: being explicit does not make it survivable.
+            if [[ "$JICM_HARD_TOKENS" -le "$JICM_PROTOS_BASELINE_TOKENS" ]]; then
+                echo "jicm-config ALERT: protos hard threshold ${JICM_HARD_TOKENS} <= measured baseline ${JICM_PROTOS_BASELINE_TOKENS} — that is a permanent over-threshold state (reset loop), not a tight budget. Falling back to baseline+60000; re-measure the baseline if the floor really moved." >&2
+                JICM_HARD_TOKENS=$(( JICM_PROTOS_BASELINE_TOKENS + 60000 ))
+                JICM_SOFT_TOKENS=$(( JICM_PROTOS_BASELINE_TOKENS + 40000 ))
+            elif [[ "$JICM_SOFT_TOKENS" -le "$JICM_PROTOS_BASELINE_TOKENS" ]]; then
+                echo "jicm-config ALERT: protos soft threshold ${JICM_SOFT_TOKENS} <= measured baseline ${JICM_PROTOS_BASELINE_TOKENS} — every turn would sit above soft. Raising to baseline+40000." >&2
+                JICM_SOFT_TOKENS=$(( JICM_PROTOS_BASELINE_TOKENS + 40000 ))
+            fi
             ;;
     esac
 }

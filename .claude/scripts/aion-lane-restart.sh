@@ -469,7 +469,17 @@ sleep 6
 NEW_PID="$("$TMUX_BIN" display -p -t "$SESSION_NAME:$WIN" '#{pane_pid}' 2>/dev/null)"
 [[ -n "$NEW_PID" && "$NEW_PID" != "$OLD_PID" ]] || _die "pane pid did not change ($OLD_PID -> $NEW_PID) — respawn did not take"
 if pgrep -P "$NEW_PID" >/dev/null 2>&1 || ps -p "$NEW_PID" >/dev/null 2>&1; then
-    _log "OK: $WIN respawned (pane pid $OLD_PID -> $NEW_PID), resuming $SID"
+    # Report what was actually DONE, not what the non-fresh path would have done. Under --fresh
+    # nothing is resumed — $SID is only the OUTGOING session — and saying "resuming <sid>" would
+    # be a false success message: the next reader would hunt for continuity that was discarded
+    # on purpose.
+    if [[ "$FRESH" -eq 1 ]]; then
+        _log "OK: $WIN respawned (pane pid $OLD_PID -> $NEW_PID), ZERO-STATE — started a NEW session (discarded $SID)"
+        SESSION_LINE="session        : NEW (zero-state; discarded ${SID:-<none>})"
+    else
+        _log "OK: $WIN respawned (pane pid $OLD_PID -> $NEW_PID), resuming $SID"
+        SESSION_LINE="resumed session: $SID"
+    fi
 else
     _die "no live process under the new pane pid $NEW_PID"
 fi
@@ -478,7 +488,7 @@ cat <<EOF
 
 ✅ Restarted $SESSION_NAME:$WIN
    lane           : $KEY
-   resumed session: $SID
+   $SESSION_LINE
    pane pid       : $OLD_PID -> $NEW_PID
    other windows  : untouched
 

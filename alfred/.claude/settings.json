@@ -135,6 +135,11 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/priority-validator.js\""
+          },
+          {
+            "type": "command",
+            "command": "/Users/nathanielcannon/Claude/Project_Aion/.claude/hooks/jicm-gate.sh",
+            "async": true
           }
         ],
         "matcher": "*"
@@ -187,6 +192,11 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/planning-mode-detector.js\""
+          },
+          {
+            "type": "command",
+            "command": "/Users/nathanielcannon/Claude/Project_Aion/.claude/hooks/jicm-gate.sh",
+            "async": true
           }
         ]
       }
