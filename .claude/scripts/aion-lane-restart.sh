@@ -5,10 +5,17 @@
 # ---------------
 # Some Claude Code config is resolved once, at process launch, and cannot be picked up by a
 # running session: workspace trust (~/.claude.json hasTrustDialogAccepted), project
-# permissions.allow, hooks, MCP config, --permission-mode. A /clear does NOT reload any of it —
-# /clear mints a new session inside the SAME process. So "edit settings.json, then /clear"
-# silently changes nothing, which is exactly how W13 stayed stuck in auto mode on 2026-08-14.
-# The only fix is a real process restart of that one lane.
+# permissions.allow, MCP config, --permission-mode. A /clear does NOT reload THOSE — /clear mints
+# a new session inside the SAME process. So "edit settings.json, then /clear" silently changes
+# nothing for them, which is exactly how W13 stayed stuck in auto mode on 2026-08-14. The only
+# fix is a real process restart of that one lane.
+#
+# CORRECTION 2026-08-17 — HOOKS ARE NOT IN THAT LIST. Measured, one variable, same edit at
+# 21:39:11Z: jaques had just /cleared and its brand-new session fired the newly-registered
+# PostToolUse hook 8 SECONDS later; genie kept its running session and still fired nothing after
+# a real tool call 5 minutes on. So hook REGISTRATION is read at SESSION start (a /clear is
+# enough), and a hook's SCRIPT BODY is re-read at every exec (edits are live with no restart at
+# all). Do not send someone here for a hook change — it costs a lane restart for nothing.
 #
 # Before this script the only path was re-running launch-aion.sh, which is a whole-session
 # operation — that is why lane restarts were framed as "it'll bounce the other windows".
