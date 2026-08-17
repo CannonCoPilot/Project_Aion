@@ -1402,14 +1402,17 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     # picks it up regardless of tmux session-level env. jicm-config.sh resolves
     # JICM_TMUX_SESSION="${TMUX_SESSION:-aion}" — without this inline export the
     # old default 'jarvis' caused every inject attempt to fail ("session not found").
-    # JICM_WATCHER_CYCLE_ENABLED=false (W0 cutover, 2026-08-12): jicm-supervisor now owns
-    # cycling for EVERY lane including w0. The watcher keeps running for the duties the
-    # supervisor does not have — REST/idle-hands (incl. the R5 scratchpad prune), MAINTAIN
-    # health pings, identity checks — but no longer consumes .jicm-clear-now.signal, which
-    # is the race that pinned INCLUDE_W0=0. Set back to true ONLY if the supervisor is
-    # stopped, or w0 has no context manager at all.
+    # W0 cutover (2026-08-12) + capability port (2026-08-14): jicm-supervisor now owns
+    # cycling for EVERY lane including w0 (CYCLE_ENABLED=false), and REST/idle-hands,
+    # MAINTAIN health pings and identity checks for the whole machine (MAINT_ENABLED=false).
+    # Both gates exist to prevent two managers racing on one file — the clear signal, then
+    # .memory-health.json and the M4 reindex queue.
+    # This process now does exactly ONE thing: refresh W0's state between turns. That is
+    # superseded by the PostToolUse sampler once W0's session turns over and picks the hook
+    # up (hooks cache at session start) — retire the window then. Set either gate back to
+    # true only if the supervisor is stopped.
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' JICM_WATCHER_CYCLE_ENABLED='false' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' JICM_WATCHER_CYCLE_ENABLED='false' JICM_WATCHER_MAINT_ENABLED='false' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)
@@ -1569,7 +1572,7 @@ if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null
         echo "Launching Protos (warm chain session via Alfred-Dev)..."
         SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
         "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
-            "cd '$ALFRED_LAUNCH_DIR' && export ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${AION_MODEL}' --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
+            "cd '$ALFRED_LAUNCH_DIR' && export JARVIS_WINDOW=1 JICM_PROJECT_DIR='$PROJECT_DIR' ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${AION_MODEL}' --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
         # Prime the seed: wait for Claude to be interactive, then inject the seed prompt.
         # This caches the initial context and confirms the session is ready for forking.
