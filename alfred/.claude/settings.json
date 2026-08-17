@@ -207,6 +207,10 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/session-stop.js\""
+          },
+          {
+            "type": "command",
+            "command": "/Users/nathanielcannon/Claude/Project_Aion/.claude/hooks/jicm-stop.sh"
           }
         ]
       }
