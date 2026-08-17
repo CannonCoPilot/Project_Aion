@@ -85,7 +85,17 @@ PENDING=$(jq -r '.pending_action // ""' "$JK_STATE" 2>/dev/null)
 [[ "$PENDING" == "null" ]] && PENDING=""
 
 if [[ "$PENDING" != "HALT_AFTER_RESPONSE" ]]; then
-    # Below threshold — quiet pass-through (most common case)
+    # Below threshold — quiet pass-through (most common case).
+    #
+    # OPT-IN TRACE. Silence here is indistinguishable from "this hook is not registered
+    # at all", which is exactly how Protos ran to 663,980 tokens against a 160,000 hard
+    # threshold: the gate was registered in alfred's settings.json but the SIGNAL RAISER
+    # was not, so pending_action was set every turn and nothing ever acted on it. There
+    # was no way to tell a healthy quiet lane from an unmanaged one without waiting for a
+    # threshold crossing that could never fire. `touch .claude/context/.jicm-stop-trace`
+    # to make registration observable on ANY turn, then remove it.
+    [[ -f "$PROJECT_DIR/.claude/context/.jicm-stop-trace" ]] && \
+        echo "$NOW_ISO | TRACE | key=$JICM_KEY registered + invoked, below threshold (pending='$PENDING')" >> "$LOG_FILE"
     exit 0
 fi
 
