@@ -66,6 +66,7 @@ SUP_PID_FILE="$JICM_DIR/supervisor.pid"
 POLL_SEC="${JICM_SUPERVISOR_POLL:-5}"
 GC_STALE_SEC="${JICM_SUPERVISOR_GC_SEC:-7200}"        # last_seen older than this → GC (2h)
 LOCK_TTL_SEC="${JICM_SUPERVISOR_LOCK_TTL:-1200}"      # SIGKILL backstop only; liveness is primary
+STATE_LAG_SEC="${JICM_SUPERVISOR_STATE_LAG:-300}"     # transcript newer than state ts by this → sampler stopped writing
 # Circuit breaker (review finding 4): a key that fires too many times in a window is
 # STUCK — an actuator aborting a structurally-unresolvable key (bad transcript / stale
 # uuid) that retries every Stop, OR a session whose baseline sits over threshold. Back
@@ -134,6 +135,41 @@ _transcript_stale() {
     [[ -z "$tp" || "$tp" == "null" || ! -f "$tp" ]] && return 0
     mt=$(stat -f %m "$tp" 2>/dev/null || echo 0)
     [[ $(( $(_now) - mt )) -gt "$GC_STALE_SEC" ]]
+}
+
+# Has this key's state file FROZEN while its session kept working? (no-silent-degradation net)
+#
+# _sense reads .tokens with NO freshness test, so a state file that stops being written
+# yields a PLAUSIBLE number forever: the lane silently stops being managed while still
+# reporting managed=yes, and nothing ever fires. That is worse than a MISSING reading —
+# a missing one is visible (_sense returns 0|none|0), a frozen one is believed. This is
+# the same blindness as the 2026-07-27 anchor bug (JICM read 261,878 while the session
+# was at 520,037), reached by a different route.
+#
+# TWO signals, deliberately. A state file being old is NOT a defect by itself: an idle
+# lane legitimately has one, because the gate only writes on a turn. The defect is a
+# TRANSCRIPT that has advanced well past the state file's ts — the session took turns the
+# sampler failed to record. Idle lane → both old → silent (correct, no false fire).
+#
+# Returns the lag in seconds, or the string "na" for UNMEASURABLE (no state file, no
+# transcript, or an unparseable timestamp). "na" must never alert: absence of a
+# measurement is not a measurement of failure — the rule the gate's confident-zero fix
+# applies. The sentinel is deliberately NOT a number: lag is legitimately NEGATIVE on a
+# healthy idle lane (a state ts refreshed on a timer outruns an untouched transcript —
+# w0 measured -2190s while idle), so any numeric sentinel would collide with the value
+# domain it is supposed to sit outside of, and a lane recovering into the healthy
+# negative regime would never clear its alert marker.
+_state_lag_sec() {
+    jicm_key_paths "$1"
+    local tp mt sts
+    [[ -f "$JK_STATE" ]] || { echo "na"; return; }
+    tp="$(jicm_registry_get "$1" '.transcript_path')"
+    [[ -z "$tp" || "$tp" == "null" || ! -f "$tp" ]] && { echo "na"; return; }
+    mt=$(stat -f %m "$tp" 2>/dev/null || echo 0)
+    sts=$(jq -r '.ts_epoch // 0' "$JK_STATE" 2>/dev/null)
+    [[ "$sts" =~ ^[0-9]+$ ]] || sts=0
+    [[ "$mt" -eq 0 || "$sts" -eq 0 ]] && { echo "na"; return; }
+    echo $(( mt - sts ))
 }
 
 # Does the supervisor manage this key in the current phase? (w0 stays on the watcher.)
@@ -836,6 +872,25 @@ _pass() {
             if [[ "$ls_epoch" -gt 0 && "$age" -gt "$GC_STALE_SEC" ]] && _transcript_stale "$key"; then
                 _gc_key "$key"; continue
             fi
+        fi
+        # 1b. NO-SILENT-DEGRADATION net: is this lane's token reading FROZEN while its
+        #     session keeps working? Deliberately ABOVE the _managed gate: w0 is the lane
+        #     this protects (once the legacy watcher stops refreshing its state, the gate
+        #     is the only writer left), and shadow mode forbids MUTATING w0, not observing
+        #     it. Alert-once per episode, cleared only by a valid measurement showing
+        #     recovery — never by an unmeasurable one.
+        lag="$(_state_lag_sec "$key")"
+        lag_alerted="$JICM_SIGNALS_DIR/state-lag.$key.alerted"
+        if [[ "$lag" == "na" ]]; then
+            :   # unmeasurable → neither alert nor clear a standing one
+        elif [[ "$lag" -gt "$STATE_LAG_SEC" ]]; then
+            if [[ ! -f "$lag_alerted" ]]; then
+                IFS='|' read -r _lag_tok _ _ < <(_sense "$key")
+                _log "ALERT ⚠️ FROZEN STATE key=$key — transcript is ${lag}s newer than the state file's ts (limit ${STATE_LAG_SEC}s). The token sampler has stopped writing, so tokens=$_lag_tok is STALE-BUT-BELIEVED and this lane is effectively UNMANAGED while still reporting managed=yes. This is not a degraded mode to accept: NEEDS A HUMAN — check .claude/logs/jicm-gate.log for key=$key."
+                echo "$now" > "$lag_alerted"
+            fi
+        else
+            rm -f "$lag_alerted" 2>/dev/null
         fi
         # 2. Only manage keys this phase owns.
         _managed "$key" || continue

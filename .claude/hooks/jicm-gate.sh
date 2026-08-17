@@ -427,6 +427,14 @@ if [[ -f "$_RL_CACHE" ]] && command -v jq >/dev/null 2>&1; then
 fi
 
 # ─── Atomic state write via helper ──────────────────────────────────────────
+# `_refreshed_by` is a PROVENANCE stamp: it names whoever wrote the file LAST. The
+# watcher sets it to "watcher_poll" via a jq mutation; this write sets "gate:<EVENT>".
+# Both writers must stamp it or the field is not provenance at all — before this, only
+# the watcher set it, so gate-vs-watcher was inferable only from WRITE ORDER, and the
+# watcher's ~30s poll always wins that race against an idle lane. That mattered: the
+# Watcher-retirement gate ("prove the file is GATE-authored") was unfalsifiable, because
+# the fields it proposed to check (session_id, tokens_source) are populated by BOTH
+# writers. The retirement observation is now simply: this field reads "gate:*" on w0.
 if [[ -x "$STATE_UPDATE" ]]; then
     cat <<JSON | JICM_HOOK_STATE_FILE="$JK_STATE" "$STATE_UPDATE" --write
 {
@@ -456,7 +464,8 @@ if [[ -x "$STATE_UPDATE" ]]; then
   "rate_7d_pct": $RATE_7D_PCT,
   "action": "$ACTION",
   "pending_action": $PENDING_ACTION,
-  "transcript_path": "$TRANSCRIPT"
+  "transcript_path": "$TRANSCRIPT",
+  "_refreshed_by": "gate:$EVENT"
 }
 JSON
 fi
