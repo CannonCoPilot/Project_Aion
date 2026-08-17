@@ -678,12 +678,49 @@ _maint_identity_changes() {   # M4
     fi
 }
 
+# SAMPLER-COVERAGE AUDIT (M5).
+#
+# The PostToolUse sampler (18821f3) exists because sampling ONLY at prompt boundaries makes a
+# tool-heavy turn invisible — jaques once went 0 → 127K in a SINGLE turn. It was registered in
+# Project_Aion's settings.json and alfred's, and never propagated to the satellite project
+# settings that genie (Projects/WVU) and jaques (Projects/SnorkelTasks) actually load. Both ran
+# prompt-only sampled for 5 days; genie's state read tokens=0 while its pane showed ~98K.
+#
+# Registration is per-PROJECT across four settings files, so "is the sampler registered for this
+# lane?" cannot be answered from any one file — and inspecting a file the lane does not load is
+# how you get a confident wrong answer. It CAN be answered from evidence the gate already writes:
+# a lane with many prompt samples and ZERO tool samples is not registered on PostToolUse.
+# Path-independent, no schema change, and it measures the behaviour rather than the config.
+#
+# A THRESHOLD, not zero: a fresh lane — or a freshly ROTATED gate log — legitimately shows 0/0.
+_audit_sampler_coverage() {
+    local logs key ups ptu marker
+    local MIN_PROMPTS="${JICM_SAMPLER_AUDIT_MIN_PROMPTS:-10}"
+    logs=""
+    [[ -f "$PROJECT_DIR/.claude/logs/jicm-gate.log" ]]   && logs="$PROJECT_DIR/.claude/logs/jicm-gate.log"
+    [[ -f "$PROJECT_DIR/.claude/logs/jicm-gate.log.1" ]] && logs="$logs $PROJECT_DIR/.claude/logs/jicm-gate.log.1"
+    [[ -n "$logs" ]] || return 0
+    for key in $(jicm_registry_keys); do
+        ups=$(grep -h "key=$key " $logs 2>/dev/null | grep -c 'ev=UserPromptSubmit')
+        ptu=$(grep -h "key=$key " $logs 2>/dev/null | grep -c 'ev=PostToolUse')
+        marker="$JICM_SIGNALS_DIR/sampler-gap.$key.alerted"
+        if [[ "$ups" -ge "$MIN_PROMPTS" && "$ptu" -eq 0 ]]; then
+            [[ -f "$marker" ]] && continue
+            _log "ALERT ⚠️ SAMPLER GAP key=$key — $ups prompt samples, ZERO PostToolUse samples. jicm-gate.sh is NOT registered on .hooks.PostToolUse in the settings.json THIS lane loads, so a tool-heavy turn is invisible between prompts and the lane can jump 100K+ in one turn unseen. Fix: add the gate to that project's PostToolUse, then RESTART the lane — registration is cached at session start (the script BODY is not)."
+            echo "$(_now)" > "$marker"
+        elif [[ "$ptu" -gt 0 ]]; then
+            rm -f "$marker" 2>/dev/null
+        fi
+    done
+}
+
 _maintenance_pass() {
     local now; now="$(_now)"
     [[ $(( now - LAST_MAINT )) -lt "$MAINT_EVERY_SEC" ]] && return 0
     LAST_MAINT="$now"
     _maint_service_health
     _maint_identity_changes
+    _audit_sampler_coverage
 }
 
 # ---------------------------------------------------------------------------
@@ -1115,6 +1152,7 @@ case "${1:-}" in
     # One health pass on demand. Exists so the alert branches are exercisable in situ — the leak
     # threshold would otherwise take days to cross, and a guard that cannot be tested is a guard
     # nobody has actually seen work. Writes the same files the MAINTAIN pass writes.
+    --audit-sampler) _audit_sampler_coverage; echo "sampler-coverage audit complete → $SUP_LOG (alerts, if any, are logged)"; exit 0 ;;
     --health)     _maint_service_health; echo "health pass complete → .memory-health-services.json"
                   [[ -f "$PROJECT_DIR/.claude/context/.memory-health-alert" ]] \
                       && { echo "ALERT:"; cat "$PROJECT_DIR/.claude/context/.memory-health-alert"; } \
