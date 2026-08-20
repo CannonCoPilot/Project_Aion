@@ -159,17 +159,40 @@ _transcript_stale() {
 # w0 measured -2190s while idle), so any numeric sentinel would collide with the value
 # domain it is supposed to sit outside of, and a lane recovering into the healthy
 # negative regime would never clear its alert marker.
+#
+# ⚠️ 2026-08-19 — DO NOT go back to `stat -f %m` here. File MTIME answers "was this file
+# touched?", NOT "did the conversation advance?", and the two genuinely diverge: a
+# transcript carries MUTABLE metadata records (ai-title, last-prompt, mode,
+# permission-mode, file-history-snapshot — all untimestamped), and updating one rewrites
+# the JSONL in place, bumping mtime without adding a single turn. Measured on protos:
+# newest record 01:25:30Z, mtime 01:44:29Z — 19 minutes of "advance" with ZERO new
+# records, which fired FROZEN STATE against a lane that was merely idle. The two-signal
+# design above is only honoured if "advanced" means a NEW RECORD.
+_transcript_newest_record_epoch() {
+    # Bounded tail: records are appended in order, so the newest timestamp lives near the
+    # end. Bounded so the cost cannot scale with transcript size (this runs every poll,
+    # for every key). No timestamp in the chunk → 0 → caller reports "na", never an alert.
+    local ts
+    ts="$(tail -c "${JICM_STATE_LAG_TAIL_BYTES:-262144}" "$1" 2>/dev/null \
+          | grep -o '"timestamp":"[0-9T:.Z-]*"' \
+          | sed 's/.*":"//; s/"$//' \
+          | sort | tail -1)"
+    [[ -z "$ts" ]] && { echo 0; return; }
+    ts="${ts%.*}"; ts="${ts%Z}"
+    date -j -u -f '%Y-%m-%dT%H:%M:%S' "$ts" +%s 2>/dev/null || echo 0
+}
+
 _state_lag_sec() {
     jicm_key_paths "$1"
-    local tp mt sts
+    local tp rt sts
     [[ -f "$JK_STATE" ]] || { echo "na"; return; }
     tp="$(jicm_registry_get "$1" '.transcript_path')"
     [[ -z "$tp" || "$tp" == "null" || ! -f "$tp" ]] && { echo "na"; return; }
-    mt=$(stat -f %m "$tp" 2>/dev/null || echo 0)
+    rt=$(_transcript_newest_record_epoch "$tp")
     sts=$(jq -r '.ts_epoch // 0' "$JK_STATE" 2>/dev/null)
     [[ "$sts" =~ ^[0-9]+$ ]] || sts=0
-    [[ "$mt" -eq 0 || "$sts" -eq 0 ]] && { echo "na"; return; }
-    echo $(( mt - sts ))
+    [[ "$rt" -eq 0 || "$sts" -eq 0 ]] && { echo "na"; return; }
+    echo $(( rt - sts ))
 }
 
 # Does the supervisor manage this key in the current phase? (w0 stays on the watcher.)
@@ -923,7 +946,7 @@ _pass() {
         elif [[ "$lag" -gt "$STATE_LAG_SEC" ]]; then
             if [[ ! -f "$lag_alerted" ]]; then
                 IFS='|' read -r _lag_tok _ _ < <(_sense "$key")
-                _log "ALERT ⚠️ FROZEN STATE key=$key — transcript is ${lag}s newer than the state file's ts (limit ${STATE_LAG_SEC}s). The token sampler has stopped writing, so tokens=$_lag_tok is STALE-BUT-BELIEVED and this lane is effectively UNMANAGED while still reporting managed=yes. This is not a degraded mode to accept: NEEDS A HUMAN — check .claude/logs/jicm-gate.log for key=$key."
+                _log "ALERT ⚠️ FROZEN STATE key=$key — the transcript's NEWEST RECORD is ${lag}s newer than the state file's ts (limit ${STATE_LAG_SEC}s), so this session took turns the sampler did not record. The token sampler has stopped writing, so tokens=$_lag_tok is STALE-BUT-BELIEVED and this lane is effectively UNMANAGED while still reporting managed=yes. This is not a degraded mode to accept: NEEDS A HUMAN — check .claude/logs/jicm-gate.log for key=$key."
                 echo "$now" > "$lag_alerted"
             fi
         else
