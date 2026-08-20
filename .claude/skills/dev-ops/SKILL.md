@@ -3,7 +3,7 @@ name: dev-ops
 model: sonnet
 version: 2.0.0
 description: |
-  Dev operations — autonomous testing of W0:Jarvis from W5:Jarvis-dev,
+  Dev operations — autonomous testing of W0:Jarvis from W11:Jarvis-dev,
   plus protected-path editing for cross-project .claude/ development.
   Triggers: "dev test", "test jarvis", "run tests", "dev-ops", "check jarvis",
   "test jicm", "test hooks", "test ipc", "send to jarvis", "capture jarvis",
@@ -16,7 +16,7 @@ created: 2026-02-11
 
 # Dev-Ops Skill — Autonomous Testing from Jarvis-dev
 
-Test W0:Jarvis autonomously from W5:Jarvis-dev. Send prompts, capture output,
+Test W0:Jarvis autonomously from W11:Jarvis-dev. Send prompts, capture output,
 monitor JICM state, and validate infrastructure — all via bash scripts called
 through the Bash tool.
 
@@ -24,7 +24,7 @@ through the Bash tool.
 
 ## Overview
 
-This skill enables Jarvis-dev (W5) to autonomously test the primary Jarvis session (W0).
+This skill enables Jarvis-dev (W11) to autonomously test the primary Jarvis session (W0).
 All scripts live in `.claude/scripts/dev/` and are designed to be called via the Bash tool.
 
 **Architecture**:
@@ -32,12 +32,12 @@ All scripts live in `.claude/scripts/dev/` and are designed to be called via the
 W0: Jarvis        — SYSTEM UNDER TEST (live Claude Code, --fresh)
 W1: Watcher       — JICM v6.1, monitors W0
 W4: Commands      — Command handler, targets W0
-W5: Jarvis-dev    — TEST DRIVER (you are here)
+W11: Jarvis-dev    — TEST DRIVER (you are here)
 ```
 
-**Isolation**: Watcher and command-handler hardcode `${TMUX_SESSION}:0` — W5 is invisible.
+**Isolation**: Watcher and command-handler hardcode `${TMUX_SESSION}:0` — W11 is invisible.
 
-**Session naming**: W5 uses a deterministic UUID (`bd0954d9-...`, v5 hash of `"project_aion_jarvis_dev"`) so every relaunch resumes the same conversation. If the session file exists, launcher uses `--resume`; if not, `--session-id` to create it. This eliminates the `--continue` race condition where W0's fresh session could become "most recent."
+**Session naming**: W11 uses a deterministic UUID (`bd0954d9-...`, v5 hash of `"project_aion_jarvis_dev"`) so every relaunch resumes the same conversation. If the session file exists, launcher uses `--resume`; if not, `--session-id` to create it. This eliminates the `--continue` race condition where W0's fresh session could become "most recent."
 
 **Prerequisites**:
 - Launched via `launch-jarvis-tmux.sh --dev`

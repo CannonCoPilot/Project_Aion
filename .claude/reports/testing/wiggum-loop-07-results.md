@@ -22,7 +22,7 @@
 ## Key Findings
 
 1. **Session pairing**: `launch-jarvis-tmux.sh --dev` creates paired session dirs 1 second apart (W0 + W5)
-2. **Isolation verified**: W5:Jarvis-dev has minimal session footprint (47B observations) while W0:Jarvis has active 25KB observations — JICM only monitors W0
+2. **Isolation verified**: W11:Jarvis-dev has minimal session footprint (47B observations) while W0:Jarvis has active 25KB observations — JICM only monitors W0
 3. **Session-state.md drift**: File still contains "Current Blocker: tmux not available" from previous session context where tmux discovery failed — this is stale and misleading for future sessions
 4. **Archive structure**: 2 archived sessions exist with `session-` prefix naming convention, separate from active sessions
 5. **Session count accumulation**: 10 session directories suggests no automatic cleanup — potential disk growth concern for long-running installations
@@ -40,7 +40,7 @@
 | 20260210-145445 | Feb 10 | active | W5 pair (high tool usage in telemetry) |
 | 20260212-120340 | Feb 12 | active | Session 10 |
 | 20260212-133854 | Feb 12 | active | Session 11 |
-| 20260212-144650 | Feb 12 | active | W5:Jarvis-dev (47B obs) |
+| 20260212-144650 | Feb 12 | active | W11:Jarvis-dev (47B obs) |
 | 20260212-144651 | Feb 12 | active | W0:Jarvis (25KB obs) — CURRENT |
 
 **Archives**: session-20260210-010548, session-20260212-120343

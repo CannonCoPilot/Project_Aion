@@ -1,7 +1,7 @@
 # Wiggum Loop 1 — Results Report
 
 **Date**: 2026-02-12
-**Executed From**: W5:Jarvis-dev (tmux window 5)
+**Executed From**: W11:Jarvis-dev (tmux window 5)
 **Target**: W0:Jarvis (tmux window 0)
 **JICM Version**: v6.1.0
 **Operator**: Jarvis-dev (autonomous)

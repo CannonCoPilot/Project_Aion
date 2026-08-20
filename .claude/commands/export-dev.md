@@ -1,6 +1,6 @@
 # /export-dev — Export Dev Session Chat
 
-Export the current W5:Jarvis-dev conversation to a timestamped file for later review.
+Export the current W11:Jarvis-dev conversation to a timestamped file for later review.
 
 Captures the full tmux scrollback buffer of the current pane and saves it as clean text.
 

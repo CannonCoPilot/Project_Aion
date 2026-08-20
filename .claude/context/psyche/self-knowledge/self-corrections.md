@@ -197,3 +197,8 @@ cheap; turning it into "never chase" made it self-sealing — no future session 
 - **Refusing to relax a criterion to manufacture a win.** The strict empty-strip test yielded one page in
   three witnesses. Loosening the threshold would have produced more "wins"; instead the criterion was
   re-derived from what a cut must actually SEPARATE.
+# 2026-08-02T23:43:30Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 1299m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-08-02T23:47:40Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 1303m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-08-13T04:29:43Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 15986m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-08-13T04:30:25Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 15986m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only
+# 2026-08-14T19:57:38Z | judgment | JICM checkpoint inferred stale task: '(session-state.md last updated 2415m ago — may be stale, prefer conversation for current task)' — matches COMPLETE items in current-plans.md | Derive current task from recent conversation only

@@ -346,7 +346,7 @@ making them ideal candidates for the Ralph Loop:
 | **Model** | sonnet |
 | **Commands** | `/dev-test` |
 
-**What it does**: Autonomous testing skill for the Jarvis infrastructure, enabling Jarvis-dev (W5)
+**What it does**: Autonomous testing skill for the Jarvis infrastructure, enabling Jarvis-dev (W11)
 to test the primary Jarvis session (W0). Includes 5 workflows: automated test suite, JICM cycle
 testing, command IPC testing, hook validation, and prompt delivery + idle detection.
 

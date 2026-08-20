@@ -1,7 +1,7 @@
 #!/bin/bash
 # capture-jarvis.sh — Capture W0:Jarvis pane output via tmux
 #
-# Used by Jarvis-dev (W5) to read what W0 is displaying.
+# Used by Jarvis-dev (W11) to read what W0 is displaying.
 # Wrapper around tmux capture-pane with filtering options.
 #
 # Usage: capture-jarvis.sh [--tail N] [--file PATH] [--grep PATTERN]

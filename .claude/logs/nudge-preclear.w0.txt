@@ -1,0 +1,43 @@
+  │ D1 recall        │ 16/24             │ 🔴 52/81                                                                           │
+  ├──────────────────┼───────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+  │ D2 precision     │ 2 FPs / 4 leaves  │ 🔴 13 FPs, whole window                                                            │
+  ├──────────────────┼───────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+  │ D4 consumer      │ 2/89              │ 🔴 3/327 (46 rule-off)                                                             │
+  ├──────────────────┼───────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
+  │ unadjudicated    │ 46                │ 0                                                                                  │
+  └──────────────────┴───────────────────┴────────────────────────────────────────────────────────────────────────────────────┘
+
+  D2 got worse, and that is the step working. The old figure was a subset that flattered the rule; no bar moved to absorb the new one. test_verification_standard.py is exit 0 over 31
+  commands and now actually executes the argument scorer (prints 52/81) plus the new build_argument_gold.py --check guard.
+
+  Three findings, in order of how much they change what comes next:
+
+  1. 🔴 R2.2e, new and it outranks step (2). Diagnosing D1's full-row misses showed the tokeniser sometimes emits one token covering a whole printed line (leaf 412 r33: 63 glyphs, 90% of
+  the row). in_block tests l < L or r > R, so a token spanning the measure necessarily fails it and is labelled MarginNote. 49 rows over the 20 leaves — 44 are ordinary scripture, typed as
+  marginalia by the shipping pipeline with the argument rule off. region_segments splits r33 correctly into side-note + argument, so two splitters disagree about one row and the coarser one
+  decides the label — the signature defect's 10th instance, first in the splitter/label handoff. The 121-token gold sits in the head band and cannot see any of it, so 0.8760 is not
+  evidence against it.
+  2. Fount is region-dependent, and no threshold can fix it. In the body italic marks the argument; inside leaf 417's ANNOTATIONS it inverts — roman is commentary, italic is quoted
+  scripture. Those 3 rows are 3 of the 13 false positives, so D2 now has a floor of 3 that contiguity cannot touch: ANNOTATIONS is a missing region, exactly as ARGUMENT was.
+  3. The scorer was addressing the gold by exact float equality, and it broke on the first run at the larger size. Leaf 417 r51 sits at 0.66504975 — round(…,4) gives 0.6650, but rounding
+  through the gold's 6 dp gives 0.6651. One row in 81, and it would have been reported as a recall miss: the rule blamed for arithmetic. The gold's own address note already said "match by
+  overlap, never by an equality" — the rule was right and the thing reading it was not. Now best-overlap (not any overlap — 39/140 row-pairs overlap >50%), with addressing failures and
+  collisions reported separately from D1; both are 0.
+
+  Two method notes worth keeping: a hand-rolled copy of the segment test returned 25 bogus candidates because it dropped in_block, so the enumerator is now the rule itself at a widened net
+  — its output equals what the rule can emit by construction. And the verification standard caught me filing a new guard inside the audits fence, where exit 1 would have been read as
+  healthy.
+
+  Next on this thread: R2.2e first (it explains 6 of D1's 29 misses and is a live scripture-typing defect), then step (2) — contiguity for the 20 sub-floor fragment rows, which cannot be a
+  lower component floor without re-admitting the marginal-italic false positives now measured.
+
+✻ Sautéed for 25m 21s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ fix R2.2e
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from refreshed context  main +932-88📖 e:low △ exc-200k                                                                                          228973 tokens
+  [▓▓▓▓▓▒··│┃············╿·····] 23% 227.5K  Δ1.5K/m  S:50m H:1h11m  cache:99% eph1h:100%  warm/write/new                                                                             Debug
+  $13.59  ⏱41m api:51%  5h:24%↺3h10m  7d:18%↺3d6h
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

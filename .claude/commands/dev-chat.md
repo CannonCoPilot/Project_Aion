@@ -1,6 +1,6 @@
 # /dev-chat — Browse Saved Dev Session Exports
 
-Browse and read previously exported W5:Jarvis-dev conversation transcripts.
+Browse and read previously exported W11:Jarvis-dev conversation transcripts.
 
 ## Instructions for Claude
 

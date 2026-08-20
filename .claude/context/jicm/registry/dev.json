@@ -1,9 +1,9 @@
 {
   "key": "dev",
-  "last_seen": "2026-08-12T17:12:18Z",
+  "last_seen": "2026-08-20T01:41:16Z",
   "registered_at": "2026-07-25T18:30:01Z",
-  "session_id": "fbd7528a-c1bd-414a-bdaa-c3cc23f53215",
-  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/fbd7528a-c1bd-414a-bdaa-c3cc23f53215.jsonl",
+  "session_id": "8d3cb1a6-5d6e-4f07-883c-d58f16bcc12f",
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/8d3cb1a6-5d6e-4f07-883c-d58f16bcc12f.jsonl",
   "tmux_target": "aion:11",
   "actuation_mode": "pane",
   "class": "interactive",

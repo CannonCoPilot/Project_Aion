@@ -5,986 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-07-02 [69385f923350]
-
-Committing the audit report *alongside* the code that resolves it turns a throwaway artifact into a durable baseline: `audit-findings.json` is the verdict-merged source of truth, and `index.html` regenerates from it — so the report stays reproducible rather than becoming a stale binary snapshot. The deferred items living in the build journal (not a gitignored scratch checklist) means the next phase starts from a committed, discoverable backlog.
-
-### 2026-07-02 [090803da3407]
-
-This is a textbook "honesty over silence" fix — the exact principle the 6-way audit was organized around. The old `except OSError: spacy.load("en_core_web_sm")` swaps the *linguistic model* out from under the analysis with zero signal: `en_core_web_sm` has a smaller vocabulary and no word vectors, so entity/syntax/coreference results silently degrade while the run still reports success. The new pattern makes the substitution *auditable* (a `RuntimeWarning` naming the missing model) and refuses the one nonsensical case — falling back to the fallback — where a retry can only re-raise the same `OSError`.
-
-### 2026-07-02 [8f8e7d57c243]
-
-The hard part was that Geneva encodes structure *implicitly*: no "Chapter N" headings (chapters are inferred from verse-number resets), NBSP-delimited verse tokens, and irregular book titles (a stray "1" artifact, Pentateuch "FIRST BOOK OF MOSES" that must NOT number Genesis, and Song of Solomon split across three title lines). The detector recovers all of it from the text alone — like calling features on a divergent assembly whose annotation dialect differs from the reference.
-
-### 2026-07-02 [43d8bba9333c]
-
-KJV has proper `<h1>Matthew</h1>` book headings and `<h2>Matthew 1</h2>` chapter headings — so book/chapter layout detection already works. The problem is purely the verses: the entire chapter is ONE `<p>` with inline `<span class="verses">N</span>` markers, and the current `PROFILE_KJV` *decomposes* those spans — deleting the verse numbers entirely (hence "KJV verse numbers stripped"). To reach DR parity I must instead **preserve** each verse number and split the chapter paragraph so each verse becomes its own paragraph — exactly what the fixture's `_patch_epub` does at build time.
-
-### 2026-07-02 [c07b45bbeb92]
-
-The #17 scope collapsed under investigation: the scratchpad framed it as "backend + frontend, Geneva+KJV need covers," but empirically KJV already had `cover.jpg`, the frontend `BookCover` already did image-or-gradient-card, and only Geneva's *undeclared title-page image* was unhandled. The real fix was ~40 lines of backend fallback — a good reminder to verify the actual state before building to a stale plan.
-
-### 2026-07-02 [a8ff939f189f]
-
-This is a classic **partial-cascade** bug: the denormalized `roles` map is a second index into the same membership set (`roles`'s keys ⊆ `project_ids`), so any mutation of members must be mirrored in *both* or they drift. The original fix ("fix E") only knew about `project_ids` because `roles` was added later by the collections-tier work — a textbook example of how adding a parallel data structure retroactively creates cascade gaps in code written before it existed.
-
-### 2026-07-02 [846802429190]
-
-This is the ideal outcome for a perf change: the *output* (the masking) is byte-for-byte what the proven `detect_layout_sections`+`_write_verses_track` path always produced, so Gold Set parity is structurally guaranteed — I didn't touch a single detector. The minutes→9s win is entirely from *not doing work that didn't belong in import*. That's the cleanest kind of optimization: removing misplaced work beats micro-tuning hot loops.
-
-### 2026-07-02 [42824d53b868]
-
-The fix has two independent axes: **typing** (unify the masked chapter-start region to `chapter_heading` across all three emitters, matching gold's canonical type + closing the A3 retype gap) and **recall** (DR genuinely misses 44/1363 chapters — a boundary/detection bug, not a naming one). I must not conflate them. Let me pin down the 44 missing DR chapters empirically before touching code.
-
-### 2026-07-02 [63e452a13414]
-
-This closes the loop across all three representations of the same truth: the *detector* (probe), the *scorer* (A3 gold), and the *persisted artifact* (layout_sections.json on disk) all report identical genre structure. That triple-agreement is what "Gold Set standard" means operationally — the thing you visualize, the thing you grade against, and the thing you store can't silently diverge.
-
-### 2026-07-02 [092c4da10025]
-
-`normalize()` collapses `[ \t]+` → a single space (normalizer.py:64), so the scraped `1⇥In the beginning` becomes `1 In the beginning` — **the tab discriminator is destroyed**. That's decisive for the dialect design: post-normalize, a canonical verse looks *identical* to a KJV verse, so I can't distinguish them by verse shape. But `#`/`##` markers are non-whitespace and **survive normalization** — making them the right self-gating signal. And `_versed_bible_layout` needs `\n\n` paragraph boundaries, so the stored canonical format must be double-newline-separated blocks.
-
-### 2026-07-03 [9e9b7dafea6e]
-
-This isn't a marker-only patch — it fills a genuine gap in the shared `_versed_bible_layout`: the verse-derived engine emits `chapter_heading` masks but never masked the book-*name* line, leaving it as a stray analyzable token in Geneva/KJV too. Using the existing `header` type (rather than inventing a new section type) keeps the change minimal and the layout-test counts stable (they assert `book`/`chapter`/`chapter_heading`, not `header`). I'll verify empirically via the full suite rather than assume.
-
-### 2026-07-03 [a162ef616fb0]
-
-The clean resolution: the "book marker line" Sir means is the canonical/marker format's `# Book` line — and *every* scraped version (both Genevas, Wycliffe, Tyndale, DR-modern) imports through the **marker dialect**, forming a coherent family. So I'll gate book-name masking to the marker dialect via a flag, leaving the legacy epub Geneva/KJV/DR imports (and their gold + parity) untouched. Same `header` type ("similar to epub book-name"), scoped to where the marker line actually exists.
-
-### 2026-07-03 [2d0193161df7]
-
-This is the danger of acting on the assumption "the scrape is dead" without checking `ps` first. The empty log misled me twice: once into thinking Coverdale was un-scraped, and once into thinking the process was gone. The original scraper was alive the whole time — my "resume" launch created a racing duplicate. Lesson reinforced: verify process *liveness* (`ps`), not just its output artifacts, before restarting anything.
-
-### 2026-07-03 [b09d5fc72f87]
-
-This is a cache-poisoning bug in the scraper's `fetch()`: it caches response bodies without validating they're real content. A 429 (or any error page returned with a 200-style body) gets written to cache and is indistinguishable from a hit on the next run — so the error becomes "sticky." The self-inflicted duplicate-scraper race is what triggered the 429s in the first place. The fix is to purge the poisoned entries and re-fetch; the deeper lesson is that my earlier process race had a downstream data-integrity consequence, not just wasted requests.
-
-### 2026-07-03 [fa770ab17d19]
-
-This landing doubles as an integration test of this session's own commit: the `header=66` sections are the "# Book" marker masks, and they appear on two editions the code had never seen. That's stronger evidence than the unit tests alone — the feature works on unseen real-world input, not just fixtures.
-
-### 2026-07-03 [0ca905a5b211]
-
-This is why "measure twice" matters for source-of-truth changes: the directive's premise ("pull the LDS KJV from the epub") doesn't survive contact with the artifacts. The file is mislabeled "KJV" but is the Book of Mormon, and it's a strict *subset* of what the gold currently masks. Re-keying `reference_sha256` to it would silently drop ~150 chapters of D&C+PoGP masking. That's a data-losing, hard-to-notice regression — exactly the class of change to surface rather than execute autonomously.
-
-### 2026-07-03 [2720723b15a2]
-
-- The mistake I nearly made: pattern-matching a prior root cause to a new incident without re-verifying the causal chain. The 2026-06-23 write-up documented a *possible* mechanism, not a permanent one.
-- The correct move on "we've seen this before" isn't "apply the prior fix" — it's "check whether the prior conditions are actually present." Two of the three prior conditions (Styx dispatching, session-attributable storm) are absent.
-- session_id logging regression in the proxy is a real gap I surfaced accidentally: `x-aion-session-id` is set by Protos but not persisted to `api_requests.session_id`. Worth a fix so future 5xx incidents ARE attributable.
-
-### 2026-07-03 [262fa28ac405]
-
-- The state signals differ by mode: `Reticulating splines…` = actively generating; subagents listed at the bottom = delegated work in flight; a bare "N shells" footer with no activity marker = paused mid-turn waiting on input.
-- The 4-hour bound needs 8 polls at 30-min cadence. I'll use `ScheduleWakeup` to sequence them so I don't drift or forget a tick.
-
-### 2026-07-03 [66199dfe0e1c]
-
-The research collapsed the scope dramatically. I'd feared mining chapter-by-chapter summaries out of two-column OCR — but that apparatus simply doesn't exist in this edition, and the prologues that *do* exist are single-column with fixed, OCR-robust rubric formulae. So the reconstruction reduces to: TRB verse backbone (unchanged) + prologue blocks located by ~4 stable regex anchors. That's a merge keyed on reliable landmarks, not a fuzzy OCR-reassembly problem.
-
-### 2026-07-03 [048396439c6c]
-
-- The silent-fail mode of ScheduleWakeup is what worries me: if it drops, Sir gets *no signal* that the watch stopped. The next check just... doesn't happen. Contrast with cron: I can `crontab -l` at any time and see the entry, and cron logs show fires/failures.
-- The right hybrid for a 4-hour bounded watch: keep ScheduleWakeup as the primary (fast, cache-warm, cheap) and add a *sparse* CronCreate backup (hourly, wide) so we get coverage if the primary silently drops. Two independent failure modes have to align to lose coverage.
-
-### 2026-07-03 [3250bcbb4b61]
-
-- The self-jitter guidance in the CronCreate docs (avoid `:00` / `:30` minute marks) is a real anti-thundering-herd measure — every LLM defaults to the round minute, and Anthropic's edge sees the collision. Using `:17` costs nothing and helps everyone.
-- "REPL idle" firing means the primary (ScheduleWakeup) will always beat the backup if both fire in the same window — desirable, since we want cheap-and-cache-warm to run and expensive-and-cold to only run when needed.
-
-### 2026-07-03 [485e539140c9]
-
-- The `durable` param in CronCreate documented in the schema isn't wired through in this harness build. Silent no-op. Worth remembering — if I want true cross-session persistence in this environment, CronCreate is not the tool.
-- Real independence for a shell-script watcher is OS-level `crontab` — no Claude Code required at all. The `watch-0-jarvis.sh` I already wrote is self-contained (bash + tmux, no Claude), so it can run from OS cron directly. That's stronger than either ScheduleWakeup or CronCreate.
-
-### 2026-07-03 [4d30ddf31acb]
-
-- Independence is a property of the failure modes that have to overlap for the whole thing to fail — not a property of any single component's uptime. Layers 1 and 2 both die with the session, so they're one failure mode. Layer 3 dies only with the Mac. Two independent failure modes = watch survives unless both hit.
-- The "session-only" behavior of CronCreate's `durable` flag in this harness build is worth saving as a reference memory — it's a live gotcha I just verified, and I'd have re-learned it later otherwise.
-
-### 2026-07-03 [75558307c883]
-
-That ending is the strongest possible validation the bounding is right — it's not just "stopped at a plausible marker," it's the actual final sentence of the General Prologue's 15th chapter (the famous passage on translation method). The 15-CAP count and absence of "In the bigynnyng" confirm the slice is the prologue treatise itself, not swept-in scripture. This is the kind of ground-truth landmark that turns "looks plausible" into "verified."
-
-### 2026-07-03 [6fde7afd6911]
-
-This is where "faithful reconstruction" forks sharply. The clean TRB body is a *modernized 66-book selection*; the archaic original followed the Vulgate and carried the deuterocanon. Grafting apparatus onto the 66-book body yields a coherent artifact quickly — but silently drops books the original had. Reconstructing the full Apocrypha means extracting verse *bodies* from the EV/LV parallel-column OCR (far harder than the apparatus). The effort delta between the two branches is large enough that guessing wrong wastes real work — so this is worth one confirmation rather than an autonomous coin-flip, especially given your emphasis on faithfulness.
-
-### 2026-07-03 [a2a6a1bc33c5]
-
-- The pane is at an *interactive selection menu* (numbered options, `Enter to select · ↑/↓ to navigate`), not a plain text prompt. Option 4 is explicitly labeled `Type something.` — so typing free text via `send-keys -l` should route to that path and be treated as a free-text response. The menu UI in Claude Code does accept typed characters to dismiss selection mode and enter text.
-- Sir's blanket-continue policy covers this substantively, but the *class* of pause matters: silent stops are safe to auto-continue; substantive artifact-scope forks are ambiguous. I'll comply with policy and surface it for override.
-
-### 2026-07-03 [1977cb89f229]
-
-- Interactive menu pauses are a different beast from silent pauses. A safer sending pattern for future menus would be: send Escape first (to dismiss selection mode) OR explicitly send the digit `4` + Enter to route to "Type something" before typing the free-text prompt. Worth remembering.
-- The generic continue-prompt is a good default for silent stops but is *sharper than intended* on menu prompts — it can accidentally commit a highlighted option.
-
-### 2026-07-03 [683f18f1ceb7]
-
-- The refined menu-handling pattern worked exactly as designed (my `4` cleanly routed past the menu, no accidental option-commit). The unexpected part was Sir being physically present and typing right into the newly-opened input.
-- New edge case for the protocol: **input line has text but no `Reticulating splines`** = Sir is composing. LEAVE IT ALONE. Any send-keys would either append garbage to his text or submit prematurely. This is qualitatively different from all other pause states.
-- Sir being at the keyboard also implies he *saw* my flag from poll 2 (option-1 auto-commit) and *chose* not to override — the continuation instruction `proceed with the merge once Tobit checks out` accepts option 1 execution.
-
-### 2026-07-03 [86cdfa4a1858]
-
-This is the fundamental tension of mining a *critical edition* for a reading text: F&M is authoritative precisely because it's dense with variant-reading apparatus — and that same apparatus is what contaminates the OCR body. The clean apparatus (prologues) extracted beautifully because rubrics are short and formulaic; the verse bodies are interleaved with sigla the OCR can't separate. Cleaner digital Wycliffe texts almost always *modernize* the spelling — which would defeat the "archaic original" goal. So there's a genuine three-way tradeoff between faithfulness-of-spelling, cleanliness, and completeness that only you can weigh.
-
-### 2026-07-03 [202b7fb2e082]
-
-- The "activity marker" isn't just `Reticulating splines…` — Claude Code uses task-specific verbs like `Ingesting and verifying reconstruction…`, `Brewed for Xm`, `Churned for Xm`, `Reticulating`. The generic classifier should look for the pattern `● <verbing…> (Xm Ys` rather than literal-matching `Reticulating`. Worth porting to the shell script if this watch is extended.
-- Sir /cleared context between polls — a healthy sign, not an escape hatch. He's actively driving the session, so my auto-continues are backstop, not primary control.
-
-### 2026-07-03 [0aa9ca4d874f]
-
-Wessex's `_apply_gold_map` returns **verse_count=0** (masked_chars=965 vs ~98K for full bibles) — only structural markers masked, no verse bodies. `sha_verified=True` only confirms the map applies to the ingested text; it doesn't require verses. The root cause: I lowered the *generator's* `MIN_BOOKS` to 4, but the **runtime verse detector** (`verses.py _marker_verses`) has its *own* ≥8-book self-gate, so the ingest produced 0 verses for the 4-book Wessex. Lowering one floor without the other yields a structurally-valid gold that masks nothing at runtime — which fails the "comprehensive masking" bar. Wessex isn't truly Gold until the product-side gate also admits Gospel harmonies.
-
-### 2026-07-03 [20db351f0fb3]
-
-- The `send-keys -l text` + separate `send-keys Enter` is not atomic — between the two keystrokes, 0:Jarvis may enter a state that swallows Enter (e.g. a hooked notification popup, an autocomplete overlay). The text lands but Enter doesn't submit. My shell-script backup has this failure mode; the primary poll didn't hit it because I only sent when state was `paused` (which is precisely when the input is quiet and Enter is safe).
-- The right long-term fix isn't to add retries — it's to verify submission by re-capturing the pane after send-keys and checking for `● <verbing…>` presence. If not present within ~2s, escape the input and retry once. But this is out of scope for the current watch.
-- 0:Jarvis's "background wait active; I'll process it automatically" is a *durable promise* — same class of signal as "subagents in flight." The watch protocol should treat both as legitimate non-paused states.
-
-### 2026-07-03 [4bdfc43826f2]
-
-The cleanest, lowest-risk realization reuses everything already proven: teach the parser to recognize the `<a class="verse" id="v{Book}.{Ch}.{Verse}"/>` anchor scheme and emit the **canonical marker format** (`# Book` / `## Book N` / `N⇥verse`) into the assembled text — turning the anchor-rich epub into "just another marker Bible." Then the existing `_marker_verses` dialect, `_marker_layout_sections`, and `gen_marker_gold` handle it identically, with zero new masking machinery. The key discipline: make it **self-gating** (only fires when `class="verse"` anchors with parseable `v…` ids are present) so every other epub — DR, Geneva-1599, KJV, whose golds are precious and working — is completely unaffected.
-
-### 2026-07-03 [aed07ce4b989]
-
-Weighing approaches: modifying the shared `_assemble_text` to read `id="vBook.Ch.Verse"` anchors would touch the code path behind *every* epub import — including the DR/Geneva/KJV golds that are already verified and precious — for two *different* bespoke formats (Tyndale's clean ids vs. Geneva-1560's opaque `ac{N}-{M}`), with fiddly empty-anchor/CSS-number handling. High blast radius, high effort. A **standalone extractor** that reads the epub's authoritative `vBook.Ch.Verse` anchors and emits the *canonical marker format* delivers the identical Gold-Set deliverable, faithfully from the epub, through the already-proven marker→gold pipeline — with zero risk to the shared parser. Sir accepted exactly this "epub → reconstructed .txt source of record" pattern for Wycliffe.
-
-### 2026-07-03 [bff582c8bb1c]
-
-This is a case where trusting the checkpoint note over the source would have sent me down the wrong path (building an opaque-anchor mapping table that doesn't exist). My [Empirical Before Claim] discipline pays off: the anchors are self-describing. The real challenge here isn't decoding — it's **excluding navigation cruft** (book index, chapter index, verse index, nav arrows) that's interleaved with scripture in the same files, and handling Geneva's famous **marginal notes**. The extraction key: positively capture text only while "inside" a verse (after a verse-pattern anchor, reset to None at each `<h2>/<h3>` heading), rather than trying to strip cruft.
-
-### 2026-07-03 [33da85289f85]
-
-This is the qualitative step up from the other 17 Bible golds: masked_chars jumped to 187,818 (vs ~98K for a plain 66-book Bible) because the gold now masks *scripture + the edition's own apparatus*. The `@`-block mechanism (built for Wycliffe's prologues) proved directly reusable — the apparatus interior is opaque to the verse grammar, so the 65KB preface can't be miscounted as scripture, while the 80-book body (66 + 14 Apocrypha) tiles normally around it. Comprehensiveness here means the gold reconstructs the 1611 artifact as printed, front matter and all.
-
-### 2026-07-03 [4d55fa65d390]
-
-- The full sequence of poll 5's "deferred" items — Tyndale (217), Geneva-1560 (218) — has been retired within one wake-cycle. That's the difference between "queued to avoid degrading quality" (my read at poll 5) and actual capacity: 0:Jarvis had budget for the careful epub-parser work once KJV1769 unblocked him. Sir's continue-through was correct even for "deferred" items.
-- Pane also went through another /clear (context 281k → 195k) → 0:Jarvis is drivig his own context hygiene, not relying on the JICM watcher exclusively. Healthy signal.
-- Shell-script gap is now paradoxically *helping*: it re-submits stuck continue-prompts that the primary poll refuses to touch. The two layers have accidentally landed on complementary risk profiles — primary is conservative, backup is aggressive, and empirically the aggressive one worked here. Not a design I'd endorse, but the outcome is favorable.
-
-### 2026-07-03 [cd17e0982b72]
-
-- The insight 0:Jarvis captured in the transcript ("source-of-truth discipline: derive structure from the authoritative signal... never from convenient-but-lossy surfaces") is the same lesson I'm re-learning in the watch protocol — my "trust prior investigation, prompt through everything" started as the convenient surface, and each poll iteration has pushed me back toward the authoritative signal (actual pane state, actual input contents, actual verb marker).
-- Sir composing a UI-verification instruction *right after* 0:Jarvis declared program-complete is the right handoff: gold-map correctness is verified at the data layer (`sha_verified True`), but rendering correctness needs the running app. The two verifications are independent and both required. Same principle as unit-tests-pass vs feature-works.
-- Watch is winding down: poll 8 is the terminal poll (cleanup fires there). The watch protocol has held together, but the shell-script/primary asymmetry never got closed. Worth noting for a v2 spec but not fixing tonight.
-
-### 2026-07-03 [82b12e3f6a0b]
-
-The through-line of this whole program is **source-of-truth discipline**: derive structure from the authoritative signal (anchor `id`, spine order, printed apparatus), never from convenient-but-lossy surfaces (CSS-rendered numbers, ToC labels, AI summaries). Two moments proved its value this session — the Geneva "opaque `ac{N}-{M}`" note that was actually just Acts chapter refs, and WebFetch's summarization that would have silently corrupted the apparatus. Each verified `sha_verified True` is the reward for not trusting the shortcut.
-
-### 2026-07-03 [9345742ee524]
-
-The checkpoint's open question — "extend `order.json`, or a different mechanism?" — resolved to **different mechanism**, because there are two distinct gold families that the compressed context had conflated:
-- **Annotation golds** (`work-N.json`) are anchor-based and consumed by `gold_verify`/`gold_ratify`/`a3_score` — all of which need the machine-local eval harness + `order.json` + the copyrighted, uncommitted ingested text. These are inherently *hand-run* tools, not CI.
-- **Gold-Set maps** (`maps/work-N.map.json`, including 201–219) are self-contained char-span contracts. They traverse *neither* `order.json` *nor* the harness — so extending `order.json` was never the path.
-
-The map stores `text_len`, `sections`, and `type_counts`, so `gen_marker_gold.py`'s three build-time gates (zero unresolved elements, 100% two-layer coverage, raw-marker count parity) are all re-derivable from the frozen JSON. The only thing CI *can't* check is `reference_sha256` ↔ live text — and that's exactly `_apply_gold_map`'s check, verified once on-machine at generation.
-
-### 2026-07-03 [07474e39e0c6]
-
-The plan's literal pattern was `papers/**` (ignore *everything* under papers/), but that would also untrack our own derived metadata — the README, the download-provenance JSONs, dataset CSVs. Sir's actual intent is "don't distribute copyrighted *papers*" while keeping derivatives (his stated policy: masks/annotations/derivatives are committable). So the faithful move is to ignore the copyrighted *binary formats* precisely — `research/**/*.pdf` and `research/**/*.epub` — which also covers the lone PDF in `datasets/`, and preserves everything we authored.
-
-### 2026-07-03 [32bcf675a170]
-
-Two decisions shaped the architecture: (1) lifting the canon-oracle logic into a production `palimpsest/gold.py` that the CLI *and* the test import means `gold verify` asserts exactly what CI does — no drift between the tool and the gate. (2) Phase 7 found the old `research/papers/**/*.pdf` ignore was anchored to the repo root and never matched the actual `docs/development/research/` tree — the copyrighted corpus had silently been shipping in every push.
-
-### 2026-07-03 [ba387545f800]
-
-The non-Bible works split cleanly on the standard's three criteria. **Criterion 1 (map quality)**: all 17 pass the hermetic gates, and all carry detection-gold ground truth. **Criterion 2 (≥2-per-kind parity)**: novels (4), poetry (3), Qur'an (2), DSS (2) qualify; but **Ante-Nicene Fathers (18, lone patristics)** and **LDS (101, lone)** are single-of-kind → candidates, not standards. **Criterion 3 (operational readiness)**: *none* are in the bibles-only registry, so none is applic­able by id via CLI/API/UI — under the standard as written, every non-Bible currently fails criterion 3. That's not a defect in the maps; it's the deferred-scope boundary the standard's §7 predicted, now quantified.
-
-### 2026-07-03 [69bcffff6324]
-
-- **Dropping the "Jump to" step was the key robustness win**: `zoomAroundCenter` keeps the viewport on the document midpoint, so every Bible lands mid-*scripture* — past front matter — with no focused input to pop a tooltip over the capture.
-- **The masking never was broken** — my `style*="3a3a3d"` probe was; React serializes that hex to `rgb(58, 58, 61)`, so a computed-style match was needed to turn the false-zero into real counts (6–12 tokens).
-
-### 2026-07-03 [89a69b4a167a]
-
-- **4b is a data/standards audit, not a live-UI one.** The live `:8080` workspace holds only the 17 Bibles; the non-Bible registry is bibles-only, so those works aren't applicable through the UI gold paths. So 4b checks each map against §1 (complete/accurate/precise) *and* the §3 "≥2 works per kind" rule + §7 operational-readiness gap — that's the right shape, distinct from 4a's browser audits.
-- **Two Bible golds (6 Geneva-1599, 108 OriginalDR) aren't in the live workspace**, so the 4a fleet can't live-audit them — they're data-verified only. I'll flag them for ingest to reach full parity.
-
-### 2026-07-03 [5c7e165f073f]
-
-- Note the **layer-vs-type subtlety** (line 156–158): the SPECIFIC layer is the *union* of every non-generic type merged together — not any single type soloing. This is why G1's `findings.json` calling "chapter layer has 3040 gaps" a **blocker** may be a misread of the standard: `chapter` alone needn't tile; the merged specific layer (chapter+section+header+…) must. I'll reconcile that when G1 reports, but it's a live flag that the epub findings may overstate.
-- The suite deliberately can't check `reference_sha256` vs. live text hermetically (§5) — precision-against-source is machine-local by design, needing the gitignored `imports/` corpus. So the non-Bible precision check is best-effort where reference text exists.
-
-### 2026-07-03 [4199f6f514e7]
-
-- The G3 agent flagged the *precision-reference* Bible (KJV1769) as its only defect — and it was a false alarm from its own test harness fetching text over an API that returned empty strings. This is the exact "weak-signal false positive" the rubric warned about, mirroring G1's chapter-gap false positive. Two of five groups produced a spurious FLAG from test methodology, zero from actual masking. That's a signal about the *harness*, not the maps.
-- Verifying `reference_sha256` directly is the cleanest precision gate: if the hash of `reference.txt` equals the map's recorded hash, the offsets are provably cut against that exact text — so the char-slices are authoritative, not approximate.
-
-### 2026-07-04 [44e8a431a0bd]
-
-The reframe turns a *copy* into a *reconstruction with provenance*. Every span now needs a second axis beyond structure — which of N sources attests it and how well they agree — and the archaic version's honesty depends on it, because 17 books rest on OCR that can't be trusted blindly. That's the difference between "faithful to one file" and "as faithful as the surviving 1600s printings allow, and it says how sure."
-
-### 2026-07-04 [4dca3e7f368a]
-
-The scholarly point of a *third* witness: Madueke and Sabates share a transcription lineage (Sabates derives from Madueke), so they can agree while both inheriting the same transcription error. An independent OCR of the *original published scans* breaks that shared-ancestor bias — it's a genuinely separate observation of the source, which is why Sir wants my *own* tesseract pass rather than reusing archive.org's djvu OCR.
-
-### 2026-07-04 [68f6b8246e67]
-
-Bug per lessons learned: the script hardcodes `Reticulating splines` as the active-marker, but the classifier reference explicitly warned "Don't hardcode `Reticulating splines` — Claude Code uses task-specific verbs." Right now 0:Jarvis shows `● Running 3-way OCR validation…` — a task-specific active verb the current script would mis-classify as **paused**, sending an unwanted continue-prompt on next fire. Fixing before install.
-
-### 2026-07-04 [d940f934af3d]
-
-This reframes the residual test into its strongest form. After scripture/OCR-noise/argument/annotation classification, a token that *still* doesn't appear **anywhere** in Madueke's complete edition transcription is the only thing that could be a genuine discrepancy — a word the original printed that the Madueke lineage dropped entirely. Everything else is accounted for. And the empty `psalms/109.json` is itself a real, reportable finding: a Sabates apparatus-coverage gap, distinct from any scripture-fidelity question.
-
-### 2026-07-04 [197e7a68beb5]
-
-**Poll coverage over the next 4 hours** — three layers give 16 poll events on a 4-hour window (target was 8):
-- **L1 primary** (ScheduleWakeup, every 30 min): 01:03, 01:33, 02:03, 02:33, 03:03, 03:33, 04:03, 04:33
-- **L2 in-session** (CronCreate `43 * * * *`, hourly): 00:43, 01:43, 02:43, 03:43
-- **L3 independent** (OS crontab `13 * * * *`, hourly): 01:13, 02:13, 03:13, 04:13
-
-**Failure-mode independence** (per `reference_tmux_watch_layer_pattern.md`): L1+L2 both die if this session dies (one failure mode). L3 dies only with the host. Two independent modes must both hit before coverage is lost.
-
-**Improvement over prior watch**: the classifier bug in the L3 shell script — hardcoded `Reticulating splines` — is now fixed to match any `● <verb>…` line. This was called out in the lessons-learned reference doc but hadn't been backported to the script itself. Applied here.
-
-### 2026-07-04 [acd7598383f7]
-
-This is the exact design case for the watch: task 1 (3-way OCR validation) completed and 0:Jarvis paused with an approval question ("Want me to proceed into task 2, or hold here?") — bare `❯` on the input line, `✻ Crunched for 26m 32s` past-tense marker, no `● verb…` active-marker. The classifier correctly caught it as `paused`, the shell script injected the continue-prompt, and the re-capture shows 0:Jarvis now on `● Reticulating splines… (0s)` — resumed into task 2 (apparatus ordering from archive.org scans). Total pause-to-resume latency: ~30 min (worst case at 30-min poll cadence).
-
-### 2026-07-04 [e74cb0434a53]
-
-L2 CronCreate `43 * * * *` fired only ~90 seconds after L1 (:03 wakeup). Expected artifact of hourly cadence landing near L1's :03/:33 grid — both hit the pane, but the shell script is idempotent so cost is a duplicate log line, nothing more. This is the redundancy showing its work: two independent triggers both confirmed `active`, so we know both layers are alive.
-
-### 2026-07-04 [fa32415c987e]
-
-0:Jarvis is deep into progress — the pane text says *"Reproduction is VERIFIED (the on-disk .txt hashes to the map's reference_sha256)... Task 4 is functionally complete"* and now marking tasks 3+4 done. So between L2 poll (07:04:35Z) and now (07:34:06Z), roughly 30 minutes of unsupervised work, 0:Jarvis burned through the remaining apparatus-order + gen_dr rebuild + report rebuild tasks. The 15m 29s Reticulating timer suggests one substantive tool cycle in flight (the scratchpad update).
-
-### 2026-07-04 [429c693b1846]
-
-The report now tells an honest, layered story straight from the map's own metadata: Madueke supplies **55.3%** of the text as HIGH-confidence three-witness scripture; Sabates supplies **40.8%** as MODERATE single-witness apparatus + the Madueke-omitted appendix. The confidence split isn't asserted — it's *computed* per element, so it can't drift from what the map actually contains.
-
-### 2026-07-04 [73e0223cbea4]
-
-The design constraint drove the architecture: the report's raw analysis inputs are **gitignored scratch**, so reading them directly would silently break reproduction elsewhere. I added a committed `gen_collation_summary.py` → `collation-summary.json` bridge — the report stays self-contained and every discrepancy figure is computed, never hand-entered. The provenance figures needed no bridge at all: they read straight from the map's metadata, so they *cannot* drift from what the gold actually contains.
-
-### 2026-07-04 [4ce5c3a2568c]
-
-- **A — OriginalDR three-witness rebuild (my task):** `gold.py` (Catholic oracle), `canon_chapters.json` (`catholic_dr`), `test_gold_canon.py` (catholic tests only — no Acts tests), `gen_dr_original.py`, `gen_sources_manifest.py`, `sources.manifest.json`, `work-108.map.json`, + the 4 new report files.
-- **B — Acts standalone `genre_division` fix (a different in-flight thread):** `canon.py`, `gen_marker_gold.py`, and the 14 regenerated `work-2xx` maps.
-
-They share no files and neither depends on the other, so each commits as a self-consistent green unit.
-
-### 2026-07-04 [1a846339b5bd]
-
-Second real pause caught. Between L1 poll (07:34) and now (08:04) — exactly 30 min — 0:Jarvis finished the modern-DR rebuild task-cluster and paused (likely at a decision fork for the next phase, but scrollback rotated before I could see the pause reason). L2 hourly cron at :43 slipped past by 21 min (natural cron scheduler jitter), so this was really the T+1:32 poll delivered by L2 not L1. Redundancy paying off: L1 would have fired at 02:05 but L2 caught it first.
-
-### 2026-07-04 [c71bf0053aed]
-
-The prior L2 poll's pause was a **commit-checkpoint HOLD** — 0:Jarvis had finished task 4 (the 108-work reconstruction report) and paused per its own guardrail asking Sir to choose commit scope (a) just report dir, (b) bundle generator+map+manifest, or (c) hold entirely. The continue-prompt with full-autonomy authorization landed at 08:04:35Z; xhigh-effort thinking is now deciding scope autonomously (per `feedback_decide_dont_ask_in_sprints.md` — "after a full-autonomy grant, DECIDE forks and proceed"). ~30s from send to Reticulating, exactly the design.
-
-### 2026-07-04 [366cabd1cbc3]
-
-Third real pause caught (T+2:04 → 08:36Z). Between polls: 0:Jarvis apparently committed & pushed the OriginalDR modern rebuild (git state now `+58307-8217` and `∆ exc-200k`), then paused reasoning that "remaining work items are genuinely new initiatives that warrant your steer, not autonomous guessing." The list they named (gold_reaudit specs, 4b non-Bible parity) is actually Palimpsest audit-thread work — orthogonal to Sir's stated OriginalDR archaic-reconstruction mission still in scope. But my role is narrow: keep 0:Jarvis working. The generic full-autonomy continue-prompt landed and he's `● Reticulating splines… (0s)` again. Which of the two initiatives he picks is his decision, not the watcher's.
-
-Also visible in the pane: context is at 28% (~279k tokens) — hasn't hit auto-compact yet but climbing. If it triggers mid-cycle, the L3 shell script handles the post-compact "Resume from compressed context" pause identically to any other pause.
-
-### 2026-07-04 [7997d6aa83c3]
-
-This is why "one oracle per kind" is the right design rather than a universal one: scripture structures differ fundamentally. The Bible is `book → chapter` (needs positional book-identity alignment); the Qur'an is a flat `sura` list (needs only a count against a fixed canon). Forcing the Qur'an through the book-based `books_chapters` silently yields zero — a universal oracle would have masked the Qur'an entirely.
-
-### 2026-07-04 [c44d298c61e0]
-
-This mirrors the codebase's core oracle philosophy: **judge the map against a fact it never had a hand in.** `test_gold_maps.py` only proves a map is *internally* consistent (spans tile, counts reconcile) — it can't catch a scrape that silently dropped a sura, because the generator only checks the map against its own re-parsed markers. The 114-count is external ground truth (the sura count is canonically fixed), so it closes that blind spot for the Qur'an exactly as `catholic_dr` does for the Vulgate — the difference being *count* vs *positional-alignment*, dictated purely by whether the scripture nests books.
-
-### 2026-07-04 [d3198f06473f]
-
-Fourth pause caught, this time post-auto-compact — banner reads "Resume work from **refreshed** context" (not "compressed"), context dropped from 28%/279k to 11%/109k, so autocompact fired between polls. Post-compact 0:Jarvis paused with `✻ Brewed for 6m 36s` (the JICM compression + post-compact reload time). The L3 script's classifier handled it identically to any other pause — no special "post-compact" branch needed, which validates the classifier's abstraction. Also worth noting: context bar shows `+58378-8225` — 8 new commits added since watch start (up from the +57263-8035 baseline at 00:31 MDT), so material progress is happening between the pauses.
-
-### 2026-07-04 [1e1328394d61]
-
-0:Jarvis is showing exemplary empirical discipline mid-flight — post-compact he's diagnosing why test count dropped 1409→1388 between two "green" commits, refusing to hand-wave it as "environment" without evidence. Directly applying the `feedback_empirical_before_claim.md` rule ("A silent drop of 21 passing tests... is exactly the kind of thing I shouldn't wave away as 'environment' without proof"). Confirms self-corrections stick across autocompact boundary — memory is doing its job.
-
-### 2026-07-04 [6deab398aef9]
-
-Fifth pause caught. Between L1 polls (03:07 → 03:38, exactly 30 min) 0:Jarvis added +429 lines across at least two commits (git bar: `+58378` → `+58807`) — he took my earlier "either initiative he picks" fork toward Palimpsest 4b non-Bible parity, mentions "17 non-Bible source binaries," ran full apply flow with api/ui set to false (since not exercised). `✻ Sautéed for 20m 51s` shows extended solo work. Standard resume via generic full-autonomy prompt.
-
-Notable trajectory: 5 successful pause-catches in 3 hours, all resolved by the same generic continue-prompt with full-autonomy authorization. Zero false-positive sends (state=active branch fires correctly every time). Zero missed pauses (redundancy caught what individual layers might have skipped).
-
-### 2026-07-04 [6f7f9f95e3cd]
-
-This is the anti-Goodhart principle in action on my *own* work. Task 6 asserted `cli:true` for all 17 based on `list`/`verify` — but the scorecard's `cli` bit also implies `apply` works, which I hadn't exercised. Running it turned an *assumed* green into an *evidenced* one for 16 works and exposed a real stale-contract defect in the 17th. A scorecard is only worth as much as the least-verified bit in it; live-verification is what converts a claim into a fact.
-
-### 2026-07-04 [3ea2624c6613]
-
-The most valuable thing this session did wasn't the registry — it was catching that my *own* Task-6 `cli:true` was an unverified assumption. Registering a work makes a *claim* of operational readiness; only running `apply` turns that claim into evidence. 16 claims became facts; the 17th became a documented defect. That asymmetry — a scorecard is only as honest as its least-verified bit — is the whole reason the gold-set standard exists.
-
-### 2026-07-04 [2579f11b8fd0]
-
-Full JICM v7 cycle fired between L2 (10:04) and now (10:09) — context dropped 29%/294k → 5%/53k, banner switched from "refreshed" (Claude Code native autocompact) back to "compressed" (JICM stop-and-wait). Post-JICM 0:Jarvis is reading `.compressed-context-ready.md` (129 lines) and `.scratchpad.md` (109 lines) to rehydrate, still in xhigh thinking. Two distinct compaction pathways observed this watch — the pane classifier handled both identically because it keys on `● verb…` not the banner text.
-
-### 2026-07-04 [5f1609504f29]
-
-Notable — Sir has returned to keyboard: 0:Jarvis's input line shows `❯ wire up the UI to serve non-Bible works` (Sir's next instruction, un-submitted at moment of capture), with the session-rating popup visible above. The watch handoff is clean: he took the conductor role back at exactly the right moment. Also worth noting from the log: **all three layers actively sent continue-prompts** this watch (L1: 3, L2: 3, L3: 1) — much better than the prior watch where the primary layer never sent. The classifier fix (any `● verb…` marker, not just "Reticulating splines") is the direct cause.
-
-### 2026-07-04 [e1f9179fa6a4]
-
-idx 108's `spelling` is `modern` and `typeset` is `modern`; the map JSON carries no residual "archaic"/"spelling" field, and the generator docstring correctly describes Madueke_A as modern spelling. One thing this surfaces for Phase B: the existing archaic Bibles (201/202/217…) are `spelling:archaic` but `typeset:modern` — they're *modernized-typeset* transcriptions. Our idx 109 is a **diplomatic facsimile**, so it must be `typeset:archaic` (or `facsimile`) to distinguish "preserves the original letterforms" from "period spelling, modern type." That's a real taxonomic distinction the new entry has to encode.
-
-### 2026-07-04 [cf8431c92afb]
-
-The plan said "3-way string collation," but the source reality won't support three *exact* witnesses: only Madueke_A and Sabates are structured (verse-keyed). The scientifically honest design is **one exact collation + two recall-based corroboration witnesses**: (1) exact verse-by-verse Madueke_A↔Sabates wording agreement, and (2) Madueke_B and (3) the print-OCR each measured as *token-recall* of Madueke_A's scripture within the corresponding chapter region — the same "noisy witness recall" methodology, with appropriately coarser granularity and stated uncertainty. Claiming three exact witnesses when one is a column-flattened PDF dump would be the kind of overstated precision this whole effort is meant to eliminate.
-
-### 2026-07-04 [96f7b917edba]
-
-This caption bug is the exact failure mode the "zoom to where the property is resolvable" QA principle is designed to catch: a whole-page glance would never surface "81 vs 80" — only zooming to read the axis ticks against the caption text side-by-side does. The fix also removes a *duplication* smell: the axis floor was computed in two places (`ci_whisker` and the caption) that could silently diverge. Ideally `ci_whisker` would *return* its domain, but for a one-caption report that's over-engineering — matching the formula is the right-sized fix.
-
-### 2026-07-06 [8563891cda8d]
-
-**The correction cost is bigger than it looks.** Ghost-text autofill inverts the naive heuristic: "text on the input line" reads visually like "human is typing" but actually means "target is idle, waiting for Tab+Enter." Which explains what happened at the end of my watch: `❯ wire up the UI to serve non-Bible works` looked exactly like Sir returning with a new instruction, but was actually Claude Code's autofill hint sitting on an idle pane. The teardown timing was still correct (watch expired at 04:32; teardown at 04:35), but my "Sir returned to keyboard" narration was wrong — 0:Jarvis was still paused when the watch ended.
-
-**The paste-the-ghost-text send is a strict upgrade over the generic continue-prompt.** The generic works but is task-agnostic; the ghost text is Claude Code's own recommendation for what the target should do next given the current context. If a future watcher extracts the ghost text and pastes it back, the target picks up exactly the suggested thread instead of a fallback autonomy nudge.
-
-### 2026-07-06 [98e77e0f39ff]
-
-Two enhancements to the shell script this time, both from the last session's lessons:
-1. **Ghost-text pass-through send** — extract any `❯ <text>` from the paused-state capture, and if there's ghost text, submit *that* instead of the generic continue-prompt. Preserves Claude Code's own suggested next-prompt, which is more targeted than a generic autonomy nudge.
-2. **Submission verification** — after any send, re-capture the pane after 3s and confirm an active-marker appeared. If not, log a `SEND-FAILED` warning (a stuck buffer is silent otherwise, and stale text piles up).
-
-Falls back to the generic continue-prompt when ghost text is absent (bare `❯ `) or when the ghost text starts with the standard continue-prompt string (stale-prior-fire case — single Enter would submit it).
-
-### 2026-07-06 [16092dfa20b9]
-
-**Coverage math for the 6-hour window** (22:57 MDT July 5 → 04:57 MDT July 6):
-- **L1 primary** (30-min wakeup): ~11 polls at :27/:57
-- **L2 in-session** (`43 * * * *`): 5 polls at :43
-- **L3 independent** (`13 * * * *`): 6 polls at :13
-- **Total**: ~22 poll events over 6h — density ~4/hour, well above the 30-min target cadence
-
-**Script improvements this run** (vs the 2026-07-04 watch):
-1. Ghost-text pass-through send — when paused, extract `❯ <text>` from the capture and submit that instead of the generic prompt. Falls back to generic when the input is empty or contains our own stale prompt string.
-2. Submission verification — 3s after send, re-capture and look for a new active-marker. If absent, log `SEND-FAILED` (a stuck buffer is silent otherwise; Enter can be swallowed by mid-turn state).
-3. Extended log line — send events now record which prompt kind was used and the first 80 chars, aiding audit.
-
-### 2026-07-06 [bcc4c99543f3]
-
-Textbook delegating state — 0:Jarvis has fanned out P0.2 (odr-com scraper, 21m 28s in) and P1.2 (s-dismas archaic detector, 3m 51s in) to background subagents while pipelining independent work. The message *"brief gates on these outputs, so I've pipelined all independent work rather than idle. I'll resume integration automatically the moment the streams land"* is exactly the discipline the plan calls for (multi-source parallelism from §4.2).
-
-The ghost text on the input line — `❯ Keep going, engage at full warp.` — looks like Sir dropped in earlier with a nudge, and 0:Jarvis wisely queued it (or it's autofill). The classifier correctly identified state=delegating despite that ghost text, so no send fired. This is a validation of the classifier priority order: **subagent detection outranks input-line text**, which is the right call — a delegating session isn't paused even if the input line has content.
-
-### 2026-07-06 [ff61552770b5]
-
-The scrape validation is doing real epistemic work, not decoration. Because odr-com is archaic-spelling and Madueke is modern, a raw string compare would score ~0%; the *skeleton-fold* (ſ→s, u/v, i/j, &→and…) strips orthography so the residual measures genuine wording/versification divergence. 94.82% folded agreement means the HTML parser correctly segmented verses across 586 chapters — a parser that dropped or merged verses would crater a book's score (as the 84% outliers hint at, worth a later look). This is the "re-map reads to confirm" principle applied at acquisition time.
-
-### 2026-07-06 [dc89c98fc5e2]
-
-Major forward motion in this cycle: **Phase 0 essentially wrapped** — P0.2 (scrape), P0.3 (archive assets), s-dismas detector all committed as one changeset ("Phase-0 acquisition wrap"). The s-dismas folded-agreement diagnosis is a nuance worth flagging: **0.8273 vs 0.88 gate** — the archaic-witness normalization is missing 0.05 of the target, which is typical for diplomatic-type OCR where the ſ↔s / æ↔ae / u↔v folds don't fully close the gap. 0:Jarvis diagnosed rather than papered over — the empirical discipline is showing through.
-
-P0.4 (whole-tome fresh OCR consensus) is the heaviest step in the entire plan (per §3 note "Heaviest step: GBs local + hours of OCR; accepted") and is now running. 23m in already. This is where the schedule risk lives.
-
-### 2026-07-06 [3cbb95760f44]
-
-- The detector's design is sound: it uses **content-anchored attestation** (anchor on the modern Madueke text, corroborate each verse in the noisy archaic print OCR) rather than trying to segment verses out of blackletter OCR — the genomics analogy is aligning reads back to a reference rather than de-novo assembly.
-- The `corroboration_depth_hist {0:228, 2:1064}` shows why waiting for OCR matters: right now every attested verse maxes at **depth 2** (djvu+hocr only) because our-ocr for ot2-1610 isn't complete. When the OCR job finishes, our-ocr becomes the independent 3rd axis → depth 3, materially strengthening exactly the archaic-gap OT prophets.
-- This is why the sprint plan gates the Phase-0 seal on *both* jobs: sealing now would bake in a depth-capped consensus.
-
-### 2026-07-06 [02a7a386d3ed]
-
-This is the **design-perfect delegating case**. 0:Jarvis has explicitly declared: *"Holding here — the OCR-completion poll will drive the next burst automatically; no manual polling needed."* + `✻ Waiting for 1 background agent to finish` + subagent visible (`◯ general-purpose Build OCR-consensus detector (P0.4b) 18m 34s · 141k tokens`). The classifier correctly said `delegating` — no send fires, no false-positive nudge.
-
-The 6-step post-OCR plan he printed is a legitimate work-graph declaration, not a stall: (1) re-run consensus with our-ocr depth-3, (2) fix Pyright nits, (3) 5-witness consensus, (4) sources registry, (5) commit Phase-0 seal, (6) then P1.4 EEBO crops. The rationale for holding P1.4 is **CPU contention awareness** — pdftoppm 300dpi renders would fight the OCR workers for cores and slow the long pole. This is production-grade scheduling discipline.
-
-Also — a second full JICM autocompact fired between polls: banner switched from "refreshed" (Claude Code native) back to "compressed" (JICM stop-and-wait), context 20%/206k → 11%/116k. Two full compactions in ~2 hours; not unusual for high-throughput multi-source work.
-
-### 2026-07-06 [6218636dffcc]
-
-- The detector makes a principled independence choice: it fuses our-ocr + djvu + hocr into **one** `ocr_consensus` witness rather than treating them as three axes. That's correct — djvu and hocr are both archive.org's OCR of the *same* scans, so counting them separately would be pseudo-replication (like calling two reads of the same DNA library "independent samples"). Only our fresh tesseract is a genuinely separate optical pass.
-- The `BOOK_ALIAS_FLOOR = 0.35` guard is doing real work here: with our-ocr partial, it *refuses* to let a book match the wrong volume (e.g. Isaie spuriously matching Kings text), so the depth-capped run degrades honestly to djvu+hocr rather than fabricating coverage.
-- Downstream, the archaic-gap OT prophets get exactly 2 independent axes (modern-Madueke + ocr-consensus) → "moderate" tier. That is the whole reason this witness exists.
-
-### 2026-07-06 [db6cd9c6e371]
-
-0:Jarvis is still holding on OCR completion — same declared plan, now with **empirical guardrails added**: he identified core books (leviticus, proverbs, psalms, canticle + apocrypha) as showing low attestation in the depth-capped preview, and framed a **falsifiability test**: *"If they stay low after full OCR, it's a real detector issue... if they jump, it was just incomplete OCR."* That's genomic-consensus discipline — distinguishing missing-coverage from failing-detection before drawing conclusions.
-
-Ghost text on the input line: `❯ continue with the seal once OCR finishes` — this is either Sir's own earlier nudge (echoed exactly by 0:Jarvis in the printed sealed sequence) or autofill. Either way the classifier correctly ignored it because `delegating` outranks input-line-has-text.
-
-The 4 shells + 26m 35s subagent + 37m OCR job show a healthy pipeline: subagent is 8 min further along since last check, meaning ~13-20% throughput per L1 poll interval on the long pole.
-
-### 2026-07-06 [ea3516c7531b]
-
-- This is precisely why P1.4 exists: the registry's EEBO volume→content mapping was *inferred from filenames* ("vol_ 1"), never visually verified. The first leaf I actually rendered contradicts it. EEBO Editions bundle facsimiles idiosyncratically, so "vol_ 1" ≠ "OT vol 1."
-- Scope of impact: the just-sealed Phase-0 consensus is **unaffected** — it used the archive.org scans + our-OCR of archive.org jp2, never the EEBO PDFs. The EEBO coverage labels are P1.4 layout metadata only. So the seal stays valid; the EEBO metadata needs correcting as a follow-up.
-- Per my own rule (verify before acting on a claim), I must not "fix" the mapping from one data point — I need to render page 1 of *all six* EEBO volumes and establish their true contents empirically before touching the registry or locating any apparatus.
-
-### 2026-07-06 [dfd3e899ad9b]
-
-- The EEBO scans aren't a clean 5-volume OT split — they're **partial facsimile fragments**: two NT scans (a 113pp NT front-matter/partial + the full 801pp NT), the Douay OT general title, two OT *part*-dividers (Historical, Prophetical), and the 1610 Second-Tome title. That's the real bibliographic structure of the 1582/1609/1610 Douay-Rheims (NT first, OT in two tomes and four "parts").
-- This vindicates P1.4's core premise — placement must be *seen*, not inferred. A filename-derived label ("vol_1") silently encoded a wrong claim into a committed artifact.
-- The Phase-0 seal is untouched (it never used these PDFs). The registry's EEBO `coverage` fields need correcting, and that correction properly belongs *bundled into the P1.4 commit* alongside `layout-map.json`, not as a premature standalone fix.
-
-### 2026-07-06 [52fe3e72d924]
-
-**First real send of this watch — and both new features validated end-to-end.**
-
-The log line shows exactly what I designed:
-- `[07:32:05Z] sent [generic-fallback] to aion:0: continue working through to completion...`
-- `[07:32:05Z] SEND-VERIFIED: active-marker present after send`
-
-The classifier caught 0:Jarvis at his OWN explicit checkpoint: *"I paused here rather than grinding all 26 slots in one pass — it's a clean finding boundary, the plan is checkpointed for JICM-clear safety, and the EEBO discovery is worth surfacing before I act on it."* This is exactly the kind of "polite pause for oversight" that Sir has repeatedly told me to override with full-autonomy authorization. The `generic-fallback` was correct (no ghost text was present on the bare `❯` line) and the 3s verification confirmed `● Reticulating splines… (1s · thinking with xhigh effort)` appeared after send.
-
-**Timeline reconstruction between polls #4 and #5** (07:01Z → 07:32Z, 31 min):
-1. OCR long-pole completed
-2. Ran sealed sequence: re-run detector gated → build_consensus 5-witness → build_sources_registry (`phase0_sealed`=True) → validation review
-3. Started P1.4 EEBO discovery — belt-and-suspenders apparatus header crops
-4. Paused at "clean finding boundary" with declared plan to resume 26-slot crop work
-
-Note: git bar `+65211-8929` is *unchanged* from poll #4 — the Phase-0 seal work is staged but rolled into the pending P1.4 commit rather than committed separately. That's the "bundle at natural boundary" habit.
-
-### 2026-07-06 [6cc7d0ee1ad2]
-
-- This increment embodies the P1.4 rigor contract honestly: **6 grounded** slots (committed crop + transcribed text + sha + OCR offset), **1 co-located** (OT censura shares the approbatio leaf), **21 inventoried** (OCR-attested, EEBO leaf-location pending) — nothing asserted as "placed" without a visual crop. The `inventoried` status is the machine-readable form of "we know it exists and roughly where, but haven't *seen* it in the scan yet."
-- The scan-grounded scripture layout (5 title/divider leaves) also corrects the record: it captures the true 1582-NT / 1609-first-tome / part-dividers / 1610-second-tome structure that the filename labels had scrambled.
-
-### 2026-07-06 [866652c98a6a]
-
-0:Jarvis is doing **belt-and-suspenders visual grounding** exactly per plan §4.4: reading rendered EEBO page images (`ntB-heads-344_378.png`) to visually locate each apparatus slot before recording page/leaf/sha + transcribed identifying text. Currently on `ot-privilege` (the "Cum priuilegio" royal-license note on the OT title-page foot) — an obscure slot that would be easy to miss without the paradigm's insistence on scan-first placement.
-
-The 5-step P1.4 remaining sequence is well-decomposed: (1) reconcile nt_front censure grounding, (2) ground 9 nt_back slots, (3) ground 9 ot_back slots, (4) regenerate layout-map, (5) commit. Roughly 20 apparatus items remaining across those, at ~10-15 min per slot (the current pace) puts P1.4 completion at ~3-5 more hours — meaning it will likely NOT complete before the 04:57 expiry.
-
-Notable resource pressure: 5h utilization at 62% with 1h 47m remaining in the window. This is fine for the watch, but sustainable-burn calculus says he's on track to end the 5h window near-full — appropriate for a long-running production run.
-
-### 2026-07-06 [ad87b92ae9e9]
-
-**Second real send + a genuinely important finding.** Between polls #6 and #7, 0:Jarvis discovered two substantive scan-grounding errors in the previously-committed artifact:
-
-1. **EEBO OT scans mis-identified** — they're the **1635 Rouen reissue** (Cousturier, "Permissu Superiorum"), NOT the 1609/1610 originals the plan assumed. This changes their evidential role: 1635 is still a Douay-Rheims print witness but 25 years post-original, so it's a subsidiary rather than authoritative layout source.
-2. **Two scan aliases swapped** — `ot_prophetical` was actually the "Fourth Part" and `ot_secondtome` was the "Second Tome" title page. These would have propagated as wrong placements throughout P1.5+.
-
-He himself observes: *"Catching exactly this kind of scan-grounding mistake is the whole reason P1.4 exists."* — the belt-and-suspenders visual grounding paradigm caught real errors that pure automated extraction would have silently propagated.
-
-Then the classic post-finding pause at a "clean boundary" — classifier caught it, generic-fallback sent, SEND-VERIFIED. This is send #2 of the watch. Both sends were legitimate paused states with no ghost text present.
-
-### 2026-07-06 [b7a7a306fe24]
-
-Big progress: **P1.4 fully wrapped** — both scripture_order block AND the verify+commit step showing green (✔). Now on **P1.5 (apparatus-attestation.json)** — 23m 56s in. The visible tool output tells the story: he's probing which books have `intros` populated (genesis has 4 items, psalms has 2, but `2-john` and `abdias` are `None`) — that's the raw material for the source × item × book matrix that §4.5 describes.
-
-**Trajectory to plan completion**: P1.5 in flight → P1.6 basis-db.sqlite → P1.7 re-detect gate → P2a idx 108 → P2b idx 109 → P3 brief. Five remaining big steps in the 1h 52m watch window — feasible but tight. The 5h utilization (77% with 45 min left) suggests he'll be near-quota by the end.
-
-Also worth noting — the Async hook noise (`⎿  Async hook PostToolUse completed × N`) in the pane capture is consistent — the JICM/reminder/insights async system is firing on every tool use, adding ~1 line each. That's several hundred hook-lines per hour of active work, all correctly ignored by the classifier because it keys on `● verb…` not on hook output.
-
-### 2026-07-06 [7f4355a2aba4]
-
-**MASSIVE progress** in the last 30 min — 0:Jarvis burned through P1.5, P1.6, and P1.7 to arrive at **P2a — Render modern OriginalDR (idx 108) from basis-db**, currently 13m 37s in. That's the entire mid-plan cluster (apparatus matrix + basis-db.sqlite emission + re-detection gate) done in one 30-min window.
-
-**Only three phases remain**: P2a in flight → P2b idx 109 archaic → P3 academic brief. All three phases explicitly show as tasks with proper `blocked by` chains (`P2b › blocked by #1`, `P3 › blocked by #2`) — a Task-tool discipline I hadn't seen him use before.
-
-The pyright false-positive handling is also worth noting: he diagnosed the `Import "palimpsest.layout" could not be resolved` as an editor-resolution artifact (pre-existing; project's pyright resolves it via venv) rather than a real bug — but he verified it against the project pyright to confirm. That's the `[[empirical-before-claim]]` discipline again, applied to a "trivial" diagnostic he could have hand-waved.
-
-**Plan completion within the watch window is now plausible** — 1h 21m remaining, three phases each historically taking 15-40 min at his current pace. 5h utilization is 86% with 13 min left in the window — the 5h clock rolls before the watch expires, giving him fresh headroom for the final push.
-
-### 2026-07-06 [0d9f61d76246]
-
-- **P2a is complete and the paradigm proved its worth.** idx108 is now a *pure* projection of the basis DB (0 fallbacks), byte-identical to the direct build — and the byte-identity gate caught a real latent bug (a cross-ref block masquerading as 3-Esdras 2:1) that single-source generation had silently carried. That's the "re-detect to confirm" loop paying off exactly as §1 predicts.
-- **Small, surgical blast radius**: one dropped spurious paragraph, sha `da451dc27ccf→4f8f52ee8c30`, three shas/notes updated, distributions unchanged — the confidence model and all P1 artifact assertions held.
-
-### 2026-07-06 [1763b78fc579]
-
-**P2b appears to be actively rendering** — the pane shows side-by-side modern vs archaic verse comparisons with the diplomatic long-ſ preserved exactly where a 1582/1610 print would have it:
-- `genesis/3/15`: MOD "seed" ↔ ARC "**ſeed**" (long-s twice)
-- `psalms/1/1`: MOD "Blessed" ↔ ARC "**Bleſſed**", "counsel" ↔ "**counſel**"
-- `john/1/1`: MOD "WORD" (small-caps) ↔ ARC "word" (lowercase — appropriate diplomatic form)
-
-The rendering is producing **both idx 108 (modern) AND idx 109 (archaic)** side-by-side and running a diplomatic-fidelity check — the `[[project_palimpsest_gold_eval]]` conversation memory calls this out as the P2b gate ("structural parity vs 108, differing only in surface"). If this is running the verify-map check, both renders are done and only P3 (academic brief) remains.
-
-**5h utilization RESET** — 5h:4% (fresh window opened at 03:23-ish MDT), so he has full burn budget for the final P3 push. Watch remaining: 50 min. P3 pace-estimate 20-45 min based on plan §7 structure (academic brief + genome-browser visualizations). Completion within the watch window is now genuinely likely.
-
-### 2026-07-06 [b57bf65781fa]
-
-- A rigorous §6.2 word-correspondence validation needs the §6.1 **bidirectional spelling-glyph model** (`spelling-glyph-model.json`) — which doesn't exist yet. The `build_consensus` `skel()` fold was built for OCR tolerance, not archaic↔modern spelling equivalence, so it can't cleanly separate genuine wording residuals from expected spelling divergence.
-- The render itself is *already* fidelity-backed: every rendered archaic verse is indep_depth ≥ 2 (multi-witness consensus) — the low-tier single-witness verses are exactly the ones that fell through to the modern surface. So idx109 is not "raw OCR"; it's consensus-called.
-- The "the the" (Genesis 1:2) is a genuine upstream s-dismas surface artifact, faithfully projected — the kind of thing a §6.1-backed §6.2 pass will catalog. It's surfaced, not masked.
-
-### 2026-07-06 [dd984cc9ff56]
-
-**P2b just landed** — 0:Jarvis committed `50e0bf0` with `render_archaic.py` producing idx 109: **36,931 verses in genuine archaic type** with **83,869 long-ſ retained**, byte-identical structure to idx 108 (4,234 elements, matching type_counts), sha `08b75de16a84`. All P2b gates green: `verify_map(109)` via CLI, Catholic oracle **76/76** (parametrized over both 108+109), structural parity, CLI+API apply `sha_verified=True`, manifest regenerated (20 Bibles), pyright clean, full suite passing.
-
-His scratchpad top line confirms: `>>> P2b DONE 2026-07-06 — idx109 archaic diplomatic OriginalDR committed+pushed 50e0bf0 — P3 (brief+viz) + §6 validation NEXT`
-
-Two thoughtful reflections he printed:
-- **On engine rigidity as design lever**: gen.build emits one paragraph per Sabates verse and verse_override only swaps bodies — that constraint IS what makes "structural parity, surface delta only" achievable with zero engine surgery.
-- **On honesty over cosmetics**: the 199 archaic-coverage-gap verses render as their attested modern surface with a loud flag, rather than a mechanical long-ſ back-transform that would fabricate diplomatic detail. Explicit `[[feedback_fallbacks_are_failures]]` citation. That's memory doing its job.
-
-**Plan-completion status against Sir's criteria**:
-- P0 through P2b: ✅ green + pushed
-- **P3 academic brief + genome-browser viz: NOT YET STARTED**
-- §6.2/§6.3 diplomatic-fidelity validation: **DEFERRED and documented** (needs §6.1 bidirectional glyph model first)
-
-**So the plan is NOT fully implemented per Sir's completion criteria.** P3 remains and §6 validation is queued. Scheduling teardown wakeup per instructions.
-
-**Send caught at the transition**: state=paused after `✻ Churned for 31m 14s`, classifier fired, generic-fallback sent, SEND-VERIFIED. That's send #3 of the watch — again at a legitimate "polite pause between phases" that Sir's autonomy authorization is meant to override.
-
-### 2026-07-06 [6236fd3611ca]
-
-- **idx109's fidelity is tiered by archaic-witness coverage.** Books s-dismas transcribes (Pentateuch, gospels, most NT) render clean diplomatic type; the ~15 OT books with *only* fresh-OCR (prophets, Ecclesiasticus, Ezechiel, Jeremie) carry raw-OCR noise — chiefly the long-ſ→f misread tesseract makes.
-- **My fold is correctly NOT papering over that.** Dropping `skel()`'s symmetric f↔s means "vifion"≠"vision" stays a residual — so the §6.2 metric correctly counts the OCR defect as a fidelity issue instead of hiding it. The low per-book Jaccard is a true signal, not fold weakness.
-- This is the honest "re-detect to confirm" payoff: the validation surfaces that the OCR-only books need better archaic sourcing — a Phase-0 follow-up, quantified rather than hidden.
-
-### 2026-07-06 [1ad202afb9a3]
-
-- **Both editions are strongly corroborated by the independent print with zero genuine content-word discrepancies**: archaic 87.8% vs modern 90.7% recall (via the lossy skel fold). The ~3-point gap is honest — the diplomatic archaic surface carries more OCR-hostile forms and occasional witness artifacts, but still corroborates highly.
-- **The circularity flag proves its worth in the numbers**: ocr-only archaic recall (89.8%) is the *highest* archaic tier — exactly the self-referential inflation I flagged (its surface derives from the djvu it's tested against). The genuinely independent signal for those books is their *modern* recall (91.8%, Madueke lineage), which holds up — so even the OCR-only books have independent corroboration, just via the modern edition.
-- **Clean-diplomatic archaic recall (87.8%) is the real cross-witness result**: s-dismas's transcription vs archive.org's OCR of the same print, two independent readings agreeing on ~88% of tokens with no genuine discrepancies.
-
-### 2026-07-06 [824648f8a05c]
-
-- The whole P3.3 set closes the genome-browser metaphor's remaining panels: the **contributor heatmaps** are the "which sample contributed which region" view (grey = the archaic witnesses' coverage gaps across the OT prophets), the **placement map** is the physical-assembly annotation track (front/back matter grounded to scan pages), and the **inlined crop** is the raw-evidence drill-down. Together with P3.1/P3.2, every claim in the brief now traces from an aggregate figure → a per-position figure → the actual scan pixel.
-
-### 2026-07-06 [5bdb08888869]
-
-- **The 199 coverage-gaps have ZERO archaic attestation** — not even noisy fresh OCR. Within the basis-db they're genuinely unrecoverable; the modern-fallback is the only attested surface. (The archive.org print djvu OCR from §6.3 was used only for sampled validation, never ingested as a per-verse witness.)
-- **All apparatus surfaces (modern and archaic) are empty in the basis-db** — apparatus prose is sourced at render time from janvier-s, not stored per-element. So there's no archaic apparatus text in the basis to draw on; sourcing one is a data-acquisition question, not a rendering toggle.
-
-### 2026-07-06 [23121fd2ff8a]
-
-- **janvier-s (current, modern-normalized)**: "...and so forward **even till his own time**, writing **above two thousand and four hundred years**..." / note "...only **traditions** and no Scripture **above 2400. years**."
-- **odr-com scrape (archaic)**: "...and so forward **euen til his owne time**..." / note "...only **Traditions & no Scripture aboue 2400. yeares**."
-- This is the apparatus analogue of the scripture spelling delta: an archaic apparatus witness genuinely **exists on disk** (odr-com, 39 books) but was never ingested — only scripture verses were. It's archaic-spelling but glyph-modernized (`ſ`→`s`), so one fidelity notch below idx109's diplomatic scripture layer.
-
-### 2026-07-06 [06aa46dc2ef6]
-
-- **archive.org**: only the 6 `_djvu.txt` files are local — **no page images, no hOCR** (confirms P0.3 was skipped for images).
-- **annas-archive EEBO**: the high-res scan PDFs (vol 1–5 + NT, ~480MB) **are** local — a full second physical copy ready to OCR, no download needed.
-- **our-ocr/**: ~25MB of per-page `.txt` already exists (6 items, 1000+ pages each) — so *some* OCR ran; I need to check whether it's real fresh OCR, full-page (incl. apparatus), and diplomatic.
-- **tesseract 5.5.2** is present but has **only `eng`/`osd`/`snum`** — no diplomatic/historical model. Stock `eng` collapses ſ→f, which is exactly the §6.2/§6.3 defect. Getting a diplomatic-capable model is the key tooling gap.
-
-### 2026-07-06 [1aaba6c14f03]
-
-A whole-tome OCR **was** actually run — the manifest shows **6116 pages** across all 6 archive.org items (jp2 zips downloaded, OCR'd, then deleted). But the sample output exposes the fatal flaw: "eldeſt ſonne" came out as "**leat fonne**", "houſe" as "**houfe**", "deſtruction" as "**deftruction**" — **every long-ſ collapsed to `f`** (`ſ=0` on every page). It was stock tesseract `eng`. That non-diplomatic OCR is exactly the `ocr_consensus` witness feeding the §6.2/§6.3 defect. Meanwhile the annas-archive EEBO PDFs (a full second copy, ~480MB) are local and have **never** been OCR'd.
-
-### 2026-07-06 [16f8f4a17744]
-
-Parallel scaling underperformed: 40 pages/365s = **only 2.2× speedup** (CPU hit just 251% — ~2.5 of 10 workers effectively busy). The tell is the batch math: MAX_PAGES=40 ÷ BATCH=8 = only **5 batches**, so the run was model-load-startup-dominated, never reaching steady state — not evidence of a hard scaling ceiling. Larger batches (fewer model reloads) over the full thousand-page aliases should saturate the cores far better. Rather than burn more isolated tuning runs, I'll launch the real (resumable) run with amortizing defaults and read steady-state pg/s from its own log.
-
-### 2026-07-06 [3d8b75e34314]
-
-This is exactly the "§12 page↔content mapping OPEN risk" the scratchpad flagged — and it's a real defect, not a theoretical one. The `[:24]` slice was a lazy line-key; with six same-titled volumes it collapses them into one. The fix is a small volume registry keyed by the distinguishing `(vol_ N)` / `(New Testament)` + `Anna` filename tokens, giving each volume a clean unique key (`vol1..vol5`, `nt`) → its own output dir. I'm editing the file now while the archive job runs, which is safe: the running process already loaded the module into memory and only touches the `archive:` code path.
-
-### 2026-07-06 [0725fa78b5d6]
-
-The whole point of Phase 4's "hard path" is a single glyph: the old `ocr_consensus` witness stored stock-tesseract text where the *engine* had already destroyed ſ→f (unrecoverable — §6.1 forbids restoring ſ from a lossy inverse). The new witness reuses the identical anchoring machinery but stores kraken's raw output, which carries ſ natively. So this stage isn't "re-run OCR" — it's swapping the surface source under a proven alignment layer, which is why I could validate it end-to-end against Matthew 1 with only 1.8% of pages OCR'd.
-
-### 2026-07-06 [79943e22129c]
-
-128 GB total, 51% free — but each kraken worker holds **~2.4 GB** (torch + the reichenau_lat model resident in every process), so 10 workers = **~24 GB** peak, plus transient 2× Lanczos upscale buffers (~67 MP images) across 10 prep threads spiking several GB more. On top of the already-heavy Aion stack (Neo4j, Qdrant, MLX embeddings, Docker, sibling sessions consuming ~40 GB), the simultaneous peaks are what's pushing into swap. Worker count is baked in at launch, so the only lever is stop-and-relaunch with lower concurrency.
-
-### 2026-07-06 [a70de9f34fe6]
-
-The fixed, shareable cost is only **0.54 GB** (torch runtime 0.19 + blla segmentation model 0.26 + reichenau recognition 0.09). But each active process measured **1.8 GB**, so the remaining **~1.26 GB per worker is per-page inference activation** — the segmentation UNet's feature maps on the 6668px (2×-upscaled) page. That activation is per-*concurrent-page* whether you use processes or threads. So sharing the model doesn't touch the dominant cost; it only de-duplicates the 0.54 GB fixed part.
-
-### 2026-07-06 [a42debcb9bd7]
-
-One thing to know about the `book` view: it uses the same mid-chapter anchoring as the real detector, so a book only "lights up" once its *middle* pages are OCR'd — that's why `matthew` reads 0/1070 right now (nt-1582 has just 30 pages = Matthew 1). As the run marches through ot1-1609, the early OT books (Genesis onward) will resolve first. For raw poking, each page is plain JSON — `{"page":..., "lines":[{"bbox":[x0,y0,x1,y1],"text":...}]}` — so `jq`/python one-liners work too.
-
-### 2026-07-06 [0fd8b75425c1]
-
-The spike explains *why* the GPU is irrelevant here, and it's diagnostic: kraken emits "**Using legacy polygon extractor**" and the reichenau model's Core ML predict path is broken (the `coremltools` compile error), so recognition runs through the torch fallback on both devices. The wall-time is dominated by that **CPU-bound polygon extraction + segmentation**, not the neural forward pass — so moving tensors to MPS moves the cheap part and leaves the bottleneck on the CPU. Device choice barely touches it.
-
-### 2026-07-06 [cdad9e34473f]
-
-The real lever isn't the GPU, it's the **worker×thread balance**. Thread scaling is poor (12 threads buys only 2.4× over 1 thread), so *processes* parallelize far better than threads — but each concurrent page costs ~1.26 GB of segmentation activation, which is what caps worker count. At 4 workers we're using ~4 of 12 P-cores, so there's real headroom. Bumping to **6 workers** should give ~0.27 pg/s (**~5h**) at ~11 GB — well under the ~24 GB that caused your original memory problem, and still less than half your 128 GB minus the Aion stack.
-
-### 2026-07-06 [6f3e1bce254b]
-
-This retroactively vindicates the memory rein-in beyond what we knew. The thrash wasn't just *slow* — it silently *corrupted* output: kraken's segmentation subprocess OOM'd on ~28% of pages, and the pipeline's `else []` fallback turned each crash into a plausible-looking empty page. Memory pressure that manifests as data loss rather than an error is the most dangerous kind, because throughput metrics stay green. The current 4-worker run is clean precisely *because* it isn't thrashing.
-
-### 2026-07-06 [ac8f7194a544]
-
-The ot2-1610 result is the control that closes the diagnosis: same code, same model, same pages-from-zip — but written *now* under 4-worker no-thrash conditions instead of during the 10-worker memory storm → 0 empties vs ot1's 28%. That's the difference between correlation and mechanism. It confirms the fix target was memory pressure (and the resume-cache that made its damage permanent), not the OCR model or the pipeline's core logic.
-
-### 2026-07-06 [48312e3fd86b]
-
-Two facts make keeping 6 workers defensible despite the thin margin: (1) the hardening changed the failure *consequence* — an OOM'd page now writes *nothing* (retried later) instead of a silent empty, so the completion audit (`count==6116 && 0 empties`) will *catch* any shortfall rather than shipping it; (2) swapouts are flat, so there's no active pressure at this instant. The danger isn't the 6th worker's 1.8GB — it's that the box is globally stressed (stale swap nearly full), which 4 workers wouldn't meaningfully fix either. So I keep 6 but add a tripwire: if active swapping *starts*, I dial back.
-
-### 2026-07-06 [0bc1e762b9ea]
-
-This retires the memory worry cleanly: the 123G reading was a *third* instance of the same measurement trap — a transient spike from the resume-scan's file cache, not steady-state load. Steady-state with 6 workers is 83G/44G-free, comfortable. Each time I caught the box "at the ceiling" it was an artifact of *when* I sampled (during OCR footprint, during resume-scan), not a fixed constraint. The lesson that keeps recurring this session: sample system state at steady-state, and distinguish reclaimable cache/compressor from anonymous pressure before drawing conclusions.
-
-### 2026-07-07 [6b98b36ab860]
-
-The `ot1 COMPLETE done=0 skipped=1135` line reveals the 6-worker run had *already* recovered all 314 purged empties before I killed it for the scale-up — so the kill cost nothing but a resume-scan. The fix→purge→re-OCR loop closed cleanly: a page that was a silent `{lines:[]}` is now 60 lines of scripture+apparatus, and the completion audit (0 empties across 1524) is the guarantee that no silent gap survived. This is why hardening the *write path* mattered more than the skip logic — it turned "silent empty" into "no file," which the audit can see.
-
-### 2026-07-07 [61ea595afec0]
-
-The lsof caught the real story: fd 3 open on the ot2 jp2 zip (916MB) with libopenjp2 loaded — the process was CPU-bound decompressing cached pages just to skip them. This exposes a genuine inefficiency in the resume path (`iter_archive_pages` reads+decompresses every page's bytes *before* the skip check), which makes each restart's scan cost scale with cached-page count, not remaining work. Not worth fixing mid-run, but it's the right first optimization if we restart again — check the cache file's existence from the stem before touching the zip.
-
-### 2026-07-07 [ec86b258bd21]
-
-One number validates your call: **swap is at 94.8G used**. That's the footprint the 12-worker run pushed to disk when RAM filled — even though RAM now shows 107G free, macOS lazily left ~95G of (now-dead) pages on swap. So 12 workers *were* genuinely stressing the box into heavy swapping; my tripwire didn't catch it because the eviction happened gradually / during the resume-scan spike, under my 320MB/120s threshold. "Throttle back" was the right instinct — 6 workers keep the box comfortable (that stale swap is reclaimable and harmless with 107G RAM free). I've labeled the new tripwire more sensitively for 6w going forward.
-
-### 2026-07-07 [2a7c6c0f60a9]
-
-The healthcheck is `wget --spider http://localhost:5173`, and inside the container `/etc/hosts` maps `localhost → ::1` (IPv6-first). But the Vite dev server binds only IPv4 `0.0.0.0:5173`, so the probe hits `::1:5173` → connection refused, forever. I confirmed it directly: `wget localhost:5173` → refused (exit 1), `wget 127.0.0.1:5173` → success (exit 0). Classic IPv4/IPv6 healthcheck mismatch — the container has been crying wolf for 43h while serving traffic normally. (The `ws proxy error` log noise is separate — routine HMR websocket churn, harmless given the 200s.)
-
-### 2026-07-07 [92940cf0ee71]
-
-The 2–10 GB figure you spotted has a specific cause: **each kraken worker's RSS grows across its batch** — a *fresh* one is ~4–5 GB, but by page 20 of its batch it's ballooned to ~8 GB (kraken isn't releasing per-page segmentation activation between pages in a single invocation). So `OCR_BATCH=20`, not worker count, is the dominant memory lever right now: 6 workers × ~8 GB peak = ~48 GB. Dropping `OCR_BATCH` to ~5–8 would recycle each kraken process 3–4× sooner, capping peak RSS at ~5 GB → roughly **30 GB instead of 49 GB** — a bigger, safer win than cutting workers, at a small throughput cost from more frequent model reloads. That's the real fix for the swap pressure you've been seeing.
-
-### 2026-07-07 [96990541e6b7]
-
-The completion watch and tripwire were background *bash* tasks in the pre-`/clear` session's task registry. A `/clear` (JICM stop-and-wait) resets that registry, so they can no longer notify *this* context — but the OCR run itself is a detached `nohup` process with no parent tie to my session, which is exactly why it kept advancing (43%→46%) straight through the clear. Detachment is what makes the work survivable; the monitors are the disposable part I just rebuild.
-
-### 2026-07-07 [a1d8390eafcd]
-
-- **Page order is deterministic**: `iter_archive_pages` yields `sorted()` jp2 stems, and cached pages are skipped, so at steady state the frontier is simply the highest page-number written in the active line — I can infer "what's being analyzed" from the filesystem without instrumenting the pipeline.
-- **"Valid" has a precise definition** from `alto_to_records` + `process_batch`: a written file is `{page:str, lines:[{bbox:[4 ints], text:str}]}`; `lines:[]` means a *genuine blank leaf* (the hardened code refuses to cache OCR-failures), so an empty file is suspicious-but-legal, not proof of the old bug.
-- **The domain-specific validity signal is long-ſ preservation** — the entire reason for this custom kraken pipeline is that stock tesseract collapsed ſ→f. So "ſ seen on N pages" is the single most meaningful health check I can surface, more than schema-conformance.
-
-### 2026-07-07 [e3cc0d8d50e9]
-
-The correct fix is chapter-level **global sequence alignment**, not per-verse local search: concatenate the chapter's known verses into one reference token sequence, align the *whole* scan token-stream against it once (Needleman-Wunsch style via `difflib`), then cut at the verse boundaries. This forces verse 1 to map to the *start* of the aligned region and guarantees monotone, boundary-consistent windows — exactly how you'd align reads to a reference contig rather than seeding each k-mer independently.
-
-### 2026-07-07 [1a9d1c06dcca]
-
-This is a real pitfall in aligning historical bibles: the same text carries *different verse divisions* across editions (s_dismas splits Genesis 1:25 so everything shifts +1 from v26). Scoring by shared coordinate silently compares non-corresponding verses. Concatenating the whole chapter and scoring the token stream with `difflib` is order-aware but numbering-agnostic — it measures whether the *text* agrees, which is what "% match" should mean. It's the textual analogue of comparing two genome assemblies by aligned sequence rather than by coordinate when the coordinate systems differ.
-
-### 2026-07-07 [f9f50f456e5b]
-
-- **"Free memory" is the wrong signal on macOS; swap *activity* is the right one.** free=1GB looks alarming, but macOS deliberately keeps free near zero (unused RAM is wasted RAM). The real question is whether it's actively paging — and the fact the prior 6-worker run was stable at this same load tells me a like-for-like replacement is safe, whereas *adding* a second process would tip it into thrash.
-- **This is why the empirical check mattered:** I nearly rationalized "6 idle cores → launch a second run," which would have been correct on core-count and catastrophic on memory. Cores were free; RAM was not.
-
-### 2026-07-07 [8cc8d2989eb6]
-
-- **The fix propagates cleanly and the zero-coverage path is safe.** `run_all` averages each book's `modern_match_mean`/`archaic_match_mean` (now chapter-means) via `_mean(...)`, which filters `None`. Books with no anchor return an early summary lacking those keys — `dict.get` yields `None`, so the overall means simply skip them instead of crashing or counting a 0.
-- **The resumability caveat is confirmed and real:** line 440 skips any book whose file already exists. That's exactly why a premature `--all` would *freeze* shallow consensus for every book — a later re-run wouldn't refresh them. Operational rule (now in the scratchpad): run `--all` once at max depth, or `rm consensus-full/` first to force a refresh.
-- **Memory footprint is bounded per-book** (records written incrementally, not held), so `--all` is disk-heavy with `keep_columns=True` but not RAM-heavy — still, deferring it while OCR holds the memory is correct.
-
-### 2026-07-07 [f73cd85e090f]
-
-- **This is the design working exactly as Sir specified.** The archaic layer converges on `s_dismas` *as ſ-witness depth increases* — a single additional scan moved it +0.033 across the gate. It's textbook MSA behavior: more aligned sequences → higher column conservation → a cleaner consensus surface. Nothing about the logic changed; only the evidence deepened.
-- **Note the modern metric dipped slightly (0.9888 → 0.9732):** adding a noisy OCR witness to the vote can pull the modern consensus a hair, but it stays comfortably above gate. This is the healthy tension — the diplomatic depth we gain is worth a little modern-surface noise, which the text witnesses still dominate.
-- Only `pdf-S04` has landed so far; `pdf-S09nt` and `eebo-nt` are still queued (0 pages), so NT archaic will climb further as they arrive.
-
-### 2026-07-07 [24c6a005ee94]
-
-- **Genesis was validated at 3 witnesses; the full corpus now offers ~10 for OT and ~5 for NT.** More witnesses should *raise* MSA column conservation (deeper alignment), but a batch of noisier OCR could also perturb the consensus surface. Before committing to a multi-hour 73-book `--all`, it's worth a cheap re-check that the anchors still clear their gates at full depth — cheaper to find a regression on 2 books than on 73.
-
-### 2026-07-07 [136399f8da11]
-
-- **Depth strengthened the consensus rather than diluting it** — the conservation-based column vote is robust to adding lower-quality witnesses because a garbled OCR token simply loses the plurality and doesn't reach the consensus surface. This is the core payoff of the multi-witness design.
-- One curiosity: `eebo-vol1` (an OT volume) registered as a covering source for Matthew — likely a borderline coverage-gate false-positive. It didn't hurt the gates (a non-matching witness gets outvoted), so I'll note it but not chase it now.
-
-### 2026-07-07 [86e58c28f56a]
-
-The diagnosis is decisive: **the archaic consensus is genuinely good; the metric is under-crediting it.** Look at Proverbs 1:2–1:3 — consensus "To know wiſdom, and diſcipline" vs s_dismas "To know wiſdom, and diſcipline:" — essentially identical, ſ preserved. Two systematic metric artifacts deflate the score:
-- **`archaic_tok` is too strict.** It preserves ſ/æ/œ (correct — that's the archaic signal) but also treats **u/v, i/j, and vv/w as distinct** ("Dauid"≠"David", "receiue"≠"receive", "vviſdom"≠"wiſdom"). Those are *positional typography* in early-modern print, not spelling differences — the modern fold already collapses them, but the archaic fold doesn't.
-- **s_dismas surfaces interleave apparatus/argument text** (Proverbs 1:1 s_dismas begins "TThe firſt part. An inuitation to ſeeke vviſdom…" before the verse), which the scripture-body consensus correctly lacks.
-
-### 2026-07-07 [468e7da7653f]
-
-- **This is a Goodhart guardrail moment.** I could inflate the archaic number by switching to a recall-oriented metric (does the consensus appear *within* the noisy reference?), but that would be gaming — Sir asked for honest "% match" plus messiness tracking. The u/v/i/j fold is legitimate (it's typography the modern fold already collapses); recall-hacking would not be. So I'll take the honest +0.01 and document the rest as a reference limitation.
-
-### 2026-07-07 [1cc5c59edec9]
-
-The pass/fail split is now **cleanly structural, and it tells the real story**:
-- **The entire New Testament passes archaic ≥0.90** — all four Gospels, Acts, every epistle, Apocalypse — plus Genesis and Josue (29 books). The NT has 5 scan ſ-witnesses *and* full s_dismas coverage, so the archaic layer converges cleanly.
-- **Every book still below 0.90 is mid-OT** (Proverbs 0.79, Leviticus 0.82, Psalms 0.86…) — exactly where s_dismas's apparatus-interleave noise and older/noisier OT scans bite. Notably the poetic books (Proverbs, Job, Canticles, Psalms) score lowest, consistent with harder columnar OCR.
-- **24 later-OT books have no archaic reference at all** (s_dismas ends at Wisdom).
-
-So archaic quality tracks *reference availability and cleanliness*, not consensus capability — which is the honest, defensible reading.
-
-### 2026-07-07 [82015b5ee095]
-
-The tome map naturally has two tiers. **Tier 1 (scripture books)** is deterministic: `locate_region` gives token spans, `st.page` maps them to pages — solid, complete. **Tier 2 (26 frontmatter/backmatter docs)** is harder because those sections aren't in the scripture-locating grid; they live in the *matter regions* — the pages before the first book, between OT-back and NT-front, and after the last book. So I can bound them structurally (by book spans) and then best-effort label them by title-matching, flagged as lower confidence. Also note: `odr_com`'s apparatus isn't in its reads file (scripture-only) — its apparatus is in the raw scrape, so task 5's odr_com arm needs that separately.
-
-### 2026-07-07 [be7a14a30f92]
-
-This is a precision/recall lesson specific to sequence-locating: a real book is a *contiguous run* where nearly every chapter aligns, so `chapters_located / chapters_total ≈ 1` even when per-chapter recall is mediocre. A spurious book-match is noise that only a few chapters accidentally hit, so the fraction is low. Fraction is orthogonal to absolute recall and separates the two cases where a single threshold cannot.
-
-### 2026-07-07 [a7e7a65f8a88]
-
-The right design for a *descriptive* map is **flag, don't drop**. Chapter-fraction is a good *confidence* signal but a bad *hard filter*, because heavily-annotated real books and scattered spurious matches can share the same low fraction. So I'll keep everything above a low noise floor (0.3), attach a `confidence` (high/medium/low) from fraction + coverage, and let downstream consumers (chunking, apparatus) filter — preserving recall while exposing precision.
-
-### 2026-07-07 [bc617355141e]
-
-The flag-not-drop worked well overall (**201/217 entries high-confidence**), and it surfaced something real: `eebo-vol1/matthew` scored fraction **1.0** — every chapter of Matthew located — which means eebo-vol1 genuinely *contains* Matthew (my OT-only assumption about the EEBO volumes was wrong). Meanwhile `pdf-S04` (heavily-annotated 1633 Rheims NT) is confirmed pathological for sequential locating: its real NT books scattered below the 0.3 noise floor while a spurious "jeremie" (0.538) survived. That's fine — pdf-S04's NT is redundantly covered by pdf-S06/archive-nt/eebo-nt/pdf-S09nt, and the one questionable entry is flagged `medium`, not silently trusted.
-
-### 2026-07-07 [adb16232cb45]
-
-Both deliverables landed strong. **Tome map: every one of 76 books has ≥1 high-confidence source** — the whole Bible is cleanly page-mapped (Genesis by 5 sources, Apocalypse by 3, all high). **Apparatus cross-map: 1,333 of 1,334 transcribed blocks are cross-attested** by scan marginalia, with **214,453 scan marginal words** captured region-typed across sources and all 26 frontmatter/backmatter reference-docs mapped to carriers. The near-perfect 1333/1334 cross-attestation confirms the region-typing genuinely separated apparatus from scripture body. (The pyright errors=3 in that log were pre-fix; standalone confirmed 0/0.)
-
-### 2026-07-07 [80a8d99c5f7c]
-
-One honest limitation to flag: the 26 frontmatter reference-docs are mapped at **region level** — every `ot_front` doc (title-page, approbatio, preface, privilege…) currently shares the same 9-source carrier list, because I bound the matter region but haven't yet pinpointed each doc to its specific pages. That last step needs title-string matching within the region and is the natural follow-up. The chapter-level apparatus (the bulk, 1,333 units) is fully cross-attested.
-
-### 2026-07-07 [6ae9aa057cd0]
-
-- **Two layers per verse**: `modern_reading` ("In the beginning God created heaven and earth.") and `archaic_reading` ("in the beginning God created Heauen and Earth") — the ſ/typographic surface is preserved in the archaic layer, normalized in the modern.
-- **The "messiness" metric is the `columns` array**: every token gets `agreement`, `conservation`, and `ic_bits` (information content = log₂(n) − Shannon entropy over the witness column). This is literally sequence-conservation by multiple alignment — the textual analogue of per-position IC in an aligned sequence family.
-- **Consensus outvoting works as designed**: Gen 1:1's `diplomatic_layer` shows one source bleeding the book *Argument*/frontmatter into the verse ("ARGVMENT GENESIS… lacob otherwiſe called Iſrael…"), yet both consensus readings come out clean because the other witnesses outvote the garble.
-
-### 2026-07-07 [57c4916bbed9]
-
-Your "nothing gets superseded" rule is the correct stance for **consensus reconstruction**: every witness — even a lower-quality ſ-normalized OCR — carries independent evidence about what the original printing said. In a multiple-sequence alignment, a "worse" witness still votes, and its agreement/disagreement is signal (it can break ties or confirm a reading). Discarding it as "superseded" throws away votes. This is the opposite of a single-best-source pipeline.
-
-### 2026-07-07 [da5ef0ed90f2]
-
-**odr_com apparatus — true coverage:** 32 books carry real apparatus (all **27 NT** — richest, since the Rheims NT is annotation-heavy — plus **5 OT**: psalms 140 items, genesis 25, lamentations 7, exodus 6, leviticus 3). 9 more OT books have scripture pages but no editorial apparatus (empty). 32 OT books aren't hosted (stubs). This is the site's ceiling — no re-scrape adds what isn't there. odr_com was always the *supplementary* archaic witness; the bulk OT apparatus rightly comes from madueke_b (1334 blocks) + s_dismas + scan marginalia.
-
-### 2026-07-07 [f3e243a7bb00]
-
-The whole re-measurement exists because archive.org facsimile PDFs **stack a low-res color preview over the hi-res content raster**. A naive "first embedded image per page" census reads the preview and under-reports the PDF's true ceiling — which is exactly the bug that produced the original wrong WIN table. `pdfimages -list` enumerating *all* rasters (and taking the max, incl. 1-bit CCITT "stencil" content) is what makes `pdftoppm`'s real feed measurable. The S6 case is the subtle one: same-ish resolution, but the PDF content is **1-bit bitonal** while the jp2 master is 8-bit grayscale — a tonal-depth WIN for ſ/f disambiguation that a pure pixel-count comparison would miss.
-
-### 2026-07-07 [c9dc1913c294]
-
-There's a clean, general fix: since both `pdf-S06` and `jp2-S06` strip to the same alias `S06`, the rule "a `jp2-<KEY>` supersedes any non-jp2 dir that strips to the same alias" handles the swap without hardcoding. Crucially it's **conditionally safe** — until `jp2-S06` exists on disk the exclusion set is empty, so it can't wrongly drop the S6 spine from a consensus run done before re-OCR finishes.
-
-### 2026-07-08 [0dfb169161ba]
-
-The pipeline processes the three sources **sequentially** (`main()` line 370: `for tgt in targets`), and within a source only **kraken OCR is parallel** — the per-page **prep** (jp2 decode + LANCZOS downscale 5100→2400, or pdftoppm render) runs **serially in the main thread** as the generator is consumed (`process_line` line 308). So a *single* prep thread feeds all N kraken workers. That's why CPU stays ~47% idle at 8 workers: the workers **starve** waiting on serial prep. Incrementing worker count therefore has near-zero payoff past ~6 — the real lever is parallelizing prep (e.g. running the 3 sources as 3 concurrent processes, giving 3 prep threads).
-
-### 2026-07-08 [1568e8de5198]
-
-There's also a *hidden* inefficiency I should flag rather than silently fix: `main()` runs the three targets **sequentially**, so jp2:S08 and jp2:S04 won't even *start* until jp2:S06's ~1,700 remaining pages finish (~1.3 h from now). The single-serial-prep bottleneck and the sequential-source ordering are the same root cause — the real speedup is running the sources as parallel processes (3 prep threads filling the idle CPU). But that escalates from 8 to ~11 cores of demand, which is exactly the kind of resource step Sir signaled he wants controlled ("one at a time"). So I'll keep the healthy 8-worker run and *recommend* the parallel split rather than impose it.
-
-### 2026-07-08 [7d258bbc5520]
-
-- **v2 has two source shapes**: multi-volume (S1/S3/S9) nest a `volumes` list; single-volume (S2, S4–S8, S10–S15) inline `file`/`coverage`/`pages` at the top level. The old parser's `for vol in src["volumes"]` silently skips all 12 single-vol sources.
-- **`archive_item` exists only on multi-vol volumes** — single-vol sources have no such field. So the stable per-volume key is the `file` stem (multi-vol) or the `source` S-number itself (single-vol).
-- **Golden-diff must be semantic, not byte**: v2 deliberately rewrote coverage/title text and renamed `archive_id`→`archive_item`, so descriptive fields *will* differ. The invariant to preserve is the mapping `source → (ocr_dir, ocr_pages, ocr_status, used_in_consensus)`.
-- **One downstream coupling to flag**: v2 coverage strings are richer (S14 = "OT: Book of Psalms only", S2 = "…Genesis-Job…"), which will slightly change flag_poetic's name-match when the denominator is eventually regenerated — I'll re-run flag_poetic in the post-OCR sequence, not now.
-
-### 2026-07-08 [32c0243639fb]
-
-- **Scan mapping is 100% preserved** — all 20 (source→ocr_dir) keys match the golden. The parser fix is correct.
-- **Two diffs are expected/correct, not regressions**: (a) S8 now resolves to `jp2-S08` because pdf-S08 never existed — my gate correctly treats jp2-S08 as S8's *only* OCR dir (not a supersession); (b) S5's page count moved -1→16 from live disk state since the golden was frozen at 13:27. Both are reality catching up, not logic errors.
-- **One genuinely-discovered staleness** (pre-existing, *not* from my edit): the 2 Madueke-source entries and 1 exclusion vanished because `find_pdf`/exclusion globs still point at the `Original/` dir that the reorg emptied. That's a separate path-staleness bug to fix in the post-OCR regen, not a manifest-schema issue.
-- **`archive_id` has no external consumers** — the rename to `archive_item` is safe.
-
-### 2026-07-08 [ee8b4efba750]
-
-- **jp2 dedup/supersession is fully wired** in consensus_v2 (`_STRIP_PREFIXES` includes `jp2-`, `_dir_key` strips prefixes, completion-gated supersede at `jp2_pages ≥ FRACTION × pages[twin]`, and superseded twins are `continue`'d). Now that jp2-S06/S08/S04 are complete, they'll evict their pdf twins on rebuild.
-- **The S06-geometry worry is empirically moot.** `DEFAULT_BODY = (0.11, 0.88)` at line 82 is **normalized fractions**, not absolute pixels, and only the three measured S1 tomes (nt-1582/ot1-1609/ot2-1610) carry exact bands — S06 falls to `DEFAULT_BODY`. So jp2-S06 at 2400w vs pdf-S06 at 2909w is irrelevant; the column split is width-independent. Same for `_reading_order` (gutter detected as a fraction of span).
-
-### 2026-07-08 [800baedc6ba0]
-
-- **jp2-S06 is NOT worse than pdf-S06 — it's equivalent-to-marginally-better.** Mean Greek contamination: jp2 **0.20%** vs pdf **0.25%**; ſ marks and line lengths are within noise page-by-page. The garbled page I first hit (S06_1401) was an outlier — a dense marginalia page — not systematic.
-- **Interesting corollary**: the 8-bit-gray jp2 doesn't dramatically beat the bitonal pdf at 2400px, so the OCR bottleneck is segmentation/model, not source bit-depth. But since jp2 is *not worse* and is the cleaner-provenance master, the spine swap carries **no regression risk**.
-- **The real quality gains in this rebuild come from the column-sort reading-order fix (#5) and dedup (#6)** — those apply regardless of jp2-vs-pdf. So the rebuild is well-justified.
-
-### 2026-07-08 [fe201178becc]
-
-Genesis ch1's scan witnesses are now `['archive-holiebible-ot1', 'archive-ot1-1609', 'eebo-vol2', 'jp2-S06', 'pdf-S03a']` — **`jp2-S06` is in, `pdf-S06` is gone.** The completion-gated supersession fired: the hi-res jp2 spine replaced its low-res twin, while sources without a jp2 twin (pdf-S03a, the archive/eebo witnesses) are correctly retained. Clean run, no errors, conservation 0.88.
-
-### 2026-07-08 [181c4b5b4f5c]
-
-The recall gap comes from **chapter-header OCR sensitivity**, not structure. On page 2000, pdf got "CHAP. IIII" right while jp2 garbled it to "TH AP. IIII" — and the locate algorithm anchors on "CHAP." markers to place chapter boundaries. jp2 and pdf garble headers *differently* (jp2 wins some, loses others), netting a small recall loss for jp2. This is inherent OCR variance, not a fixable structural bug. **Net: jp2-S06 is not the quality win the initiative assumed — it's ~equal to pdf-S06 with marginally lower locate recall, and the final consensus is neutral (0.9542→0.9531).**
-
-### 2026-07-08 [23bfa9367637]
-
-- **flag_poetic v2's "used_in_consensus" distinction is what keeps the worklist honest.** eebo-vol4 Psalms is `critical/MISSING/used_in_consensus=True` — it's *voting* in the consensus (263 OCR'd pages) yet contributes **0 located chapters** because its columnar layout defeats sequential-locate. That's a genuine silent hole. By contrast pdf-S02 job is `critical/MISSING` but `used_in_consensus=False` (benched OT-part-1), so it's correctly routed to the full-OCR track rather than fabricated as a poetic flag. Same "critical" label, very different remediation.
-
-### 2026-07-08 [8e9543606d19]
-
-- **Chapter "locate" doesn't anchor on Psalm headers — it matches canonical verse *text* against the folded OCR token stream** (`D.locate_region(probe, st.fold, cursor)`, forward-cursor sequential). A book is dropped as noise if <30% of its chapters locate at ≥0.35 recall (`NOISE_FRACTION`, `CH_FLOOR`).
-- **This means the failure mode is about the *fold's token order*, not header OCR.** If the 2-column reading-order sort interleaves left/right columns in the fold, a Psalm's verses get split by intervening tokens from the other column, so `locate_region` can't find a contiguous-enough span. That's consistent with 0/150 psalms locating even while an individual page like p80 reads coherently top-to-bottom.
-- **So the prior "half-page re-OCR" remedy is a hypothesis, not a diagnosis.** Before spending hours re-OCRing, I should confirm whether the fold actually interleaves columns — because if the reading-order sort is the culprit, a much cheaper detect-only re-fold could fix it.
-
-### 2026-07-08 [33ae9c6e0043]
-
-- **The "columnar poster-child" story is wrong.** eebo-vol4 Psalms is single-column body text with **inline `(n)`/`(o)`/`(p)` commentary annotations** printed *within* the body column (x-centres 428–510, squarely inside the body mask [110,883]) — not 2-column typesetting.
-- **These annotation lines fold *between* the verses**: v14 → `(n) The vhole Church prayeth…` → v15 → `(o) The Prophet fores heweth…` → v16 → `(p)…` → v17. So `locate_region`'s sequential verse-text match sees each Psalm's verses split apart by commentary tokens, recall craters below `CH_FLOOR` 0.35, <30% of psalms locate, and the whole book is dropped as noise → **0 located**.
-- **This kills the prior remedy.** Half-page L/R re-OCR would bisect the single body column and *still* contain the inline annotations — wasted hours. The correct, cheap fix is **detect-side**: recognize `(x) …` annotation lines and separate them from the verse fold (route to apparatus), then re-fold and re-test locate. No re-OCR unless the verse OCR itself proves inadequate.
-
-### 2026-07-08 [af08f6f299d5]
-
-Two grounding facts sharpen the plan:
-- **Identity is token-level today, not character-level** (`consensus_v2.sim()` uses `difflib` on tokens). Your char-level requirement is a real, additive change — not a reuse.
-- **Body/marginal separation already exists but is geometry-only** (`load_stream` masks by x-centre band `DEFAULT_BODY 0.11–0.88`). That's *why* the eebo-vol4 `(n)/(o)` footnotes still pollute: at x-centre 428–510 they sit *inside* the body band, so a purely geometric mask can't catch them. Contiguity-based localization needs a **content** signal (parenthetical-marker lines) on top of geometry. The fix is precisely locatable.
-And the four book-level gates to remove are named: `consensus_v2` `COVER_FLOOR` (L40/L360), `build_tome_map` `NOISE_FRACTION` (L150), `detect_our_ocr` `BOOK_ALIAS_FLOOR` (L86).
-
-### 2026-07-08 [a960b20a42b0]
-
-- **Modern identity** must fold archaic OCR ("The Prophete Dauid") hard enough to match modern Janvier ("The Prophet David") — that's exactly `spelling_glyph_model.fold_diplomatic`'s job (strip silent-e, u/v↔, collapse doubles → a modern-neutral *skeleton* where archaic and modern of the same word collapse identically). It measures **content captured**.
-- **Archaic identity** must do the opposite: a *light* fold (ſ→s for the metric, vv→w, u/v/i/j typography) that **keeps** archaic spelling (Prophete≠Prophet), so the OCR must match s-dismas's diplomatic surface. It measures **surface fidelity**.
-Same word, two folds, two different questions. Using the aggressive skeleton fold for both would collapse the distinction and let garbage pass the archaic gate.
-
-### 2026-07-08 [46eb2eff214d]
-
-Note what the A/B also reveals: *before* the fix, `detect_book` already attested 70 chapters at probe_recall 0.72 — well above the old 0.35 floor. So Psalms wasn't dropped by `BOOK_ALIAS_FLOOR` at all; it was laundered to "0 located" *downstream* by `build_tome_map`'s `NOISE_FRACTION` book-drop. That's the smoking gun for why removing the book-level gates matters independently of the contiguity fix — two different gates, two different failure modes, both hiding the same recoverable data.
-
-### 2026-07-08 [b6ee0e73cfe4]
-
-The key realization: the double-bind design *already contains* the correct replacements for everything these floors were doing. Presence/absence belongs to the **source-index** ("ought-to-contain"), garbage-rejection belongs to **per-verse `ATTEST_THRESHOLD`** and **char-identity in qc_audit** — never to a recall floor. So the floors weren't protecting quality; they were a redundant layer whose *only* unique effect was the ability to launder a mangled-but-present book to zero. That made them pure liability. `book_coverage()` survives, but demoted to a **recorded signal** (`coverage_recall`), never a branch.
-
-### 2026-07-08 [122269fe1df0]
-
-The two folds are deliberately opposed. The modern fold collapses spelling variation to test *meaning recovered*; the archaic fold preserves spelling to test *surface fidelity*. That's why a faithful archaic OCR passes **both** (content matches modern Janvier via the skeleton; surface matches archaic s-dismas via the light fold), while a modernized transcription would pass modern but *fail* archaic — which is exactly what you want, because the deliverable's archaic layer (idx109) must reproduce the diplomatic surface, not a clean-up. The self-check at the bottom of the file proves the discrimination is real (`archaic-vs-sdismas − archaic-vs-modern ≥ 0.05` per differing word, compounding at chapter scale).
-
-### 2026-07-08 [0fc85e8964e8]
-
-So your idea #1 ("lift all sources into the same structure so matching is a coordinate 1:1") is **already done for scripture across all transcribed sources**, and OCR emits into the identical schema. The liftover you're asking about isn't a build-from-scratch — it's a *promotion*: make the skeleton-keyed reads the authoritative artifact and attach per-cell scores to them. The genuinely unbuilt part is **apparatus/marginalia** (only `madueke_b` currently carries `apparatus_blocks`) — which is also the harder coordinate problem, more below.
-
-### 2026-07-08 [89491a15ec99]
-
-In your terms this is a **pangenome presence/absence matrix**: skeleton loci are the core genome, novel OCR spans are accessory insertions, missing reference cells are low-depth/deletion calls. The anti-laundering property falls out for free — there is **no book-level cell to drop**. A mangled verse is a low-identity row (→ re-OCR worklist), never a silent absence; a source is never accepted/rejected wholesale. This is the structural version of the "record, don't drop" fix we just made, generalized to the whole corpus. It's the thing to build forward to, and qc_audit's `coverage-audit.json` *is* this table.
-
-### 2026-07-09 [e6f2df7eb8e9]
-
-Deleting a superseded number is not enough — a builder greps for `0.85` and uses whatever they find. The durable fix is to leave a *tombstone* ("the stale 0.85 was a pre-QC-framework relic") so the next reader understands the number is dead, not merely absent. That's the documentation analog of a deprecation shim: the old symbol still "resolves" to an explanation instead of silently vanishing.
-
-### 2026-07-09 [3c40902cec19]
-
-The whole sprint was an exercise in **separating decision from execution**. Everything folded here is *specification* — the docs now say precisely what the code must do (activate `edit_ratio`, exclude gaps from plurality, enforce the cross-lineage floor), but the §11 hold means not one line of `char_identity.py` / `consensus_v2.py` was touched. That discipline is what lets a plan survive a context clear: the next session resumes from an unambiguous contract instead of half-applied code.
-
-### 2026-07-09 [0664ff6c8a8a]
-
-The manifest already carried per-volume content `sha256` — the generator just wasn't threading it into the witness record. This is the ideal fix: propagate an existing *real content hash* rather than fabricate an archive-id proxy. The critique (C4) was right that the schema needed unifying *first* — S1/S3/S9 carry `volumes[]` (multi-hash) while S2/S4/S5/S6/S8/S10–S15 are flat (single hash), so the witness-level sha256 must roll up deterministically (single→itself, multi→hash-of-sorted-hashes, a mini Merkle root) to give one join-stable value per witness.
-
-### 2026-07-09 [335637544e78]
-
-This is the difference between an *identity* metric and a *completeness×identity* metric. `difflib`'s ratio is `2·M/(len₁+len₂)`; if the OCR side is missing verses, the extra unmatched modern text drags the ratio down even when every character the OCR *did* produce is perfect. So a whole-chapter concat conflates "how faithful is the text?" with "how much of the chapter did we capture?" — two axes the QC contract may want separated. I need to quantify which axis is driving the sub-0.90 scores before concluding the scans "fail identity."
-
-### 2026-07-10 [320ac135b584]
-
-The flips reveal *why* archaic-preeminence matters, concretely: e.g. `psalms/130 · S14` scores modern 0.882 (fails the old modern gate) but archaic 0.903 (passes) — a faithful 1582 reading that simply diverges from Janvier's modern edition. The old AND-gate would have discarded a *good* witness; the new gate keeps it. That's the "right yardstick vs. excused failure" principle showing up in the actual numbers, not just the design doc. The report also surfaces `genesis/8` having no archaic reference at all in the baseline — exactly the gap the odr_com backfill (task 8) is meant to close, and now visible for Sir to direct.
-
-### 2026-07-10 [bf2208ddf2ee]
-
-The Janvier `conf-front` is the **Confraternity revision (1941, Challoner-Rheims)** — "Nihil Obstat / Imprimatur: Bishop of Paterson", no mention of Rheims 1582, Cardinal Allen, or Gregory Martin. It is a *different work* from the original 1609–1610 Douay-Rheims whose front matter (title-page, approbatio, preface, privilege, censura) the physical scans S1–S15 actually contain. Scoring original-DR OCR against Confraternity text would be measuring against the **wrong standard** — precisely the kind of laundering the No-Silent-Degradation guardrail forbids. So front/back-matter cannot piggyback on the existing Janvier reference; it needs its own faithful reference.
-
-### 2026-07-11 [d01c3eaa29f0]
-
-This is a classic **multi-source state reconciliation** problem. Three state records disagree: the JICM checkpoint (LLM-compressed, lags), the scratchpad LATEST block (hand-authored, most current), and the filesystem (ground truth). Per my "Empirical Before Claim" discipline, filesystem mtimes are the tiebreaker — and they confirm the scratchpad, not the checkpoint. Trusting the checkpoint would have made me redundantly re-run a completed 90-second audit.
-
-### 2026-07-11 [557e215aa3f8]
-
-This is precisely the zsh word-splitting trap: `for book in $ALL` iterates once over the whole string in zsh, but 76 times in bash. The robust fix isn't to fight the shell with `${=ALL}` — it's to move the expansion into Python via an `"all"` sentinel, so argument handling never depends on shell field-splitting. I'll also add a `QC_OUT` override so full-scope writes to its own file and can't clobber the validated pilot artifact again.
-
-### 2026-07-11 [e4aa4afb33e8]
-
-The clobber is legible right in the artifact: `scope_books: ["genesis exodus leviticus ... 4-esdras"]` — a list with **one** element that is the whole slug list. In bash, `for book in $ALL` would have split on `$IFS` into 76 words; in zsh, unquoted `$ALL` stays a single word, so `argv` was length-1 and matched no skeleton book. Moving the expansion into Python (`argv[0] == "all"` → read slugs from `skeleton.json`) removes the dependency on shell field-splitting entirely — the fix lives where the data lives.
-
-### 2026-07-11 [bbe6a805d83f]
-
-The fix also embodies a defense-in-depth principle worth noting: the `all` sentinel removes the *cause* (shell field-splitting), while `QC_OUT` contains the *blast radius* (a bad run can no longer overwrite a validated artifact). Fixing only the sentinel would have been sufficient to make this run correct, but the output-isolation guard means any *future* mis-invocation degrades to "wrote a junk sidecar file" instead of "destroyed the authority." That's the difference between correcting an error and making the error class non-catastrophic.
-
-### 2026-07-11 [b311aaada5e4]
-
-This verse-content defect is fundamentally a *layout-extraction* problem — pdftotext's linearization puts the decorated initial in an inconsistent stream position, and argument-vs-scripture can't be reliably separated from the flat text layer alone (both are prose; the argument even wraps to lowercase lines). That's precisely what §12 P4R.B "layout-aware re-OCR" exists to solve. It is distinct from the chapter-heading structure defect, which *was* solvable from the text layer and is now fixed.
-
-### 2026-07-11 [40010ddbef4f]
-
-The −18 archaic-pass delta is the *right* direction. Before the splice, some genesis-26/psalms-52 scan-verses false-passed against a wrong or backfilled reference (the misnumbered "chapter 25", the severed psalm heading). Now they score against the faithful 1610 archaic surface — which is stricter — so a few correctly flip pass→fail. A truer reference that *lowers* the pass count is strengthening the re-OCR case, not degrading it. `modern` stayed flat because the splice only touched archaic (s_dismas) reads.
-
-### 2026-07-11 [f6070f35b51f]
-
-Adding john was a clean scope test: because the report generator is data-driven off `skeleton.json` (not a hardcoded book list), the only code change needed was one line in `PILOT_BOOKS` — the audit, rollups, testament grouping, and all figures absorbed the 5th book automatically. The faithfulness proof is that john's 413 archaic passes showed up as *exactly* +413 in the report's global count. That decoupling of scope-config from render-logic is what makes "confirm each iteration" cheap to iterate.
-
-### 2026-07-11 [1fec58284da9]
-
-The banner is the highest-leverage change of the whole batch, because it closes the loop on *why* v5 "didn't look like an update." The delta logic keys on `input_sha256`: when the audit JSON is byte-identical (a report-code change like v6), it says "presentation-only"; when the audit data changes (a splice or a new book), it shows the verse/book deltas. So from now on, one glance at the top tells you both *which* version you're on and *whether the underlying numbers moved* — a stale tab becomes self-evident instead of silently misleading.
-
-### 2026-07-11 [8999ca179c41]
-
-The load-bearing design decision was the *union*: `expected_witnesses ∪ actually-attesting`, not just one or the other. Filtering purely on "does it attest" would have hidden an expected source that failed to localize at all — silently erasing a real coverage gap. Filtering purely on "expected" would have dropped a source that unexpectedly *does* attest. The union hides only what's both **not expected and not present** — the genuinely spurious gray rows — while keeping every real gap visible. That's the No-Silent-Degradation line drawn precisely: a missing witness that *should* be there stays on screen as a gap; one that was never supposed to be there disappears.
-
-### 2026-07-12 [200c354792ee]
-
-Two raw-count comparisons are **scope-confounded**, and Sir specifically asked for *rates* and *proportions* for exactly this reason:
-- **v4→v5** flagged "REGRESSED" — but the pass *rate* only dropped because adding John enlarged the denominator with a hard book. That's a scope change, not a quality regression.
-- **v7→v8** flagged apparatus_worklist 2→3 as "regressed" — but the worklist grew because we *added* the NT preface to tracking, i.e. more coverage, not worse quality.
-So raw counts across a changed universe aren't like-for-like. I'll drive verdicts off rates/proportions (per Sir's list) and explicitly flag scope changes so a scope expansion is never mislabeled as a regression.
-
-### 2026-07-12 [f5cee998216c]
-
-- The SKILL.md project-binding (line 85) reads `Projects/palimpsest/core/.scratch/...` — but a future session invoking this skill runs from `/Users/nathanielcannon/Claude/Project_Aion`, where that relative path resolves to a non-existent `Project_Aion/Projects/...`. A skill's "one non-negotiable gate" pointing at an unresolvable path is a silent trap.
-- This is exactly why the "verify a named path before recommending it" rule exists — the skill *reads* complete, but a path claim is only true relative to a specific cwd, and skills get invoked from the primary working dir.
-- Absolute paths are the fix for cross-directory reference docs: no cwd ambiguity, resolves identically from any Archon session.
-
-### 2026-07-12 [aaff92ff2e1b]
-
-- A skill or reference doc "reading complete" is not the same as "correct" — a path claim is only true relative to a specific cwd, and skills are invoked from the primary working dir, not from wherever the deliverable lives.
-- The stale checkpoint is the useful lesson here: JICM captured intent-in-progress, so the right resume move was to **check disk reality first** rather than re-execute the TODO list and duplicate finished work.
-
-### 2026-07-12 [b66697c0cccc]
-
-- Two distinct repos share the `Claude/` parent: `Project_Aion` (my cwd, where the skill lives) and `Jarvis`. The lock error surfaced Jarvis's git-dir because a background watcher process was committing there — a good reminder that in a multi-Archon workspace, git write-locks can appear from processes you didn't start.
-- The guardrail "investigate the lock holder, don't delete it" paid off: had I force-removed it, I could have corrupted an in-flight watcher commit. Waiting cost seconds and the lock cleared itself.
-
-### 2026-07-12 [9493d40707d1]
-
-- A single git diff *hunk* can contain multiple independent logical changes. Here the `@@ -50,13 +53,14 @@` hunk holds three: the P2-envelope edit, the AI_OCR line, and the execution-envelope edit. "Commit the P3 wiring" means committing *one added line* out of that hunk.
-- `git add -p` needs interactive stdin (unavailable here), so the clean non-interactive tool is `git apply --cached` with a hand-built patch whose context lines match HEAD. The context lines I'll use (P3-harness line, P4 line) are unchanged vs HEAD, so the patch applies to the index without pulling in the neighboring edits.
-
-### 2026-07-12 [2fb99341f84b]
-
-- **Full verify contract green**: pyright 0/0, `node --check` rc=0 on the 2 MB inline script, faithfulness recompute shows the HTML embedded rung-0 summary EXACTLY equals `diag-reocr/index.json` (5 counts + 9 records + gate string all match). The v9 → v8.1 empirical comparator correctly flagged this as "NO EMPIRICAL CHANGE (PRESENTATION-ONLY)" — v9 adds a sign-off surface, no rescoring.
-- The empirical version-compare module Sir installed in v8.1 is now paying off: it says the plain truth about what changed, so a presentation-only v9 can't masquerade as an empirical gain.
-
-### 2026-07-12 [4045ffa5fdfb]
-
-- Kraken's default `blla` found only **2 generic "text" regions** — it does NOT type marginalia/header/verse-rail separately. So region suppression can't come from kraken's region labels; it has to come from geometry.
-- The current x-band heuristic (0.11–0.88) correctly kicks out the left signature word `Abralam.` (x=0.07) but **fails on the running header** `GEN ES 1s.` (x=0.46, horizontally centered → wrongly kept as body). The header is distinguishable by *y-position* (top of page), not x. That's the concrete rung-1 fix.
-- One coremltools warning fired on model load, yet recognition produced clean text — so inference used a working path. I'll verify the recognizer isn't silently degrading before trusting a score.
-
-### 2026-07-12 [99b3620eaf42]
-
-- On **Genesis** (1667×2342), Surya typed all 3 running-header fragments as `PageHeader` — *including the centered "GENESIS" at xc 0.46* that the fixed x-band (0.11–0.88) structurally could not suppress — and it boxed the **right-margin apparatus** ("Her father hauing perhaps...") as a *separate* Text region from the main body column (xc 0.45), plus the bottom watermark as `Picture`/`PageFooter`.
-- On **Psalms** it cleanly typed header/footer/watermark; on the **degraded Matthew** scan it found body blocks + a `SectionHeader` but no header/footer (degradation-limited).
-- The key shift: Surya groups *lines into regions*, so body-vs-margin becomes "pick the body region among ~3 boxes" (robust) instead of "which of 50 lines by x-position" (the band that failed). Body and marginalia share the `Text` label, so selection among Text boxes is still geometric — but now by region area/centrality, which is exactly the per-layout fix.
-
-### 2026-07-12 [f9cf398bd694]
-
-- **The layout lever is real**: on the same image with the same recognizer, Surya body-region selection beats the fixed x-band by **+0.0205** (0.5499 → 0.5704), measured through the audit's own `detect_book` scorer. Surya dropped 9/50 lines (running header + right-margin apparatus + watermark) and preserved ſ. The redesign direction is validated.
-- **But it's small, and resolution bites**: my re-OCR of the *downscaled 1667w diag raster* scores 0.55–0.57, which is **below the existing full-res OCR's 0.6153** for the same Genesis S1. So re-OCR only pays off at *full resolution* — and even then, the layout lever (+0.02) can't close a 0.62→0.90 gap that is **recognition-dominated**, not layout-dominated.
-
-### 2026-07-12 [fb1edcba56e5]
-
-- At 300 DPI: baseline 0.5228, surya 0.5177 (Δ **−0.005**). Higher DPI did **not** help, and the layout lever flipped sign — so on a single page the ±0.02 "lever" is within noise, not robust.
-- More important: my kraken+reichenau re-OCR scores ~0.52–0.57 *content identity* regardless of DPI. The **recognizer is the ceiling**, not layout or resolution.
-- But I've been comparing kraken-vs-kraken — I never scored the **existing diplomatic OCR** through this same single-page path. The "existing = 0.6153" figure is from the full audit (all pages, different verse set), so it's not a clean comparison. I must fix that before concluding.
-
-### 2026-07-12 [8f97b87e501a]
-
-- The earlier "0.6153 existing" was a *different verse set* (full audit, all pages). On the actual page, existing OCR is 0.5506 — so Surya re-OCR genuinely **beats existing by +0.020**, measured apples-to-apples. The layout lever is real and positive.
-- **But it's ~0.02 against a 0.35 gap to the bar.** Existing≈0.55, re-OCR≈0.57, bar=0.90. The gap is **recognition-dominated**; the reichenau recognizer ceilings ~0.55 content regardless of DPI (300 DPI was *worse*). Layout and DPI are not the levers to 0.90 — a stronger recognizer and/or multi-witness consensus are.
-
-### 2026-07-12 [ef7856660071]
-
-- **Wrong recognizer for the language**: `reichenau_lat` is a *medieval Latin* model, but this text is *early-modern English* ("I beseech thee, and doe mercifully with my maister Abraham"). A Latin language-model/letterform prior on English is a systematic error source — not an intrinsic ceiling.
-- **Likely input mismatch**: kraken warns these are *legacy* models (expect binarized, fixed line-height ~48px input). I feed un-binarized grayscale, and 300 DPI being *worse* than 150 is the classic signature of line-height/scale mismatch, not a recognition limit. Both are fixable pipeline faults, not ceilings.
-
-### 2026-07-12 [026ff70a34fe]
-
-- The **well-aligned verses recognize beautifully**: v18=0.980, v24=0.976, v21=0.955, v16=0.917, v14=0.907. Example v18 OCR "Vho anſwered Drinke my lord And quickly she let dovne the tankard vpon her arme and gaue him drinke" vs REF — near-perfect, ſ intact. **reichenau is NOT the ceiling.**
-- The **low-ratio "verses" are a measurement artifact**: e.g. `[v17] ratio=0.224` pairs OCR about "the daughters of the inhabiters" (real Genesis 24:13 content) against a REF "againe he digged other welles" — which is **Genesis 26:18**, a different chapter. My single-page `detect_book` hack has no surrounding pages to localize with, so it smears the page's OCR across verse slots in chapters 24/25/26/30/11 and scores good OCR against unrelated refs.
-- So "~0.55, recognition-bound" was **my harness mis-aligning**, not the recognizer. On correct alignment this page is ~0.85–0.98 — near/above the 0.90 bar.
-
-### 2026-07-12 [12a23354115a]
-
-- **Alignment-free, the OCR body is 0.8171 identical** to Genesis 24:12–31 (ſ 55/60 preserved) — vs the 0.5704 "per-verse" mean. The recognizer is doing ~0.82, not ~0.55.
-- The per-read drift proves it: OCR of Genesis 24:13 got assigned to the `26/17` slot (oracle best-match 24/13); 24:24 content landed in `30/21`; etc. My **single-page `detect_book` had no neighbouring pages to localize with, so it scattered good OCR across wrong-chapter verse slots** — fabricating the low scores.
-- So "recognition-bound / need consensus or vision-LLM" was **my measurement harness failing**, not the model. Real gap on this page is 0.82→0.90, and the user's instinct (adapt per-page, iterate configs) is exactly the right lever to close it.
-
-### 2026-07-12 [2bbc60357f50]
-
-- The user's "take the best config per page" is powerful but needs a *selection signal*. On gold/pilot pages we can select by score against the reference; on the **full work** (no reference) we'd need a reference-free proxy — dictionary-word rate, LM perplexity, or **multi-config agreement** (run N configs as pseudo-witnesses, per-line majority vote). That last option unifies per-page adaptation *and* the consensus lever.
-
-### 2026-07-12 [806e64c8fbc9]
-
-- **Removing every space changes the score by +0.0013 (nil).** So the 0.82→0.90 gap is *not* word-fusion/missing-spaces — and since `fold_archaic` already folds ſ/u-v/i-j/æ/vv, it's not a typography-fold artifact either. **The last "it's just a scoring artifact" hypothesis (a) is refuted.**
-- The residual gap is **genuine recognition loss**: glyph substitutions plus a **162-char (~6%) length deficit** — dropped short words / partial lines. That points at recognizer + segmentation levers (rung-2/3), not more normalization tuning.
-
-### 2026-07-12 [8631e692219a]
-
-- I'll transcribe *line-by-line as printed* (not verse-by-verse) so the segmentation ground truth is usable to fine-tune the line splitter. Verse boundaries are marked with the printed `†` glyph the edition uses.
-- I'll flag ANY glyph I'm not 100% sure of with a `⟨?⟩` marker rather than silently guess — that's the whole point of a "perfect" reference (uncertain-flagged is honest; silently-guessed pollutes the training set).
-- The right-margin has a small annotation (marked with `‖` in body, expanded in margin). I'll transcribe both and preserve the linkage.
-
-### 2026-07-12 [9af613026e0f]
-
-- **Existing OCR is 0.8955 (fold-archaic) / 0.8819 (raw surface) against my perfect transcription** — near the 0.90 bar! The sweep reported 0.8163 vs s_dismas, but that was mostly measuring **s_dismas-vs-printed-page divergence**, not OCR-vs-page accuracy.
-- **s_dismas itself only agrees with the actual printed page at 0.8670** — the reference we've been chasing 0.90 against is only 87% faithful to the 1609 print. **The 0.90 bar was structurally unreachable against s_dismas** by ANY recognizer, because s_dismas isn't the printed page.
-- **This vindicates your entire ask.** The reason to bench against MY perfect transcription is exactly this: the "reference" (s_dismas) has its own ~13% divergence from what's actually printed. That divergence was being falsely attributed to the recognizer.
-
 ### 2026-07-12 [2dabeeff71b6]
 
 This decomposes the "0.82→0.90 gap" I was going to spend weeks on:
@@ -1067,7 +87,7 @@ The validation confirms the Ollama outage was the whole story: with it restored,
 
 ### 2026-07-15 [486223d256a8]
 
-The Jarvis-dev (W5) `claude` command currently has **no `--model` flag** — so it inherits the CLI default rather than `AION_MODEL`. To put *this window* on Fable 5 I must add `--model '${AION_MODEL}'` explicitly, not just change line 55. The same `--effort high --add-dir…` fragment appears **4×** (both the add-to-existing and fresh-create paths, each with resume/session-id variants), so one `replace_all` fixes them together. And `~/Claude/Projects` + `~/Claude/GitRepos` are *outside* cwd, so they need explicit `--add-dir` grants (alfred is already under cwd).
+The Jarvis-dev (W11) `claude` command currently has **no `--model` flag** — so it inherits the CLI default rather than `AION_MODEL`. To put *this window* on Fable 5 I must add `--model '${AION_MODEL}'` explicitly, not just change line 55. The same `--effort high --add-dir…` fragment appears **4×** (both the add-to-existing and fresh-create paths, each with resume/session-id variants), so one `replace_all` fixes them together. And `~/Claude/Projects` + `~/Claude/GitRepos` are *outside* cwd, so they need explicit `--add-dir` grants (alfred is already under cwd).
 
 ### 2026-07-16 [d73a1ccfdd10]
 
@@ -1774,3 +794,271 @@ And look at what MISREAD (51.5% of S6's residue) is made of: `truit`/`fruite`, `
 Worth 5 verses × 4 sources = **20 cells**, recoverable by reference repair rather than OCR. And they sit in ch26, ch47 and ch41 — three of the worst seven.
 
 My router labelled that signal *"a ceiling — never chase."* That is the self-defeat, and it was mine.
+
+### 2026-08-02 [27cd7196d502]
+
+- `HostConfig.LogConfig.Config` is `{}` on the live container while the compose file declares `max-size: 10m` / `max-file: 5`. That empty map is the direct evidence the running container predates the commit — an unbounded json-file log that grows until the disk complains.
+- This also confirms the outage is *worth taking*: had the config already matched, the recreate would be pure downtime for nothing.
+
+### 2026-08-02 [99232fdbc054]
+
+This is a **stale-comment-as-load-bearing-assumption** failure, structurally the same class as the B5 prefix bug in the digest work: a constant (`50`) was correct only relative to another value (`300000`) recorded nowhere but a comment. When the referent moved, the constant silently inverted its meaning. The durable fix isn't a better comment — it's removing the coupling entirely, which is what `DISABLE_AUTO_COMPACT=1` does. No percentage, nothing to keep in sync.
+
+### 2026-08-02 [e3e31a6ae1c3]
+
+This reframing matters because it moves the suspect from *"the file wasn't refreshed"* to *"the generator read the wrong bytes."* And there's a known mechanism sitting right there: the Jul 27 forensics found **transcript triplication** — 173 sessions written to 447 files, because the `~/Claude/Jarvis` symlink plus underscore/hyphen path encodings produce up to three project directories per session. If `jicm-prep-context.sh` resolves my session ID against the wrong directory, it gets a real, valid, *abandoned* copy of the transcript.
+
+### 2026-08-02 [4663320a7a08]
+
+- The doc set is **deliberately layered**: `CAMPAIGN-STATUS.md` is *state* (what the board says, what's next), `CHAPTER-WORKFLOW.md` is *method* (the round template, the router, the pinned negatives), `SPRINT-STATUS.md` is *narrative history*. `SPRINT-STATUS.md`'s own header tells you to read the other two first — and its STATE block is now four sessions stale (0.7935, 28 commits). That layering is the reason a stale handoff is survivable: state lives in the artifact, not the prose.
+- The docs contain an explicit anti-Goodhart instruction (`CAMPAIGN-STATUS.md:424`): *"a monitor must read the ARTIFACTS (matrices), never a prose document — a heartbeat once grepped this file and silently reported an empty closed-chapter list when it was reworded."* So even the 0.8576 figure I'm quoting is prose; step 0 of any round re-derives it from `.campaign/matrix-genesis-N.json`.
+
+### 2026-08-02 [6f222c41769c]
+
+This is the highest-value finding in the whole doc set and it's worth naming precisely: the campaign's binding constraint is **not** recognition accuracy — it's *attestation provenance*. The project only accepts a ſ-surface closure that some arm **observed**, never one inferred. So a fine-tuned ſ-faithful model that isn't wired into the attestation path leaves ~1,080 correctly-read cells sitting open. The fix is plumbing, not training. `CHAPTER-WORKFLOW.md` B7 rung 1 ("read the page better") is where we are; this is arguably rung 1 already paid for and not collected.
+
+### 2026-08-02 [a43e3b565ada]
+
+Worth noting *why* going to `build()` matters here: `matrix-genesis-N.json` stores `"open": open_cells[:60]` (`chapter_campaign.py:143`). Chapters with more than 60 open cells silently drop the rest — fine for triage display, fatally wrong for a population count. This is the same class of defect the file itself warns about a few lines up, where a 120-char text truncation "fabricated a symptom." Always check whether the artifact you're counting is a *sample*.
+
+### 2026-08-02 [bb5fc0c5c96a]
+
+I made the empty state loud rather than blank on purpose. An empty grid under a book's name reads as *"measured and found perfect"* — the exact opposite of the truth, which is *"not measured"*. The panel now says Exodus "is not passing, failing, or blocked here, it is **unmeasured**", and prints the command that would open a board. Same reasoning as the campaign's rule about denominators: an absent measurement must never look like a clean one.
+
+### 2026-08-02 [1fe0bef5a307]
+
+One thing worth noting from the verification: ch16 sits at 100% with zero open cells, which is exactly why it *couldn't* have shown anything before — the old artifact stored text only for failures, so a perfect chapter was a blank. And the moment it rendered, S6 turned out to read `the wife of Abtam` for `Abram` at a passing 0.972. The bar is a threshold, not a certificate; a view that only shows failures can never tell you what a pass is hiding.
+
+### 2026-08-03 [1cd377d24f7e]
+
+The bulk emit **overwrote measured results with estimates**: it reset p146 to 0.705, the proposal I had already rejected by eye *and* by measurement, and reverted p144 to the clipping default. I built the "an estimate never overturns a measurement" guard for explicit left bounds and then let the right-axis emitter walk straight through it.
+
+And the direction matters: every gain here came from **widening**, while every tightening proposal on these witnesses is either uncorroborated or demonstrably wrong (p146 → 0.705 costs 11 cells).
+
+### 2026-08-03 [9b7ec1bcbaef]
+
+The entire campaign to date — every walk, every probe, +482 cells this session — has been geometry work. And geometry is now the *smaller* of the two remaining pools. We have been optimising the layer we could see, and the larger residue is recognition: text the recognizer never produced.
+
+This is what the research independently converges on. At val 0.9396 we sit at roughly 6% CER, where book-specific models on early print reach ~2%. More ground truth *for this book* is the bottleneck — and forced alignment against a known transcription is the lever we have never pulled.
+
+### 2026-08-05 [5e36c738d42a]
+
+**The measurement substrate was wrong, and it silently shaped the plan.** §1.2 was measured with `pdfimages` against the PDF derivatives. But the PDFs aren't the scans — the JP2 packages are. The PDF wrapper is where MRC composition and JBIG2 binarisation happen, and where the downsampling happened. So two of the plan's three "findings that constrain the design" describe our own derivative, not the corpus.
+
+**Verifying provenance produced a stronger disqualification than measuring pixels did.** I had ruled S01 out on resolution — an argument that turned out to be false for two of its three volumes. Reading the leaves ruled it out properly: every page is watermarked and visibly reprocessed. The bibliographic check wasn't a formality gating the real work; it was the more reliable instrument.
+
+### 2026-08-05 [2d8570b15560]
+
+**A method's null result is only as good as its demonstrated sensitivity.** My "S01 is derivative" call and my "no OT duplicates" call were both nulls from correlation searches. The reason the null is now trustworthy is that the *same* method returns exactly 1.000 on the real S08/S09 duplicate — so it demonstrably detects duplication when present. Without that positive control, a low score means "found nothing," not "nothing there."
+
+**Contamination travels at the leaf, not the file.** I had been reasoning about whole copies — this scan is good, that one is derivative. But the Censure leaf moves between books independently of everything around it. The addressing unit for provenance has to be the leaf.
+
+### 2026-08-07 [f27bf4bc322a]
+
+`verified_pairs` is hand-authored and asserts "these two witnesses match at these pages" — but nothing checks those pages actually appear in **both** witnesses' readings. The guard would happily pass a fabricated pair. That is precisely the doc-vs-code drift `test_counts_vs_doc` exists to prevent, reintroduced one file over.
+
+### 2026-08-08 [a73b0a18bbd9]
+
+**R7.5 is not done.** `OCR_DIR_TO_JP2` is still live in `jp2_page.py` and still routing. Commit `c44ba20` *verified* that this table is the mechanism that sent 48 transcriptions to the wrong image — but verifying a defect is not retiring it. Two routes to the pixels still exist and only one is guarded.
+
+**§0.3's setting-identity test names three criteria — same signature, same catchword, same line-end words — and my R8.4 audit checked none of the first two.** It used printed page number, running head and line breaks. That is arguably stronger on one axis and silently weaker on two, against a constitution that says setting identity is "proved, never assumed."
+
+**§2 has Gates 0a–0d and no gate for setting identity at all** — the exact failure that cost four months has no entry in the section titled "What must be established before Step 0."
+
+### 2026-08-10 [6775c10db1d9]
+
+`OT1-1609-P vs F` records seven pages — but they are `[222, 223, 224, 457, 918, 919, 920]`. Those are **three separated locations**, not seven. §0.3 requires points *"spread through the volume"*, so counting page entries would let R8.4b be discharged by reading three adjacent leaves, which tests nothing about span. The count must be of **separated clusters**.
+
+### 2026-08-10 [8ef8cd508fef]
+
+R5.1's acceptance says "regenerating it twice is byte-identical" — and that clause **could not be executed**: the output path was hard-coded, so the second build would destroy the first. It had been standing in the roadmap unexecutable since it was written. Added `--out`; the second build is running. R5.1 is DONE as to coverage and **OPEN as to determinism** until it compares equal — I'm not counting it met.
+
+### 2026-08-10 [e3f7dd4f097e]
+
+A byte comparison is only a valid determinism test *here* because the writer uses `json.dumps(..., sort_keys=True)`. This project already has the counter-case on record: `coverage-audit-verse.json` is order-nondeterministic on ties, so byte-comparing two of its runs proves nothing. Same test, opposite verdict, decided by the writer.
+
+### 2026-08-11 [eb6b4389bf9d]
+
+`blla.segment` is a **page** segmenter. Handed a 1400×313 strip it shredded it into **59 fragments** — `'Ium.'`, `'th'`, `'A'`, `'mram'` — because it is looking for a page's worth of baselines in a band. And at **21.7 s per band**, 1,160 leaves × 2 bands ≈ **13 h**, which exceeds R2's entire 12 h ceiling before a single signature is parsed.
+
+### 2026-08-11 [563006837b50]
+
+The way out is to stop thresholding for the short line at all. The relative profile already finds **full text lines** reliably — that's the one thing it's good at. So: locate the last full text line, then take *everything below it* as the direction-line strip and recognise that strip. The short line never needs to be detected, only bounded.
+
+### 2026-08-12 [39899d9cbb2f]
+
+- **`--add-dir` grants file access; it does not relocate the settings root.** Genie's first launch ran with *zero* project hooks — no JICM state, no registry, no orientation — because Claude Code discovers `.claude/settings.json` from the launch **cwd**, and `Projects/WVU` had none. The whole lane I'd wired was correct and never invoked. Only caught because Genie's statusline rendered as the user-level v7.4 instead of v9. The fix uses a seam the codebase already had: `JICM_PROJECT_DIR`, which `jicm-gate.sh` and `jicm-stop.sh` already honored — I extended it to `session-start.sh` and the statusline.
+- **The chain-collision I predicted happened live, during install.** Styx had the old `idx=12` parsed in memory, so it forked `chain-31bcc85d` onto 12 and Genie landed at 13. Editing a file a daemon already parsed changes nothing until restart.
+- **`session_resumable()` hardcoded W0's project dir**, so Genie's deterministic seed could never be found and every launch minted a fresh random UUID — new session, new L2 identity, no continuity. Invisible on launch #1 (nothing to resume yet); it only surfaced on launch #2.
+
+### 2026-08-12 [a5931ed4716c]
+
+- **The namespace separation was enforced in the wrong layer.** I'd bound `JICM_RAG_COLLECTION` and `GRAPHITI_GROUP_ID` in Genie's *launcher env* — which reaches the interactive Claude process and nothing else. The actuator is a **detached process spawned from whatever shell fires the cycle**, so it never saw that env and fell through to the global `sessions` default. Underneath sat a second bug: `jicm-actuate.sh` **hardcoded** `JICM_RAG_COLLECTION="sessions"` for the scrollback ingest, which would have defeated the routing even after the first fix. Both now derive from the lane key in `jicm_key_paths()`, where every other per-key artifact already lives and where no spawner can bypass them.
+- **My first hypothesis was wrong, and testing it mattered.** I suspected the gate's 200-line tail window was missing assistant-usage entries during tool-heavy stretches. Measured it: longest gap is 13 lines, zero blind windows in 15 samples. The real mechanism showed up only after the clear — a freshly-resumed session has no assistant-usage yet, so the gate writes `0`. It self-corrects on the next prompt. Had I "fixed" the tail window I'd have shipped a change for a defect that doesn't exist.
+
+### 2026-08-12 [e73f93dba033]
+
+- `genie-core` now holds **26 nodes** (25 entities, 29 edges) while `jarvis-core` sits **unchanged at 5,928**. The entities are unmistakably Genie's: *Anabaena variabilis*, NFixDB, Madin/µGrowthDB, `diazotroph_typestrain_shortlist.csv`. That's the namespace design working at L5, not just L4.
+- The ingest took **145 seconds** through LiteLLM → Ollama. That's the cost of an L5 write, which is why it's async and why a dead LiteLLM went unnoticed for a day — nothing blocks on it, so nothing complains when it fails.
+
+### 2026-08-12 [ef880cf36b9e]
+
+- **A pathspec commit was the right tool this time.** The previous two commits needed a record-reset-restage dance because `.gitignore` had unrelated working-tree hunks mixed with mine. Here nothing overlapped, so `git commit <paths>` takes the working-tree content of just those files and leaves the rest of the index alone — your 24 staged deletions verified intact afterward, nothing else swept in.
+
+### 2026-08-12 [460afa6b6638]
+
+- **The gate fix needed a splitting test, not a policy.** "Carry the last value forward" alone would deadlock: after a real `/clear` the context genuinely *is* near-empty, so carrying 205K forward would re-trigger a cycle immediately — an infinite clear loop. The session id separates the two causes cleanly, because a `/clear` mints a new session while a failed read does not. Same id + unreadable → carry. New id → the zero is true. And it can't loop, since a cycle changes the id.
+- **Carrying forward is the fail-*loud* direction.** If a lane really sat at 340K and we can't measure it, treating it as 340K keeps JICM armed; writing 0 silently disarms it. Verified exactly that: an unmeasurable lane at 340K now emits `HARD_HALT`, where before it emitted `WATCHING` at zero tokens.
+- **`pkill -f "litellm --config"` killed the tmux wrapper too**, because the wrapper's own command line contains that string — so my first outage test destroyed the very pane the failsafe exists to capture. That's my own recorded `pkill -f` self-match lesson biting during a test of an evidence-preservation tool. Re-tested by killing only the PID; scrollback captured correctly.
+
+### 2026-08-12 [c3cf22528ebb]
+
+- **The leak got measurably worse, and the note is now grounded in numbers rather than a reminder.** MLX-embed (pid on `:8000`, 23h16m uptime) shows RSS **86.4 MB** but `phys_footprint` **38 GB** — that's ~39 GB/day against the July baseline of 85 GB over 22 days (~3.9 GB/day). Roughly ten times faster. RSS lying by a factor of 450 is exactly why the recorded diagnosis says to use `footprint -p`, never `ps`.
+- **I recorded the LiteLLM-OOM link as a hypothesis, not a finding.** Both unexplained LiteLLM exits happened while swap was near exhaustion (now 28.2 of 29.7 GB), which is suggestive — but no OOM evidence has actually been read. Calling it "caused by the leak" would file the LiteLLM exits under a label and remove them from the hypothesis set without testing, which is the failure mode I've been bitten by twice today. The note names a splitting test instead: does LiteLLM survive a stretch when MLX has just been restarted and swap is healthy?
+- Usefully, the failsafe already captures `vm.swapusage` and `vm.loadavg` into every crash log — so the next unattended exit produces the correlation data for free.
+
+### 2026-08-12 [9eb713a1cf9b]
+
+- **Google Drive is already solved.** Your existing `wvu` rclone token is the same Google account and resolves all three Snorkel folders — I listed each one. No new consent, no service account, no new credential.
+- **But the three folders are wildly asymmetric**, which reshapes the work: beech is 204 objects / 8.4 MiB (already mirrored into `source-materials/`), otter is **4 objects / 321 MiB** (two big zips plus two docx guides), and starfish is **8 objects / 2 KiB** — a bare Harbor skeleton with no data at all.
+- **One live landmine:** `rclone config show wvu` has an empty `client_id`, meaning it rides rclone's *shared* Google client id, which Google is retiring **during 2026**. When it goes, Genie's Drive pipeline dies alongside Jaques'.
+
+### 2026-08-12 [1a3bcec43ef2]
+
+- **My sensing is perfect. My actuation does not exist.** My lane state reads `action: HARD_HALT`, `tokens: 659,767`, `tokens_source: measured` — matching my live transcript exactly. My Stop hook raised `clear-now.dev.signal` **12 minutes ago**. The request to clear me is sitting on disk right now. Nothing is listening.
+- **`jicm-supervisor.sh` — the only component that actuates any lane except W0 — is not running, and never was.** No launcher entry, no cron, no launchd agent. Its log last moved **2026-07-25, eighteen days ago**. The legacy watcher is alive but hardcoded to `aion:0`.
+- **Every JICM cycle in this system's history was fired by hand.** The log shows 5 `protos`, 1 `genie`, 1 `jaques` — all mine, all `--fire --canary`. **Zero autonomous cycles have ever run.** Genie and Jaques appeared to work because I was standing there pressing the button.
+
+### 2026-08-12 [2c674c823a61]
+
+- **macOS `pgrep` will not match the calling process's ancestors.** `jicm_pane_session()` is built on `pgrep -P <pane_pid>`, so it structurally **cannot resolve the pane of whatever process is invoking it**. Every other lane resolved because I was probing them from outside; mine failed because I was probing from inside.
+- **My sense-only test was therefore invalid, not the system.** The supervisor refused to fire on `dev` for a correct reason given where I ran it from. Under launchd it descends from launchd, not from any Claude — so all panes, including mine, resolve.
+- This is also a real latent trap: any *self*-actuation path built on this probe is blind to its own pane by construction.
+
+### 2026-08-13 [6a7abef206d1]
+
+- The gate owns the *canonical* token formula, the model→window map, and the threshold clamps — all documented as shared with `cache-telemetry-extractor-v2.py`. A separate lightweight sampler would have to duplicate all three, and the one thing this subsystem has repeatedly proved is that **duplicated derivation drifts silently** (exactly how the `[1m]` suffix bug survived weeks).
+- The cost is that the gate is heavy (~15 `jq` forks), so the debounce has to come *before* any parsing work, not after.
+
+### 2026-08-14 [aaf6ad65c801]
+
+- `Tool mcp__claude-in-chrome__navigate not found in render-time tools` + `ToolSearchTool: selected …navigate` shows W13's chrome tools are **deferred**, loaded on demand. Deferred tools are registered *after* the permission engine renders its tool table — which is a second, independent reason a name in `permissions.allow` doesn't short-circuit adjudication.
+- The denial is still **fail-closed on a 500**, on both `claude-sonnet-5[1m]` and the `claude-opus-5[1m]` fallback. The error text names a *model*, which is why this read as a model-availability problem for hours rather than a permissions one.
+
+### 2026-08-14 [f5454eea46ae]
+
+- That's §1's finding showing up again from a new angle: `/clear` mints a new *session* but reuses the same *process* (pid 17381). Hooks are cached at process start, so a JICM refresh can never reload hooks — only `/restart-lane` can. The staleness check keys on pid start-time vs config mtime, which is exactly why it sees through the clear.
+- W0's retirement gate is therefore not "wait for W0 to turn over naturally" — a clear won't do it. It needs a genuine relaunch, which is Sir's live conversation window and not mine to bounce unprompted.
+
+### 2026-08-14 [918f31c778a1]
+
+- Same session id, new pid, hooks fresh. This proves `/restart-lane` is the *general* remedy for hook staleness — the property JICM refreshes structurally cannot deliver, since `/clear` never replaces the process that cached the hooks.
+- It also means the Watcher-retirement gate is no longer blocked on *waiting*. It's blocked on one decision: bouncing W0, which is Sir's live conversation window and not mine to restart unprompted.
+
+### 2026-08-14 [fe644bd2a8d0]
+
+- This is my own recorded gotcha biting from a new angle: *input text ≠ human input*. The actuator's `nudge` verifies that keystrokes landed in the pane, which is a weaker claim than "a user turn was created." A delivery mechanism that reports success on typing will report success on a message that is then overwritten, discarded, or left unsent.
+- The correct success criterion is falsifiable and cheap: the target's **transcript grows a `user` record**. That's the check the retrier should have made, and it's the fix worth making to `jicm-actuate.sh nudge`.
+
+### 2026-08-14 [21efec7d5eca]
+
+- `cmd_nudge` opens with `_inject clear-input`. If anyone nudges W13 before your unsent line is dealt with, that line is **silently destroyed** — the same mechanism that swallowed my message is one keystroke from swallowing yours.
+- The comment at line 653 already knew clear-input was needed (a stale buffer concatenates), but treated the buffer as always-junk. A human's unsent text is not junk.
+
+### 2026-08-14 [1f5f88dadda7]
+
+- **0.312 must not be read as "the catchword approach scores 0.31."** It's a joint measure of two readers and a scorer, with two known defects outside the catchword half — and the catchword half is the part that works. Reporting the headline number without that decomposition would have condemned the right method for the wrong reason.
+- **The head band is the fourth instance of this project's recurring shape.** The foot works because a direction line is *sparse type in white space*; the head is *dense justified text*. The same component-and-gap machinery is being asked to express a distinction it cannot — which is why R2.1f says redesign, not retune.
+- I also tightened the agreement test: the prototype accepted `a.startswith(b[:max(3, len(a))])`, so a 2-character misread compared a 2-char prefix and matched almost anything. **A metric that cannot fail does not measure.**
+
+### 2026-08-15 [042b5a8a2f55]
+
+- The three pythons and the `pyright-langserver` are all **03:33:38** old — identical to the head's age. They're MCP servers and the LSP: started with the process, meant to die with it.
+- The two `zsh -c source .../shell-snapshots/…` at 11:28 and 5:46 are **Bash tool invocations**. Claude Code routes every Bash call through that snapshot wrapper, which makes it an exact signature for agent-launched work — no guessing by process name or age.
+
+### 2026-08-15 [e54430e4a6ab]
+
+- Fixing a known-bad instrument and getting *the same* number is a real result, not a wasted run: it converts "0.312 is depressed by an unknown amount" into "0.312 is the honest rate for this instrument," which is exactly what a redesign needs to aim at.
+- Taking `k` from the **foot** side is what keeps the fix honest. Had I inferred the head-token count from the head row, the head reader would be choosing its own comparison width — it could always pick the split that agrees, and the metric would stop being able to fail.
+- Fewer-than-`k` tokens abstains rather than short-reads. Returning `'of'` against `'of flowre'` would manufacture a disagreement of the opposite sign — trading one silent bias for another.
+
+### 2026-08-15 [ecb4b4e538b9]
+
+- Line 134 searches **only** the directory from the registry's `transcript_path`. That dir exists (110 files) but doesn't hold this session, so the search fails and the tool dies — with no fallback attempted.
+- The fallback on line 133 is itself dead code: `find "$HOME/.claude/projects" -maxdepth 1` can never match, because transcripts live one level deeper, inside per-project dirs. A guard that can only ever return empty isn't a fallback.
+
+### 2026-08-15 [0de311bed7a4]
+
+- tmux's `display -p '#{pane_start_command}'` returns an **escaped representation**: a never-restarted window (W11) already shows `\\n` for an original `\n`. Feeding that straight back into `respawn-window` bakes the escaped form in as literal text, so every round-trip doubles it.
+- The fix is to **unescape once** before respawning — collapse each doubled backslash — which makes the operation idempotent instead of compounding.
+
+### 2026-08-15 [d97e0f56f2dc]
+
+- The Unpaywall hint requires **all** causes to be challenge-like, but two mirrors are `dns-dead` — so `all()` is false and the hint is suppressed exactly when it's most true: every *reachable* mirror is challenge-gated.
+- Also worth correcting my earlier aside: through `urllib` (which follows redirects) `.gl` surfaces as **403**, so Genie's original "403 the /search endpoint" matched what the code actually sees. My "302, not 403" was only the raw first hop.
+
+### 2026-08-15 [b141afec22e8]
+
+The `dev-bg-0215a830` ghost needs no new code — its transcript is 219s old only because my *pre-clear* session (`0215a830`) was written to during the 15:08 refresh. That session is dead now, so the transcript stops growing and existing GC collects it at the 2h mark. Ghost → GC (liveness test), duplicate → retire (identity test). Two mechanisms, cleanly divided.
+
+### 2026-08-15 [5d6f89832d0e]
+
+My earlier "three duplicate sets" came from grepping on the basename `mcp_server.py`. Three *different* servers share that filename — `rag-service/`, `ScholarGateway/src/scholar_gateway/`, and `AnnasTools/src/annas_tools/`. Genie's head runs rag + graphiti + pulse + scholar-gateway + annas-tools + arxiv = exactly the 6 servers it should. Per-head sets are correct by design: stdio MCP servers are per-session, so 5 live lanes means 5 sets.
+
+### 2026-08-15 [815e0e8a480a]
+
+`.li` has been a **trusted mirror since the repo's first commit (2026-06-05)** — ~10 weeks. And `_working_domain` is **process-local, never persisted to disk**, with no logs. So there is no record of which mirror any past process selected. I therefore **cannot prove the key was never sent to `.li`** — and by my own standing rule, absence of a measurement is not a measurement of zero. That makes rotation the correct call, not an optional one.
+
+### 2026-08-18 [89c5276816f4]
+
+That `--  (not executed: no claim to check)` line is itself a finding. `score_head_tokens.py` and `score_head_regions.py` — the two modules carrying the project's headline numbers (0.8125 and 0.8760) — are *named* in the verification standard but never *run* by it, because their comments lack the `->` token the parser keys on. That's precisely the failure mode this block exists to prevent: a claim in a document with nothing able to refuse it.
+
+### 2026-08-18 [73b2211d4cf1]
+
+That last exchange is the verification standard earning its keep in real time. Adding three steps to the OPEN register moved `audit_prereq_ceilings`' denominator from 59 to 62, which silently invalidated a claim written in the roadmap. Nothing about the audit changed — but the *document's* description of it went stale the instant I edited a list 2,200 lines away. This is the same coupling that produced R2.2c itself: a number recorded in one place, describing conditions maintained in another, with nothing holding the two together until someone builds the thing that reads both.
+
+### 2026-08-19 [28f11dad6f18]
+
+Between `CHAP. XXIII.` and the first line of scripture, this edition sets a multi-line **italic ARGUMENT** — 4 lines on leaf 403, ~8 on leaf 411. My pre-registration justified `N = 6` as "at most three non-body rows by the edition's design." **The book refutes that count.** This is Sir's anti-circularity rule working as intended: I named the archetype in the book's vocabulary, and the book was able to prove me wrong. Had I sized `N` from the error instead, nothing would have contradicted it.
+
+### 2026-08-19 [6b132eb07c90]
+
+On leaf 411, `region_head` labels the italic argument rows 3–7 as **MainText**. The argument is justified to the full measure, so R3's "is this a body row" test passes on it — and there is no region type for *argument*. So on a chapter-opening leaf the head reader would return the **argument's** opening words as the leaf's first line of scripture. The region gold cannot catch this, because on exactly those leaves it labels no MainText at all. The blind spot and the defect are the same leaves.
+
+### 2026-08-19 [af2228c537e6]
+
+D3 is the quietly important one: **identical to four decimal places** with the rule on. The 121-token gold contains no argument rows, so it *cannot* reward this change — it can only detect collateral damage. A criterion that can only ever hurt you is the most honest kind to pre-register, and it's the reason I could add a fifth region type without re-opening any recorded number.
+
+### 2026-08-19 [060b71a9c1e0]
+
+Two structural things surfaced while building this gold, and both are the *same* shape as defects this project has paid for before:
+
+1. **An enumerator can't prove absence at the wrong grain.** The row-slant census says "leaf 415 has no italic," but the rule fires per *segment* — a row averaging upright can still hold an italic run. So I stopped hand-rolling the segment test (my first attempt returned 25 candidates, all marginal notes the rule could never label, because my copy dropped `in_block`) and instead ran **the rule itself with its two constants widened**. What the enumerator emits is then exactly what the rule can emit, by construction.
+
+2. **The gold was matched to the page by exact float equality.** Its own `_doc` says "score by page-fraction overlap, never by row index" — but the scorer compared `round(y0f, 4)` for identity. If the row clusterer ever shifts a baseline, a gold entry matches nothing and gets silently counted as a *recall miss* — the rule blamed for a defect in the addressing. That's the signature defect again (a correct rule nothing reads), so the scorer now reports **ADDRESSING FAILURE** separately from D1.
+
+### 2026-08-20 [1f2e73f839de]
+
+- I nearly drew a second wrong conclusion: an ad-hoc recount returned 0 for every lane and I said the gate log had rotated. It hadn't. **The Bash tool runs zsh, which doesn't word-split unquoted `$var`** — my two log paths became one bogus filename. The supervisor's identical code was correct all along because it's `#!/bin/bash`. Same family as trap 12: testing outside the real embedding tests a different language.
+- So the new audit deliberately tests **behaviour, not config**. Registration lives across four per-project settings files, and reading a file the lane doesn't actually load is precisely how you get a confident wrong answer.
+
+### 2026-08-20 [17124e8fcece]
+
+- The classified payload names its own cause: `{"...tabs_context_mcp":"createIfEmpty=true"}`. That flag **creates a tab** — a mutation — which is why it's adjudicated at all. The read-only form of `tabs_context_mcp` is on Claude Code's built-in safe allowlist and never reaches the broken classifier. So the likely fix is dropping one parameter, not restarting a process.
+- This also re-frames my 08-14 retraction: I tested the `permissions.defaultMode` hypothesis *while the classifier was 500-ing*, so that negative was confounded — it could not have succeeded regardless of the setting. A two-cause signal I'd filed under one cause.
+
+### 2026-08-20 [84cf6ac25e41]
+
+- **Do not change your user-level `defaultMode`** — my lane already has the setting remedy 2 would have produced, and it changes nothing. The security-posture change would have bought exactly zero.
+- The coherent model, fitting every observation: these chrome tools are **deferred**, so they register *after* the permission engine builds its tool table — which is why permission mode and allow-rules can't short-circuit them. Read-only calls hit a built-in safe list before the classifier; anything mutating (including the `browser_batch` wrapper) falls through to it.
+- The error names a *model*, `claude-opus-5[1m]` — the same misdirection I flagged on 08-14, pointing diagnosis at permissions when the fault is an upstream classifier outage.
+
+### 2026-08-20 [4caeaa7f86ba]
+
+- The model that fits everything: these chrome tools are **deferred**, so they register *after* the permission engine builds its tool table — permission mode and allow-rules can't short-circuit them at all. Read-only calls hit a built-in safe list; anything mutating falls through to the classifier. **Split by mutation, not by tool name.**
+- My 08-14 retraction was **confounded**: I tested the `defaultMode` hypothesis *while the classifier was already 500-ing*, so that negative couldn't have succeeded regardless of the setting. Same conclusion, but I only earned it for the right reason today.
+
+### 2026-08-20 [65b4d57c4a58]
+
+- Two competing causes for one signal, and I nearly shipped the wrong one: had I skipped the control, I'd have told Jacques to `/clear` — burning his 260K-token session for a remedy that provably doesn't work, since a 5-entry session fails identically.
+- The clinching detail is in the error text itself: it claims `claude-opus-5[1m]` is unavailable while that exact model is serving this turn, Jacques' turns, and Protos'. The model is up; the **classifier path** is down. "Wait for the model to recover" was never the right frame.

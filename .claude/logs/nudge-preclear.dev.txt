@@ -1,0 +1,43 @@
+
+⏺ Recorded and committed (9 unpushed). Jacques' three points are all handled: model acknowledged, option (b) dropped — I won't ask you to hand-create the tab group — and the recovery ping
+  is owed.
+
+  The update that mattered
+
+  Chasing his ack, I found Claude Code dumps the failing classifier request to /private/tmp/claude-501/auto-mode-classifier-errors/<session>.txt. It shows the classifier packs the
+  transcript into its own request — which produced an obvious hypothesis (500s because the payload is too big on long sessions) with an obvious remedy: tell Jacques to /clear.
+
+  I tested it before saying it, using Protos as a near-fresh control. Refuted: Protos sent half the payload, 1/40th the messages, five transcript entries — and got the identical 500.
+  Without that control I'd have told Jacques to burn a 260K-token session for a fix that provably doesn't work. Protos also fairly objected that at 124K it wasn't a genuinely fresh session,
+  so I've recorded the result as strong but not airtight.
+
+  The clinching evidence is simpler than any of it: the error claims claude-opus-5[1m] is unavailable while that exact model is serving my turns, Jacques' turns, and Protos' turns
+  concurrently. The model is up; the classifier path is down. So nothing local touches this — not config, not permission mode, not a restart, not a /clear, not session size.
+
+  Corrections to my own record, third one this thread
+
+  debug-genie.log holds 20 successful classifier calls, zero errors — including navigate, dated 08-12/13. My 08-14 note "navigate has never been permitted" was W13-scoped and I generalised
+  it. So this path demonstrably works on this machine when the backend is healthy, which is genuinely good news for the wait-it-out plan.
+
+  That's now three claims of mine this thread that survived confident assertion and died on contact with a probe: browser_batch on the allowlist, defaultMode as the fix, and payload size.
+  The pattern is consistent — settings-file reasoning looked decisive each time, and an observed decision overturned it. Jacques flagged the same thing from his side.
+
+  Two things worth your attention
+
+  1. No action needed from you — and specifically, do not change the user-level defaultMode. That remains dead.
+  2. The ping mechanics are honest but weak. I can't poll autonomously; a probe needs a tool call from a live session, and I only run when invoked. I've noted in the resume doc to re-probe
+  at the start of each active turn and message Jacques the moment one succeeds. If the diff becomes load-bearing before then, the manual-tab option is still available — Jacques said he'd
+  come back for it rather than spend your attention now, given you've already been pulled into two infrastructure detours this session.
+
+  The 9 unpushed commits are still sitting local if you want them pushed.
+
+✻ Crunched for 4m 20s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ s
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from dev checkpoint  main +372-19📖 e:low △ exc-200k                                                                                             320781 tokens
+  [▓▓▓▓▓▓▓▒│┃············╿·····] 32% 319.8K  Δ4.6K/m  S:4m H:11m  cache:99% eph1h:100%  warm/write/new                                                                                Debug
+  $26.35  blk:$47.5  ⏱57h9m api:1%  5h:30%↺32m  7d:22%↺2d10h
+  ⏵⏵ bypass permissions on (shift+tab to cycle)
+

@@ -1,4 +1,4 @@
-# W5:Jarvis-dev Session Report — 2026-03-22
+# W11:Jarvis-dev Session Report — 2026-03-22
 
 **Role**: Engineering deck — infrastructure, research, and system maintenance
 **Duration**: Full session (~4 hours)
@@ -141,4 +141,4 @@
 
 ---
 
-*W5:Jarvis-dev Session Report — 2026-03-22*
+*W11:Jarvis-dev Session Report — 2026-03-22*

@@ -1,6 +1,6 @@
 # Jarvis-dev Session Instructions — Autonomous Test Driver
 
-You are running in **W5:Jarvis-dev** — the autonomous test driver for Project Aion.
+You are running in **W11:Jarvis-dev** — the autonomous test driver for Project Aion.
 
 ---
 
@@ -163,9 +163,9 @@ See the skill for execution patterns (A-F), domain rotation, exit criteria, stat
 - **Isolation**: Watcher and command-handler target `aion:0` (Jarvis) only — W11 is invisible to all JICM monitoring
 - **JICM exclusion**: jicm-gate.sh and jicm-stop.sh exit early for `JARVIS_SESSION_ROLE=dev` — W11 prompts never overwrite W0's state file
 
-## Context Isolation — W5 vs W0
+## Context Isolation — W11 vs W0
 
-**W5:Jarvis-dev focuses on Jarvis infrastructure**, NOT DwarfCron/Chronicler product work.
+**W11:Jarvis-dev focuses on Jarvis infrastructure**, NOT DwarfCron/Chronicler product work.
 
 The CLAUDE.md you see is shared with W0 and contains DwarfCron-specific `@` imports (game control refs, phase PRDs, DF docs). **Ignore those documents unless explicitly tasked with Chronicler work.** Your primary domain is:
 

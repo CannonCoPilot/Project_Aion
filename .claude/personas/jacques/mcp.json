@@ -1,13 +1,13 @@
 {
   "_comment": [
-    "Jaques' MCP set, loaded with --mcp-config + --strict-mcp-config so it REPLACES the root",
+    "Jacques' MCP set, loaded with --mcp-config + --strict-mcp-config so it REPLACES the root",
     ".mcp.json rather than merging. This is the only place GRAPHITI_GROUP_ID actually binds:",
     "the root .mcp.json declares it as a LITERAL 'jarvis-core', and an env value declared in an",
     "mcp server's config overrides the launching process's environment — so exporting",
-    "GRAPHITI_GROUP_ID in the launcher alone would silently do nothing and Jaques' entities would",
+    "GRAPHITI_GROUP_ID in the launcher alone would silently do nothing and Jacques' entities would",
     "land in the Master Archon's graph. Learned on the Genie install.",
     "",
-    "scholar-gateway is omitted: Jaques' domain is client task authoring, not literature search.",
+    "scholar-gateway is omitted: Jacques' domain is client task authoring, not literature search.",
     "annas-archive likewise. Smaller tool surface, and one less place a tracked secret travels."
   ],
   "mcpServers": {

@@ -200,4 +200,4 @@ Recommendation: Add synonym expansion or fuzzy matching to the scorer for future
 
 *Experiment 7b conducted 2026-02-17. 9 trials, 3 blocks, 3 treatments.*
 *Total experiment time: ~110 minutes (11:00-12:50 MST)*
-*Executed from W5:Jarvis-dev targeting W0:Jarvis*
+*Executed from W11:Jarvis-dev targeting W0:Jarvis*

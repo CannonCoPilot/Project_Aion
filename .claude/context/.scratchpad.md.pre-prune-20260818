@@ -1,0 +1,332 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+Pruned 2026-08-14 (1695 → 80). Prior state `.scratchpad.md.pre-prune-20260814`. Sessions 9–15 dropped —
+findings durable in `OCR-ROADMAP.md` + `OCR-DEVLOG.md`. Repo `Projects/palimpsest`, branch main.
+OCR project `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`; repo venv `./.venv/bin/python`.
+
+## 🔴 RESUME HERE — 2026-08-17 (latest). R2.1g ✅ · R2.1h 🟡 splitter ADOPTED, prefix half OPEN · R2.1i ✅ · R2.1j ✅
+### 🔴🔴 R2.2c FOUND — THE READER'S BAND HAS NO RUNNING HEAD IN IT, 20/20 LEAVES. **DO THIS FIRST.**
+Found by BUILDING `witness/render_pipeline.py` (NEW, tracked) and LOOKING at leaf 414 — not by any score.
+* Reader = `CR.head_band` **0.06h..0.30h**. Both scorers + the **121-token gold** = **0..0.35h**.
+  DIFFERENT CROP, different row indices. RH measured at **0.027h..0.071h** ⇒ inside the reader's band on
+  **0 of 20** leaves.
+* ⇒ **"RH recall 20/20 = 1.0000" is measured in conditions the reader never meets.** Deployment's real
+  job is MT-vs-MN (leaf 412 `Temporal`). **EIGHTH instance of the signature defect.** R2.2b is now the
+  BLOCKING geometry step — the scorers worked AROUND the frozen band instead of measuring it.
+* ⚠️ NO GUARD EXISTS for band agreement; one must land with the fix. **No region number transfers to
+  the reader until this closes.**
+
+### 🔴 R2.1k FOUND — a body row fails R3 by **12px** because the SPLITTER got better
+`region_head.SPAN_MODE` added (default `"tokens"` = UNCHANGED; exists only to measure candidates).
+* **CAUSE**: R3's span clause measures row reach over `n_glyphs >= MIN_GLYPHS`. **MIN_GLYPHS is a SPECK
+  FILTER doing duty as a SPAN ESTIMATOR** — `of` (2 components) is not a speck. Leaf 414 row 1: blob ⇒
+  one 37-comp token, span 851px vs need 677px, passes trivially. Recogniser ⇒ 5 real in-block words drop
+  out, span **696px**, while finer tokens push R 1142→1184 so the need **RISES to 708px**. Bar up,
+  measurement down, fails by 12px, whole row relabelled, nothing on the page changed.
+* **ALL THREE CANDIDATES REFUTED** (121 gold tokens × 5 splitters): `tokens` .8760/RH 1.0000/MT .8500 ·
+  `ink` .9091/**RH .7500**/MT .9625 · `segment` .8430/RH 1.0000/**MN .9474**/**MT .7875**.
+  – `ink` fails because **a HEADLINE BAND IS NOT A LINE** (`382 … NVMERI. … Sacrifices for` — combined
+  extent spans the measure though no element does) ⇒ every RH looks justified.
+  – `segment` fails from the other side: a body row's **verse number** sits beyond a pitch-wide gap ⇒
+  body line cut short ⇒ MT collapses.
+* ➡️ **NEXT CANDIDATE**: extent of the region run **FLUSH TO L OR R** (not the longest) — continuous AND
+  anchored like a justified line, computed on GLYPH BOXES so no splitter moves it. C2.
+
+### ✅ REPORT DELIVERED — artifact republished at the SAME URL (Sir asked to SEE it on real scans)
+`scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+New section **"The same page, as the machine actually sees it"** with **9 embedded plates** of real leaf
+scans (elements · rows · segments · words before/after · measure · regions vs gold · the band overlay),
+both new findings as callouts, the R2.1k refutation table, and a "how this is tested" table. Ledger rows
+0b·R2 and 9→step-10 updated. 4.84MB, HTML validated (0 unclosed tags). ⚠️ Source lives in the SESSION
+scratchpad, not the repo — **re-extract via WebFetch on the artifact URL before the next edit**.
+⚠️ The doc's archetype plates A–H are still **hand-drawn SVG schematics**; only the new section is real
+scans. Converting A–H to real leaves is the obvious next documentation step.
+
+### ➡️ THEN: **re-measure the CONTINUITY RATE** (`r2_1d_continuity.py`) under the adopted reader
+Both R2.1h halves have now moved, so 0.312 is finally re-measurable with the two biases named. Then
+**R2.1j-b** (word-grain re-label of 43 phrase-length gold entries) and **R2.2b** (band anchored to the
+type block). ⚠️ The prefix-rule audit is still exit 1 on 2 of 20 leaves — see below; report the rate
+WITH that caveat, it is not yet a clean measurement.
+
+### ✅ R2.1h REDESIGN DONE — split now comes from the RECOGNISER'S DECODED SPACES. ADOPTED.
+The ALERT named a different RESOURCE CLASS and that is what closed it. `reichenau_dr.mlmodel` has a
+233-symbol codec **containing the space**; kraken's record returns per-character `.cuts`. So the word
+boundary is a **decoded symbol**, not a threshold estimated from ~30 gaps.
+NEW in `collation_read.py`: `recogniser_split` · `region_segments` · `make_recogniser_split` ·
+`gap_split` · `head_tokens`. `region_head.tokens/classify` take **`split_fn`** (gap_fn folded through
+it, passing both raises) and tokens now carry `row_l`/`row_r` + `read`/`conf`.
+* **exact 0.2500 → 0.8125** (bar 0.75 ✅) · MAE 1.44 → **0.25** · blob **0.0000** · beats both controls ·
+  0 abstentions. Halves 0.9375 / 0.6875. ⚠️ Splitter NOT derived from this gold (model predates it).
+* 🔴 **NEW FAILURE MODE, not the old one**: a gap rule can't truncate a row, the recogniser can — and
+  can drop a space (`'OgAlaine'`, `'whomis'`). Both UNDER-count. `coverage` returned+reported per row.
+* 🟢 **TRUNCATION = CROSSING A REGION BOUNDARY; fixed by COMPOSITION not tuning.** Leaf 414 row 0 read
+  as one crop returned `'NVMERI.'` at cov 0.50 → one token x249–1347 → RH fell to **0.7895**, 29 orphans.
+  Cutting the row on the already-justified **`REGION_GAP_P`** rule first: 0.7500 → **0.8125**, RH → **1.0000**.
+* 🔴 **COUPLING PAID KNOWINGLY**: catchword + head readers now share a model on split AND read; a
+  systematic recogniser fault can no longer disagree with itself.
+* 🔴 **Re-reading a padded crop contradicted the split** (leaves 405/415: split said 1 word, re-read
+  returned 2). Text+conf now TRAVEL WITH THE SPAN; `read_first_words_typed` is a thin map over
+  `head_tokens`, ONE path, no fallback branch.
+
+### ✅ R2.1j DONE — the region scorer COULD NOT RANK SPLITTERS; one binding rule flattered a broken one
+R2.1i fixed *how an entry addresses a token*. It did NOT fix that **an entry can be COARSER than a
+token**: **43 of 121 entries (35.5%) are multi-word**, labelled while the splitter blobbed. `match`
+needs ≥50% of the gold span, unreachable for a word against a 12-word entry → **31 orphans** under the
+recogniser splitter with nothing about regions changed.
+* 🔴 **THIS INDICTS R2.1i's HEADLINE.** `fine ×0.4` — deliberately broken — posts the **HIGHEST**
+  max-overlap acc **0.9479** by orphaning 25 hard entries. **A binding rule that drops entries cannot
+  rank splitters.** R2.1i's "0.9474, 26 withheld" is **part selection, not improvement alone**.
+* 🔴 **MY REPLACEMENT ALSO FAILED ITS PRE-REGISTRATION, kept on the record.** CONTAINMENT (centre-in-span)
+  pre-registered "every entry binds ≥1 token under every splitter" → orphans base 0 · quantile 6 ·
+  **coarse ×1.6 33** · fine 0 · recog 4. Breaks OPPOSITE to max-overlap. Both let the DENOMINATOR move.
+* ✅ **INK BINDING SURVIVES** — entry takes the label holding most overlapping ink. **121 scored / 0
+  orphans under ALL FIVE splitters** (incl. both broken ones). Purity reported so shattering shows.
+* 🟢 Ranking now interpretable: `fine ×0.4` falls 0.9479 → **0.8926**, RH → 0.85. **Recogniser adopted at
+  region PARITY 0.8760, RH 1.0000** (costs R2.1g nothing). Quantile's region gain is **REAL**: **0.9504**
+  on all 121, purity 0.9927 — a finding about REGIONS, not licence to adopt a splitter failing 0.25 exact.
+* ⚠️ **OPEN = R2.1j-b (C2)**: the 43 phrase-length entries cap what any word-grain splitter can be
+  scored on. Word-grain re-label needed.
+
+### 🟡 R2.1h PREFIX HALF — audit REBUILT, still exit 1 (17 words · 2 blobs · 1 abstain of 20)
+`agrees()`'s length-dependence will **never** stop reproducing (a prefix test with a min length IS
+length-dependent) — so that demonstration is now a **regression check**, and the audit closes on the
+READER instead, via the same `head_tokens` the reader uses.
+* 🔴 **MY FIRST CRITERION WAS UNFALSIFIABLE IN THE DIRECTION THAT COUNTS** — "no internal space" passes
+  a whole-line token whenever the recogniser decodes NO space (leaf 417 `'hpromiſſe,hal'`). I even
+  declared `BLOB_WIDTH_FRAC=0.50` and never used it. A blob is defined by SPANNING THE LINE, so the
+  token's span/row ratio is now tested: catches leaf 416 (`'.'`, **100%** of row) and 417 (54%).
+* Abstentions counted separately and are NOT successes — a reader closing this by refusing to read shows.
+
+**R2.1f fired on the CATCHWORD CANDIDATE, not on R2.** Two candidates remain live, so R2 is at ALERT, NOT
+exhausted. R2 still blocks Gate 0b stage 2, R3 and all transcription.
+
+### ⚠️ ALL OF TODAY'S WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). Nothing staged.
+`git status` at `projects/originaldr/ocr-spike/`:
+* **M** `OCR-ROADMAP.md` (+R2.1h redesign §, +R2.1j §, prefix-half §, command blocks moved) ·
+  `witness/{audit_prereq_ceilings,collation_read,r2_1d_continuity,witnesses}.py`
+* **??** `witness/gold/` (2 gold files) · `witness/{region_head,score_head_regions,score_head_tokens,
+  audit_prefix_rule,test_open_register_consistency,test_region_gold_addressing}.py`
+* Scratch probes for R2.1h/j (gitignored): `.scratch/r2/probe_{charcuts,recsplit,recscore,headreader,
+  regions_recog,splitter_matrix}.py`
+* Scratch probes (gitignored, safe to lose): `.scratch/r2/probe_{headband,pagetop,density,marginalia,
+  gaps,oracle_thr}.py` · `dump_{headtokens,rowreads}.py` · `rekey_region_gold.py` · `head_regions.v1.bak.json`
+* ⚠️ **NEVER `git add -A`** at the palimpsest root — staging there is always a deliberate, scoped act.
+
+### ✅ STATE AT SAVE: 13 guards exit 0 · `test_verification_standard.py` exit 0 (26 commands)
+Audits exit 1 = healthy/open: `audit_prefix_rule` · `score_head_tokens` · `audit_prereq_ceilings`
+(**STRICT 1/59**) · `audit_gt_rasters` · `audit_s06_keys` · `audit_setting_points` · `r2_1d_continuity`.
+`score_head_regions.py` exit **0** (PASS).
+
+### ✅ R2.1g DONE — region primitive PASSES; its OWN pre-registered mechanism was FALSIFIED
+NEW TRACKED FILES: `witness/region_head.py` · `witness/score_head_regions.py` ·
+`witness/gold/head_regions_OT1-1609-B_400-419.json` (121 hand-labelled tokens).
+MODIFIED: `collation_read.py` (+`head_band()` FROZEN 0.06–0.30, +`read_first_words_typed`) ·
+`r2_1d_continuity.py` (modes `legacy` | `typed` | `typed-anchored`) · `OCR-ROADMAP.md`.
+* **Region assignment 0.8760** vs controls ALL-MT **0.6612** / ROW0-RH **0.8017**. RH recall **20/20**,
+  MN 17/19, 0 abstentions. `score_head_regions.py` exit 0. (Suite is now 13 guards — see header.)
+* ⚠️ **Leading gap FALSIFIED on leaf 400** — running head lead = 40.0px = EXACTLY body pitch. Signal
+  absent on some leaves. Replaced by (1) **modal justified edges** (mode, never max) + (2) **per-TOKEN**
+  typing, because the page head is a HEADLINE BAND (running head flanked by side-notes).
+* 🔴 **411→412 WAS MIS-DIAGNOSED — `'Temporal'` is a MARGINAL NOTE, not a running head.** True answer
+  `Cades` is the very next token. Cause: `text_measure` uses `0.75×max(extent)`, so a side-note inflates
+  the max and drags L out — 400/410 measure L=215/248, **412 measures L=40**. MEASURE-CONTAMINATION.
+* 🔴 **Continuity DID NOT RISE**: legacy **0.312** (reproduced EXACTLY post-refactor) → typed **0.176**
+  → typed-anchored 0.250 (⚠️ DIAGNOSTIC ONLY, moves band+reader together, NOT comparable).
+  My error, recorded not hidden: **scored the primitive on a 0.0–0.35 band, deployed on frozen 0.06–0.30.**
+* 🟢 **What R2.1g actually bought is ATTRIBUTION** — 0.312 was "two opposing biases of unknown size";
+  the residue is now named: R2.2b (band) · R2.1h (blobs) · catchword misreads · residual region misses.
+* ⚠️ **FROZEN BAND NOT CROSSED.** `head_band(frac=…)` is diagnostic-only, labelled at every print/write.
+
+### 🟡 R2.1h WORKED — blob GONE, step STAYS OPEN (failed its own bar), ceiling is NOT the print
+NEW TRACKED: `witness/gold/head_wordcounts_OT1-1609-B_400-419.json` (32 rows, hand-adjudicated) ·
+`witness/score_head_tokens.py` · `witness/audit_prefix_rule.py` (audit, exit 1 = defect stands).
+MODIFIED: `collation_read.py` (+`band_word_gap`, +`row_word_gap`, `_tokens_in_row(gap=)`).
+* **CAUSE, exact**: per-row 2-means on a **three-scale** gap distribution (intra-word 0–5 · word 8–25 ·
+  region run 60–350). k=2 gives the high cluster to the lone region run and **every word space collapses
+  into the low one**. Leaf 414.1 threshold **38px** vs word spaces 8–16. The blob is a consequence of k=2.
+* splitter | exact / MAE / blob → ONE-TOKEN .094/5.97/.625 · LEGACY .281/4.78/.375 ·
+  **PER-ROW-2M (what R2.1f shipped) .281/3.50/.250** · LEAF-POOLED **.3125**/2.56/**.000** ·
+  QUANTILE(Q=.80) .250/**1.44**/**.000** · ⚠️ **ORACLE .875/0.12/.000**
+* 🔴 **R2.1f's fix bought less than it looked**: PER-ROW-2M **ties** the rule it replaced on exact.
+* 🟢 **ORACLE ⇒ the ceiling is the ESTIMATOR, not the print.** My "the setting joins words too tightly"
+  hypothesis is **REFUTED**. Oracle threshold as a **quantile of the row's own gaps** = median **.794**
+  (halves .809 / .792); as a multiple of pitch = .07–.35, useless. Typographic reading: ~4 gaps in 5 are
+  intra-word because words run ~4–5 sorts ⇒ word space sits at the ~0.8 quantile BY CONSTRUCTION.
+* 🔴 **QUANTILE SPLITTER NOT ADOPTED** — exact .2500 vs pre-registered bar **0.75**. Bar NOT lowered,
+  metric NOT swapped to MAE post hoc. Same rule that pins `chapter_model_derive` OFF at net −6.
+  **ALERT: approach needs redesign** → named candidate = **take the split from the recogniser's own
+  character positions** (a different resource class, not more tuning).
+* 🔴 **Prefix rule = SECOND separate cause, injection-proven**: `agrees('face', blob)`→**True**,
+  `agrees('two,', blob)`→**False**. Same blob, opposite signs, decided by the CATCHWORD's letter count.
+  ⚠️ Do NOT lower the 4-char floor (raised in R2.1d′ because `'wl'` matched anything). **Both halves of
+  R2.1h must close TOGETHER** or the rate moves uninterpretably.
+* 🔴 **R2.1i RAISED and it BLOCKS R2.1h**: the region gold is keyed by **token ordinal**, so wiring the
+  new splitter collapsed R2.1g (MN recall .8947→.5263, unlabelled 80→212) **with nothing about regions
+  changed**. Re-key by (row, x-centre) + containment. Addressing ≠ adjudication. Reverted; R2.1g back at
+  **0.8760 / RH 20/20 / exit 0** exactly.
+
+### ✅ R2.1i DONE — gold re-keyed by SPAN; my acceptance was wrong TWICE, both recorded
+NEW TRACKED: `witness/test_region_gold_addressing.py` · `witness/test_open_register_consistency.py`.
+MODIFIED: gold v2 (span-addressed, `ambiguous` too) · `score_head_regions.py` (overlap `match()`,
+`MIN_BIND_FRAC=0.50`, collisions/orphans reported, `gap_fn`/`quiet`) · `region_head.py` (`gap_fn`) ·
+`OCR-ROADMAP.md` (verification standard: +3 guards, +2 audits, stale `18/44` claim fixed).
+* **Re-key faithful**: unperturbed **0.8760 / RH 1.0000 / MN .8947 / 121 scored / 0 coll / 0 orph** —
+  identical to v1. 121 labels re-keyed with **0 span drift** vs a LIVE re-derivation (dump cross-checked,
+  not trusted). `ambiguous` re-keyed too — on ordinals an exclusion drifts and re-admits its own token.
+* 🔴 **MY PRE-REGISTERED ACCEPTANCE WAS UNACHIEVABLE**: "perturb splitter ⇒ region score UNCHANGED".
+  Region rules CONSUME token geometry (R5 = centre; `block_measure` = token edges), so **the splitter is
+  an INPUT to the model**. Under 0.4× splitter: 121/0/0 all unchanged, every label bound, RH still moved.
+* 🔴 **AND THE FIRST REPLACEMENT ("same token ⇒ same label") WAS ALSO WRONG** — flipped on tokens NOT
+  re-cut, and the flips were the perturbed splitter being *better*. Both errors kept on the record.
+* ✅ **What IS well-posed**: (A) **BINDING FIDELITY** — every scored entry binds to a token overlapping
+  ≥50% of the gold span, checked **without reference to any label** (v1 had NO such clause);
+  (B) **ACCOUNTING** — scored-count change fully explained by reported collisions+orphans.
+  3 perturbations (R2.1h-quantile · coarse ×1.6 · fine ×0.4): **weak 0, 26=26 · 28=28 · 25=25.**
+* 🟢 **THE POINT**: under R2.1h's splitter the region score is now **0.9474 / RH 1.0000** with 26 labels
+  honestly withheld. **Under v1 the identical change read MN 0.5263.**
+* ⚠️ R2.1i unblocks **EVALUATION** of a splitter change, NOT **adoption**. R2.1h still fails exact .25 < .75.
+
+### 🔴 REGISTER DEFECT FOUND + GUARDED (seventh instance of the signature pattern)
+**Strikethrough is NOT removal.** `audit_prereq_ceilings.STEP_RE` matches the id INSIDE `~~R2.1g~~`, so
+struck steps stayed counted OPEN. ⚠️ **I quoted "59→60→61" without confirming the number could move** —
+the habit already paid for twice. Real count is **59**. Closed steps must be DELETED from the line (as
+R4.6 was). New guard `test_open_register_consistency.py`, injection-proven, and **on its first run it
+caught a conflict I did not create**: **R6.4** carried a bare completion marker with "OT2/1610 prelims
+outstanding" in a trailing clause → relabelled **PARTIAL**. *A completion marker qualified by a later
+clause is still a completion claim; the qualifier does not travel with the word.*
+
+### ✅ SUITE GREEN — 13 guards exit 0 (re-run after the R2.1h/R2.1j refactor)
+🟢 **`score_head_tokens.py` now exits 0** and MOVED from the roadmap's audits block to its guards block.
+Audits exit 1 (healthy/open): `audit_prefix_rule` (rebuilt) · `audit_prereq_ceilings` (**STRICT 1/59**,
+register still 59, guard green) · `audit_gt_rasters` · `audit_s06_keys` · `audit_setting_points` ·
+`r2_1d_continuity`. `score_head_regions.py` exit 0.
+✅ **`test_verification_standard.py` exit 0, 26 commands** — re-run after the roadmap block move. It
+caught the move on the first attempt (`score_head_tokens` "now passes — either its remedy is complete
+and the block must say so, or the audit has stopped looking"); moving it to the guards block cleared it.
+⚠️ It now takes **>2 min** (must be run in the BACKGROUND — a 120 s limit kills it).
+⚠️ **Recogniser splitting is MUCH slower than a gap threshold** (one kraken pass per region segment per
+row). `r2_1d_continuity.py` and the verification standard are both materially slower now.
+
+### ➡️ NEXT — **R2.1h redesign** (recogniser character positions), then **R2.2b** (band anchoring)
+⚠️ R2.1h must close BOTH halves together: the splitter AND the ≥4-char prefix rule. Fixing one alone
+moves the continuity rate uninterpretably because the two biases stop cancelling at the same rate.
+
+### ⚠️ EVERYTHING BELOW IS UNCOMMITTED WORKING TREE (palimpsest, branch main). Nothing staged.
+* `witness/collation_read.py` — `read_first_words(model, leaf, k=1, conf_floor=0)` → `([(txt,conf)…], reason)`;
+  `read_first_word` kept as 1-token wrapper. Fewer than k tokens ABSTAINS (never short-reads).
+* `witness/r2_1d_continuity.py` — `norm_words()`; **k comes from the FOOT side**, never the head (else the
+  head reader picks the width that flatters it).
+* `witness/audit_prereq_ceilings.py` — converted hours→complexity (R10.3) AND split strict/inherited coverage.
+* `witness/witnesses.py` — `lowres` role restated permissions-first; NEW `glyph_witnesses` / `structural_witnesses`
+  / `depth(vol, year)`. **`depth` → OT1 (2,3) · OT2 (2,3) · NT-1582 (1,2)** = (glyph, structural).
+* `OCR-MASTERPLAN.md` 2134→~2534 (§3.2a archetypes · §3.2b slant · §7.6a convergence · §7.7a/b/c stall loop ·
+  C1–C4 scale · §1.4 count corrected) · `OCR-ROADMAP.md` (+~450: R2.1g R2.2a R2.5/a R3.6 R3.7 R4.7 R5.3 R9.7
+  R9.8 R10.3 R12 R13; R4.6 CLOSED) · 6 companion docs. `COLLATION-1635-vs-1609.md` untouched (correctly).
+
+### ~~➡️ NEXT ACTION — R2.1g, option (1)~~ **SUPERSEDED — R2.1g IS DONE, see the block above**
+⚠️ Option (1) was the right CHOICE (it carried a reusable region primitive into Gate 9, which option (2)
+would not have) but its stated MECHANISM (leading gap) was wrong and is now falsified. Both facts stand.
+Build the **RunningHead/MainText separator** (first baseline via the running-head leading gap) as a
+**reusable region-typing primitive**, then re-measure on leaves 400–419 for comparability with 0.312.
+**NOT option (2)** (character-window): (2) deletes the head tokeniser from the measurement path and carries
+NOTHING into the geometry model. Sir's priority is the geometry model; (2) is the "mired in short-term OCR"
+failure he named. ⚠️ NO second band re-cut — one was pre-registered and is spent.
+Then **R2.2** (printed page numbers, same band) → R3.1/R3.2/R3.4 unblock → cross-witness voting returns to R2.1.
+
+### THE CENTRAL ARGUMENT (do not re-derive)
+Recogniser genesis-24: **content 0.9448 / surface 0.451**. Surface gap is attributed IN THE DOCS to
+running-head+marginalia leaking into the body flow = **region typing**. So geometry gates recognition's
+measured score. Campaign confirms: geometry was written off, then a sweep gave **+57 cells, 0.8576→0.8669**.
+0.312 is NOT a floor — 3 of 5 AGREEs are whole-line blobs passing the ≥4-char prefix rule, so the head
+reader fails in BOTH directions (inflates AGREE, deflates via missed lines).
+
+### 🔴 SIX INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+Gate 0f · Gate 0d · §7.7 escalation ladder (all 4 resource classes unreachable ⇒ STALLED was terminal) ·
+`audit_prereq_ceilings` string granularity (passed 19/55 on the PROSE of the rule it no longer checked) ·
+its section granularity (one sized step covered unsized siblings; honest = **1/58 strict + 21 inherited**) ·
+**R9.8** `glyph_source("NT","M")` returns a path with no refusal + `admissible("NT")` names 1633-R.
+**Five of six were found by BUILDING THE CONSUMER.** Habit: a test that doesn't move is not evidence until
+you confirm it COULD have moved (I mis-designed two injection tests this session).
+
+### SIR'S STANDING RULINGS (2026-08-17)
+1. **No hours, ever.** Complexity of solving correctly, not elapsed time. → `feedback_complexity_not_hours`.
+2. **No better scans, no further copies.** R4.6 CLOSED. Depth we have = depth we design for. This is WHY
+   escalation must route into **pipeline capability** — it is the only resource class left.
+3. **Stalled leaves must trigger BUILDING new layout capability**, via subagent handoff; run manually NOW,
+   automate later. Anti-circularity: **an archetype must be nameable in the vocabulary of the BOOK, not the
+   ERROR.** Known hole: rare settings never reach cluster-size k — needs a manual-nomination route.
+4. **M is admissible for the NT at structural grain** (layout, damage/show-through in B, crop verification).
+   Glyph bar ≠ whole-witness bar.
+5. Archetype F (mixed leaf): **design the split, don't discard.** By hand C1; automated **C3** —
+   `chapter_model_derive.py` is pinned OFF at **net −6** (helps 4, hurts 8); a wrong cut deletes scripture.
+
+### ⚠️ CORRECTED — do not repeat these
+* "three of four NT files made up" → **two** made up strictly (S01, S08); S09 is **imperfect, not made up**.
+  "Made up" = assembled from >1 copy, NOT forged.
+* **F holds NO text leaf P lacks in OT1** — §1.2 "same book, leaf for leaf", 1132=1132. The errata-leaf note
+  I cited is in **R3.5, DISSOLVED, about the NT**, and self-disclaiming. WITHDRAWN as grounds. What IS open:
+  **B has never been aligned leaf-by-leaf** against P or F. OT2 is live and is **R3.5b**, already OPEN.
+
+### Artifact (living doc, republish same path to keep URL)
+`scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+
+## ✅ ALL WORK COMMITTED + PUSHED — main in sync with origin
+`6da234d` R11 (harness tracked) · `69dfdda` R9.6/R9.6a/R11.4 · `104ad8f` R11.3a ·
+`07ac2a0` R2.1c+R2.1d′+ALERT · `86000f8` R2.1b status. Nothing uncommitted but the two untracked items below.
+
+## 🔵 R2 STATE — the metric is sound, the head-side instrument is not
+`witness/collation_read.py` (**TRACKED**, promoted from gitignored `.scratch/r2/probe_v18.py`) —
+`read_direction_line()` returns signature/catchword as SEPARATE fields + abstain reasons; `read_first_word()`.
+`witness/r2_1d_continuity.py` is the R2.1d′(A) scorer (in the roadmap's **audits** block, exit 1 = healthy).
+| run | agreement | Wilson95 lower | bar |
+|---|---|---|---|
+| 2026-08-11 gitignored probe | 0.222 (4/18) | 0.090 | 0.95 |
+| 2026-08-14 tracked + word-gap re-cut | **0.312 (5/16)** | **0.142** | 0.95 |
+**~5h of the 12h ceiling — the CEILING DID NOT FIRE, the ACCEPTANCE RULE did.** Budget remains; that is
+not a licence to spend it on retuning.
+🟢 **Catchwords read 0.87–1.00 and are correct** (`face` `ſtoode` `Returne` `God` `familie` `Cades`
+`reuenge` `worke` `abide`). **EVERY failure is head-side**, three distinct causes:
+1. head band doesn't yield the first line of TEXT — `411→412` compares `Cades` vs **`'Temporal'` = a
+   RUNNING HEAD**; `401→402` reads `'ode'` for a line opening `ſtoode`;
+2. 🔴 **scorer defect — a catchword can be MULTI-WORD**: `414→415` scores `'of flowre'` vs `'of'` as
+   DISAGREE. A true agreement counted against us; depresses the rate by an unknown amount;
+3. genuine recogniser error, smallest share (`'wl'` for *whom*).
+⚠️ **Never cite 0.312 as "the catchword approach scores 0.31"** — joint measure of two readers + a scorer,
+with two known defects outside the catchword half. Fixed re-cut: `_group` scaled the word space by
+`max(pitch, gh*1.3)` (right for the sparse FOOT band); in dense justified HEAD text it exceeded every word
+space so rows never split and `first_word()` returned whole lines. Now 1-D 2-means on the row's own gaps.
+
+## ✅ DONE THIS SESSION (detail in the roadmap; do not re-derive)
+* **R11.1** mask-eval harness (33 files/432 KB) TRACKED at `core/tests/fixtures/gold/harness/`; ~2 GB stays
+  machine-local behind `MASK_EVAL_DATA` (raises). 3 consumers byte-identical **with the original deleted**.
+  `order.json` NOT duplicated — `mask_engine/order.json` was already tracked and identical.
+* **R11.2** guard `test_no_scratch_deps.py` exit 0, injection-proven. **R11.2a** audit 71→**33 refs/23 files**.
+* **R9.6** — the root was restated in **20 modules / 33 literals**, not six; `core/.scratch/originaldr-project`
+  is **absent entirely**. **FOUR** modules `mkdir`+WRITE (not two). One derived root
+  `originaldr_reconstruction/project_root.py`. Guard `witness/test_project_root.py`, injection-proven ×3.
+* **R11.4** — `purge_empty_ocr` reached it by **relative traversal**, so a sweep written against modules that
+  *restate* the root couldn't see it. **A search shaped by the fix's vocabulary finds only what shares it.**
+* **R9.6a** — **madueke-a CONFIRMED** (1334/1334 chapters; **35,809/35,809 verses verbatim, 100.0000%**, after
+  stripping `<sup>` + `^`). **madueke-b REFUTED at 2.05%**: `madueke_b.json` is `pdf-bbox-two-column` from the
+  PDF; the same-named `merged.txt` is the **pre-de-interleaving** dump (*"…created heaven and **fruit after his
+  kind**"*). Repointing on the filename would have corrupted 5 consumers → **R9.6b OPEN (3h)**.
+* **R11.3a** — Sabates_A pinned `0bf4218b` (CC0). `ls-remote` confirms it at HEAD/main, 0 behind.
+  ⚠️ **The commit is not the pin** — it proves what was *requested*, not what *arrived*; per-tree content
+  hashes too. Injection-proven on the case a SHA can't catch (1 byte, HEAD unchanged → FAIL).
+
+## ⛔ NOT STARTED — R7.5a-2 (Sir's step 4), and why
+The 261 artefacts come from **many different generators** (coverage audits, consensus, QC probes), not one
+command. Launching a regeneration I hadn't mapped = a blind bulk write over derived evidence. **Next step is
+a producer-per-artefact survey**, then regenerate (NEVER edit — R7.5d). Acceptance `audit_s06_keys.py` → 0.
+
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — nowhere else)
+* 🔴 **Repo declares pre-commit hooks that are NOT installed** (`.pre-commit-config.yaml`, ruff over `^core/`;
+  `.git/hooks/` has only samples). Manual run: **24 unfixable ruff errors + a 429-line reformat** (reverted).
+  **Finding for Sir, not mine to silently fix.**
+* `projects/originaldr/.archive-consensus-full.pre-r9.4b/` **263 MB**, untracked and NOT gitignored so its
+  fragility stays visible. `OriginalDRnotes` 192 KB untracked, believed Sir's — leave both.
+* **NEVER `git add -A`** at the palimpsest root — staging there is always a deliberate, scoped act.
+* Suite: **13 guards exit 0 · 6 audits exit 1 (healthy) · `test_verification_standard` exit 0, 21 commands.**
+  ⚠️ The standard now RUNS `r2_1d_continuity.py`, so the block takes ~2 min (OCR) — it will time out under a
+  120s limit. §0.5 ceilings **18/44**; rises on PLANNING, falls on COMPLETION — coverage of the plan, never a
+  progress number. **R11.2b**: the standard parses only `witness/`-prefixed commands, so the repo-root R11
+  entries sit in the block **uncovered**.

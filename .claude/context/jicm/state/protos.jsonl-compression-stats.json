@@ -1,19 +1,19 @@
 {
-  "input_bytes": 329488,
-  "output_bytes": 173202,
-  "input_lines": 133,
-  "output_lines": 56,
-  "compression_ratio": 0.5257,
-  "reduction_pct": 47.4,
+  "input_bytes": 4284564,
+  "output_bytes": 2334596,
+  "input_lines": 2743,
+  "output_lines": 1001,
+  "compression_ratio": 0.5449,
+  "reduction_pct": 45.5,
   "filtered_by_type": {
-    "file-history-snapshot": 2,
-    "attachment": 61,
-    "last-prompt": 7,
-    "ai-title": 7
+    "file-history-snapshot": 17,
+    "attachment": 1537,
+    "last-prompt": 94,
+    "ai-title": 94
   },
-  "tool_results_total": 10,
-  "tool_results_deduped": 0,
-  "tool_results_truncated": 3,
+  "tool_results_total": 279,
+  "tool_results_deduped": 32,
+  "tool_results_truncated": 56,
   "sysrem_stripped": 0,
-  "assistant_compacted": 10
+  "assistant_compacted": 279
 }

@@ -123,7 +123,7 @@ if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/cont
     _passthrough
 fi
 
-# ─── JICM v9: W5/dev exclusion DELETED ──────────────────────────────────────
+# ─── JICM v9: W11/dev exclusion DELETED ──────────────────────────────────────
 # The exclusion existed ONLY because dev + W0 shared one .jicm-state-hook.json, so
 # dev prompts clobbered W0's state (Sonnet/200K masking Opus/1M) and blinded the
 # watcher. Now that state is namespaced per <key> (JK_STATE below), dev writes its

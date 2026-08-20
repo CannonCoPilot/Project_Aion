@@ -166,7 +166,7 @@ Copy `launch-jarvis-tmux.sh` to `launch-aion.sh` and rewrite:
 | `PROJECT_DIR` -> `$HOME/Claude/Project_Aion` | Global |
 | Add `ALFRED_DIR="$PROJECT_DIR/alfred"` | New variable |
 | All `$HOME/Claude/Alfred-Dev` -> `$ALFRED_DIR` | ~20 occurrences |
-| Window names: "Jarvis-dev" -> "Aion-dev" | W5 |
+| Window names: "Jarvis-dev" -> "Aion-dev" | W11 |
 | Environment: `x-aion-agent-name: jarvis-w0` -> `aion-w0` | Headers |
 | Add Alfred-specific health checks for nested path | Preflight |
 | Self-repair: detect and restart failed services during runtime | New feature |

@@ -5,7 +5,7 @@
 #   Phase 1: Offline treatment comparison (prep script configs)
 #   Phase 2: Live quality probes (end-to-end with fact recall scoring)
 #
-# Designed to run from W5:Jarvis-dev. Controls W0:Jarvis via tmux.
+# Designed to run from W11:Jarvis-dev. Controls W0:Jarvis via tmux.
 #
 # Usage: run-experiment-7.sh [--phase 1|2|all] [--start-trial N] [--dry-run]
 #

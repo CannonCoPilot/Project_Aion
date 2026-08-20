@@ -31,7 +31,7 @@
 #
 # Modes:
 #   (default)    Full Jarvis with session persistence (W0-W4, resume by UUID)
-#   --dev        Add W5 Jarvis-dev test driver
+#   --dev        Add W11 Jarvis-dev test driver
 #   --fresh      Full Jarvis but new session (archive old, start clean)
 #   --lite       Isolated one-off session (W0+Watcher only, no persistence,
 #                separate tmux session 'lite', minimal CLAUDE.md ~340 tokens,
@@ -53,8 +53,8 @@ CLAUDE_PROJECT_SLUG="-$(echo "$PROJECT_DIR" | sed 's|^/||; s|/|-|g')"
 # W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL (used only for --fresh)
 JARVIS_W0_SESSION_ID="17612316-37f1-5cec-b456-6a79f7735a9f"
 JARVIS_W0_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_W0_SESSION_ID}.jsonl"
-# W5: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
-JARVIS_W5_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+# W11: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
+JARVIS_W11_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
 JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
@@ -62,7 +62,7 @@ W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 # JICM /clear creates new session UUIDs, so we can't pin W0 to one UUID.
 # Instead, we pick the most recent JSONL that isn't W5's session.
 find_latest_w0_session() {
-    local exclude_uuid="$JARVIS_W5_SESSION_ID"
+    local exclude_uuid="$JARVIS_W11_SESSION_ID"
     local f uuid
     for f in $(ls -t "$JARVIS_PROJECTS_DIR"/*.jsonl 2>/dev/null); do
         uuid=$(basename "$f" .jsonl)
@@ -501,7 +501,7 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
     if [[ "$DEV_MODE" == "true" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
-            echo "Adding Jarvis-dev window (W5) to existing session..."
+            echo "Adding Jarvis-dev window (W11) to existing session..."
             JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
             JARVIS_DEV_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_DEV_SESSION_ID}.jsonl"
             CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=dev"
@@ -519,7 +519,7 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
                     ls -t "$DEV_SESSION_ARCHIVE_DIR"/dev-session-*.jsonl 2>/dev/null | tail -n +6 | xargs rm -f 2>/dev/null
                 fi
             fi
-            DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Jarvis core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+            DEV_SYSTEM_APPEND="You are W11:Jarvis-dev, the engineering/infrastructure agent. Focus on Jarvis core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
             if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
                 CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
             else
@@ -599,7 +599,7 @@ if [[ "$FRESH_MODE" == "true" ]]; then
 else
     echo -e "  ${CYAN}W0 Mode:${NC} ${GREEN}RESUME${NC} (most recent non-W5 session)"
 fi
-echo -e "  ${CYAN}W5 UUID:${NC} $JARVIS_W5_SESSION_ID (excluded from W0 lookup)"
+echo -e "  ${CYAN}W5 UUID:${NC} $JARVIS_W11_SESSION_ID (excluded from W0 lookup)"
 echo -e "  ${CYAN}Watcher:${NC} $([ "$WATCHER_ENABLED" = true ] && echo "${GREEN}ENABLED${NC}" || echo "${YELLOW}DISABLED${NC}")"
 echo ""
 echo "Starting Jarvis..."
@@ -767,7 +767,7 @@ if [[ -x "$CMD_HANDLER_SCRIPT" ]]; then
         "cd '$PROJECT_DIR' && '$CMD_HANDLER_SCRIPT' --interval 3; echo 'Command handler stopped.'; read"
 fi
 
-# W5: Jarvis-dev (developer's seat — named session for deterministic resumption)
+# W11: Jarvis-dev (developer's seat — named session for deterministic resumption)
 # Uses a deterministic UUID so --resume always picks up the same conversation.
 # UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL = fbd7528a-c1bd-414a-bdaa-c3cc23f53215
 if [[ "$DEV_MODE" == "true" ]]; then
@@ -791,7 +791,7 @@ if [[ "$DEV_MODE" == "true" ]]; then
         fi
     fi
     # W5 system prompt overlay — deprioritizes DwarfCron context, focuses on Jarvis core
-    DEV_SYSTEM_APPEND="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Jarvis core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+    DEV_SYSTEM_APPEND="You are W11:Jarvis-dev, the engineering/infrastructure agent. Focus on Jarvis core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     if [[ -f "$JARVIS_DEV_SESSION_FILE" ]]; then
         CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort high --append-system-prompt '$DEV_SYSTEM_APPEND' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log --resume $JARVIS_DEV_SESSION_ID"
     else

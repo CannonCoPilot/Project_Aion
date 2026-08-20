@@ -1,9 +1,9 @@
 {
   "key": "jaques",
-  "last_seen": "2026-08-12T16:56:46Z",
+  "last_seen": "2026-08-20T01:27:20Z",
   "registered_at": "2026-08-12T16:35:11Z",
-  "session_id": "3a931aad-81b2-4cd7-a2c5-867732ce91f7",
-  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/3a931aad-81b2-4cd7-a2c5-867732ce91f7.jsonl",
+  "session_id": "65ab0c63-66e0-4a9c-9426-af15dd093332",
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/65ab0c63-66e0-4a9c-9426-af15dd093332.jsonl",
   "tmux_target": "aion:13",
   "actuation_mode": "pane",
   "class": "interactive",

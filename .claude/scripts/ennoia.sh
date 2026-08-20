@@ -549,7 +549,7 @@ render() {
     # Update status file
     local has_rec="false"
     [[ -f "$ENNOIA_RECOMMENDATION" ]] && has_rec="true"
-    # Idle-hands state (W0 only — W5:Jarvis-dev is isolated from autonomic systems)
+    # Idle-hands state (W0 only — W11:Jarvis-dev is isolated from autonomic systems)
     local ih_w0="inactive"
     [[ -f "$PROJECT_DIR/.claude/context/.idle-hands-active.W0" ]] && ih_w0="active"
     cat > "$ENNOIA_STATUS" <<EOF

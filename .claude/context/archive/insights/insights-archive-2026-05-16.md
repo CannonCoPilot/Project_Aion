@@ -3748,7 +3748,7 @@ The data capture is remarkably complete — 10 JSONL entries spanning 89,671 tic
 
 **The W5 isolation design uses a layered approach**: Claude Code loads `CLAUDE.md` (shared, includes DwarfCron `@` imports) for both W0 and W5 — we can't prevent this. But W5 now has three layers of redirection:
 
-1. **`--append-system-prompt`** (launcher): "You are W5:Jarvis-dev. Focus on Jarvis core. Ignore DF-specific @-imports."
+1. **`--append-system-prompt`** (launcher): "You are W11:Jarvis-dev. Focus on Jarvis core. Ignore DF-specific @-imports."
 2. **`dev-session-instructions.md`** (loaded as first prompt): Context Isolation section explicitly delineates W5 vs W0 domains
 3. **`JARVIS_SESSION_ROLE=dev`** env var: available to hooks for conditional behavior
 
@@ -3855,7 +3855,7 @@ Two categories account for **78% of force-loaded tokens**:
 
 1. **AC Components (45.5%)** — 10 full spec documents (AC-01 through AC-10) plus 3 overview files. Each AC spec is 300-490 lines with detailed implementation notes, validation checklists, and ASCII diagrams. The CLAUDE.md `## Autonomic behavior` section we just wrote provides a concise summary of all 10 components in ~30 lines. The full specs are rarely consulted during normal work — they're reference material for when you're *modifying* the AC system itself.
 
-2. **DF Reference (32.5%)** — 4 Chronicler/DF game control documents. These are exclusively W0:Jarvis domain (Chronicler development). W5:Jarvis-dev and infrastructure sessions pay the token cost but never use them. Even W0 only needs them during active DF gameplay sessions.
+2. **DF Reference (32.5%)** — 4 Chronicler/DF game control documents. These are exclusively W0:Jarvis domain (Chronicler development). W11:Jarvis-dev and infrastructure sessions pay the token cost but never use them. Even W0 only needs them during active DF gameplay sessions.
 
 **Potential savings**: Moving AC-01..10 full specs and DF reference docs to on-demand loading would save **~87K tokens (78%)**, reducing force-loaded context from ~112K to ~25K. The CLAUDE.md autonomic behavior summary + `capability-map.yaml` provide sufficient behavioral guidance for most sessions.
 
@@ -5066,7 +5066,7 @@ Claude Code CLI flags `--continue` and `--resume <UUID>` are **mutually exclusiv
 
 **Why deterministic UUIDs don't work with JICM**: Each `/clear` starts a new Claude Code session with a fresh UUID. The deterministic UUID becomes "the session from the first launch" and falls further behind with every JICM cycle. `--continue` (most recent session) is the correct strategy for a system that regularly creates new sessions.
 
-**Edge case to watch**: `--continue` picks the most recent JSONL in the project directory. If W5 Jarvis-dev is the last thing modified before a tmux restart, `--continue` could pick it instead of the W0 session. In practice this is unlikely since W0 is the primary interaction window.
+**Edge case to watch**: `--continue` picks the most recent JSONL in the project directory. If W11 Jarvis-dev is the last thing modified before a tmux restart, `--continue` could pick it instead of the W0 session. In practice this is unlikely since W0 is the primary interaction window.
 
 ### 2026-04-26 [95552a337b71]
 
@@ -5152,7 +5152,7 @@ This is a critical finding for the pipeline design: the qwen3:32b Evaluate servi
 - `--permission-mode bypassPermissions` — Sets the permission mode to bypass, but **still respects deny rules** from settings.json. This is the "configured bypass" — it trusts the allow/deny lists.
 - `--dangerously-skip-permissions` — **Bypasses ALL permission checks entirely**, including deny rules. This is the nuclear option — no gates whatsoever, recommended only for sandboxed environments.
 
-W0 (main Jarvis) uses `--permission-mode bypassPermissions`, which still respects deny rules. W5 (Jarvis-dev) and Lite mode use `--dangerously-skip-permissions`, which ignores everything. This means **W0 can still be gated by deny rules**, while W5 cannot.
+W0 (main Jarvis) uses `--permission-mode bypassPermissions`, which still respects deny rules. W11 (Jarvis-dev) and Lite mode use `--dangerously-skip-permissions`, which ignores everything. This means **W0 can still be gated by deny rules**, while W5 cannot.
 
 ### 2026-04-29 [97a3549b736f]
 

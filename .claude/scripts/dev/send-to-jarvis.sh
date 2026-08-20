@@ -1,7 +1,7 @@
 #!/bin/bash
 # send-to-jarvis.sh — Send prompts to W0:Jarvis via tmux, optionally wait for idle
 #
-# Used by Jarvis-dev (W5) to inject prompts into the system-under-test (W0).
+# Used by Jarvis-dev (W11) to inject prompts into the system-under-test (W0).
 # Reuses the watcher's idle detection pattern for reliable wait-for-idle.
 #
 # Usage: send-to-jarvis.sh "prompt text" [--wait SEC] [--escape-first]

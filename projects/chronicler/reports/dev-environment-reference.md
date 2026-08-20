@@ -44,7 +44,7 @@ The Chronicler development environment spans two machines: the **Mac Studio** (h
 │  │  W2: Ennoia          │  │  • Redis (port 6379)             │  │
 │  │  W3: Virgil          │  │  • n8n (port 5678)               │  │
 │  │  W4: Commands        │  │                                  │  │
-│  │  W5: Jarvis-dev      │  │ DwarfCron venv (Python 3.12)     │  │
+│  │  W11: Jarvis-dev      │  │ DwarfCron venv (Python 3.12)     │  │
 │  └─────────────────────┘  │  .venv/bin/chronicler CLI         │  │
 │                            └──────────────────────────────────┘  │
 │                                                                  │

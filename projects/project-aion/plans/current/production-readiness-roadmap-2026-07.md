@@ -1,5 +1,5 @@
 # Project Aion — Production Readiness Roadmap
-**Version**: 1.0 · **Date**: 2026-07-16 · **Author**: Jarvis-dev (W5) · **Status**: PROPOSED (awaiting Sir's approval)
+**Version**: 1.0 · **Date**: 2026-07-16 · **Author**: Jarvis-dev (W11) · **Status**: PROPOSED (awaiting Sir's approval)
 **Provenance**: Full-platform review of 2026-07-15/16 — eight parallel subsystem audits (JICM/context, hooks/settings, skills/agents/commands, memory stack, Nexus factory, Pulse/dashboards/docker, infrastructure/supervision, vision/plans corpus) + 87-file plans triage + live service/process probes. Every finding is file:line-verified. Full audit texts: `projects/project-aion/reports/production-review-2026-07-findings.md`.
 **Relationship to program of record**: `projects/project-aion/roadmap.md` (PR-1..14, Jan 2026) remains the historical program; this document is the successor program of record for bringing Jarvis + Alfred to production-level operation. M6 below adds the roadmap.md epilogue reconciling the two.
 

@@ -119,11 +119,11 @@ _log "==== lane-restart requested: lane=$KEY window=$WIN dry_run=$DRY_RUN force=
 #
 # Protocol: REQUEST -> EXTERNAL EXECUTOR -> VERIFY -> REPORT. A lane asks another lane (or the
 # User) to restart it. The invariant is only "restarter != restartee" — no lane is privileged;
-# W5:Jarvis-dev is merely the usual executor because it owns this tooling. If W5 needs restarting,
+# W11:Jarvis-dev is merely the usual executor because it owns this tooling. If W11 needs restarting,
 # another lane or the User runs it.
 if [[ -n "$TMUX_PANE" ]]; then
     self_win="$("$TMUX_BIN" display -p -t "$TMUX_PANE" '#{window_name}' 2>/dev/null)"
-    [[ "$self_win" == "$WIN" ]] && _die "a lane cannot restart itself ($WIN): the respawn would kill this very process before it could verify or report the result. Ask another lane (e.g. W5:Jarvis-dev) or the User to run: aion-lane-restart.sh $LANE"
+    [[ "$self_win" == "$WIN" ]] && _die "a lane cannot restart itself ($WIN): the respawn would kill this very process before it could verify or report the result. Ask another lane (e.g. W11:Jarvis-dev) or the User to run: aion-lane-restart.sh $LANE"
 fi
 
 # --- 1. Window must exist.

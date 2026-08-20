@@ -2,7 +2,7 @@
 
 > **Rev 4 (2026-07-20 PM):** git/docs issue RESOLVED (it was a corrupted `.git`, **not** RTK — see §6) and all conclusions **validated against re-cloned current docs**. See §6 for the citation table.
 
-**Date:** 2026-07-20 · **Author:** W5 Jarvis-dev, session `66d922e6` (a `--fork-session` background-PTY fork of the dev pane `fbd7528a`).
+**Date:** 2026-07-20 · **Author:** W11 Jarvis-dev, session `66d922e6` (a `--fork-session` background-PTY fork of the dev pane `fbd7528a`).
 **Status:** DIAGNOSIS ONLY — nothing executed, no code modified.
 **Rev 3** rebuilds the diagnosis empirically after Sir's push-back, **grounded in the official Claude Code docs** (`/Users/nathanielcannon/Claude/GitRepos/claude-code-docs`: `cli-reference`, `interactive-mode`, `agent-sdk/sessions`). It **retracts** three Rev-1/2 claims and reframes the whole thing around Claude Code's *fluid* session model. Companion tool: `.claude/scripts/dev/session-reap.sh` (process diagnosis only; no transcript deletion).
 

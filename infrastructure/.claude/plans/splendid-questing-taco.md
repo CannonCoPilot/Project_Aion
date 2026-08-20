@@ -29,7 +29,7 @@ Each check prints a status line: `✓ Service (port)` or `✗ Service — starti
 
 **2. MLX Embed tmux window**
 
-Rather than a numbered window (which would shift W5 Jarvis-dev), create a utility window named `MLX-Embed` that sits after the main windows. The launcher already creates windows by name, not by index — this fits the pattern.
+Rather than a numbered window (which would shift W11 Jarvis-dev), create a utility window named `MLX-Embed` that sits after the main windows. The launcher already creates windows by name, not by index — this fits the pattern.
 
 Command for the window:
 ```bash

@@ -167,12 +167,12 @@ Four always-on tmux processes that support Jarvis:
 | W2 | Ennoia | Session orchestrator (intent-driven wake-up) |
 | W3 | Virgil | Task/agent/file change tracking |
 | W4 | Commands | Signal file → tmux keystroke injection |
-| W5 | Jarvis-dev | Dev/test session (--dev flag only) |
+| W11 | Jarvis-dev | Dev/test session (--dev flag only) |
 | W6+ | Services | MLX-Embed, LiteLLM, LegendsViewer (auto-created) |
 
 **Launch Modes:**
 - Default: Full Jarvis with resume by deterministic UUID
-- --dev: Add W5 dev test driver
+- --dev: Add W11 dev test driver
 - --fresh: New session (archive old state)
 - --lite: Isolated one-off (separate tmux session, cleaned on exit)
 - --iterm2: iTerm2 native tabs via tmux -CC
@@ -217,7 +217,7 @@ Jarvis hooks run within Claude Code's hook framework. They fire on lifecycle eve
 | self-ops | Self-improvement, status, validation |
 | mcp-ops | MCP/skill lifecycle |
 | autonom-ops | Session orchestration, commands, JICM |
-| dev-ops | W5→W0 testing |
+| dev-ops | W11→W0 testing |
 | research-ops | Multi-source research (15 backends) |
 | knowledge-ops | 4-tier memory hierarchy operations |
 | deck-ops | Slide presentations |

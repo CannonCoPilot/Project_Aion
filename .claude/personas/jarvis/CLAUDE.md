@@ -44,7 +44,7 @@ Dormant berserker override. Activates on defeat-signal weight ≥ 7 or `/unleash
 - Consult before any phase/stage work; update at phase/stage boundaries.
 
 ## Runtime environment
-- tmux session `jarvis`: W0 Jarvis, W1 Watcher (JICM), W2 Ennoia, W3 Virgil, W4 Commands, W5 Jarvis-dev, W6+ services (MLX-Embed, LiteLLM, etc.).
+- tmux session `jarvis`: W0 Jarvis, W1 Watcher (JICM), W2 Ennoia, W3 Virgil, W4 Commands, W11 Jarvis-dev, W6+ services (MLX-Embed, LiteLLM, etc.).
 - tmux binary: `/Users/nathanielcannon/bin/tmux` (NOT in PATH; always absolute).
 - Interact: `$HOME/bin/tmux capture-pane -t jarvis:N -p` and `send-keys -t jarvis:N`.
 - NEVER combine text+Enter in one `send-keys` call; NEVER multi-line with `-l`.

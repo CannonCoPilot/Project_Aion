@@ -1,7 +1,7 @@
 #!/bin/bash
 # restart-watcher.sh — Kill and restart JICM watcher with custom threshold
 #
-# Used by Jarvis-dev (W5) to restart the watcher in W1 with a lower threshold
+# Used by Jarvis-dev (W11) to restart the watcher in W1 with a lower threshold
 # for fast JICM cycle testing. Uses tmux respawn-window to replace W1 contents.
 #
 # Usage: restart-watcher.sh [--threshold PCT] [--interval SEC] [--kill-only]

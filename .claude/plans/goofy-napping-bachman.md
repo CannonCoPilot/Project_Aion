@@ -2,7 +2,7 @@
 
 ## Context
 
-JICM v6.1 commits 1-3 are complete and pushed. The user needs a **testing infrastructure** where they sit in Jarvis-dev (W5) and direct it to autonomously test the primary Jarvis session (W0). The `--dev` flag adds Jarvis-dev as a window to the existing launcher. A **dev-ops Skill** wires all dev utilities into slash commands so Jarvis-dev can be directed to run tests — including "semi-automated" tests that Jarvis-dev handles by polling W0 itself.
+JICM v6.1 commits 1-3 are complete and pushed. The user needs a **testing infrastructure** where they sit in Jarvis-dev (W11) and direct it to autonomously test the primary Jarvis session (W0). The `--dev` flag adds Jarvis-dev as a window to the existing launcher. A **dev-ops Skill** wires all dev utilities into slash commands so Jarvis-dev can be directed to run tests — including "semi-automated" tests that Jarvis-dev handles by polling W0 itself.
 
 **Key Direction**: Jarvis-dev = user's driver seat (Claude Code + Jarvis skills). W0 Jarvis = system under test. Jarvis-dev autonomously runs ALL tests against W0.
 
@@ -16,12 +16,12 @@ W1: Watcher       — JICM v6.1, monitors W0 (existing, unchanged)
 W2: Ennoia        — (existing, unchanged)
 W3: Virgil        — (existing, unchanged)
 W4: Commands      — Command handler, targets W0 (existing, unchanged)
-W5: Jarvis-dev    — TEST DRIVER (live Claude Code, --continue, dev-ops Skill)
+W11: Jarvis-dev    — TEST DRIVER (live Claude Code, --continue, dev-ops Skill)
 ```
 
 **Isolation**: Already achieved — watcher/command-handler hardcode `${TMUX_SESSION}:0`, so W5 is invisible. Hooks fire in both (acceptable). `JARVIS_SESSION_ROLE=dev` env var in W5 for optional hook differentiation.
 
-**Testing Model**: User says `/dev-test` in W5 -> Jarvis-dev reads dev-ops Skill -> executes bash scripts via Bash tool -> polls W0 pane/state files -> validates results -> reports pass/fail. All autonomous.
+**Testing Model**: User says `/dev-test` in W11 -> Jarvis-dev reads dev-ops Skill -> executes bash scripts via Bash tool -> polls W0 pane/state files -> validates results -> reports pass/fail. All autonomous.
 
 ---
 
@@ -75,7 +75,7 @@ fi
 4. **After W4 creation** (after line 192): Add Jarvis-dev window:
 
 ```bash
-# W5: Jarvis-dev (second Claude session — test driver, with --continue)
+# W11: Jarvis-dev (second Claude session — test driver, with --continue)
 if [[ "$DEV_MODE" == "true" ]]; then
     CLAUDE_ENV_DEV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=20000 JARVIS_SESSION_ROLE=dev"
     CLAUDE_CMD_DEV="claude --dangerously-skip-permissions --verbose --continue"
@@ -95,7 +95,7 @@ fi
 
 **Key decisions**:
 - W0: `--fresh` (clean slate for test isolation)
-- W5: `--continue` (resumes Jarvis-dev with all context, skills, memory)
+- W11: `--continue` (resumes Jarvis-dev with all context, skills, memory)
 - W5: No `--debug` / `--debug-file` (avoids debug stream collision with W0)
 - W5: Gets `JARVIS_SESSION_ROLE=dev` env var for optional hook filtering
 
@@ -253,7 +253,7 @@ name: dev-ops
 model: sonnet
 version: 1.0.0
 description: |
-  Dev operations — autonomous testing of W0:Jarvis from W5:Jarvis-dev.
+  Dev operations — autonomous testing of W0:Jarvis from W11:Jarvis-dev.
   Test infrastructure health, JICM cycles, command IPC, hooks, and state files.
   Triggers: "dev test", "test jarvis", "run tests", "dev-ops", "check jarvis"
 category: development
@@ -543,13 +543,13 @@ bash .claude/tests/test-jicm-v6.sh
 # Expect: 240+ passed (228 existing + 12 new Group 28), 0 failed
 ```
 
-### Live verification (from Jarvis-dev W5, after launching with --dev)
+### Live verification (from Jarvis-dev W11, after launching with --dev)
 ```
-User in W5: /dev-test suite       # Jarvis-dev runs automated test runner
-User in W5: /dev-test jicm        # Jarvis-dev autonomously drives JICM cycle
-User in W5: /dev-test ipc         # Jarvis-dev tests command signal IPC
-User in W5: /dev-test hooks       # Jarvis-dev validates hook signal files
-User in W5: /dev-test all         # Everything above
+User in W11: /dev-test suite       # Jarvis-dev runs automated test runner
+User in W11: /dev-test jicm        # Jarvis-dev autonomously drives JICM cycle
+User in W11: /dev-test ipc         # Jarvis-dev tests command signal IPC
+User in W11: /dev-test hooks       # Jarvis-dev validates hook signal files
+User in W11: /dev-test all         # Everything above
 ```
 
 ---

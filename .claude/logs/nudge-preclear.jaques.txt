@@ -1,0 +1,43 @@
+      )" && git log --oneline -1)
+  ⎿  e1e82e2 docs(starfish): scope task 2 — hypothesis-driven experimental / biology / bioinformatics
+  ⎿  Async hook PostToolUse completed
+
+⏺ Infra thread is closed, and dev's reproduction settles it cleanly.
+
+  The browser question is resolved — as unfixable locally, for now
+
+  Dev ran the same contrast in W5 and got identical results: bare tabs_context_mcp passes, createIfEmpty=true is adjudicated and denied. So it's machine-wide, not my lane, and
+  --strict-mcp-config isn't the variable.
+
+  Remedy 2 is dead, and usefully so. W5 already holds the state that changing your user-level defaultMode would produce, and it's still adjudicated — so that machine-wide security loosening
+  would have bought exactly zero. We'd only have discovered that after making it. Dev has told you not to. Worth noting this is the second time in the thread a settings-file comparison
+  looked decisive and an observed permission decision overturned it.
+
+  The working model I'll reason from now: split by mutation, not by tool name. Chrome tools are deferred, so they register after the permission engine builds its table — permission mode and
+  allow-rules can't short-circuit them at all. Read-only calls hit the built-in safe list; anything mutating falls through to the classifier, the browser_batch wrapper included. That
+  explains all four of my results without special-casing any, which the allowlist story couldn't.
+
+  I declined the manual workaround. Dev offered to ask you to hand-create the tab group in Chrome, which isn't classifier-gated. I said no: it isn't blocking, the Starfish assignment came
+  through stb submissions fetch-task, and the browser is only wanted for the coding-submission-guidelines.md diff, which has no deadline. You've been pulled into two infrastructure detours
+  this session already. If the outage outlives the day and that diff becomes load-bearing, I'll take it up then. Dev will ping when the classifier answers, and I'll retry so we record the
+  recovery rather than infer it.
+
+  Starfish scoping is now in the repo
+
+  projects/ec-starfish/docs/09-task-2-scoping.md, committed e1e82e2 — both ideas, the layer-by-layer mechanisms, metadata mapping, and the carried-forward rules any build must honour
+  (nested bundle path, no generation artifacts, 150–250 word instruction, ≥25 steps, declared vocabularies, grade the analysis not the presentation). It survives a context clear now, and
+  it's useful whichever way you go.
+
+  The one thing I still need from you is A or B. I've recommended B twice and stand by it, but I'm deliberately not writing the simulator until you confirm — ground-truth-by-construction
+  cohort generation is the bulk of the build, and building the wrong one is a real cost rather than a cheap detour.
+
+✻ Brewed for 1m 49s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ go with B
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from Jaques checkpoint  main +1143-52 e:low △ exc-200k                                                                                           272304 tokens
+  [▓▓▓▓▓▓▒·│┃············╿·····] 27% 271.4K  Δ4.6K/m  S:4m H:11m  cache:99% eph1h:100%  warm/write/new                                                                                Debug
+  $26.49  blk:$47.5  ⏱21h18m api:2%  5h:28%↺36m  7d:22%↺2d10h
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

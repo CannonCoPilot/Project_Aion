@@ -45,7 +45,7 @@
 | W2 | Ennoia | ennoia.sh | Intent orchestration |
 | W3 | Virgil | virgil.sh | Task/agent/file tracking |
 | W4 | Commands | command-handler.sh | Signal file → command injection |
-| W5 | Jarvis-dev | Claude Code | Dev testing (optional) |
+| W11 | Jarvis-dev | Claude Code | Dev testing (optional) |
 | W6 | MLX-Embed | Python | Qwen3-Embedding-4B server (:8000) |
 | W7 | LiteLLM | Python | LLM routing proxy (:4000) |
 | W8 | HUD | jicm-watcher-hud.sh | Read-only watcher dashboard |
@@ -342,7 +342,7 @@ The task pipeline must be fully self-healing with respect to ticket state manage
     │     W2: Ennoia (intent orchestration)               │
     │     W3: Virgil (task tracking)                      │
     │     W4: Commands (signal injection)                 │
-    │     W5: Jarvis-dev (optional)                       │
+    │     W11: Jarvis-dev (optional)                       │
     │     W6: MLX-Embed (:8000)                           │
     │     W7: Ollama monitor (health + model preload)     │
     │     W8: HUD (watcher dashboard)                     │

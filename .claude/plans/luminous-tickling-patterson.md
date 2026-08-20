@@ -4,7 +4,7 @@
 
 The user wants to work through remaining Milestones from W0:Jarvis and needs the ability to `--continue` when Claude exits (context exhaustion, `/exit`, crash). Currently, W0's tmux window dies when Claude exits because the window's initial command IS Claude — when it exits, tmux destroys the window.
 
-Additionally, the dev session (W5) references a stale project directory identifier (`-Users-aircannon-Claude-Jarvis`) that doesn't exist on this Mac Studio.
+Additionally, the dev session (W11) references a stale project directory identifier (`-Users-aircannon-Claude-Jarvis`) that doesn't exist on this Mac Studio.
 
 ## Changes
 

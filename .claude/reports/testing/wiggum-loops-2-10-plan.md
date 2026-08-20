@@ -300,7 +300,7 @@
 - Virgil running in W3
 - Command handler running in W4
 - W0:Jarvis active and idle
-- W5:Jarvis-dev (test executor)
+- W11:Jarvis-dev (test executor)
 
 **Current Blocker**: tmux not available in standalone Claude Code session. Loops 2-10 execution requires relaunching via `launch-jarvis-tmux.sh`.
 

@@ -1,0 +1,45 @@
+Permission allow rule (../../../.claude/settings.json): Write(/Users/nathanielcannon/Claude/Project_Aion/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/
+Users/nathanielcannon/Claude/Project_Aion/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../../../.claude/settings.json): Write(/Users/nathanielcannon/Claude/Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/User
+s/nathanielcannon/Claude/Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../../../.claude/settings.json): Write(/Users/nathanielcannon/.claude/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/nathan
+ielcannon/.claude/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/skills/token-compression/*) is not matched by file permission checks — only
+Edit(path) rules are. Use Edit(/Users/nathanielcannon/Claude/Project_Aion/.claude/skills/token-compression/*) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Project_Aion/alfred/**) is not matched by file permission checks — only Edit(path) rules are. Use
+ Edit(/Users/nathanielcannon/Claude/Project_Aion/alfred/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/User
+s/nathanielcannon/Claude/Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Shared_Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edi
+t(/Users/nathanielcannon/Claude/Shared_Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Jarvis-Dev/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Us
+ers/nathanielcannon/Claude/Jarvis-Dev/**) instead (Edit rules cover all file-editing tools).
+Permission deny rule (../../../.claude/settings.json): Write(/Users/nathanielcannon/Claude/Archive/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/
+nathanielcannon/Claude/Archive/**) instead (Edit rules cover all file-editing tools).
+ ▐▛███▜▌   Claude Code v2.1.220
+▝▜█████▛▘  Opus 5 (1M context) with low effort · Claude Max
+  ▘▘ ▝▝    ~/Claude/Project_Aion/alfred
+
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  alfred (main) | 0 [▓▒········│········▪] 0% | M:0 | $0 | 14:39:13 | 0m                                                                                                           0 tokens
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

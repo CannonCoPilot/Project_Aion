@@ -11,7 +11,7 @@ and is not read or written from here.
 
 Plan: `/Users/nathanielcannon/Claude/Project_Aion/.claude/plans/eager-plotting-umbrella.md`
 
-**Phase 1 COMPLETE** (installed by W5:Jarvis-dev). Verified live, not assumed:
+**Phase 1 COMPLETE** (installed by W11:Jarvis-dev). Verified live, not assumed:
 - Window `aion:12`, deterministic session `468a0010-55cd-5c85-b152-fdb34d7c607b`, resumes.
 - JICM lane key `genie`, `actuation_mode: pane`, registry `tmux_target: aion:12`,
   HUD row `live / OCC=ok`. Supervised by `jicm-supervisor.sh` (NOT the legacy

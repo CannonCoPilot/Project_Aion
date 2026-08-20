@@ -1,7 +1,7 @@
 ---
 name: compose-maintain
 description: |
-  Spawn an ephemeral Claude worker in an isolated tmux window to execute compose down → repair → compose up sequences against the dev stack. Use when maintenance requires `docker compose down` against the dev stack AND the current window routes through :9800 (W0/W5 export ANTHROPIC_BASE_URL=http://localhost:9800 for cost telemetry; bringing :9800 down from W0 blinds W0). Worker runs with ANTHROPIC_BASE_URL unset, routes direct to api.anthropic.com (no telemetry), tears down its own tmux window on exit.
+  Spawn an ephemeral Claude worker in an isolated tmux window to execute compose down → repair → compose up sequences against the dev stack. Use when maintenance requires `docker compose down` against the dev stack AND the current window routes through :9800 (W0/W11 export ANTHROPIC_BASE_URL=http://localhost:9800 for cost telemetry; bringing :9800 down from W0 blinds W0). Worker runs with ANTHROPIC_BASE_URL unset, routes direct to api.anthropic.com (no telemetry), tears down its own tmux window on exit.
 when_to_invoke: |
   - dev-stack maintenance, "compose down", "rebuild dev stack"
   - topology migrations (directory rename + sed across compose / plist / .env)
@@ -17,7 +17,7 @@ when_not_to_invoke: |
 
 ## Why this skill exists
 
-W0 (Jarvis tmux pane) and W5 (Jarvis-dev) launch with `ANTHROPIC_BASE_URL=http://localhost:9800` per `launch-jarvis-tmux.sh:467` so all Claude API traffic routes through `aifred-dev-usage-proxy` for cost telemetry attribution to Pulse. **Side effect**: any `docker compose down` of the dev stack from W0 kills its own API path — Claude can't reach the API to continue, and you lose mid-command state.
+W0 (Jarvis tmux pane) and W11 (Jarvis-dev) launch with `ANTHROPIC_BASE_URL=http://localhost:9800` per `launch-jarvis-tmux.sh:467` so all Claude API traffic routes through `aifred-dev-usage-proxy` for cost telemetry attribution to Pulse. **Side effect**: any `docker compose down` of the dev stack from W0 kills its own API path — Claude can't reach the API to continue, and you lose mid-command state.
 
 This skill spawns an ephemeral Claude worker in a fresh tmux window with `ANTHROPIC_BASE_URL` unset. The worker can take :9800 offline, do its work, bring it back, and self-cleanup — all without affecting W0's session.
 

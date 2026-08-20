@@ -509,18 +509,18 @@ After the three individual experiments, if multiple optimizations prove effectiv
 
 ### Phase 2: Experiment 4 — Model Selection (~4.9 hours)
 - 6 blocks × 4 trials = 24 trials
-- Run in W5:Jarvis-dev
+- Run in W11:Jarvis-dev
 - Score checkpoint quality after completion
 
 ### Phase 3: Experiment 5 — Thinking Mode (~2.7 hours)
 - 8 blocks × 2 trials = 16 trials
 - Validate thinking propagation after block 2
-- Run in W5:Jarvis-dev
+- Run in W11:Jarvis-dev
 
 ### Phase 4: Experiment 6 — Preprocessing (~2.7 hours)
 - 8 blocks × 2 trials = 16 trials
 - Compare turn counts and quality
-- Run in W5:Jarvis-dev
+- Run in W11:Jarvis-dev
 
 ### Phase 5: Analysis and Report (~1 hour)
 - Run all statistical analyses

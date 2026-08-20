@@ -6,7 +6,7 @@
 #
 # Context level fixed at ~45% (volume doesn't affect time — Exp 3).
 #
-# Designed to run from W5:Jarvis-dev or as a background process.
+# Designed to run from W11:Jarvis-dev or as a background process.
 # Controls W0:Jarvis via tmux for context filling and treatment.
 #
 # Usage: run-experiment-4.sh [--start-block N] [--dry-run]

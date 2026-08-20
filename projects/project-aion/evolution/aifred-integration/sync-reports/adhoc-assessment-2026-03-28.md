@@ -18,7 +18,7 @@
 
 - **CLAUDE.md went from 560 to 90 lines** — AIfred aggressively trimmed inline documentation in favor of `@` imports. Jarvis has gone the opposite direction (our CLAUDE.md is ~200 lines but with extensive `@` imports totaling thousands of lines of force-loaded context). Both approaches are valid for their use cases — AIfred is a general-purpose hub, Jarvis is a specialized autonomous agent.
 
-- **Testing infrastructure is a genuine gap in Jarvis** — AIfred now has structural validation (validate-structure.sh, TAP format), functional tests (bats-core), and CI (GitHub Actions). Jarvis has no equivalent — our testing is via the Wiggum Loop pattern (in-session verification) and dev-ops skill (W5→W0 testing). Adding structural validation would catch configuration drift without requiring Claude Code to be running.
+- **Testing infrastructure is a genuine gap in Jarvis** — AIfred now has structural validation (validate-structure.sh, TAP format), functional tests (bats-core), and CI (GitHub Actions). Jarvis has no equivalent — our testing is via the Wiggum Loop pattern (in-session verification) and dev-ops skill (W11→W0 testing). Adding structural validation would catch configuration drift without requiring Claude Code to be running.
 
 - **"Scripts Over LLM" principle formalized** — AIfred explicitly codified what Jarvis already practices via `code-before-prompts-pattern.md`. Good validation that this is a shared best practice.
 

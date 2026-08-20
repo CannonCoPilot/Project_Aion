@@ -6,7 +6,7 @@
 - Proposals generated: 2
 - Planning tracker: N/A (no milestone work this session -- infrastructure/docs focus)
 
-## Session Work (W5:Jarvis-dev)
+## Session Work (W11:Jarvis-dev)
 This was a multi-topic dev session spanning several conversation reloads:
 1. **Service pre-flight** (Session 39 continuation): Diagnosed MLX-Embed and LiteLLM down, fixed launcher v2.4.1 with re-attach path fix, LiteLLM /v1/models health check
 2. **JICM 1M context adaptation**: Rewrote threshold logic from percentage-based (70%) to absolute token threshold (now 300K), added /idle-hands toggle for Ennoia
@@ -31,7 +31,7 @@ This was a multi-topic dev session spanning several conversation reloads:
 - **Effort**: Low (config file already exists at `.jicm-config` but isn't used for threshold)
 
 ## Graphiti Knowledge Graph Ingestion
-- **Status**: Skipped -- dev session (W5), reflection is lightweight
+- **Status**: Skipped -- dev session (W11), reflection is lightweight
 - **Note**: Session summaries already in Qdrant via idle checkpoints
 
 ## Next Steps

@@ -148,7 +148,7 @@ find_best_jsonl() {
     fi
 
     # Priority 2: Message count, but only files modified in the last 10 minutes.
-    # This prevents stale, large W5 sessions from being selected during idle checkpoints.
+    # This prevents stale, large W11 sessions from being selected during idle checkpoints.
     local best="" best_count=0
     local cutoff=$(( $(date +%s) - 600 ))
 

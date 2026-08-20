@@ -32,7 +32,7 @@
 #
 # Modes:
 #   (default)    Full Aion with session persistence (W0-W4, resume by UUID)
-#   --dev        Add W5 Jarvis-dev test driver
+#   --dev        Add W11 Jarvis-dev test driver
 #   --fresh      Full Aion but new session (archive old, start clean)
 #   --lite       Isolated one-off session (W0+Watcher only, no persistence,
 #                separate tmux session 'lite', minimal CLAUDE.md ~340 tokens,
@@ -177,8 +177,8 @@ CLAUDE_PROJECT_SLUG="-$(echo "$CLAUDE_LAUNCH_DIR" | sed 's|^/||; s|/|-|g')"
 # W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL (used only for --fresh)
 JARVIS_W0_SESSION_ID="17612316-37f1-5cec-b456-6a79f7735a9f"
 JARVIS_W0_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_W0_SESSION_ID}.jsonl"
-# W5: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
-JARVIS_W5_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+# W11: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
+JARVIS_W11_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
 JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
@@ -264,10 +264,10 @@ session_resumable() {
 
 # Find the most recent resumable W0 session — i.e., the newest JSONL whose
 # recorded cwd matches CLAUDE_LAUNCH_DIR (or its realpath) AND whose UUID is
-# not currently held by a live claude process. Excludes W5's deterministic
-# UUID to prevent W5/W0 cross-contamination.
+# not currently held by a live claude process. Excludes W11's deterministic
+# UUID to prevent W11/W0 cross-contamination.
 find_latest_w0_session() {
-    local exclude_uuid="$JARVIS_W5_SESSION_ID"
+    local exclude_uuid="$JARVIS_W11_SESSION_ID"
     local f uuid
     for f in $(ls -t "$JARVIS_PROJECTS_DIR"/*.jsonl 2>/dev/null); do
         uuid=$(basename "$f" .jsonl)
@@ -346,7 +346,7 @@ launch_dev_window() {
     # by the $'...' quoting in the wrapper below, which keeps the tmux command on one line.
     local dev_headers="x-aion-project: project-aion\nx-aion-agent-name: jarvis-dev-w5\nx-aion-session-id: $(uuidgen)"
     local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$proxy_url"
-    local sysappend="You are W5:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+    local sysappend="You are W11:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
     local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
     local first
     if [[ "$dev_mode" == "resume" ]]; then
@@ -428,7 +428,7 @@ launch_genie_window() {
     # confirmed on the first Genie launch: zero hooks fired, no registry row appeared.
     # Honored by jicm-gate.sh, jicm-stop.sh, session-start.sh and the v9 statusline.
     local env_genie="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=genie JARVIS_WINDOW=12 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=genie-core JICM_RAG_COLLECTION=genie-sessions ANTHROPIC_BASE_URL=$proxy_url"
-    local sysappend="You are W12:Genie, the Research Archon of Project Aion — co-developer and co-researcher to the User on scientific coding, analysis, research, writing, and automation. Your domain is the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE microbiome genotype-to-phenotype system. Your memory namespace is genie-* / genie-core; never write to Jarvis jarvis-* collections or the jarvis-core graph. Never invent a figure and never attribute an unresolved citation. Aion core engineering belongs to W5:Jarvis-dev; Chronicler and Palimpsest belong to W0:Jarvis."
+    local sysappend="You are W12:Genie, the Research Archon of Project Aion — co-developer and co-researcher to the User on scientific coding, analysis, research, writing, and automation. Your domain is the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE microbiome genotype-to-phenotype system. Your memory namespace is genie-* / genie-core; never write to Jarvis jarvis-* collections or the jarvis-core graph. Never invent a figure and never attribute an unresolved citation. Aion core engineering belongs to W11:Jarvis-dev; Chronicler and Palimpsest belong to W0:Jarvis."
     # --add-dir Project_Aion is what makes the shared .claude/ capabilities (skills, agents,
     # patterns, hooks context) reachable from a cwd outside the monorepo.
     # --mcp-config + --strict-mcp-config: Genie gets EXACTLY the server set in its own
@@ -512,7 +512,7 @@ launch_jaques_window() {
     # zsh tried to glob jaques-* and jarvis-*, failed with "no matches found", and claude never
     # started at all — an empty pane and zero hooks, which looks exactly like the settings-root
     # bug but is not. Wildcards are fine INSIDE the quotes; unbalanced quotes are not.
-    local sysappend="You are W13:Jacques, the Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for Snorkel AI across three projects: ec-beech, ecs-otter, ec-starfish. The file SnorkelTasks/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on Harbor bundle rules, the auto-reject list and Gate 1/Gate 2 — never restate it from memory. Your memory namespace is jaques-context/research/sessions/codebase plus the jaques-core graph; never write to any jarvis- or genie- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING TO experts.snorkel-ai.com IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W5:Jarvis-dev; WVU and GENESIS research belong to W12:Genie."
+    local sysappend="You are W13:Jacques, the Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for Snorkel AI across three projects: ec-beech, ecs-otter, ec-starfish. The file SnorkelTasks/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on Harbor bundle rules, the auto-reject list and Gate 1/Gate 2 — never restate it from memory. Your memory namespace is jaques-context/research/sessions/codebase plus the jaques-core graph; never write to any jarvis- or genie- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING TO experts.snorkel-ai.com IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W11:Jarvis-dev; WVU and GENESIS research belong to W12:Genie."
     local jaques_mcp="$PROJECT_DIR/.claude/personas/jacques/mcp.json"
     local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/jacques --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$jaques_mcp' --strict-mcp-config --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-jaques.log"
 
@@ -1113,7 +1113,7 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
     if [[ "$DEV_MODE" == "true" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
-            echo "Adding Jarvis-dev window (W5) to existing session..."
+            echo "Adding Jarvis-dev window (W11) to existing session..."
             launch_dev_window
             reorder_windows
         else
@@ -1439,7 +1439,7 @@ if [[ -x "$CMD_HANDLER_SCRIPT" ]]; then
         "cd '$PROJECT_DIR' && '$CMD_HANDLER_SCRIPT' --interval 3; echo 'Command handler stopped.'; read"
 fi
 
-# W5: Jarvis-dev (developer's seat — named session for deterministic resumption)
+# W11: Jarvis-dev (developer's seat — named session for deterministic resumption)
 # Uses a deterministic UUID so --resume always picks up the same conversation.
 # UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL = fbd7528a-c1bd-414a-bdaa-c3cc23f53215
 if [[ "$DEV_MODE" == "true" ]]; then

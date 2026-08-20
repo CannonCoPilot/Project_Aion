@@ -1,1048 +1,1048 @@
 # Pre-/clear Scrollback Capture
-# Captured: 2026-07-29T19:11:44Z | key: protos | session: 67b4e97c-5426-432e-8e18-3cc53e011647
+# Captured: 2026-08-12T18:59:28Z | key: protos | session: 42e424d3-ef7e-48ec-80af-39faa8080ef1
 
-       32
-       33 ```
-       34 Stop type: "downtown"
-       35 Time: 07:00 (morning rush)
-       36   → boarding_rate = 2.4 passengers per minute
-       37   → Vehicle dwell ≈ 45 sec × capacity = 85 passengers
-       38
-       39 Stop type: "downtown"
-       40 Time: 10:00 (mid-morning)
-       41   → boarding_rate = 0.8 passengers per minute
-       42   → Vehicle dwell ≈ 45 sec × capacity = 28 passengers
-       43 ```
+       33 short- and long-read platforms, from raw-read QC through mapping, assembly, variant detection, and
+       34 clinical interpretation. At **Thermo Fisher** I hardened the production variant-discovery pipeline
+       35 behind the FDA-cleared **Oncomine Dx Target Test** (NSCLC companion diagnostic) — QC gating,
+       36 hotspot-variant detection, and VAF interpretation to **FDA-submission validation and audit
+       37 standards**. At **DNAnexus** I engineered cloud-scale germline and somatic workflows for clinical
+       38 partners (**Myriad** hereditary cancer, **Natera** Renasight, Emory Winship, **TCGA**), including
+       39 **~494,120-VCF joint-genotyping** with automated QC reconciliation. Earlier, at **Penn State** I
+       40 directed a chromosome-level de novo reference assembly and QTL/GWAS genotype→phenotype mapping.
+       41 **BS in Biostatistics**; MS in Genetics & Biotechnology; PhD-track (ABD) in Bioinformatics & Genomics.
+       42
+       43 ---
        44
-       45 **Historical data check:** July 2026, 15 "downtown" stops, morning rush (07:00–09:00):
-       46 - Average passengers per vehicle: 62
-       47 - Std dev: ±18 passengers
-       48 - Observed range: 40–85
+       45 ## Work Experience
+       46
+       47 ### Bioinformatics Engineer, Thermo Fisher Scientific, Carlsbad, CA
+       48 *02/2025 – 12/2025*
        49
-       50 **Implication:** Our model predicts 62 uniformly; actual vehicles range 40–85. That's ±18 passenger variance per vehicle.
-       51
-       52 ### Why This Matters for Occupancy Prediction
-       53
-       54 Occupancy at stop N-1 affects dwell prediction at stop N.
-       55
-       56 **Example:**
-       57 - Stop 42 (downtown stop, 08:00): model predicts 62 passengers.
-       58 - Actual: 78 passengers (higher than average; busy nearby attraction).
-       59 - Occupancy at stop 43 is higher than our model predicts.
-       60 - Dwell at stop 43 is underpredicted by 3–5 sec.
-       61
-       62 Aggregated across 30-day validation set, this variance compounds into **78% model accuracy** (vs. 85% target).
+       50 - **Advanced the FDA-cleared Oncomine Dx Target Test** (NSCLC companion diagnostic, Ion Torrent
+       51   amplicon panel) — hardened the production variant-discovery pipeline for **hotspot-variant
+       52   detection and VAF/allele-fraction interpretation**, with a PASS/AF/hotspot-ID triple
+       53   **data-quality gate**, auditable control-sample filtering, and a 100-test pytest suite under
+       54   **GitHub Actions CI**, to FDA-submission validation and audit standards in a **CAP/CLIA**-governed
+       55   environment.
+       56 - **Built RESTful and RAG-based services for trusted variant and evidence retrieval** — an Oncomine
+       57   scientific-evidence concierge and a division-wide Confluence assistant over JSON/REST interfaces;
+       58   engineered multi-agent orchestration (adversarial review + test-driven assembly) for validated
+       59   autonomous analysis under guardrails.
+       60 - **Engineered a containerized internal LLM/AI-HPC platform** (**Docker** orchestration; persistent
+       61   shared + on-demand specialty models) for self-serve analysis across Japan, Korea, and US sites;
+       62   drove FDA submission readiness across global documentation, QE, and validation teams.
        63
-       64 ---
-       65
-       66 ## Root Cause Analysis
-       67
-       68 We manually audited 20 stops labeled "downtown" and found the variance is not random:
-       69
-       70 | Stop Context | Morning Rush Boarding | Variance |
-       71 |---|---|---|
-       72 | **Downtown interchange hub** (connects to subway) | 70–85 passengers | ±8 |
-       73 | **Downtown standalone stop** (street-side, no connections) | 40–60 passengers | ±12 |
-       74 | **Downtown near transit center** (3-block walk to hub) | 50–70 passengers | ±14 |
-       75
-       76 **Conclusion:** Stop-type classification is too coarse. The specific location and accessibility of each stop matters. A transit hub pulls passengers from a wider area. A st
-          andalone stop serves only walkable catchment. A stop "near" a hub serves walk-up and secondary demand.
-       77
-       78 ### Data Available
-       79
-       80 The ZTA network database already tags each stop with:
-       81 - Stop ID + name (string)
-       82 - Geographic location (lat/lon)
-       83 - Stop type (downtown, suburban, park-and-ride)
-       84 - Nearby POIs (transit hub, shopping, residential)
-       85 - Distance to nearest transit hub (meters)
-       86
-       87 **We can derive "stop context" from this data:**
-       88
-       89 ```python
-       90 def classify_stop_context(stop):
-       91   if stop.is_interchange_hub:
-       92     return "interchange_hub"
-       93   elif stop.distance_to_hub < 400:  # <5 min walk
-       94     return "near_hub"
-       95   else:
-       96     return "standalone"
-       97
-       98 # Refined demand model:
-       99 def boarding_rate(time_of_day, stop_type, stop_context):
-      100   base_rate = demand_table[time_of_day][stop_type]
-      101   context_factor = context_multiplier[stop_context]  # 0.7 for standalone, 1.2 for hub
-      102   return base_rate * context_factor
-      103 ```
-      104
-      105 **Effort:** 1–2 hours to derive context; 2 hours to integrate into demand model; ~4 hours total (well within remaining time on 2026-08-10).
-      106
-      107 ---
-      108
-      109 ## Revised Demand Model (Option B.1: "Option B Refined")
-      110
-      111 **New classification dimension:** Stop context (interchange_hub, near_hub, standalone).
-      112
-      113 **Revised accuracy targets:**
-      114
-      115 | Stop Type + Context | Historical Variance | Predicted Accuracy |
-      116 |---|---|---|
-      117 | Downtown interchange hub | ±8 | 90% |
-      118 | Downtown near hub | ±12 | 85% |
-      119 | Downtown standalone | ±12 | 83% |
-      120 | Suburban (all contexts) | ±10 | 86% |
-      121 | Park-and-ride | ±6 | 88% |
-      122 | **Aggregate** | **±12** | **85%** |
-      123
-      124 **Expected outcome:** Refined model reaches 85% accuracy on test set (meets threshold).
-      125
-      126 **Implementation effort:**
-      127 - Refine stop context classifier: 2 hours (Analytics).
-      128 - Integrate into simulator: 1 hour (Dispatch Eng).
-      129 - Re-validate on test set: 1 hour (QA).
-      130 - **Total: 4 hours (completes 2026-08-10 by 15:00).**
-      131
-      132 **Timeline:** No change. Offline replay validation begins 2026-08-11 as scheduled.
-      133
-      134 ---
-      135
-      136 ## Fallback Plan (If Refinement Insufficient)
-      137
-      138 If stop-context refinement does not raise accuracy to ≥85% by 2026-08-10 15:00:
-      139
-      140 1. **Immediately revert to Option A** (historical occupancy; no stop-level demand model).
-      141 2. **Proceed with validation using Option A** (simpler; 1 day of work).
-      142 3. **Validation signs off on 2026-08-12** (original timeline).
-      143 4. **No impact to staging date (2026-08-25).**
-      144
-      145 The fallback strategy is working as designed: we discover limitations early and revert quickly.
-      146
-      147 ---
-      148
-      149 ## Recommendation
-      150
-      151 **Proceed with Option B.1 (refined stop context).** The root cause is understood, the fix is implementable same-day, and we have a clear fallback if the refinement is insuf
-          ficient.
-      152
-      153 **Next action:** Analytics team integrates stop-context classification immediately (2026-08-10 10:00). Dispatch Eng integrates simulator changes by 15:00. QA validates on t
-          est set by 17:00.
-      154
-      155 **Decision point:** If test-set accuracy ≥85%, proceed to offline replay (2026-08-11). If <85%, revert to Option A at 17:30 2026-08-10 (decision call from Dispatch Eng Lead
-          ).
-      156
-      157 ---
-      158
-      159 ## Open Questions
-      160
-      161 1. **Should stop-context classification be validated independently?** (i.e., do our distance/POI heuristics actually predict boarding variance?)
-      162    - **Answer:** No, not at this stage. Validation happens implicitly when we run the demand model against the test set. If stop-context doesn't predict boarding variance,
-          test-set accuracy will show it.
-      163
-      164 2. **Can we extend this to other stop types (suburban, park-and-ride)?**
-      165    - **Answer:** Not in this sprint. We focused on downtown stops because they have the highest variance. Suburban/park-and-ride stops are lower-variance already; stop type
-           alone suffices. Future refinement can extend to other types if needed.
-      166
-      167 3. **What about time-of-day granularity?** Should we distinguish "morning rush" vs. "mid-morning" more finely?
-      168    - **Answer:** Current model uses 1-hour buckets (which is standard for transit). Finer granularity (15-min buckets) would require more training data. Out of scope for th
-          is iteration; revisit post-staging if offline replay shows time-based patterns.
-      169
-      170 ---
-      171
-      172 ## Risk Assessment (Revised)
-      173
-      174 | Scenario | Probability | Impact | Mitigation |
-      175 |---|---|---|---|
-      176 | Stop-context refinement doesn't raise accuracy to 85% | Low (30%) | Revert to Option A; accept RMSE regression. Still on schedule. | Fallback decision point: 2026-08-10 1
-          7:00. Revert to Option A if needed. |
-      177 | Stop-context classifier has bugs (off-by-one, bad distances) | Low | Caught in test-set validation (2026-08-10). Bugs are fixable same-day. | Unit test context classifier
-           on 50 stops (2 hours). |
-      178 | Offline replay (2026-08-11) contradicts test-set findings | Very Low | Indicates test set ≠ production data. Investigate; likely revert to Option A. | Offline replay incl
-          udes data stratification check. |
-      179
-      180 ---
-      181
-      182 ## Deliverables (Updated)
-      183
-      184 | Deliverable | Owner | Due | Dependency |
-      185 |---|---|---|---|
-      186 | Stop-context classifier design | Analytics | 2026-08-10 10:00 | Finding (this memo) |
-      187 | Stop-context classifier (code) | Analytics | 2026-08-10 12:00 | Design |
-      188 | Refined demand model (integrated) | Dispatch Eng | 2026-08-10 15:00 | Classifier code |
-      189 | Test-set validation (accuracy check) | QA | 2026-08-10 17:00 | Integrated model |
-      190 | Go/no-go decision: proceed to offline replay or revert to Option A? | Dispatch Eng Lead | 2026-08-10 17:30 | Test-set results |
-      191
-      192 ---
-      193
-      194 ## Status Summary
-      195
-      196 **This is not a blocker.** We discovered an issue, diagnosed the root cause, and implemented a fix — all within the original timeline. This is how Option B is supposed to w
-          ork: validate early, find problems, resolve them, or fall back gracefully.
-      197
-      198 **Next communication:** Results of test-set validation + go/no-go decision by 18:00 2026-08-10.
-      199
-      200 ---
-      201
-      202 **Prepared by:** Analytics / Data Engineering
-      203 **For:** Architecture Review, Project Lead, Dispatch Eng
-      204 **Urgency:** High priority (same-day resolution required)
-      205 **Status:** IN PROGRESS (results expected 2026-08-10 17:00)
-      206
-  ⎿  Async hook PostToolUse completed
-
-∴ Excellent. I've now written two critical continuation memos:
-
-  1. MEMO-2026-08-08-APPROVED-architecture-decision.md — Closes the decision gate with approval of Option B + fallback strategy
-  2. MEMO-2026-08-10-demand-model-finding.md — Surfaces a realistic mid-implementation discovery (stop-context variance) and proposes a same-day refinement
-
-  The narrative is now at 2026-08-10 morning, awaiting test-set validation results later that same day. The fiction demonstrates:
-  - Realistic engineering decision-making (cascading effects matter)
-  - Early validation catching issues (stop-type classification too coarse)
-  - Iterative refinement under time pressure (4-hour fix, same-day resolution)
-  - Clear fallback strategy (if refinement fails, revert to Option A, no timeline impact)
-
-  This is exactly the kind of "substantive engineering conversation" the JICM test lane is supposed to produce.
-
-  Now I could continue with:
-  1. A 2026-08-10 EOD validation results memo (Option B.1 succeeds or fails)
-  2. A dwell model status/completion memo (the parallel critical path due 2026-08-04, which should already be done by now)
-  3. A 2026-08-11 mid-implementation status (if Option B.1 validation was successful)
-
-  Given the narrative flow, I should write the 2026-08-10 late afternoon validation results memo that resolves whether the stop-context refinement worked and whether we proceed to offline
-  replay or fall back to Option A.
-
-  To keep the fiction realistic and interesting, I could have one of two outcomes:
-  - Success: Stop-context refinement raises accuracy to 85-87%, clears the gate, proceed to offline replay on 2026-08-11
-  - Marginal failure: Accuracy plateaus at 82%, doesn't meet threshold, trigger fallback to Option A
-  I'll go with the success scenario—the stop-context refinement works, accuracy improves to 86%, and we move forward with Option B. This keeps the narrative momentum and demonstrates that
-  rapid iteration under pressure can resolve critical blockers.
-
-⏺ Now I'll write the resolution of the 2026-08-10 validation, which determines whether Option B proceeds or falls back to Option A:
-
-⏺ Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/protos-sandbox/MEMO-2026-08-10-validation-results.md)
-  ⎿  Wrote 223 lines to /Users/nathanielcannon/Claude/Project_Aion/.claude/context/protos-sandbox/MEMO-2026-08-10-validation-results.md
-        1 # MEMO: Demand Model Validation Results — Option B.1 Approved to Proceed
-        2
-        3 **TO:** Architecture Review, AHR Project Lead
-        4 **FROM:** QA / Dispatch Systems Engineering
-        5 **DATE:** 2026-08-10 17:45
-        6 **RE:** Test-set validation complete; stop-context refinement successful
-        7 **SUBJECT:** GO — Option B.1 proceeds to offline replay (2026-08-11)
-        8
-        9 ---
-       10
-       11 ## Summary
-       12
-       13 ✅ **Stop-context refinement successful.**
-       14 ✅ **Test-set accuracy: 86% (exceeds 85% threshold).**
-       15 ✅ **No timeline slip; offline replay begins 2026-08-11 as scheduled.**
-       16 ✅ **Decision: Proceed with Option B.1 (dynamic occupancy tracking with stop context).**
-       17
-       18 ---
-       19
-       20 ## Validation Results
-       21
-       22 ### Test Set Performance
-       23
-       24 **Demand model (refined):** Predict boarding per stop per time-of-day per stop context.
-       25
-       26 **Test set composition:**
-       27 - 7 days of historical data (July 2–8, 2026)
-       28 - 84 stops across all types (downtown, suburban, park-and-ride)
-       29 - 1,200+ vehicle transits (full trace data)
-       30 - Hold-out set: Never seen during model training
-       31
-       32 **Accuracy metric:** Predicted boarding / observed boarding (within ±20% is considered "hit").
-       33
-       34 **Results by stop context:**
-       35
-       36 | Stop Context | Test Set Size | Accuracy | Precision | Recall |
-       37 |---|---|---|---|---|
-       38 | Interchange hub | 180 vehicles | 89% | 91% | 87% |
-       39 | Near hub (400m walk) | 420 vehicles | 86% | 85% | 87% |
-       40 | Standalone downtown | 300 vehicles | 84% | 83% | 85% |
-       41 | Suburban (all contexts) | 180 vehicles | 86% | 87% | 85% |
-       42 | Park-and-ride | 120 vehicles | 88% | 90% | 86% |
-       43 | **AGGREGATE** | **1,200** | **86%** | **87%** | **86%** |
-       44
-       45 **Interpretation:**
-       46 - ✅ Aggregate accuracy is 86% (exceeds 85% threshold by 1 point).
-       47 - ✅ Precision ≥ 85% on all contexts except standalone downtown (83%).
-       48 - ✅ No systematic failure mode (no context drops below 84%).
-       49 - ✅ Interchange hubs (highest demand variance) show 89% accuracy — excellent.
-       50
-       51 ### Error Analysis
-       52
-       53 **Where does the model miss?**
-       54
-       55 1. **Standalone downtown stops, mid-morning (09:00–11:00): 5–8% of misses.**
-       56    - These stops have unpredictable boarding (near small businesses, irregular foot traffic).
-       57    - Model predicts 35 passengers; observed 28–42.
-       58    - Variance is real (not model error); model captures central tendency correctly.
-       59    - **Implication:** On anomalous days, model still works; just less precision on unpredictable stops.
-       60
-       61 2. **Park-and-ride lunch period (12:00–13:00): 2–3% of misses.**
-       62    - Midday park-and-ride demand is low and highly variable (people running errands).
-       63    - Model assumes light demand; actual varies 8–25 passengers.
-       64    - **Implication:** Not a major issue (only 2–3% of transits); acceptable noise.
-       65
-       66 3. **High-demand outliers (concerts, events): <1% of test set.**
-       67    - July 2 had a concert downtown (80% higher boarding than typical Tuesday).
-       68    - Model predicts 65 passengers; observed 115.
-       69    - **Implication:** We expected this. Non-typical day performance is documented; model is "normal operation" focused.
-       70
-       71 ### Simulator Integration Test
-       72
-       73 **After integration, full simulator loop test (occupancy tracking + dwell prediction):**
-       74
-       75 **Test scenario:** Simulate 2 hours of Line 5 (morning rush, full operation).
-       76 - 12 vehicles in operation.
-       77 - 8 stops per route.
-       78 - Stop-context classifier + demand model + dwell predictor all live.
-       79
-       80 **Metrics:**
-       81 - **Simulation runtime:** 18 ms per prediction (target <50 ms). ✅ **Well within budget.**
-       82 - **Occupancy tracker state consistency:** No corruption, no off-by-one errors. ✅
-       83 - **Dwell prediction coherence:** Predicted dwell increases when occupancy is high; decreases when low. ✅ **Behaves as expected.**
-       84
-       85 **Sample output (stop 42, downtown hub, 07:30):**
-       86 ```
-       87 Vehicle T-512: predicted arrival 07:32
-       88 Current occupancy: 68 passengers
-       89 Predicted boarding (stop 42 hub): 15 passengers
-       90 Predicted alighting: 8 passengers
-       91 Predicted occupancy after stop 42: 75 passengers
-       92 Predicted dwell at stop 42: 34 sec (vs. 28 sec if occupancy were 60)
-       93 Predicted arrival at stop 43: 07:33
-       94 ```
-       95
-       96 **Sanity check:** As occupancy increases, dwell increases. Model is responding to cascading effects. ✅
-       97
-       98 ---
-       99
-      100 ## Why This Matters
-      101
-      102 ### Before Option B.1 (Historical Occupancy Only)
-      103
-      104 Simulator predicts occupancy = historical average per stop.
-      105
-      106 ```
-      107 Stop 42 (downtown hub, 08:00):
-      108   historical_occupancy = 62 (average)
-      109   predicted_dwell = 28 sec
-      110
-      111 But actual occupancy on this day = 78 (above average; busy)
-      112   Actual dwell = 32 sec
-      113
-      114 Prediction error: 4 sec RMSE (14% underestimate)
-      115 ```
-      116
-      117 ### After Option B.1 (Dynamic Occupancy + Stop Context)
-      118
-      119 Simulator tracks occupancy dynamically; accounts for passenger boarding/alighting per stop.
-      120
-      121 ```
-      122 Stop 42 (downtown hub, 08:00):
-      123   Stop context = interchange_hub
-      124   Predicted boarding = 15 passengers (from demand model)
-      125   Current occupancy = 68 (tracked through stop 41)
-      126   Predicted occupancy after stop 42 = 75 passengers
-      127   Predicted dwell = 32 sec (matches actual)
-      128
-      129 Prediction error: 0 sec (perfect estimate)
-      130 ```
-      131
-      132 **Cascading effect realized:** If an earlier hold decision affects occupancy upstream, the simulator will reflect that downstream. Validation can now measure whether AHR re
-          commendations actually prevent bunching.
-      133
-      134 ---
-      135
-      136 ## Decision Gate: CLEARED ✅
-      137
-      138 **Condition 1:** Demand model accuracy ≥85% on test set.
-      139 **Status:** ✅ **PASS (86%)**
-      140
-      141 **Condition 2:** Simulator integration <50 ms per prediction.
-      142 **Status:** ✅ **PASS (18 ms)**
-      143
-      144 **Condition 3:** No state corruption in occupancy tracking.
-      145 **Status:** ✅ **PASS (clean integration test)**
-      146
-      147 **Overall decision:** ✅ **PROCEED WITH OFFLINE REPLAY (2026-08-11 through 2026-08-13)**
-      148
-      149 ---
-      150
-      151 ## Offline Replay Plan (Starting 2026-08-11)
-      152
-      153 **Scope:**
-      154 - Run full 30-day simulation (July 1–31, 2026) on all 7 lines.
-      155 - Measure simulator precision/recall against actual tram bunching incidents.
-      156 - Validate that Option B.1 occupancy tracking improves prediction accuracy vs. historical occupancy.
-      157
-      158 **Success criteria:**
-      159 - Simulator precision ≥75% (when simulator predicts bunching, bunching actually occurs).
-      160 - Simulator recall ≥80% (when bunching occurs, simulator detected it in advance).
-      161 - Occupancy tracking does not introduce new failure modes.
-      162
-      163 **Expected timeline:**
-      164 - 2026-08-11 (Thu): Full simulation run (30 days × 7 lines).
-      165 - 2026-08-12 (Fri): Analysis, precision/recall computation.
-      166 - 2026-08-13 (Sat): Final report + go/no-go decision.
-      167 - 2026-08-14 (Sun): Sign-off memo from Project Lead.
-      168
-      169 **Fallback:** If offline replay fails (<75% precision), we revert to Option A (historical occupancy) and use original validation plan (2026-08-12 sign-off using simpler met
-          rics). No timeline impact.
-      170
-      171 ---
-      172
-      173 ## What's Next (Daily Cadence)
-      174
-      175 | Date | Owner | Task |
-      176 |---|---|---|
-      177 | **2026-08-11 (Thu)** | QA | Full offline replay simulation run (30-day historical trace). |
-      178 | **2026-08-12 (Fri)** | QA | Precision/recall computation; failure mode analysis. |
-      179 | **2026-08-13 (Sat)** | Dispatch Eng Lead | Final decision: proceed or fall back to Option A? |
-      180 | **2026-08-14 (Sun)** | Project Lead | Sign-off memo; ready for staging. |
-      181
-      182 ---
-      183
-      184 ## Risk Mitigation (Resident & Resolved)
-      185
-      186 | Risk | Status | Resolution |
-      187 |---|---|---|
-      188 | Demand model accuracy insufficient | ✅ **RESOLVED** | Stop-context refinement raised accuracy from 78% to 86%. |
-      189 | Stop-context classifier bugs | ✅ **RESOLVED** | Unit tested; no off-by-one errors found in 50-stop audit. |
-      190 | Simulator integration breaks occupancy state | ✅ **RESOLVED** | Integration test clean; no corruption observed. |
-      191 | Performance exceeds budget (>50 ms) | ✅ **RESOLVED** | Actual performance 18 ms (way under budget). |
-      192 | Option B.1 fails offline replay (<75% precision) | ⏳ **PENDING** | Fallback: revert to Option A (same-day; no timeline slip). |
-      193
-      194 ---
-      195
-      196 ## Recommendation for AHR Project Lead
-      197
-      198 **Proceed with confidence.** The option B.1 validation shows that dynamic occupancy tracking is implementable, accurate, and performant. The simulator can now model cascadi
-          ng effects (which is the whole point of AHR). Offline replay (2026-08-11 onwards) will show whether this translates to real bunching prevention.
-      199
-      200 If offline replay is successful (we expect ✅), this is a strong validation that the AHR design is sound and the simulator is ready for staged deployment.
-      201
-      202 ---
-      203
-      204 ## Attachments
-      205
-      206 - **Test-set accuracy report:** `ZTA-003-simulator-design-TESTSET-VALIDATION-2026-08-10.json` (machine-readable)
-      207 - **Error analysis:** `ANALYSIS-2026-08-10-demand-model-errors.md` (annotated failures per stop/time)
-      208 - **Simulator integration test log:** `test-log-simulator-integration-2026-08-10.txt` (full trace)
-      209
-      210 ---
-      211
-      212 **Signed:**
-      213
-      214 - **QA Lead:** R. Chen
-      215 - **Dispatch Systems Engineering Lead:** J. Patel
-      216
-      217 **Date:** 2026-08-10 17:45
-      218 **Status:** FINAL — Proceeding to offline replay
-      219
-      220 ---
-      221
-      222 **Next communication:** Offline replay results (2026-08-12 afternoon) and go/no-go decision (2026-08-13).
-      223
-  ⎿  Async hook PostToolUse completed
-
-∴ Excellent. I've now written three continuations that complete the narrative arc:
-
-  1. MEMO-2026-08-08-APPROVED — Architecture Review approves Option B with clear constraints and fallback strategy
-  2. MEMO-2026-08-10-demand-model-finding — Mid-implementation discovery (stop-context variance) surfaces during work
-  3. MEMO-2026-08-10-validation-results — Test-set validation succeeds (86% accuracy), clears the gate, proceeds to offline replay
-
-  The fiction now shows:
-  - Good engineering practice (early validation finds issues)
-  - Realistic iteration under time pressure (4-hour refinement, same-day resolution)
-  - Clear decision gates (test-set accuracy threshold, offline replay criteria)
-  - Both success and fallback pathways available
-
-  The narrative is at 2026-08-10 EOD, ready to proceed to offline replay (2026-08-11 through 2026-08-13). The dwell model (parallel critical path) should also be completing around this time
-  (due 2026-08-04 according to the original design, so it's overdue by a few days now — or perhaps it was already completed before this session's narrative began).
-
-  I should write one more artifact to complete this narrative phase: a 2026-08-12 offline replay progress update or early results memo that shows the validation continuing and surfaces any
-  real findings. Or I could write something about the dwell model completion to show the parallel critical path wrapping up.
-
-  Actually, let me check the timeline more carefully. Looking back at the WEEK-SUMMARY (dated 2026-07-29), it said:
-  - Dwell model retraining: due 2026-08-04 (should have been done by now)
-  - Simulator design + implementation: 2026-08-05 onwards
-  - Validation milestone: 2026-08-12 (now extended to 2026-08-14 due to Option B complexity)
-  So the dwell model should already be done. But I haven't written a "dwell model sign-off" memo. I need to backfill that to show the parallel critical path completing on schedule. This
-  will round out the narrative nicely and demonstrate how the two critical paths (dwell model + simulator) intersect. A 2026-08-05 or 2026-08-06 dwell model sign-off memo would provide
-  credibility to the simulator work — good dwell model accuracy means the simulator can rely on it.
-
-⏺ Let me backfill a critical document — the dwell model sign-off memo that should have completed on 2026-08-04 according to the original design doc. This is the parallel critical path:
-
-⏺ Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/protos-sandbox/MEMO-2026-08-05-dwell-model-signoff.md)
-  ⎿  Wrote 242 lines to /Users/nathanielcannon/Claude/Project_Aion/.claude/context/protos-sandbox/MEMO-2026-08-05-dwell-model-signoff.md
-        1 # MEMO: Dwell Model Retraining — COMPLETE & SIGNED OFF
-        2
-        3 **TO:** AHR Project Lead, Architecture Review
-        4 **FROM:** Analytics / Modeling
-        5 **DATE:** 2026-08-05 14:00
-        6 **RE:** Dwell model retraining complete; ready for simulator integration
-        7 **SUBJECT:** SIGNOFF — Dwell model meets RMSE threshold; ready for production use
-        8
-        9 ---
-       10
-       11 ## Summary
-       12
-       13 ✅ **Dwell model retraining complete.**
-       14 ✅ **Validation RMSE: 14.2 seconds (target ≤15 seconds achieved).**
-       15 ✅ **No schedule impact; on time for simulator integration (2026-08-05 onwards).**
-       16 ✅ **Ready for production: staging on Line 5 (2026-08-25) and full deployment.**
-       17
-       18 ---
-       19
-       20 ## Model Performance
-       21
-       22 ### Training & Validation
-       23
-       24 **Data used:**
-       25 - 4 weeks of historical dwell times (July 1–28, 2026)
-       26 - 8 lines, 540+ stops, 50,000+ vehicle transits
-       27 - Features: crowding proxy (occupancy at previous stop), time-of-day, stop type, vehicle ID, weather conditions
-       28
-       29 **Model type:** Gradient Boosting Regressor (XGBoost), trained to minimize RMSE.
-       30
-       31 **Validation results:**
-       32
-       33 | Metric | Target | Achieved | Status |
-       34 |---|---|---|---|
-       35 | RMSE (test set) | ≤15 sec | **14.2 sec** | ✅ **PASS** |
-       36 | MAE (mean absolute error) | — | **8.3 sec** | ✅ (Lower is better) |
-       37 | R² (variance explained) | ≥0.85 | **0.92** | ✅ **EXCEED** |
-       38 | Percentile 95 error | — | 22 sec | ✅ (Reasonable) |
-       39
-       40 **Performance by line:**
-       41
-       42 | Line | RMSE | Data Points | Notes |
-       43 |---|---|---|---|
-       44 | Line 5 (downtown, high variance) | 14.8 sec | 8,200 | Highest variance; model captures well. |
-       45 | Line 3 (suburban, medium variance) | 13.9 sec | 6,100 | Lowest variance; model slightly conservative. |
-       46 | Line 7 (mixed urban/suburban) | 14.1 sec | 7,300 | Balanced; good generalization. |
-       47 | Lines 1, 2, 4, 6 (remaining) | 14.5 sec (avg) | 22,400 | Consistent across network. |
-       48
-       49 ### Feature Importance
-       50
-       51 **Top predictive features (in order):**
-       52
-       53 1. **Crowding proxy** (occupancy at previous stop): 38% importance.
-       54    - Higher occupancy → longer dwell.
-       55    - Model learned: +0.1 occupancy = +1.2 sec dwell.
-       56    - Highly predictive; makes sense (more passengers = more boarding/alighting time).
-       57
-       58 2. **Time-of-day:** 24% importance.
-       59    - Morning rush (07:00–09:00): higher dwell (crowded; payment processing delays).
-       60    - Midday (10:00–15:00): lower dwell (sparse; faster transactions).
-       61    - Evening rush (17:00–19:00): moderate dwell (steady crowd).
-       62
-       63 3. **Stop type:** 18% importance.
-       64    - Interchange stops: longer dwell (more complex transactions, peak loads).
-       65    - Suburban stops: shorter dwell (simple in/out).
+       64 ### Bioinformatics Scientist & Data Engineer, DNAnexus, Mountain View, CA
+       65 *06/2021 – 06/2024 · Apollo cloud platform (Spark / Hive)*
        66
-       67 4. **Weather conditions:** 12% importance.
-       68    - Rain/snow: +2 sec (passengers slower to board; umbrellas, packages).
-       69    - Clear: baseline.
-       70
-       71 5. **Vehicle ID:** 8% importance.
-       72    - Some vehicles are newer (faster doors); others older (slower).
-       73    - Model learned per-vehicle delays; incorporated.
-       74
-       75 **Implication:** The model is learning realistic factors. Not overweighting noise; capturing real causal relationships.
-       76
-       77 ---
-       78
-       79 ## Error Analysis
-       80
-       81 **Where does the model over/underestimate?**
-       82
-       83 ### Underestimations (Predicted < Actual)
-       84
-       85 **Scenario 1: Accessibility boarding (3% of cases)**
-       86 - Elderly or disabled passenger boards slowly (using ramp, mobility aid).
-       87 - Model predicts typical 35 sec; actual 45 sec.
-       88 - **Root cause:** Historical training data didn't flag accessibility events separately.
-       89 - **Implication:** On days with high accessibility demand, dwell is 2–3 sec higher than predicted. Acceptable; not a blocker.
-       90
-       91 **Scenario 2: Fare payment delays (2% of cases)**
-       92 - ORCA card reader malfunction or fare dispute.
-       93 - Model predicts 35 sec; actual 50 sec.
-       94 - **Root cause:** System faults are rare and unpredictable; not learnable from historical data.
-       95 - **Implication:** Occasional outliers; expected. Model is not trained to predict system failures.
-       96
-       97 ### Overestimations (Predicted > Actual)
+       67 - **Engineered clinical germline and somatic variant pipelines at scale** — for **Myriad Genetics**
+       68   hereditary cancer, joint-genotyped **~494,120 germline VCFs** (`bcftools norm → merge → GLnexus`)
+       69   with per-file reconciliation (zero silent drops) and automated `geno_db_stats` QC; delivered
+       70   **Natera Renasight** kidney-genetics and **Emory Winship** (NCI-designated) somatic/germline
+       71   cohorts as annotated, queryable allele/genotype tables.
+       72 - **Annotated variants for functional impact and disease association** — mapped SNVs/indels/CNAs to
+       73   consequence, transcript, and clinical significance via **VEP-style annotation against
+       74   ClinVar/COSMIC/gnomAD**; ran multi-tumor **TCGA** analyses (`maftools` oncoplots,
+       75   somatic-interaction testing, Ti/Tv, survival analysis) and DESeq2 differential expression with
+       76   tumor-type stratification; fluent across **cfDNA/ctDNA** multimodal signals and vendor assays
+       77   (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).
+       78 - **Harmonized unstructured clinical data into standardized models** — mapped free-text fields to
+       79   coded concepts (**OMOP CDM**; SNOMED-CT ↔ ICD-10-CM, LOINC, RxNorm; CDISC SDTM/ADaM); shipped the
+       80   **Clinical Knowledge Graph** (extending Harvard's PrimeKG), unifying **20+ biomedical ontologies**
+       81   via multi-tier entity resolution (exact → BioBERT cosine ≥ 0.98 → Levenshtein → human review) over
+       82   **NCBI, UniProt, and Ensembl REST** sources.
+       83 - **Scaled population sequencing and statistical genetics** — profiled and ingested **UK Biobank /
+       84   INTERVAL** (tens of thousands of whole genomes, 242-metabolite NMR panels, decades of longitudinal
+       85   phenotype); partitioned **GWAS** by (phenotype, chrom, bin) with **DeepWAS** deep-learning
+       86   association; reconciled **349,912 CMS/HHS beneficiaries** across federal and state sources via
+       87   bidirectional identity resolution.
+       88 - **Delivered reproducible analyses and interactive reporting** — **R Markdown** and **Jupyter**
+       89   deliverables with **ggplot2/tidyverse, Plotly, matplotlib, and seaborn** figures; built **R Shiny
+       90   and Dash/Plotly** interfaces for exploring high-dimensional genomic and clinical cohorts.
+       91
+       92 ### Lecturer in Genetics and Biology, Southern Utah University, Cedar City, UT
+       93 *06/2018 – 05/2021*
+       94
+       95 - Taught undergraduate genetics and biology integrating molecular and bioinformatic methods; mentored
+       96   undergraduate researchers in experimental design, statistical data analysis, scientific writing, and
+       97   presentation.
        98
-       99 **Scenario 1: Off-peak quiet stops (5% of cases)**
-      100 - Low demand; few passengers; quick boarding.
-      101 - Model predicts 20 sec (based on stop type); actual 12 sec.
-      102 - **Root cause:** Model conservatively predicts crowding; off-peak actual is sparser than average.
-      103 - **Implication:** Conservative bias on empty stops. Not a problem; prevents schedule overshooting.
-      104
-      105 **Scenario 2: Weather-based outliers (1% of cases)**
-      106 - Sunny day after rain; passengers don't rush; leisurely boarding.
-      107 - Model predicts 25 sec (based on recent rain in weather feature); actual 18 sec.
-      108 - **Root cause:** Weather feature not perfectly time-aligned (5-min lag in data feed).
-      109 - **Implication:** Minor; weather is only 12% of feature importance.
-      110
-      111 ### Key Finding: Cascading Effects Not Captured
-      112
-      113 **Important note:** This dwell model was trained on historical (realized) occupancy. It does NOT predict occupancy dynamically. The model assumes occupancy is known at time
-           of prediction.
-      114
-      115 **Example:**
-      116 ```
-      117 At stop 42 (08:00):
-      118   Historical occupancy: 62 passengers (average for stop 42 at 08:00)
-      119   Dwell model prediction: 28 sec
-      120   Actual occupancy: 78 passengers (day with concert downtown)
-      121   Actual dwell: 32 sec
-      122
-      123 Model error: 4 sec underestimate
-      124 (Because model didn't know occupancy would be 78; historical average was 62)
-      125 ```
-      126
-      127 **Why this matters:** When the simulator runs forward in time (predicting 15 minutes ahead), occupancy at future stops is unknown. The simulator must predict it.
-      128
-      129 **Solution:** The simulator will use the dynamic occupancy tracking (Option B) to predict occupancy at future stops. The dwell model then uses that predicted occupancy as i
-          nput.
-      130
-      131 **Validation:** This handoff between simulator (occupancy prediction) and dwell model (dwell prediction) will be tested in offline replay (2026-08-11 onwards).
+       99 ### Research Scientist, Pennsylvania State University, University Park, PA
+      100 *08/2010 – 05/2018 · Schatz Center for Molecular Genetics; Weiss Lab*
+      101
+      102 - **Directed a chromosome-level de novo genome assembly** — the *Castanea mollissima* reference
+      103   genome (NCBI **JRKL00000000.1**) from multi-platform sequencing, applying **spectral clustering,
+      104   SVM/PCA, and multidimensional scaling** to mate-pair network analysis and pseudochromosome
+      105   reconstruction; established and optimized **HPC** infrastructure across multi-institutional teams.
+      106 - **Mapped genotype→phenotype in complex multidimensional traits** — **QTL/GWAS** association of
+      107   craniofacial morphology in mouse populations (Weiss Lab) with post-hoc autocorrelation correction,
+      108   resolving the developmental genetic architecture underlying co-varying phenotypes.
+      109
+      110 ---
+      111
+      112 ## Education
+      113
+      114 ### Pennsylvania State University · PhD (ABD/candidacy), Bioinformatics & Genomics
+      115 *08/2008 – 05/2018 · University Park, PA*
+      116 Dissertation: "Machine learning approaches for assembly and comparative analysis of the genomes of the
+      117 genus *Castanea*"
+      118
+      119 ### Brigham Young University · MS Genetics & Biotechnology (2008); BS Biostatistics (2006)
+      120 *08/2001 – 08/2008 · Provo, UT*
+      121 Master's Thesis: "Domain Duplication, Darwinian Selection and the Origins of Seed Storage Globulins" ·
+      122 Minors: Chemistry, Developmental Biology
+      123
+      124 ---
+      125
+      126 ## Selected Research Output
+      127
+      128 - Reference genome: *Castanea mollissima* (Chinese chestnut), NCBI accession **JRKL00000000.1** —
+      129   chromosome-level de novo assembly.
+      130 - Conference presentations: Plant & Animal Genome (PAG), SMBE, ASPB; American Chestnut Foundation
+      131   symposium workshops.
       132
       133 ---
       134
-      135 ## Production Readiness
+      135 ## Certifications — In Progress (2026)
       136
-      137 ### Model Card
-      138
-      139 **Model name:** ZTA-DwellPredictor-v2-2026-08-05
-      140 **Version:** 2.0 (post-retraining, August 2026)
-      141 **Accuracy:** 14.2 sec RMSE (test set, July data)
-      142 **Applicability:** All 7 ZTA lines (trained on aggregate).
-      143 **Known limitations:**
-      144 1. Does not predict system faults (fare readers, door malfunctions).
-      145 2. Does not explicitly model accessibility delays (rare; not learnable).
-      146 3. Assumes occupancy input is provided; does not generate its own.
-      147 4. May overestimate on very sparse off-peak periods.
-      148 5. Tested on typical operation; atypical days (events, service disruptions) may degrade accuracy by 2–3 sec.
-      149
-      150 **Recommended usage:**
-      151 - Primary: Simulator input for headway prediction (occupancy + dwell).
-      152 - Secondary: Schedule optimization (baseline dwell times per stop per time-of-day).
-      153 - Not for: Predicting individual vehicle failures or system faults.
-      154
-      155 ### Deployment Readiness
-      156
-      157 - ✅ Model serialized and versioned (TensorFlow SavedModel format).
-      158 - ✅ Inference latency: <5 ms per prediction (well within simulator budget).
-      159 - ✅ Model monitoring: production telemetry to track prediction accuracy post-deployment.
-      160 - ✅ Rollback plan: if post-deployment RMSE exceeds 18 sec, revert to v1 (previous model, RMSE 16.8 sec).
-      161
-      162 ---
-      163
-      164 ## Next Steps (Simulator Integration)
-      165
-      166 **Handoff:** Dwell model is now ready for simulator use.
-      167
-      168 **How simulator will use the model:**
-      169
-      170 ```python
-      171 # Simulator code (pseudocode)
-      172 def predict_dwell_at_stop(vehicle, stop, predicted_occupancy):
-      173   # Inputs:
-      174   #  - vehicle ID
-      175   #  - stop ID (from route)
-      176   #  - predicted_occupancy (from dynamic occupancy tracker)
-      177   #  - current time-of-day
-      178   #  - weather conditions
-      179
-      180   # Call dwell model
-      181   dwell_seconds = dwell_model.predict({
-      182     "vehicle_id": vehicle.id,
-      183     "stop_id": stop.id,
-      184     "crowding_proxy": predicted_occupancy,  # ← From simulator's occupancy tracker (Option B)
-      185     "time_of_day": get_hour_of_day(),
-      186     "weather_condition": get_weather(),
-      187   })
-      188
-      189   return dwell_seconds  # Predicted dwell time
-      190 ```
-      191
-      192 **Validation in simulator:**
-      193 - Dwell model will receive occupancy predictions (not historical occupancy).
-      194 - Offline replay will measure end-to-end accuracy (dwell model + occupancy predictions).
-      195 - If combined accuracy is acceptable (≤15 sec RMSE), simulator is ready for staging.
-      196
-      197 ---
-      198
-      199 ## Timeline Status
-      200
-      201 | Milestone | Target | Actual | Status |
-      202 |---|---|---|---|
-      203 | Data extraction complete | 2026-07-30 | 2026-07-31 | ✅ On time |
-      204 | Feature engineering complete | 2026-08-01 | 2026-08-02 | ✅ On time |
-      205 | Model training + validation | 2026-08-03 | 2026-08-04 | ✅ On time |
-      206 | Dwell model signoff | 2026-08-04 | 2026-08-05 | ✅ 1 day slip (minor) |
-      207 | Simulator integration begins | 2026-08-05 | 2026-08-05 | ✅ On time |
-      208 | Offline replay validation | 2026-08-12 | 2026-08-14 (new) | ⏱ Due to Option B complexity |
-      209
-      210 **Overall:** On schedule for staging (2026-08-25). Dwell model is not a blocker; ready to integrate.
-      211
-      212 ---
-      213
-      214 ## Recommendation
-      215
-      216 **Approve for production use.** The dwell model meets all success criteria:
-      217 - RMSE ≤15 sec ✅
-      218 - R² ≥0.85 ✅
-      219 - Inference latency <5 ms ✅
-      220 - Production-ready (versioned, monitored, rollback plan) ✅
-      221
-      222 **Proceed with simulator integration.** The simulator can now use this model for dwell predictions. The handoff (occupancy prediction from simulator, dwell prediction from
-          this model) will be validated in offline replay.
-      223
-      224 ---
-      225
-      226 **Signed:**
-      227
-      228 - **Analytics Lead:** Dr. Rohit Singh
-      229 - **Data Science Manager:** Elena Zhao
-      230
-      231 **Date:** 2026-08-05 14:00
-      232 **Status:** SIGNED OFF — Production ready
-      233 **Next review:** Post-deployment monitoring (2026-08-25 onwards)
-      234
-      235 ---
-      236
-      237 **Distribution:**
-      238 - AHR Project Lead (project updates, staging readiness)
-      239 - Simulator Engineering (model integration)
-      240 - QA (offline replay validation)
-      241 - Operations (post-deployment monitoring)
-      242
-  ⎿  Async hook PostToolUse completed
+      137 - AWS Certified Machine Learning Engineer – Associate · Generative AI Developer – Advanced · Solutions Architect – Associate
+      138 - Microsoft Azure: AI Agent Builder Associate · Databricks Data Engineer Associate · SQL AI Developer Associate
 
-∴ Perfect. I've now built out a rich, coherent narrative for the Zephyr Transit Authority (ZTA) fiction across multiple critical memos. Let me recap what's been written in this session:
-
-  In this session:
-
-  1. MEMO-2026-08-08-APPROVED-architecture-decision.md — Architecture Review approves Option B (dynamic occupancy tracking) with constraints and fallback
-  2. MEMO-2026-08-10-demand-model-finding.md — Mid-implementation discovery (stop-context variance too coarse)
-  3. MEMO-2026-08-10-validation-results.md — Test-set validation succeeds (86% accuracy), clears gate, proceeds to offline replay
-  4. MEMO-2026-08-05-dwell-model-signoff.md — Backfilled dwell model completion (parallel critical path, on schedule)
-
-  Plus prior session artifacts (from checkpoint):
-  - WEEK-SUMMARY-2026-07-29.md
-  - ZTA-002-dwell-model-retraining.md
-  - ZTA-003-simulator-design.md
-  - ADR-0003-simulation-architecture.md
-  - INC-2026-0729-line5-bunching-cascade.md
-  - SCHEMA-vehicle-telemetry-v2.md
-  - ZTA-001-headway-regulation.md
-
-  Narrative flow:
-  1. Design phase complete (2026-07-29)
-  2. Architecture decision on occupancy modeling (2026-08-08)
-  3. Dwell model signed off (2026-08-05)
-  4. Implementation discovers stop-context variance issue (2026-08-10 morning)
-  5. Same-day fix validated; proceeds to offline replay (2026-08-10 evening)
-
-  Where the fiction stands now:
-  - Dwell model: ✅ Complete, signed off, 14.2 sec RMSE
-  - Simulator Option B.1: ✅ Test-set validated (86% accuracy), ready for offline replay
-  - Offline replay: ⏳ Beginning 2026-08-11 (in fictional time)
-  - Staging: 📅 2026-08-25 (still on track)
-
-  This captures the kind of substantive, realistic engineering narrative the JICM test lane should produce—showing actual decision-making with cascading consequences, real complications
-  like stop-context variance, validation and iteration cycles, explicit success criteria with fallback options, and cross-referenced documents that reinforce coherence.
-
-  The core decisions are locked in and validation is underway. Rather than extending further with replay results, sign-off memos, or checklists, I should wrap this with a final status
-  update memo that consolidates the narrative and transitions into the offline replay phase.
-
-⏺ Now let me write a final status update that ties together both critical paths and prepares for the offline replay phase:
-
-⏺ Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/protos-sandbox/STATUS-2026-08-10-eod.md)
-  ⎿  Wrote 206 lines to /Users/nathanielcannon/Claude/Project_Aion/.claude/context/protos-sandbox/STATUS-2026-08-10-eod.md
-        1 # PROJECT STATUS: AHR Implementation — 2026-08-10 EOD
-        2
-        3 **Project:** Adaptive Headway Regulation (AHR) for Zephyr Transit Authority
-        4 **Date:** 2026-08-10 20:00 (end of week 1)
-        5 **Status:** ✅ **ON TRACK** — Both critical paths validated; offline replay begins 2026-08-11
-        6
-        7 ---
-        8
-        9 ## Executive Summary
-       10
-       11 **Week 1 of implementation complete.** Both critical paths (dwell model + simulator) are validated and ready for final integration testing (offline replay).
-       12
-       13 **Key wins:**
-       14 - ✅ Dwell model: 14.2 sec RMSE (exceeds target). Signed off 2026-08-05.
-       15 - ✅ Simulator architecture decision made (Option B.1: dynamic occupancy).
-       16 - ✅ Demand model validated (86% accuracy). Test-set gate cleared 2026-08-10.
-       17 - ✅ No schedule impact. Staging date (2026-08-25) holds.
-       18
-       19 **Risks mitigated:**
-       20 - Stop-context variance discovered and fixed same-day (2026-08-10).
-       21 - Fallback strategy proved effective (would have worked if refinement failed).
-       22 - Performance budget respected (18 ms per prediction; target 50 ms).
-       23
-       24 **Next phase:** Offline replay validation (2026-08-11 through 2026-08-13). Decision on proceed to staging vs. fallback expected 2026-08-13.
-       25
-       26 ---
-       27
-       28 ## Critical Path 1: Dwell Model (✅ COMPLETE)
-       29
-       30 | Milestone | Target | Actual | Status |
-       31 |---|---|---|---|
-       32 | Data extraction | 2026-07-30 | 2026-07-31 | ✅ |
-       33 | Feature engineering | 2026-08-01 | 2026-08-02 | ✅ |
-       34 | Model training | 2026-08-03 | 2026-08-04 | ✅ |
-       35 | Validation RMSE ≤15 sec | 2026-08-04 | 2026-08-05 (14.2 sec) | ✅ |
-       36 | **Signoff** | **2026-08-04** | **2026-08-05** | **✅** |
-       37
-       38 **Status:** COMPLETE and signed off.
-       39 **Performance:** 14.2 sec RMSE (target ≤15 sec).
-       40 **Impact:** On time for simulator integration. No blockers.
-       41
-       42 **Handoff to simulator:** Dwell model is production-ready and waiting for occupancy predictions from simulator (Option B.1).
-       43
-       44 ---
-       45
-       46 ## Critical Path 2: Simulator + Option B (✅ VALIDATION GATE CLEARED)
+⏺ Write(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
+  ⎿  Wrote 433 lines to /Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html
+        1 <!DOCTYPE html>
+        2 <html lang="en">
+        3 <head>
+        4 <meta charset="utf-8">
+        5 <title>Nathaniel Cannon — Bioinformatics Engineer</title>
+        6 <style>
+        7   :root {
+        8     --sidebar-bg: #4E7A8A;
+        9     --sidebar-text: #FFFFFF;
+       10     --sidebar-text-soft: rgba(255,255,255,0.88);
+       11     --sidebar-divider: rgba(255,255,255,0.32);
+       12     --main-text: #2A2A2A;
+       13     --main-heading: #1A1A1A;
+       14     --muted: #787673;
+       15     --sidebar-width: 2.35in;
+       16   }
+       17
+       18   @page {
+       19     size: letter;
+       20     margin: 0;
+       21   }
+       22
+       23   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+       24
+       25   html { margin: 0; padding: 0; }
+       26   body {
+       27     margin: 0;
+       28     padding: 0;
+       29     font-family: "Open Sans", "Nunito", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+       30     color: var(--main-text);
+       31     font-size: 10pt;
+       32     line-height: 1.4;
+       33     background: #ffffff;
+       34     position: relative;
+       35   }
+       36
+       37   /* Fixed sidebar-background paints on every printed page. */
+       38   .sidebar-bg {
+       39     position: fixed;
+       40     top: 0;
+       41     left: 0;
+       42     width: var(--sidebar-width);
+       43     height: 100vh;
+       44     background: var(--sidebar-bg);
+       45     z-index: 0;
+       46   }
        47
-       48 ### 2026-08-08: Architecture Decision
-       49
-       50 **Decision:** Option B.1 (dynamic occupancy tracking with stop context).
-       51
-       52 **Rationale:**
-       53 - Cascading effects are critical for AHR validation.
-       54 - Fallback strategy (Option A) mitigates risk.
-       55 - Timeline slip to 2026-08-14 validation is acceptable (11 days before staging).
-       56
-       57 **Approved:** Yes. Proceeded to implementation 2026-08-09.
-       58
-       59 ### 2026-08-10: Demand Model Validation (Morning)
-       60
-       61 **Discovery:** Stop-context variance detected (78% accuracy with stop type alone; insufficient).
-       62
-       63 **Root cause:** Stop type too coarse; interchange hubs, near-hub stops, and standalone stops have different boarding patterns.
-       64
-       65 **Fix:** Refine stop-type classification to include stop context (interchange_hub, near_hub, standalone).
-       66
-       67 **Effort:** 4 hours (design, implement, validate).
-       68
-       69 ### 2026-08-10: Demand Model Re-validation (Evening)
-       70
-       71 **Result:** Stop-context refinement successful.
-       72
-       73 - **Accuracy:** 86% (exceeds 85% threshold).
-       74 - **Precision:** 87% (boarding predictions within ±20%).
-       75 - **Recall:** 86% (consistent across all stop contexts).
-       76
-       77 **Simulator integration:** Clean; no corruption. Runtime 18 ms (well under 50 ms budget).
-       78
-       79 **Decision:** CLEARED for offline replay.
-       80
-       81 ---
-       82
-       83 ## Timeline Summary
-       84
-       85 ```
-       86     Design      Implementation      Validation      Staging
-       87     ├────────┤  ├────────────────┤  ├────────────┤  ├────────┤
-       88 Jul 29   Aug 04  Aug 05         Aug 14         Aug 25    Sep 01
-       89     Done    Dwell signed  Option B.1   Offline replay  Go-live
-       90             off; Simulator approved    decision point  (if approved)
-       91             kicks off
-       92 ```
-       93
-       94 **Current date: 2026-08-10 EOD**
-       95 **Dwell model:** Complete. 5 days early.
-       96 **Simulator Option B.1:** Validation gate cleared. 4 days early.
-       97 **Offline replay:** Starting 2026-08-11 (on schedule).
-       98 **Final signoff:** 2026-08-14 (4 days before staging).
-       99
-      100 **Contingency buffer:** 11 days between final signoff and staging (2026-08-14 to 2026-08-25). Sufficient for addressing any last-minute issues.
-      101
-      102 ---
-      103
-      104 ## Validation Plan (2026-08-11 through 2026-08-13)
-      105
-      106 ### Offline Replay Scope
-      107
-      108 **Simulate 30 days of operations (July 1–31, 2026) using:**
-      109 - Dwell model (validated, 14.2 sec RMSE)
-      110 - Demand model (validated, 86% accuracy, with stop context)
-      111 - Occupancy tracker (dynamic, tracking per-vehicle boarding/alighting)
-      112 - Headway prediction logic (from simulator design)
-      113
-      114 **Measure:**
-      115 - Precision: When simulator predicts bunching, does it actually occur? (target ≥75%)
-      116 - Recall: When bunching occurs, does simulator detect it in advance? (target ≥80%)
-      117 - Occupancy tracking: Is state consistent? No corruption or off-by-one errors?
-      118
-      119 ### Expected Outcomes
-      120
-      121 **Scenario A (Most Likely):** Offline replay passes (precision ≥75%, recall ≥80%).
-      122 - **Action:** Signoff on 2026-08-14. Staging proceeds 2026-08-25.
-      123 - **Probability:** 80% (high confidence in validation; dwell model is strong, demand model is validated).
-      124
-      125 **Scenario B (Acceptable Fallback):** Offline replay fails (<75% precision).
-      126 - **Action:** Revert to Option A (historical occupancy) + fast validation (1 day).
-      127 - **Timeline:** Signoff still 2026-08-14. Staging still 2026-08-25 (Option A simpler, faster to validate).
-      128 - **Probability:** 15% (low; but plan is in place if needed).
-      129
-      130 **Scenario C (Unlikely Blocker):** Offline replay reveals major issue (occupancy tracking bug, etc.).
-      131 - **Action:** Investigate root cause + fix. May slip staging to 2026-09-01.
-      132 - **Mitigation:** Comprehensive unit testing on 2026-08-09 reduces this risk significantly.
-      133 - **Probability:** 5% (very low).
-      134
-      135 ---
-      136
-      137 ## Deployment Readiness Checklist
-      138
-      139 | Item | Status | Notes |
-      140 |---|---|---|
-      141 | Dwell model (production-ready) | ✅ Complete | Signed off 2026-08-05; 14.2 sec RMSE. |
-      142 | Demand model (production-ready) | ✅ Validated | Test-set accuracy 86%. Stop context integrated. |
-      143 | Occupancy tracker (code) | ✅ Integrated | Simulator integration test clean. |
-      144 | Simulator (dwell + occupancy + headway logic) | ✅ Integrated | 18 ms per prediction; well under budget. |
-      145 | Offline replay (30-day validation) | ⏳ In progress | Begins 2026-08-11. Results 2026-08-12/2026-08-13. |
-      146 | Model cards (documentation) | ✅ Draft | Final versions after offline replay. |
-      147 | Monitoring & alerts (production) | 📋 Planned | To be configured 2026-08-14 if signoff approved. |
-      148 | Rollback plan (contingency) | ✅ Defined | Fall back to Option A if needed. Fallback to v1 dwell model if needed. |
-      149 | Staging line selection | ✅ Line 5 | High-volume downtown line; best test for bunching prevention. |
-      150
-      151 ---
-      152
-      153 ## What Went Right
-      154
-      155 1. **Early decision gate (2026-08-08).** Architecture review decided on Option B + fallback strategy. Clear constraints prevented scope creep.
-      156
-      157 2. **Agile validation.** Stop-context variance discovered and fixed same-day (2026-08-10) instead of delaying to offline replay.
-      158
-      159 3. **Clear fallback pathways.** If demand model failed, Option A was ready. If occupancy tracking failed, Option B.1 was valid. No panic.
-      160
-      161 4. **Cross-functional alignment.** Dwell model team and simulator team maintained clear handoffs. No rework.
-      162
-      163 5. **Performance discipline.** Every component measured against budget (dwell <5 ms, simulator <50 ms). No surprises.
-      164
-      165 ---
-      166
-      167 ## Lessons for Future Phases
-      168
-      169 1. **Validate assumptions early.** Stop-context variance might have derailed a waterfall project. Agile testing caught it day 2.
-      170
-      171 2. **Fallback strategies are not failures.** Having Option A available meant Option B.1 felt low-risk (because it was).
-      172
-      173 3. **Per-stop per-time-of-day data is gold.** Historical boarding patterns enabled fast demand model development. Invest in data quality.
-      174
-      175 4. **Simulator-dwell handoff is critical.** The dwell model works best when occupancy is known. Make sure your data pipeline supports this.
-      176
-      177 ---
-      178
-      179 ## For Architecture Review (Status & Decision Gate)
+       48   .page {
+       49     display: grid;
+       50     grid-template-columns: var(--sidebar-width) 1fr;
+       51     width: 8.5in;
+       52     position: relative;
+       53     z-index: 1;
+       54   }
+       55
+       56   aside {
+       57     color: var(--sidebar-text);
+       58     padding: 0.5in 0.26in 0.5in 0.38in;
+       59     font-size: 9.3pt;
+       60     position: relative;
+       61     z-index: 2;
+       62   }
+       63
+       64   aside .name {
+       65     font-size: 16.5pt;
+       66     font-weight: 300;
+       67     letter-spacing: 0.2px;
+       68     line-height: 1.08;
+       69     margin: 0 0 0.06in 0;
+       70     text-align: center;
+       71     white-space: nowrap;
+       72   }
+       73   aside .role {
+       74     font-size: 8pt;
+       75     font-weight: 400;
+       76     letter-spacing: 1.5px;
+       77     text-transform: uppercase;
+       78     color: var(--sidebar-text-soft);
+       79     margin: 0 0 0.18in 0;
+       80     line-height: 1.32;
+       81     text-align: center;
+       82   }
+       83
+       84   aside .divider {
+       85     height: 1px;
+       86     background: var(--sidebar-divider);
+       87     margin: 0.10in 0 0.13in 0;
+       88   }
+       89
+       90   aside .contact {
+       91     list-style: none;
+       92     padding: 0;
+       93     margin: 0 0 0.06in 0;
+       94     text-align: center;
+       95   }
+       96   aside .contact li {
+       97     display: flex;
+       98     align-items: flex-start;
+       99     justify-content: center;
+      100     gap: 8px;
+      101     margin: 0 0 0.06in 0;
+      102     line-height: 1.3;
+      103     font-size: 8.6pt;
+      104     word-break: break-word;
+      105   }
+      106   aside .contact .ico {
+      107     display: inline-flex;
+      108     align-items: center;
+      109     justify-content: center;
+      110     width: 12px; height: 12px;
+      111     flex-shrink: 0;
+      112     margin-top: 2px;
+      113   }
+      114   aside .contact .ico svg { width: 11px; height: 11px; fill: var(--sidebar-text); }
+      115   aside .contact a { color: var(--sidebar-text); text-decoration: underline; }
+      116
+      117   aside h2 {
+      118     font-size: 13.5pt;
+      119     font-weight: 400;
+      120     letter-spacing: 0.3px;
+      121     margin: 0.08in 0 0.09in 0;
+      122     color: var(--sidebar-text);
+      123   }
+      124   aside ul.skills {
+      125     list-style: disc;
+      126     padding-left: 13px;
+      127     margin: 0;
+      128   }
+      129   aside ul.skills li {
+      130     margin: 0 0 0.05in 0;
+      131     line-height: 1.28;
+      132     font-size: 8.7pt;
+      133   }
+      134   aside ul.skills li strong { font-weight: 700; color: var(--sidebar-text); }
+      135
+      136   main {
+      137     padding: 0.38in 0.42in 0.28in 0.33in;
+      138   }
+      139
+      140   main h2 {
+      141     font-size: 15pt;
+      142     font-weight: 400;
+      143     color: var(--main-heading);
+      144     margin: 0 0 0.05in 0;
+      145     letter-spacing: 0.1px;
+      146   }
+      147   main h2:first-child { margin-top: 0; }
+      148   main h2:not(:first-child) { margin-top: 0.13in; }
+      149
+      150   main .job {
+      151     margin-bottom: 0.11in;
+      152   }
+      153   main .job h3 + .dates + ul { break-inside: auto; }
+      154   main .job h3 { break-after: avoid; }
+      155   main .job .dates { break-after: avoid; }
+      156   main .job h3 {
+      157     font-size: 11pt;
+      158     font-weight: 700;
+      159     color: var(--main-heading);
+      160     margin: 0 0 0.03in 0;
+      161     line-height: 1.3;
+      162   }
+      163   main .job .dates {
+      164     font-size: 8.5pt;
+      165     color: var(--muted);
+      166     margin: 0 0 0.03in 0;
+      167     line-height: 1.2;
+      168   }
+      169   main .job ul {
+      170     margin: 0.02in 0 0 0.18in;
+      171     padding: 0;
+      172     list-style: disc;
+      173   }
+      174   main .job ul li {
+      175     margin-bottom: 0.042in;
+      176     line-height: 1.38;
+      177     padding-left: 3px;
+      178   }
+      179   main .job ul li strong { color: var(--main-text); font-weight: 400; }
       180
-      181 **Checkpoint before offline replay:**
-      182
-      183 - ✅ Option B.1 approved (2026-08-08).
-      184 - ✅ Dwell model signed off (2026-08-05).
-      185 - ✅ Demand model validated (2026-08-10).
-      186 - ✅ Stop-context issue mitigated (2026-08-10).
-      187 - ✅ Simulator integration clean (2026-08-10).
-      188 - ⏳ Offline replay validation in progress (2026-08-11 onwards).
-      189
-      190 **Next review:** 2026-08-13 (offline replay results + final decision).
-      191
-      192 ---
-      193
-      194 ## Schedule Summary
-      195
-      196 **On time. No slips.** Dwell model and simulator validation both cleared gates. Offline replay validation is next; final signoff 2026-08-14. Staging 2026-08-25 (on track).
-      197
-      198 **Contingency:** 11 days between signoff and staging is sufficient for addressing any last-minute issues or falling back to Option A if needed.
-      199
-      200 ---
-      201
-      202 **Prepared by:** AHR Program Office
-      203 **Date:** 2026-08-10 20:00
-      204 **Next update:** 2026-08-13 (offline replay results)
-      205 **Distribution:** Project Lead, Architecture Review, Executive Steering
-      206
-  ⎿  Async hook PostToolUse completed
+      181   main .summary p {
+      182     margin: 0.02in 0 0 0;
+      183     line-height: 1.48;
+      184   }
+      185   main .summary strong { color: var(--main-text); font-weight: 400; }
+      186
+      187   main .certs { margin-top: 0.02in; }
+      188   main .certs h4 {
+      189     font-size: 9.6pt;
+      190     font-weight: 700;
+      191     color: var(--main-heading);
+      192     margin: 0.05in 0 0.01in 0;
+      193   }
+      194   main .certs h4:first-child { margin-top: 0; }
+      195   main .certs ul {
+      196     margin: 0 0 0.02in 0.18in;
+      197     padding: 0;
+      198     list-style: disc;
+      199   }
+      200   main .certs ul li {
+      201     margin-bottom: 0.03in;
+      202     line-height: 1.35;
+      203     padding-left: 3px;
+      204   }
+      205
+      206   main .edu {
+      207     margin-bottom: 0.06in;
+      208   }
+      209   main .edu h3 {
+      210     font-size: 10.2pt;
+      211     font-weight: 700;
+      212     color: var(--main-heading);
+      213     margin: 0 0 0.02in 0;
+      214     line-height: 1.24;
+      215   }
+      216   main .edu .subline {
+      217     font-size: 8.5pt;
+      218     color: var(--muted);
+      219     margin: 0 0 0.02in 0;
+      220   }
+      221   main .edu p.detail {
+      222     margin: 0.03in 0 0 0;
+      223     font-size: 9.6pt;
+      224     line-height: 1.4;
+      225   }
+      226
+      227   code {
+      228     font-family: "SF Mono", "Menlo", Consolas, monospace;
+      229     font-size: 0.88em;
+      230   }
+      231 </style>
+      232 </head>
+      233 <body>
+      234
+      235 <div class="sidebar-bg"></div>
+      236
+      237 <div class="page">
+      238
+      239   <aside>
+      240     <div class="name">Nathaniel Cannon</div>
+      241     <div class="role">Bioinformatics Engineer</div>
+      242     <div class="divider"></div>
+      243     <ul class="contact">
+      244       <li>
+      245         <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></sp
+          an>
+      246         Salt Lake City, Utah,<br>84653, United States
+      247       </li>
+      248       <li>
+      249         <span class="ico"><svg viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.5-.2-3.6-.6a1 1 0 0 0-1 .2l-2.2 2.2a15.1 15.1 0 0 1-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1a11.5 11.5 0
+           0 1-.6-3.6 1 1 0 0 0-1-1H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17 .5 0 1-.4 1-1v-3.4a1 1 0 0 0-1-1z"/></svg></span>
+      250         <a href="tel:8013698354">801-369-8354</a>
+      251       </li>
+      252       <li>
+      253         <span class="ico"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg></span
+          >
+      254         <a href="mailto:nathaniel.cannon@gmail.com">nathaniel.cannon<br>@gmail.com</a>
+      255       </li>
+      256       <li>
+      257         <span class="ico"><svg viewBox="0 0 24 24"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM10 9.5h3.8v1.6h.06c.53-1 1.83-2.06 3.77-2.06 4.03 0
+           4.77 2.65 4.77 6.1V21H18.6v-5.15c0-1.23-.02-2.82-1.72-2.82-1.72 0-1.98 1.35-1.98 2.73V21H10z"/></svg></span>
+      258         <a href="https://www.linkedin.com/in/nathaniel-cannon-0450388/">LinkedIn</a>
+      259       </li>
+      260       <li>
+      261         <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 .5a11.5 11.5 0 0 0-3.63 22.42c.58.1.79-.26.79-.56v-2c-3.22.7-3.9-1.55-3.9-1.55-.53-1.35-1.29-1.7-1.29-1.7-1.
+          05-.72.08-.7.08-.7 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.76.4-1.27.74-1.56-2.57-.3-5.28-1.28-5.28-5.7 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.47.12-3.06 0
+           0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.21-1.5 3.18-1.18 3.18-1.18.64 1.59.24 2.77.12 3.06.74.8 1.19 1.82 1.19 3.08 0 4.43-2.71 5.4-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0
+          .3.21.66.79.55A11.5 11.5 0 0 0 12 .5z"/></svg></span>
+      262         <a href="https://github.com/CannonCoPilot">GitHub</a>
+      263       </li>
+      264     </ul>
+      265     <div class="divider"></div>
+      266     <h2>Skills</h2>
+      267     <ul class="skills">
+      268       <li><strong>NGS Data QC</strong>: FastQC, MultiQC, samtools/Picard metrics, coverage &amp; contamination gates</li>
+      269       <li>Sequencing Platforms: <strong>Illumina/DRAGEN</strong>, Ion Torrent, <strong>PacBio &amp; Oxford Nanopore long-read</strong>, GWAS arrays</li>
+      270       <li>Read Mapping &amp; Assembly: <strong>bwa/bwa-mem2</strong>, minimap2, DRAGEN, de novo &amp; chromosome-level assembly</li>
+      271       <li>Variant Detection: <strong>GATK, DeepVariant, GLnexus joint-genotyping</strong>, bcftools; SNV/indel/CNV/SV</li>
+      272       <li>Functional Impact &amp; Disease Association: <strong>Ensembl VEP</strong>, ClinVar/COSMIC/gnomAD, HGVS, ACMG tiering, GWAS/QTL</li>
+      273       <li>Toolkits: <strong>samtools, bedtools, bcftools</strong>, pysam, cyvcf2</li>
+      274       <li>Workflows: <strong>Nextflow</strong> (preferred), Snakemake, WDL/Cromwell</li>
+      275       <li>Cloud: <strong>AWS</strong> (HealthOmics, S3, Batch, Lambda), <strong>AWS CDK</strong>, Azure, DNAnexus (Spark/Hive)</li>
+      276       <li>Containers &amp; CI/CD: <strong>Docker</strong>, Git, <strong>GitHub Actions</strong></li>
+      277       <li>RESTful APIs: <strong>GA4GH-aligned JSON/REST</strong> — Ensembl VEP, NCBI E-utilities, UniProt, AWS HealthOmics</li>
+      278       <li><strong>Python</strong> (pandas, NumPy, scikit-learn, Flask) &middot; <strong>R</strong> (tidyverse, Bioconductor, Shiny) &middot; SQL &middot; PySpark</li>
+      279       <li>Reporting &amp; Visualization: <strong>R Markdown, Jupyter, Dash/Plotly</strong>, ggplot2, matplotlib, seaborn</li>
+      280       <li>CAP/CLIA &amp; PHI compliance; FDA-submission validation and audit standards</li>
+      281     </ul>
+      282   </aside>
+      283
+      284   <main>
+      285     <section class="summary">
+      286       <h2>Summary</h2>
+      287       <p>Bioinformatics engineer with <strong>10+ years building and validating NGS analysis
+      288       pipelines</strong> across short- and long-read platforms, from raw-read QC through mapping,
+      289       assembly, variant detection, and clinical interpretation. At <strong>Thermo Fisher</strong> I
+      290       hardened the production variant-discovery pipeline behind the FDA-cleared <strong>Oncomine Dx
+      291       Target Test</strong> (NSCLC companion diagnostic) — QC gating, hotspot-variant detection, and
+      292       VAF interpretation to <strong>FDA-submission validation and audit standards</strong>. At
+      293       <strong>DNAnexus</strong> I engineered cloud-scale germline and somatic workflows for clinical
+      294       partners (<strong>Myriad</strong> hereditary cancer, <strong>Natera</strong> Renasight, Emory
+      295       Winship, <strong>TCGA</strong>), including <strong>~494,120-VCF joint-genotyping</strong> with
+      296       automated QC reconciliation. Earlier, at <strong>Penn State</strong> I directed a
+      297       chromosome-level de novo reference assembly and QTL/GWAS genotype→phenotype mapping.
+      298       <strong>BS in Biostatistics</strong>; MS in Genetics &amp; Biotechnology; PhD-track (ABD) in
+      299       Bioinformatics &amp; Genomics.</p>
+      300     </section>
+      301
+      302     <h2>Work Experience</h2>
+      303
+      304     <div class="job">
+      305       <h3>Bioinformatics Engineer, Thermo Fisher Scientific, Carlsbad, CA</h3>
+      306       <div class="dates">02/2025 – 12/2025</div>
+      307       <ul>
+      308         <li><strong>Advanced the FDA-cleared Oncomine Dx Target Test</strong> (NSCLC companion
+      309           diagnostic, Ion Torrent amplicon panel) — hardened the production variant-discovery
+      310           pipeline for <strong>hotspot-variant detection and VAF/allele-fraction
+      311           interpretation</strong>, with a PASS/AF/hotspot-ID triple <strong>data-quality gate</strong>,
+      312           auditable control-sample filtering, and a 100-test pytest suite under <strong>GitHub
+      313           Actions CI</strong>, to FDA-submission validation and audit standards in a
+      314           <strong>CAP/CLIA</strong>-governed environment.</li>
+      315         <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
+      316           retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
+      317           Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
+      318           (adversarial review + test-driven assembly) for validated autonomous analysis under
+      319           guardrails.</li>
+      320         <li><strong>Engineered a containerized internal LLM/AI-HPC platform</strong>
+      321           (<strong>Docker</strong> orchestration; persistent shared + on-demand specialty models) for
+      322           self-serve analysis across Japan, Korea, and US sites; drove FDA submission readiness
+      323           across global documentation, QE, and validation teams.</li>
+      324       </ul>
+      325     </div>
+      326
+      327     <div class="job">
+      328       <h3>Bioinformatics Scientist &amp; Data Engineer, DNAnexus, Mountain View, CA</h3>
+      329       <div class="dates">06/2021 – 06/2024 · Apollo cloud platform (Spark / Hive)</div>
+      330       <ul>
+      331         <li><strong>Engineered clinical germline and somatic variant pipelines at scale</strong> —
+      332           for <strong>Myriad Genetics</strong> hereditary cancer, joint-genotyped
+      333           <strong>~494,120 germline VCFs</strong> (<code>bcftools norm → merge → GLnexus</code>) with
+      334           per-file reconciliation (zero silent drops) and automated <code>geno_db_stats</code> QC;
+      335           delivered <strong>Natera Renasight</strong> kidney-genetics and <strong>Emory
+      336           Winship</strong> (NCI-designated) somatic/germline cohorts as annotated, queryable
+      337           allele/genotype tables.</li>
+      338         <li><strong>Annotated variants for functional impact and disease association</strong> —
+      339           mapped SNVs/indels/CNAs to consequence, transcript, and clinical significance via
+      340           <strong>VEP-style annotation against ClinVar/COSMIC/gnomAD</strong>; ran multi-tumor
+      341           <strong>TCGA</strong> analyses (<code>maftools</code> oncoplots, somatic-interaction
+      342           testing, Ti/Tv, survival analysis) and DESeq2 differential expression with tumor-type
+      343           stratification; fluent across <strong>cfDNA/ctDNA</strong> multimodal signals and vendor
+      344           assays (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).</li>
+      345         <li><strong>Harmonized unstructured clinical data into standardized models</strong> — mapped
+      346           free-text fields to coded concepts (<strong>OMOP CDM</strong>; SNOMED-CT ↔ ICD-10-CM,
+      347           LOINC, RxNorm; CDISC SDTM/ADaM); shipped the <strong>Clinical Knowledge Graph</strong>
+      348           (extending Harvard's PrimeKG), unifying <strong>20+ biomedical ontologies</strong> via
+      349           multi-tier entity resolution (exact → BioBERT cosine ≥ 0.98 → Levenshtein → human review)
+      350           over <strong>NCBI, UniProt, and Ensembl REST</strong> sources.</li>
+      351         <li><strong>Scaled population sequencing and statistical genetics</strong> — profiled and
+      352           ingested <strong>UK Biobank / INTERVAL</strong> (tens of thousands of whole genomes,
+      353           242-metabolite NMR panels, decades of longitudinal phenotype); partitioned <strong>GWAS</strong>
+      354           by (phenotype, chrom, bin) with <strong>DeepWAS</strong> deep-learning association;
+      355           reconciled <strong>349,912 CMS/HHS beneficiaries</strong> across federal and state sources
+      356           via bidirectional identity resolution.</li>
+      357         <li><strong>Delivered reproducible analyses and interactive reporting</strong> — <strong>R
+      358           Markdown</strong> and <strong>Jupyter</strong> deliverables with <strong>ggplot2/tidyverse,
+      359           Plotly, matplotlib, and seaborn</strong> figures; built <strong>R Shiny and
+      360           Dash/Plotly</strong> interfaces for exploring high-dimensional genomic and clinical
+      361           cohorts.</li>
+      362       </ul>
+      363     </div>
+      364
+      365     <div class="job">
+      366       <h3>Lecturer in Genetics and Biology, Southern Utah University, Cedar City, UT</h3>
+      367       <div class="dates">06/2018 – 05/2021</div>
+      368       <ul>
+      369         <li>Taught undergraduate genetics and biology integrating molecular and bioinformatic
+      370           methods; mentored undergraduate researchers in experimental design, statistical data
+      371           analysis, scientific writing, and presentation.</li>
+      372       </ul>
+      373     </div>
+      374
+      375     <div class="job">
+      376       <h3>Research Scientist, Pennsylvania State University, University Park, PA</h3>
+      377       <div class="dates">08/2010 – 05/2018 · Schatz Center for Molecular Genetics; Weiss Lab</div>
+      378       <ul>
+      379         <li><strong>Directed a chromosome-level de novo genome assembly</strong> — the
+      380           <em>Castanea mollissima</em> reference genome (NCBI <strong>JRKL00000000.1</strong>) from
+      381           multi-platform sequencing, applying <strong>spectral clustering, SVM/PCA, and
+      382           multidimensional scaling</strong> to mate-pair network analysis and pseudochromosome
+      383           reconstruction; established and optimized <strong>HPC</strong> infrastructure across
+      384           multi-institutional teams.</li>
+      385         <li><strong>Mapped genotype→phenotype in complex multidimensional traits</strong> —
+      386           <strong>QTL/GWAS</strong> association of craniofacial morphology in mouse populations
+      387           (Weiss Lab) with post-hoc autocorrelation correction, resolving the developmental genetic
+      388           architecture underlying co-varying phenotypes.</li>
+      389       </ul>
+      390     </div>
+      391
+      392     <h2>Education</h2>
+      393
+      394     <div class="edu">
+      395       <h3>Pennsylvania State University · PhD (ABD/candidacy), Bioinformatics &amp; Genomics</h3>
+      396       <div class="subline">08/2008 – 05/2018 · University Park, PA</div>
+      397       <p class="detail">Dissertation: "Machine learning approaches for assembly and comparative
+      398         analysis of the genomes of the genus <em>Castanea</em>"</p>
+      399     </div>
+      400
+      401     <div class="edu">
+      402       <h3>Brigham Young University · MS Genetics &amp; Biotechnology (2008); BS Biostatistics (2006)</h3>
+      403       <div class="subline">08/2001 – 08/2008 · Provo, UT</div>
+      404       <p class="detail">Master's Thesis: "Domain Duplication, Darwinian Selection and the Origins
+      405         of Seed Storage Globulins" · Minors: Chemistry, Developmental Biology</p>
+      406     </div>
+      407
+      408     <h2>Selected Research Output</h2>
+      409     <div class="certs">
+      410       <ul>
+      411         <li>Reference genome: <em>Castanea mollissima</em> (Chinese chestnut), NCBI accession
+      412           <strong>JRKL00000000.1</strong> — chromosome-level de novo assembly.</li>
+      413         <li>Conference presentations: Plant &amp; Animal Genome (PAG), SMBE, ASPB; American
+      414           Chestnut Foundation symposium workshops.</li>
+      415       </ul>
+      416     </div>
+      417
+      418     <h2>Certifications — In Progress (2026)</h2>
+      419     <div class="certs">
+      420       <ul>
+      421         <li>AWS Certified Machine Learning Engineer – Associate · Generative AI Developer – Advanced
+      422           · Solutions Architect – Associate</li>
+      423         <li>Microsoft Azure: AI Agent Builder Associate · Databricks Data Engineer Associate ·
+      424           SQL AI Developer Associate</li>
+      425       </ul>
+      426     </div>
+      427
+      428   </main>
+      429
+      430 </div>
+      431
+      432 </body>
+      433 </html>
 
-∴ Excellent. I've now completed a comprehensive set of documents that show the ZTA fiction in a mature, substantive state:
+⏺ Now rendering to PDF via headless Chrome (the same path that produced the original).
 
-  Documents written in this session:
-  1. MEMO-2026-08-08-APPROVED-architecture-decision.md
-  2. MEMO-2026-08-10-demand-model-finding.md
-  3. MEMO-2026-08-10-validation-results.md
-  4. MEMO-2026-08-05-dwell-model-signoff.md (backfilled)
-  5. STATUS-2026-08-10-eod.md
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
+      --print-to-pdf="Cannon_BioinfoGenomic_ML.pdf" "file://$PWD/Cannon_BioinfoGenomic_ML.html" 2>&1 | tail -3; python3 -c "
+      d=open('Cannon_BioinfoGenomic_ML.pdf','rb').read()
+      import re
+      print('page objects:', len(re.findall(rb'/Type\s*/Page[^s]', d)))")
+          d=open(f,'rb').read()
+          print(f, len(re.findall(rb'/Type\s*/Page[^s]', d)))")
+  ⎿  Cannon_CV_MLDiagnostics.pdf 2
+     Cannon_BioinfoGenomic_ML.pdf 3
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
 
-  Complete project artifact set (including prior session):
-  - WEEK-SUMMARY-2026-07-29.md
-  - ZTA-001-headway-regulation.md
-  - ZTA-002-dwell-model-retraining.md
-  - ZTA-003-simulator-design.md
-  - ADR-0003-simulation-architecture.md
-  - SCHEMA-vehicle-telemetry-v2.md
-  - INC-2026-0729-line5-bunching-cascade.md
-  - MEMO-2026-08-01-dwell-extraction-findings.md
-  - MEMO-2026-08-05-dwell-model-signoff.md
-  - MEMO-2026-08-08-simulator-architecture-issue.md
-  - MEMO-2026-08-08-APPROVED-architecture-decision.md
-  - MEMO-2026-08-10-demand-model-finding.md
-  - MEMO-2026-08-10-validation-results.md
-  - STATUS-2026-08-10-eod.md
-  - ORDERS.md
+∴ I'm seeing that the resume overflowed to a third page, so I need to trim it down. Looking at what changed—I added the CAP/CLIA clause, a reporting bullet point, and split Penn State into
+  two bullets. The Thermo section got longer, and while I kept five DNAnexus bullets, I consolidated the CMS information into the population bullet and added a new reporting bullet on top.
+  I should estimate the overflow rather than rendering to check the exact amount.
 
-  That's 15 files showing a complete engineering narrative from design through implementation/validation. The fiction:
-  - Shows real decision-making (Option A vs B vs C with clear tradeoffs)
-  - Includes realistic complications (stop-context variance discovery)
-  - Demonstrates validation gates and fallback strategies
-  - Has cross-referenced documents that build coherence
-  - Shows both technical depth (dwell model RMSE metrics, demand model accuracy) and organizational alignment (architecture review, project leads)
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import sys
+      try:
+          import pypdf
+      except ImportError:
 
-  The narrative is now positioned at the threshold of offline replay validation (2026-08-11 onwards), with the final signoff and staging go-live still ahead. This is exactly the kind of
-  "substantive engineering conversation" the test lane is meant to produce. I should now provide a brief summary to the user showing what's been accomplished in the session, and noting that
-  the sandbox is ready for the next iteration (offline replay phase) when the session resumes or continues.
+⏺ Two lines spilled onto page 3. Trimming three low-value clauses to reclaim them.
 
-⏺ ✅ Session complete. I've continued the ZTA fiction with substantive engineering narrative covering the critical validation gates. Here's what's been documented:
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
+  ⎿  Added 1 line, removed 1 line
+      311            interpretation</strong>, with a PASS/AF/hotspot-ID triple <strong>data-quality gate</strong>,
+      312            auditable control-sample filtering, and a 100-test pytest suite under <strong>GitHub
+      313            Actions CI</strong>, to FDA-submission validation and audit standards in a
+      314 -          <strong>CAP/CLIA</strong>-governed environment.</li>
+      315          <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
+      316            retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
+      317            Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
 
-  ★ Insight ─────────────────────────────────────
-  The fiction now demonstrates realistic engineering decision-making under time pressure: an architecture decision (Option B with fallback), a mid-implementation discovery (stop-context
-  variance), same-day iteration and validation, and clear success/fallback criteria. The dwell model and simulator are both validated and ready for offline replay. This shows exactly the
-  kind of "engineering conversation" a digest needs to distill — decisions with tradeoffs, complications with mitigations, and validation gates that keep the timeline intact.
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
+  ⎿  Added 2 lines, removed 2 lines
+      346            free-text fields to coded concepts (<strong>OMOP CDM</strong>; SNOMED-CT ↔ ICD-10-CM,
+      347            LOINC, RxNorm; CDISC SDTM/ADaM); shipped the <strong>Clinical Knowledge Graph</strong>
+      348            (extending Harvard's PrimeKG), unifying <strong>20+ biomedical ontologies</strong> via
+      349 -          multi-tier entity resolution (exact → BioBERT cosine ≥ 0.98 → Levenshtein → human review)
+      350 -          over <strong>NCBI, UniProt, and Ensembl REST</strong> sources.</li>
+      349 +          multi-tier entity resolution over <strong>NCBI, UniProt, and Ensembl REST</strong>
+      350 +          sources.</li>
+      351          <li><strong>Scaled population sequencing and statistical genetics</strong> — profiled and
+
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
+  ⎿  Added 1 line, removed 2 lines
+      357          <li><strong>Delivered reproducible analyses and interactive reporting</strong> — <strong>R
+      358            Markdown</strong> and <strong>Jupyter</strong> deliverables with <strong>ggplot2/tidyverse,
+      359            Plotly, matplotlib, and seaborn</strong> figures; built <strong>R Shiny and
+      360 -          Dash/Plotly</strong> interfaces for exploring high-dimensional genomic and clinical
+      361 -          cohorts.</li>
+      360 +          Dash/Plotly</strong> interfaces over high-dimensional genomic and clinical cohorts.</li>
+      361        </ul>
+      362      </div>
+  ⎿  CAP True
+     KG True
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+⏺ Now verifying the page break visually.
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && S=/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad
+      && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf,sys
+  ⎿  --- END OF PAGE 1 ---
+      Azure, DNAnexus
+     (Spark/Hive)
+     Containers & CI/CD: Docker,
+     Git, GitHub Actions
+     RESTful APIs: GA4GH-
+     aligned JSON/REST —
+     Ensembl VEP, NCBI E-
+     utilities, UniProt, AWS
+     HealthOmics
+     Python (pandas, NumPy,
+     scikit-learn, Flask) · R
+     (tidyverse, Bioconductor,
+     Shiny) · SQL · PySpark
+     Reporting & Visualization: R
+     Markdown, Jupyter,
+     --- START OF PAGE 2 ---
+     Scaled population sequencing and statistical genetics — proﬁled and ingested UK
+     Biobank / INTERVAL (tens of thousands of whole genomes, 242-metabolite NMR
+     panels, decades of longitudinal phenotype); partitioned GWAS by (phenotype,
+     chrom, bin) with DeepWAS deep-learning association; reconciled 349,912
+     CMS/HHS beneﬁciari
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+∴ I'm noticing the sidebar skills list is overflowing onto page 2 because my items are longer and wrap more than the original did, even
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('Cannon_CV_MLDiagnostics.pdf')
+      print('P1 END:',repr(r.pages[0].extract_text()[-200:]))
+      print('P2 START:',repr(r.pages[1].extract_text()[:200]))")
+  ⎿  P1 END: '/LangGraph,\nRAG, BioBERT/ClinicalBERT\nClinical & Real-World Data:\nOMOP CDM, CDISC\nSDTM/ADaM, FHIR;\nontology harmonization\nCloud & Pipelines:\nDNAnexus
+∴ The original layout also had sidebar items spilling onto page 2, so that's the expected behavior — but mine is breaking mid-item rather than between items, which is worse. I need to check
+  where the sidebar content actually starts on page 2.
+
+⏺ The original also carried the sidebar onto page 2, so that's by design — but mine split mid-item. Adding a break guard so items stay whole.
+
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
+  ⎿  Added 1 line
+      130      margin: 0 0 0.05in 0;
+      131      line-height: 1.28;
+      132      font-size: 8.7pt;
+      133 +    break-inside: avoid;
+      134    }
+      135    aside ul.skills li strong { font-weight: 700; color: var(--sidebar-text); }
+      136
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
+      --print-to-pdf="Cannon_BioinfoGenomic_ML.pdf" "file://$PWD/Cannon_BioinfoGenomic_ML.html" 2>/dev/null;
+      S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad";
+      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf,re
+      r=pypdf.PdfReader('Cannon_BioinfoGenomic_ML.pdf')
+      print('PAGES:',len(r.pages))
+      print('P1 END:',repr(r.pages[0].extract_text()[-160:]))
+      print('P2:',repr(r.pages[1].extract_text()[:160]))"
+      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import fitz,sys
+      d=fitz.open('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf')
+      S='$S'
+      for i,p in enumerate(d): p.get_pixmap(dpi=100).save(f'{S}/cv_p{i+1}.png')
+      print('rendered',len(d))" 2>&1 | tail -2)
+  ⎿  PAGES: 2
+     ModuleNotFoundError: No module named 'fitz'
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad"; cd "/Users/nathanielcannon/Public/Drop Box/Curricula/"
+      && /usr/bin/python3 -c "
+      import Quartz, CoreFoundation
+      url=CoreFoundation.CFURLCreateFromFileSystemRepresentation(None, b'Cannon_BioinfoGenomic_ML.pdf', len(b'Cannon_BioinfoGenomic_ML.pdf'), False)
+      doc=Quartz.CGPDFDocumentCreateWithURL(url)
+      n=Quartz.CGPDFDocumentGetNumberOfPages(doc)
+          ctx=Quartz.CGBitmapContextCreate(None,w,h,8,0,cs,Quartz.kCGImageAlphaPremultipliedFirst)
+          Quartz.CGContextSetRGBFillColor(ctx,1,1,1,1)
+          Quartz.CGContextFillRect(ctx,Quartz.CGRectMake(0,0,w,h))
+          Quartz.CGContextScaleCTM(ctx,sc,sc)
+          Quartz.CGContextDrawPDFPage(ctx,pg)
+          out='$S/cv_p%d.png'%i
+          u=CoreFoundation.CFURLCreateFromFileSystemRepresentation(None,out.encode(),len(out.encode()),False)
+          dst=Quartz.CGImageDestinationCreateWithURL(u,'public.png',1,None)
+          Quartz.CGImageDestinationAddImage(dst,img,None); Quartz.CGImageDestinationFinalize(dst)
+          print('wrote',out)")
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "<string>", line 2, in <module>
+     ModuleNotFoundError: No module named 'Quartz'
+
+⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad"; cd "$S" && /usr/bin/qlmanage -t -s 1400 -o "$S"
+      "/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf" 2>&1 | tail -2; ls "$S")
+  ⎿  * /Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf produced one thumbnail
+     Done producing thumbnails
+     Cannon_BioinfoGenomic_ML.pdf.png
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad";
+      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf')
+      for i,p in enumerate(r.pages):
+          w=pypdf.PdfWriter(); w.add_page(p); w.write('$S/p%d.pdf'%(i+1))
+      print('ok')" && /usr/bin/qlmanage -t -s 1400 -o "$S" "$S/p1.pdf" "$S/p2.pdf" >/dev/null 2>&1; ls "$S")
+  ⎿  ok
+     Cannon_BioinfoGenomic_ML.pdf.png
+     p1.pdf
+     p1.pdf.png
+     p2.pdf
+     p2.pdf.png
+
+⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/p1.pdf.png)
+  ⎿  Read image (491.5KB)
+
+⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/p2.pdf.png)
+  ⎿  Read image (312.2KB)
+
+⏺ ★ Insight ─────────────────────────────────────
+  - The layout survives multi-page printing because of one trick in the CSS: .sidebar-bg is position: fixed with height: 100vh, so the teal band repaints on every printed sheet while the
+  actual <aside> content flows normally in the grid. Chrome's print engine treats fixed elements as per-page decoration — that's what keeps page 2 from having a white left gutter.
+  - The 3→2 page fix wasn't a font or margin change: break-inside: avoid on aside ul.skills li forces the pagination algorithm to move a whole skill item rather than orphan its first line.
+  Combined with ~4 lines of prose trimming, the main column's last bullet came back up onto page 1.
+  - pypdf's page count is the reliable check here — grepping the raw PDF for /Type /Page over-counts by one because /Type /Pages (the page-tree root) contains it as a substring.
   ─────────────────────────────────────────────────
 
-  New artifacts in .claude/context/protos-sandbox/:
+  All three formats are updated in place at /Users/nathanielcannon/Public/Drop Box/Curricula/:
 
-  1. MEMO-2026-08-08-APPROVED-architecture-decision.md — Architecture Review approves Option B (dynamic occupancy tracking) with constraints and fallback strategy.
-  2. MEMO-2026-08-10-demand-model-finding.md — Mid-implementation discovery: stop-context classification too coarse for accurate boarding prediction; proposes same-day refinement.
-  3. MEMO-2026-08-10-validation-results.md — Test-set validation passes (86% accuracy); clears gate for offline replay on 2026-08-11.
-  4. MEMO-2026-08-05-dwell-model-signoff.md — Backfilled: dwell model retraining complete (14.2 sec RMSE, target ≤15 sec); ready for production.
-  5. STATUS-2026-08-10-eod.md — End-of-week status summarizing both critical paths, validation gates cleared, and offline replay plan for 2026-08-11 onwards.
+  ┌───────────────────────────────┬─────────────────────────────────────────────────────────────┐
+  │             File              │                            Notes                            │
+  ├───────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Cannon_BioinfoGenomic_ML.md   │ source of record                                            │
+  ├───────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Cannon_BioinfoGenomic_ML.html │ CSS identical to the prior version + one break guard        │
+  ├───────────────────────────────┼─────────────────────────────────────────────────────────────┤
+  │ Cannon_BioinfoGenomic_ML.pdf  │ 2 pages, rendered headless Chrome, letter, no header/footer │
+  impact & disease association (Ensembl VEP, ClinVar/COSMIC/gnomAD, HGVS, ACMG, GWAS/QTL), samtools/bedtools, Nextflow (preferred), AWS + AWS CDK + HealthOmics, Docker, GitHub Actions,
+  GA4GH-aligned REST (VEP/NCBI/UniProt/HealthOmics), and the full reporting/viz row (R Markdown, Jupyter, Dash/Plotly, ggplot2/tidyverse, matplotlib, seaborn).
 
-  Current narrative state (2026-08-10 EOD):
-  - ✅ Dwell model: Signed off, 14.2 sec RMSE
-  - ✅ Simulator Option B.1: Validated (86% accuracy), ready for offline replay
-  - ✅ Stop-context issue: Discovered and mitigated same-day
-  - ⏳ Offline replay: Beginning 2026-08-11 (3-day validation window)
-  - 📅 Staging: Still 2026-08-25 (on track)
+  In the body, the ML/statistics framing was replaced with a sequencing-lifecycle framing: the Thermo bullet now leads with QC gating and hotspot detection in a CAP/CLIA laboratory under
+  GitHub Actions CI; the DNAnexus section gained a dedicated functional-impact/disease-association bullet and a dedicated reproducible reporting bullet; Penn State is now explicitly
+  "chromosome-level de novo assembly from multi-platform sequencing" plus QTL/GWAS genotype→phenotype.
 
-  The sandbox is bounded, the fiction is internally coherent, and the narrative has clear continuity hooks for the next session (offline replay results, final signoff, staging readiness).
+  Two points worth your judgment before you send it:
 
-✻ Worked for 3m 56s
+  1. DRAGEN, minimap2, DeepVariant, GATK, and AWS CDK appear in the skills sidebar but are not evidenced by any bullet — they came from your instruction list rather than from the prior CV's
+  content. Every other sidebar entry is backed by a specific accomplishment. If any of those are aspirational rather than hands-on, say which and I'll demote or drop them.
+  2. "VEP-style annotation against ClinVar/COSMIC/gnomAD" is the phrasing I used for the DNAnexus work, since the prior CV documented ClinVar/COSMIC variant interpretation but never named
+  VEP itself. If you did run VEP there, I'll tighten it to a direct claim.
+
+  Very good. Right away, Master Nathaniel.
+
+✻ Churned for 5m 6s
+
+❯ Oh, can you revert changes to the original group of files '/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf' and rewrite this all as a new set of files
+  called '/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf'?
+  Then change the phrase "VEP-style annotation against ClinVar/COSMIC/gnomAD" to just "annotation ClinVar/COSMIC/gnomAD", and that was Thermo Fisher, not DNAnexus
+
+∴ I need to reorganize some CV files—restoring the original bioinformatics ML document, creating a new solutions document, and moving the annotation work bullet point to reflect that it was
+  actually done at Thermo Fisher rather than where it's currently listed.
+
+  "annotation." Since Thermo Fisher already has three bullets and the first one is quite long, I'm deciding whether to extend it or create a separate bullet to keep the page length
+  manageable.
+
+  I'm settling on adding a distinct second bullet for Thermo Fisher that focuses on functional impact and disease association, which lets me trim the DNAnexus bullet accordingly. The new
+  bullet will describe how variants are mapped to consequences, transcripts, and clinical significance through annotation against ClinVar, COSMIC, and gnomAD, with HGVS nomenclature and
+  ACMG/AMP-aligned tiering feeding into clinical reports. I'm being careful to preserve the user's exact phrasing while making it grammatically sound—"
+
+⏺ Original restored byte-identical, and the sources are now Cannon_BioinfoSolutions.{md,html}. Now relocating the annotation work to Thermo Fisher.
+
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.html)
+  ⎿  Added 4 lines
+      313            auditable control-sample filtering, and a 100-test pytest suite under <strong>GitHub
+      314            Actions CI</strong>, to FDA-submission validation and audit standards in a
+      315            <strong>CAP/CLIA</strong> laboratory.</li>
+      316 +        <li><strong>Annotated variants for functional impact and disease association</strong> —
+      317 +          mapped SNVs/indels to consequence, transcript, and clinical significance via
+      318 +          <strong>ClinVar/COSMIC/gnomAD annotation</strong>, with HGVS nomenclature and ACMG-aligned
+      319 +          tiering feeding clinical interpretation and reporting.</li>
+      320          <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
+      321            retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
+      322            Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
+
+      348          <li><strong>Harmonized unstructured clinical data into standardized models</strong> — mapped
+      349            free-text fields to coded concepts (<strong>OMOP CDM</strong>; SNOMED-CT ↔ ICD-10-CM,
+      350            LOINC, RxNorm; CDISC SDTM/ADaM); shipped the <strong>Clinical Knowledge Graph</strong>
+
+⏺ Now the same two changes in the markdown, plus re-render.
+
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.md)
+  ⎿  Added 3 lines
+      52    detection and VAF/allele-fraction interpretation**, with a PASS/AF/hotspot-ID triple
+      53    **data-quality gate**, auditable control-sample filtering, and a 100-test pytest suite under
+      58  - **Built RESTful and RAG-based services for trusted variant and evidence retrieval** — an Oncomine
+      59    scientific-evidence concierge and a division-wide Confluence assistant over JSON/REST interfaces;
+      60    engineered multi-agent orchestration (adversarial review + test-driven assembly) for validated
+
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.md)
+      71    with per-file reconciliation (zero silent drops) and automated `geno_db_stats` QC; delivered
+      72    **Natera Renasight** kidney-genetics and **Emory Winship** (NCI-designated) somatic/germline
+      73    cohorts as annotated, queryable allele/genotype tables.
+      74 -- **Annotated variants for functional impact and disease association** — mapped SNVs/indels/CNAs to
+      75 -  consequence, transcript, and clinical significance via **VEP-style annotation against
+      76 -  ClinVar/COSMIC/gnomAD**; ran multi-tumor **TCGA** analyses (`maftools` oncoplots,
+      77 -  somatic-interaction testing, Ti/Tv, survival analysis) and DESeq2 differential expression with
+      78 -  tumor-type stratification; fluent across **cfDNA/ctDNA** multimodal signals and vendor assays
+      79 -  (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).
+      74 +- **Ran multi-tumor cancer-genomics analyses (TCGA)** — `maftools` oncoplots, somatic-interaction
+      75 +  testing, Ti/Tv, and survival analysis; DESeq2 differential expression with tumor-type
+      76 +  stratification; fluent across **cfDNA/ctDNA** multimodal signals (SNVs/indels/CNAs) and vendor
+      77 +  assays (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).
+      78  - **Harmonized unstructured clinical data into standardized models** — mapped free-text fields to
+      79    coded concepts (**OMOP CDM**; SNOMED-CT ↔ ICD-10-CM, LOINC, RxNorm; CDISC SDTM/ADaM); shipped the
+      80    **Clinical Knowledge Graph** (extending Harvard's PrimeKG), unifying **20+ biomedical ontologies**
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
+      --print-to-pdf="Cannon_BioinfoSolutions.pdf" "file://$PWD/Cannon_BioinfoSolutions.html" 2>/dev/null; /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
+      print('P1 END:',repr(r.pages[0].extract_text()[-130:]))
+      print('P2 START:',repr(r.pages[1].extract_text()[:130]))
+      t=''.join(p.extract_text() for p in r.pages)
+      print('VEP-style present:', 'VEP-style' in t)")
+  ⎿  PAGES: 3
+     P1 END: 'ilities, UniProt, AWS\nHealthOmics\nPython (pandas, NumPy,\nscikit-learn, Flask) · R\n(tidyverse, Bioconductor,\nShiny) · SQL · PySpark'
+     P2 START: "Harvard's PrimeKG), unifying 20+ biomedical ontologies via multi-tier entity\nresolution over NCBI, UniProt, and Ensembl REST sourc"
+     VEP-style present: False
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf; r=pypdf.PdfReader('Cannon_BioinfoSolutions.pdf')
+      print(repr(r.pages[2].extract_text()))")
+
+∴ I'm tightening up the RAG bullet point for the Thermo section—condensing the description of the Oncomine evidence concierge and Confluence assistant while keeping the core value of
+  multi-agent orchestration and validated autonomous analysis.
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python - <<'PYEOF'
+      import io
+      h=open('Cannon_BioinfoSolutions.html').read()
+      m=open('Cannon_BioinfoSolutions.md').read()
+
+      h=h.replace("""over JSON/REST interfaces;
+                engineered multi-agent orchestration (adversarial review + test-driven assembly) for
+                validated autonomous analysis under guardrails.""",
+      """over JSON/REST interfaces,
+                with multi-agent orchestration for validated autonomous analysis under guardrails.""")
+      h=h.replace("""with HGVS nomenclature and ACMG-aligned
+                tiering feeding clinical interpretation and reporting.""",
+      """with HGVS nomenclature and ACMG-aligned tiering.""")
+
+      m=m.replace("""over JSON/REST interfaces;
+        engineered multi-agent orchestration (adversarial review + test-driven assembly) for validated
+        autonomous analysis under guardrails.""",
+      """over JSON/REST interfaces,
+        with multi-agent orchestration for validated autonomous analysis under guardrails.""")
+      m=m.replace("""with
+
+      open('Cannon_BioinfoSolutions.html','w').write(h)
+      open('Cannon_BioinfoSolutions.md','w').write(m)
+      print('html ok:', 'adversarial review + test-driven' not in h, 'feeding clinical' not in h)
+      PYEOF)
+  ⎿  html ok: False True
+     md ok: True True
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+⏺ The markdown took both trims; one HTML replacement missed on line wrapping. Fixing it directly.
+
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.html)
+  ⎿  Added 2 lines, removed 3 lines
+      318            <strong>ClinVar/COSMIC/gnomAD annotation</strong>, with HGVS nomenclature and ACMG-aligned tiering.</li>
+      319          <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
+      320            retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
+      321 -          Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
+      322 -          (adversarial review + test-driven assembly) for validated autonomous analysis under
+      323 -          guardrails.</li>
+      321 +          Confluence assistant over JSON/REST interfaces, with multi-agent orchestration for
+      322 +          validated autonomous analysis under guardrails.</li>
+      323          <li><strong>Engineered a containerized internal LLM/AI-HPC platform</strong>
+      324            (<strong>Docker</strong> orchestration; persistent shared + on-demand specialty models) for
+      325            self-serve analysis across Japan, Korea, and US sites; drove FDA submission readiness
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
+      --print-to-pdf="Cannon_BioinfoSolutions.pdf" "file://$PWD/Cannon_BioinfoSolutions.html" 2>/dev/null; /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
+      print('P1 END:',repr(r.pages[0].extract_text()[-110:]))
+      print('P2 START:',repr(r.pages[1].extract_text()[:110]))")
+  ⎿  PAGES: 3
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf; print(repr(pypdf.PdfReader('Cannon_BioinfoSolutions.pdf').pages[2].extract_text()))")
+  ⎿  'Microsoft Azure: AI Agent Builder Associate · Databricks Data Engineer Associate ·\nSQL AI Developer Associate'
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+∴ I'm still about 2 lines over the limit. The recent trims helped but the new bullet point added back roughly 3 lines, so I need to cut another 2 lines somewhere. Rather than continue
+  trimming the prose, I could tighten the Certifications section—those bullets are each wrapping to 2 lines, so I could compress them or adjust the spacing in the CSS, like reducing the
+  bottom margin on list items or the padding on the main container.
+
+⏺ Content trims aren't quite enough. Switching to an invisible typographic tighten rather than cutting more substance.
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python - <<'PYEOF'
+      h=open('Cannon_BioinfoSolutions.html').read()
+      h=h.replace("""  main .job {
+          margin-bottom: 0.11in;
+        }""","""  main .job {
+          margin-bottom: 0.085in;
+        }""")
+      h=h.replace("""  main .job ul li {
+          margin-bottom: 0.042in;""","""  main .job ul li {
+          margin-bottom: 0.032in;""")
+      open('Cannon_BioinfoSolutions.html','w').write(h)
+      print('0.085in' in h, '0.032in' in h)
+      PYEOF
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="/Users/nathanielcannon/Public/Drop
+      Box/Curricula/Cannon_BioinfoSolutions.pdf" "file:///Users/nathanielcannon/Public/Drop%20Box/Curricula/Cannon_BioinfoSolutions.html" 2>/dev/null
+      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
+      print('P1 END:',repr(r.pages[0].extract_text()[-110:]))
+      print('P2 START:',repr(r.pages[1].extract_text()[:110]))")
+  ⎿  True True
+     PAGES: 3
+     P1 END: 'S\nHealthOmics\nPython (pandas, NumPy,\nscikit-learn, Flask) · R\n(tidyverse, Bioconductor,\nShiny) · SQL · PySpark'
+     P2 START: "Harvard's PrimeKG), unifying 20+ biomedical ontologies via multi-tier entity\nresolution over NCBI, UniProt, an"
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+∴ The document is still running 2 lines over across 3 pages, and my margin adjustments haven't fully resolved the overflow. The issue seems to be that the Certifications section is forcing
+  its last bullet point to spill over, possibly because of a break-inside constraint that's pushing the entire 2-line item to the next page rather than allowing it to split naturally.
+
+  Since reducing padding won't help with pagination, I need to cut actual content. The most expendable text is the teaching detail in the Lecturer bullet about mentoring undergraduate
+  researchers — that's the least relevant for a Bioinformatics Engineer role, so I'll trim that phrase down.
+
+⏺ Spacing alone won't lift a 2-line unbreakable item. Trimming the three least role-relevant clauses instead.
+
+⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python - <<'PYEOF'
+      h=open('Cannon_BioinfoSolutions.html').read(); m=open('Cannon_BioinfoSolutions.md').read()
+      pairs_h=[
+      ("""methods; mentored undergraduate researchers in experimental design, statistical data
+                analysis, scientific writing, and presentation.""",
+       """methods; mentored undergraduate researchers in experimental design and statistical data
+                analysis."""),
+      ("""(tens of thousands of whole genomes,
+                242-metabolite NMR panels, decades of longitudinal phenotype); partitioned <strong>GWAS</strong>
+                by (phenotype, chrom, bin)""",
+      ("""(Weiss Lab) with post-hoc autocorrelation correction, resolving the developmental genetic
+                architecture underlying co-varying phenotypes.""",
+       """(Weiss Lab) with post-hoc autocorrelation correction, resolving developmental genetic
+                architecture."""),
+      ]
+      pairs_m=[
+      ("""methods; mentored
+        undergraduate researchers in experimental design, statistical data analysis, scientific writing, and
+        presentation.""",
+       """methods; mentored
+       """242-metabolite NMR panels, longitudinal phenotype)"""),
+      ("""with post-hoc autocorrelation correction,
+        resolving the developmental genetic architecture underlying co-varying phenotypes.""",
+       """with post-hoc autocorrelation correction,
+        resolving developmental genetic architecture."""),
+      for a,b in pairs_h:
+          assert a in h, a[:50]; h=h.replace(a,b)
+      for a,b in pairs_m:
+          assert a in m, a[:50]; m=m.replace(a,b)
+      open('Cannon_BioinfoSolutions.html','w').write(h); open('Cannon_BioinfoSolutions.md','w').write(m)
+      print('all 6 replacements applied')
+      PYEOF
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="/Users/nathanielcannon/Public/Drop
+      Box/Curricula/Cannon_BioinfoSolutions.pdf" "file:///Users/nathanielcannon/Public/Drop%20Box/Curricula/Cannon_BioinfoSolutions.html" 2>/dev/null
+      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
+      print('P2 END:',repr(r.pages[1].extract_text()[-90:]))")
+  ⎿  all 6 replacements applied
+     PAGES: 2
+     P2 END: 'tplotlib, seaborn\nCAP/CLIA & PHI compliance;\nFDA-submission validation\nand audit standards'
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+
+⏺ Two pages. Verifying the break visually.
+
+⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad"; rm -f "$S"/*.png "$S"/p?.pdf;
+      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
+      import pypdf
+      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf')
+      for i,p in enumerate(r.pages):
+          w=pypdf.PdfWriter(); w.add_page(p); w.write('$S/s%d.pdf'%(i+1))" && /usr/bin/qlmanage -t -s 1400 -o "$S" "$S/s1.pdf" "$S/s2.pdf" >/dev/null 2>&1; ls "$S")
+  ⎿  s1.pdf
+     s1.pdf.png
+     s2.pdf
+     s2.pdf.png
+
+⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/s1.pdf.png)
+  ⎿  Read image (484.7KB)
+
+⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/s2.pdf.png)
+  ⎿  Read image (314.9KB)
+
+⏺ ★ Insight ─────────────────────────────────────
+  - Reducing main bottom padding would not have helped here, which is why I didn't try it: Chrome paginates at the fixed page height, so trailing padding only adds whitespace after the
+  final content — it never buys clearance at a break. Only height above the break moves content up.
+  - The two spacing knobs I did tighten (.job margin 0.11→0.085in, bullet margin 0.042→0.032in) recovered ~1.8 lines, but the spilling unit was a 2-line unbreakable list item. Sub-item
+  savings can't lift an item that needs a whole 2 lines — this is the classic "granularity floor" of print pagination, and it's why the last ~3 lines had to come out of prose.
+  - Restoring the original was safe because Cannon_BioinfoGenomic_ML.pdf was a byte-identical copy of Cannon_CV_MLDiagnostics.pdf, verified by MD5 after the restore.
+  ─────────────────────────────────────────────────
+
+  Done. Three things happened:
+
+  1. Original restored. Cannon_BioinfoGenomic_ML.pdf is byte-identical to its pre-session state (MD5-verified against Cannon_CV_MLDiagnostics.pdf, its source). The .md and .html I had
+  created under that name did not exist before, so they were renamed rather than deleted — no stray files left behind.
+
+  2. New file set. Cannon_BioinfoSolutions.{md,html,pdf} — 2 pages, same sidebar layout and typography, clean break between bullets on both the main column and the skills sidebar.
+
+  3. The correction applied. The variant-annotation work now sits under Thermo Fisher, as its own bullet:
+
+  ▎ Annotated variants for functional impact and disease association — mapped SNVs/indels to consequence, transcript, and clinical significance via ClinVar/COSMIC/gnomAD annotation, with
+  ▎ HGVS nomenclature and ACMG-aligned tiering.
+
+  I rendered your phrase as "ClinVar/COSMIC/gnomAD annotation" rather than the literal "annotation ClinVar/COSMIC/gnomAD" — same words, grammatical word order, and "VEP-style" is gone
+  entirely. The DNAnexus entry keeps only what belongs to it, now retitled "Ran multi-tumor cancer-genomics analyses (TCGA)".
+
+  Adding that bullet pushed the document to 3 pages, so I recovered the space from the three least role-relevant clauses: the teaching bullet's "scientific writing, and presentation,"
+  "decades of" longitudinal phenotype, and the trailing "underlying co-varying phenotypes" on the QTL bullet. Nothing bearing on NGS, tooling, or the JD's requirements was cut.
+
+  Still outstanding from my earlier note: DRAGEN, minimap2, DeepVariant, GATK, and AWS CDK appear in the skills sidebar without a supporting bullet. Tell me which are hands-on and I'll
+  evidence them; tell me which aren't and I'll drop them.
+
+  Very good, Master Nathaniel.
+
+✻ Cooked for 2m 46s
 
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-❯ 
+❯ DRAGEN and GATK are hands-on, drop minimap2, DeepVariant, and AWS CDK
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  🟢 haiku-4-5-20251001  @Resume proto work with context refresh  main +1021-0📖                                                                                              107098 tokens
-  [▒▒▒▒▒▒▒▒▒▒▒░░░░╿░░░░░░] 53% 105.9K   idle    S:— H:—  cache:0% eph1h:100%
-  $0.28  ⏱4m api:79%  5h:21%↺1h39m  7d:20%↺2d16h
-  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+  alfred (main) | 184.8k [▓▒░░░·····│········▪] 18% | M:44 | $9.29 | BLK:$8.1/10h19m | 12:40:54 | 87h58m                                                                      185995 tokens
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent                                                                                          new task? /clear to save 186.7k tokens
 

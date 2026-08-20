@@ -124,10 +124,10 @@
   - Fixed bash 3.2 `local` outside function in preassemble script
 
 **What Was Accomplished (2026-02-13/14, sessions 13-18)**:
-- Sessions 13-14 (W5:Jarvis-dev): Experiment 1 — Compression Timing
+- Sessions 13-14 (W11:Jarvis-dev): Experiment 1 — Compression Timing
   - 6 matched pairs (12 trials), JICM 2.3x slower (p=0.03125, r=0.833)
   - Report: `.claude/reports/testing/compression-experiment-report.md`
-- Sessions 15-16 (W5:Jarvis-dev): Experiment 2 — Context Volume Regression
+- Sessions 15-16 (W11:Jarvis-dev): Experiment 2 — Context Volume Regression
   - 2×2 factorial design: treatment (compact/JICM) × context level (45%/75%)
   - 19 trials collected (4 pilot + 15 experiment), 4 blocks completed
   - 5 bugs found+fixed (B7-B11): JICM cascading failure, head -n -1 macOS, ceiling abort, plateau detection, /clear hardening
@@ -150,12 +150,12 @@
 
 **What Was Accomplished (2026-02-12, sessions 10-12)**:
 - Session 10: Launcher UUID fix (34d137a), dev-ops docs (10c1239), /export-dev + /dev-chat (955e2bb)
-- Session 11 (W5:Jarvis-dev):
+- Session 11 (W11:Jarvis-dev):
   - JICM exit-mode signal — `.jicm-exit-mode.signal` suppresses JICM during /end-session (ba67d6e)
   - Dev instructions preload — `dev-session-instructions.md` + launcher wiring
   - File growth mitigation — 5MB session rotation in launcher, 500KB observation rotation in hook
   - All pushed to origin/Project_Aion
-- Session 12 (W5:Jarvis-dev → Wiggum Loop testing):
+- Session 12 (W11:Jarvis-dev → Wiggum Loop testing):
   - Loop 1 partial execution: 8/11 PASS, 2 PARTIAL, 1 NOT RUN
   - Critical discovery: tmux `send-keys "text" Enter` doesn't submit — must split text + Enter
   - BUG-02 found + fixed: `restart-watcher.sh` `local` keyword outside function (line 85)

@@ -57,7 +57,7 @@ if [[ "$STOP_ACTIVE" == "true" ]]; then
     exit 0
 fi
 
-# ─── JICM v9: W5/dev exclusion DELETED ──────────────────────────────────────
+# ─── JICM v9: W11/dev exclusion DELETED ──────────────────────────────────────
 # Was needed because gate/stop shared ONE state+signal file, so a dev Stop would
 # fire W0's pending clear. Now each key reads its OWN JK_STATE and writes its OWN
 # JK_CLEAR_SIGNAL (derived below) — a dev Stop can only ever raise dev's signal,

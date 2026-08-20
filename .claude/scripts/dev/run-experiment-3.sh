@@ -4,7 +4,7 @@
 # Runs 24 trials (6 blocks × 4 cells) of the 2×2 factorial:
 #   Treatment (/compact vs JICM) × Context Level (40% vs 70%)
 #
-# Designed to run from W5:Jarvis-dev or as a background process.
+# Designed to run from W11:Jarvis-dev or as a background process.
 # Controls W0:Jarvis via tmux for context filling and treatment.
 #
 # Usage: run-experiment-3.sh [--start-block N] [--dry-run]

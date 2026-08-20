@@ -1,7 +1,7 @@
 # Experiment 7 Report: JICM v7 Quality & Speed Assessment
 
 **Date**: 2026-02-17
-**Experimenter**: Jarvis-dev (W5)
+**Experimenter**: Jarvis-dev (W11)
 **Subject**: Jarvis (W0)
 **Duration**: ~110 minutes
 

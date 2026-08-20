@@ -1,6 +1,6 @@
 # JICM v9 — Consolidated Remediation Plan & Critical-Review Findings
 
-**Date:** 2026-07-20 · **Owner:** W5 Jarvis-dev · **Status:** IN EXECUTION.
+**Date:** 2026-07-20 · **Owner:** W11 Jarvis-dev · **Status:** IN EXECUTION.
 
 > **Execution log:** **M-A (R0+R1) COMMITTED — `1954c22`** (2026-07-21). R0 signal-safety (C2); R1 occupancy keying (C3/C1/H3) + actuation model; code-review F3–F6 fixed; F1 watcher stopgap (`_w0_clear_valid`); F2 staleness check. Harnesses **re-verified live this session** (fresh hooks): R0 7/7, R1 13/13. Live e2e: the relaunched background `/fork` correctly keyed `w0-bg-266ec5ec` (did NOT clobber `w0.json`); `jicm-registry-conflicts.log` empty. Milestone review: Technical 5/5, Progress 5/5 → gate cleared. **ACTIVATION CAVEAT (Sir's hand):** the relaunch spawned a background job, NOT fresh PANE sessions — `aion:0` (W0) + `aion:11` (dev) still run pre-fix cached hooks (`--staleness` 9/10 stale). They need a relaunch to load current JICM hooks; autonomous firing stays GATED + C2/F1 refuse misfires meanwhile, so stale panes are safe. **Next:** R2 (breadcrumb reconciliation + consolidate `jicm-self.sh`→`jicm-actuate.sh` preserving self-actuation + process reaper + M2). Files: `jicm-config.sh`, `jicm-supervisor.sh`, `jicm-gate.sh`, `jicm-watcher.sh`.
 **Single source of truth** for JICM v9 remediation. Supersedes the scattered TODO/NEXT lists in `.scratchpad.dev.md`.

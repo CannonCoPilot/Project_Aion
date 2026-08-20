@@ -9,7 +9,7 @@
 ## Environment
 - W0: Jarvis at 43% (87K tokens), idle at prompt
 - W1: Watcher running v6.1 (PID 26614, threshold 80%)
-- W5: Jarvis-dev (observer) at 80%
+- W11: Jarvis-dev (observer) at 80%
 - Date: 2026-02-17T03:50Z
 
 ## Test Execution Log

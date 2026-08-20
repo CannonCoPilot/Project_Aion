@@ -1,0 +1,216 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+Pruned 2026-08-18 (332 → 80). Prior `.scratchpad.md.pre-prune-20260818`. R2.1g–R2.1k narratives dropped —
+durable in `OCR-ROADMAP.md` (grep-verified before pruning) + `OCR-DEVLOG.md`. Repo `Projects/palimpsest`,
+branch main; OCR at `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python` (repo `./.venv/`).
+
+## 🔴 RESUME HERE — 2026-08-19. R2.2d step (1) ✅ DONE · **R2.2e NEW and it is the big one**
+### ➡️ FIRST ACTION ON RESUME: **R2.2e** (49 rows swallowed whole → typed MarginNote, 44 SCRIPTURE).
+It outranks R2.2d step (2): it is a **shipping-pipeline defect measured with `ARGUMENT_RULE` OFF**,
+it explains 6 of D1's 29 misses, and **the 121-token gold cannot see it** (head band vs mid-page) so
+**0.8760 is not evidence against it**. Full § + register row in `OCR-ROADMAP.md`.
+### ✅ R2.2d STEP (1) DONE 2026-08-19 — GOLD-ARGUMENT 24 → **81 rows**, 4 → **10** chapter openings
+`witness/build_argument_gold.py` (**NEW, tracked** — its `BLOCKS`/`NEGATIVES` tables ARE the
+adjudication; `--check` re-derives every address from the page) · gold **REWRITTEN** + **15
+adjudicated negatives** · `score_argument_region.py` re-keyed to **best-overlap** addressing.
+⚠️ Backup `.scratch/r2/gold-argument_rows.pre-extend.json`; all 24 prior entries reproduce EXACTLY.
+| | before (4 leaves) | after (10 leaves) |
+|---|---|---|
+| D3 | ✅ exact | ✅ **exact AGAIN** — gold tripled, 0.8760/1.0000/0.8947/0.8375 unmoved |
+| D1 | 16/24 | 🔴 **52/81** |
+| D2 | 2 FPs / 4 leaves | 🔴 **13 FPs, WHOLE WINDOW** |
+| D4 | 2/89 | 🔴 **3/327** (46 rule-off) |
+| unadjudicated | **46** | **0** ⇐ the caveat on every R2.2d number is DISCHARGED |
+* ⚠️ **D2 got WORSE and that is the step working** — 2-of-4-leaves flattered the rule. No bar moved.
+* 🔴 **FOUNT IS REGION-DEPENDENT**: in ANNOTATIONS (417) italic = **QUOTED SCRIPTURE**, roman =
+  commentary — the INVERSE of the body. 3 of the 13 FPs; **no threshold can reach them.** ANNOTATIONS
+  is a missing region, exactly as ARGUMENT was. Other 11 FPs = italic patristic marginalia inside
+  `in_block`'s edge tolerance.
+* 🔴 **THE SCORER ADDRESSED THE GOLD BY EXACT FLOAT EQUALITY and it broke on run 1**: 417 r51 =
+  0.66504975 → `round(…,4)`=0.6650 but `round(round(…,6),4)`=0.6651. **1 in 81**, and it would have
+  been reported as a RECALL MISS. Gold's own note said use overlap ⇒ **signature defect, in the
+  scorer.** Now BEST-overlap (not *any* — 39/140 row-pairs overlap >50%), with **ADDRESSING
+  FAILURE/COLLISION reported separately from D1** (both 0). Re-keyed run showed r51 was a real miss.
+* **3 censuses needed**; a hand-rolled segment census returned **25 bogus candidates** (it dropped
+  `in_block`). Fix: **run the RULE at a widened net** ⇒ enumerator ≡ what the rule can emit.
+  406 = true opening whose head row reads as its side-note · 410 `CHAP` = **CATCHWORD** at the foot ·
+  417 r33 `CHAP. XXX.` heads the **ANNOTATIONS**, real head is r48.
+* **D1's 29 misses by cause**: **20** below the component floor (→ step 2, contiguity) · **6** full
+  rows where the segment DOES fire (**= R2.2e, not a fount failure**) · **3** segments at 6–8 comps.
+  ⚠️ **D2 now has a floor of 3 contiguity cannot touch.**
+### 🔴 R2.2e NEW — `in_block` is decided by a token the tokeniser failed to split
+`.scratch/r2/probe_unsplit_rows.py`. ONE token covers a whole printed line (412 r33: 63 glyphs, 90%
+of the row) ⇒ `l < L or r > R` **necessarily** fires ⇒ **MarginNote**. **49 rows / 20 leaves, 44 are
+ordinary scripture** (`† And Moyses referred their people`). `region_segments` splits r33 correctly
+(side-note + argument) — **two splitters disagree and the COARSER one decides the label**: signature
+defect **#10**, first in the splitter/label handoff. Residual population after R2.1h fixed `k=2`;
+R2.1k is the same handoff from R3's side.
+### ✅ R2.2c — ADDRESS BUILT + GUARD LANDED (2026-08-18). STEP STAYS OPEN; it now blocks on R2.2b.
+`witness/test_band_agreement.py` (NEW, exits 1 = the finding) · `witness/gold_rekey_pagefrac.py` (NEW,
+exits 0, **125/125 placed / 0 unplaced**) · `CR.band_frame`/`to_page_frac`/`from_page_frac`; `head_band`
+re-expressed on them, **pixel-identical on all 20 leaves**. Gold backup `.scratch/r2/gold-head_regions.pre-r22c-rekey.json`.
+* **Root cause named**: the gold's `row` was **AGAIN AN ORDINAL** — into a list the BAND controls.
+  Third time (R2.1i splitter · R2.1j coarseness · R2.2c band). Fix each time = **index into a stage →
+  measurement of the PAGE**. Entries now carry `y0f/y1f/xlf/xrf`; band-pixel fields KEPT (0.8760 reproducible).
+* **Geometry nobody had stated**: all bands are FULL PAGE WIDTH → identical x-scale (0.452781), pure y
+  offset **118.63px**. `l`/`r` were never band-dependent; only the row ordinal was.
+* 🔴 **NEW, beyond what R2.2c was raised on — the consolation FAILS**: inside the reader's band the gold has
+  RH **0/20**, **MN 2/19**, MT 66/80, CH 2/2 ⇒ **51/121 (42%) outside**. So the "deployment's real job is
+  MT-vs-MN" fallback is *itself* scored outside deployment (MN 0.8947 rests on 17 unseeable entries).
+* 🔴 **C4 COVERAGE (converse, reported not pass/fail, OPEN)**: gold ink 0.0268h..0.1113h vs band 0.06..0.30h
+  ⇒ gold speaks to **21.4%** of what the reader reads. Closing it = label more of the page; must NOT hide
+  inside a band fix.
+* ✅ **Guard self-checked**: C3 re-run on the gold's own labelling band returns **121/121**, so the failure is
+  about the band, not the new arithmetic. (Directly answers this session's two mis-designed injection tests.)
+* ⛔ **`HEAD_BAND` NOT widened** — R2.1f's one re-cut is spent; guard reports the **shortfall 0.0332h** instead.
+* ➡️ **NEXT on this thread**: R2.2b must choose an anchored band; only then may the scorers/gold be pointed at
+  it. Deliberately did NOT add a `--band reader` scorer option — it would mint a quotable region number while
+  "no region number transfers to the reader" still stands.
+### 🔴 R2.2d DONE-AND-OPEN (2026-08-18) — fount rule WORKS on the defect, NOT adopted. `ARGUMENT_RULE=False`
+`witness/score_argument_region.py` (NEW, exits 1) · `region_head` R3b + `ARGUMENT`("AR") · `CR.row_slant`/
+`page_slant_mode` · `witness/gold/argument_rows_*.json` (NEW, 24 rows/4 leaves). **D1–D4 PRE-REGISTERED first.**
+* ✅ **D3 PASS EXACTLY** — 0.8760/RH 1.0000/MN 0.8947/MT 0.8375 **identical** with the rule ON. A 5th region
+  type added, no recorded number moved. (That gold has NO argument rows ⇒ it can only detect damage.)
+* 🔴 **D4 46 → 2 of 89** argument tokens still typed MainText. Defect ~96% removed; bar is 0.
+* 🔴 **D1 16/24 rows** · 🔴 **D2 2 FPs** (on the 4 adjudicated leaves).
+* **SLANT SEPARATES**: argument rows **12–18°** (median 14) vs everything else median **0°**, over 520 rows.
+* 🔴 **ROW-LEVEL fount test REFUTED — `region_head`'s own founding observation on a NEW AXIS.** It already
+  says "a row is not homogeneous ⇒ label per TOKEN"; I rebuilt that assumption for fount. Side-notes are set
+  in ITALIC beside roman scripture ⇒ row slant is an AVERAGE (leaf 405 verse + note ⇒ 8° ⇒ fires on scripture;
+  same on 403/406/412). **Fix: `region_segments` grain (R2.1h primitive) + `in_block`** ⇒ cleared all 5.
+* 🔴 **Gating R3b on `body_rows` = the same error again** (recall 9/24): an argument's SHORT last line
+  (`Collection.`) fails R3's span test so never reached the fount test. **A fount is a property of the
+  SETTING, not of whether a line is justified.** Ungated ⇒ recall 9→16, D3 unchanged, **+2 FPs**. Both reported.
+* 🔴 **THE GOLD IS THE BINDING CONSTRAINT — and the RULE proved it**: the slant census found a **5th** chapter
+  opening (leaf 406 `CHAP. XXV.`) that the recogniser census ALSO missed. Whole-page sweep ⇒ **~10 of 20 leaves**
+  have arguments; gold covers **4**. The 46 other AR-labelled rows are reported **UNADJUDICATED** (truth
+  unknown, counted neither way).
+* ➡️ **NEXT**: (1) extend GOLD-ARGUMENT to every chapter opening (CHAP census + slant census corroborate on
+  9/12 leaves); (2) recover short segments via **CONTIGUITY** (a short segment between two italic segments is
+  italic) NOT a lower component floor; (3) re-run D1–D4.
+### 🔴 R2.2b DONE-AND-REFUTED (2026-08-18) — anchor NOT adopted; A1 FAIL · A2 PASS · A3 PASS · A4 unrun
+`witness/score_band_anchor.py` (NEW, exits 1) · `CR.anchored_head_band`/`page_type_rows`/`page_{x,y}_frac` ·
+`witness/gold/first_body_line_OT1-1609-B_400-419.json` (NEW, 20 leaves) · `witness/build_first_body_gold.py` (NEW).
+⚠️ **Acceptance A1–A4 was PRE-REGISTERED in the roadmap before the anchor was built** — that block is not edited.
+* **Mechanism**: first `N=6` rows of type on the WHOLE PAGE (no fraction anywhere), padded 0.5 pitch.
+* ✅ **A2 121/121** (RH **20/20**, MN 19/19, MT 80/80) vs the frozen band's **70/121, RH 0/20** ⇒ **an anchored
+  TOP demonstrably closes R2.2c's C3.** ✅ **A3** 20 distinct bounds (top spread 0.0253h, bottom 0.0582h).
+* 🔴 **A1 18/20** — misses the first body line on **both CHAPTER-OPENING leaves** (403: 0.1654..0.1917 vs band
+  0.0354..0.1360 · 411: 0.2432..0.2691 vs 0.0291..0.1565). ⚠️ **The FROZEN band contains both** — a row-count
+  bottom truncates the band. **Top solved, bottom refuted.**
+* 🔴 **My `N` justification was WRONG ABOUT THE BOOK**: the edition sets a multi-line **italic ARGUMENT**
+  between CHAP. head and first verse (**4 rows on 403, 11 on 411**), not "≤3 non-body rows". Anti-circularity
+  ruling paid for itself — justified in the BOOK's vocabulary, so the book could refute it.
+* ⚠️ **A ROW ≠ A LINE at whole-page scale**: **39/140** consecutive row-pairs overlap >50% — curvature drifts the
+  baseline past `_rows_and_lines`' 0.30·pitch tolerance, so N=6 rows ≈ 3–4 real lines.
+* 🔴 **R2.2d NEW = 9th signature defect — NO REGION TYPE FOR THE ARGUMENT.** It's full-measure justified ⇒ R3
+  passes ⇒ `region_head` labels it **MT** (411 rows 3–7, 403 rows 6–7) ⇒ **the head reader returns the ARGUMENT's
+  opening as the first verse on chapter openings.** The region gold **can't see it** (403 has 2 entries, 411 has 4
+  — no MT at all): **the gold's sparseness there is a FOSSIL of the missing category.** Another named cause of 0.312.
+* ➡️ **NEXT**: R2.2d (argument region) then re-do the band's BOTTOM; A4 unrun (moot while A1 fails).
+### 🔴 R11.2c NEW (found while registering the above) — the verification standard wasn't running the scorers
+1. A claim is enforced **only if the line contains `->`**. BOTH scorers (`score_head_regions` 0.8760,
+   `score_head_tokens` 0.8125 — the headline numbers) lacked it ⇒ reported `(not executed: no claim to
+   check)` and **never run**. The defect the block exists to prevent, *inside* the block. Lines now carry `->`.
+2. The fraction regex is **digit-only ⇒ misparses decimals**: `0.6612 / 0.8017` → pattern `6612/0`, which
+   would have manufactured a FALSE failure. Worked around by wording the claim so the first fraction is real
+   (`20/20`). **Parser NOT changed** — it verifies every other number in the block; earns its own step. C1.
+3. 🔴 **The OPEN register was UNDER-REPORTING**: `R2.2c` (the step blocking every region number) and `R2.1k`
+   were in **neither** the register nor the ledger — prose sections only. Added, +`R11.2c` ⇒ register **59 → 62**.
+   ⚠️ `test_open_register_consistency` **structurally cannot catch this**: it checks a *closed* step is ABSENT,
+   never that an *open* one is PRESENT. The converse check is unbuilt (named in the ledger row).
+   ⚠️ Knock-on: the denominator move made the roadmap's `audit_prereq_ceilings` claim stale (`1/59` → **`1/63`**
+   after R2.2d) and `test_verification_standard` **caught it in flight** — updated. **Editing the OPEN register
+   ⇒ ALWAYS re-run `audit_prereq_ceilings` and update that claim**, or the standard fails on a stale denominator.
+### ➡️ 2. **R2.1k** — a body row fails R3 by **12px** because the SPLITTER got better
+`MIN_GLYPHS` is a SPECK FILTER doing duty as a SPAN ESTIMATOR. All three candidates REFUTED
+(`tokens`/`ink`/`segment`); `region_head.SPAN_MODE` default `"tokens"` = UNCHANGED. **Next candidate: the
+region run FLUSH TO L OR R** (not the longest) — continuous AND anchored, on glyph boxes. C2.
+### ➡️ 3. Re-measure **CONTINUITY** (`r2_1d_continuity.py`) — 0.312 is finally re-measurable with both
+biases named. ⚠️ Report WITH the caveat that `audit_prefix_rule` is still exit 1 (2 blobs of 20).
+### ➡️ 4. **R2.1j-b** (word-grain re-label of 43 gold entries) → **R2.2b** (band anchoring)
+⚠️ **R2.1f fired on the CATCHWORD CANDIDATE, not on R2** ⇒ R2 is at ALERT, NOT exhausted; it still blocks
+Gate 0b stage 2, R3 and all transcription.
+
+## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED.
+* **NEW 2026-08-19 ??** `witness/build_argument_gold.py` · **M** `witness/score_argument_region.py`
+  (best-overlap addressing + negatives) · **M** `witness/gold/argument_rows_*.json` (24→81 rows,
+  +15 negatives; backup `.scratch/r2/gold-argument_rows.pre-extend.json`) · **M** `OCR-ROADMAP.md`
+  (+R2.2d step-1 result · +**R2.2e** § and register row · register 63→64 · 2 command-block claims).
+* **M** `OCR-ROADMAP.md` (+R2.1h redesign · +R2.1j · +R2.2c · +R2.1k · prefix-half § · command blocks moved) ·
+  `OCR-MASTERPLAN.md` + 6 companion docs · `witness/{audit_prereq_ceilings,collation_read,r2_1d_continuity,
+  witnesses}.py` · **??** `witness/gold/` (2 gold files) · `witness/{region_head,score_head_regions,
+  score_head_tokens,audit_prefix_rule,render_pipeline,test_open_register_consistency,
+  test_region_gold_addressing}.py` · **NEW 2026-08-18 ??** `witness/{gold_rekey_pagefrac,test_band_agreement}.py`;
+  **NEW ??** `witness/{score_band_anchor,build_first_body_gold,score_argument_region}.py` +
+  `witness/gold/{first_body_line,argument_rows}_*.json`; **M** `region_head.py` (R3b + `ARGUMENT`, rule OFF);
+  **M** `collation_read.py` gains `band_frame`/`page_x_frac`/`page_y_frac`/`to_page_frac`/`from_page_frac` +
+  `page_type_rows`/`anchored_head_band` (`head_band` re-expressed, pixel-identical);
+  **`witness/gold/head_regions_*.json` REWRITTEN** — backup
+  `.scratch/r2/gold-head_regions.pre-r22c-rekey.json` · gitignored+safe: `.scratch/r2/probe_*.py`, `.scratch/r2/plates/`
+* ⚠️ **NEVER `git add -A`** at the palimpsest root — staging there is always a deliberate, scoped act.
+
+## ✅ SUITE STATE AT SAVE (2026-08-19) — `test_verification_standard.py` **exit 0, 31 commands**, ALL GREEN
+`.scratch/r2/suite-20260819.log`. 9 audits exit 1 = healthy/open. It now **executes and verifies**
+`score_argument_region` (`prints 52/81`) and the new guard `build_argument_gold.py --check` (exit 0).
+⚠️ **The standard caught a filing error in flight**: I first put `build_argument_gold --check` inside
+the **audits** fence, so a guard was expected to fail. Block membership — not the claim text — is
+what says whether exit 1 is healthy; a new **exits-0** command goes in the GUARDS fence.
+### (prior 2026-08-18 detail below)
+Audits exit 1 = healthy/open (**8**): `score_argument_region` (R2.2d) · `score_band_anchor` (R2.2b) ·
+`test_band_agreement` (R2.2c) · `audit_prereq_ceilings` (**STRICT 1/63**) · `audit_prefix_rule` ·
+`audit_gt_rasters` · `audit_s06_keys` · `audit_setting_points` · `r2_1d_continuity`.
+`test_open_register_consistency` exit 0, OPEN register holds **63**. `score_head_regions` exit 0 (**0.8760**).
+Full-suite detail: **17+ entries exit 0**, incl.
+`score_head_regions.py` (0.8760 / RH 20/20 / 121 scored / 0 orph), `score_head_tokens.py` (0.8125) —
+⚠️ **both are now actually EXECUTED by the standard for the first time** (R11.2c) — and
+`gold_rekey_pagefrac.py` (125/125). **7 audits exit 1 = healthy/open**: `test_band_agreement` (**NEW**,
+R2.2c) · `audit_prefix_rule` · `audit_prereq_ceilings` (**STRICT 1/59**) · `audit_gt_rasters` ·
+`audit_s06_keys` · `audit_setting_points` · `r2_1d_continuity`.
+⚠️ **Recogniser splitting is MUCH slower than a gap threshold** (a kraken pass per region segment per row)
+⇒ `r2_1d_continuity.py` and `test_verification_standard.py` exceed **2 min**: run them in the BACKGROUND.
+
+## 📜 Artifact — living doc, republish SAME path to keep the URL
+`scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+§ **"The same page, as the machine actually sees it"** = 9 plates of REAL leaf scans, rendered by tracked
+`witness/render_pipeline.py`. ⚠️ **Source lives in the SESSION scratchpad, not the repo — re-extract via
+WebFetch on the artifact URL before editing.** ⚠️ Archetype plates A–H are still hand-drawn SVG schematics
+— converting them to real leaves is the next documentation step.
+## THE CENTRAL ARGUMENT (do not re-derive)
+Recogniser genesis-24 **content 0.9448 / surface 0.451**; the surface gap is attributed IN THE DOCS to
+running-head + marginalia leaking into the body flow = **region typing**. So geometry gates recognition's
+measured score — confirmed by a sweep that gave **+57 cells, 0.8576→0.8669**.
+
+## 🔴 TEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+**#9 the argument-gold SCORER** (gold said "match by overlap"; scorer used float equality) ·
+**#10 R2.2e** (`region_segments` splits the row correctly; the label rides the unsplit token).
+Older eight:
+Gate 0f · Gate 0d · §7.7 ladder · `audit_prereq_ceilings` string granularity · its section granularity ·
+**R9.8** · register strikethrough ≠ removal (guarded) · **R2.2c** (scorers/gold on a different band).
+**Most were found by BUILDING THE CONSUMER — twice this session, by RENDERING THE PAGE.** ⚠️ A test that
+doesn't move is not evidence until you confirm it COULD have moved: this session I mis-designed two
+injection tests and wrote one closing criterion unfalsifiable in the direction that counted.
+## SIR'S STANDING RULINGS (2026-08-17)
+1. **No hours, ever** — complexity of solving correctly, not elapsed time.
+2. **No better scans, no further copies** (R4.6 CLOSED) ⇒ escalation must route into **pipeline
+   capability**, the only resource class left.
+3. **Stalled leaves ⇒ BUILD new layout capability**. Anti-circularity: an archetype must be nameable in
+   the vocabulary of the **BOOK**, not the ERROR.
+4. **M is admissible for the NT at structural grain** (layout, damage/show-through, crop verification).
+5. Archetype F: **design the split, don't discard.** `chapter_model_derive.py` pinned OFF at net −6.
+## ⚠️ CORRECTED — do not repeat
+* "three of four NT files made up" → **two** strictly (S01, S08); S09 imperfect, NOT made up. **F holds NO
+  text leaf P lacks in OT1** (1132=1132); what IS open is **B never aligned leaf-by-leaf** = **R3.5b**.
+* **Never cite 0.312 as "the catchword approach scores 0.31"** — joint measure of two readers + a scorer,
+  defects outside the catchword half; catchwords themselves read 0.87–1.00 correctly.
+
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+* 🔴 **Repo declares pre-commit hooks that are NOT installed** (`.pre-commit-config.yaml`, ruff over `^core/`;
+  `.git/hooks/` has samples only). Manual run: **24 unfixable ruff errors + a 429-line reformat** (reverted).
+  **Finding for Sir — not mine to silently fix.**
+* `projects/originaldr/.archive-consensus-full.pre-r9.4b/` **263 MB**, untracked and deliberately NOT
+  gitignored so its fragility stays visible. `OriginalDRnotes` 192 KB untracked, believed Sir's — leave both.
+* **R11.2b**: the verification standard parses only `witness/`-prefixed commands, so the two repo-root R11
+  entries sit **uncovered** and are run manually with the repo `.venv`.
+* §0.5 ceilings rise on PLANNING and fall on COMPLETION — coverage of the plan, never a progress number.
+* ⛔ **R7.5a-2 NOT STARTED** — the 261 artefacts come from many generators, not one command; survey producers
+  first, then regenerate (NEVER edit, R7.5d). Full § in roadmap.

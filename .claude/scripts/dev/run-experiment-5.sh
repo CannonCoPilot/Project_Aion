@@ -6,7 +6,7 @@
 #
 # Model fixed at Sonnet. Context level fixed at ~45%.
 #
-# Designed to run from W5:Jarvis-dev or as a background process.
+# Designed to run from W11:Jarvis-dev or as a background process.
 # Controls W0:Jarvis via tmux for context filling and treatment.
 #
 # Usage: run-experiment-5.sh [--start-block N] [--dry-run]

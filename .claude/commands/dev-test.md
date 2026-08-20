@@ -6,7 +6,7 @@ allowed-tools: [Bash, Read, Glob, Grep]
 
 # /dev-test — Autonomous Testing of W0:Jarvis
 
-Run from Jarvis-dev (W5) to test the primary Jarvis session (W0).
+Run from Jarvis-dev (W11) to test the primary Jarvis session (W0).
 
 ## Usage
 

@@ -34,7 +34,7 @@
 - `dev-test.md`
 
 ### Dev Session
-- `export-dev.md` — Export W5:Jarvis-dev chat to timestamped file
+- `export-dev.md` — Export W11:Jarvis-dev chat to timestamped file
 - `dev-chat.md` — Browse and read saved dev chat exports
 
 ### Ulfhedthnar

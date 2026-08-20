@@ -1,0 +1,1695 @@
+# Jarvis Scratchpad (L1 session)
+
+## 🟢 SESSION 16 END — PUSHED. `.scratch/` MIGRATION ASSESSMENT COMPLETE (report to Sir was mid-write)
+
+### ✅ COMMITTED + PUSHED — `634568b..65e5553`, 89 commits, `origin/main` now `0 0` in sync
+* **`dfbd1a2`** docs (4 files, +267/−14): Focus-Section review, R2.1-CRIT, R2.1-CRIT-2, devlog Session 16.
+* **`65e5553`** R9.6 bookkeeping: the **215 deletions** under `core/.scratch/originaldr-project/` staged at last.
+  ⚠️ `git add -A <path>` **REFUSES** an ignored path; `git add -u <path>` stages deletions of TRACKED files
+  fine (ignore rules govern ADDING, not removal). Scoped deliberately — a root `add -A` would have swept in
+  the 263 MB `.archive-consensus-full.pre-r9.4b/` (still the ONLY untracked entry, by design).
+
+### 🔴 THE `.scratch/` ASSESSMENT — MIGRATION IS **INCOMPLETE**, AND WHAT'S LEFT BEHIND IS THE IMPORTANT HALF
+Sir's framing (repo-root `.scratch` = where OriginalDR started, migrated out because the folder is
+gitignored) is right, and **two migrations happened, not one**:
+`.scratch/originaldr-project` → `core/.scratch/originaldr-project` (2633cbb) → `projects/originaldr/`.
+Both source trees are now **MISSING on disk** ✓ and the removal is committed ✓.
+
+**Sizes:** `.scratch/` **3.6 GB** (127 entries) · `core/.scratch/` **3.4 GB** ⇒ ~7 GB gitignored machine-local.
+
+**🔴 FINDING 1 — THE GOLD-EVAL HARNESS IS UNTRACKED AND LOAD-BEARING.**
+`.scratch/mask-eval/` (**2.0 GB, 30 `.py`**) holds **`harness.py`**, which is **in NO git object** (`git
+ls-files | grep -c harness.py` = **0**, no commit ever touched one). It is imported via
+`sys.path.insert(0, REPO/".scratch"/"mask-eval")` by three TRACKED scripts —
+`core/tests/fixtures/gold/{gold_verify,gold_ratify,a3_score}.py` — which are in turn used by
+**`core/tests/test_gold_maps.py`, `test_gold_canon.py`, `test_cli.py` AND `core/palimpsest/cli.py`**.
+⇒ **The CLI and the test suite depend on code that exists only on this machine.** `gold_verify` imports OK
+today *only because the untracked file happens to be present*. Deleting `.scratch/` — the stated point of
+migrating out — **breaks the gold verification harness and the CLI**. This is the R9.4b `detect_our_ocr`
+shape at a larger radius: live code resolving into a tree nothing guarantees.
+
+**🟠 FINDING 2 — THE APPARATUS WITNESS LIVES ONLY IN `.scratch/`, BUT IS PROPERLY PINNED.**
+`.scratch/original-douay-rheims/` (34 MB) = **Sabates_A**, the apparatus witness, read by
+`gen_dr_original.py`. 🟢 `acquisition/digital-witness-pins.json` pins it properly —
+remote `https://github.com/janvier-s/original-douay-rheims.git`, **commit `0bf4218b9b46b5b00d29a703b5b74226051b97a5`**, CC0 — so it is **RECOVERABLE**, unlike Finding 1.
+🔴 But `gen_dr_original.py:47-48` uses a **silent `_CANDIDATES` fallback list**: `.scratch/bible-ingest/repos/original-douay-rheims` **(ALREADY MISSING)** then `.scratch/original-douay-rheims`. The first path
+died and nothing said so — **`feedback_fallbacks_are_failures` exactly**, same class as `load_anchor`'s
+`continue`. It must RAISE naming both paths.
+
+**🟠 FINDING 3 — A THIRD DEAD-PATH REFERENCE, to the stage-1 root.**
+`.../acquisition/purge_empty_ocr.py:23` → `"../../../../../.scratch/originaldr-project/sources/our-ocr-diplomatic"` — **MISSING**. R9.5 catalogued five modules restating `core/.scratch/originaldr-project`;
+this one restates the *older* `.scratch/originaldr-project`. **R9.6's scope is one file wider than recorded.**
+
+### ▶️ RECOMMENDATIONS FOR SIR (the reply that was being written)
+1. **Track the harness** — move the mask-eval **code** (not the 2 GB of outputs) to `core/eval/` or
+   `core/tests/fixtures/gold/harness/`, and commit. This is the only finding that is **unrecoverable** if
+   the disk is lost. Highest priority by a wide margin.
+2. **Add a guard: tracked code may not read or import from `.scratch/`** (`witness/test_no_scratch_deps.py`
+   or a core test). Without it the migration cannot be *verified* and will silently regrow — the project's
+   own lesson that a rule with no consumer is not a rule (Gate 0f).
+3. **Replace `gen_dr_original.py`'s `_CANDIDATES` fallback with an explicit raise** naming both paths, and
+   add an acquisition step that clones Sabates_A at the pinned SHA into a tracked location.
+4. **Fold `purge_empty_ocr.py:23` into R9.6** (its module list is incomplete).
+5. **Only then consider reclaiming the ~7 GB.** Not before 1–3: today `.scratch/` deletion is destructive.
+⚠️ Constitutional hook for the write-up: §0.2 rule 6 — *"every reading is addressable and checkable"*.
+A witness or a verifier that exists only in one machine's gitignored directory is checkable by nobody.
+
+### ⏭️ NEXT ACTIONS (R2, unchanged from the Step-9 report)
+Fire R2's pre-registered escalation at ~4h/12h (no metric cleared); proceed on **R2.1d′(B) signature
+monotonicity** (only survivor); build **R10.2 `PROVISIONAL.md`** before publishing further figures;
+promote `probe_v18.py` → `witness/collation_read.py` so the Roadmap stops citing gitignored evidence.
+
+## 🟢 SESSION 15 — R9.2c + R5.1 DONE & **COMMITTED `e528705`**. R2 IN DESIGN (probe v6 mid-flight).
+Repo `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main. OCR project =
+**`projects/originaldr/ocr-spike/`**, venv `../ocr-venv/bin/python`.
+Sir: "Commit changes first. Then proceed through R2."
+
+### ✅ COMMITTED — `e528705` (33 files, +35,189/−1,084)
+* **R9.2c DONE.** `load()` was the WRONG conversion target — it returns `{(book,ch,verse): text}` and
+  discards `page`/`fit`, exactly what the 9 direct readers wanted ⇒ converting would have made the gate
+  **COST EVIDENCE**, and a gate that costs evidence is routed around. NEW `corpus_localize.load_raw` /
+  `load_verses` / `iter_localizations` (sweep: drops `none`-scope + PRINTS before first yield).
+  7 readers converted + `audit_diagnose`→sweep; `source_inventory_audit` exempt (filenames only).
+  **Data-neutral: `load_verses(od) == raw read` for all 10 admitted (21,437 spans); only `jp2-S06ot`
+  (4,045) + `jp2-S08` (2,334) refused.**
+* **Exemptions machine-checked**: scoring needs `text`, reconciling doesn't ⇒ an exempt module reading a
+  verse `text` field forfeits its exemption (injection-proven). Guard counts string constants via **`ast`,
+  docstrings excluded** — v1 was tripped by its own docstring quoting the glob it removed; *a check a
+  comment can trip measures vocabulary, not call sites.*
+* 🔴 **CONTAINMENT FACT READ AS SCORING PERMISSION** — `book_audit.witnesses_for_book` derived its set
+  from `witness_inventory.tomes` (which books a volume CARRIES) and both callers used it to decide what may
+  be SCORED. **R7.5a-3's category error, arrow reversed.** Now `for_scoring=` + printed drop.
+* 🔴🔴 **PARITY SPREAD == THE BEST WITNESS'S OWN PASS RATE, ALL 5 PILOT BOOKS** (genesis .7601 = S9 .7601;
+  psalms .6330; matthew .7594; john .6507; apoc .5728) — the empty witness put 0.0 in the floor so
+  `max−min` = `max−0`. Now over `localized>0`, exclusions NAMED, `<2` readers ⇒ **None+reason, never 0.0**.
+  Same collapse found one layer out in `build_reocr_report.py` (`100*null` → "0.0 points" in JS) — fixed,
+  both branches exercised in node. **Corrected: genesis 8.4 · psalms 15.4 · matthew 19.5 pts.**
+  ⚠️ Every published parity-spread figure is superseded → **R10.2**.
+* **R5.1 DONE both halves**: 3,122 leaves / 3 base exemplars in 48 min, `truncated:false`, **0 rasters
+  unmanifested**, 3,113 leaves UNKNOWN→CHECKED on Gate 0d's dimension clause. **Determinism: 2nd full build
+  byte-identical, sha256 `44290ad7…f8e0`.** `--out` added — the clause was UNEXECUTABLE as written (hard-coded
+  path ⇒ run 2 destroyed run 1). ⚠️ Byte-compare is valid ONLY because the writer uses `sort_keys=True`;
+  `coverage-audit-verse.json` is the counter-case (order-nondeterministic on ties).
+* Suite: **guards 11 exit 0 · audits 4 exit 1 · `test_verification_standard` exit 0 (19 commands)**.
+  It caught the ceiling claim going stale 4× (`10/40`→`10/39`→`10/36`→**`7/36`**→**`6/35`**; I also had the
+  NUMERATOR wrong — audit prints 7/36 not 10/36).
+* ⚠️ **§0.5 ceiling fraction FELL 25%→17%** — closing 5 ceilinged steps removed 4 of the 10 ceilings.
+  **R10.1's "the number must RISE" cannot be satisfied by doing the work.** Recorded in the roadmap.
+
+### ⚠️ NOT COMMITTED / OPEN ENVIRONMENT ITEMS
+* **215 deletions** under `core/.scratch/originaldr-project/` (2633cbb migration) — still unstaged, separate
+  deliberate act. **NEVER `git add -A` at repo root.**
+* `projects/originaldr/.archive-consensus-full.pre-r9.4b/` = **263 MB** ⇒ too large to track. Left
+  **untracked, NOT gitignored**, so its fragility stays visible in `git status`.
+* 🔴 **Repo declares pre-commit hooks that are NOT installed** (`.pre-commit-config.yaml`, ruff/ruff-format
+  over `^core/`; `.git/hooks/` has only samples). Ran manually on the one `core/` file in the commit:
+  **24 unfixable ruff errors + a 429-line reformat**. Reverted the reformat (gold fixture, unrelated to this
+  work). **Finding for Sir, not mine to silently fix.**
+* 🔴🔴 **I BROKE INFRASTRUCTURE**: ran `pkill -x Python` to stop my own probe → killed the **MLX embed
+  server** (:8000) and **3 MCP servers** (annas-archive, jarvis-pulse, scholar-gateway). **RESTORED** MLX via
+  tmux window recreate (`aion:MLX-Embed`, `infrastructure/qwen3-embeddings-mlx/start-server.sh`), verified
+  healthy `embedding_dim: 2560`. **MCP servers need a session restart.** Memory
+  `feedback_pkill_self_match.md` UPDATED: `-x` is NOT safe for generic names (`Python`, `node`).
+
+### 🔴 SESSION 16 LATE — **HELD-OUT PANEL BREAKS v15. THE PRIMARY ROUTE IS UNGUARDED.**
+`.scratch/r2/holdout.py` + `holdout.log` — 12 leaves (100,101,300,301,600,601,800,801,900,901,1000,
+1001) **never inspected during v1–v15**, scored blind. The 8 tuning leaves were iterated against 15
+times, so their agreement measures **fit, not generalisation** — this panel is the real evidence.
+```
+✓ 100 'ſaid to'@1.00 x=0.84 · 800 'there'@1.00 x=0.81 · 900 'prince'@1.00 x=0.79
+✓ 1001 'Bbbbb b'@0.90 x=0.48 + 'Iewes,'@1.00 x=0.71   (recto: signature + catchword)
+🔴 901 'auekabylon.'@0.80 x=0.21 = **CONFIDENT-WRONG** — that is the LAST TEXT LINE
+   (`til the captiuitie in Babylon.`), verified in `ho-band-901.png`
+∅ 301, 600, 1000, 801 — located a row, every token reads ''  (wrong row)
+∅ 101, 300, 601 — abstain "text line as wide as the measure"
+```
+⇒ **~4 of 12 clean on unseen leaves vs 7 of 8 on the tuning panel. The design is FITTED.**
+
+**🔴 THE STRUCTURAL DEFECT (not a threshold):** v15's extent test and positional rule live ONLY in
+`absorbed_fallback`. **The PRIMARY route has no accept-test at all** — it takes the lowest line below
+the last text run and trusts it. So whenever the text-run detector stops one line early, the primary
+route reads a TEXT LINE at full confidence. Leaf 901 is exactly that. The tuning panel never exposed it
+because on those 8 the run detector happened not to stop early.
+**FIX (next session, do this FIRST):** hoist the accept-test out of the fallback so **ONE test guards
+whatever row is chosen, on BOTH routes** — extent `< 0.75 ×` measure AND (single token starting past
+the block midpoint OR ≥2 tokens with a gap `> 0.10 ×` measure). ⚠️ Check leaf 700 when doing so: its
+tokens span x=0.22 (empty) to 0.82, so a naive extent test over the whole row may reject `ouer`; the
+empty-reading token is itself a signal that the row carries a non-type component.
+⚠️ **The held-out panel is now PARTLY BURNED** (901, 300 eyeballed). Draw a FRESH panel for the next
+acceptance run, and do not tune against 901/300.
+
+**✅ v16 BUILT — the guard is hoisted** (`probe_v16.py`: `text_measure()` + `accept()`, called from BOTH
+`direction_tokens` and `absorbed_fallback`; the fallback's private copy is gone). Tuning panel now:
+400/401/701/200 ✓ · 201 fallback ✓ · 500 abstains ✓ · **700 NOW ABSTAINS** ("row spans 1.01 of the
+measure") — the predicted casualty: its row carries a phantom component at x=0.22 that reads `''`, and
+it drags the row's extent across the whole measure. 🟠 501 still passes at 0.71 measure while reading a
+TEXT line — under the bar but not by much, i.e. **the extent test alone is not yet separating it.**
+
+**✅✅ v17 = POST-RECOGNITION ACCEPT TEST — IT WORKS. `probe_v17.py` + `run_v17.py` (`tuning|holdout`).**
+Order reversed: routes PROPOSE geometry → recognise → drop tokens that read `''` → THEN `accept()`.
+```
+TUNING (v17-tuning.log):  400 'face'@0.88 ✓ · 401 'Yy'+'ſtoode' ✓ · 700 'ouer'@1.00 ✓ RESTORED ·
+  701 'Mm'+'vnder' ✓ · 200 'CHAP'@1.00 ✓ · 201 'tur'@0.99 (located, partial) · 500 ABSTAIN ✓
+  🟠 501 still passes while reading a TEXT line — unresolved, do NOT fix by tightening 0.75
+HELD-OUT (v17-holdout.log): 100 'ſaid to'@1.00 · 800 'there'@1.00 · 900 'prince'@1.00 ·
+  1001 'Bbbbb b'@0.90 + 'Iewes,'@1.00        **901 CONFIDENT-WRONG NOW REFUSED** with its reason ✓
+  301/600/1000/801 → "proposed N token(s), none of them read" (was: emitting empty tokens)
+```
+⇒ **ZERO confident-wrong on the held-out panel. Leaf 700 restored. The phantom tokens are gone.**
+🟢 **WHY IT WORKS — recognition answers the question the geometry was only proxying.** The `>=3 glyphs
+on a baseline` rule existed to ask "is this type?"; the recogniser answers that directly, and a token
+that reads nothing cannot vote on the row's extent or position.
+
+### ✅ v18 — ALL THREE RECALL FIXES APPLIED. `probe_v18.py` + `run_v18.py {tuning|holdout|fresh}`
+| panel | v17 | **v18** |
+|---|---|---|
+| tuning (8, BURNED) | 6 read | **6 read** (201 → abstain; no new confident-wrong) |
+| holdout (12, BURNED) | 4 read | **6 read** — 101 `'called'@1.00`, 601 `'ſaune.'@0.86` recovered |
+| **fresh (16, CLEAN)** | — | **11 read / 5 abstain** |
+**901 still refused. No confident-wrong LOCATION in any panel.**
+The three fixes, all measurement-driven: (1) **`scale()` replaces `p = pitch or 30.0`** — derives pitch
+from `PITCH_PER_GLYPH = 2.21 ± 0.27` (measured over 6 leaves where `line_pitch` succeeds) and returns
+`None` → abstain-with-reason when it cannot measure; leaf 600 now scales at 40, not 30. (2) **`in_measure()`**
+drops components outside `[L,R]` (marginalia). (3) **`>=3` glyphs → `>=2`** — the proxy relaxes because
+recognition now does the type-test.
+
+**🔴 FRESH-PANEL VERIFICATION (3 sampled against pixels) — three NEW, distinct defects:**
+* **leaf 851 — INCOMPLETE PAIR.** Read `'† And'@0.99` (catchword ✓) but **MISSED the signature
+  `Ggggg 2`** at x≈0.49, which is plainly there. 🔴🔴 **The signature is R2.1's actual target**, and a
+  missed signature with a read catchword would silently UNDERSTATE recto parity. Pairs must be scored
+  as pairs, never "≥1 token read = success".
+* **leaf 150 — CORRECT LOCATION, WRONG TEXT.** Direction line IS `CHAP.`; read `'CAA'@0.73`. Leaf 200
+  reads the same word `'CHAP'@1.00`, so the model can do it. ⇒ **a confidence FLOOR policy is needed**;
+  0.73 on a 4-glyph token is not attestation.
+* **leaf 650 — `in_measure` HAS A CHICKEN-AND-EGG.** Abstained at extent 1.01 with `'then man'`(x=0.12)
+  + `'the'`(x=0.85): the marginal note is INSIDE the computed `[L,R]` because `L` is derived from
+  clustered rows, and those rows already merged note+text. **The filter is contaminated by the very
+  merging it exists to undo.** Fix: derive `L`/`R` from the DISTRIBUTION of glyph edges (e.g. 10th/90th
+  percentile — marginalia are a small minority of components), not from clustered rows.
+
+**🔴 EARLIER RECALL DIAGNOSIS (v17) — all three now FIXED in v18, kept for the record:**
+Eyeballed `ho-band-600.png` (catchword **`ſelf`** at x≈0.87) and `ho-band-300.png` (**`a victime,`** at
+x≈0.80): **both are MISSES, not absences.** Three distinct causes, each with a measurement:
+1. 🔴 **`VS.line_pitch` returns `None` on leaf 600** (its 5 text lines collapse to `n_text_runs=1`) and
+   every call site silently does **`p = pitch or 30.0`** — a magic constant standing in for a failed
+   measurement, against a true pitch near 40. **That is `feedback_fallbacks_are_failures` exactly.**
+   A `None` pitch must ABSTAIN WITH REASON, never quietly become 30.
+2. 🔴 **Marginal notes share the catchword's baseline.** Leaf 300's lowest row is `n=8` spanning
+   **x=0.18–0.90** — that is `a victime,` (right) PLUS the marginal note `102. a.3.ad.8.` (left), one
+   cluster, so extent reads ~0.9 of measure and the row is refused as a text line. Fix: drop components
+   lying OUTSIDE the text measure `[L,R]` before clustering — notes sit in the outer margin by design.
+3. 🔴 **`>=3 glyphs` is too strict for short catchwords.** Leaves 101 and 601 have lowest rows of
+   **n=2** (x=0.70–0.76 and 0.69–0.76) — almost certainly the catchword, refused on glyph count when
+   touching letters merge into 2 components. Now that recognition does the type-test, relax to `>=2`
+   with an area floor and let an unreadable row abstain on its own.
+
+**▶️ SUPERSEDED IDEA (now DONE, kept for the record): apply `accept()` AFTER recognition, over the tokens
+that actually READ.** A token returning `''` is not type, so it should not vote on the row's extent or
+position. Predicted: leaf 700 drops its empty x=0.22 phantom → single token at x=0.82, past the
+midpoint → ACCEPT; leaf 901 keeps its single read token at x=0.21 → left of centre → still REJECT;
+leaf 501 keeps both → likely still passes, so 501 needs a separate answer. **Do NOT tighten 0.75 to
+make 501 fall — that is fitting the tuning panel, which is what the held-out run just punished.**
+
+### 🟡 SESSION 16 — R2 DIRECTION-LINE READER: `probe_v13.py`/`v15.py`, GOOD ON THE TUNING PANEL ONLY
+**v13 = v11 + two measured fixes. 7 of 8 probe leaves LOCATED AND READ; 1 verified-correct abstention;
+1 known miss. ZERO confident-wrong.** `.scratch/r2/probe_v13.log`:
+```
+400 verso: 'face'@0.88 x=0.80                      ✓  401 recto: 'Yy'@0.92 x=0.52 · 'ſtoode'@1.00 x=0.72 ✓
+700      : 'ouer'@1.00 x=0.82                      ✓  701 recto: 'Mm'@0.87 x=0.53 · 'vnder'@1.00 x=0.75  ✓
+200      : 'CHAP'@1.00 x=0.84                      ✓  501: text-line + 'LII'@1.00 (sig `Lll ʒ` shares the row)
+500      : ABSTAIN — ✓ CORRECT, only show-through  201: ABSTAIN — 🔴 MISS, `X` + `turned` are really there
+```
+**v13's two fixes over v11:**
+* **`text_runs` drops any run reaching the band's BOTTOM EDGE.** Leaf 700's "0px strip" was never a
+  short band: its last run was `(353,362)` in a 362px band — **9 rows of leaf edge** that cleared
+  `min_rows=8`, so the strip began at the band's own bottom. The component stage already rejected the
+  edge by border-contact; **the bounding stage was missing the same rule.** ⇒ `ouer`@1.00.
+* **Glyph height range widened `0.25–1.20p` → `0.30–1.60p`**, which covers leaf 201's small pitch.
+  ⚠️ **`type_scale` (median text-run height) MEASURED AND REJECTED as the yardstick** — across leaves of
+  near-identical pitch (31–41) it returns **17 to 40**, because a run's height tracks CONTRAST, not type
+  size. That noise reached the word-gap and fragmented `CHAP` into `'CH'+'AP'`. **`VS.line_pitch` stays.**
+
+**🔴 v14 MEASURED AND REJECTED** (`probe_v14.py`, kept as the record): bound raised to *below the
+second-to-last* text run + a short-line **extent** test. It DOES recover leaf 201 (`X`/`turned` row) and
+keeps 401/701/200/501 — but **leaf 500 reads `'conteiming the Lam.'@0.97`, a CONFIDENT-WRONG text line**
+(the one outcome R2's rule forbids) and **leaf 700 regresses to abstention**. Two yardsticks were tried
+for the extent test — median over candidates (contaminated by the direction line itself: 401's own 353px
+line WAS the 362px median) and max over candidates — and neither rescues 500. **Not a tuning gap: the
+extent test needs a measure taken from the TEXT BLOCK, independent of the candidate set. That is the
+next thing to try, and it is the only known route to leaf 201.**
+
+--- v11's derivation, still the core of v13 ---
+Repo/venv as below. All probes still in `.scratch/r2/`; **nothing written to `witness/` yet.**
+⏱️ ~2.5h of the **12h ceiling**.
+
+**🔴 THE STORED v6 DIAGNOSIS WAS WRONG.** It said "crop too tight / decapitated line". Reading
+`.scratch/r2/dir-401.png` shows `Y y` and `ſtoode` **both fully formed** in the 1400×38 crop. The crop
+was fine; the RECOGNISER was being misused — a 1400px row that is ~95% blank was handed to `rpred` as
+ONE line, and two word-islands ~900px apart give kraken no coherent x-height to normalise against.
+⇒ *Verify the stored diagnosis against pixels before acting on it; a plausible cause outlives its truth.*
+
+**THE DESIGN THAT WORKS — `.scratch/r2/probe_v11.py`** (bound by profile → find type by COMPONENTS →
+recognise each token separately):
+1. **Bound**: strip starts below the last FULL text line (relative profile's one reliable job).
+2. **Find type by `scipy.ndimage.label`**, NOT by any profile. A profile *cannot express* "type-sized,
+   compact, interior" — leaf 400's strip ink rises MONOTONICALLY toward the leaf edge (0.0071@y210 →
+   0.0507@y365, page-curl shadow) while `face` sits at 0.03–0.04, i.e. **the catchword is BELOW the
+   shadow in ink**. First-run, last-run and every threshold select the shadow. Edge columns measure
+   0.352/0.274/0.957 so no column cut works either. **4th instance of "a filter cannot enforce a
+   distinction it cannot express" — the answer was a more expressive tool, not a 7th threshold.**
+   Filters: drop components touching a side border (leaf edge), `0.25p ≤ h ≤ 1.20p`, `w ≤ 0.25W`, area ≥ 20.
+3. **Cluster rows on the BOTTOM edge against the cluster's MEDIAN** — not centre-vs-running-mean, which
+   DRIFTS: on leaf 400 the drift let the clipped text-line remnant (bottoms 180–183) absorb `face`
+   (201–203) into one blob with no shared baseline, and the leaf abstained with its catchword right there.
+4. **A line = ≥3 glyphs whose bottoms sit within `0.15p` of the row's MEDIAN bottom.** Median, not std:
+   `ſ`/descenders legitimately overshoot, and one 4px speck's bottom inflated the std past any cut.
+5. **Crop the PIXELS FROM THE BAND in absolute coords, never from the strip** — v7 cropped from the strip
+   and the strip's own top edge sliced the ascenders off `face`; padding inside the strip cannot give
+   back pixels the strip never held. *A bounding construct must not become a pixel source.*
+6. **Recognise each token separately**, report its x-centre as a fraction of width (parity MEASURED).
+
+**RESULT on the 8 probe leaves (`.scratch/r2/probe_v11.log`) — verified against the pixels:**
+```
+400 verso: 'face'@0.88 x=0.80                     ✓ eye: catchword only, no signature
+401 recto: 'Yy'@0.92 x=0.52 · 'ſtoode'@1.00 x=0.72 ✓ eye: signature + catchword
+701 recto: 'Mm'@0.87 x=0.53 · 'vnder'@1.00 x=0.75  ✓
+200      : 'CHAP'@1.00 x=0.84                      ✓ real catchword (verified in chk-200.png)
+501      : text-line + 'LII'@1.00                  ~ signature is `Lll ʒ` SHARING A ROW with the last
+                                                     text line — recogniser misreads `Lll ʒ`→`LII`
+500      : ABSTAIN (2 components)                  ✓ CORRECT — only mirrored SHOW-THROUGH is present;
+                                                     it is too faint to reach INK_LEVEL. Faintness is
+                                                     doing protective work — do not lower INK_LEVEL.
+201      : ABSTAIN (5 components, no line)         ? not yet eyeballed
+700      : ABSTAIN — strip below last text = 0px   🔴 OPEN, see below
+```
+**🔴 OPEN — leaf 700.** Eye (`chk-700.png`) shows catchword **`ouer`**; the strip is 0px because the
+text-run detector swallowed its row. **NOT a too-short band**: setting `FOOT_BELOW_PITCHES=8.0` made
+400/401/700 ALL abstain (0–7px strips) because the longer tail reaches the dark leaf edge, which the
+relative profile then calls the last text line. **Lengthening the band cannot be the fix.**
+**🔴 v12 MEASURED AND REJECTED** (dropping the bound, judging rows by extent alone): leaf 700 still
+failed (faint show-through joins `ouer`'s baseline → 897px extent), leaf 500 **REGRESSED to a
+CONFIDENT-WRONG `'conteiming the Lam.'@0.97`** — the one outcome R2's decision rule forbids — and
+501/201 regressed to abstention. **The bound does real work; extent alone cannot replace it.**
+⚠️ Leaf 501 also proves the bound's premise is not universal: a signature CAN share a row with a text
+line, so "strictly below the text block" is false in both directions (700 and 501).
+
+**NEXT (in order):** (a) leaf 201 — give the extent test a measure derived from the TEXT BLOCK rather
+than from the candidate set, and re-check that leaf 500 still abstains (that is the acceptance test);
+(c) then write `witness/collation_read.py` from `probe_v13.py` (R2.1 signature + R2.2 page
+number from the head band, same shape, abstain WITH REASON, never guess); (d) measure recto parity
+empirically from the x-centres; (e) R2.3 collation model; (f) R2.4 defect report.
+**Decision rule unchanged (pre-registered): ≥95% parsed rectos · abstention OK · confident-wrong FAILS ·
+band re-cut ONCE then ALERT for approach redesign — never a lowered bar.**
+
+### ▶️ R2 — SESSION-15 STATE (superseded above; v1–v6 history kept — do NOT re-run them)
+Target **`OT1-1609-B`** (1,160 leaves, `W.leaves(vol,sig)`; ocr_dir n/a — witness has no `tomes` ocr_dir).
+⏱️ ~1.5h of the **12h ceiling** used. Probes: `.scratch/r2/probe_v{2..6}.py`, logs beside them.
+🔴 **`r2_attest.py` is RUNG 2, NOT roadmap R2** — do not conflate; name new modules e.g.
+`witness/collation_read.py`.
+
+**MEASURED, in order — each killed a design:**
+1. **v1 `blla.segment` on a band = WRONG TOOL + TOO SLOW.** 1400×313 strip → **59 fragments**
+   (`'Ium.'`,`'th'`,`'A'`,`'mram'`); **21.7s head / 37.5s foot** ⇒ 1,160×2 ≈ **13h > the whole 12h ceiling**.
+   blla is a PAGE segmenter hunting a page's worth of baselines.
+2. **v2 single-line `Segmentation` (no blla) = 1.4–1.6s/leaf for BOTH bands** (~25× faster, volume ≈30 min).
+   Fold-forward from **`rung2_eval_lines._one_line_seg`** — ⚠️ polygon MUST be inset 1px or kraken rejects it
+   out-of-bounds, returns nothing, and every line scores 0.000.
+   **Recognizer is NOT the problem** — foot read `'ſlearned Hebricians, as Rabbi Moyſes, Aben Eram, Lira…'@0.88`.
+3. **v3: every readable run is a FULL TEXT LINE. No page number, no signature anywhere.**
+4. **WHY — structural blindness, not tuning.** `VS.ANCHOR_X=(0.45,0.95)` + `TEXT_ROW_REL=0.20×peak` are
+   calibrated on full text lines; **a direction line is short by construction** and never reaches a fifth of a
+   full line's ink. *A filter cannot enforce a distinction it cannot express*, again.
+5. **v4 global absolute floor FAILS AND CANNOT BE FIXED**: leaf 401's **blank** rows = **0.0443** ink vs leaf
+   400's text-adjacent **0.020** — show-through + the marginal-note column move the background MORE than the
+   signal. **No global threshold separates them on any leaf.**
+6. 👁️ **LOOKED AT THE PIXELS** (`.scratch/r2/leaf40{0,1}-foot.png`, viewable via Read):
+   * **leaf 401 = RECTO**: direction line reads **`Y y`** (signature, ~centre) + catchword **`ſtoode`**.
+   * **leaf 400 = VERSO**: catchword **`face`** only, **no signature**.
+   ⇒ signature IS inside ANCHOR_X — it was the ROW THRESHOLD that erased it, not the x-window.
+   ⇒ **recto/verso parity must be MEASURED from where signatures land, never assumed.**
+7. **v5 bound-don't-detect**: locate last full text line (relative profile, its proven job), take everything
+   below ⇒ geometry CORRECT (leaf 401 strip starts y=180 = where the eye finds `Y y`), but reading a
+   1400×140 90%-blank strip as one line gives `'e'@0.16`.
+8. **v6 = BOUND GLOBALLY, DETECT LOCALLY** ← *the design, mid-flight when the refresh came.*
+   Inside the bounded strip the only ink IS the direction line, so a strip-local threshold
+   (`lo=p20`, `floor=lo+0.35*(peak−lo)`, full width) is finally well conditioned. `.scratch/r2/probe_v6.py`
+   was run on leaves 400,401,700,701,200,201,500,501 and saves `dir-<i>.png` per leaf.
+   🔴 **v6 RESULT IS IN AND IT STILL FAILS — geometry right, crop too tight:**
+   ```
+   leaf 400: dirline 1400x16 -> ''@0.00      leaf 200: 1400x14 -> ''@0.00
+   leaf 401: dirline 1400x38 -> 't'@0.36     leaf 201: 1400x25 -> ''@0.00
+   leaf 700: ABSTAIN — strip below last text line is 0px
+   leaf 701: dirline 1400x35 -> ''@0.00      leaf 500: 1400x19 · leaf 501: 1400x30 -> ''@0.00
+   ```
+   **Diagnosis (next session starts HERE, do NOT re-run v1–v5):** crops are **14–38px tall** where the eye
+   sees a ~25–30px line WITH ascenders/descenders — the local threshold is trimming to the x-height core and
+   the recognizer gets a decapitated line. Leaf 401 (the KNOWN-GOOD `Y y` + `ſtoode`) is the tallest at 38px
+   and the only one returning any glyph, which is the tell. **Fix to try FIRST: much larger pad (≈0.6–1.0 ×
+   line pitch, not a fixed 6px), and a MINIMUM crop height tied to `VS.line_pitch()`.** Also: leaf 700's
+   0px strip means `_foot_band` ended exactly at the last text line ⇒ `FOOT_BELOW_PITCHES=5.0` did not
+   extend far enough on that leaf; the strip must be taken from the LEAF, not from the pre-cut foot band.
+   ⚠️ **Do not conclude the recognizer or the model is at fault** — it read a full foot line at **0.88** in v2.
+   ⚠️ **Verify visually before the next code change**: `.scratch/r2/dir-401.png` vs `leaf401-foot.png`
+   (Read renders PNGs). Looking at the pixels is what broke the last two dead ends; do it before threshold #7.
+
+**NEXT (in order):** (a) apply the pitch-based pad/min-height fix above and re-verify on leaves 400/401
+(401 MUST yield something like `Y y`); (b) if signatures parse, write `witness/collation_read.py`
+(R2.1 signature + R2.2 page number from the head band by the SAME bound-then-detect shape, abstain with
+reason, never guess); (c) measure recto parity empirically; (d) R2.3 collation model; (e) R2.4 defect report.
+**Decision rule (pre-registered): ≥95% parsed rectos, abstention OK, confident-wrong FAILS; band re-cut ONCE
+then ALERT for approach redesign — never a lowered bar.**
+
+🐍 **GOTCHA (cost a debug cycle)**: I named a scratch script `.scratch/r2/profile.py`. Python puts the
+SCRIPT'S OWN DIR first on `sys.path`, so torch's `import cProfile`→`import profile` loaded **mine**, which
+(no `__main__` guard) EXECUTED on import and then died `AttributeError: module 'profile' has no attribute
+'run'`. **Never name a scratch file after a stdlib module; always add a main guard.**
+
+## 🔴 SESSION 14 — MASTERPLAN/ROADMAP REVIEW + GATE 0d BUILT. **ALL UNCOMMITTED.**
+Repo `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main, last commit `34e1fe2`.
+⚠️ Paths: OCR project = **`projects/originaldr/ocr-spike/`**, venv `../ocr-venv/bin/python`.
+Sir's task: 10-step review of Masterplan §0–§2 + Roadmap R0–R9; then "extend the precedence rule and
+proceed with all modifications"; then "fold [R8.4b machine-check] into R8.4b's acceptance and execute
+next steps 1 through 4".
+
+### ✅ DONE THIS SESSION
+* **Masterplan**: NEW **§0.6 Precedence** (code/guards → roadmap register → Masterplan → companions →
+  devlog). §2 corrected in 4 places: Gate 0d **"SPECIFIED and NOT IMPLEMENTED"** (was "no proven
+  negative" — describing a guard that had NEVER BEEN WRITTEN); Gate 0e no longer claims "the full
+  §0.3 criterion" (foot proved at 1 point of 3); Gate 0f "PART-DISCHARGED" (R9.2c bypass); the
+  **0b/0c-before-transcription rule recorded as ALREADY BROKEN** (51 GT files, R2/R3 nothing built)
+  and the 51 files labelled **PROVISIONAL**.
+* **Companions**: Overview witness-table row fixed (`NT-1582-M` was filed `frontmatter`, registry says
+  `lowres` — the file **contradicted its own prose 90 lines later**); Walkthrough Gate 0d tense;
+  Exec-Summary note that held witnesses don't meet the bar it sets for new ones.
+* **Roadmap**: R5 split **R5.1 + R5.2a/b/c**; **R9.5a** (re-opened R9.5, machine-checked acceptance);
+  **R9.6/R9.6a** (migrated root; retires my R9.5 id collision — `detect_our_ocr.py` comments renumbered);
+  **R10.1/R10.2** NEW (§0.5 ceilings + PROVISIONAL); R9.4a/R9.4b marked DONE; R7.5a-2 339→**262**;
+  hour ceilings + pre-registered decision rules added to R2, R5, R10.
+* **BUILT (Gate 0d, R5.1/R5.2a-c)**: `witness/build_raster_manifest.py` · `witness/raster_gate.py`
+  (3 clauses reported separately; **`unknown` returned SEPARATELY from `failures`** so a missing
+  manifest is never a silent pass) · `witness/test_raster_admissible.py` (bitonal / 8-grey /
+  dimension-mismatch each refused **on its own clause**, real base leaf **admitted**).
+  Wired into **`jp2_page.load()`** (`gate=None` → gate pixel route, not structure route).
+  🔴 **Architect-review catch**: first version asserted the gate by calling `assert_admissible`
+  directly = proves the gate, proves nothing reaches it. Now drives `jp2_page.load()` itself and
+  asserts pixel-refuses / **structure-still-serves** / admissible-still-loads.
+* **BUILT `witness/audit_prereq_ceilings.py`** (R10.1) — **10/40** OPEN steps carry a ceiling.
+  **AUDIT not guard** (as a guard it would force bulk-inventing ceilings or weakening the check).
+* **R8.4b FOLDED + BUILT** — `witness/audit_setting_points.py` (audit, exit 1, **8 shortfalls**:
+  7 foot pairs at 1 point of 3 + 1 negative control of 3). 🔴 **Hole found while writing it:**
+  `test_setting_verified` counted page ENTRIES not **separated** points — `OT1-1609-P vs F` records
+  7 pages that are really `[222,223,224]·[457]·[918,919,920]` = **3 locations**. Three adjacent
+  leaves would have passed while saying nothing about span. Added `MIN_SEPARATION=50` +
+  `separated()`; guard now prints `3 separated / 7 page(s)`. Guard keeps the HEAD half; audit
+  carries the FOOT shortfall.
+* **Devlog Session 14 appended**; Session 13's false `**Discharges** … Gate 0d` **marked in place,
+  not edited away** (devlog records what was believed — §0.6).
+* Suite: **10 guards exit 0 · 5 audits exit 1** (`audit_gt_rasters`, `audit_s06_keys`,
+  `test_verse_scope_bypass`, `audit_prereq_ceilings`, `audit_setting_points`).
+  `test_verification_standard` names **19** commands, exit 0.
+
+### ⏳ IN FLIGHT
+* **R5.1 full manifest RUNNING in background** (~13 min elapsed at save, est. ~50 min total, 3h
+  ceiling not reached): `../ocr-venv/bin/python witness/build_raster_manifest.py >
+  .scratch/r5.1-manifest-full.log`. ~3,100 leaves over the 3 base exemplars.
+  ⚠️ **`witness/raster-manifest.json` currently holds the 3-leaf-per-witness SMOKE RUN** (`--limit 3`,
+  `"truncated": true`). Until the full run lands, Gate 0d's dimension clause is **UNKNOWN and prints
+  so per leaf** — correct behaviour, not a gap. Re-run `test_raster_admissible.py` after it finishes.
+  ⚠️ Minor: the builder's per-witness `..` line isn't `flush=True`, so a redirected log shows
+  nothing until a 200-leaf marker. Cosmetic; fix when next touched.
+
+### ▶️ RESUME HERE — Sir's "next steps 1–4", in his order
+1. **R2 — THE CRITICAL PATH (not started).** 12h ceiling + decision rule already written into the
+   roadmap. R2.1 signature reader → R2.2 page-number reader → R2.3 collation → R2.4 defect report,
+   first pass on ONE volume (`OT1-1609-B`). Rule: a failing reader gets a **redesigned method, never
+   a lowered bar**; abstention is not failure but confident-wrong is.
+2. **R5.1 manifest** — verify on completion, then re-run `test_raster_admissible.py` (dimension
+   clause should stop reporting UNKNOWN for manifested leaves).
+3. **R9.2c — IN PROGRESS, analysis done, no code written.** `test_verse_scope_bypass.py` = **9
+   modules / 10 direct reads**. Owner `corpus_localize.py`; `integrity_sweep.py` already exempt.
+   **KEY FINDING: `load()` is NOT a drop-in** — it returns `{(book,ch,verse): text}` while every
+   bypasser reads the RAW artefact, mostly `[...]["verses"]` (which carries per-verse leaf/metadata).
+   Exact sites: `allfail_anatomy:56` · `gen1_rescore:60` · `split_confusions:48` ·
+   `gen1_rerecog_eval:75` (all `json.loads(...)["verses"]`) · `book_audit:150` · `gen1_r3:257` ·
+   `gen1_wordboxes:60` (build path then read) · `audit_diagnose:61` + `source_inventory_audit:66`
+   (**glob the directory, don't open one file — these two are likely STRUCTURAL_EXEMPT, the
+   `integrity_sweep` precedent; CHECK, don't assume**).
+   ⇒ Plan: add **`corpus_localize.load_raw(ocr_dir, scope_check=True)`** returning the parsed
+   artefact with Gate 0f applied, convert the 7 evidential readers to it, and add the 2 globbers to
+   `STRUCTURAL_EXEMPT` **with their reason** — then `test_verse_scope_bypass.py` → 0.
+4. **R10.2 — PROVISIONAL register** (`PROVISIONAL.md`): the 51 GT files + every NT cross-source
+   figure published before 2026-08-09 (R9.4b's labelling half — the recomputed replacements now
+   exist, so most can be RESTATED not merely flagged).
+
+### ⚠️ COMMIT NOTES
+Uncommitted: `detect_our_ocr.py` · 6 OCR-*.md · `consensus_v2.py` · `jp2_page.py` ·
+`witness/test_setting_verified.py` + NEW `witness/{raster_gate,build_raster_manifest,
+test_raster_admissible,audit_prereq_ceilings,audit_setting_points,test_consensus_sources}.py` ·
+`witness/raster-manifest.json` · `projects/originaldr/.archive-consensus-full.pre-r9.4b/` (77 files,
+preserved inadmissible figures — **kept OUTSIDE `ocr-spike/` because `audit_s06_keys` does
+`SPIKE.rglob("*.json")`** and counted the backup as backlog otherwise).
+🔴 **Stage explicitly — NEVER `git add -A` at repo root**: 215 unstaged deletions under
+`core/.scratch/originaldr-project/` are pending from the `2633cbb` migration (R9.6).
+
+## 🔴 SESSION 13e — R9.4b MEASURED. **A MIGRATION HAD SILENTLY BROKEN THE WHOLE CONSENSUS BUILDER.**
+Repo `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main. Last commit `34e1fe2`.
+⚠️ **PATH CORRECTION for every note below**: the OCR project is at **`projects/originaldr/ocr-spike/`**,
+NOT `ocr-spike/`. Venv `projects/originaldr/ocr-venv/bin/python`. Moved by commit **`2633cbb`**
+("move OCR project out of gitignored scratch into projects/originaldr").
+
+### 🔴🔴 THE FINDING — `consensus_v2` scored ZERO verses for EVERY book, and said so politely
+`detect_our_ocr.py` (in `core/tests/fixtures/gold/mask_engine/originaldr_reconstruction/`) still held
+`SCRATCH = REPO/"core/.scratch/originaldr-project"` — the pre-`2633cbb` home, **now deleted**. Both
+anchor reads resolved into a dead tree, and `load_anchor` skipped missing files with `continue`, so
+the anchor came back **empty**, and `run_book` returned the well-formed summary
+`{"verses_scored": 0, "error": "no anchor text"}` for every book.
+🔴 **My own resume plan step 3 was "regenerate consensus-full (77 books)".** Running it would have
+written **77 empty files** over untracked reference data — the `qc_audit.py --help` incident at 77×
+scale. It was caught only because step 1 (verify the filter fires) ran first and **printed nothing**:
+the absent `[consensus] EXCLUDED` line was the tell, not the zero.
+* **FIXED** in `detect_our_ocr.py`: `SCRATCH` → **`ORIGINALDR = REPO/"projects/originaldr"`**;
+  `load_anchor` now **RAISES FileNotFoundError** naming the missing reads instead of `continue`.
+* ⚠️ **`consensus-full/` is UNTRACKED (0 of 77 files in git)** — same unrecoverable class as
+  `coverage-audit-verse.json`. Old set preserved as **`consensus-full.pre-r9.4b/`** (77 files).
+* ⚠️ **`run_all` is RESUMABLE and SKIPS books that already exist** (`CACHED`). Regenerating in place
+  would have skipped all 77 and printed a successful-looking run that changed nothing. The directory
+  must be moved aside, which is also the backup.
+
+### ✅ R9.4b STEPS 1-2 DONE — the filter fires, and the delta is ATTRIBUTABLE
+Paired run, **same tree, only the filter differs** (pre-filter = `git show HEAD:...consensus_v2.py`
+run from a temp copy, since comparing to `consensus-full/matthew.json` would confound THREE changes
+at once: the filter, the `2633cbb` migration, and the R7.5a re-key).
+| matthew (1070 verses both runs) | pre-filter | post-filter | delta |
+|---|---|---|---|
+| modern_match_mean | 0.9268 | 0.9367 | **+0.0099** |
+| archaic_match_mean | 0.9317 | 0.9321 | +0.0004 |
+| mean_conservation | 0.8370 | 0.8399 | +0.0029 |
+Both gates stay True. **Dropped: `jp2-S06ot`, `jp2-S08`, `pdf-S06`. Added: none.** Removing the
+duplicate of B did NOT lower agreement — it raised it slightly. (Both directions were reportable;
+this is the direction that happened.)
+🔴 **`eebo-nt`/`eebo-vol1` were NOT excluded — they are ABSENT from the migrated tree.** The BANNED
+branch of the filter is **unexercised on live data**; its correctness rests on injection, not on
+this run. That is why the guard below injects rather than observes.
+
+### ✅ STEPS 3-4 DONE — regenerated, guarded, and the contamination is measurably GONE
+* **All 76 books regenerated** (`consensus-full/`, 77 files = 76 + `_summary.json`; file-name sets
+  diff IDENTICAL to the old dir, so the 76-vs-77 question is closed by reading, not assumed).
+  Log `.scratch/r9.4b-regen-all.log`. **Books still fusing an inadmissible source: 0.**
+* **What the OLD set had been fusing** (of 76 books): `jp2-S06` **76** · `eebo-nt` **27** ·
+  `jp2-S08` **27** · `eebo-vol1` **1**. The 27 are the NT books = every NT figure counted B twice.
+* **RESTATEMENT old→new** (⚠️ CONFOUNDED — the old figures were built on the PRE-migration tree, so
+  this is a restatement, NOT the filter's effect. The only attributable number is the matthew
+  paired run above): NT n=27 modern **+0.0070**, archaic **−0.0024**, conservation **−0.0187**.
+  Verse counts changed on **0** books. **Modern gates: no flips.**
+  **Archaic gates flipped 4, BOTH DIRECTIONS**: `1-esdras` .8819→.9006, `4-kings` .8888→.9111,
+  `1-paralipomenon` .8782→.9018 (**False→True**) · `2-thessalonians` .9052→.8985 (**True→False**,
+  an NT book — removing the double-counted B lowering apparent agreement is the honest direction).
+* **`witness/test_consensus_sources.py` WRITTEN + PASSING + REGISTERED** in the Roadmap guards block
+  (`test_verification_standard` now names **16** commands, exit 0). Guard suite **9 exit 0**;
+  audits `audit_gt_rasters` · `audit_s06_keys` · `test_verse_scope_bypass` exit 1 = healthy/open.
+* **NEGATIVES INJECTION-PROVEN, twice**: (i) reverting `consensus_v2.py` to HEAD → guard FAILS
+  naming the three missing attributes. ⚠️ First attempt died of a raw `AttributeError` deep in a
+  helper — *a non-zero exit that names a missing attribute, not a missing GATE* — so the guard now
+  checks for the filter machinery FIRST and says the fusion is a bare glob again.
+  (ii) per-branch: the synthetic-tree injection fuses `eebo-nt` if the curated check goes and
+  `jp2-S08` if the scope check goes, with a symlinked real control that must survive.
+* **Reason strings CORRECTED** (`consensus_v2`): was calling everything `BANNED source (REP-1)`.
+  Neither `.jp2-S06-divider` nor `pdf-S06` is in `BANNED_OCR_DIRS` — that was **the false
+  accusation `curated_sources` warns about in its own note on `jp2-S06`**. Now four tiers: BANNED /
+  not-in-allowlist-but-NOT-a-ban / curated-but-UNADDRESSABLE / Gate 0f scope. 🟠 **`pdf-S06` is
+  curated S6 material whose directory is unregistered — the UNSPLIT whole-file PDF spanning both
+  settings, i.e. R7.5a residue that still needs an ot/nt split. New work, correctly excluded now.**
+* **R7.5a-2 backlog 339 → 262** (−77, exactly the consensus-full set).
+  ⚠️ **`audit_s06_keys` scans `SPIKE.rglob("*.json")`, which includes `.scratch/`.** The preserved
+  old set kept the count at 339 until moved OUT of the spike tree; it now lives at
+  **`projects/originaldr/.archive-consensus-full.pre-r9.4b/`** (77 files, untracked, inadmissible
+  figures kept as the historical record the docs cite). *Do not "fix" this with an audit exclusion.*
+
+### ▶️ RESUME HERE
+1. **UNCOMMITTED — commit this work.** `consensus_v2.py` (+52) · NEW
+   `witness/test_consensus_sources.py` · `OCR-ROADMAP.md` (guard registered) ·
+   `core/tests/fixtures/gold/mask_engine/originaldr_reconstruction/detect_our_ocr.py` (the
+   migration fix + the raise). **Stage explicitly; NEVER `git add -A` at repo root** — 215 unstaged
+   deletions under `core/.scratch/originaldr-project/` are sitting there (see R9.5).
+2. **Step 5 of the old plan STILL OPEN**: label REOCR-MASTER-PLAN ~224 stale NT witness enumeration,
+   `book_audit.py:20` prose, and every devlog/report figure quoting NT cross-source agreement —
+   mark **"computed with B double-counted + banned EEBO sources fused"** where not recomputed.
+   The recomputed replacements now exist, so most can be RESTATED rather than merely flagged.
+3. **R9.5** (below) — the five modules that restate the migrated root; two of them WRITE.
+4. **THEN R9.2c** (9 direct readers of `.corpus-localize-*.json` → `load()`).
+
+### 🟢 BLAST RADIUS OF THE DEAD TREE — BOUNDED, and `coverage-audit-verse.json` is CLEAN
+Chased from a batch of killed background-waiter notifications (the Session 9 lesson: that signal
+once exposed two real defects). **This time the waiters were merely orphaned by the context clear**
+— all four `.scratch/qc_audit-*.log` runs completed and their paths were valid.
+* **WHEN the old tree died**: migration commit `2633cbb` is **2026-08-05 14:50**, but the Aug 8
+  21:33 `qc_audit` run produced full non-zero attestation (S6 matthew 1,067 · john 877), so
+  `load_anchor` still resolved then ⇒ **`core/.scratch/originaldr-project/` was deleted on Aug 9**,
+  before this session. ⇒ **`coverage-audit-verse.json` (23 MB, Aug 8 21:33) is NOT contaminated.**
+* **14 live modules import `detect_our_ocr`**; 7 touch the formerly-dead constants —
+  `qc_audit:372` (`D.anchor_by_book(D.load_anchor())`, feeds `D.detect_book`) · `diag_align:48` ·
+  `apparatus_audit:166,280` · `pilot_psalms_locate:17,18` · `diag_recognition:34` ·
+  `apparatus_crossmap:41` (`D.READS_DIR`) · `rung1_surya:143`. **All were broken today; my
+  `detect_our_ocr` fix unblocks every one of them.**
+* 🟢 `qc_audit` has its OWN `SCRATCH = PALIMPSEST/"projects/originaldr"` (already migrated, still
+  misleadingly named) so `build_refs`/`READS` were fine — only its ANCHOR was dead.
+* 🟢 **Nothing was written under the broken state**: the only JSONs modified on Aug 9 outside
+  `consensus-full/` are my own two `.scratch/r9.4b-matthew-*.json`. No silent degradation shipped.
+
+### 🔴 R9.5 NEW — FIVE MORE MODULES RESTATE THE MIGRATED ROOT (the same fact, N copies, again)
+`grep -rln "core/\.scratch/originaldr-project"` → **~30 files**, mostly in the gold fixture tree.
+Load-bearing ones: `detect_ocr_consensus.py:72` · `detect_sources.py:34` · `detect_s_dismas.py:53` ·
+`build_modern_standard.py:28` · `build_consensus.py:41` · `ocr_sample.py:58,60` (AO/MADB — OFF the
+consensus path, only `main()` touches them, so left alone deliberately).
+🔴🔴 **`detect_sources.py:164` and `detect_s_dismas.py:623` do `READS_DIR.mkdir(parents=True)` and
+WRITE the anchor reads there** — running either would RECREATE the dead tree and write the anchor
+where nothing reads it. Split-brain, silently.
+* `sources/madueke-b/merged.txt` did **NOT** migrate; a candidate exists at
+  `imports/Scripture/Bibles/DouayRheims_DR/sources/transcriptions/madueke/raw-b-extract/merged.txt`
+  — **NOT proven to be the same file. Do not repoint it on resemblance.**
+* Recorded JSON artefacts naming the old path are HISTORICAL RECORDS — do not rewrite them.
+* ⚠️ `git status` shows **215 unstaged deletions** under `core/.scratch/originaldr-project/` — the
+  migration moved the tree but never staged the removal. Staging it is a separate, deliberate act.
+* Stray **empty** `~/Claude/Projects/core/` (0 B) — leftover dirs from a relative-path write. Harmless.
+
+## 🔴 SESSION 13d — **R9.4b IN PROGRESS, UNCOMMITTED.** Sir: "do R9.4b first, then R9.2c"
+Repo `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main. Last commit **`34e1fe2`** (R9/Gate 0f).
+**Uncommitted: `consensus_v2.py` ONLY.** It imports + runs clean (verified: `CS`/`W`/`_EXCLUDED_STREAMS`
+all present; `CS.is_curated('eebo-nt')=False`, `W.verse_admitted('jp2-S08')=False`).
+⚠️ Pyright shows stale "not defined" errors for CS/W/_EXCLUDED_STREAMS at ~line 353 — **FALSE**, imports
+are at lines 38–44 and runtime resolves them. Ignore, or re-open the file to refresh the LSP.
+
+### ✅ R9.4b BLAST-RADIUS MAP (done — this is the load-bearing result of the turn)
+Where NT figures actually rested on `S8`, established by reading, not assumed:
+* 🟢 **`xsrc_gate.py` is CLEAN** — the cross-source gate was DELIBERATELY instantiated against the
+  reference-witness cascade (s_dismas→odr_com archaic; sabates_a/madueke_b modern), **NOT** the other scan
+  sources. Documented as a flagged design decision in REOCR-MASTER-PLAN ~line 224. **No S8 dependency.**
+  ⚠️ But that same line's prose *"depth 3–4 (OT: S1/S3/S6/S9; NT: S1/S4/S8/S9)"* is a **stale witness
+  enumeration** → still needs correcting.
+* 🟢 **`coverage-audit-verse.json` already fixed** by R9.4 (`34e1fe2`).
+* 🔴🔴 **`consensus-full/*.json` (77 files) — COMPROMISED THREE WAYS.** `consensus-full/matthew.json`
+  `summary.scan_sources` = `['archive-nt-1582','eebo-nt','eebo-vol1','jp2-S04','jp2-S06','jp2-S08','pdf-S09nt']`
+  1. **`jp2-S08`** = X = **B double-counted** (R9.4a).
+  2. **`eebo-nt` + `eebo-vol1` = BANNED** (S10–S15). **`consensus_v2.py` did not import `curated_sources`
+     AT ALL**, though that module's own docstring names `consensus_v2` as a builder that **MUST** filter
+     ("a banned folder can never re-enter by a directory glob" — and `load_all_streams` is exactly a glob).
+  3. **`jp2-S06`** = the retired ambiguous id ⇒ these files are also in the R7.5a-2 backlog of 339.
+  ⇒ **every `consensus-full` NT figure is inadmissible on three independent grounds.**
+  Affected summary fields: `modern_match_mean`, `archaic_match_mean`, `mean_conservation`,
+  `gate_modern_0.90`, `gate_archaic_0.90`, `coverage_recall`. (matthew: 1070 verses, 0.9206/0.9271/0.855.)
+* 🟠 **Code that RESTATES the witness set for scoring** (more copies of the same fact, R7.5b/c pattern —
+  each should DERIVE from `W.verse_admitted`, not restate): `build_reocr_report.py:803` ·
+  `version_compare.py:81` (`_CURATED_SCANS`) · `jp2_page.py:83` (`CURATED`) · `book_audit.py:20` (prose:
+  "S1,S3,S4,S6,S8,S9 must reach the bar") · `matter_scoring_run.py:19` (`SOURCES["nt"]` includes S8; also
+  `SOURCES["ot2"]` still says `jp2-S06`) · `rung0_sample.py:64` (includes S10/S5!) · `source_index.py:43`.
+
+### 🔬 WHY consensus's OWN dedup missed it — worth keeping
+`load_all_streams` already implements "one copy is never double-counted as two witnesses" via
+**supersession keyed on the FILENAME** (`jp2-<key>` supersedes `pdf-/eebo-/archive-<key>`). X is
+`jp2-S08` and B is `pdf-S09nt` — **the same copy under two unrelated keys**, so the key test cannot
+express the relation. ⇒ **Third instance of "a filter cannot enforce a distinction it cannot express"**
+(1st: `curated_sources` at ACQUISITION grain; 2nd: `audit_s06_keys` reading NAMES not CONTENTS).
+
+### ▶️ RESUME HERE — exact next steps
+1. **Verify the new `consensus_v2` filter fires**: run one NT book and confirm the `[consensus] EXCLUDED`
+   lines list `eebo-nt`, `eebo-vol1`, `jp2-S08` (+ `jp2-S06` → now `jp2-S06ot` unaddressable/`none`).
+   `../ocr-venv/bin/python consensus_v2.py --book matthew` (check CLI flags first; whole-Bible driver exists).
+2. **Measure + report the delta** on matthew: modern/archaic match means and `mean_conservation`
+   before vs after. **Both directions must be reported** (removing a duplicate of B may LOWER agreement —
+   that is the honest result, not a regression).
+3. **Regenerate `consensus-full/`** (77 books) with the filter live — this also clears part of R7.5a-2.
+4. **Guard it**: `witness/test_consensus_sources.py` — no fused stream may be non-curated or
+   `verse_scope: none`; **negatives by injection**. Add to the Roadmap verification-standard **guards**
+   block (`test_verification_standard` FAILS if a guard exists and is unlisted).
+5. **Label the docs**: REOCR-MASTER-PLAN ~224 NT enumeration; `book_audit.py:20` prose; any devlog/report
+   figure quoting NT cross-source agreement → mark **"computed with `B` double-counted + banned EEBO
+   sources fused"** where not recomputed.
+6. **THEN R9.2c** — route the 9 direct readers of `.corpus-localize-*.json` through `load()`;
+   `witness/test_verse_scope_bypass.py` must go 1 → 0. (`integrity_sweep` already exempt = bookkeeping;
+   `source_inventory_audit` is a likely 2nd exemption — CHECK, don't assume.)
+
+## 🟢 SESSION 13c — **R9 / GATE 0f** (`34e1fe2`). NO CODE HAS EVER READ A WITNESS ROLE.
+Sir: "restate the role per half" + 12-step pattern. Doing it required asking what a role DOES → nothing.
+§1.1a's permissions/limits have been correct since written and were never on any execution path.
+* **M's two halves, two unrelated limits**: `OT-1635-M` = BIBLIOGRAPHIC (1635 Rouen ≠ 1609/10 Douai; no
+  scan can lift it) → `frontmatter (different edition)`, scope **none**. `NT-1582-M` = RASTER (1-bit CCITT
+  ~380ppi) → `lowres`, scope **collation**. Filing NT-M as frontmatter = **the `structure only` error
+  repeating, 4 rows below the table recording its retirement**.
+* 🔴🔴 **`X` WAS ATTESTING**: `NT-1582-X` (=B upscaled 2.000×, NCC 0.9847, top-octave 0.0002 vs B's
+  0.0074–0.0097) reached the audit as **S8** — matthew 1067 · john 876 · apoc 391 — **beside B's own S9
+  rows.** ⇒ **every NT cross-source agreement figure before 2026-08-08 counted the base exemplar TWICE.**
+  §1.1a said admitting X "would double-count B under a second name". It was being admitted. → **R9.4a/b OPEN.**
+* **Why it slipped**: the audit's filter is `curated_sources` = **ACQUISITION** grain; S6/S8 are curated
+  acquisitions. **A filter cannot enforce a distinction it cannot express** ⇒ scope declared at WITNESS grain.
+* **BUILT**: `witnesses.ROLE_VERSE_SCOPE` (DERIVED from role; base/surrogate→full · lowres/support→
+  collation · frontmatter/excluded→none; unscoped role **raises at import**) · `corpus_localize.load()`
+  **raises** VerseScopeError (returning `{}` rejected — indistinguishable from never-localized) ·
+  `qc_audit.scan_ocr_dirs` drops + **PRINTS** the drop above the figures · `test_verse_scope.py` ·
+  `test_verse_scope_bypass.py` (exit 1) · §2 **Gate 0f** + **Gate 0d RESTORED** (was cited twice, defined
+  nowhere).
+* 🔴 **MY GUARD PASSED ALL 3 INJECTIONS AND WAS WORTHLESS** — it checked role→scope *mapping*, so flipping
+  OT-1635-M to `lowres` just moved it to the agreeing branch. **= `test_raster_routing` Session 11, with
+  the lesson written in the file I was editing.** Fix = **assert the SET not the branch**: 3 assignments
+  pinned + inadmissible set == exactly {OT-1635-M, NT-1582-X}. All 3 now fail.
+* ⚠️ **R9.2 as drafted was WRONG**: claimed `load()` is "the function every verse consumer goes through" —
+  **checked module imports, not call sites**. 9 modules read `.corpus-localize-*.json` DIRECTLY. → R9.2c.
+* **RESULT**: removed psalms/S6, genesis/S6, matthew/S8, john/S8, apoc/S8. **Added none. Changed among
+  survivors: NONE** — not one count moved by one. Structural audits still count all 12 (scope ≠ bookkeeping).
+* Guards **9 exit 0**; audits `audit_gt_rasters` · `audit_s06_keys` · `test_verse_scope_bypass` exit 1.
+* ▶️ **OPEN**: R9.2c (convert 9 bypassers) · R9.4a/R9.4b (re-state every NT figure that rested on S8) ·
+  R7.5a-2 (339 artefacts) · R2 unbuilt · R5.2 no proven negative (Gate 0d specified, unenforced).
+
+## 🟢 SESSION 13 (2026-08-08) — R7.5a-3 COMMITTED + the OT half was damaged too
+Repo `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main.
+Commits: **`96a0731`** (R7.5a-3, the work the section below describes) · **`7005391`** (R7.5a-2, below).
+
+### ✅ `7005391` — **THE OT HALF WAS DAMAGED BY THE SAME DEFECT, and the split preserved it**
+`.page-address-jp2-S06ot.json` was TRANSFORMED, not regenerated. Regenerated from the re-keyed corpus:
+**291 of 2071 pages (14.1%) change book**, and the pattern names the cause —
+`153 daniel→2-machabees · 51 daniel→1-machabees · 15 →osee · 15 →zacharias · 11 →amos · 8 →micheas …`
+The whole OT tail was smeared onto **daniel**. That is R7.5a-3 seen from the other side: the pre-split
+addressing ran ONE OT-only state space across all 2872 leaves, so the OT book set had to absorb 800 NT
+leaves, the DP ran out of books before it ran out of pages, and it piled the minor prophets + Machabees
+onto the last book it had. **Slicing the first 2071 records out of that solution carried the damage intact.**
+* Regenerated: 2071/2071, **median fit 0.558 → 0.622**, above-floor **1166 → 1316**.
+* NT re-run **reproduces exactly** (0.489, 395/800) ⇒ generator deterministic ⇒ the OT change is the
+  corpus talking, not the run. *That contrast is what licenses the claim; without it the diff proves nothing.*
+* `tome-map-v2.json` rebuilt on the corrected addressing (12 vol / 12,819 pp). `tome_map_audit`,
+  `source_inventory_audit` exit 0.
+
+### 🔴 A CHECK THAT READS **NAMES** CANNOT SEE **CONTENTS**
+`audit_s06_keys` printed `ok  no addressing artefact is named for jp2-S06` while
+`.page-address-jp2-S06ot.json` declared `"ocr_dir": "jp2-S06"` **on its first line** — the re-key renamed
+the file and re-indexed the records and left the field. The artefact said one thing on its cover and
+another on its first page. **Same shape as last turn's gap** (a check that names one file can't see a
+sibling), one level down.
+* **FIX**: the audit now READS the field on every `.page-address-*` / `.corpus-localize-*`, requires it to
+  match the filename, and lets the **registry adjudicate** it — `witness_of` RAISES on the ambiguous id.
+* **Negatives injection-proven**: wrong witness vs registry → exit 2 · ambiguous `ocr_dir` → exit 2 ·
+  restored → exit 1.
+* `page_address_eval` + `corpus_localize` now write **`witness`** beside `ocr_dir` (artefact names the
+  VOLUME, not just the directory it read). Only the S06 files carry it; on the other ten it is absent =
+  **backlog, not defect** (an unbuilt field must not read as a failed one).
+* `corpus_localize` now records **why an empty result is empty**, read from the registry's `drop_tomes`
+  (NOT hand-written): `load()` returns `{}` both for never-localized and for localized-and-empty, so
+  without it the two are indistinguishable downstream = R1.4 exactly.
+
+### ✅ `coverage-audit-verse.json` RESTORED (the file I destroyed last turn)
+Re-ran `qc_audit.py` (default PILOT_BOOKS): **6,434 verses**, 26.8 MB. Its **4,045 `jp2-S06` occurrences
+come back as 4,045 `jp2-S06ot`** — same content, correctly keyed. ⚠️ **The 4,045 in the scratchpad was an
+OCCURRENCE count, never a verse count** — I had mis-read my own note; verse count matches the `.q30*`
+siblings (6,434). Loss fully recovered.
+⚠️ It was built while the OT re-address was still running ⇒ **must be re-run after `corpus_localize`
+lands**, since its S6 rows derive from `.corpus-localize-jp2-S06ot.json`.
+
+### 🔴🔴 THE "KNOWN ABSENCE" WAS A SYMPTOM — `jp2-S06nt` localizes **2,344 verses**, not zero
+`.corpus-localize-jp2-S06nt.json` carried an `_empty_because` note I wrote: *"ZERO verses, and that is a
+property of the corpus rather than of this re-key … NT-1582-M … its verse text was never localized …
+recorded explicitly so the emptiness reads as a known absence rather than as a failed split (R1.4)."*
+**It is not a property of the corpus.** Re-localized on the corrected addressing: **2,344 verses —
+matthew 1,067 · john 877 · apocalypse 400.** The zero was a downstream symptom of R7.5a-3: while the 800
+NT leaves were addressed to Old Testament books, no NT verse *could* localize.
+⚠️ **THE FAILURE MODE IS THE ONE R1.4 EXISTS TO PREVENT, WEARING R1.4's OWN CLOTHES.** I labelled an
+absence "known" and gave it a cause, and the label is what stopped me looking. **A recorded reason for a
+null is a claim, and it needs the same evidence as any other claim** — the cheap test (re-run the
+localizer once the addressing was fixed) was available the whole time and cost 43 seconds.
+⇒ The generator now DERIVES an emptiness reason from the registry's `drop_tomes` instead of taking a
+hand-written one, precisely so a narrative cannot be attached to a null by hand again.
+
+### 🔴🔴 `drop_tomes` WAS BEING ENFORCED **BY THE DEFECT** — and nothing else ever read it (`7de7dda`)
+With addressing fixed, `coverage-audit-verse` gains **S6 as an NT attesting witness**: matthew 1,067 ·
+john 877 · apocalypse 400 (previously nothing). `witness_inventory` declares `S6 drop_tomes:["NT"]` and
+calls it a SCORING rule, so that should not have happened silently. **It did because NO SCORER READS IT.**
+`page_address_eval.volume_books()` was the ONLY code that ever acted on it — as a containment claim = the
+R7.5a-3 defect. So **the rule's sole effect in the whole system was the defect**, and while the defect
+stood the drop LOOKED enforced. Fixing the addressing removed the only thing enforcing it.
+* **NEW `witness/test_drop_rule_enforced.py`** — exit 1 while a declared drop has no consumer; lists the
+  files that MENTION `drop_tomes` without applying it so a new mention can't pass by accident.
+  Positive branch injection-proven (consumer added → 0, removed → 1). **Currently exit 1 = healthy.**
+* 🟢 **SIR RULED: RETIRE.** Done in `b32eae2`. `drop_tomes` REMOVED from S6 (recorded in place, not
+  deleted). Premise died with the 1633 finding: **NT-1582-M is the SECOND witness to a setting the NT
+  holds once**, not a fourth copy of one held three times.
+  * **Re-ran `qc_audit.py`: output is DEEP-EQUAL to the pre-retirement run** — 6,434 verses, worklist 271,
+    every per-source figure identical. Bytes differ ONLY where two sources tie on every value and fall out
+    of the dict in a different order. ⚠️ **That non-difference IS the result**: retiring a rule cannot move
+    a number no scorer read. S6 had been attesting since the addressing fix; the retirement makes that
+    *legitimate* rather than accidental.
+  * ⚠️ **`coverage-audit-verse.json` source dicts are ORDER-NONDETERMINISTIC on ties** ⇒ never byte-compare
+    audit runs; compare `json.dumps(..., sort_keys=True)` or deep equality.
+  * `test_verification_standard` **caught the new guard missing from the roadmap command block** ("a guard
+    nobody is told to run is a guard nobody runs") — listed, back to 0. Guard suite now **8 green**.
+* 🟠 **OPEN — TWO DOCS NOW CONTRADICT THE REGISTRY** (flagged in place, NOT quietly edited; resolution is
+  an editorial judgement): the **"frontmatter witness" role** (§1.1 / MASTERPLAN / OVERVIEW) says *"no
+  verse of scripture"* and **M is filed under it**. False for the NT half now — and **the OT half already
+  contradicted it and had for longer** (`jp2-S06ot` attests psalms 2,515 · genesis 1,530 on a 1635-is-a-
+  different-edition rationale the role text never states). **That one predates the retirement.**
+
+### ▶️ RESUME HERE — dependency chain, in order
+1. ✅ `corpus_localize.py jp2-S06ot jp2-S06nt` DONE. OT 4,045 (unchanged) · NT **2,344** (was 0).
+2. ✅ `qc_audit.py` re-run DONE — 6,434 verses, S6 now attests the 3 NT pilot books.
+   ⚠️ Guard suite now **7 green + 3 audits open** (`audit_gt_rasters`, `audit_s06_keys`,
+   `test_drop_rule_enforced`). Commits this session: `96a0731` `7005391` `d2e477a` `7de7dda`.
+2. **`qc_audit.py`** re-run on the regenerated localize artefacts (~5 min).
+3. Then `book_audit.py` / `build_reocr_report.py` / `consensus_v2.py` — see families below.
+4. **R7.5a-2 backlog now 339 files / 91,490 occurrences.**
+
+### ⚠️ FOUND, NOT YET ACTIONED
+* `corpus_localize` / `source_inventory_audit` / `audit_diagnose` **glob `.page-address-*.json` and swallow
+  the `.heldout.json` siblings**, localizing `archive-ot2-1610.heldout` as if it were a volume — which is
+  where the `.corpus-localize-*.heldout.json` files with `ocr_dir: "X.heldout"` came from.
+  `selector_corpus_probe` alone excludes them (`if ".heldout." not in p.name`). **A pseudo-volume in the
+  denominator.** Not fixed this turn; the new audit normalises the suffix rather than adjudicating it.
+* **No live script writes `.page-address-*.heldout.json`** — `heldout` is a KEY INSIDE the main artefact
+  (`PA.heldout_heading_accuracy`). The `.heldout.json` files are legacy run-mode artefacts. Nothing reads
+  them. They are still TRANSFORM-derived and therefore suspect on the same grounds as the OT one above.
+
+## 🔴 (superseded — now commit `96a0731`) R7.5a-2 IN PROGRESS (2026-08-08)
+Repo `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main. Last commit `1fb3507` (R7.5a).
+**All 7 guards exit 0. `audit_gt_rasters` exit 1 (R7 open). `audit_s06_keys` exit 1 (R7.5a-2 open).**
+
+### ✅ DONE THIS TURN (uncommitted — stage explicitly, NEVER `git add -A` at repo root)
+1. **Authoritative set COMPLETED** — I had missed two files in R7.5a:
+   `.page-address-jp2-S06.heldout.json` (2872 recs, feeds `page_address_eval`) + `.corpus-localize-*.heldout`
+   → split to `*-jp2-S06ot/nt.heldout.json`. **Guard gap fixed**: `audit_s06_keys.py` now GLOBS
+   `jp2-S06(?![a-z])` instead of naming one file (a check that names one file can't see a sibling).
+2. **`master-source-list.json` S6 corrected — 3 defects vs the registry**: (a) one `jp2-S06` volume → two
+   (OT-1635-M / NT-1582-M); (b) title said **1610**, is **1635 Rouen** (corroborated by the 1634 Cousturier
+   privilege I read on pkg leaf 2070); (c) `best_raster: jp2-master @5100x6601` named the **CORRUPT**
+   `_jp2_broken` package + a 600dpi letter render — M's primary is the **CCITT in S06.pdf**.
+3. 🔴🔴 **R7.5a-3 FOUND AND FIXED — 800 NT leaves were addressed to OLD TESTAMENT books.**
+   `.page-address-jp2-S06nt` claimed 1-machabees/2-machabees/daniel/micheas for leaves whose OCR reads
+   `ACCORDING TO S. IOHN` (leaf 300) and `TO TIMOTHEE` (leaf 600). **Median fit 0.156, ZERO records >0.5**
+   vs 44.8–76.7% for every other volume — a clean splitting test; **no other volume affected**.
+   * **CAUSE = CATEGORY ERROR**: `witness_inventory` S6 had `drop_tomes:["NT"]` — a **SCORING** rule
+     ("don't count S6's NT") read as a **CONTAINMENT** claim ("S6 has no NT"). `volume_books()` builds the
+     addressing DP state space from that declaration ⇒ OT-only book set ⇒ all 800 NT leaves force-fitted.
+     ⚠️ **A PRIOR FIX CAUSED IT**: `page_address_eval.volume_books` docstring records constraining the state
+     space to declared tomes *because* "jp2-S06 put 772 pages on NT books". Right fix, wrong declaration.
+   * **FIX**: declared `"NT": {year:1582, ocr_dir:"jp2-S06nt"}` in `witness_inventory` S6 tomes; `drop_tomes`
+     kept as a scoring rule only. **A decision must not be allowed to edit a fact.**
+   * **RE-ADDRESSED**: `page_address_eval.py --ocr-dir jp2-S06nt --use-headings` → 800/800, chapter acc
+     96.6%, heading-vs-DP disagree 1.38%, **median fit 0.489, 395/800 >0.5**, books now matthew/acts/luke.
+   * **NEW GUARD** in `build_tome_map_v2.py`: `FIT_FLOOR=0.5`; a volume where **NO** record clears it is
+     `unaddressable` (⇒ refuse-to-write). Weakest statement separating 0.0% from 44.8% — not tuned.
+4. ✅ **`tome-map-v2.json` REBUILT** (was deleted at R7.5d, blocked on R7.5a): **12 volumes / 12,819 pages,
+   all addressed**; `jp2-S06nt → NT 800pp 27 books` ✓. Carries **witness + leaf_index, NO raster paths**.
+5. `source_inventory_audit` now admits **12** volumes (was 11), `admitted_without_jp2_backing: []`.
+
+### 🔬 THE KEY MECHANISM (needed for the rest of R7.5a-2 — do NOT lose this)
+A record labelled `page: P` under old `jp2-S06` has **TWO different leaves** depending on route:
+* **TEXT route** (`base_ocr` globs `*_{P:04d}.json`) → OCR file `S06_P` = **package leaf P−1**
+* **PIXEL route** (`jp2_page.load`) → raster `..._{P:04d}` = **package leaf P**
+⇒ **text-derived artefacts re-index by −1; raster-derived by 0.** A blanket rename corrupts one group.
+**PROVEN**: `.r2-attest/jp2-S06-100.json` (pure raster: `jp2_page.load`→segment→recognize) reads
+`Iſaac. | GENESIS. | CHAP. XXVII.` = **package 100**, NOT package 99 (whose text is unrelated).
+⚠️ **File SHAPE does not determine route** — `consensus-full/*` splits both ways on bbox presence and
+`.r2-attest` has no bbox at all. **Classify by GENERATOR, not by content.** ⇒ REGENERATE, don't transform.
+🔴 **And transforming carries defects forward** — proven at my own expense: splitting the pre-R7.5a
+page-address produced the degenerate NT artefact in (3). That IS the argument for regeneration.
+
+### ▶️ RESUME HERE — R7.5a-2 remainder: **343 files / 95,538 occurrences**
+**DEPENDENCY ORDER (verified)**: corpus ✅ → page-address/corpus-localize ✅ → **`qc_audit.py`
+(`OUT = coverage-audit-verse.json`, line 83)** → `book_audit.py` (reads coverage-audit-verse.json:144) /
+`build_reocr_report.py` (CONSUMES it, writes HTML + collation-flags) / consensus.
+* 🔴🔴 **I DESTROYED `coverage-audit-verse.json` — MUST BE REGENERATED FIRST.** My probe
+  `qc_audit.py --help` was NOT a help flag: **qc_audit takes BOOK NAMES POSITIONALLY**, so it read `--help`
+  as a book, skipped it (`! skip '--help': not in skeleton`), scored 0 verses, and **OVERWROTE the output**
+  (`OUT = coverage-audit-verse.json`, line 83) with an empty 3 KB / **0-verse** file. It was ~4,045 verses.
+  **UNTRACKED + gitignored ⇒ `git checkout` CANNOT restore it.** Bounded loss: it was already stale (carried
+  `jp2-S06`) and already scheduled for regeneration under R7.5a-2 — but regenerate it FIRST, before
+  `book_audit`/`build_reocr_report`, which read it. **Siblings VERIFIED INTACT**: `-fullscope` (37,185 v),
+  `-rung1` (6,438), `.q30base`/`.q30pf`/`.q30spans` (6,434 each).
+  ⇒ **LESSON: never probe an unknown CLI with `--help` when the script writes its output at import/main
+  unconditionally.** Read `add_argument` first (I did — but ran the probe in the same command).
+* Families: `coverage-audit-verse*.json` (36068+6115+4055+4055+4045+4045) ← qc_audit ·
+  `consensus-full/` 77 files/20634 ← `consensus_v2.py` · `.r2-attest/` **133 files NAMED `jp2-S06-*.json`**
+  (must RENAME too, pixel route) ← `r2_attest.py` · `.gen1-wordboxes.json` ← `gen1_wordboxes.py` (pixel) ·
+  `.rung2-chapters/_manifest.json` (pixel, TRAINING data) · `selector-corpus-probe.json` (5659) ·
+  `.qc-*.json` · `r3-residual-genesis-*.json` (49) · `.wordboxes-genesis-*.json` (49, pixel).
+* ⚠️ **Raster-derived artefacts are MISLABELLED BY ONE LEAF on S06** (they read package P, labelled P).
+  `.r2-attest` + `.rung2-chapters` are attestation/TRAINING data ⇒ regenerating them CHANGES measured numbers.
+* `validate_completeness.py` ✅ ran clean (PASS). `book_audit.py genesis` ✅ runs but output still carries
+  the old id because its INPUT does — order matters.
+
+### Still open after R7.5a-2: R8.4b · R7.1–R7.4 (48/51 GT inadmissible) · R8.3 · R8.6 · R8.7 · R4.1e · R3.5b/c · R2 unbuilt
+
+## 🟢 SESSION 12 (2026-08-08) — **R7.5b + R7.5c + R7.5d DISCHARGED**. Commit `271bcfc`, all guards green.
+
+### THE RESULT: all six callers of the retired table wanted **STRUCTURE**. Zero wanted pixels.
+`ocr_complete_volume` (un-OCR'd pages) · `integrity_sweep` (C9 counts) · `tome_map_audit` (index alignment) ·
+`build_tome_map_v2` (book→leaf addressing) · `source_inventory_audit` (wanted only the SET) ·
+`curated_sources` (never called it — kept a copy). ⇒ the table's whole real use was **page bookkeeping**, and
+it answered with raster **directories**, which is how glyph work reached wrong images through a counting door.
+**NEW `jp2_page.structure_leaves(ocr_dir)`** returns LEAVES not the directory (+ `leaf_index()`, `wid_of()`).
+
+### 🔴 THREE MORE COPIES OF THE SAME MAP — and one **had already drifted**
+| map | 2nd copy | drifted? |
+|---|---|---|
+| bar list | `audit_gt_rasters` | no (caught R7.5) |
+| `ocr_dir`→witness | `audit_gt_rasters` | **YES** |
+| verified `jp2-S09ot2 = −1` | `tome_map_audit.VERIFIED_OFFSET` | no |
+| `ocr_dir`→curated source | `curated_sources` | no ("must stay in sync" comment) |
+
+**The drift**: audit resolved `jp2-S06`→`("OT","M")` while `witnesses.py` **REFUSES** it. Its answer is in fact
+correct (all 3 files are `matter-ot2-*` at leaves 2049–2070, inside M's OT half 0–2070) — but it was right **as
+a standing guess, not as a reading**. Now `GT_LEGACY` w/ leaf-index evidence; guard fails if the extension
+**shadows** a registry id. **LESSON: a duplicate isn't dangerous when it drifts — it's dangerous from the
+moment it exists, because the agreement is then a coincidence nobody checks.** 3 of 4 hadn't drifted: worth nil.
+
+### ✅ Structural moves
+* `OCR_DIR_TO_WITNESS` / `S06_AMBIGUOUS` / `S06_SPLIT` / `witness_of()` **MOVED to `witnesses.py`**
+  (jp2_page re-exports). New **`witnesses.source_id(vol,sig)`** derives 'S9' from the registry's `legacy`.
+* `curated_sources.OCR_DIR_SOURCE` now **DERIVED**; imports `witnesses` NOT `jp2_page` (a pure allowlist must
+  not drag in PIL — a heavy guard is a skipped guard). `jp2-S06` = **curated as SOURCE, unaddressable as
+  VOLUME** (dropping it would read as BANNED = false accusation, not a stricter gate).
+
+### 🔴 R7.5d (NEW, found by the GUARD not by reading) — the table was deleted, its OUTPUT kept routing
+`tome-map-v2.json` (4.7MB, TRACKED, built 2026-07-28) still held **all four wrong routes as literal strings**
+(`jp2-S04`→retired MRC composite; 3× `archive-*`→F renders; `jp2-S06`→JPEG render). **DELETED** (not
+correctable — unbuildable until R7.5a). `master-source-list.json`'s 1 vestigial `jp2_dir` stripped (read by
+nothing). ⇒ **A guard isn't finished when the code is fixed; it's finished when the bad code's ARTEFACTS are
+gone.** New guard greps every tracked JSON for `jp2_dir`/`jp2_file`.
+* **No-silent-degradation shape**: `build_tome_map_v2` builds the 10 it can, then **REFUSES TO WRITE + exit 1**
+  naming the volume + 2,872 unplaceable pages. (Skipping = 1 line → a file reporting "100% addressed".)
+  `tome_map_audit`: unaddressable volume = **DEFECT row with OCR count intact** (stays in the denominator).
+  `integrity_sweep` C9: prints **UNCHECKED + reason**, never 0.
+
+### Negatives INJECTION-PROVEN (exit 1 each, exit 0 restored): revived 2nd ocr_dir map · curated map drifted ·
+GT audit shadowing a registry entry · artefact re-acquiring `jp2_dir` · dropped S09ot2 offset.
+
+## 🟢 R7.5a DISCHARGED (2026-08-08) — commit `1fb3507`. Boundary **READ**, not calculated.
+
+### The counts CANNOT answer it — that's the whole difficulty
+OT 2071 + NT 800 = 2871 vs package **2872**. One leaf unaccounted; arithmetic says *a* leaf is missing, never
+*which testament*. All three rendered from `S06.pdf` and read:
+| pkg | printed | verdict |
+|---|---|---|
+| 2070 | `FAVLTS ESCAPED IN THE PRINTING` + `EXTRAICT DV PRIVILEGE DV ROY`, Cousturier **Rouen 1634** | **last OT** |
+| 2071 | nothing — **0.00% ink** vs 4–9% neighbours | **BLANK DIVIDER, NEITHER** |
+| 2072 | `THE NEVV TESTAMENT…PRINTED AT RHEMES, by Iohn Fogny. 1582.` woodcut | **first NT** |
+2071+1+800 = 2872 exactly. **Registry was right.** `witnesses.s06_volume()` **RAISES** on the divider —
+a leaf in neither setting is a **third answer**; collapsing it to a binary is how a boundary silently moves.
+🟢 The 1634 Rouen privilege independently corroborates M's OT = 1635 Rouen (registry had it from a colophon).
+
+### 🔴🔴 I GOT IT WRONG FIRST — and in the direction of the very error being prevented
+First pass: OCR `S06_2071` = FAVLTS ESCAPED ⇒ "the registry drops an OT leaf." **NO.** The OCR corpus is
+**1-BASED**, every raster rendering is **0-BASED** ⇒ OCR page N = package leaf N−1. Re-keying on that would
+have shifted the OT/NT boundary one leaf, mis-assigning exactly the leaves the split exists to disambiguate.
+
+### 🔴 UNRECORDED OFF-BY-ONE, older than the session
+`JP2_INDEX_OFFSET` had **NO entry for jp2-S06** ⇒ asserts alignment. It wasn't. **Text and image disagreed by
+one leaf on all 2,872 pages, silently** — the exact defect `jp2-S09ot2` carries a −1 to prevent.
+Verified 2 pts ~1000 leaves apart: `S06_2071`=FAVLTS ESCAPED=pkg2070 · `S06_1029`=`THE SECOND TOME`=pkg1028.
+**FIX adds NO offsets** — files RENUMBERED 0-based witness-relative like every other volume. ⇒ *an offset that
+needn't exist can't be dropped in a later refactor.*
+
+### ⚠️ DEAD METRIC pointed the WRONG WAY — record it
+ink-fraction × OCR-char-count over 400 leaves: **r ≤ 0.13 at EVERY offset −3..+3**, argmax **+1** = opposite of
+truth. **A metric that measures nothing still produces a ranking.** Rendering the leaf is what settled it.
+
+### The split
+`S06_0001..2071`→`jp2-S06ot/S06ot_0000..2070` (2071) · `S06_2072`→`.jp2-S06-divider/` (**moved aside, NOT
+deleted**) · `S06_2073..2872`→`jp2-S06nt/S06nt_0000..0799` (800). Reversible: `rekey_s06.py --revert`.
+Also re-keyed: 3 GT files · both addressing artefacts · `witness_inventory` · `rung0_sample` (S6 had its NT row
+and BOTH OT rows pointing at the SAME id). `GT_LEGACY`'s jp2-S06 entry **removed** (a standing guess with no
+callers fires on the next caller).
+
+### 🔴 R7.5a-2 **OPEN + BLOCKING** — 347 derived artefacts / 95,548 occurrences still carry `jp2-S06`
+**REGENERATE, never edit** (patching a derived file = R7.5d exactly). NEW `witness/audit_s06_keys.py`:
+**exit 2 = regression in authoritative sets · exit 1 = backlog open** — a defect and a backlog must never read
+as each other. Currently exit 1.
+* Weaker-evidence record flagged IN ITS OWN FILE: `matter-ot2-table-epistles.json` has `page_index: null` ⇒
+  placed by raster name + endmatter genre, not by leaf range. Recorded as weaker, not levelled up.
+
+### ▶️ RESUME HERE (Session 13)
+1. **R7.5a-2** — regenerate the 347 derived artefacts (coverage-audit-*, consensus-full/*, .qc-*,
+   selector-corpus-probe) from the re-keyed corpus. Then `audit_s06_keys.py` → 0.
+2. **`tome-map-v2.json` rebuild** — was blocked on R7.5a, now unblocked once (1) lands;
+   `build_tome_map_v2.py` currently refuses to write while any volume is unaddressable.
+3. **R8.4b** — foot criteria (signature+catchword) at ≥3 separated points per setting (currently 1).
+4. R7.1–R7.4 (48/51 GT files still inadmissible) · R8.3 · R8.6 · R8.7 · R4.1e (authority #2) · R3.5b/c ·
+   **R2 is "NEXT" and nothing is built.**
+
+### Guard suite (from `ocr-spike/`, `../ocr-venv/bin/python witness/X.py`) — 7 guards exit 0
+`make_witness_tree`(12/12) `test_primacy_guard` `test_setting_guard` `test_counts_vs_doc`
+`test_setting_verified` `test_raster_routing` `test_verification_standard`
+Audits: `audit_gt_rasters` **exit 1** (48/51, R7 open) · `audit_s06_keys` **exit 1** (R7.5a-2 open).
+
+## 🔴🔴🔴 SESSION 9 — **`F`'s NEW TESTAMENT IS THE 1633 EDITION, NOT 1582.** ⚠️ **UNCOMMITTED — COMMIT FIRST.**
+
+### THE FINDING (load-bearing claim wrong for 4 months)
+`NT/S01` was registered `NT-1582-F`, "independent witness to the 1582 Rhemes NT". **Its body is 1633 Rouen.**
+* **F ≡ R page-for-page, line-for-line, constant leaf offset +4**, incl. shared misprint **`Iralie`** for
+  `Italie`. Matched: F356/R360 → printed **332** "THE ACTES"; F556/R560 → **530** "FIRST EPISTLE OF S. PAVL";
+  F708/R712 → **682**; F716/R720 → **690**.
+* **B differs everywhere**: Apocalypse ch. XXII at printed **743** vs F's **692**; B carries running-head
+  apparatus (`CHA. XIII.`, `HOLY weeke`) that **neither F nor R has**.
+* **F is an INDEPENDENT 1633 copy, not a re-render of R**: verified-blank bottom margin NCC matched
+  **0.099/0.021/−0.022** vs controls **0.077/−0.084/−0.030**. (Proven same-leaf case = **+0.769**.)
+* **F's OT1 + OT2 UNAFFECTED — genuine 1609/1610.** Checked 3 points each: OT1 `LEVITICVS` 280,
+  `SECOND BOOKE` 680/980 in step with B and P; OT2 `PROVERBES`, `OF EZECHIEL` in step. **Defect = NT file only.**
+* **STILL OPEN (R8.3)**: F's title page IS genuine 1582 Rhemes (`PRINTED AT RHEMES, by Iohn Fogny. 1582.`,
+  woodcut border, fatimamovement watermark) and is **duplicated at leaves 0 and 2**, on a 1633 body. Made-up
+  copy vs composite digitisation — discriminator = blank-paper test vs B's title page. NOT guessed.
+* **WHY MISSED**: the independence test was run **against B** and returned noise — read as "F is an
+  independent 1582 copy" when it licensed only "F is not B". The contemporaneous note *"different text,
+  different signature series"* IS this finding, misread as different COPY not different SETTING. R was never
+  tested against F because R was already filed as "the other edition". ⇒ **a test distinguishes exactly the
+  hypotheses it contrasts; filing a witness under a label removes it from the candidate set.**
+* **CONSEQUENCE: the NT has ONE witness to its own setting (B).** X = B upscaled; F = 1633; M = bitonal
+  prelims-only. Every NT redundancy assumption is void.
+
+### ✅ DONE (code, all tests pass)
+* `witnesses.py`: NT-F **year 1582→1633** (`wid` → `NT-1633-F`), full evidence in comment. NEW
+  **`setting()` / `witnesses_to(vol,year)` / `assert_same_setting()`**. Tree rebuilt **12/12**.
+* **NEW `witness/test_setting_guard.py`** — positive + **negative** (cross-setting collation REFUSED). PASSES.
+* **NEW `witness/test_counts_vs_doc.py`** — parses §1.1 table, compares to registry (wid/leaves/primary).
+  12/12 agree; **negative case proven** (injected 811 → FAIL, restored).
+* **NEW `witness/audit_gt_rasters.py`** (R7, prior in session) — 48/51 GT files on inadmissible rasters.
+
+### ✅ DONE (docs)
+* **§1.1 REWRITTEN**: table now keyed by **setting** (4 settings, 12 records, 11 files); fixed `S06` primary
+  = **PDF** (was wrongly JP2); added **OT-1635-M** row; added per-setting witness counts.
+* **§1.1a**: sigla `NT-1633-F`; **`excluded (upscale)`** explained w/ numbers (0.0002 vs B's own 0.0074–0.0097
+  top octave); **NEW "Retired terms"** table (structure only · rehost/unidentified · modern facsimile);
+  "On F" restated **per volume** (OT1 yes / OT2 yes / NT 1633-only).
+* **§1.1b**: NEW **OT2 F-vs-P accounting** (P 2+1135+9=1146 · F 0+1128+0=1128 · B 11+1137+2=1150; residual =
+  endmatter tables → R3.5b). NT subsection replaced — 36-leaf question was **malformed**.
+* **§1.1c NEW** — the whole 1633 finding.
+* **§1.4**: RECLASSIFIED header — foxing stands, but it's **same-edition supply** not cross-edition
+  contamination. Conclusion (only M carries those 2 leaves in 1582) unchanged and better founded.
+* **Roadmap R8 NEW** (R8.1/8.2/8.5 DONE; **R8.3** title page, **R8.4** re-audit ALL 12 settings, **R8.6** 9
+  GT files from archive-nt-1582 mislabelled 1582). **R3.5 DISSOLVED** (malformed).
+
+### 🟢🟢 R4.1 STC/ESTC **RESOLVED** — from the holding libraries' own MARC, via IA `references`
+**`curl -sL https://archive.org/metadata/<id>` → `metadata.references`.** Had this locally all along.
+* **NT 1582** (`nevvtestamentofi00mart`, BPL): **`ESTC S102491; STC (2nd ed.) 2884; Darlow & Moule (2001
+  reprint ed.) 134; Herbert 177; Allison & Rogers II, 173`**. LCCN **16019327**. Sigs `a-c⁴ d² A-5D⁴ 5E²`.
+  ⇒ **settles the S102419 vs S102491 one-digit disagreement: it is S102491.** (Dealer/auction sources say
+  S102419 — secondary, do NOT promote.)
+* **OT 1609-10** (`holiebiblefaithf00mart_0`, BPL): **`STC (2nd ed.) 2207; ESTC S101944; Darlow & Moule 300`**.
+* Also from BPL MARC: **BPL's NT = call no. G.404.11** (OT = G.404.12) → refines §1.3. Vol.1 [20],1115,[1]p;
+  vol.2 1124,[2]p. OT2 has **pp.1001-1004 repeated** and **1003-1004 misbound between 994 and 995**.
+* ⚠️ **Only ONE institutional authority so far.** R4.1c requires **two**. ESTC still `HTTP 400 no such index`;
+  USTC 404, Virginia JS-only, Jisc 403, LC `search.catalog.loc.gov` 403. **Next**: get authority #2 from
+  Princeton/other MARC, OpenLibrary JSON, or a Folger/Bodleian record. **Do NOT write into §1.3 until 2.**
+
+### 🟢 NEW ACQUISITION TARGET — a THIRD 1582 NT copy (directly fixes "NT has one witness")
+**IA `thenewtestamento00rhei`** — **Princeton Theological Seminary, call no. 13737**, year 1582,
+scanningcenter `nj`, imagecount **732**, OCLC 1085602973.
+**Has `_orig_jp2.tar` 687.3 MB** (continuous tone) + `_jp2.zip` 479.1 MB + pdf 61.5 MB.
+Defective: *"Lacks pages before p. 9, 205-6, 337-8, 373-4, 423-4, 461-2, after 742."*
+⚠️ **MUST setting-verify by the R8.4 method BEFORE admitting** — do not repeat the F error. ("after 742" is
+consistent with the 1582's own pagination, where B has Apoc. ch. XXII at 743 — promising but NOT proof.)
+
+### ✅ SESSION 9 CLOSED OUT (2026-08-06) — 3 commits, all tests green
+1. ✅ **COMMITTED `2474464`** — witnesses.py + 2 new guards + MASTERPLAN + ROADMAP. All 4 checks re-run green.
+2. ✅ **COMMITTED `a74ca25`** — companions reconciled. WALKTHROUGH/OVERVIEW/EXEC-SUMMARY now carry the 1633
+   finding; NT row loses its low-res-witness slot, `NT-1633-F` filed as support beside `NT-1633-R`; counts
+   8+1 → **7 own-setting + 2 support** (11 files / 10 witnesses unchanged). Overview's "**it governs**" claim
+   quoted-then-withdrawn (OT half stands on its original evidence). Exec-Summary open-items rewritten with
+   the MARC result. Roadmap R3.5 retained body marked **not to be executed**.
+3. ✅ **COMMITTED `fa90af9`** — Session 9 devlog + **R8.6 partly discharged in CODE**:
+   `audit_gt_rasters.py` was reporting the 9 NT-F files under F's **resolution** bar. `BARRED` was keyed on
+   **siglum alone** = the original error in miniature (a copy does NOT have one character across volumes).
+   Added `TRANSCRIBED` + `attests_transcribed_setting()` → audit prints **`WRONG SETTING` first**. Returns
+   **`None` not `False`** for the `OT`/M pseudo-volume (admitted *because* it's another edition); test
+   asserts that distinction. **9 flagged, no others** — independently corroborates the scratchpad's 9.
+
+4. ✅ **COMMITTED `2055ed9`** — two defects found by chasing a *killed background-task notification*
+   (2 waiters polled `originaldr/.scratch/inventory`, real path is `originaldr/ocr-spike/.scratch/inventory`
+   — missing a dir level, would NEVER have fired; the inventories had in fact completed Aug 5 20:48):
+   * **`reconcile_counts.py` computed deltas ACROSS settings** → printed `NT-1633-F −36` vs the 1582 base =
+     the exact malformed number dissolved R3.5 chased. `assert_same_setting()` existed and **this consumer
+     never called it**. ⇒ *a guard nothing calls guards nothing.* Now grouped per setting.
+     **NEW well-formed number: F −5 vs R within 1633** (765 vs 770) → recorded as **R3.5c**.
+   * **Inventories keyed by `wid()` (carries year)** ⇒ re-sigla ORPHANED `NT-1582-F.json`; miss printed
+     `(inventory not yet built)` = R1.4 fault (unmeasurable reported as measured). Now prints **STALE** +
+     names the file. Artefact **re-keyed** (NOT rebuilt — only the label moved, 765 leaves preserved).
+   * ✅ Side-benefit: reconcile output confirms the **R1.4 classifier fix works** (F/X rows show `n/a` +
+     `[BLANK/SPARSE unresolvable]`, not 0). That was the verification the killed waiters were meant to do.
+
+## 🟢 SESSION 11 CLOSED (2026-08-07) — 3 commits, all guards green
+`e2df106` R8.4a + R8.8 + 6 doc corrections + **Gate 0e** · `a20c533` **R7.5** · `ea843c9` companions+devlog
+
+### What shipped
+* **R8.4a — the setting audit read only 4 of §0.3's 5 criteria.** Signature+catchword sit at the leaf FOOT;
+  `verify_setting.py` cropped the top 16%. Instrument raised to the constitution, NOT vice versa. Foot band
+  added. All 4 settings hold: NT1582 p149 `T iij`/`bes` (B,M,X) · NT1633 p147 —/`CHAP.` (F,R) ·
+  OT1 p223 —/`wil` (B,P,F) · OT2 p243 `Gg2`/`† Let` (B,P,F). Catchword completes the caught-up word each time.
+  🟢 **NEGATIVE CONTROL = the sharp result**: p.147 B(1582) vs R(1633) share page no. AND running head
+  *ACCORDING TO S. LVKE*, differ at foot (`T ij`/`30. Paſſing` Luke 4:31 vs `CHAP.` Luke 7:44).
+  ⚠ **LIMIT: foot verified at ONE page per setting** (head pass used ≥3) → **R8.4b OPEN**.
+  ⚠ Band cost 4 failed designs, each failing the SAME way (blank paper or wrong glyphs, both read as
+  findings): fixed fraction (margins differ 0.10/0.18/0.22 per witness) · anchor-on-last-ink (dog-ear, F's
+  183-row black band, fatimamovement watermark) · threshold tuned on full lines prunes the SHORT catchword ·
+  pitch as white-gap understates 3x. Working: anchor last REGULARLY-SPACED type line, sample RIGHT of centre
+  (watermark is lower-left), extend 5 of the leaf's OWN pitches below → catchword GUARANTEED IN VIEW, a
+  person reads it. Instrument puts pixels in front of a reader; it does not adjudicate them.
+* **R8.8 `test_verification_standard.py`** — roadmap's own command block claimed `10/10` (tree=12/12) and
+  named NO guards. Now parsed + bound to reality. Also fixed: R0.1 "10 files"→11, R0.2 10/10→12/12, §2
+  "independence for all eleven files" **WITHDRAWN**, Gate 0a(iii) listed blocking though R4.3 discharged it,
+  R4.1 MARC result (was exec-summary only) → **R4.1d DONE / R4.1e needs authority #2**.
+  ⚠ BPL citation strings RE-FETCHED and diffed — my working-notes copy had normalised punctuation in a row
+  labelled **verbatim**. Fetch, don't recall.
+* **NEW Gate 0e** — setting identity proved per witness. Gates 0a–0d guard fields KNOWN uncertain; 0e guards
+  the one that was NOT known uncertain, the only kind that costs months.
+* **R7.5 DISCHARGED — `OCR_DIR_TO_JP2` DELETED**, not corrected. ocr_dir → WITNESS → its own raster.
+  NEW `witnesses.glyph_source()` (≠ `pixel_source()`: the latter refuses M, whose corrupt jp2 + real CCITT
+  PDF means the PDF *is* primary → per-leaf lazy extraction; M holds the only genuine 1582 Censure/Preface).
+  `BARRED` → `witnesses.GLYPH_BARRED` (audit imports it). `jp2-S04` now → `newtestamentofie00engl_jp2`
+  (was the **RETIRED MRC composite**; both paths existed on disk so nothing ever failed). `jp2-S09ot2` −1
+  offset asserted by test. **Default STRICT**: `structure=True` must be passed for page-order use.
+  Retired attr raises **with its reason** (defect + 4 wrong entries + replacement API + roadmap step).
+
+### 🔴 THE LESSON OF THE SESSION — my own guard had a hole
+First `test_raster_routing.py` checked "whatever is barred refuses pixels" → **PASSED when I deleted F from
+the bar list** (un-barring merely moved F to the other branch). **A self-consistent check constrains nothing.**
+Same shape as the original error (F-vs-B licenses only "F is not B"). Now asserts bar set == exactly {F,X}.
+**Found by INJECTION, not by reading the code.** Negatives injection-proven: 4 (R8.4a), 4 (R8.8), 4 (R7.5).
+
+### ▶️ RESUME HERE (Session 12)
+1. **R7.5b** — 6 named call sites read the deleted attr: `ocr_complete_volume`, `integrity_sweep`,
+   `build_tome_map_v2` (**structure**), `tome_map_audit` (**structure**), `source_inventory_audit` (wants the
+   SET → use `OCR_DIR_TO_WITNESS`), `curated_sources` (→ **R7.5c**, a 3rd hand-synced copy of the map).
+2. **R7.5a** — **113,514 records carry `jp2-S06`**, which names a FILE spanning 2 settings 53 yrs apart. Now
+   RAISES; re-key to `jp2-S06nt` / `jp2-S06ot`. Overlaps R8.6.
+3. **R8.4b** — extend foot criteria to ≥3 separated points per setting.
+4. R7.1–R7.4 (48/51 GT files still inadmissible) · R8.3 · R8.6 · R8.7 · R4.1e (authority #2) · R3.5b/c ·
+   **R2 is "NEXT" and nothing is built.**
+
+### Guard suite — run from `ocr-spike/` with `../ocr-venv/bin/python witness/X.py`
+`make_witness_tree`(12/12) `test_primacy_guard` `test_setting_guard` `test_counts_vs_doc`
+`test_setting_verified` `test_raster_routing` `test_verification_standard` → **all exit 0**.
+`audit_gt_rasters` → **exit 1 = HEALTHY** while R7 is open (48/51, 9 WRONG SETTING). An audit that starts
+passing before its remedy lands means it stopped looking.
+
+### ⚠️ Roadmap now has a **Status index + open-items register** at the top — the register is AUTHORITATIVE
+over prose elsewhere in the file. File order is R0,R1,R2,R3,R4,R6,R3.5,R5,R7,R8 (renumbering rejected: the
+ids are cited from 6 guards, masterplan, companions, every devlog entry — ids load-bearing, order is not).
+
+## (superseded) SESSION 11 AUDIT — findings below, all now actioned
+**No repo edits made this turn** — findings only, all recorded below. Working tree clean as of `061ee6b`.
+Task = Sir's 12-step pattern. Steps 1 (review) DONE for both docs; steps 2–12 NOT started.
+
+### 🔴🔴 FINDING 1 — **R7.5 IS NOT DONE. The defect is STILL LIVE.**
+`ocr-spike/jp2_page.py` line 15: **`OCR_DIR_TO_JP2` is still present and still routing** (used at lines
+50, 53, 114). Commit `c44ba20` *verified* this table is the mechanism that routed 48 transcriptions to the
+wrong image — **verifying a defect is not retiring it.** Two routes to the pixels, only one guarded.
+Current bad routes (confirmed by reading the file this session):
+* `archive-nt-1582` / `archive-ot1-1609` / `archive-ot2-1610` → **S01 jp2 (F — barred, and NT-F is 1633)**
+* `jp2-S08` → S08 jp2 (**X — excluded witness**)
+* `jp2-S06` → `Douay-Rheims-1610-Bible_jpg` = **JPEG 2550×3301 render**, NOT the CCITT in S06.pdf
+  ⚠️ NOTE: S06's jp2 dir is genuinely corrupt (renamed `..._jp2_broken`); `fetch_s06_jpg.py` re-acquired
+  2872 leaves as JPEG. So this entry can't simply be deleted — S06 needs routing to the **PDF CCITT**.
+* `jp2-S04` → `S04_1633-rheims-nt/1582 Douay Rheims NT_jp2` = **retired MRC composite**, while
+  `pixel_source()` returns `newtestamentofie00engl_jp2` (the acquired Princeton original).
+* Also holds `JP2_INDEX_OFFSET = {"jp2-S09ot2": -1}` — a VERIFIED off-by-one that must survive any rewrite.
+**FIX = route every caller through `witnesses.pixel_source()`; keep the S09ot2 offset; S06→PDF CCITT.**
+
+### 🔴 FINDING 2 — §0.3's setting test ≠ what R8.4 actually implemented
+§0.3 (CONSTITUTION) defines setting identity as **"same signature, same catchword, same line-end words.
+Identical ⇒ same setting. Setting identity is proved, never assumed."**
+My R8.4 audit used **printed page number + running head + sidehead + line breaks**. So:
+* line-end words ✅ (compared line-for-line) · **signature ❌ NOT checked** · **catchword ❌ NOT checked**
+⇒ R8.4 is *stronger* on one axis (page numbers, which §0.3 omits) and **silently weaker on two**.
+Not a wrong result — the 11 verifications stand — but the METHOD deviates from the constitution unstated.
+**FIX**: either (a) add signature+catchword to `verify_setting.py` probes and re-verify, or (b) amend §0.3
+to the criterion actually used and justify why page-number beats catchword. **(a) is the honest one.**
+⚠️ Blocked-ish: signatures need R2.1 (unimplemented) for machine reading, but can be read by eye from the
+FOOT of the leaf — my crop only takes the **top 16% (HEAD_FRAC)**. Catchword + signature are at the **FOOT**.
+⇒ cheap fix: add a foot-crop band to `verify_setting.py`.
+
+### 🔴 FINDING 3 — §2 has NO GATE for setting identity
+§2 "WHAT MUST BE ESTABLISHED BEFORE STEP 0" lists Gate 0a (biblio), 0b (completeness/collation),
+0c (leaf map), and 0d (derivative contamination, via R5.2) — **and nothing for setting.**
+The exact failure that cost 4 months has no gate in the section that exists to prevent such failures.
+**FIX: add Gate 0e — setting identity proved per witness (discharged by R8.4 + test_setting_verified.py).**
+
+### 🟠 FINDING 4 — STALE COUNTS (doc-vs-reality drift; nothing guards the ROADMAP)
+* R0.1 acceptance: *"registry leaf counts equal on-disk counts for all **10 files**"* → **11 files / 12 records**
+* R0.2 acceptance: *"leaf counts match registry (**10/10**)"* → **12/12**
+* Roadmap §"Verification standard" command block: says `make_witness_tree.py -> **10/10 verified**` → **12/12**,
+  and **omits all four guards** (`test_primacy_guard`, `test_setting_guard`, `test_counts_vs_doc`,
+  `test_setting_verified`) **and** `audit_gt_rasters.py`. The standard says "a step is DONE when its
+  acceptance test runs and passes on demand" — and then lists a stale, incomplete command set. Self-undermining.
+* §2 "Resolved" para: *"witness independence for all eleven files"* — **stale**, that's the very claim R8
+  overturned for NT-F. Must be restated as "independence re-established per §1.1c/§1.1b".
+
+### 🟠 FINDING 5 — §2 lists ALREADY-RESOLVED items as "Outstanding, and blocking"
+* Gate 0a **(iii)** *"Identification of the fourth source supplying NT/S08's two frontmatter leaves"* —
+  **RESOLVED**: R4.3 DISCHARGED, it is `M` (§1.4, +0.424/+0.398 diagonal). §2 still lists it as blocking.
+* Gate 0a **(i)** repository for the four S01 + NT/S08 — R4.2 **DONE** as an explicit *NOT ESTABLISHED*
+  verdict (X's is known by identity = BPL G.404.12). §2 doesn't reflect the split (R4.2 done / R4.2a open).
+
+### 🟠 FINDING 6 — R4.1 MARC advance never written into the ROADMAP
+Session 9 got `ESTC S102491; STC 2884` (1582 NT) + `STC 2207; ESTC S101944` (OT) from **BPL's own MARC via
+IA `metadata.references`**, settling the S102419-vs-S102491 digit. I wrote this into the **Exec Summary
+only**. Roadmap R4.1 still reads *"BLOCKED EXTERNALLY … None is promoted"* with the digit unresolved.
+**FIX**: add R4.1d (holding-library MARC via IA `references`) as the route that worked; keep "2 authorities"
+rule — still need authority #2, so nothing is promoted into §1.3 yet.
+
+### 🟡 FINDING 7 — unimplemented steps confirmed by inspection (not assumed)
+* **R2.1 signature reader / R2.2 printed-page-number reader: DO NOT EXIST** (`ls witness/` — no such file).
+  ⚠️ NOTE: `verify_setting.py` is effectively a **manual precursor to R2.2** — I read page numbers by eye.
+  R2.2 should be built to *reproduce* the readings in `witness/setting-readings.json` = a ready-made test set.
+* **R5.1 raster manifest per witness: DOES NOT EXIST** (only unrelated `.gt-batch-manifest.json`,
+  `.rung2-data/*manifest*`). R0.2's tree `MANIFEST.json` is a different artefact.
+* **R7.4 GT-record raster assertion + negative test: DOES NOT EXIST** (`witness/test_*.py` = only the 4 guards).
+  `audit_gt_rasters.py` is the *audit*, not the per-record assertion R7.4 specifies.
+* R2 marked "Status: NEXT" — still accurate.
+
+### 🟡 FINDING 8 — Roadmap section ORDER is scrambled
+File order: R0, R1, R2, R3, R4, **R6**, R3.5(dissolved), **R5**, R7, R8. R5 sits after R6/R3.5. Navigational
+only, but this doc is the execution reference. **FIX: reorder or add a status index at the top.**
+
+### 📋 OPEN-ITEMS REGISTER (draft — to be written into Roadmap as a new section)
+**OPEN**: R2.1 R2.2 R2.3 R2.4 · R3.1 R3.2 R3.3 R3.4 · R3.5b R3.5c · R4.1(needs auth #2) R4.2a R4.5 R4.6 ·
+R5.1 R5.2(no negative test proven for R5.2 specifically) · R6.3b R6.3c · R6.4-remainder(OT2/1610 prelims,
+endmatter Tables, body rewording) · R6.6a R6.6b R6.6c R6.6d · R7.1 R7.2(1 of 4 done) R7.3 R7.4 **R7.5** ·
+R8.3 R8.6 R8.7
+**DONE**: R0.1–R0.5 · R1.1–R1.6 · R4.2 R4.3 R4.4 · R6.1 R6.2 R6.3 R6.3a R6.5 · R6.4(tome 1) ·
+R8.1 R8.2 R8.4 R8.5
+**DISSOLVED**: R3.5
+
+### ▶️ RESUME PLAN (steps 2–12 of Sir's pattern)
+1. Write open-items register + fix Findings 4/5/6 stale text into **Roadmap**; add **Gate 0e** to §2.
+2. Fix §0.3-vs-R8.4 gap: add FOOT-crop (signature+catchword) to `verify_setting.py`, re-probe ≥1 matched
+   page per setting, update §1.1b + `setting-readings.json`. **Do NOT weaken §0.3 to match what I did.**
+3. Implement **R7.5** (the live defect): route callers through `pixel_source()`; preserve
+   `JP2_INDEX_OFFSET` S09ot2 −1; S06 → PDF CCITT via `extract_pdf_leaves.py`.
+4. Add a guard binding the Roadmap's "Verification standard" command block to reality (same pattern as
+   `test_counts_vs_doc`) so Finding 4 cannot recur.
+5. Companions (Walkthrough/Overview/ExecSummary) + DEVLOG Session 11 + commit + PM report.
+
+## 🟢 SESSION 10 — **R8.4 DONE. 11/12 settings VERIFIED, no second mis-filing.** Commit `061ee6b`.
+* **Method** = printed page + running head + sidehead + line breaks at same PRINTED PAGE vs same-setting
+  partner. `witness/verify_setting.py` (head-crops, probes 22/42/62/82% + targeted second pass).
+  ⚠️ Leaf offset explicitly NOT accepted as proof (binding property; OT2-B's drifts 10→12).
+* **Matched pages**: NT1582 B/M/X @149,309,469,629 · NT1633 F/R @147(+332,530,682,690) ·
+  OT1 B/P/F @223,457,919 · OT2 B/P/F @243,473,931. Line-for-line incl. MARGINALIA.
+* 🟢 **NEGATIVE CONTROL** (the valuable bit): p.147 same running head *ACCORDING TO S. LVKE* → B=Luke 4:31,
+  F/R=Luke 7:44. Method demonstrably separates settings.
+* **`OT-1635-M` = UNVERIFIABLE, not unverified** — sole record of its setting, no partner. Rests on colophon
+  M.DC.XXXV + 1634 privilege. In `SOLE_WITNESS` list; test FAILS if a partner ever appears.
+* **NEW `witness/test_setting_verified.py`** — fails if any registered witness has NO readings (absence
+  presents as absence = R1.4 applied to provenance). Negatives proven by injection, exit 1 checked.
+* 🔴 **THE GUARD CAUGHT MY OWN OVERCLAIM**: §1.1b draft credited OT1-B with pp.222/224/918/920 — read on
+  P and F crops, B never probed there. `verified_pairs` was hand-authored + unchecked ⇒ added check that
+  every claimed page is in BOTH witnesses' readings. B's real figure = 3 shared points, not 7.
+  *Conclusion unchanged, number wrong — different things.*
+* **Readings recorded as DATA**: `witness/setting-readings.json` (leaf→page→head per witness).
+* Docs: §1.1 setting column now evidence-not-attribution; **§1.1b = full mini-report** (method, evidence,
+  4 honest limits, R8.7); companions + roadmap R8.4→DONE; devlog Session 10.
+
+### 🔴 RESUME HERE (Session 11)
+0. **R8.7 (NEW)** — `NT-1582-M` and `NT-1582-X`: same leaf count (800) AND same leaf→page map at every
+   probe, while B runs +5. Same-setting doesn't require that. **Not asserted either way.** Existing record
+   argues AGAINST shared source: B lacks Censure+Preface p.1, M carries them and supplies them to X — a file
+   can't supply what it derived from. **Test that argument BEFORE new measurement.**
+   ⚠️ M is bitonal CCITT ⇒ grayscale NCC vs continuous-tone = **DEAD METRIC** (0.067 for two genuine 1582
+   title pages). A null from it is NOT evidence.
+
+### (superseded) Session 10 queue
+1. **PM report to Sir — answers drafted below, DELIVERED verbally at end of Session 9.** No file artefact.
+2. **R8.4 — re-audit ALL 12 settings. 11 are UNCHECKED, not sound.** Highest priority: the error was found
+   by accident, not by a test, and no witness's setting was ever verified against a same-setting partner.
+   Method (minutes each): printed page no. + running head at ≥3 separated points vs known-good partner.
+3. **R8.6 remainder** — the 9 GT files are now *detected*; they still must be **re-filed as 1633 or re-read
+   on `B`**. None may be cited meanwhile.
+4. **R8.3** — F's title page: genuine 1582 Fogny, duplicated leaves 0 & 2, on a 1633 body. Made-up copy vs
+   composite digitisation → blank-paper test vs B's title page.
+5. **R4.1 authority #2** — have BPL MARC (S102491 / S101944). Need a 2nd *institution's* record. Try
+   Princeton MARC via IA `references`, OpenLibrary JSON, Folger/Bodleian. **Do NOT write §1.3 until 2.**
+6. **Acquire + setting-verify `thenewtestamento00rhei`** (Princeton 13737, 732 imgs, has `_orig_jp2.tar`).
+   ⚠️ **Verify BEFORE admitting** — do not repeat the F error.
+7. **R3.5c (NEW, well-formed)** — attribute F's **−5 leaves vs R within the 1633 setting** (765 vs 770).
+   Two copies of ONE edition ⇒ every leaf has a nameable cause. Inherits R3.5's acceptance criterion.
+8. R7.1–R7.5 remainder (re-read GT on admissible rasters).
+9. ⚠️ **`NT-1582-M` inventory genuinely not built** (true absence, not stale) — build it for R8.4.
+
+### SIR'S 10 QUESTIONS — status for the report
+1. Planned in Roadmap? mostly YES (R0/R4/R6/R7/R8) — **gaps now filled by R8**.
+2. Incomplete: R8.3, R8.4, R8.6, R4.1 (2nd authority), R3.5b OT2 endmatter, R7.1–7.5.
+3. Already done? **YES, much** — §1.1/1.1a/1.1b, S06, Fatima, ourladyisgod, R4.3 all done Sessions 4–6.
+   **Reuse+revise**, not replace.
+4. Devlog? Sessions 4–8 recorded; **Session 9 outstanding**.
+5. S06: **NOT a modern facsimile, and NOT 1633** — 2007 Maximus Scriptorius print-on-demand of
+   **photographs of originals**; OT = **1635 Rouen Cousturier**, NT = **1582 Rheims Fogny**. (1633 = S04/R,
+   a different item.) Excluded from verse text, admitted for prelims/endmatter. Collation =
+   `COLLATION-1635-vs-1609.md` (structure identical; ~24 marginal notes 1:1; Approbatio verbatim incl.
+   `Duaci 8. Nouembris. 1609`; changes orthographic, NOT a modernisation programme).
+6. Terms: **all now defined** in §1.1a + retired-terms table.
+7. F subordination: **corrected Sessions 5–6**; OT1 F = P leaf-for-leaf (same 1132-leaf block). **BUT** the
+   "F more complete in the NT" claim is now **WITHDRAWN — F's NT is 1633**. Sir's stronger claim ("more
+   complete/original/reliable than Princeton or Boston") holds for **OT** (equal to P, not less) and
+   **fails for the NT** (different edition). Say so plainly.
+8. §1.1b leaf counts: OT1 done (11-leaf diff = 5 library apparatus + 6 targets − 1 dup t.p. − 1 blank, **zero
+   text**); **OT2 added this session**; NT dissolved as malformed.
+9. ourladyisgod: **NO better** — 800×1124, NCC 0.996–0.998 vs S01-OT1, same PDFs. Fatima Movement property.
+10. Open items: **R4.3 already resolved** (X's 2 leaves come from **M**); **STC/ESTC now resolved from BPL
+    MARC, pending 2nd authority**; **S01 physical copy = privately held by Fatima Movement** (determinate,
+    §1.3) — the only genuinely open part is its pre-Fatima history, which no catalogue supplies.
+
+### METHOD NOTES (reuse)
+* **Setting verification = printed page number + running head at ≥3 separated points, vs a known-good
+  same-setting partner.** Cheap, decisive, and it is what nobody ran for 4 months.
+* Blank-paper (foxing) NCC discriminates same-COPY from same-SETTING. **Must verify the strip is actually
+  blank** — the 0.62–0.95 box used for Censure leaves is TEXT on ordinary leaves (my first run was invalid).
+* M is bitonal CCITT ⇒ **grayscale NCC vs continuous-tone scans is a DEAD METRIC** (0.067 even for two
+  genuine 1582 title pages). Don't read a null from it.
+* ⚠️ I wrote a backup to `/tmp` this session — **policy violation**. Use `.claude/scratch/` or the project.
+
+## 🟢 SESSION 8 — R6.5 DONE + **R7 NEW (BIG)**. COMMITTED `8e02f8b`.
+
+1. **R6.5 was already transcribed** (`matter-ot2-privilege-du-roi.json`, 2026-07-20) — **from the S06 jp2,
+   a 1.73× render of the CCITT**. Re-read on the primary; **3 readings change**, 2 of them the spans the
+   file itself flagged unresolvable:
+   * `d. Roüen` → **`de Roüen`**. Gap d→R = **46px**; word spaces on that line 27/29/27; the line's own
+     `e` = 22px (22+27≈49). **Negative control: a real period on this page = 10×12px; the mark = 3×2px**,
+     1/25 the area, at baseline where an `e` bowl bottoms. Not a period — the `e` failed to ink.
+   * `Marchans` → **`Marchands`**. Between n and s: baseline blob 8×7 **+ a 6×42 full-ascender stroke**.
+     An i-height stroke can't reach ascender height ⇒ `d` ascender + failed bowl foot.
+   * `Donnees` → **`Données`** (acute solidly inked, never previously flagged).
+2. 🔴🔴 **R7 — `witness/audit_gt_rasters.py` (NEW, exit 1 while any remain): 48 of 51 ground-truth files
+   were read from an INADMISSIBLE raster.** 39 from **F** (barred, ~168ppi), 6 from **X** (the *excluded*
+   witness), 3 from M's jp2. **ZERO from B (~545ppi) or P (~411ppi)** — the base exemplar and surrogate.
+3. **Claim stated precisely: NOT "48 files are wrong" — their glyph calls are UNVERIFIED.** Two spot-checks
+   moved the state BOTH ways: on M, 3 readings changed; on **B**, `matter-ot1-approbatio`'s two flagged
+   uncertainties **resolved and CONFIRMED** (`Vniuerſitate` worn-r plainly present; `Duacena` genuine, not
+   a worn `Duacenſi`). **Unverifiable ≠ wrong.** Nothing withdrawn on suspicion.
+4. **Third instance of ONE defect class** (vv→w flip · `d. Roüen` · `Marchans`): rule right, observer
+   careful, **image derived**. Mechanism: **upscaling manufactures the feature the call depends on.**
+5. **Remedy needs NO acquisition**: F→re-read on B/P · X→on B-NT (X *is* B-NT upscaled) · M→on the CCITT.
+   Only real ceiling = the 2 NT leaves B lacks. **R7.4 is the one that stops recurrence** — `pixel_source()`
+   guards *pipelines*; a person reading a PNG never touches it, so the guard must sit on the GT record.
+
+### 🔴 RESUME HERE
+1. **R7.1/R7.2** — re-read the 6 `X`-based NT files on **B**, and the 3 remaining `M`-based on the CCITT.
+   Cheapest first, and X→B is free (same scan, true raster). Retain `*.pre-primary-raster` backups.
+2. **R7.4** — GT-record raster assertion + **negative test** (a file declaring a render-derived raster must
+   FAIL). Same standard as R5.2: a guard that never rejected anything isn't known to work.
+3. **R6.6a** — re-adjudicate the 33 flipped lines on B/M, never F. (Now a *subset* of R7.3.)
+4. **R7.3** — the 39 `F`-based files on B/P. Report any locus neither holds; never silently fall back to F.
+5. **R6.4 remainder** — OT2/1610 prelims; endmatter Tables. R3.5 — NT's 36-leaf difference (needs R3.2).
+6. Pyright noise in `extract_pdf_leaves.py` / `audit_gt_rasters.py` (fitz/witness unresolved) = LSP not
+   using `ocr-venv`; runtime clean. Not a defect.
+7. 🔴 **R7.5 (VERIFIED, not assumed)** — `jp2_page.py`'s `OCR_DIR_TO_JP2` keys **ARE** the GT files'
+   `ocr_dir` values ⇒ that table is literally what routed 48 transcriptions to the wrong image. Not just
+   the docstring: `archive-*`→S01 jp2 (F, barred) · `jp2-S08`→S08 jp2 (X, excluded) · `jp2-S06`→S06 **JPEG**
+   300dpi render (not the CCITT) · `jp2-S04`→the **retired MRC composite**, while `pixel_source()` returns
+   `newtestamentofie00engl_jp2`. **Two routes to the pixels, only one guarded — that's the defect.**
+
+**Repo** `/Users/nathanielcannon/Claude/Projects/palimpsest`, branch main. Commits this session `f0d7510`
+(R6.4), `8e02f8b` (R6.5+R7). Author flags:
+`--author="CannonCoPilot <177279335+CannonCoPilot@users.noreply.github.com>"` + `GIT_COMMITTER_EMAIL=` same.
+⚠️ Working tree carries ~200 stale `core/.scratch/originaldr-project/` deletions from the reorg — **stage
+explicitly, never `git add -A`.**
+
+### METHOD NOTES (reuse)
+* Contact sheets: `/private/tmp/.../scratchpad/wsheet.py <VOL> <SIG> <name> <idx...>` and `s06_sheet.py`.
+  S06 ink-profile scan: `s06_ink.py <lo> <hi>` (finds blank/section breaks; p2071 = OT/NT boundary).
+* **ProcessPoolExecutor + heredoc `<stdin>` FAILS under spawn** (BrokenProcessPool) — write script to file.
+* Comparing pages from differently-cropped sources: **crop to inked text block first**, then NCC.
+
+## 🔴 SUPERSEDES EVERYTHING BELOW ON RASTERS — primacy is PER ITEM (2026-08-05, late)
+Read IA's `source`/`original` fields per item (`https://archive.org/metadata/<id>`). The corpus splits:
+* **JP2-primary (5)**: S09nt, S09ot1, S09ot2, S03a, S03b — jp2zip derives from `_orig_jp2.tar` = capture originals.
+* **PDF-primary (5)**: S01×3, S08, **S04** — a user uploaded a PDF; **IA RENDERED the jp2 package from it.**
+  Renders: S08 **2.00×** (144dpi), OT/S01 **4.17×** (300dpi), NT/S01 1.00×. Ratio>1 = pure interpolation.
+
+**⇒ RETRACT the retraction: S01 IS 800×1124 in ALL THREE volumes.** The 3334×4684 figure was the 300-dpi
+render, not the source. Sampled pp.50/300/700/1000 — every page 800×1124. All 3 S01 PDFs **md5-identical to
+IA originals**. S01 disqualified on MEASURED resolution (~168 ppi), directly — the "upsampled because
+computed ppi exceeds S09's" argument is void (it rested on the render) but the verdict is unchanged.
+
+**⇒ S08 mechanism known**: its uploaded PDF holds JPEGs at **2955×4343 = EXACTLY S09nt's raster**; IA
+doubled it. S08 = the BPL scan at one remove. Repository = BPL G.404.12, by identity not own provenance.
+
+**⇒ 🔴 S04 IS THE EXCEPTION AND IT MATTERS MOST.** Its primary is an **IA-produced MRC PDF** ("Digitized by
+the Internet Archive" / "Recoded by LuraDocument"): bg 813×1141 JPX + fg 2439×3423 JPX + **1-bit JBIG2 text
+mask @400ppi**. The 3659×5134 jp2 is IA's render that COMPOSITES the mask → measures 213 grey levels / 91%
+midtone while the text layer underneath is bitonal. **"All ten continuous tone at source" is FALSE for S04.**
+S04 exists only to supply the Censure + Preface leaves (no genuine 1582 reading anywhere) → **no reading may
+be taken from S04 until the original is acquired.**
+**FOUND the original: IA `newtestamentofie00engl`** — Princeton Theological Seminary Library (matches the
+bookplate on S04's leaves), **call no. 13733**, OCLC 1049890088, scanningcenter nj, imagecount 776 (vs our
+772), **has `_orig_jp2.tar` 580MB continuous tone**. Downloading `_jp2.zip` (478MB) → `S04_1633-rheims-nt/`.
+
+**⇒ S01/S08 repositories = NOT ESTABLISHED, as a FINDING.** All 5 re-uploads are `folkscanomy` user uploads:
+no `scanningcenter`, no `contributor`, no `call_number`, no `external-identifier`. S01 ×3 uploaded
+2014-07-28 by `mrnobody@fatimamovement.com` (creator string names the 1793-dissolved college, NOT a holding
+repository — cannot be promoted). S08 uploaded 2017-12-12 by `jemlee15@gmail.com`. IA route is exhausted;
+the physical copies behind S01 need a non-catalogue approach (roadmap R4.2a, stays OPEN).
+
+**Code**: `witness/witnesses.py` gains `PRIMARY` / `PDF` / `NO_READING` + `pixel_source()` which RAISES for
+all 5 renders and for S04; `leaves()` stays open for structure (a render preserves page order).
+`witness/test_primacy_guard.py` — negative + positive test, **all checks pass**.
+**Lesson**: I checked four items, and the fifth (S04) was the exception that mattered. Check every item.
+**Committed 28e136b.** Inventory now 10/10; witness tree rebuilt 10/10 (NT-R → newtestamentofie00engl_jp2).
+
+## 🔴 SECOND DEFECT (same session) — CLASSIFIER ink thresholds were ABSOLUTE
+Full reconcile showed **all three F witnesses: lead=0, trail=0, blank-in=0**. Reads as "rehost stripped its
+blanks" — **it is NOT a finding.** Splitting test on the ink distributions:
+* F witnesses **min ink = 0.1963 / 0.1931**, p0.5 = 0.234, median 0.35–0.41. **ZERO leaves under 0.06.**
+* B/P witnesses min = 0.0000, 9–12 leaves under the 0.010 BLANK cut. Clear low mode.
+⇒ F's ink floor is **above B's MEDIAN (0.25)**. BLANK/SPARSE **can never fire** on F. The zero was the
+threshold's shape, not the book's. `label()` had made *saturation* witness-relative and left **ink absolute**.
+**FIX**: `label()` now tests `min(ink) < 0.5*median` first; if not resolvable → kind `TEXT?` + loud warning.
+`run()` summary now prints kinds PRESENT (was a fixed tuple → `TEXT?` would vanish while n stayed right) and
+asserts `sum(counts)==n`. `reconcile_counts.py` prints `n/a` + `[blank/sparse UNRESOLVABLE]` not 0.
+⇒ **F narrows further: page order YES, completeness NO.** Wanting/blank/supplied rests on B and P only.
+Roadmap R1.4/R1.5. Docs updated (masterplan §1.2, roadmap R1). **Re-running F inventories to verify.**
+
+## RECONCILE (before the fix; block deltas are unaffected by it)
+NT: B 812/lead5/block801/trail6 · F 765/0/765/0 · **R 778/2/770/6** · X 800/0/800/0 → deltas 0/−36/−31/−1
+OT1: B 1160/12/1146/2 · P 1146/2/1138/6 · F 1135/0/1135/0 → deltas 0/−8/−11
+OT2: B 1150/11/1137/2 · P 1146/2/1135/9 · F 1128/0/1128/0 → deltas 0/−2/−9
+**X block 800 vs B block 801**: consistent with X = B's block − 3 dropped + 2 supplied (Censure, Preface1).
+Hypothesis for the R3 leaf map — NOT asserted.
+⚠ Inefficiency noted, not fixed: F inventories run on the 3334×4684 renders = 17× the pixels of the real
+800×1124 source. Structural work only, so results valid, but slow for no benefit.
+
+
+## ✅ DONE THIS SESSION — reorg + 5 plan revisions, both committed
+
+### 1. REORGANIZATION (commit 2633cbb)
+`palimpsest/core/.scratch/originaldr-project/` → **`palimpsest/projects/originaldr/`** (tracked).
+Same filesystem = rename, layout preserved so 151 scripts still work. Fixed 21 files hardcoding old path.
+Verified: venv prefix resolves, kraken imports, `walkthrough.py --status` runs, board unchanged 0.9392.
+Tracking rule: **human-typed = tracked; script-emitted = not.** 97MB / 3904 files incl. **1848 hand-corrected
+`.gt.txt` line transcriptions**. Ignored ~11GB (venvs, models, rasters, arrow, audit dumps, logs).
+Left in .scratch deliberately: `audit_dr_boundaries.py`, `probe_3kings.py` (import palimpsest.verses = core work).
+
+### 2. PLAN REWRITE (commit d5b2458)
+`OCR-MASTERPLAN.md` + 3 companions, **fresh-project voice**, zero revision/round/reviewer language.
+Superseded docs → `ocr-spike/archive/` (V2, V3, both critique records) for provenance.
+
+## EMPIRICAL FINDINGS THAT CHANGED THE PLAN (measured, not assumed)
+* **S01 set = 800×1124 for ALL THREE volumes ≈ 168 ppi at leaf** (vs S09 650 ppi). long-ſ nub = 3–6px @650,
+  **<1.6px @168**. → S01 **structure-only, disqualified as base exemplar / training data.**
+* **NT/S08 is the ONLY continuous-tone scan** in the corpus — every other copy is MRC with 1-bit JBIG2 text
+  layer. → S08 = natural NT base.
+* **⇒ each volume has TWO usable copies, not three** (base + same-setting surrogate).
+* Page counts cluster by volume: OT1 1135/1140/1156 · OT2 1128/1134/1146 · NT 765/800/810.
+* Tome map has 11 admitted volumes; minus S04+S06 = exactly Sir's 9 files.
+
+## THE 5 REQUESTED REVISIONS — all applied
+1. **Pilot book = Micheas (OT2)**, 7 ch / ~7 leaves, all 3 copies, NO archaic witness, ~1 chapter-open per
+   leaf. Alts: Joel (3ch/5lv), Amos (9ch/11lv). Replaces Isaias(48ch)/Ecclesiasticus(53ch).
+   *(from real tome-map data: 17 zero-witness books enumerated)*
+2. **1630s excluded** — S04 (1633 NT) and S06 (1610 facsimile) out. ⚠ **The 2,872 S06 JPEGs I fetched last
+   session are now unused** — flagged to Sir.
+3. **Fresh voice** — verified by grep; only false positives remain ("critical edition", "authorial
+   revision", G1/G2 model v1/v2).
+4. **Archaic typeset census = new §4.1 + Gate 3**, before codec is fixed. All 18 requested sorts tabled.
+   Ambiguous rows flagged for inspection not assumption: tall-s vs long-s (likely one sort, 2 names);
+   doubled st/sl/ss entries; **"long-f" = long-ſ cut with FULL CROSSBAR instead of left nub — if attested,
+   needs own class, defeats nub-based discrimination.** Added note-reference marks (* † ‡ ¶) — apparatus is
+   half the book. **Sir was RIGHT on connected components** — conceded in §4.4 + exec summary §6: CC count
+   alone decides nothing, BUT closed ligature set ⇒ tiny hypothesis space + FP control by construction +
+   corpus-wide revisability. CC now = candidate detector within closed set.
+5. **Scope = CATMuS → VOLUME → FOUNT.** NO contradiction with FOUNT — it CORRECTS my "SOURCE" level.
+   **COPY is not a model level** (same setting, same type; differs only in image statistics) → **copies
+   pooled within volume as free augmentation.** Legacy ids (archive-/jp2-/pdf-) named acquisition not book,
+   and S01+S09 EACH contain all 3 volumes → "per source" would have pooled 1582 Rheims + 1609/10 Douai types.
+
+## BLOCKING NEXT (step 0)
+1. **Source concordance** — edition/STC/repository/shelfmark UNKNOWN for all 9. **Do NOT fill from memory.**
+2. **Typeset census** on Micheas leaves — closes ꝛ / brevigraph / blackletter together.
+3. **arXiv:2607.00596** unverified, load-bearing for geometry gate → resolve or delete.
+4. Drop-cap fix (18 cells) + page axis.
+5. Residue detector over already-walked Genesis chapters = Gate 2, scoreable against known defects.
+
+## CAMPAIGN STATE (unchanged)
+Board **5744/6116 = 0.9392**. Walks: ch23,39,41,5,10. `--next` = ch4. Standing order: every Genesis chapter
+<100% gets 1–2 full chapter-workflow efforts. Governing gate NOT ratified (needs blind adjudication n≥100).
+
+## PATHS
+Project `palimpsest/projects/originaldr/` · code `ocr-spike/` · python `../ocr-venv/bin/python`
+Scans `palimpsest/imports/Scripture/Bibles/DouayRheims_DR/sources/scans/`
+
+
+## 🔴 IN PROGRESS — SOURCE CONCORDANCE (step 0). Verified data below; DO NOT re-fetch.
+
+**Task**: build concordance for all 9 copies, then systematically select base exemplar(s).
+
+### ✅ VERIFIED from Internet Archive metadata API (`https://archive.org/metadata/<id>`)
+
+| copy | IA identifier | repository | call no. | IA date | publisher | OCLC | imagecount |
+|---|---|---|---|---|---|---|---|
+| OT1/S03a | `holiebiblefaithf01engl` | **Princeton Theological Seminary Library** | **12904** (vol 1) | 1609 | Doway: Laurence Kellam | 1046528383 | 1144 |
+| OT2/S03b | `holiebiblefaithf02engl` | **Princeton Theological Seminary Library** | **12904** (vol 2) | 1609 ⚠ | Doway: Laurence Kellam | 1046526166 | 1138 |
+| OT1/S09 | `holiebiblefaithf00mart_0` | **Boston Public Library** | **BS180 1609** | 1609 | Doway: Laurence Kellam, "at the signe of the holie lambe" | 1046521760 | 1158 |
+| OT2/S09 | `holiebiblefaithf00mart` | **Boston Public Library** | **BS180 1609** | 1609 ⚠ | Doway: Laurence Kellam | 1046539935 | 1148 |
+| NT/S09 | `nevvtestamentofi00mart` | **Boston Public Library** | **BS2080 1582** | 1582 | **Rhemes: Iohn Fogny** | 1049898667 | 812 |
+
+Creators (S09 set): Martin, Gregory (d.1582) translator; Allen, William (1532–1594) ed.; Bristow, Richard
+(1538–1581) ed.; Worthington, Thomas (1549–1627) ed.; Kellam. NT adds Foigny, Jean de (fl.1561–1587) printer.
+S03 set creator = "English College of Doway", sponsor MSN, scanningcenter nj. S09 = BPL, scanningcenter boston.
+
+**KEY INFERENCES (sound, from shared call numbers):**
+* **S03a + S03b are ONE two-volume set** — same repository, same call no. 12904.
+* **S09 OT1 + S09 OT2 are ONE two-volume set** — same repository, same call no. BS180 1609.
+* ⚠ **IA dates BOTH OT vol-2 records "1609"** — almost certainly inherited from the set/vol-1 title page.
+  The OT2 volume should be **1610**. **MUST verify from the vol-2 title page** before recording.
+
+### ✅ VERIFIED FROM THE LEAVES THEMSELVES (2026-08-05, jp2 packages — NOT the PDFs)
+
+**Method**: jp2 page files render directly via PIL; no PDF in the loop. Contact sheets in scratchpad
+`titlepages/`. THIS IS PRIMARY EVIDENCE — supersedes anything measured off the PDFs.
+
+1. **OT2 date settled = 1610.** Both OT-vol2 title pages read *"THE SECOND TOME OF THE HOLIE BIBLE …
+   Printed at Doway by LAVRENCE KELLAM, at the signe of the holie Lambe. **M.DC.X.**"*
+   (S03b leaf #5, S09ot2 leaf #11). The IA "1609" is inherited from the **approbation** date printed on
+   the next leaf (*"Duaci 8. Nouembris. 1609"*). **IA metadata is wrong; the leaf is right.**
+2. **S01 = a fatimamovement.com web rehost.** Every leaf of all three S01 volumes carries a
+   `www.fatimamovement.com` watermark + papal-keys device in the lower-left. Type is visibly
+   contrast-boosted / background-flattened = **digitally reprocessed derivative of unknown pipeline**.
+   → **S01 is disqualified on PROVENANCE (processing + watermark), which is a better and firmer ground
+   than the resolution argument — see the correction below.** S01v3 also duplicates its title page
+   (leaves #0 and #2, differently processed).
+3. **S08 has its title page** (leaf #0): *"THE NEVV TESTAMENT … PRINTED AT RHEMES, by Iohn Fogny. 1582.
+   CVM PRIVILEGIO."* Ends properly at #799 (*HARD WORDES EXPLICATED … LAVS DEO*). Complete, unwatermarked.
+4. **S08 made-up leaves = exactly 2.** Leaves #1 (Censure & Approbation) and #2 (Preface p.1) are
+   **741×966 / 771×1103 mode-L low-res substitutes** spliced from another source; the other 798 leaves are
+   5000–6000 px RGB. Contiguous scan blocks: #0 cover · #3–32 · #33–326 · #327–799 (three capture passes).
+5. **Repositories/shelfmarks confirmed physically**: S03b = **Princeton Theological Seminary**, bookplate
+   *"Donation of James Lenox Esq"*, shelf 1844, Case SCC, Book v.2 (leaf #2); catalog slip *"Bible.
+   English. 1609. v.2"* (#4). S09ot2 = **Boston Public Library**, armorial bookplate *NEC TEMERE NEC
+   TIMIDE*, second shelfmark **G.404.12 v.2** (leaf #2, and inked on #12) — distinct from BS180 1609.
+
+### 🔴 CORRECTION — TWO §1.2 "FINDINGS" WERE PDF-WRAPPER ARTEFACTS, NOT PROPERTIES OF THE SCANS
+The §1.2 raster table was measured with `pdfimages` on the **PDF derivatives**. Measured against the
+**jp2 packages** (the actual scans) both headline findings fail:
+
+* **"NT/S08 is the only continuous-tone scan; every other copy is MRC with a 1-bit JBIG2 text layer"** —
+  **FALSE at source.** All nine jp2 sets are RGB continuous tone; sampled mid-book leaf gives 203–252
+  distinct grey levels and 12–96% midtone pixels for **every** copy. The MRC/JBIG2 structure is created
+  by the **PDF wrapper**. → The binarisation loss §3.1 is built around is **an artefact we introduced**,
+  and is avoided simply by **working from the jp2s and never from the PDFs.**
+* **"S01 is 800×1124 ≈168 ppi across all three volumes"** — **FALSE for the two OT volumes.** Only
+  **NT/S01** is 800×1124. **OT1/S01 and OT2/S01 are 3334×4684** in the jp2 package. The PDFs were
+  downsampled derivations. → The resolution disqualification of S01 holds **only for NT/S01**; S01's OT
+  volumes are disqualified instead by the **watermark/reprocessing** finding above.
+
+**Measured jp2 rasters (modal size, n leaves):** NT/S01 800×1124 (765) · **NT/S08 5910×8686** (800,
+6 sizes) · NT/S09 2955×4343 (812) · OT1/S01 3334×4684 (1135) · OT1/S03a 2262×3116 (1146) · OT1/S09
+3092×4367 (1160, 23 sizes) · OT2/S01 3334×4684 (1128) · OT2/S03b 2196×2999 (1146, 16 sizes) · OT2/S09
+3151×4352 (1150, 28 sizes). Line pitch (band-passed row-autocorrelation, assumption-free — no physical
+leaf size needed): 22 · 271 · 106 · 95 · 66 · 88 · 90 · 66 · 88 px.
+⚠ ppi figures in §1.2 rest on an unstated physical leaf size — **do not propagate them**; use pitch.
+
+### 🔴🔴 NT/S08 AND NT/S09 ARE THE SAME SCAN — NOT TWO COPIES
+Dimensions are an **exact 2.000×** ratio (5910×8686 vs 2955×4343). Direct check:
+**NCC = 1.000 at leaf offset +5** (S08[400] vs S09[405]); next-best 0.685. **S09-NT is an exactly
+half-scale derivative of S08-NT.** ⇒ **The NT has ONE independent witness, not two** (S01-NT being a
+watermarked rehost). This breaks the "base exemplar + same-setting surrogate" pairing for the NT and
+must be resolved before base-exemplar selection.
+
+**✅ OT PAIRS CHECKED — the collapse is confined to the NT.** Two independent tests agree:
+
+*Aspect-ratio test* (decisive: a pure downsample preserves AR **exactly**, so dAR=0 + equal w/h scale
+factors is a duplicate signature):
+
+| pair | dAR | scale w / h | verdict |
+|---|---|---|---|
+| **NT/S08 vs NT/S09** | **0.00000** | **2.0000 / 2.0000** | **SAME SCAN** |
+| NT/S01 vs S08, S09 | 0.03134 | 0.135/0.129 | independent |
+| OT1/S01 vs S03a · vs S09 · S03a vs S09 | .0142 · .0038 · .0179 | unequal w/h | **independent** |
+| OT2/S01 vs S03b · vs S09 · S03b vs S09 | .0205 · .0123 · .0082 | unequal w/h | **independent** |
+
+*Cross-correlation* corroborates: NT/S08 vs S09 **NCC = 1.000 @ +5 at both probes**; every OT pair peaks
+at **0.14–0.34**, i.e. no alignment found — ordinary for independent captures with differing front matter.
+
+*Third corroboration — per-leaf size variance*: S09/S03a/S03b have **4–28 distinct leaf sizes** (variable
+per-leaf cropping = genuine independent capture). **All three S01 volumes have exactly ONE size** —
+uniform resampling, consistent with the fatimamovement rehost finding.
+
+⇒ **Witness count: OT1 = 2 independent (S03a, S09) · OT2 = 2 independent (S03b, S09) · NT = 1 (S08;
+S09-NT is its half-scale derivative, S01-NT a watermarked rehost).** The base+surrogate pairing survives
+for both OT volumes and **fails only for the NT** — which needs a decision (accept a single NT witness,
+or admit a new NT copy).
+
+### ✅ OT1 CONFIRMED 1609 + ALL PROVENANCE NOW LEAF-VERIFIED (except S08 repository)
+* **S03a #5 and S09ot1 #11 title pages both read `M.DC.IX` = 1609**, *"Printed at Doway by LAVRENCE
+  KELLAM, at the signe of the holie Lambe."* Approbation *Duaci 8. Nouembris. 1609* on the next leaf.
+* **S03a #2**: same Princeton Theological Seminary bookplate as S03b — *"Donation of James Lenox Esq"*,
+  Case SCC, Shelf 1844, **Book v.1**, annotated *"1st Edition"*. ⇒ **S03a+S03b = one Lenox two-volume set,
+  confirmed physically, not merely by shared OCLC call number.**
+* **S09ot1 #2**: BPL bookplate + label **G.404.12 v.1** ⇒ **S09ot1+S09ot2 = one BPL set (G.404.12 v.1/v.2)**.
+* **S09ot1 #5** manuscript note: *"This is the first Edition of the first Roman Catholic translation of the
+  Bible into English."*
+
+### ✅ PPI IS NOW MEASURED, NOT ASSUMED — and the plan's 650 ppi is WRONG
+**S09ot1 leaf #0 is a calibration leaf carrying BOTH an imperial ruler and a metric ruler + colour target.**
+Tick pitch measured by FFT on the ink profile (`3744×5616` leaf):
+* metric ruler **21.286 px/tick** → if 1 mm: **540.7 ppi**
+* imperial ruler **34.706 px/tick** → if 1/16 in: **555.3 ppi**
+Two independent rulers agree within **2.7%** ⇒ **S09 OT ≈ 545 ppi (540–555), NOT the 650 ppi in §1.2.**
+Cropping varies per leaf but does **not** change ppi, so this transfers to all S09 OT text leaves.
+
+**Propagating within a volume via line pitch** (same edition ⇒ same physical line pitch; pitch/ppi = inches):
+S09 OT pitch 88 px @ ~548 ppi ⇒ physical line pitch **0.1606 in**. Hence **OT1/S03a ≈ 411 ppi ·
+OT2/S03b ≈ 411 ppi · OT1/S01 ≈ 592 ppi · OT2/S01 ≈ 561 ppi.**
+⚠ **S01 computes HIGHER than S09 — strong corroboration that S01 is UPSAMPLED**: a rehost pipeline that
+enlarges without adding information. Apparent ppi is inflated; real detail is not.
+**Internal cross-check**: 3092×4367 px @ 548 ppi = **5.64 × 7.97 in**, and S03a 2262×3116 @ 411 ppi =
+5.50 × 7.58 in — i.e. a **quarto**, which is correct for the 1609 Douai OT. The calibration is coherent.
+
+⚠ **NT ppi remains UNDETERMINED.** S08/S09-NT carry no calibration leaf, and the 1582 Rheims NT is a
+different setting, so the OT physical line pitch cannot be transferred. **Record NT resolution in px and
+in relative terms only (S08 = 2.000× S09-NT linearly); do NOT state an NT ppi.** Open concordance item.
+
+### 🔴🔴🔴 NT RE-AUDIT (2026-08-05, at Sir's direction) — I WAS WRONG TWICE; CROSS-CONTAMINATION IS REAL
+
+**Sir's corrections, both upheld:**
+1. **Watermark ≠ derivative.** I conflated *digitisation provenance* (reprocessed, branded) with *physical-copy
+   identity*. S01 is very likely an **independent scan of a different physical copy**. Retract the earlier
+   inference that the watermark made S01 redundant.
+2. **S04's Censure leaf and S01nt's Censure leaf are the same physical leaf** — confirmed, see below.
+
+**All 4 local NT PDFs are BYTE-IDENTICAL (md5) to the 4 IA URLs Sir supplied.** The links are the same
+artefacts, not extra witnesses. (`nt-1582.pdf`=IA `1582DouaiRheims…3Of3`, `S04.pdf`=IA `1582douayrheimsnt`,
+`S08.pdf`=IA `1582RhemesNewTestament`, `nevvtestamentofi00mart-NT.pdf`=IA `nevvtestamentofi00mart`.)
+
+**Frontmatter read directly, first 25 pages of each:**
+| file | title page | Censure | Preface p.1 | notes |
+|---|---|---|---|---|
+| **S01nt** | p001 **and p003** (dup) — *Rhemes, Iohn Fogny, 1582* | p004 ✔ | p005 ✔ | fatimamovement wm; **2 title pages** |
+| **S08** | p001 — *Rhemes, Iohn Fogny, 1582* | p002 ✔ **bitonal, alien setting** | p003 ✔ **bitonal, alien** | p004+ = genuine tone |
+| **S09nt** | p007 — *Rhemes, Iohn Fogny, 1582* | ❌ **ABSENT** | ❌ **ABSENT** | p008 = Preface **p.2**; BPL binding pp001-006 |
+| **S04** | p005 — *THE NEW TESTAMENT … At Roan, by Iohn Cousturier, **1633***, "The fourth Edition" | p006 ✔ | p007 ✔ | **Princeton Theol. Sem.** label, shelf 1852 |
+
+**PROOF that S01nt's Censure+Preface1 = S04's (the 1633 Princeton copy): BLANK-MARGIN FOXING TEST.**
+Correlating **only blank paper** (crop 0.10–0.90 × 0.62–0.95, high-passed — contains NO type, so a shared
+forme cannot explain a match):
+* S01nt censure vs S04 censure **ncc = +0.769** · preface1 vs preface1 **+0.694**
+* controls (censure vs preface1, both directions) **+0.045 / +0.044**
+⇒ **17–24× the control baseline on blank paper. Same physical leaves.** (Registered whole-page NCC 0.50/0.64
+vs controls 0.19/0.10 corroborates; it is lower only because these are two different *photographs*.)
+Visual corroboration: identical broken heading `THE CENSVRE AND A___BATION`, identical smudging of the
+subtitle, identical stray-speck positions.
+
+**DIRECTION — the leaves are natively S04's, imported into S01nt:** the leaf's own subtitle reads
+*"of the **firſt** Edition of this Tranſlated New Teſtament"* — wording a **1582 first edition would not use
+of itself**; it belongs to a later reprint referring back. S01nt's own title page is the genuine 1582 Fogny
+setting, so **within S01nt that Censure leaf contradicts its own title page.**
+
+**S08's two made-up leaves come from a THIRD source — not S01nt, not S04.** S08 p002's Censure has **no
+headpiece, no "first Edition" subtitle, and an extra S. Augustine quotation** = a different setting; NCC of
+S08's substitutes against every S01nt/S04 frontmatter leaf is **0.01–0.15** (noise).
+
+### 🔴 S08 IS EMPTY MAGNIFICATION — RETRACT "S08 = best NT base, 2× resolution"
+S08 downsampled to S09's grid vs S09: **NCC = 0.9847** (same image). Spectral test on the full-res crop:
+**Confirmed on 4 leaves — S08 is BELOW the Lanczos reference in every one:**
+| leaf | S08 energy > S09-Nyquist | plain Lanczos 2× upscale of S09 |
+|---|---|---|
+| 200 | 0.00024 | 0.00036 |
+| 400 | 0.00020 | 0.00040 |
+| 500 | 0.00033 | 0.00092 |
+| 700 | 0.00008 | 0.00012 |
+S08 has **less** high-frequency energy than a naive upscale ⇒ it is an upscale, and a softer one than Lanczos.
+Second independent run agrees: leaves 200/400/600/700 → 0.00023 / 0.00022 / 0.00020 / 0.00009.
+
+**POSITIVE CONTROL (this is what makes the argument airtight): does a REAL scan have energy in its own top
+band? S09 does.** Same measurement applied to S09 in *its own* upper band: leaf 205 = **0.00966**, leaf 405 =
+**0.00934**, leaf 605 = **0.00736** — i.e. **30–100× more** than S08 shows above S09's Nyquist.
+⇒ A genuine scan's top octave is **full**; S08's extra octave is **empty**. Not a threshold artefact.
+⇒ **S08 carries ZERO real detail beyond S09. Its 5910×8686 is an upscale of an S09-resolution master.**
+The earlier "S08 = 2× linear resolution, natural NT base" claim is **withdrawn**: 2× the pixels, none of the
+information. For the NT the true raster ceiling is **S09's 2955×4343**.
+
+### ✅ S01nt IS AN INDEPENDENT SCAN — Sir was right, my "derivative" call is RETRACTED
+**Definitive test — jp2 body probes, wide ±80-leaf window:**
+| probe | best ncc | at offset |
+|---|---|---|
+| S01nt[300] | 0.040 | **+67** |
+| S01nt[400] | 0.068 | **+82** |
+| S01nt[500] | 0.096 | **−70** |
+
+All at noise level, and the best offsets are **mutually inconsistent (+67, +82, −70)**. A real alignment
+gives one consistent offset across probes (S08/S09 gave **+5 at every probe, ncc 1.000**). Scattered
+offsets at noise NCC = **no correspondence at any alignment**, not merely "none found in a narrow window."
+(An earlier PDF-render test over offsets −18..+32 agreed: peaks 0.06–0.20, every probe peaking on the same
+S09nt page — generic text-page similarity.) **The identical method returns 1.000 for the real S08/S09 duplicate**, so it
+resolves duplicates when they exist. Visual confirmation: S01nt p400 = **Romans ch. XIII, sig. `Aa 4`,
+printed p.375**; S09nt p405 = **end of Acts, sig. `Aaa iij`, printed p.373** — different text, different
+signature series. Also different leaf counts (765 / 800 / 812) and different binding structure.
+⇒ **S01nt is an independent digitisation of a different physical copy.**
+
+### 📌 NT WITNESS DETERMINATION (Sir's exception: differing editions MAY serve as witness support)
+| file | copy / edition | independent? | provenance | quality | verdict |
+|---|---|---|---|---|---|
+| **S09nt** | BPL, 1582 Rhemes (Fogny) | **YES — the true NT scan** | **best** (BPL bookplate, G.404.12) | true res 2955×4343 | **BASE EXEMPLAR**, but frontmatter-defective |
+| **S08** | = S09nt upscaled ×2 | **NO — same scan** | none of its own | **empty magnification** (0.0002 above S09 Nyquist) | **REJECT as a witness**; only its 2 alien leaves are new |
+| **S01nt** | different copy, 1582 Rhemes t.p. | **YES** | fatimamovement rehost; **contaminated with 1633 leaves** | low (800×1124) | **independent witness**, structure/collation only |
+| **S04** | Princeton, **1633 Rouen, "fourth Edition"** (Cousturier) | **YES** | **best documented** (Princeton, shelf 1852) | IA scan, sound | **admissible witness support** under Sir's exception |
+
+**Leaf-level contamination map (the point Sir raised):**
+* `S09nt` **lacks** Censure + Preface p.1 entirely.
+* `S08` supplies both from an **unidentified 4th source** (bitonal, alien setting: no headpiece, no "first
+  Edition" subtitle, extra S. Augustine quotation). NCC vs all S01nt/S04 frontmatter = 0.01–0.15.
+* `S01nt` supplies both from the **1633 Princeton copy (= S04)** — proven by blank-margin foxing.
+⇒ **No file's Censure/Preface-1 leaf is a trustworthy 1582 witness.** Any diplomatic treatment of those two
+leaves must be flagged as supplied, with its source named. **The genuine 1582 Censure leaf is, so far,
+NOT PRESENT in any of the four files.**
+
+### ❌ STILL NEEDED
+1. **S01 (all 3 files)** — NO IA identifier; custom folder names ("1582 Douai Rheims ... 1 of 3 1609 Old
+   Testament_jp2" etc.). Provenance unknown. **Note S01 is already disqualified as base exemplar
+   (~168 ppi) — needs identification only for completeness/verification role.**
+2. **S08** — folder `1582_Rhemes_New_Testament_jp2`, not an IA identifier. Custom/rehosted upload.
+   **S08 matters most — it is the only continuous-tone scan and the NT base candidate.** Provenance is
+   therefore a priority, not a formality.
+3. **STC / ESTC numbers — NONE verified yet.** Have OCLC record numbers only. Do NOT write STC numbers
+   from memory (leads seen in critique: NT 1582 = STC 2884, OT 1609 = STC 2207 — **UNVERIFIED**).
+4. **Title-page verification for all 9** — direct physical evidence, and what a documentary edition
+   requires anyway. Method: `pdfimages`/`pdftoppm` first ~10 leaves, then read the rendered images.
+5. **Completeness / imperfections / made-up leaves** per copy.
+6. Compare IA imagecount vs our PDF page counts: S03a 1144 vs 1140 · S03b 1138 vs 1134 · S09ot1 1158 vs
+   1156 · S09ot2 1148 vs 1146 · S09nt 812 vs 810. **Small consistent deltas (2–4) — likely IA
+   cover/colour-target leaves dropped in PDF derivation. Worth one check, not alarming.**
+
+### MEASURED RASTERS (already established, don't re-measure)
+S01 all 3 vols = 800×1124 RGB JPEG ≈168 ppi at leaf → **structure-only, disqualified**.
+NT/S08 ≈3035×4336 RGB JPEG **continuous tone, no bitonal layer — unique in corpus**.
+NT/S09 3035×4336 JPX+JBIG2 ~500ppi · OT1/S03a 2262×3116 ~500 · OT1/S09 3092×4367 ~650 ·
+OT2/S03b 2196×2999 ~400 · OT2/S09 3117×4335 ~650.
+
+### NEXT ACTIONS (in order)
+1. Render + READ title pages/colophons for S08 and S01 (identify them), and for S03b/S09ot2 (confirm 1610).
+2. Verify STC/ESTC via ESTC lookup; cross-check against OCLC numbers above.
+3. Assess completeness per copy (collation vs expected signatures).
+4. Write concordance into `OCR-MASTERPLAN.md` §1/§2 replacing the UNKNOWN table; Gate 0a.
+5. **Then** the base-exemplar selection pass Sir asked for — systematic, per volume, with losing
+   candidates and reasons recorded (constitution §0.2.1 requires this).
+
+**Scans root**: `palimpsest/imports/Scripture/Bibles/DouayRheims_DR/sources/scans/`
+**IA metadata cmd**: `curl -sL https://archive.org/metadata/<identifier>`
+
+## SIR'S CORRECTIONS — the pattern not to repeat
+Each time a measurement was ambiguous I converted it into a reason to keep the status quo. **Status-quo
+preservation dressed as empiricism.** Round 2 then caught the over-correction: rev2 answered a
+critical-edition reviewer by ADOPTING a critical edition, and a measurement reviewer by building a
+measurement regime that couldn't be STARTED. Both recorded in rev3 §0.6.

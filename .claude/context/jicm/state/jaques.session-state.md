@@ -1,4 +1,4 @@
-# Jaques — Session State
+# Jacques — Session State
 
 **Lane:** `jaques` (`aion:13`) · **cwd:** `/Users/nathanielcannon/Claude/Projects/SnorkelTasks`
 **Purpose:** Compact status for this lane only. W0's `session-state.md` is another lane's memory and
@@ -6,7 +6,7 @@ is neither read nor written from here.
 
 ---
 
-## ACTIVE (2026-08-12) — Establishing Jaques
+## ACTIVE (2026-08-12) — Establishing Jacques
 
 Plan: `/Users/nathanielcannon/Claude/Project_Aion/.claude/plans/eager-plotting-umbrella.md`
 
@@ -40,7 +40,7 @@ Phase 1 (Archon install) in progress. No Snorkel work started.
 
 ## Standing constraints
 
-- **Submission is the User's action.** Jaques packages, verifies and drafts; the User submits.
+- **Submission is the User's action.** Jacques packages, verifies and drafts; the User submits.
 - The domain law is `SnorkelTasks/CLAUDE.md`, auto-discovered from cwd. It is authoritative and was
   written from real review findings — do not restate it from memory.
 
@@ -52,9 +52,9 @@ Phase 1 (Archon install) in progress. No Snorkel work started.
 
 ## Known risk
 
-`rclone`'s shared Google `client_id` is being retired during 2026. When it goes, both Jaques' and
+`rclone`'s shared Google `client_id` is being retired during 2026. When it goes, both Jacques' and
 Genie's Drive pipelines stop. Minting an own OAuth client id is small and overdue.
 
 ---
 
-*Jaques lane established 2026-08-12.*
+*Jacques lane established 2026-08-12.*
