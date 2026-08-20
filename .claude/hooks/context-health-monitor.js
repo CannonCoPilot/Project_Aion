@@ -140,15 +140,15 @@ function main(hookData) {
 
   health.layers.L4_declarative = l4;
 
-  // L4 service reachability — probed by jicm-supervisor's MAINTAIN pass, folded in
+  // L4 service reachability — probed by jicm-watcher's MAINTAIN pass, folded in
   // here rather than measured. This hook is deliberately network-free (<200ms budget),
-  // so it cannot probe Qdrant/MLX/Neo4j itself; the supervisor already does, every
+  // so it cannot probe Qdrant/MLX/Neo4j itself; the watcher already does, every
   // ~100s, from the one process that outlives every lane.
   //
   // Previously BOTH wrote .memory-health.json wholesale with disjoint, incompatible
   // schemas — ours {layers}, theirs {services} — so each destroyed the other and the
-  // dashboard rendered empty layers whenever the supervisor wrote last. Now there is
-  // exactly one writer per file: the supervisor owns SERVICES_FILE, we own this one
+  // dashboard rendered empty layers whenever the watcher wrote last. Now there is
+  // exactly one writer per file: the watcher owns SERVICES_FILE, we own this one
   // and merge on read.
   const SERVICES_FILE = path.join(PROJECT_DIR, ".claude/context/.memory-health-services.json");
   try {
@@ -159,11 +159,11 @@ function main(hookData) {
     health.collections = svc.collections || {};
     health.services_meta = { source: svc.source, probed_at: svc.timestamp, age_min: ageMin };
 
-    // A stale services file is not a healthy one. If the supervisor has stopped, the
+    // A stale services file is not a healthy one. If the watcher has stopped, the
     // last probe results freeze and would otherwise read as a live all-clear forever.
     if (ageMin > 10) {
       health.services_meta.stale = true;
-      warnings.push(`L4: service probes stale (${ageMin}m old) — is jicm-supervisor running?`);
+      warnings.push(`L4: service probes stale (${ageMin}m old) — is jicm-watcher running?`);
     } else {
       // Name the cause. `refused` means start it; `timeout`/`http-error` mean the
       // service is alive and the fault is load or contract — opposite remedies.
@@ -175,12 +175,12 @@ function main(hookData) {
     }
     if (svc.warnings) warnings.push(svc.warnings);
   } catch {
-    // No services file at all — strictly worse than a stale one (the supervisor has
+    // No services file at all — strictly worse than a stale one (the watcher has
     // never written here), so it must not be quieter than the stale branch. Report
     // absence as absence: never an empty-but-green services block.
     health.services = {};
     health.services_meta = { source: null, stale: true, missing: true };
-    warnings.push("L4: no service probes on disk — jicm-supervisor has not run");
+    warnings.push("L4: no service probes on disk — jicm-watcher has not run");
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -231,7 +231,7 @@ function main(hookData) {
   health.layers.L6_meta = l6;
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // Watcher health alert (fast-path from MAINTAIN stage M2)
+  // Legacy watcher health alert (fast-path from MAINTAIN stage M2)
   // ═══════════════════════════════════════════════════════════════════════════
   const alertFile = path.join(PROJECT_DIR, ".claude/context/.memory-health-alert");
   try {

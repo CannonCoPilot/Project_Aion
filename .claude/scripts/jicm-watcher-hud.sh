@@ -1,58 +1,68 @@
 #!/bin/bash
 # ============================================================================
-# Jarvis Watcher HUD v1.0 — Full-monitor dashboard for v7.9 slim watcher
+# jicm-watcher-hud.sh — the WATCHER CONSOLE (HUD v2)
 # ============================================================================
 #
-# Sidecar reader. Renders an htop-style live dashboard over the v7.9 watcher's
-# state surface. Does NOT touch jicm-watcher.sh, hooks, or signal protocol —
-# read-only consumer. Preserves the architectural separation shipped in 7.9.6b
-# (watcher actuates; HUD displays).
+# Read-only console for the JICM watcher daemon (jicm-watcher.sh, run by launchd as
+# com.aion.jicm-watcher). Lives in tmux window aion:8 "Watcher". Touches nothing:
+# no signals, no state writes, no actuation. If this process dies, JICM is unaffected.
+#
+# NAMING, because the words changed under this file (2026-08-20):
+#   · "the watcher" now means the multi-session daemon that senses every lane and
+#     fires jicm-actuate.sh at threshold. It was called jicm-supervisor.sh until
+#     2026-08-20.
+#   · The v7.9 singleton that used to own the name is RETIRED (2026-08-17) and sits,
+#     unlaunchable, in scripts/retired/. Anything here saying "legacy" means that one.
+#   · This file kept its name: it was always jicm-watcher-hud.sh, and it is now
+#     literally the watcher's HUD.
+#
+# WHY v2 EXISTS — v1 had one fatal flaw and three bad habits:
+#   · It probed the RETIRED singleton's pid file and rendered "Watcher: DOWN" in red,
+#     permanently, while the real daemon ran fine and appeared nowhere on screen.
+#   · W0's context/cache/cost took the top third; the five-lane table was 6th of 8.
+#   · "Cycles completed (this log): 0" sat above a log showing three cycles that day.
+#   · ~12 rows rendered "—" for data that was simply absent.
+# v2 leads with the daemon's own health, makes LANES the primary object, and omits
+# panels rather than printing empty ones. See the PRESENTATION LAYER banner below.
 #
 # Data sources (all read-only):
-#   .jicm-state-hook.json      — primary; tokens, model, cache, thresholds, ETAs
-#   .jicm-state                — legacy text shim (state machine: WATCHING/CLEARING/RESTORING)
-#   .jicm-watcher.pid          — watcher PID (uptime via ps)
-#   jicm-watcher.log           — log tail
-#   .jicm-last-compression.json — last cycle metadata
-#   .jicm-nlp-compression.json — NLP compression metrics
-#   .compressed-context-ready.md — next checkpoint preview
-#   .compression-done.signal etc. — transient signals (presence-only)
-#   .command-signal            — pending slash-command injections
-#   .ennoia-recommendation/.ennoia-status — Ennoia guidance
-#   .virgil-tasks.json         — Virgil task tracking
-#   ~/.ccusage-blocks.json     — ccusage block data (if installed)
-#   ps + pgrep                 — Aion Quartet liveness
-#   git status                 — current branch + commit ahead count
+#   context/jicm/watcher.pid          — daemon liveness (NOT .jicm-watcher.pid, which
+#                                       belongs to the retired singleton)
+#   launchctl list                    — whether anything will restart it if it dies
+#   logs/jicm-watcher.log             — log tail, alert counts, cycle history, and the
+#                                       daemon's own start banner (authoritative for
+#                                       the RUNNING config; our env describes us, not it)
+#   context/jicm/registry/*.json      — the lane set
+#   context/jicm/state/<key>.json     — per-lane tokens, thresholds, provenance
+#   context/jicm/signals/actuating.*  — in-flight cycle locks
+#   .memory-health-services.json      — service probes, MLX footprint, memory pressure
+#   .jicm-state-hook.json             — w0 legacy state (quota/cache figures)
+#   git status                        — branch + dirty/ahead counts
 #
 # Modes:
-#   (default)             Live dashboard with 1s refresh
+#   (default)             Live dashboard, 1s refresh
 #   --once                Render a single frame then exit (testing)
-#   --demo                Cycle through 5 example states (interactive)
-#   --demo-state=N        Render a single demo state (1-5) and exit
+#   --demo                Cycle through example states (interactive)
+#   --demo-state=N        Render a single demo state and exit
 #   --help                Usage
+#   NOTE: demo mode synthesizes v1's HK_* state surface. v2's panels read the daemon
+#   and registry directly, so demo frames exercise layout, not lane data.
 #
-# Layout target:  ≥100 cols × ≥40 rows. Optimized for full-screen tmux.
-# Performance:    Single-pass data load; render cycle <100ms typical.
-# Refresh:        1s default (configurable via HUD_REFRESH env var).
+# Layout target:  >=100 cols x >=40 rows. Optimized for full-screen tmux.
+# Refresh:        1s default (HUD_REFRESH env var).
 #
-# Usage:
-#   bash .claude/scripts/jicm-watcher-hud.sh                  # live mode
-#   bash .claude/scripts/jicm-watcher-hud.sh --once           # snapshot
-#   bash .claude/scripts/jicm-watcher-hud.sh --demo           # interactive demo
-#   bash .claude/scripts/jicm-watcher-hud.sh --demo-state=3   # single demo frame
-#
-# Author:         Jarvis (Project Aion overnight build, 2026-05-03)
-# License:        MIT
+# Author: Jarvis (W11). v1 2026-05-03; v2 rebuild 2026-08-20.
+# License: MIT
 # ============================================================================
 
 set -o pipefail
 
 # ─── CONFIG ────────────────────────────────────────────────────────────────
 HUD_REFRESH="${HUD_REFRESH:-1}"
-HUD_LOG_TAIL="${HUD_LOG_TAIL:-10}"
 HUD_MIN_COLS="${HUD_MIN_COLS:-100}"
 HUD_MIN_ROWS="${HUD_MIN_ROWS:-40}"
-HUD_VERSION="1.0.0"
+HUD_VERSION="2.0.0"
+HUD_LOG_TAIL="${HUD_LOG_TAIL:-12}"
 
 # ─── PATHS ─────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -64,19 +74,23 @@ PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pw
 JICM_STATE_HOOK_FILE="${JICM_STATE_HOOK_FILE:-$PROJECT_DIR/.claude/context/.jicm-state-hook.json}"
 JICM_STATE_FILE="${JICM_STATE_FILE:-$PROJECT_DIR/.claude/context/.jicm-state}"
 JICM_LOG_FILE="${JICM_LOG_FILE:-$PROJECT_DIR/.claude/logs/jicm-watcher.log}"
-# LOG PANEL SOURCE. Was jicm-watcher-loop.log — DEAD since 2026-08-17 14:34:43, the moment the
-# legacy watcher was retired and cycling/MAINTAIN/REST became the supervisor's. Tailing it made the
-# HUD show a two-day-old tombstone while every live event (ACTUATE, FROZEN STATE, SAMPLER GAP, GC,
-# lock reaps) went unseen. The HUD must tail whatever component actually owns the work.
-# Falls back to the legacy loop log if the supervisor log is absent, so a machine mid-migration
-# still shows something rather than an empty panel.
-if [[ -f "$PROJECT_DIR/.claude/logs/jicm-supervisor.log" ]]; then
-    JICM_HUD_LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-supervisor.log"
-    JICM_HUD_LOG_LABEL="SUPERVISOR LOG"
-else
-    JICM_HUD_LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-watcher-loop.log"
-    JICM_HUD_LOG_LABEL="WATCHER LOG (legacy — supervisor log absent)"
-fi
+# THE DAEMON'S LOG — single source for the log panel, the alert count, the cycle
+# history and the runtime-config banner. One definition, because these four panels
+# must never disagree about which process they are describing.
+#
+# HISTORY, twice corrected: this pointed at jicm-watcher-loop.log, DEAD since
+# 2026-08-17 when the legacy singleton was retired, so the panel showed a two-day-old
+# tombstone while every live event went unseen. It was then repointed at
+# jicm-supervisor.log. The 2026-08-20 rename folded that file into jicm-watcher.log
+# (the supervisor-era history was prepended, so the log is continuous across the
+# rename and cycle counts still reach back before it).
+HUD_WATCHER_LOG="${HUD_WATCHER_LOG:-$PROJECT_DIR/.claude/logs/jicm-watcher.log}"
+JICM_HUD_LOG_FILE="$HUD_WATCHER_LOG"
+JICM_HUD_LOG_LABEL="WATCHER LOG"
+# The RETIRED singleton's pid file. Kept only so nothing that still reads the name
+# breaks; v2 does NOT use it for liveness — see load_watcher_daemon, which reads
+# $JICM_DIR/watcher.pid. Probing this file is what produced a permanent false
+# "Watcher: DOWN" on the old dashboard.
 JICM_PID_FILE="${JICM_PID_FILE:-$PROJECT_DIR/.claude/context/.jicm-watcher.pid}"
 JICM_METADATA_FILE="${JICM_METADATA_FILE:-$PROJECT_DIR/.claude/context/.jicm-last-compression.json}"
 JICM_NLP_META="$PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
@@ -450,22 +464,6 @@ load_compression_metadata() {
     return 0
 }
 
-load_watcher_proc() {
-    if [[ -f "$JICM_PID_FILE" ]]; then
-        W_PID=$(cat "$JICM_PID_FILE" 2>/dev/null | tr -d '[:space:]')
-        if [[ -n "$W_PID" ]] && [[ "$W_PID" =~ ^[0-9]+$ ]] && kill -0 "$W_PID" 2>/dev/null; then
-            W_ALIVE="true"
-            local ps_line
-            ps_line=$(ps -o pid=,etime=,%cpu=,rss= -p "$W_PID" 2>/dev/null | head -1 | awk '{$1=$1; print}')
-            if [[ -n "$ps_line" ]]; then
-                W_UPTIME=$(awk '{print $2}' <<<"$ps_line")
-                W_CPU=$(awk '{print $3}' <<<"$ps_line")
-                W_RSS=$(awk '{print $4}' <<<"$ps_line")
-            fi
-        fi
-    fi
-    return 0
-}
 
 load_aion_quartet() {
     # Watcher
@@ -515,13 +513,17 @@ load_signals() {
 
 load_log_tail() {
     HUD_LOG_LINES=()
-    # Fix #3 (2026-06-23): tail the WATCHER LOOP log (watcher cycle/threshold events only),
-    # not the shared log (which is dominated by Graphiti/ingest HTTP chatter).
-    # HUD-OWNED var, deliberately NOT JICM_WATCHER_LOOP_LOG: jicm-config.sh:510 assigns that one
+    # HUD-OWNED var, deliberately NOT JICM_WATCHER_LOOP_LOG: jicm-config.sh assigns that one
     # UNCONDITIONALLY (no :- default), so it silently clobbers anything this script sets before
-    # sourcing the config. Naming the target here keeps the HUD's choice authoritative.
-    local target_log="${JICM_HUD_LOG_FILE:-$JICM_WATCHER_LOOP_LOG}"
-    [[ -f "$target_log" ]] || target_log="$JICM_LOG_FILE"   # fallback if loop log not yet present
+    # sourcing the config — that mismatch once changed the panel TITLE while leaving the CONTENT
+    # on the old file, which read as a caching bug. Naming the target here keeps the HUD's
+    # choice authoritative.
+    #
+    # 2026-08-20: JICM_WATCHER_LOOP_LOG is the RETIRED singleton's log, dead since 2026-08-17.
+    # Pointing here by default made every live event invisible behind two-day-old
+    # "watcher exiting" lines. The default is now the live daemon's own log.
+    local target_log="$HUD_WATCHER_LOG"
+    [[ -f "$target_log" ]] || target_log="$JICM_LOG_FILE"   # last-resort fallback
     [[ -f "$target_log" ]] || return 0
     local line
     while IFS= read -r line; do
@@ -616,15 +618,21 @@ load_all() {
         load_state_legacy
         load_compression_metadata
         load_nlp_metadata
-        load_watcher_proc
-        load_aion_quartet
+        load_watcher_daemon
+        load_watcher_alerts
+        load_cycle_history
+        load_resources
         load_signals
         load_sessions
         load_log_tail
-        load_pulse_counts
-        load_project_status
         load_git_state
         load_cost_state
+        # load_aion_quartet / load_pulse_counts / load_project_status are NOT called:
+        # v2 does not render the quartet (its "Watcher" entry probed the retired process
+        # and reported a permanent false DOWN), Pulse tasks, or session-state focus.
+        # Those are workspace concerns, not watcher concerns, and all three rendered
+        # empty or offline in practice. The loaders are retained so restoring a panel
+        # is a one-line change.
     fi
     return 0
 }
@@ -780,370 +788,513 @@ action_icon() {
 
 # ─── RENDER SECTIONS ───────────────────────────────────────────────────────
 
+# ═══════════════════════════════════════════════════════════════════════════
+# PRESENTATION LAYER — rebuilt 2026-08-20 (HUD v2)
+#
+# WHAT WAS WRONG WITH v1, since the rebuild is otherwise unexplainable:
+#   1. WRONG SUBJECT. The dashboard is the console for a MULTI-LANE watcher, but
+#      W0's context/cache/cost occupied the top third and the five-lane table was
+#      6th of 8 sections. The primary object was a single lane.
+#   2. IT REPORTED ITS OWN SUBJECT AS DOWN. The health panel probed the RETIRED
+#      v7.9 singleton's pid file and rendered "Watcher: ✗ DOWN" in red, while the
+#      daemon actually doing the work appeared nowhere on screen.
+#   3. IT CONTRADICTED ITSELF. "Cycles completed (this log): 0" sat directly above
+#      a log tail showing three completed cycles that day.
+#   4. LOW DENSITY. ~12 rows rendered "—" for absent data (Pulse offline, no focus,
+#      four "absent" signal lines, empty NLP metadata).
+#
+# DESIGN RULES for v2:
+#   · The daemon's own health is the FIRST thing on screen. A monitor that cannot
+#     tell you whether it is monitoring is worthless.
+#   · Lanes are the primary object, one dense row each, sorted most-loaded first.
+#   · Every number carries its scope. Per-key thresholds, never a global claim.
+#   · Absent data is OMITTED, not rendered as "—". Rows earn their space.
+#   · Nothing is asserted that another panel contradicts.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ─── LOOKUP HELPER (bash 3.2 — NO associative arrays on macOS) ─────────────
+# Values are carried in "key:value|key:value" strings rather than a hash.
+_kv_get() {
+    local want="$1" blob="$2" pair
+    local IFS='|'
+    for pair in $blob; do
+        [[ "${pair%%:*}" == "$want" ]] && { printf '%s' "${pair#*:}"; return 0; }
+    done
+    printf '%s' "${3:-}"
+}
+
+# ─── DAEMON HEALTH ─────────────────────────────────────────────────────────
+# 🔴 REPLACES v1's load_watcher_proc, which read $JICM_PID_FILE — the RETIRED
+# singleton's pid file (.claude/context/.jicm-watcher.pid). Nothing has written that
+# since 2026-08-17, so the panel showed a red "DOWN" for the wrong process for three
+# days. The live daemon writes $JICM_DIR/watcher.pid.
+#
+# launchd state is read SEPARATELY from process liveness on purpose: a live pid whose
+# job is unloaded means someone hand-started it and NOTHING will restart it when it
+# dies. Those are different failures and the panel must not merge them into one "UP".
+load_watcher_daemon() {
+    WD_PID=""; WD_ALIVE="false"; WD_UPTIME="?"; WD_CPU=""; WD_RSS=""
+    WD_LAUNCHD="unloaded"; WD_LAST_RC=""
+    WD_POLL=""; WD_ACTUATE=""; WD_W0=""
+
+    local pidfile="${JICM_DIR:-$PROJECT_DIR/.claude/context/jicm}/watcher.pid"
+    [[ -f "$pidfile" ]] && WD_PID=$(tr -d '[:space:]' < "$pidfile" 2>/dev/null)
+    if [[ -n "$WD_PID" && "$WD_PID" =~ ^[0-9]+$ ]] && kill -0 "$WD_PID" 2>/dev/null; then
+        WD_ALIVE="true"
+        local l
+        l=$(ps -o etime=,%cpu=,rss= -p "$WD_PID" 2>/dev/null | awk '{$1=$1; print}')
+        WD_UPTIME=$(awk '{print $1}' <<<"$l")
+        WD_CPU=$(awk '{print $2}' <<<"$l")
+        WD_RSS=$(awk '{print $3}' <<<"$l")
+    fi
+
+    local ll
+    ll=$(launchctl list 2>/dev/null | awk '$3 ~ /com\.aion\.jicm-watcher$/ {print $1" "$2}')
+    if [[ -n "$ll" ]]; then
+        WD_LAUNCHD="loaded"
+        WD_LAST_RC=$(awk '{print $2}' <<<"$ll")
+    fi
+
+    # Runtime config is read from the daemon's OWN start banner, not from our env.
+    # This process does not inherit the launchd job's environment, so echoing our own
+    # JICM_WATCHER_* would describe the wrong process — the "settings file contrast"
+    # failure that has burned this lane repeatedly. The banner is what is RUNNING.
+    local banner
+    banner=$(grep -E '==== watcher start' "$HUD_WATCHER_LOG" 2>/dev/null | tail -1)
+    if [[ -n "$banner" ]]; then
+        WD_POLL=$(sed -nE 's/.*poll=([0-9]+s).*/\1/p'      <<<"$banner")
+        WD_ACTUATE=$(sed -nE 's/.*actuate=([0-9]+).*/\1/p'  <<<"$banner")
+        WD_W0=$(sed -nE 's/.*include_w0=([0-9]+).*/\1/p'    <<<"$banner")
+    fi
+    return 0
+}
+
+# ─── ALERTS + LOCKS ────────────────────────────────────────────────────────
+# The FROZEN STATE / SAMPLER GAP net is the reason this daemon can be trusted, so its
+# state is headline data. Counting is BY TIMESTAMP, never by line count: the log holds
+# 46 historical alerts and `grep -c` on it reads like an active alarm.
+load_watcher_alerts() {
+    WA_24H=0; WA_LAST=""; WA_LAST_AGE=""; WA_LOCKS=""
+    [[ -f "$HUD_WATCHER_LOG" ]] || return 0
+    local cutoff line ts
+    cutoff=$(( $(date +%s) - 86400 ))
+    while IFS= read -r line; do
+        ts=$(awk '{print $1}' <<<"$line")
+        local e; e=$(_iso_local_epoch "$ts")
+        [[ "$e" -gt "$cutoff" ]] && WA_24H=$(( WA_24H + 1 ))
+        WA_LAST="$line"
+    done < <(grep -E 'ALERT|FROZEN STATE|SAMPLER GAP' "$HUD_WATCHER_LOG" 2>/dev/null | tail -200)
+    if [[ -n "$WA_LAST" ]]; then
+        local lts le now
+        lts=$(awk '{print $1}' <<<"$WA_LAST"); le=$(_iso_local_epoch "$lts"); now=$(date +%s)
+        [[ "$le" -gt 0 ]] && WA_LAST_AGE=$(( now - le ))
+    fi
+    local lk
+    for lk in "${JICM_SIGNALS_DIR:-$PROJECT_DIR/.claude/context/jicm/signals}"/actuating.*; do
+        [[ -e "$lk" ]] || continue
+        WA_LOCKS="${WA_LOCKS}${WA_LOCKS:+ }$(basename "$lk" | sed 's/^actuating\.//')"
+    done
+    return 0
+}
+
+# Parse "2026-08-20T16:44:14-0600" (the daemon's local-offset stamp) to epoch.
+_iso_local_epoch() {
+    local s="${1%%.*}"
+    [[ -z "$s" ]] && { echo 0; return; }
+    date -j -f "%Y-%m-%dT%H:%M:%S%z" "$s" +%s 2>/dev/null || echo 0
+}
+
+# ─── CYCLE HISTORY + DRIVE COUNTS ──────────────────────────────────────────
+# Drive count answers a question the old HUD could not: has this lane's actuation path
+# EVER run end-to-end? protos reads 0 — it has never crossed its 160K hard threshold, so
+# its drive path is the one unproven one in the system. That is a standing risk and it
+# now has a permanent place on screen instead of living only in a scratchpad note.
+load_cycle_history() {
+    HUD_CYCLES=(); WC_DRIVES=""
+    HUD_TODAY=$(date '+%Y-%m-%d')
+    [[ -f "$HUD_WATCHER_LOG" ]] || return 0
+    WC_DRIVES=$(grep -oE 'ACTUATE: armed detached actuator for key=[A-Za-z0-9_-]+' "$HUD_WATCHER_LOG" 2>/dev/null \
+        | awk -F= '{print $2}' | sort | uniq -c \
+        | awk '{printf "%s:%s|", $2, $1}')
+    local line t k d
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local stamp day
+        stamp=$(awk '{print $1}' <<<"$line")
+        day="${stamp%%T*}"
+        t="${stamp#*T}"; t="${t%%-*}"; t="${t%%+*}"; t="${t:0:5}"
+        [[ "$day" != "$HUD_TODAY" ]] && t="${day:5}·${t}"   # MM-DD·HH:MM for older days
+        k=$(sed -nE 's/.*key=([A-Za-z0-9_-]+).*/\1/p' <<<"$line")
+        d=$(sed -nE 's/.*after ([0-9]+)s.*/\1/p' <<<"$line")
+        HUD_CYCLES+=("${t}|${k}|${d}")
+    done < <(grep -E 'reap: key=.*actuation cycle complete' "$HUD_WATCHER_LOG" 2>/dev/null | tail -8)
+    return 0
+}
+
+# ─── SERVICES / RESOURCES ──────────────────────────────────────────────────
+# Sourced from .memory-health-services.json, which the daemon itself writes on its
+# MAINTAIN pass — so this panel is also indirect evidence the daemon's maintenance
+# loop is running, not just its poll loop.
+load_resources() {
+    RS_JSON=""; RS_MLX_GB=""; RS_MLX_MAX=""; RS_MEM_FREE=""; RS_SERVICES=""; RS_AGE=""
+    local f="$PROJECT_DIR/.claude/context/.memory-health-services.json"
+    [[ -f "$f" ]] || return 0
+    RS_MLX_GB=$(jq -r '.memory.mlx_embed_footprint_gb // ""' "$f" 2>/dev/null)
+    RS_MLX_MAX=$(jq -r '.memory.mlx_embed_threshold_gb // ""' "$f" 2>/dev/null)
+    RS_MEM_FREE=$(jq -r '.memory.mem_free_pct // ""' "$f" 2>/dev/null)
+    RS_SERVICES=$(jq -r '.services | to_entries[] | "\(.key):\(if .value.up then "up" else "DOWN" end):\(.value.latency_ms // "?")"' "$f" 2>/dev/null | tr '\n' '|')
+    local ts; ts=$(jq -r '.timestamp // ""' "$f" 2>/dev/null)
+    if [[ -n "$ts" ]]; then
+        local e; e=$(TZ=UTC date -j -f "%Y-%m-%dT%H:%M:%SZ" "$ts" +%s 2>/dev/null || echo 0)
+        [[ "$e" -gt 0 ]] && RS_AGE=$(( $(date +%s) - e ))
+    fi
+    return 0
+}
+
+# ─── LANES ─────────────────────────────────────────────────────────────────
+HUD_SESSION_ROWS=()
+load_sessions() {
+    HUD_SESSION_ROWS=()
+    command -v jicm_registry_keys >/dev/null 2>&1 || return 0
+    local key sid target st tokens pending hard alive occ pane prov age now soft
+    now=$(date +%s)
+    for key in $(jicm_registry_keys 2>/dev/null); do
+        sid="$(jicm_registry_get "$key" '.session_id' 2>/dev/null)"
+        target="$(jicm_registry_get "$key" '.tmux_target' 2>/dev/null)"
+        [[ "$target" == "null" || -z "$target" ]] && target="-"
+        # Same sensor the watcher uses: the gate-written per-key state file.
+        jicm_key_paths "$key" 2>/dev/null
+        prov="?"; age=""
+        if [[ -f "$JK_STATE" ]]; then
+            st="$(jq -r '[(.tokens // 0), (.pending_action // "none"), (.hard_threshold_tokens // 0), (._refreshed_by // "?"), (.soft_threshold_tokens // 0)] | join("|")' "$JK_STATE" 2>/dev/null)"
+            local mt; mt=$(stat -f %m "$JK_STATE" 2>/dev/null)
+            [[ "$mt" =~ ^[0-9]+$ ]] && age=$(( now - mt ))
+        fi
+        [[ -z "${st:-}" ]] && st="0|none|0|?|0"
+        IFS='|' read -r tokens pending hard prov soft <<< "$st"
+        alive="stale"; jicm_session_alive "$sid" 2>/dev/null && alive="live"
+        occ="-"
+        if [[ "$target" != "-" ]]; then
+            pane="$(jicm_pane_session "$target" 2>/dev/null)"
+            if   [[ -z "$pane" ]];        then occ="?"
+            elif [[ "$pane" == "$sid" ]]; then occ="ok"
+            else                               occ="DRIFT"; fi
+        fi
+        HUD_SESSION_ROWS+=("${key}|${sid}|${target}|${tokens}|${hard}|${pending}|${alive}|${occ}|${prov}|${age}|${soft}")
+    done
+    return 0
+}
+
+# ─── RENDERERS ─────────────────────────────────────────────────────────────
+
+# Compact provenance: "gate:PostToolUse" -> "gate:PTU". The full string costs 12
+# columns per row and the distinction that matters is only which event fired.
+_prov_short() {
+    case "$1" in
+        gate:PostToolUse)     printf 'gate:PTU'  ;;
+        gate:UserPromptSubmit) printf 'gate:UPS' ;;
+        watcher_poll)         printf 'poll'      ;;
+        ""|"?"|null)          printf '?'         ;;
+        *)                    printf '%s' "$(truncate_str "$1" 9)" ;;
+    esac
+}
+
+# ps etime is [[DD-]HH:]MM:SS. Rendered raw, "07:49" reads as seven HOURS when it is
+# seven minutes — an uptime that misreads by 60x on the one panel that certifies the
+# daemon is healthy. Always convert before display.
+_fmt_etime() {
+    local e="$1" d=0 h=0 m=0 sec=0
+    [[ -z "$e" || "$e" == "?" ]] && { printf '?'; return; }
+    case "$e" in
+        *-*) d="${e%%-*}"; e="${e#*-}" ;;
+    esac
+    local n; n=$(awk -F: '{print NF}' <<<"$e")
+    if [[ "$n" -eq 3 ]]; then IFS=: read -r h m sec <<< "$e"
+    else IFS=: read -r m sec <<< "$e"; fi
+    d=$((10#${d:-0})); h=$((10#${h:-0})); m=$((10#${m:-0})); sec=$((10#${sec:-0}))
+    if   [[ "$d" -gt 0 ]]; then printf '%dd%dh' "$d" "$h"
+    elif [[ "$h" -gt 0 ]]; then printf '%dh%02dm' "$h" "$m"
+    elif [[ "$m" -gt 0 ]]; then printf '%dm%02ds' "$m" "$sec"
+    else printf '%ds' "$sec"; fi
+}
+
+_fmt_age() {
+    local s="$1"
+    [[ -z "$s" || ! "$s" =~ ^[0-9]+$ ]] && { printf '?'; return; }
+    if   [[ "$s" -lt 60    ]]; then printf '%ds' "$s"
+    elif [[ "$s" -lt 3600  ]]; then printf '%dm' $(( s / 60 ))
+    else                            printf '%dh' $(( s / 3600 )); fi
+}
+
 render_header() {
     local width="$1"
-    local action_c
-    action_c=$(action_color "$HK_ACTION")
-    local icon
-    icon=$(action_icon "$HK_ACTION")
-    local sess_short="${HK_SESSION:0:8}"
-    [[ -z "$sess_short" ]] && sess_short="—"
-
     top_bar "$width"
-
-    # Title row
-    local title="JARVIS WATCHER HUD v$HUD_VERSION"
-    local right=" $HUD_NOW_FMT "
-    local mid=" ${icon} ${action_c}${HK_ACTION}${C_NC}${C_HEADER} | session ${sess_short} | watcher PID ${W_PID:-?} (${W_UPTIME}) "
-
-    local title_len=${#title}
-    local right_len=${#HUD_NOW_FMT}
-    right_len=$(( right_len + 2 ))
-    local mid_plain=" ${HK_ACTION} | session ${sess_short} | watcher PID ${W_PID:-?} (${W_UPTIME}) "
-    local mid_len=${#mid_plain}
-    mid_len=$(( mid_len + 2 ))   # icon space
-
-    local pad_total=$(( width - 2 - title_len - mid_len - right_len ))
-    [[ "$pad_total" -lt 2 ]] && pad_total=2
-    local pad_l=$(( pad_total / 2 ))
-    local pad_r=$(( pad_total - pad_l ))
-
-    printf '%s%s%s %s%s%s%b%s%s%s%s%s%s%s\n' \
-        "$C_HEADER$C_BOLD" "$B_V" "$C_NC" \
-        "$C_VIOLET$C_BOLD$title$C_NC" \
-        "$(repeat_char ' ' "$pad_l")" \
-        "$C_HEADER" \
-        "$mid" \
-        "$C_NC" \
-        "$(repeat_char ' ' "$pad_r")" \
-        "$C_LGRAY$right$C_NC" \
-        "$C_HEADER$C_BOLD" "$B_V" "$C_NC" "$C_NC"
-    return 0
-}
-
-render_context_section() {
-    local width="$1"
-    local inner=$(( width - 4 ))
-    local bar_width=$(( width - 14 ))
-    [[ "$bar_width" -lt 30 ]] && bar_width=30
-
-    local soft_pct hard_pct
-    if [[ "$HK_WINDOW" -gt 0 ]]; then
-        soft_pct=$(( HK_SOFT_TOKENS * 100 / HK_WINDOW ))
-        hard_pct=$(( HK_HARD_TOKENS * 100 / HK_WINDOW ))
+    local dot dotc state
+    if [[ "$WD_ALIVE" == "true" ]]; then
+        dot="●"; dotc="$C_LIME"; state="RUNNING"
     else
-        soft_pct=30; hard_pct=65
+        dot="●"; dotc="$C_RED";  state="DOWN"
     fi
-
-    local pct_color
-    pct_color=$(color_pct "$HK_USED_PCT")
-    local bar
-    bar=$(build_bar "$bar_width" "$HK_USED_PCT" "$soft_pct" "$hard_pct" 70)
-
-    section_hr "$width" "CONTEXT WINDOW"
-
-    local model
-    model=$(model_short)
-    content_row "$width" "  ${C_LABEL}Model:${C_NC} ${C_BOLD}${model}${C_NC}    ${C_LABEL}Window:${C_NC} $(human_int "$HK_WINDOW")    ${C_LABEL}Tokens used:${C_NC} ${pct_color}${C_BOLD}$(human_int "$HK_TOKENS")${C_NC} ${C_LABEL}(${HK_USED_PCT}%)${C_NC}"
-    content_row "$width" ""
-    content_row "$width" "  [${bar}]"
-    content_row "$width" "  ${C_GRAY}0%${C_NC}                                ${C_YELLOW}${TICK_SOFT} soft ${soft_pct}%${C_NC}    ${C_RED}${TICK_HARD} hard ${hard_pct}%${C_NC}    ${C_MAGENTA}${TICK_AUTO} auto 70%${C_NC}                              ${C_GRAY}100%${C_NC}"
-    content_row "$width" ""
-    content_row "$width" "  ${C_LABEL}Burn rate:${C_NC} ${C_VALUE}$(human_int "$HK_BURN")${C_NC}/min   ${C_LABEL}Soft ETA:${C_NC} ${C_VALUE}$(human_min "$HK_SOFT_ETA")${C_NC}   ${C_LABEL}Hard ETA:${C_NC} ${C_VALUE}$(human_min "$HK_HARD_ETA")${C_NC}   ${C_LABEL}Last turn out:${C_NC} ${C_VALUE}$(human_int "$HK_OUTPUT_LAST")${C_NC} tok"
+    local title="AION WATCHER"
+    local ver="v$HUD_VERSION"
+    local mid="${dotc}${dot}${C_NC} ${C_BOLD}${state}${C_NC}${C_HEADER}  pid ${WD_PID:-—}  up $(_fmt_etime "$WD_UPTIME")"
+    local mid_plain="${dot} ${state}  pid ${WD_PID:-—}  up $(_fmt_etime "$WD_UPTIME")"
+    local right="$HUD_NOW_FMT "
+    local pad_total=$(( width - 4 - ${#title} - ${#ver} - 2 - ${#mid_plain} - ${#right} ))
+    [[ "$pad_total" -lt 2 ]] && pad_total=2
+    local pad_l=$(( pad_total / 2 )) pad_r
+    pad_r=$(( pad_total - pad_l ))
+    printf '%s%s%s %s%s %s%s%s%b%s%s%s%s%s%s\n' \
+        "$C_HEADER$C_BOLD" "$B_V" "$C_NC" \
+        "$C_VIOLET$C_BOLD$title$C_NC " "$C_DIM$ver$C_NC" \
+        "$(repeat_char ' ' "$pad_l")" "$C_HEADER" "" \
+        "$mid" \
+        "$C_NC" "$(repeat_char ' ' "$pad_r")" \
+        "$C_LGRAY" "$right" "$C_NC" \
+        "$C_HEADER$C_BOLD$B_V$C_NC"
     return 0
 }
 
-render_cache_cost_row() {
+# The daemon panel. FIRST on screen, deliberately: this is the console for that
+# process, and its liveness qualifies every other number here.
+render_daemon_section() {
     local width="$1"
-    local half=$(( (width - 3) / 2 ))
-    section_hr "$width" "CACHE & COST"
+    section_hr "$width" "WATCHER DAEMON"
 
-    # Cache hit ratio as percent integer
-    local hit_pct
-    hit_pct=$(awk -v h="$HK_CACHE_HIT" 'BEGIN{printf "%d", h*100}')
-    local hit_color
-    hit_color=$(color_hit "$hit_pct")
-
-    local cost_disp rate5_disp rate7_disp
-    if [[ -z "$HK_COST" || "$HK_COST" == "null" ]]; then cost_disp="${C_DIM}—${C_NC}"; else cost_disp="${C_VALUE}$(human_cost "$HK_COST")${C_NC}"; fi
-    if [[ -z "$HK_RATE5H" || "$HK_RATE5H" == "null" ]]; then rate5_disp="${C_DIM}—${C_NC}"; else rate5_disp="$(color_pct "$HK_RATE5H")${HK_RATE5H}%${C_NC}"; fi
-    if [[ -z "$HK_RATE7D" || "$HK_RATE7D" == "null" ]]; then rate7_disp="${C_DIM}—${C_NC}"; else rate7_disp="$(color_pct "$HK_RATE7D")${HK_RATE7D}%${C_NC}"; fi
-
-    content_row "$width" "  ${C_LABEL}Hit rate:${C_NC} ${hit_color}${C_BOLD}${hit_pct}%${C_NC}   ${C_LABEL}Read:${C_NC} ${C_VALUE}$(human_int "$HK_CACHE_READ")${C_NC}   ${C_LABEL}Create:${C_NC} ${C_VALUE}$(human_int "$HK_CACHE_CREATE")${C_NC} ${C_DIM}(5m: $(human_int "$HK_CACHE_5M") / 1h: $(human_int "$HK_CACHE_1H"))${C_NC}"
-    content_row "$width" "  ${C_LABEL}Cost:${C_NC} ${cost_disp}   ${C_LABEL}5h block:${C_NC} ${rate5_disp}   ${C_LABEL}7d window:${C_NC} ${rate7_disp}   ${C_LABEL}eph_1h adoption:${C_NC} ${C_GREEN}100%${C_NC} ${C_DIM}(derived)${C_NC}"
-
-    # Cost-anomaly watcher row (Aion proxy-summed rate; updated every 5min by com.aion.jarvis-cost-watcher)
-    if [[ -n "${CA_TS:-}" ]]; then
-        local alert_color="$C_DIM" alert_label="${CA_ALERT:-ok}"
-        case "${CA_ALERT:-ok}" in
-            ok)       alert_color="$C_GREEN" ;;
-            watch)    alert_color="$C_YELLOW" ;;
-            warn)     alert_color="$C_YELLOW${C_BOLD}" ;;
-            critical) alert_color="$C_RED${C_BOLD}" ;;
-        esac
-        local anom_disp="${C_DIM}none${C_NC}"
-        if [[ "${CA_ANOMALY_COUNT:-0}" -gt 0 ]]; then
-            anom_disp="${C_RED}${CA_ANOMALY_COUNT}× ${CA_ANOMALY_TYPE}${C_NC}"
-        fi
-        content_row "$width" "  ${C_LABEL}Burn rate:${C_NC} ${C_VALUE}\$${CA_5H_RATE}/hr${C_NC} ${C_DIM}(5h, ${CA_5H_REQS} reqs, \$${CA_5H_COST})${C_NC}   ${C_LABEL}5m:${C_NC} ${C_VALUE}\$${CA_5M_RATE}/hr${C_NC}   ${C_LABEL}alert:${C_NC} ${alert_color}${alert_label}${C_NC}   ${C_LABEL}anomalies:${C_NC} ${anom_disp}"
+    local jl_c jl_txt
+    if [[ "$WD_LAUNCHD" == "loaded" ]]; then
+        jl_c="$C_LIME"; jl_txt="loaded"
+        [[ -n "$WD_LAST_RC" && "$WD_LAST_RC" != "0" ]] && { jl_c="$C_ORANGE"; jl_txt="loaded (last rc=$WD_LAST_RC)"; }
+    else
+        jl_c="$C_RED"; jl_txt="UNLOADED — nothing will restart this process"
     fi
+
+    local act_c act_t
+    if [[ "$WD_ACTUATE" == "1" ]]; then act_c="$C_LIME"; act_t="ON"
+    else act_c="$C_ORANGE"; act_t="OFF (sense-only)"; fi
+    local w0_t; [[ "$WD_W0" == "1" ]] && w0_t="ON" || w0_t="OFF"
+
+    content_row "$width" "  ${C_LABEL}launchd:${C_NC} ${C_DIM}com.aion.jicm-watcher${C_NC} ${jl_c}${jl_txt}${C_NC}   ${C_LABEL}poll:${C_NC} ${C_VALUE}${WD_POLL:-?}${C_NC}   ${C_LABEL}actuate:${C_NC} ${act_c}${act_t}${C_NC}   ${C_LABEL}w0:${C_NC} ${C_VALUE}${w0_t}${C_NC}   ${C_LABEL}cpu:${C_NC} ${C_VALUE}${WD_CPU:-?}%${C_NC}"
+
+    # Alerts. Silence is only meaningful if the age of the last alert is shown next
+    # to it — "0 in 24h" with a 20-minute-old alert would be a very different picture.
+    local a_c a_t
+    if [[ "$WA_24H" -eq 0 ]]; then a_c="$C_LIME"; a_t="none in 24h"
+    elif [[ "$WA_24H" -le 2 ]]; then a_c="$C_GOLD"; a_t="${WA_24H} in 24h"
+    else a_c="$C_RED"; a_t="${WA_24H} in 24h"; fi
+    local last_t="${C_DIM}(no alerts on record)${C_NC}"
+    if [[ -n "$WA_LAST" ]]; then
+        local kind; kind=$(sed -nE 's/.*(FROZEN STATE|SAMPLER GAP).*/\1/p' <<<"$WA_LAST")
+        [[ -z "$kind" ]] && kind="ALERT"
+        local lkey; lkey=$(sed -nE 's/.*key=([A-Za-z0-9_-]+).*/\1/p' <<<"$WA_LAST")
+        last_t="${C_DIM}last:${C_NC} ${C_LGRAY}${kind}${lkey:+ key=$lkey}${C_NC} ${C_DIM}($(_fmt_age "$WA_LAST_AGE") ago)${C_NC}"
+    fi
+    local lock_t
+    if [[ -z "$WA_LOCKS" ]]; then lock_t="${C_DIM}none${C_NC}"
+    else lock_t="${C_MAGENTA}${WA_LOCKS}${C_NC} ${C_DIM}(cycle in flight)${C_NC}"; fi
+    content_row "$width" "  ${C_LABEL}alerts:${C_NC} ${a_c}${a_t}${C_NC}   ${last_t}   ${C_LABEL}locks:${C_NC} ${lock_t}"
+    return 0
+}
+
+# Lanes — the primary object. One dense row each, most-loaded first, every number
+# scoped to that lane's OWN threshold.
+render_lanes_section() {
+    local width="$1"
+    section_hr "$width" "LANES — registry (${#HUD_SESSION_ROWS[@]})"
+    if [[ "${#HUD_SESSION_ROWS[@]}" -eq 0 ]]; then
+        content_row "$width" "  ${C_DIM}(no registered lanes — is jicm-config.sh loadable?)${C_NC}"
+        return 0
+    fi
+    content_row "$width" "  ${C_DIM}$(printf '%-8s %-8s %-9s %15s %5s  %-26s %-9s %5s %5s %4s' \
+        KEY WIN SID 'TOKENS / HARD' USE 'LOAD' PROV AGE OCC DRV)${C_NC}"
+
+    # Sort by utilisation descending — the lane closest to a cycle reads first.
+    local sorted row
+    sorted=$(for row in "${HUD_SESSION_ROWS[@]}"; do
+        local t h p
+        t=$(cut -d'|' -f4 <<<"$row"); h=$(cut -d'|' -f5 <<<"$row")
+        if [[ "$h" =~ ^[0-9]+$ ]] && [[ "$h" -gt 0 ]]; then p=$(( t * 100 / h )); else p=0; fi
+        printf '%03d|%s\n' "$p" "$row"
+    done | sort -rn)
+
+    local key sid target tokens hard pending alive occ prov age pct
+    while IFS= read -r row; do
+        [[ -z "$row" ]] && continue
+        pct="${row%%|*}"; pct=$(( 10#$pct ))
+        row="${row#*|}"
+        IFS='|' read -r key sid target tokens hard pending alive occ prov age soft <<< "$row"
+        local sid8="${sid:0:8}"; [[ -z "$sid8" ]] && sid8="-"
+
+        local pc
+        if   [[ "$pct" -ge 90 ]]; then pc="$C_RED"
+        elif [[ "$pct" -ge 70 ]]; then pc="$C_ORANGE"
+        elif [[ "$pct" -ge 50 ]]; then pc="$C_GOLD"
+        else                           pc="$C_LIME"; fi
+
+        # 26-cell load bar, scaled to THIS lane's own hard threshold, so the right
+        # edge always means "a cycle fires here" whether the budget is 160K or 330K.
+        # The tick marks the lane's OWN soft threshold, read from its state file — v1
+        # drew ticks at fixed columns, which asserted a soft/hard ratio the lane may
+        # not have. If soft is unset the tick is simply omitted rather than guessed.
+        local bar="" i filled softpos=-1
+        filled=$(( pct * 26 / 100 )); [[ "$filled" -gt 26 ]] && filled=26
+        if [[ "$soft" =~ ^[0-9]+$ ]] && [[ "$soft" -gt 0 ]] && [[ "$hard" -gt 0 ]]; then
+            softpos=$(( soft * 26 / hard ))
+            [[ "$softpos" -ge 26 ]] && softpos=25
+        fi
+        i=0
+        while [[ "$i" -lt 26 ]]; do
+            if [[ "$i" -eq "$softpos" ]]; then
+                # keep the tick legible whether or not the fill has reached it
+                if [[ "$i" -lt "$filled" ]]; then bar+="${pc}${TICK_HARD}${C_NC}"
+                else bar+="${C_GRAY}${TICK_SOFT}${C_NC}"; fi
+            elif [[ "$i" -lt "$filled" ]]; then bar+="${pc}${BLOCK_FULL}${C_NC}"
+            else bar+="${C_DGRAY}${BLOCK_25}${C_NC}"; fi
+            i=$(( i + 1 ))
+        done
+
+        local occ_c
+        case "$occ" in
+            DRIFT) occ_c="$C_RED"   ;;
+            ok)    occ_c="$C_LIME"  ;;
+            \?)    occ_c="$C_GOLD"  ;;
+            *)     occ_c="$C_DIM"   ;;
+        esac
+        # A stale session is dimmed wholesale — the row is about a lane that is gone.
+        local kc="$C_VALUE"; [[ "$alive" != "live" ]] && kc="$C_DIM"
+
+        local drv; drv=$(_kv_get "$key" "$WC_DRIVES" "0")
+        local drv_c="$C_DIM"
+        # 0 drives = an actuation path never proven end-to-end. Worth a colour.
+        [[ "$drv" == "0" ]] && drv_c="$C_GOLD"
+
+        local pend_disp=""
+        [[ "$pending" != "none" && -n "$pending" ]] && pend_disp=" ${C_MAGENTA}${pending}${C_NC}"
+
+        content_row "$width" "$(printf '  %s%-8s%s %-8s %-9s %6s/%-7s %s%4s%%%s  %s %s%-9s%s %5s %s%5s%s %s%4s%s%b' \
+            "$kc" "$(truncate_str "$key" 8)" "$C_NC" \
+            "$(truncate_str "$target" 8)" "$sid8" \
+            "$(human_int "$tokens")" "$(human_int "$hard")" \
+            "$pc" "$pct" "$C_NC" \
+            "$bar" \
+            "$C_DIM" "$(_prov_short "$prov")" "$C_NC" \
+            "$(_fmt_age "$age")" \
+            "$occ_c" "$occ" "$C_NC" \
+            "$drv_c" "$drv" "$C_NC" \
+            "$pend_disp")"
+    done <<< "$sorted"
     return 0
 }
 
 render_cycles_section() {
     local width="$1"
-    section_hr "$width" "JICM CYCLES"
-
-    # Last cycle line
-    local last_cycle="—"
-    if [[ -n "$CM_TS" ]]; then
-        local cm_epoch
-        cm_epoch=$(date -juf '%Y-%m-%dT%H:%M:%SZ' "$CM_TS" '+%s' 2>/dev/null) || cm_epoch=0
-        local ago
-        ago=$(elapsed_since "$cm_epoch")
-        last_cycle="${C_VALUE}${CM_TS}${C_NC} ${C_DIM}(${ago})${C_NC}  ${C_LABEL}method:${C_NC} ${C_BOLD}${CM_METHOD}${C_NC}"
-        [[ -n "$CM_LLM" && "$CM_LLM" != "null" ]] && last_cycle+="  ${C_LABEL}llm:${C_NC} ${CM_LLM}"
-        last_cycle+="  ${C_LABEL}out:${C_NC} ${CM_LINES} lines / $(human_int "$CM_BYTES")B  ${C_LABEL}dur:${C_NC} ${CM_DUR}s"
-    fi
-
-    local nlp_line="—"
-    if [[ "$CM_NLP_APPLIED" == "true" ]]; then
-        nlp_line="${C_LABEL}NLP:${C_NC} ${C_GREEN}applied${C_NC}  ${C_LABEL}before:${C_NC} $(human_int "$CM_NLP_BEFORE") tok  ${C_LABEL}after:${C_NC} $(human_int "$CM_NLP_AFTER") tok  ${C_LABEL}ratio:${C_NC} ${CM_NLP_RATIO}"
-    fi
-
-    local user_msgs_disp="—"
-    [[ "$CM_USER_MSGS" -gt 0 ]] && user_msgs_disp="${CM_USER_MSGS} user msgs captured"
-
-    content_row "$width" "  ${C_LABEL}Last compression:${C_NC} ${last_cycle}"
-    content_row "$width" "  ${nlp_line}    ${C_LABEL}session-state staleness:${C_NC} ${CM_STALE_MIN}m    ${user_msgs_disp}"
-    content_row "$width" "  ${C_LABEL}Cycles completed (this log):${C_NC} ${C_BOLD}${HUD_CYCLE_COUNT}${C_NC}    ${C_LABEL}NLP standalone:${C_NC} ${NLP_APPLIED}/${NLP_MODE:-—}   ratio ${NLP_RATIO:-—}   $(human_int "$NLP_BEFORE") → $(human_int "$NLP_AFTER") tok"
-    return 0
-}
-
-render_signals_quartet_row() {
-    local width="$1"
-    local half=$(( width / 2 - 1 ))
-    section_hr "$width" "SIGNALS (left)  &  AION QUARTET (right)"
-
-    local sig_clear sig_resume sig_comp sig_guard sig_exit sig_sleep sig_cmd
-    sig_clear=$([ "$SIG_CLEAR" = "true" ] && printf '%s' "${C_RED}${ICON_HALT} present${C_NC}" || printf '%s' "${C_DIM}absent${C_NC}")
-    sig_resume=$([ "$SIG_RESUME" = "true" ] && printf '%s' "${C_BLUE}${ICON_OK} present${C_NC}" || printf '%s' "${C_DIM}absent${C_NC}")
-    sig_comp=$([ "$SIG_COMP_DONE" = "true" ] && printf '%s' "${C_GREEN}${ICON_OK} ready${C_NC}" || printf '%s' "${C_DIM}absent${C_NC}")
-    sig_guard=$([ "$SIG_COMP_GUARD" = "true" ] && printf '%s' "${C_YELLOW}${C_BOLD}IN PROGRESS${C_NC}" || printf '%s' "${C_DIM}clear${C_NC}")
-    sig_exit=$([ "$SIG_EXIT" = "true" ] && printf '%s' "${C_MAGENTA}exit-mode${C_NC}" || printf '%s' "${C_DIM}—${C_NC}")
-    sig_sleep=$([ "$SIG_SLEEP" = "true" ] && printf '%s' "${C_VIOLET}sleep${C_NC}" || printf '%s' "${C_DIM}—${C_NC}")
-    if [[ -n "$SIG_COMMAND" ]]; then
-        sig_cmd="${C_CYAN}${C_BOLD}${SIG_COMMAND}${C_NC}"
-    else
-        sig_cmd="${C_DIM}—${C_NC}"
-    fi
-
-    # Quartet liveness
-    local q_w q_e q_v q_c
-    if [[ -n "$Q_WATCHER_PID" ]]; then
-        q_w="${C_GREEN}${ICON_OK} ALIVE${C_NC} pid ${Q_WATCHER_PID} ${C_DIM}(${Q_WATCHER_UP})${C_NC}"
-    else
-        q_w="${C_RED}${ICON_FAIL} DOWN${C_NC}"
-    fi
-    if [[ -n "$Q_ENNOIA_PID" ]]; then
-        q_e="${C_GREEN}${ICON_OK} alive${C_NC} pid ${Q_ENNOIA_PID} ${C_DIM}(${Q_ENNOIA_UP})${C_NC}"
-    else
-        q_e="${C_DIM}sleeping${C_NC}"
-    fi
-    if [[ -n "$Q_VIRGIL_PID" ]]; then
-        q_v="${C_GREEN}${ICON_OK} alive${C_NC} pid ${Q_VIRGIL_PID} ${C_DIM}(${Q_VIRGIL_UP})${C_NC}"
-    else
-        q_v="${C_DIM}sleeping${C_NC}"
-    fi
-    if [[ -n "$Q_COMMANDS_PID" ]]; then
-        q_c="${C_GREEN}${ICON_OK} alive${C_NC} pid ${Q_COMMANDS_PID} ${C_DIM}(${Q_COMMANDS_UP})${C_NC}"
-    else
-        q_c="${C_DIM}sleeping${C_NC}"
-    fi
-
-    content_row "$width" "  ${C_LABEL}.jicm-clear-now.signal:${C_NC} ${sig_clear}        ${C_LABEL}Watcher:${C_NC}  ${q_w}"
-    content_row "$width" "  ${C_LABEL}.jicm-resume-complete:${C_NC}  ${sig_resume}       ${C_LABEL}Ennoia:${C_NC}   ${q_e}"
-    content_row "$width" "  ${C_LABEL}.compression-done.signal:${C_NC} ${sig_comp}        ${C_LABEL}Virgil:${C_NC}   ${q_v}"
-    content_row "$width" "  ${C_LABEL}.compression-in-progress:${C_NC} ${sig_guard}      ${C_LABEL}Commands:${C_NC} ${q_c}"
-    content_row "$width" "  ${C_LABEL}.command-signal:${C_NC} ${sig_cmd}                ${C_LABEL}Exit-mode:${C_NC} ${sig_exit}     ${C_LABEL}Sleep:${C_NC} ${sig_sleep}"
-    return 0
-}
-
-render_project_pulse_section() {
-    local width="$1"
-    section_hr "$width" "PROJECT FOCUS  &  PULSE TASKS  &  GIT"
-
-    # Status line — truncated to width-6
-    local status_disp
-    if [[ -n "$HUD_PROJECT_STATUS" ]]; then
-        status_disp=$(truncate_str "$HUD_PROJECT_STATUS" $(( width - 14 )))
-    else
-        status_disp="${DIM}(no session-state.md status)${NC}"
-    fi
-    content_row "$width" "  ${C_LABEL}Focus:${C_NC} ${C_VALUE}${status_disp}${C_NC}"
-
-    # Pulse counts (with --/dim if API offline)
-    local pulse_disp git_disp
-    if [[ "$HUD_PULSE_OPEN_TOTAL" -ge 0 ]]; then
-        pulse_disp="${C_LABEL}Pulse open:${C_NC} ${C_BOLD}${HUD_PULSE_OPEN_TOTAL}${C_NC} ${C_DIM}total${C_NC}   ${C_LABEL}agent:jarvis:${C_NC} ${C_VIOLET}${HUD_PULSE_OPEN_JARVIS}${C_NC}   ${C_LABEL}agent:aifred:${C_NC} ${C_PINK}${HUD_PULSE_OPEN_AIFRED}${C_NC}"
-    else
-        pulse_disp="${C_LABEL}Pulse:${C_NC} ${C_DIM}offline (localhost:8700 unreachable)${C_NC}"
-    fi
-
-    if [[ -n "$HUD_GIT_BRANCH" ]]; then
-        local ahead_disp=""
-        if [[ "$HUD_GIT_AHEAD" -gt 0 ]]; then
-            ahead_disp=" ${C_CYAN}↑${HUD_GIT_AHEAD}${C_NC}"
-        fi
-        local dirty_disp=""
-        if [[ "$HUD_GIT_DIRTY" -gt 0 ]]; then
-            dirty_disp=" ${C_YELLOW}*${HUD_GIT_DIRTY}${C_NC}"
-        fi
-        git_disp="${C_LABEL}Git:${C_NC} ${C_TEAL}${HUD_GIT_BRANCH}${C_NC}${ahead_disp}${dirty_disp}"
-    else
-        git_disp="${C_LABEL}Git:${C_NC} ${C_DIM}—${C_NC}"
-    fi
-
-    content_row "$width" "  ${pulse_disp}     ${git_disp}"
-    return 0
-}
-
-render_thresholds_section() {
-    local width="$1"
-    # SCOPE WARNING: every HK_* value here is read from $JICM_STATE_HOOK_FILE, which is
-    # W0's legacy shared state file — NOT a daemon-wide config. Under v9 each key carries
-    # its OWN thresholds (protos is 140K/160K, not 330K), and those render per-row in the
-    # SESSIONS table below. Labelling these as global made the panel assert w0's numbers
-    # for all five lanes. Keep the W0 prefix on anything sourced from HK_*/LG_*; leave the
-    # daemon timings (POLL/IDLE_GRACE/HALT_ACK/PREP/RESUME/BACKEND) unprefixed — those
-    # genuinely are process-wide.
-    section_hr "$width" "CONFIG — W0 THRESHOLDS + DAEMON-WIDE TIMINGS"
-    local soft_p hard_p
-    if [[ "$HK_WINDOW" -gt 0 ]]; then
-        soft_p=$(( HK_SOFT_TOKENS * 100 / HK_WINDOW ))
-        hard_p=$(( HK_HARD_TOKENS * 100 / HK_WINDOW ))
-    else
-        soft_p=30; hard_p=65
-    fi
-    content_row "$width" "  ${C_DIM}W0${C_NC} ${C_LABEL}SOFT:${C_NC} ${C_VALUE}$(human_int "$HK_SOFT_TOKENS")${C_NC} (${soft_p}%)   ${C_DIM}W0${C_NC} ${C_LABEL}HARD:${C_NC} ${C_VALUE}$(human_int "$HK_HARD_TOKENS")${C_NC} (${hard_p}%)   ${C_LABEL}AUTO_COMPACT:${C_NC} ${C_VALUE}70%${C_NC}   ${C_DIM}W0${C_NC} ${C_LABEL}WINDOW:${C_NC} ${C_VALUE}$(human_int "$HK_WINDOW")${C_NC}   ${C_DIM}(per-key thresholds: see SESSIONS)${C_NC}"
-    content_row "$width" "  ${C_LABEL}POLL:${C_NC} ${JICM_POLL_INTERVAL:-1}s   ${C_LABEL}IDLE_GRACE:${C_NC} ${JICM_IDLE_GRACE_SEC:-3}s   ${C_LABEL}HALT_ACK:${C_NC} ${JICM_HALT_ACK_TIMEOUT:-60}s   ${C_LABEL}PREP:${C_NC} ${JICM_PREP_TIMEOUT:-300}s   ${C_LABEL}RESUME:${C_NC} ${JICM_RESUME_TIMEOUT:-60}s"
-    content_row "$width" "  ${C_LABEL}BACKEND:${C_NC} ${C_VALUE}${JICM_INJECTION_BACKEND:-tmux}${C_NC}   ${C_DIM}W0${C_NC} ${C_LABEL}TARGET:${C_NC} ${C_VALUE}${JICM_TMUX_TARGET:-aion:0}${C_NC}   ${C_DIM}W0${C_NC} ${C_LABEL}LEGACY_STATE:${C_NC} ${C_VALUE}${LG_STATE}${C_NC} ${C_DIM}(shim: ${LG_SHIM})${C_NC}"
-    return 0
-}
-
-# --- R4 (JICM v9 Phase 5 / finding L3) — MULTI-SESSION PANEL -----------------
-# The rest of this HUD renders ONE session from the legacy .jicm-state files. Under v9
-# there are N concurrent keys (w0, dev, dev-bg-*, protos, chain-*), and un-gating
-# autonomous multi-session clearing without a view of which session is where would mean
-# firing /clear at panes blind — exactly where the identity bugs manifest. So: one row
-# per registry key, read the same way the supervisor reads them.
-#
-# OCC is the column that earns its place. It compares the registry's session_id against
-# the LIVE pane occupant: a mismatch (✗) is the startup-race demotion / registry-drift
-# class that R2 reconciliation repairs, made visible instead of silent.
-HUD_SESSION_ROWS=()
-load_sessions() {
-    HUD_SESSION_ROWS=()
-    command -v jicm_registry_keys >/dev/null 2>&1 || return 0
-    local key sid target st tokens pending hard alive occ pane
-    for key in $(jicm_registry_keys 2>/dev/null); do
-        sid="$(jicm_registry_get "$key" '.session_id' 2>/dev/null)"
-        target="$(jicm_registry_get "$key" '.tmux_target' 2>/dev/null)"
-        [[ "$target" == "null" || -z "$target" ]] && target="-"
-        # Same sensor the supervisor uses: the gate-written per-key state file.
-        jicm_key_paths "$key" 2>/dev/null
-        if [[ -f "$JK_STATE" ]]; then
-            st="$(jq -r '[(.tokens // 0), (.pending_action // "none"), (.hard_threshold_tokens // 0)] | join("|")' "$JK_STATE" 2>/dev/null)"
-        fi
-        [[ -z "${st:-}" ]] && st="0|none|0"
-        IFS='|' read -r tokens pending hard <<< "$st"
-        alive="stale"; jicm_session_alive "$sid" 2>/dev/null && alive="live"
-        # OCC: does the registry agree with who is actually in the pane?
-        occ="-"
-        if [[ "$target" != "-" ]]; then
-            pane="$(jicm_pane_session "$target" 2>/dev/null)"
-            if   [[ -z "$pane" ]];        then occ="?"      # pane unresolvable — prove nothing
-            elif [[ "$pane" == "$sid" ]]; then occ="ok"
-            else                               occ="DRIFT"; fi
-        fi
-        HUD_SESSION_ROWS+=("${key}|${sid}|${target}|${tokens}|${hard}|${pending}|${alive}|${occ}")
-    done
-    return 0
-}
-
-render_sessions_section() {
-    local width="$1"
-    section_hr "$width" "SESSIONS — v9 registry (${#HUD_SESSION_ROWS[@]})"
-    if [[ "${#HUD_SESSION_ROWS[@]}" -eq 0 ]]; then
-        content_row "$width" "  ${C_DIM}(no registered sessions — is jicm-config.sh loadable?)${C_NC}"
+    section_hr "$width" "RECENT CYCLES"
+    if [[ "${#HUD_CYCLES[@]}" -eq 0 ]]; then
+        content_row "$width" "  ${C_DIM}(no completed cycles in the log)${C_NC}"
         return 0
     fi
-    content_row "$width" "  ${C_DIM}$(printf '%-18s %-9s %-9s %13s %6s  %-22s %-6s %s' \
-        KEY SID TARGET TOKENS USE ACTION LIVE OCC)${C_NC}"
-    local row key sid target tokens hard pending alive occ pct bar_c live_c occ_c sid8
-    for row in "${HUD_SESSION_ROWS[@]}"; do
-        IFS='|' read -r key sid target tokens hard pending alive occ <<< "$row"
-        sid8="${sid:0:8}"; [[ -z "$sid8" ]] && sid8="-"
-        # % of the key's OWN hard threshold — keys can carry different windows.
-        if [[ "${hard:-0}" =~ ^[0-9]+$ ]] && [[ "$hard" -gt 0 ]]; then
-            pct=$(( tokens * 100 / hard ))
-        else pct=0; fi
-        if   [[ "$pct" -ge 90 ]]; then bar_c="$C_RED"
-        elif [[ "$pct" -ge 70 ]]; then bar_c="$C_ORANGE"
-        elif [[ "$pct" -ge 50 ]]; then bar_c="$C_YELLOW"
-        else                           bar_c="$C_GREEN"; fi
-        [[ "$alive" == "live" ]] && live_c="$C_GREEN" || live_c="$C_GRAY"
-        case "$occ" in
-            DRIFT) occ_c="$C_RED"   ;;   # registry disagrees with the pane — the identity bug
-            ok)    occ_c="$C_GREEN" ;;
-            \?)    occ_c="$C_YELLOW";;   # unresolvable probe — never treated as agreement
-            *)     occ_c="$C_DIM"   ;;
-        esac
-        content_row "$width" "$(printf '  %-18s %-9s %-9s %6s/%-6s %s%5s%%%s  %-22s %s%-6s%s %s%s%s' \
-            "$(truncate_str "$key" 18)" "$sid8" "$(truncate_str "$target" 9)" \
-            "$(human_int "$tokens")" "$(human_int "$hard")" \
-            "$bar_c" "$pct" "$C_NC" \
-            "$(truncate_str "$pending" 22)" \
-            "$live_c" "$alive" "$C_NC" \
-            "$occ_c" "$occ" "$C_NC")"
+    local out="  " c t k d
+    for c in "${HUD_CYCLES[@]}"; do
+        IFS='|' read -r t k d <<< "$c"
+        local dc="$C_LIME"
+        [[ "$d" =~ ^[0-9]+$ ]] && [[ "$d" -gt 400 ]] && dc="$C_GOLD"
+        out+="${C_DIM}${t}${C_NC} ${C_VALUE}${k}${C_NC} ${dc}${d}s${C_NC}${C_LIME}✓${C_NC}   "
     done
+    content_row "$width" "$out"
+    return 0
+}
+
+render_services_section() {
+    local width="$1"
+    section_hr "$width" "SERVICES  ·  RESOURCES  ·  QUOTA"
+    local svc="" s name up lat
+    local IFS='|'
+    for s in $RS_SERVICES; do
+        [[ -z "$s" ]] && continue
+        name="${s%%:*}"; up=$(cut -d: -f2 <<<"$s"); lat=$(cut -d: -f3 <<<"$s")
+        if [[ "$up" == "up" ]]; then svc+="${C_LIME}●${C_NC} ${C_LGRAY}${name}${C_NC} ${C_DIM}${lat}ms${C_NC}   "
+        else svc+="${C_RED}● ${name} DOWN${C_NC}   "; fi
+    done
+    unset IFS
+    [[ -z "$svc" ]] && svc="${C_DIM}(no probe data)${C_NC}"
+
+    # MLX footprint is on the dashboard because it is a KNOWN leak with a live
+    # watchdog: shape-diverse embedding requests grow the allocator's cache, and it
+    # has reached 59 GB before. Threshold is the daemon's own auto-restart trigger.
+    local mlx="${C_DIM}mlx —${C_NC}"
+    if [[ -n "$RS_MLX_GB" ]]; then
+        local mc="$C_LIME"
+        [[ -n "$RS_MLX_MAX" ]] && [[ "$RS_MLX_GB" -ge $(( RS_MLX_MAX / 2 )) ]] && mc="$C_GOLD"
+        [[ -n "$RS_MLX_MAX" ]] && [[ "$RS_MLX_GB" -ge "$RS_MLX_MAX" ]] && mc="$C_RED"
+        mlx="${C_LABEL}MLX:${C_NC} ${mc}${RS_MLX_GB}${C_NC}${C_DIM}/${RS_MLX_MAX}GB${C_NC}"
+    fi
+    local mem=""
+    if [[ -n "$RS_MEM_FREE" ]]; then
+        local fc="$C_LIME"
+        [[ "$RS_MEM_FREE" -lt 30 ]] && fc="$C_GOLD"
+        [[ "$RS_MEM_FREE" -lt 15 ]] && fc="$C_RED"
+        mem="   ${C_LABEL}mem free:${C_NC} ${fc}${RS_MEM_FREE}%${C_NC}"
+    fi
+    content_row "$width" "  ${svc}${C_DIM}│${C_NC}  ${mlx}${mem}   ${C_DIM}(probe $(_fmt_age "$RS_AGE") ago)${C_NC}"
+
+    # Quota, compact. %Usage is the metric that matters; dollars are the least
+    # relevant figure and the proxy reports cost_usd NULL by design, so it is omitted
+    # rather than rendered as an authoritative-looking "$0.000".
+    local q="  "
+    local r5="${HK_RATE5H%\%}" r7="${HK_RATE7D%\%}"
+    [[ -n "$r5" && "$r5" != "—" ]] && q+="${C_LABEL}5h block:${C_NC} $(color_pct "$r5")${r5}%${C_NC}   "
+    [[ -n "$r7" && "$r7" != "—" ]] && q+="${C_LABEL}7d window:${C_NC} $(color_pct "$r7")${r7}%${C_NC}   "
+    # cache_hit_rate is a RATIO (0.9904), not a percentage. v1 printed "0.9904%".
+    if [[ -n "$HK_CACHE_HIT" ]]; then
+        local ch; ch=$(awk -v v="$HK_CACHE_HIT" 'BEGIN{ if (v<=1) printf "%d", v*100+0.5; else printf "%d", v+0.5 }')
+        q+="${C_LABEL}cache hit:${C_NC} ${C_VALUE}${ch}%${C_NC}   "
+    fi
+    [[ -n "$HUD_GIT_BRANCH" ]] && q+="${C_LABEL}git:${C_NC} ${C_TEAL}${HUD_GIT_BRANCH}${C_NC}"
+    [[ "${HUD_GIT_DIRTY:-0}" -gt 0 ]] && q+=" ${C_GOLD}*${HUD_GIT_DIRTY}${C_NC}"
+    [[ "${HUD_GIT_AHEAD:-0}" -gt 0 ]] && q+=" ${C_CYAN}↑${HUD_GIT_AHEAD}${C_NC}"
+    [[ "$q" != "  " ]] && content_row "$width" "$q"
     return 0
 }
 
 render_log_tail() {
     local width="$1"
-    section_hr "$width" "${JICM_HUD_LOG_LABEL:-LOG} (live tail, last $HUD_LOG_TAIL lines)"
+    section_hr "$width" "WATCHER LOG — live tail"
     if [[ "${#HUD_LOG_LINES[@]}" -eq 0 ]]; then
         content_row "$width" "  ${C_DIM}(no log entries)${C_NC}"
         return 0
     fi
-    local line color
+    local line color disp
     for line in "${HUD_LOG_LINES[@]}"; do
-        # Color-code by content
+        # v1 wasted 6 of 10 rows on CANARY-FIRE continuation lines carrying an absolute
+        # log path and a stock instruction. Strip the noise so the tail shows EVENTS.
         case "$line" in
-            *"cycle: start"*)            color="$C_VIOLET" ;;
-            *"cycle: complete"*)         color="$C_GREEN" ;;
-            *"HALT prompt sent"*)        color="$C_YELLOW" ;;
-            *"HALT acknowledged"*)       color="$C_GREEN" ;;
-            *"prep launching"*|*"prep complete"*) color="$C_CYAN" ;;
-            *"/clear sent"*)             color="$C_MAGENTA" ;;
-            *"RESUME prompt sent"*)      color="$C_BLUE" ;;
-            *"resume signal observed"*)  color="$C_BLUE" ;;
-            *"timeout"*|*"abort"*|*"error"*) color="$C_RED" ;;
-            *"watcher exiting"*|*"watcher v7.9 started"*) color="$C_BOLD" ;;
-            *) color="$C_LGRAY" ;;
+            *"policy=preserve-restore · target="*) continue ;;
+            *"Reply ONCE and STOP"*)               continue ;;
+            *"[CANARY-FIRE] detached actuator armed"*) continue ;;
         esac
-        local truncated
-        truncated=$(truncate_str "$line" $(( width - 6 )))
-        content_row "$width" "  ${color}${truncated}${C_NC}"
+        disp="$line"
+        disp="${disp//$PROJECT_DIR\//}"
+        # Collapse the ISO stamp to HH:MM:SS — the date is in the header.
+        disp=$(sed -E 's/^[0-9]{4}-[0-9]{2}-[0-9]{2}T([0-9:]{8})[+-][0-9]{4}/\1/' <<<"$disp")
+        case "$line" in
+            *"FROZEN STATE"*|*"SAMPLER GAP"*|*ALERT*) color="$C_RED"    ;;
+            *"cycle complete"*|*"reap:"*)             color="$C_LIME"   ;;
+            *"ACTUATE"*|*"CANARY-FIRE"*)              color="$C_MAGENTA";;
+            *"SIGNAL-EDGE"*)                          color="$C_GOLD"   ;;
+            *"MAINTAIN"*|*"REST"*)                    color="$C_CYAN"   ;;
+            *"watcher start"*)                        color="$C_VIOLET" ;;
+            *timeout*|*abort*|*error*|*FAILED*)       color="$C_RED"    ;;
+            *)                                        color="$C_LGRAY"  ;;
+        esac
+        content_row "$width" "  ${color}$(truncate_str "$disp" $(( width - 6 )))${C_NC}"
     done
     return 0
 }
 
 render_footer() {
     local width="$1"
-    local left=" Refresh ${HUD_REFRESH}s  |  Press q to quit  |  HUD v${HUD_VERSION}"
-    local right="${JICM_HUD_LOG_FILE:-${JICM_WATCHER_LOOP_LOG:-$JICM_LOG_FILE}} "
+    local left=" ${HUD_REFRESH}s refresh  ·  q to quit  ·  console for launchd com.aion.jicm-watcher"
+    local right="${HUD_WATCHER_LOG#$PROJECT_DIR/} "
     local r_short
     r_short=$(truncate_str "$right" $(( width / 2 - 4 )))
     local pad=$(( width - 2 - ${#left} - ${#r_short} ))
@@ -1159,27 +1310,22 @@ render_footer() {
 }
 
 # ─── DASHBOARD ASSEMBLY ────────────────────────────────────────────────────
-
+# Order encodes priority: is the watcher alive → what is it managing → what has it
+# done → what is it standing on → the raw event stream.
 render_dashboard() {
     local width
     width=$(term_cols)
-    [[ "$width" -gt 220 ]] && width=220   # cap for readability
+    [[ "$width" -gt 220 ]] && width=220
 
     clear_screen
     render_header "$width"
-    render_context_section "$width"
-    render_cache_cost_row "$width"
+    render_daemon_section "$width"
+    render_lanes_section "$width"
     render_cycles_section "$width"
-    render_signals_quartet_row "$width"
-    render_project_pulse_section "$width"
-    render_thresholds_section "$width"
-    render_sessions_section "$width"
+    render_services_section "$width"
     render_log_tail "$width"
     render_footer "$width"
-    # Erase any rows below the new frame (handles shrinking content from prior frame).
     printf '\033[J'
-    # End synchronized-output (DEC mode 2026) — flush the atomic frame.
-    # Paired with begin in clear_screen; forms the htop-style render barrier.
     if [[ "${HUD_IN_ALT_SCREEN:-false}" == "true" ]]; then
         printf '\033[?2026l'
     fi

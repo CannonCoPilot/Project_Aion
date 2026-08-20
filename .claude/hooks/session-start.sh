@@ -9,11 +9,11 @@
 # - Phase C: User Briefing (status, autonomous initiation)
 # - Checkpoint loading for context restoration
 # - MCP suggestions based on work type
-# - Auto-clear watcher launch
+# - Auto-clear legacy watcher launch
 #
 # JICM v7 Integration:
 # - Context injection via additionalContext (hook → Claude)
-# - v7.9 watcher handles all state transitions via .jicm-clear-now.signal + .jicm-resume-complete.signal
+# - v7.9 legacy watcher handles all state transitions via .jicm-clear-now.signal + .jicm-resume-complete.signal
 # - v7 prep script replaces LLM compression agent (0.03s vs 210s)
 # - See: .claude/context/designs/jicm-v6-design.md
 #
@@ -29,7 +29,7 @@ INPUT=$(cat)
 # the monorepo — Genie launches from Projects/WVU so it earns its own Claude Code project
 # slug and therefore its own L2 memory directory. CLAUDE_PROJECT_DIR is then WVU, and
 # every JICM artifact this hook touches (breadcrumbs, lane state, checkpoints, the
-# registry) would be written into that lane's own tree where the supervisor, the actuator
+# registry) would be written into that lane's own tree where the watcher, the actuator
 # and the launcher — all of which read the monorepo — would never find them.
 # Unset for every other lane, so w0/dev/protos behavior is byte-identical.
 PROJECT_DIR="${JICM_PROJECT_DIR:-$CLAUDE_PROJECT_DIR}"
@@ -183,7 +183,7 @@ fi
 
 # ============== JICM RESET (AC-04 Integration) ==============
 # context-estimate.json write REMOVED (Tier 3+ cleanup) — no production code reads it.
-# Watcher writes .watcher-status with live context percentage instead.
+# Legacy watcher writes .legacy watcher-status with live context percentage instead.
 COMPACTION_FLAG="$CLAUDE_PROJECT_DIR/.claude/context/.compaction-in-progress"
 
 if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
@@ -210,17 +210,17 @@ fi
 # ============================================================================
 # WATCHER LAUNCH DISABLED — Handled by launch-jarvis-tmux.sh (2026-02-05)
 # ============================================================================
-# Previously launched watcher here, but this caused duplicate watchers:
-# 1. launch-jarvis-tmux.sh creates watcher window (primary)
+# Previously launched legacy watcher here, but this caused duplicate watchers:
+# 1. launch-jarvis-tmux.sh creates legacy watcher window (primary)
 # 2. session-start.sh hook fires ~simultaneously (race condition)
 # 3. Both pass duplicate checks before either fully registers → 2 watchers
 #
-# Fix: Watcher is now ONLY launched by launch-jarvis-tmux.sh
+# Fix: Legacy watcher is now ONLY launched by launch-jarvis-tmux.sh
 # This hook focuses on context injection; tmux launcher handles process management
 # ============================================================================
 if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
-    # Watcher launch removed - see comment above
-    echo "$TIMESTAMP | SessionStart | Watcher launch skipped (handled by tmux launcher)" >> "$LOG_DIR/session-start-diagnostic.log"
+    # Legacy watcher launch removed - see comment above
+    echo "$TIMESTAMP | SessionStart | Legacy watcher launch skipped (handled by tmux launcher)" >> "$LOG_DIR/session-start-diagnostic.log"
 
     # JICM agent spawn signal removed (Tier 1 pruning) — nobody reads .jicm-agent-spawn-signal.
     # JICM is fully managed by jicm-watcher.sh (v6 stop-and-wait).
@@ -296,16 +296,16 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
         ENV_WARNINGS="${ENV_WARNINGS}- session-state.md missing (run /setup)\n"
     fi
 
-    # Check 6: Watcher health (evo-2026-02-001)
+    # Check 6: Legacy watcher health (evo-2026-02-001)
     WATCHER_COUNT=$(pgrep -f "jicm-watcher.sh" 2>/dev/null | wc -l | xargs)
     if [[ "$WATCHER_COUNT" -eq 0 ]]; then
-        ENV_WARNINGS="${ENV_WARNINGS}- JICM watcher not running (will be started by tmux launcher)\n"
-        echo "$TIMESTAMP | SessionStart | EnvCheck: Watcher not running" >> "$LOG_DIR/session-start-diagnostic.log"
+        ENV_WARNINGS="${ENV_WARNINGS}- JICM legacy watcher not running (will be started by tmux launcher)\n"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: Legacy watcher not running" >> "$LOG_DIR/session-start-diagnostic.log"
     elif [[ "$WATCHER_COUNT" -gt 1 ]]; then
         ENV_WARNINGS="${ENV_WARNINGS}- Multiple JICM watchers detected ($WATCHER_COUNT) — check for duplicates\n"
         echo "$TIMESTAMP | SessionStart | EnvCheck: WARNING - $WATCHER_COUNT watchers running" >> "$LOG_DIR/session-start-diagnostic.log"
     else
-        echo "$TIMESTAMP | SessionStart | EnvCheck: Watcher healthy (1 instance)" >> "$LOG_DIR/session-start-diagnostic.log"
+        echo "$TIMESTAMP | SessionStart | EnvCheck: Legacy watcher healthy (1 instance)" >> "$LOG_DIR/session-start-diagnostic.log"
     fi
 fi
 
@@ -409,8 +409,8 @@ $(head -30 "$f")
 # ============== JICM v7.9 — STOP-AND-WAIT ARCHITECTURE ==============
 # JICM v7.9 uses native signal files (.jicm-clear-now.signal +
 # .jicm-resume-complete.signal); the .jicm-state shim was retired at 7.9.6c.
-# The watcher handles all state transitions; this hook just injects context.
-# Detection: .jicm-clear-now.signal exists (watcher wrote it before /clear,
+# The legacy watcher handles all state transitions; this hook just injects context.
+# Detection: .jicm-clear-now.signal exists (legacy watcher wrote it before /clear,
 # removes it during step-9 cleanup post-RESUME).
 JICM_CYCLE_SIGNAL="${JICM_CLEAR_SIGNAL:-$CLAUDE_PROJECT_DIR/.claude/context/.jicm-clear-now.signal}"
 V6_COMPRESSED="${JICM_COMPRESSED_FILE:-$CLAUDE_PROJECT_DIR/.claude/context/.compressed-context-ready.md}"
@@ -538,7 +538,7 @@ if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" == "w0" ]] && [[ -f "$JICM_CYCLE
     # NOTE (Phase 2C, 2026-05-17): Scratchpad rotation and memory consolidation
     # MOVED to jicm-watcher.sh steps 5.7/5.8 (fire BEFORE /clear, not after).
     # Rationale: consolidation is about OLD session data; should run pre-/clear
-    # while watcher has async time budget. SessionStart is RETRIEVAL-ONLY now.
+    # while legacy watcher has async time budget. SessionStart is RETRIEVAL-ONLY now.
 
     if true; then
 
@@ -559,7 +559,7 @@ if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" == "w0" ]] && [[ -f "$JICM_CYCLE
         # Session-state is for NEW session starts only (created at session end).
 
         # L1 retrieval: include NLP-compressed scrollback summary (Phase 2C)
-        # Prefers .pre-clear-scrollback-summary.md (NLP-compressed by watcher step 5.6b)
+        # Prefers .pre-clear-scrollback-summary.md (NLP-compressed by legacy watcher step 5.6b)
         # Falls back to raw scrollback (last 100 lines) if summary not available
         SCROLLBACK_SUMMARY="$CLAUDE_PROJECT_DIR/.claude/context/.pre-clear-scrollback-summary.md"
         SCROLLBACK_RAW="$CLAUDE_PROJECT_DIR/.claude/context/.pre-clear-scrollback.md"
@@ -606,7 +606,7 @@ Resume: Parse the compressed context above, check .scratchpad.md (force-loaded),
         # Write state file (AC-01)
         echo "{\"last_run\": \"$TIMESTAMP\", \"greeting_type\": \"$TIME_OF_DAY\", \"checkpoint_loaded\": true, \"compression_type\": \"jicm_v6\", \"restart_type\": \"v6_stop_and_wait\"}" > "$STATE_DIR/AC-01-launch.json"
 
-        # NO .idle-hands-active flag — v6 watcher handles resume directly
+        # NO .idle-hands-active flag — v6 legacy watcher handles resume directly
         jq -n \
           --arg msg "$MESSAGE" \
           --arg ctx "$CONTEXT" \
@@ -618,9 +618,9 @@ Resume: Parse the compressed context above, check .scratchpad.md (force-loaded),
             }
           }'
 
-        # Phase 7.9.1 (v7.9) — signal slim watcher that resume injection succeeded.
-        # Watcher (Phase 7.9.3) polls .jicm-resume-complete.signal to advance the actuator chain.
-        # Production (v7.3 watcher) ignores this signal; harmless additive code, forward-compatible.
+        # Phase 7.9.1 (v7.9) — signal slim legacy watcher that resume injection succeeded.
+        # Legacy watcher (Phase 7.9.3) polls .jicm-resume-complete.signal to advance the actuator chain.
+        # Production (v7.3 legacy watcher) ignores this signal; harmless additive code, forward-compatible.
         RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/.jicm-resume-complete.signal"
         echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"checkpoint_bytes\":$(wc -c < "$V6_COMPRESSED" 2>/dev/null | tr -d ' '),\"source\":\"clear-v7\"}" > "$RESUME_SIGNAL" 2>/dev/null || true
 

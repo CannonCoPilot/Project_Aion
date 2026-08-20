@@ -110,7 +110,10 @@ window_target_index() {
     case "$1" in
         Jarvis)     echo 0 ;;
         Protos)     echo 1 ;;
-        HUD)        echo 2 ;;
+        HUD)        echo 2 ;;   # index 2 is FREE since 2026-08-20: the dashboard folded
+                                # into W8 "Watcher". Mapping kept so restoring a second
+                                # copy is a one-line change; reorder_windows() skips any
+                                # name with no live window.
         LiteLLM)    echo 3 ;;
         Ollama)     echo 4 ;;
         MLX-Embed)  echo 5 ;;
@@ -531,9 +534,21 @@ launch_jaques_window() {
     echo -e "  ${GREEN}✓${NC} Jacques window (${jaques_mode}: ${jaques_uuid})"
 }
 
-# JICM v6 watcher (v5 removed in v6.1)
-WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
-WATCHER_VERSION="v6"
+# --- THE WATCHER (2026-08-20 rename) -----------------------------------------
+# 🔴 THE LAUNCHER MUST NEVER START THE WATCHER DAEMON ITSELF.
+# jicm-watcher.sh (formerly jicm-supervisor.sh) runs under launchd as
+# com.aion.jicm-watcher with KeepAlive — that is deliberate: if it dies, launchd
+# restarts it in seconds, whereas a tmux-hosted daemon dies with the session and with
+# logout, and the FROZEN STATE safety net is only as trustworthy as the process running
+# it. Starting it here as well would put TWO managers on one signal file, which is the
+# original race the W0 cutover was built to end.
+#
+# So W8 "Watcher" is a read-only CONSOLE onto that daemon (jicm-watcher-hud.sh), not the
+# daemon. WATCHER_SCRIPT is the CONSOLE, and the old JICM_WATCHER_CYCLE_ENABLED /
+# JICM_WATCHER_MAINT_ENABLED exports were retired with the v7.9 singleton — under the new
+# naming those read as "disable the watcher's cycling", the exact opposite of their intent.
+WATCHER_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
+WATCHER_VERSION="v10-console"
 if [[ ! -x "$WATCHER_SCRIPT" ]]; then
     WATCHER_SCRIPT=""
     WATCHER_VERSION="none"
@@ -570,7 +585,14 @@ done
 if [[ "$LITE_MODE" == "true" ]]; then
     LITE_SESSION="lite"
     LITE_PROJECT="$HOME/Claude/lite-workspace"
-    LITE_WATCHER="$PROJECT_DIR/.claude/scripts/jicm-watcher.sh"
+    # RETIRED 2026-08-20: this pointed at the v7.9 singleton, which took --interval and
+    # managed one hard-wired target. That script is retired; the name now belongs to the
+    # registry-driven daemon, which runs under launchd and manages REGISTERED keys only.
+    # Pointing this at the new script would have launched a SECOND daemon inside the lite
+    # session — two managers on one signal file, the exact race the W0 cutover ended.
+    # The lite workspace is a scratch project with no registry entry, so it has no lane to
+    # manage and needs no watcher. Left empty so the window block below is skipped.
+    LITE_WATCHER=""
 
     echo -e "${CYAN}"
     echo "╔═══════════════════════════════════════════════════════════════╗"
@@ -1038,16 +1060,25 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             (cd "$AIFRED_DEV_DIR" && docker compose -f docker-compose.yml -f docker-compose.dev.yml -p aifred-pro-dev up -d --no-deps pipeline 2>/dev/null)
             ;;
         watcher)
-            echo "Restarting JICM Watcher (W1)..."
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:1" C-c 2>/dev/null
-            sleep 1
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:1" "$WATCHER_SCRIPT" Enter 2>/dev/null
+            # 🔴 WAS `send-keys -t "${SESSION_NAME}:1"` — window 1 is PROTOS. That index was
+            # stale from when the watcher lived at W1, so this verb would have fired C-c
+            # into a live Claude lane. The daemon is not a tmux process at all now: it runs
+            # under launchd, so restarting it means kickstart, not keystrokes.
+            echo "Restarting JICM Watcher daemon (launchd com.aion.jicm-watcher)..."
+            if ls "$PROJECT_DIR"/.claude/context/jicm/signals/actuating.* >/dev/null 2>&1; then
+                echo "  REFUSED — an actuation cycle is in flight:"
+                ls -1 "$PROJECT_DIR"/.claude/context/jicm/signals/actuating.* 2>/dev/null | sed 's/^/    /'
+                echo "  Killing the daemon mid-cycle can strand a lane. Retry when the lock clears."
+            else
+                launchctl kickstart -k "gui/$(id -u)/com.aion.jicm-watcher" 2>/dev/null \
+                    && echo "  kickstarted" || echo "  FAILED — is the job loaded? launchctl list | grep jicm"
+            fi
             ;;
-        hud)
-            echo "Restarting HUD..."
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:HUD" C-c 2>/dev/null
+        console|hud)
+            echo "Restarting Watcher console (W8)..."
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Watcher" C-c 2>/dev/null
             sleep 1
-            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:HUD" "$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh" Enter 2>/dev/null
+            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Watcher" "bash '$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh'" Enter 2>/dev/null
             ;;
         bridge|styx)
             echo "Restarting Styx (Host Executor)..."
@@ -1390,29 +1421,35 @@ sleep 2
 
 # Launch watcher in a tmux window (terminal-agnostic)
 if [[ "$WATCHER_ENABLED" = true ]]; then
-    echo "Launching watcher in tmux window..."
+    echo "Launching Watcher console in tmux window..."
 
-    # Set environment for watcher
+    # Set environment for the console
     export TMUX_BIN="$TMUX_BIN"
     export TMUX_SESSION="$SESSION_NAME"
     export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
-    # Create watcher window (window 1, detached so we stay on window 0).
-    # TMUX_SESSION passed inline (not via tmux set-env) so the watcher subprocess
-    # picks it up regardless of tmux session-level env. jicm-config.sh resolves
-    # JICM_TMUX_SESSION="${TMUX_SESSION:-aion}" — without this inline export the
-    # old default 'jarvis' caused every inject attempt to fail ("session not found").
-    # W0 cutover (2026-08-12) + capability port (2026-08-14): jicm-supervisor now owns
-    # cycling for EVERY lane including w0 (CYCLE_ENABLED=false), and REST/idle-hands,
-    # MAINTAIN health pings and identity checks for the whole machine (MAINT_ENABLED=false).
-    # Both gates exist to prevent two managers racing on one file — the clear signal, then
-    # .memory-health.json and the M4 reindex queue.
-    # This process now does exactly ONE thing: refresh W0's state between turns. That is
-    # superseded by the PostToolUse sampler once W0's session turns over and picks the hook
-    # up (hooks cache at session start) — retire the window then. Set either gate back to
-    # true only if the supervisor is stopped.
+    # W8 "Watcher" — the console. reorder_windows() pins it to index 8 BY NAME
+    # (window_target_index: Watcher -> 8), so the index follows the name, not this
+    # block's position in the file.
+    #
+    # HISTORY, because this window changed meaning twice and the old comment here
+    # documented a process that no longer exists:
+    #   - Through 2026-08-12 this window ran the v7.9 singleton, which cycled W0.
+    #   - The W0 cutover moved cycling to the multi-session daemon; this window was left
+    #     running with CYCLE_ENABLED=false / MAINT_ENABLED=false, doing exactly one thing:
+    #     refreshing W0's state between turns.
+    #   - 2026-08-17: the PostToolUse sampler superseded even that, the process was killed,
+    #     and the window became a TOMBSTONE — it sat here for three days still "launching"
+    #     a dead script, and the HUD's health panel reported "Watcher: DOWN" because of it.
+    #   - 2026-08-20: the daemon took the name `watcher`, and this window became its
+    #     read-only console. TMUX_SESSION is still passed inline (not via tmux set-env) so
+    #     jicm-config.sh resolves JICM_TMUX_SESSION correctly; the old 'jarvis' default made
+    #     every inject fail with "session not found".
+    # The DAEMON is started by launchd (com.aion.jicm-watcher), never from here — see the
+    # WATCHER_SCRIPT block above for why that separation is load-bearing.
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Watcher" -d \
-        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' JICM_WATCHER_CYCLE_ENABLED='false' JICM_WATCHER_MAINT_ENABLED='false' && '$WATCHER_SCRIPT' --interval 3; echo 'Watcher stopped.'; read"
+        "cd '$PROJECT_DIR' && export TMUX_SESSION='$SESSION_NAME' TMUX_BIN='$TMUX_BIN' CLAUDE_PROJECT_DIR='$PROJECT_DIR' && bash '$WATCHER_SCRIPT'; echo 'Watcher console stopped.'; read"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Watcher" automatic-rename off 2>/dev/null || true
 fi
 
 # Launch Ennoia session orchestrator in a tmux window (window 2, detached)
@@ -1537,14 +1574,11 @@ done'
 "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Ollama" automatic-rename off 2>/dev/null || true
 echo -e "  ${GREEN}✓${NC} Ollama model monitor window created"
 
-# HUD-live window — always launch (read-only dashboard, negligible resource cost)
-HUD_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
-if [[ -x "$HUD_SCRIPT" ]]; then
-    echo "Launching HUD-live dashboard in tmux window..."
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "HUD" -d \
-        "cd '$PROJECT_DIR' && bash '$HUD_SCRIPT'; echo 'HUD stopped.'; read"
-    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
-fi
+# HUD window — RETIRED 2026-08-20, folded into W8 "Watcher".
+# It ran the same jicm-watcher-hud.sh that W8 now runs, so keeping both produced two
+# identical dashboards. The dashboard's subject is the watcher, so it belongs in the
+# watcher's window. To restore a second copy at W2, re-add a new-window -n "HUD" block
+# here; window_target_index still knows HUD -> 2.
 
 # Styx (Host Executor) (signal-file daemon for Docker↔host Claude delegation)
 BRIDGE_SCRIPT="$ALFRED_DIR/.claude/jobs/lib/host-executor-bridge.sh"

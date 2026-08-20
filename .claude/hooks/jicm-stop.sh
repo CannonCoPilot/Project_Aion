@@ -7,18 +7,18 @@
 #
 # Fires after every Claude turn completes (Stop event). Reads the state file
 # written by jicm-gate.sh; if pending_action == HALT_AFTER_RESPONSE, writes
-# .jicm-clear-now.signal which the slim watcher (Phase 7.9.3) consumes.
+# .jicm-clear-now.signal which the slim legacy watcher (Phase 7.9.3) consumes.
 #
 # This is the natural idle moment: Claude has just finished responding and
-# the next turn hasn't started. The watcher polls the signal on a 1s tick.
+# the next turn hasn't started. The legacy watcher polls the signal on a 1s tick.
 #
 # ARCHITECTURE:
 #   1. jicm-gate.sh (UPS) reads JSONL → updates state → flags pending if over threshold
 #   2. Claude generates response → Stop fires
 #   3. jicm-stop.sh (this) reads state → if pending → writes .jicm-clear-now.signal
-#   4. Watcher (slim, signal-driven) sees signal → injects /clear via tmux backend
+#   4. Legacy watcher (slim, signal-driven) sees signal → injects /clear via tmux backend
 #   5. SessionStart hook restores compressed context → writes .jicm-resume-complete.signal
-#   6. Watcher injects RESUME prompt via tmux backend
+#   6. Legacy watcher injects RESUME prompt via tmux backend
 #
 # RECURSION GUARD: stop_hook_active==true → skip (avoid loops)
 #
@@ -61,7 +61,7 @@ fi
 # Was needed because gate/stop shared ONE state+signal file, so a dev Stop would
 # fire W0's pending clear. Now each key reads its OWN JK_STATE and writes its OWN
 # JK_CLEAR_SIGNAL (derived below) — a dev Stop can only ever raise dev's signal,
-# never W0's. So dev participates (its clear-signal feeds the v9 supervisor).
+# never W0's. So dev participates (its clear-signal feeds the v9 watcher).
 
 # ─── Disable check ───────────────────────────────────────────────────────────
 if [[ "${JICM_DISABLED:-false}" == "true" ]] || [[ -f "$PROJECT_DIR/.claude/context/.jicm-exit-mode.signal" ]]; then
@@ -105,7 +105,7 @@ ACTION=$(jq -r '.action // "unknown"' "$JK_STATE" 2>/dev/null)
 SESSION_ID=$(jq -r '.session_id // "unknown"' "$JK_STATE" 2>/dev/null)
 THRESHOLD_TOKENS=$(jq -r '.hard_threshold_tokens // 0' "$JK_STATE" 2>/dev/null)
 
-# Signal JSON schema UNCHANGED (byte-identical for w0 — the watcher parses these exact
+# Signal JSON schema UNCHANGED (byte-identical for w0 — the legacy watcher parses these exact
 # fields; the key is encoded in the signal's PATH, so no extra field is added).
 mkdir -p "$(dirname "$JK_CLEAR_SIGNAL")" 2>/dev/null
 cat > "$JK_CLEAR_SIGNAL" <<JSON

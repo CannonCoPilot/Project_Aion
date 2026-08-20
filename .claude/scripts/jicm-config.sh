@@ -9,7 +9,7 @@
 #
 # v7.9 additions (signal-driven actuator architecture):
 #   - JICM_STATE_HOOK_FILE: written by jicm-gate.sh on every UserPromptSubmit
-#   - JICM_CLEAR_SIGNAL:    written by jicm-stop.sh; consumed by watcher
+#   - JICM_CLEAR_SIGNAL:    written by jicm-stop.sh; consumed by legacy watcher
 #   - JICM_RESUME_SIGNAL:   written by session-start.sh on resume injection
 #
 # All paths are relative to PROJECT_DIR which each consumer may override
@@ -45,7 +45,7 @@ W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"          # current 
 # v9 manages N sessions, each with a stable <key> (w0, dev, protos, chain-<id>…).
 # `jicm_key_paths <key>` populates JK_* for that session:
 #   key=w0  → the LEGACY single-session paths above, BYTE-IDENTICAL (back-compat
-#             during migration — the v7.9 watcher keeps working until Phase 3).
+#             during migration — the v7.9 legacy watcher keeps working until Phase 3).
 #   else    → namespaced under jicm/ so no two sessions ever collide.
 JICM_DIR="$PROJECT_DIR/.claude/context/jicm"
 JICM_REGISTRY_DIR="$JICM_DIR/registry"
@@ -142,7 +142,7 @@ jicm_key_paths() {
     esac
 }
 
-# Registry helpers (shared by gate upsert, supervisor read/GC, chain bridge).
+# Registry helpers (shared by gate upsert, watcher read/GC, chain bridge).
 # One JSON file per key under registry/. Merge-upsert keeps registered_at, stamps last_seen.
 jicm_registry_upsert() {   # jicm_registry_upsert <key> [field=value ...]
     local key="${1:?jicm_registry_upsert: key required}"; shift
@@ -192,8 +192,8 @@ jicm_registry_get()  { jq -r "${2:?field}" "$JICM_REGISTRY_DIR/${1:?key}.json" 2
 #      role arm (checked before the unset-window arm) claims it.
 #   3. JARVIS_WINDOW UNSET (and not dev) → w0. A W0 session resumed OUTSIDE the
 #      launcher wrapper (`claude --resume <w0-uuid>`) has no JARVIS_WINDOW; it is still
-#      W0 and must land on the legacy state/signal the watcher polls — NOT a stray
-#      session_id namespace (which would silently blind the watcher + exclude it from
+#      W0 and must land on the legacy state/signal the legacy watcher polls — NOT a stray
+#      session_id namespace (which would silently blind the legacy watcher + exclude it from
 #      its own session-start injection).
 #   4. else → the session_id (a genuine non-w0/non-dev lane; routes to safety paths).
 jicm_derive_key() {                          # <my_session_id>
@@ -222,7 +222,7 @@ jicm_derive_key() {                          # <my_session_id>
     # background /fork (daemon-hosted PTY) — it gets its OWN first-class key
     # (<candidate>-bg-<sid8>): namespaced state, own HUD row, self-actuation; it can never
     # actuate the parent's pane. Pane unresolvable (empty) → keep the canonical key (no
-    # regression; the supervisor's C2 re-checks occupancy at fire time as the backstop).
+    # regression; the watcher's C2 re-checks occupancy at fire time as the backstop).
     if [[ -n "$my_sid" ]]; then
         local pane_sid; pane_sid="$(jicm_pane_session "$(jicm_default_target "$candidate")")"
         [[ -n "$pane_sid" && "$pane_sid" != "$my_sid" ]] && { echo "${candidate}-bg-${my_sid:0:8}"; return; }
@@ -252,7 +252,7 @@ jicm_default_target() {
 }
 
 # --- Occupancy / liveness helpers (JICM v9 R0/R1) ----------------------------
-# Shared read-only probes for the supervisor's C2 signal-validation and the R1
+# Shared read-only probes for the watcher's C2 signal-validation and the R1
 # occupancy-keying fix. All resolve at CALL time (JICM_TMUX_BIN defined later).
 # tmux calls are timeout-guarded — a WEDGED tmux server (distinct from an absent one,
 # which fails fast) must never hang the gate hook, which runs on every prompt (review F4).
@@ -268,10 +268,10 @@ JICM_TO="$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || 
 # (via `tmux run-shell`) returned 17381 and resolved aion:11 to its true session id.
 #
 # CONSEQUENCES:
-#   · A supervisor run BY HAND from a Claude pane is blind to that pane and will log
+#   · A watcher run BY HAND from a Claude pane is blind to that pane and will log
 #     SIGNAL-UNVERIFIABLE and refuse to fire — correctly, but for a reason that looks
 #     like a defect. Cost ~20 minutes of misdiagnosis before the contrast test.
-#   · Under launchd/cron the supervisor descends from launchd, not from any Claude, so
+#   · Under launchd/cron the watcher descends from launchd, not from any Claude, so
 #     every pane resolves. That is the supported production path.
 #   · Any SELF-actuation path built on this probe is blind to its own pane by
 #     construction. Do not build one without a different occupancy test.
@@ -310,7 +310,7 @@ jicm_session_alive() {                       # <session_id>
 }
 # Actuation mode for a key: 'pane' if it has a canonical tmux pane to inject into, else
 # 'self' — a background /fork clears itself from within (no external pane). Consumed by
-# the supervisor/actuator (R2) and the multi-session HUD (R4).
+# the watcher/actuator (R2) and the multi-session HUD (R4).
 jicm_actuation_mode() {                      # <key>
     [[ -n "$(jicm_default_target "$1")" ]] && echo "pane" || echo "self"
 }
@@ -607,7 +607,7 @@ JICM_TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
 
 # Portable timeout binary, resolved ONCE for every JICM component. macOS ships neither
 # `timeout` nor `setsid`; Homebrew coreutils provides `timeout`, MacPorts `gtimeout`.
-# Lives here rather than in each script because both the actuator and the supervisor
+# Lives here rather than in each script because both the actuator and the watcher
 # launch bounded background work, and two private copies of "how do I find timeout"
 # is precisely the kind of duplicated derivation that drifts.
 JICM_TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)}"

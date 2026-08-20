@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  JICM multi-session WATCHER (jicm-watcher.sh).
+
+  NAMING (2026-08-20): this job was com.aion.jicm-supervisor and its script was
+  jicm-supervisor.sh. The v7.9 singleton that used to be called "the watcher" was
+  RETIRED 2026-08-17 and now lives, unlaunchable, at
+  .claude/scripts/retired/jicm-watcher-legacy-retired-2026-08-17.sh. With the old
+  occupant gone the plain name was free, so the surviving component took it: there is
+  now exactly ONE watcher, and "supervisor" is no longer used anywhere in JICM.
+  Env vars renamed to match: JICM_SUPERVISOR_* -> JICM_WATCHER_*.
+
+  WHY THIS EXISTS: this daemon is the ONLY component that actuates any lane. Nothing
+  had ever started it — no launcher entry, no cron, no agent — and its log had not moved
+  since 2026-07-25. Consequence: every lane sensed its own threshold correctly, raised a
+  clear-now signal, and nothing consumed it. All seven JICM cycles in this system's
+  history had been fired by hand. Discovered 2026-08-12 with the dev lane sitting at 2x
+  its hard threshold and an unanswered signal on disk.
+
+  WHY LAUNCHD AND NOT A TMUX WINDOW: KeepAlive is the whole point. If this process dies,
+  launchd restarts it within ThrottleInterval; JICM is unmanaged only for those seconds.
+  A tmux-hosted daemon dies with the session, dies on logout, and has no restart path —
+  and the FROZEN STATE safety net is only as trustworthy as the process that runs it.
+  The Watcher's tmux window (aion:8) is therefore a read-only CONSOLE onto this daemon
+  (jicm-watcher-hud.sh), never the daemon itself. Do not "simplify" by moving it.
+
+  JICM_WATCHER_ACTUATE=1 is set HERE rather than changing the script's default, which
+  stays 0. A hand-run watcher therefore remains sense-only and safe; only this deliberate
+  production path opts into autonomous clearing.
+
+  JICM_WATCHER_INCLUDE_W0=1 since 2026-08-12 — W0 is managed like every other lane.
+  The old two-manager race is structurally gone now that the legacy process is retired:
+  W0 shadow mode survives in the script as vestigial code whose liveness probe names the
+  retired path, so it can never re-engage. See the R3 block in jicm-watcher.sh.
+
+  PATH includes /usr/sbin: cron/launchd omit it, and lsof lives there.
+
+  Install:  cp to ~/Library/LaunchAgents/ && launchctl load -w ~/Library/LaunchAgents/com.aion.jicm-watcher.plist
+  Status:   launchctl list | grep jicm-watcher
+  Reload:   launchctl kickstart -k gui/501/com.aion.jicm-watcher
+            (ALWAYS check for an in-flight actuating.* lock first — see below)
+  Stop:     launchctl unload -w ~/Library/LaunchAgents/com.aion.jicm-watcher.plist
+
+  TRAP 17 — this is a long-running daemon with an internal `while true`, so it sources
+  jicm-config.sh ONCE at process start. Edits to anything it sources are INERT until a
+  kickstart, which reads as "the fix doesn't work". Kickstart after every such edit, and
+  check `ls .claude/context/jicm/signals/actuating.*` first so you never kill a cycle
+  mid-flight.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.aion.jicm-watcher</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-watcher.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PROJECT_DIR</key>
+        <string>/Users/nathanielcannon/Claude/Project_Aion</string>
+        <key>CLAUDE_PROJECT_DIR</key>
+        <string>/Users/nathanielcannon/Claude/Project_Aion</string>
+        <key>JICM_PROJECT_DIR</key>
+        <string>/Users/nathanielcannon/Claude/Project_Aion</string>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>HOME</key>
+        <string>/Users/nathanielcannon</string>
+        <key>TMUX_BIN</key>
+        <string>/Users/nathanielcannon/bin/tmux</string>
+        <key>JICM_TMUX_BIN</key>
+        <string>/Users/nathanielcannon/bin/tmux</string>
+        <key>JICM_WATCHER_ACTUATE</key>
+        <string>1</string>
+        <key>JICM_WATCHER_INCLUDE_W0</key>
+        <string>1</string>
+        <key>JICM_WATCHER_POLL</key>
+        <string>10</string>
+    </dict>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/nathanielcannon/Claude/Project_Aion</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/nathanielcannon/Claude/Project_Aion/.claude/logs/jicm-watcher.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/nathanielcannon/Claude/Project_Aion/.claude/logs/jicm-watcher.stderr.log</string>
+</dict>
+</plist>

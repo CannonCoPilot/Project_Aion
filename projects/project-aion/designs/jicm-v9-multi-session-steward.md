@@ -5,6 +5,23 @@
 **Supersedes:** the single-session v7.9 watcher model AND the premise of `jicm-portable-architecture.md` (v8).
 **Plan of record:** `.claude/plans/enchanted-wandering-scone.md` · **Validation runbook:** `../plans/jicm-v9-validation-runbook.md`
 
+> ### ⚠️ NAMING NOTE (added 2026-08-20) — the body below is UNCHANGED and was true when written
+> Everything this document calls **"the supervisor"** is now called **the watcher**, and everything
+> it calls **"the watcher"** (the v7.9 single-session singleton) is **retired**.
+>
+> | This document says | Today |
+> |---|---|
+> | `jicm-supervisor.sh` | `.claude/scripts/jicm-watcher.sh` |
+> | `JICM_SUPERVISOR_*` | `JICM_WATCHER_*` |
+> | launchd `com.aion.jicm-supervisor` | `com.aion.jicm-watcher` |
+> | the legacy/v7.9 "watcher" | retired 2026-08-17 → `.claude/scripts/retired/jicm-watcher-legacy-retired-2026-08-17.sh` |
+>
+> The rename happened because the cutover this design describes COMPLETED: the singleton was
+> killed, leaving one component doing the watching and a name that no longer had an occupant.
+> The prose is deliberately not rewritten — it records the two-manager period accurately, and
+> a design doc that silently adopts today's vocabulary stops being evidence of what was decided
+> when. Read "supervisor" as "the daemon that survived".
+
 ---
 
 ## 1. Problem & intent

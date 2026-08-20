@@ -16,7 +16,7 @@
 #
 # Verified within ~3.6% of v7 capture-pane reading; conservative lower bound.
 #
-# DOES NOT actuate. State write only. Watcher (slim) does actuation after
+# DOES NOT actuate. State write only. Legacy watcher (slim) does actuation after
 # Stop hook writes .jicm-clear-now.signal.
 #
 # PHASE 0.2 REFACTOR (2026-05-03): state-hook now carries cache_creation
@@ -126,9 +126,9 @@ fi
 # ─── JICM v9: W11/dev exclusion DELETED ──────────────────────────────────────
 # The exclusion existed ONLY because dev + W0 shared one .jicm-state-hook.json, so
 # dev prompts clobbered W0's state (Sonnet/200K masking Opus/1M) and blinded the
-# watcher. Now that state is namespaced per <key> (JK_STATE below), dev writes its
+# legacy watcher. Now that state is namespaced per <key> (JK_STATE below), dev writes its
 # OWN file and can no longer touch W0's — so dev is SENSED (required for the v9
-# supervisor + registry), not excluded. Key derivation replaces the guard.
+# watcher + registry), not excluded. Key derivation replaces the guard.
 
 # ─── Extract identifiers from stdin ─────────────────────────────────────────
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // "unknown"' 2>/dev/null)
@@ -428,11 +428,11 @@ fi
 
 # ─── Atomic state write via helper ──────────────────────────────────────────
 # `_refreshed_by` is a PROVENANCE stamp: it names whoever wrote the file LAST. The
-# watcher sets it to "watcher_poll" via a jq mutation; this write sets "gate:<EVENT>".
+# legacy watcher sets it to "watcher_poll" via a jq mutation; this write sets "gate:<EVENT>".
 # Both writers must stamp it or the field is not provenance at all — before this, only
-# the watcher set it, so gate-vs-watcher was inferable only from WRITE ORDER, and the
-# watcher's ~30s poll always wins that race against an idle lane. That mattered: the
-# Watcher-retirement gate ("prove the file is GATE-authored") was unfalsifiable, because
+# the legacy watcher set it, so gate-vs-legacy watcher was inferable only from WRITE ORDER, and the
+# legacy watcher's ~30s poll always wins that race against an idle lane. That mattered: the
+# Legacy watcher-retirement gate ("prove the file is GATE-authored") was unfalsifiable, because
 # the fields it proposed to check (session_id, tokens_source) are populated by BOTH
 # writers. The retirement observation is now simply: this field reads "gate:*" on w0.
 if [[ -x "$STATE_UPDATE" ]]; then
@@ -470,9 +470,9 @@ if [[ -x "$STATE_UPDATE" ]]; then
 JSON
 fi
 
-# ─── JICM v9: registry heartbeat (supervisor reads this; last_seen = liveness) ───
+# ─── JICM v9: registry heartbeat (watcher reads this; last_seen = liveness) ───
 # Additive — never read by the legacy watcher, so W0 stays byte-identical. Refreshes
-# the LIVE transcript_path every prompt (each session = a new UUID) so the supervisor
+# the LIVE transcript_path every prompt (each session = a new UUID) so the watcher
 # always has the current transcript. steward_shared_memory=true only for w0.
 
 # ─── JICM v9 STAGE ②: continuity bind ────────────────────────────────────────
@@ -509,5 +509,5 @@ fi
 
 # ─── Always pass through ─────────────────────────────────────────────────────
 # Per v7.9 spec: hook ONLY updates state. NO additionalContext, NO decision:block.
-# Actuation belongs to the watcher, triggered by jicm-stop.sh writing .jicm-clear-now.signal.
+# Actuation belongs to the legacy watcher, triggered by jicm-stop.sh writing .jicm-clear-now.signal.
 _passthrough

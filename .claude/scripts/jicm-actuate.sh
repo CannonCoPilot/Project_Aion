@@ -21,7 +21,7 @@
 #   jicm-actuate.sh <key> --fire --canary    Same; --canary is accepted and ignored (legacy call sites).
 #   jicm-actuate.sh __run <key>              INTERNAL — the detached worker. preserve-restore REFUSES
 #                                            unless JICM_ACTUATE_GATE_OK=1 (set by cmd_fire or a validated
-#                                            supervisor); a bare __run can never live-/clear a session.
+#                                            watcher); a bare __run can never live-/clear a session.
 #
 # RESET POLICIES (registry .reset_policy; overridable via JICM_ACTUATE_POLICY)
 #   preserve-restore  full cycle: idle → prep checkpoint → 5.5–5.9 memory steps → /clear → resume.
@@ -42,7 +42,7 @@
 # SAFETY: the --canary gate was REMOVED 2026-08-12 after 7 validated cycles (see cmd_fire).
 #   `--fire` is now live. What still guards it: M2 identity pinning (refuses on registry drift),
 #   transcript + target verification, the __run worker's own JICM_ACTUATE_GATE_OK requirement, the
-#   supervisor's C2 occupancy checks, and its FIRE_MAX circuit breaker. preserve-restore still
+#   watcher's C2 occupancy checks, and its FIRE_MAX circuit breaker. preserve-restore still
 #   refuses to /clear a verified-busy head, to proceed without a non-empty checkpoint, or to guess
 #   a transcript (self-decapitation guard).
 #   NOTE: `<key> --fire` with no other argument now ARMS A REAL CYCLE. The safe inspection command
@@ -196,7 +196,7 @@ _scratchpad_rel() { echo "${JK_SCRATCHPAD#$PROJECT_DIR/}"; }
 _resume_prompt() {
     # "Watcher here." prefix = filter parity: jicm-prep-context.sh's user-message
     # filter excludes startswith("Watcher here.") so this nudge never pollutes a
-    # future checkpoint. SAFE vs the W0 watcher's HALT session-detection, which
+    # future checkpoint. SAFE vs the W0 legacy watcher's HALT session-detection, which
     # matches the SPECIFIC phrase "Watcher here. Context is getting heavy" (prep
     # find_best_jsonl:139), never a bare prefix — so "Refresh complete" can't collide.
     local ck; ck="${JK_COMPRESSED#$PROJECT_DIR/}"
@@ -250,12 +250,12 @@ _bar_row()   { [[ -n "$TMUX_TARGET" ]] || return 0; "$TMUX_BIN" capture-pane -t 
 _model_row() { [[ -n "$TMUX_TARGET" ]] || return 0; "$TMUX_BIN" capture-pane -t "$TMUX_TARGET" -p 2>/dev/null | _strip_ansi | grep -oE '(opus|sonnet|haiku|fable)-[0-9]+-?[0-9]*' | head -1; }
 
 # ---------------------------------------------------------------------------
-# Fold-forward memory steps (W0 watcher 5.5–5.9), per-key namespaced via JK_*.
+# Fold-forward memory steps (W0 legacy watcher 5.5–5.9), per-key namespaced via JK_*.
 # Each is defensive + non-fatal: a missing dependency logs + skips, never aborts
 # the cycle (the /clear must still happen once the checkpoint exists).
 # ---------------------------------------------------------------------------
 _step_flush() {   # 1.5 — ask the live session to flush working state before we take it away
-    # PHASE 3 PARITY, RESOLVED 2026-08-12. The legacy W0 watcher ran a HALT handshake
+    # PHASE 3 PARITY, RESOLVED 2026-08-12. The legacy W0 legacy watcher ran a HALT handshake
     # (flush to the scratchpad, reply "Understood") that this actuator dropped, on the
     # argument that wait_for_idle + a transcript-reading prep made it redundant. Checking
     # that argument against the record rather than accepting it:
@@ -507,7 +507,7 @@ _cycle_preserve_restore() {
     fi
     _log "step2: checkpoint ready ($(wc -c < "$JK_COMPRESSED" | tr -d ' ') bytes)"
 
-    # 3. Fold-forward memory machinery (W0 watcher 5.5–5.9), per-key namespaced.
+    # 3. Fold-forward memory machinery (W0 legacy watcher 5.5–5.9), per-key namespaced.
     _step_rag_ingest          # 5.5  L4 RAG (async)
     _step_scrollback          # 5.6/5.6b/5.6c  scrollback capture + NLP + RAG (async)
     _step_consolidate         # 5.7  insights-log + corrections (SHARED; async)
@@ -592,7 +592,7 @@ _cycle_zero_state() {
         _log "zero-state ALERT: aion-lane-restart.sh missing/not executable at $restart — NO reset performed (not faking success)."
         return 4
     fi
-    # --yes: this path is already gated upstream (threshold + supervisor validation); an
+    # --yes: this path is already gated upstream (threshold + watcher validation); an
     # interactive confirm here would hang a detached worker forever.
     "$restart" "$JK_KEY" --fresh --yes; rc=$?
     if [[ "$rc" -ne 0 ]]; then
@@ -631,7 +631,7 @@ _cleanup_transient() {
 # script would block on the very turn it is trying to end). By detaching, the
 # arming Bash call returns, the head goes idle, and this worker drives the cycle.
 # preserve-restore REFUSES unless JICM_ACTUATE_GATE_OK=1 (set by cmd_fire or a
-# validated supervisor) — a bare __run never live-/clears.
+# validated watcher) — a bare __run never live-/clears.
 cmd_run() {
     local key="${1:-}"
     [[ -n "$key" ]] || { echo "jicm-actuate __run: key required" >&2; return 64; }
@@ -655,12 +655,12 @@ cmd_run() {
         preserve-restore)
             # Finding-1 fix: the actuation SUBSYSTEM (not just the CLI) enforces the
             # gate. A live /clear cycle runs ONLY when the arming entrypoint (cmd_fire)
-            # passed the gate and set this sentinel, or a validated supervisor asserts
+            # passed the gate and set this sentinel, or a validated watcher asserts
             # it deliberately. A bare `__run <key>` — a human, a wiring bug, or a
             # misread of "do not call directly" — refuses rather than decapitating a
             # live head with zero canary validation.
             if [[ "${JICM_ACTUATE_GATE_OK:-0}" != "1" ]]; then
-                _log "ABORT: preserve-restore __run without gate sentinel (JICM_ACTUATE_GATE_OK=1) — refusing live /clear. Route through cmd_fire, or set the sentinel deliberately (supervisor)."
+                _log "ABORT: preserve-restore __run without gate sentinel (JICM_ACTUATE_GATE_OK=1) — refusing live /clear. Route through cmd_fire, or set the sentinel deliberately (watcher)."
                 return 2
             fi
             if [[ -z "$TRANSCRIPT" ]]; then
@@ -683,7 +683,7 @@ cmd_run() {
 # Text comes from JICM_NUDGE_TEXT (env, not a positional) so the arg parser stays a
 # simple order-independent for-loop and arbitrary prose never has to survive it.
 #
-# Exists so REST can live in the supervisor without duplicating pane interaction: this
+# Exists so REST can live in the watcher without duplicating pane interaction: this
 # script already owns _inject, _resolve_target and _wait_for_idle, along with every tmux
 # quirk they encode (text and Enter must be separate ops; clear-input first, or a stale
 # buffer concatenates with the new text).
@@ -844,8 +844,8 @@ cmd_fire() {
     #          caller's validation and this arming turn (would clear the wrong session)
     #        · transcript verification (self-decapitation guard) and target verification
     #        · the __run worker independently refuses without JICM_ACTUATE_GATE_OK=1
-    #        · the supervisor's own C2 checks: raiser alive AND raiser == pane occupant
-    #        · the supervisor's circuit breaker: FIRE_MAX per key per rolling window,
+    #        · the watcher's own C2 checks: raiser alive AND raiser == pane occupant
+    #        · the watcher's circuit breaker: FIRE_MAX per key per rolling window,
     #          which ALERTS rather than accepting a stuck lane
     #      Re-gating is a one-line `[[ "$canary" != "1" ]] && return 2` if ever needed.
     # ---- end note ----
@@ -855,7 +855,7 @@ cmd_fire() {
     transcript="$(_resolve_transcript)"
     target="$(_resolve_target)"
     # ---- M2 (JICM v9 R2): IDENTITY PINNING — refuse on registry drift ------------
-    # The caller (supervisor) PROVED which session it validated: raiser alive, and
+    # The caller (watcher) PROVED which session it validated: raiser alive, and
     # raiser == live pane occupant (C2 guards a/b). That proof is about a specific
     # session_id at a specific instant. Between that validation and this arming turn
     # the registry can move (a relaunch re-claims the key), and re-resolving here
@@ -890,12 +890,12 @@ cmd_fire() {
     _worker_pid=$!
     disown 2>/dev/null || true
     # The ARMING side owns the lock, because it is the only place that knows the worker's
-    # PID. Format is "epoch|pid": the epoch drives the supervisor's TTL backstop, the PID
+    # PID. Format is "epoch|pid": the epoch drives the watcher's TTL backstop, the PID
     # is an OWNER TOKEN. Without it, liveness has to be inferred from argv — and every
     # `( ... ) &` ingest this worker detaches inherits that same argv, so a hung ingest
     # reads as a live cycle and wedges the key forever (observed on key=dev 2026-08-12).
     # Writing it here also closes a second hole: a human running `--fire` by hand used to
-    # leave no lock at all, so the supervisor could arm a SECOND actuator over the top.
+    # leave no lock at all, so the watcher could arm a SECOND actuator over the top.
     mkdir -p "$JICM_SIGNALS_DIR" 2>/dev/null
     echo "$(date +%s)|${_worker_pid}" > "$JICM_SIGNALS_DIR/actuating.$key"
     echo "  [CANARY-FIRE] detached actuator armed for key=$key (pid ${_worker_pid})."

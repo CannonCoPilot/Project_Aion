@@ -1,8 +1,8 @@
 #!/bin/bash
-# Branch harness for the MLX leak auto-restart (jicm-supervisor.sh).
+# Branch harness for the MLX leak auto-restart (jicm-watcher.sh).
 # SAFE BY CONSTRUCTION: every path that could respawn a pane is pointed at a THROWAWAY tmux
 # target, and the real aion:5 is never named. A test that can restart production is not a test.
-SUP="/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-supervisor.sh"
+SUP="/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-watcher.sh"
 TMUX_BIN="/Users/nathanielcannon/bin/tmux"
 P=0; F=0
 ok(){ if [ "$2" = "$3" ]; then echo "  PASS $1"; P=$((P+1)); else echo "  FAIL $1 (got '$2' want '$3')"; F=$((F+1)); fi; }

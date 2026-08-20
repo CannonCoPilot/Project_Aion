@@ -149,8 +149,10 @@ when a question genuinely spans both. Never as a default.
 - tmux binary: `/Users/nathanielcannon/bin/tmux` — absolute path always, never bare `tmux`,
   and it breaks when piped in zsh.
 - Never combine text and Enter in one `send-keys`; never multi-line with `-l`.
-- Context management: JICM lane key `genie`, supervised by `jicm-supervisor.sh` (the legacy
-  `jicm-watcher.sh` is a W0-only singleton and is not Genie's path).
+- Context management: JICM lane key `genie`, managed by `jicm-watcher.sh` — the multi-session
+  watcher daemon, run by launchd as `com.aion.jicm-watcher`. It was named
+  `jicm-supervisor.sh` until 2026-08-20; the W0-only singleton that previously held the
+  name `jicm-watcher.sh` is retired and now lives in `.claude/scripts/retired/`.
 - Platform: macOS, bash 3.2 — no associative arrays, no `readarray`, no `set -euo pipefail`
   in hooks. See the shared bash-gotchas reference on demand.
 

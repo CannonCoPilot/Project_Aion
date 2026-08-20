@@ -13,9 +13,17 @@
 - `suggest-mcps.sh` — Keyword-to-MCP mapping
 
 ### JICM (Context Management)
-- `jicm-config.sh` — Shared path configuration (sourced by watcher, prep, hook)
-- `jicm-watcher.sh` — JICM v7.3.0 context watcher (token-aware, two-tier compression)
+- `jicm-config.sh` — Shared path configuration (sourced by watcher, actuator, hooks)
+- `jicm-watcher.sh` — **THE WATCHER**: registry-driven multi-session daemon (JICM v9).
+  Senses every registered lane, GCs dead sessions, fires `jicm-actuate.sh` at threshold.
+  Runs under launchd as `com.aion.jicm-watcher` (KeepAlive), NOT from the launcher.
+  Renamed from `jicm-supervisor.sh` on 2026-08-20.
+- `jicm-watcher-hud.sh` — the Watcher CONSOLE (HUD v2), tmux window `aion:8`. Read-only.
+- `jicm-actuate.sh` — per-key actuation cycle (preserve → HALT → prep → `/clear` → restore)
 - `jicm-prep-context.sh` — Two-tier context preparation (Tier 1 bash + Tier 2 LLM)
+- `retired/` — superseded scripts kept for reference. `jicm-watcher-legacy-retired-2026-08-17.sh`
+  is the v7.9 W0-only singleton that used to be called "the watcher"; it is not launched by
+  anything. Do not revive it: cycling, MAINTAIN and REST all moved to the daemon above.
 
 ### Signal-Based Automation
 - `signal-helper.sh` — Signal utility functions
