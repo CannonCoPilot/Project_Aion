@@ -1010,7 +1010,14 @@ render_project_pulse_section() {
 
 render_thresholds_section() {
     local width="$1"
-    section_hr "$width" "THRESHOLDS & CONFIG"
+    # SCOPE WARNING: every HK_* value here is read from $JICM_STATE_HOOK_FILE, which is
+    # W0's legacy shared state file — NOT a daemon-wide config. Under v9 each key carries
+    # its OWN thresholds (protos is 140K/160K, not 330K), and those render per-row in the
+    # SESSIONS table below. Labelling these as global made the panel assert w0's numbers
+    # for all five lanes. Keep the W0 prefix on anything sourced from HK_*/LG_*; leave the
+    # daemon timings (POLL/IDLE_GRACE/HALT_ACK/PREP/RESUME/BACKEND) unprefixed — those
+    # genuinely are process-wide.
+    section_hr "$width" "CONFIG — W0 THRESHOLDS + DAEMON-WIDE TIMINGS"
     local soft_p hard_p
     if [[ "$HK_WINDOW" -gt 0 ]]; then
         soft_p=$(( HK_SOFT_TOKENS * 100 / HK_WINDOW ))
@@ -1018,9 +1025,9 @@ render_thresholds_section() {
     else
         soft_p=30; hard_p=65
     fi
-    content_row "$width" "  ${C_LABEL}SOFT_TOKENS:${C_NC} ${C_VALUE}$(human_int "$HK_SOFT_TOKENS")${C_NC} (${soft_p}%)   ${C_LABEL}HARD_TOKENS:${C_NC} ${C_VALUE}$(human_int "$HK_HARD_TOKENS")${C_NC} (${hard_p}%)   ${C_LABEL}AUTO_COMPACT:${C_NC} ${C_VALUE}70%${C_NC}   ${C_LABEL}WINDOW:${C_NC} ${C_VALUE}$(human_int "$HK_WINDOW")${C_NC}"
+    content_row "$width" "  ${C_DIM}W0${C_NC} ${C_LABEL}SOFT:${C_NC} ${C_VALUE}$(human_int "$HK_SOFT_TOKENS")${C_NC} (${soft_p}%)   ${C_DIM}W0${C_NC} ${C_LABEL}HARD:${C_NC} ${C_VALUE}$(human_int "$HK_HARD_TOKENS")${C_NC} (${hard_p}%)   ${C_LABEL}AUTO_COMPACT:${C_NC} ${C_VALUE}70%${C_NC}   ${C_DIM}W0${C_NC} ${C_LABEL}WINDOW:${C_NC} ${C_VALUE}$(human_int "$HK_WINDOW")${C_NC}   ${C_DIM}(per-key thresholds: see SESSIONS)${C_NC}"
     content_row "$width" "  ${C_LABEL}POLL:${C_NC} ${JICM_POLL_INTERVAL:-1}s   ${C_LABEL}IDLE_GRACE:${C_NC} ${JICM_IDLE_GRACE_SEC:-3}s   ${C_LABEL}HALT_ACK:${C_NC} ${JICM_HALT_ACK_TIMEOUT:-60}s   ${C_LABEL}PREP:${C_NC} ${JICM_PREP_TIMEOUT:-300}s   ${C_LABEL}RESUME:${C_NC} ${JICM_RESUME_TIMEOUT:-60}s"
-    content_row "$width" "  ${C_LABEL}BACKEND:${C_NC} ${C_VALUE}${JICM_INJECTION_BACKEND:-tmux}${C_NC}   ${C_LABEL}TARGET:${C_NC} ${C_VALUE}${JICM_TMUX_TARGET:-jarvis:0}${C_NC}   ${C_LABEL}LEGACY_STATE:${C_NC} ${C_VALUE}${LG_STATE}${C_NC} ${C_DIM}(shim: ${LG_SHIM})${C_NC}"
+    content_row "$width" "  ${C_LABEL}BACKEND:${C_NC} ${C_VALUE}${JICM_INJECTION_BACKEND:-tmux}${C_NC}   ${C_DIM}W0${C_NC} ${C_LABEL}TARGET:${C_NC} ${C_VALUE}${JICM_TMUX_TARGET:-aion:0}${C_NC}   ${C_DIM}W0${C_NC} ${C_LABEL}LEGACY_STATE:${C_NC} ${C_VALUE}${LG_STATE}${C_NC} ${C_DIM}(shim: ${LG_SHIM})${C_NC}"
     return 0
 }
 
