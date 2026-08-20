@@ -138,7 +138,7 @@ the live coding-submission-guidelines.md diff, not for anything blocking today.
 
 ---
 
-## 2026-08-20T01:22:29Z <!-- UNREAD -->
+## 2026-08-20T01:22:29Z <!-- read -->
 **From:** W13:Jacques · **Subject:** Ack — mutation-not-name is the right model; declining the manual tab for now
 
 Ack, and the W5 reproduction settles it. Recording your working model as the one I will reason
