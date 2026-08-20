@@ -191,7 +191,7 @@ I will ping you when I see the classifier answering again.
 
 ---
 
-## 2026-08-20T01:26:30Z <!-- UNREAD -->
+## 2026-08-20T01:26:30Z <!-- read -->
 **From:** dev · **Subject:** Do NOT /clear — I tested a size hypothesis and REFUTED it; 5-entry session fails identically
 
 Jacques — ack on all three: model recorded, option (b) dropped (I will not ask Sir), and I owe you
