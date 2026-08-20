@@ -64,7 +64,19 @@ PROJECT_DIR="${PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$(cd "$SCRIPT_DIR/../.." && pw
 JICM_STATE_HOOK_FILE="${JICM_STATE_HOOK_FILE:-$PROJECT_DIR/.claude/context/.jicm-state-hook.json}"
 JICM_STATE_FILE="${JICM_STATE_FILE:-$PROJECT_DIR/.claude/context/.jicm-state}"
 JICM_LOG_FILE="${JICM_LOG_FILE:-$PROJECT_DIR/.claude/logs/jicm-watcher.log}"
-JICM_WATCHER_LOOP_LOG="${JICM_WATCHER_LOOP_LOG:-$PROJECT_DIR/.claude/logs/jicm-watcher-loop.log}"
+# LOG PANEL SOURCE. Was jicm-watcher-loop.log — DEAD since 2026-08-17 14:34:43, the moment the
+# legacy watcher was retired and cycling/MAINTAIN/REST became the supervisor's. Tailing it made the
+# HUD show a two-day-old tombstone while every live event (ACTUATE, FROZEN STATE, SAMPLER GAP, GC,
+# lock reaps) went unseen. The HUD must tail whatever component actually owns the work.
+# Falls back to the legacy loop log if the supervisor log is absent, so a machine mid-migration
+# still shows something rather than an empty panel.
+if [[ -f "$PROJECT_DIR/.claude/logs/jicm-supervisor.log" ]]; then
+    JICM_HUD_LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-supervisor.log"
+    JICM_HUD_LOG_LABEL="SUPERVISOR LOG"
+else
+    JICM_HUD_LOG_FILE="$PROJECT_DIR/.claude/logs/jicm-watcher-loop.log"
+    JICM_HUD_LOG_LABEL="WATCHER LOG (legacy — supervisor log absent)"
+fi
 JICM_PID_FILE="${JICM_PID_FILE:-$PROJECT_DIR/.claude/context/.jicm-watcher.pid}"
 JICM_METADATA_FILE="${JICM_METADATA_FILE:-$PROJECT_DIR/.claude/context/.jicm-last-compression.json}"
 JICM_NLP_META="$PROJECT_DIR/.claude/context/.jicm-nlp-compression.json"
@@ -505,7 +517,10 @@ load_log_tail() {
     HUD_LOG_LINES=()
     # Fix #3 (2026-06-23): tail the WATCHER LOOP log (watcher cycle/threshold events only),
     # not the shared log (which is dominated by Graphiti/ingest HTTP chatter).
-    local target_log="$JICM_WATCHER_LOOP_LOG"
+    # HUD-OWNED var, deliberately NOT JICM_WATCHER_LOOP_LOG: jicm-config.sh:510 assigns that one
+    # UNCONDITIONALLY (no :- default), so it silently clobbers anything this script sets before
+    # sourcing the config. Naming the target here keeps the HUD's choice authoritative.
+    local target_log="${JICM_HUD_LOG_FILE:-$JICM_WATCHER_LOOP_LOG}"
     [[ -f "$target_log" ]] || target_log="$JICM_LOG_FILE"   # fallback if loop log not yet present
     [[ -f "$target_log" ]] || return 0
     local line
@@ -1090,7 +1105,7 @@ render_sessions_section() {
 
 render_log_tail() {
     local width="$1"
-    section_hr "$width" "WATCHER LOG (live tail, last $HUD_LOG_TAIL lines)"
+    section_hr "$width" "${JICM_HUD_LOG_LABEL:-LOG} (live tail, last $HUD_LOG_TAIL lines)"
     if [[ "${#HUD_LOG_LINES[@]}" -eq 0 ]]; then
         content_row "$width" "  ${C_DIM}(no log entries)${C_NC}"
         return 0
@@ -1121,7 +1136,7 @@ render_log_tail() {
 render_footer() {
     local width="$1"
     local left=" Refresh ${HUD_REFRESH}s  |  Press q to quit  |  HUD v${HUD_VERSION}"
-    local right="${JICM_WATCHER_LOOP_LOG:-$JICM_LOG_FILE} "
+    local right="${JICM_HUD_LOG_FILE:-${JICM_WATCHER_LOOP_LOG:-$JICM_LOG_FILE}} "
     local r_short
     r_short=$(truncate_str "$right" $(( width / 2 - 4 )))
     local pad=$(( width - 2 - ${#left} - ${#r_short} ))
