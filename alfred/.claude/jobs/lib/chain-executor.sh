@@ -181,9 +181,21 @@ fork_chain_window() {
     _neo4j_pw="$(bash "${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/scripts/get-credential.sh" \
                  .database.neo4j.password --or-empty 2>/dev/null)"
     if [ -n "$_neo4j_pw" ]; then
-        _tmux_env_args=(-e "NEO4J_PASSWORD=${_neo4j_pw}")
+        _tmux_env_args+=(-e "NEO4J_PASSWORD=${_neo4j_pw}")
     else
         log "WARNING: NEO4J_PASSWORD unresolved — graphiti MCP will fail auth in ${window_name}"
+    fi
+
+    # Same treatment for Anna's Archive. book-retriever's mcp.json carried the key as a
+    # LITERAL and that file is tracked in a PUBLIC repo, so the literal was replaced with
+    # "${ANNAS_SECRET_KEY}" — which only works if the value is handed to the fork here.
+    local _annas_key
+    _annas_key="$(bash "${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/scripts/get-credential.sh" \
+                 .annas_archive.secret_key --or-empty 2>/dev/null)"
+    if [ -n "$_annas_key" ]; then
+        _tmux_env_args+=(-e "ANNAS_SECRET_KEY=${_annas_key}")
+    else
+        log "WARNING: ANNAS_SECRET_KEY unresolved — annas-archive MCP will supply nothing in ${window_name}"
     fi
 
     log "Forking seed ${seed_sid:0:12} → ${window_name}"

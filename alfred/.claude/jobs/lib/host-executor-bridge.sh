@@ -276,9 +276,21 @@ get_or_create_chain_window() {
     _neo4j_pw="$(bash "${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/scripts/get-credential.sh" \
                  .database.neo4j.password --or-empty 2>/dev/null)"
     if [ -n "$_neo4j_pw" ]; then
-        _tmux_env_args=(-e "NEO4J_PASSWORD=${_neo4j_pw}")
+        _tmux_env_args+=(-e "NEO4J_PASSWORD=${_neo4j_pw}")
     else
         log "WARNING: NEO4J_PASSWORD unresolved — graphiti MCP will fail auth in ${window_name}"
+    fi
+
+    # Same treatment for Anna's Archive — see the twin block in chain-executor.sh.
+    # book-retriever's mcp.json held the key as a LITERAL in a PUBLIC repo; it now reads
+    # "${ANNAS_SECRET_KEY}", which is only populated because of this passthrough.
+    local _annas_key
+    _annas_key="$(bash "${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/scripts/get-credential.sh" \
+                 .annas_archive.secret_key --or-empty 2>/dev/null)"
+    if [ -n "$_annas_key" ]; then
+        _tmux_env_args+=(-e "ANNAS_SECRET_KEY=${_annas_key}")
+    else
+        log "WARNING: ANNAS_SECRET_KEY unresolved — annas-archive MCP will supply nothing in ${window_name}"
     fi
 
     log "Forking seed → ${window_name} for chain ${chain_id:0:12}"

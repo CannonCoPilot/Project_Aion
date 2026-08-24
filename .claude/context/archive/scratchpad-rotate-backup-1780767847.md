@@ -96,7 +96,7 @@
 **Project code**: `/Users/nathanielcannon/Claude/Projects/AnnasTools/`
 **Planning/research**: `/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/`
 **Library**: `/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/library/`
-**Credentials**: `projects/annas_archive/credentials.txt` (member key: `yqgZHZRM45jA1ZNJKajsMpvLtp8WV`)
+**Credentials**: `projects/annas_archive/credentials.txt` (member key: `<ANNAS-KEY-REDACTED>`)
 
 **AnnasTools commits (7 total on main):**
 - `d1998ab` fix: suppress XMLParsedAsHTMLWarning in EPUB extraction
