@@ -111,7 +111,13 @@ _bounded() {
     fi
     "$TIMEOUT_BIN" -s TERM -k 15 "$secs" "$@"; rc=$?
     if [[ "$rc" -eq 124 || "$rc" -eq 137 ]]; then
-        _log "ALERT ⚠️ $label exceeded ${secs}s and was KILLED — this cycle's ingest is LOST (checkpoint + resume unaffected). Repeated hits = a degraded backend; check LiteLLM/Ollama/Neo4j/Qdrant."
+        # "LOST" was true before the Graphiti ingest chunked its checkpoint; it is not now.
+        # Each chunk commits as its own episode, so a kill costs only the un-sent remainder.
+        # Measured 2026-08-24: a run killed at 900s had already committed 31 net-new entities
+        # to jarvis-core. This message is generic (it also guards the RAG ingest), so it states
+        # the partial case without claiming which chunks landed — the ingest log has that.
+        # Keep in step with jicm-watcher.sh's _ingest_outcome message.
+        _log "ALERT ⚠️ $label exceeded ${secs}s and was KILLED — PARTIAL, not total: work already committed is retained, the remainder did NOT complete and nothing retries it (checkpoint + resume unaffected). See .claude/logs/graphiti-auto-ingest.log for the last 'INGESTED (part i/n)' line. Repeated hits = a degraded backend or a graph large enough that dedup dominates; check LiteLLM/Ollama/Neo4j/Qdrant."
     fi
     return "$rc"
 }

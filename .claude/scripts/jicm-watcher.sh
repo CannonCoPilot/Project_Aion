@@ -141,8 +141,15 @@ _ingest_outcome() {
     local what="$1" key="$2" cap="$3" rc="$4"
     case "$rc" in
         0)   _log "REST: ${what} ingest OK key=${key}" ;;
+        # PARTIAL, NOT TOTAL. The ingest chunks the checkpoint and commits each chunk as its
+        # own episode, so a kill costs only the chunks that had not been sent yet — the ones
+        # already logged as `INGESTED (part i/n)` ARE in the graph and survive this. The old
+        # wording ("this checkpoint did NOT land") predates chunking and was measurably wrong:
+        # a run killed 2026-08-24 at 900s had already committed 31 net-new entities. Do not
+        # restore it — an alert that overstates its own damage is how a future reader concludes
+        # the chunking fix did not work. Keep in step with jicm-actuate.sh's _bounded message.
         124|137)
-             _log "ALERT ⚠️ ${what} ingest KILLED at its ${cap}s cap key=${key} (rc=${rc}) — this checkpoint did NOT land, so that context is MISSING from the graph and nothing else will retry it. NEEDS A HUMAN: do NOT just raise the cap; find why the run grew past it (entity-extraction retries after a truncated LLM response are the known driver)." ;;
+             _log "ALERT ⚠️ ${what} ingest KILLED at its ${cap}s cap key=${key} (rc=${rc}) — PARTIAL: chunks already logged as 'INGESTED (part i/n)' REMAIN in the graph; the remaining chunks did NOT land and nothing will retry them. Check .claude/logs/graphiti-auto-ingest.log for the last part line to see how far it got. NEEDS A HUMAN: do NOT just raise the cap; find why the run grew past it (entity-extraction retries after a truncated LLM response, and the graph-size dedup multiplier, are the known drivers)." ;;
         *)   _log "ALERT ⚠️ ${what} ingest FAILED key=${key} rc=${rc} — checkpoint did not land. NEEDS A HUMAN: check this log above for the traceback." ;;
     esac
 }
