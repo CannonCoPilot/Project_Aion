@@ -82,7 +82,18 @@ _log() { printf '%s [%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "${JK_KEY:-?}" "
 # supplies `timeout`, MacPorts `gtimeout`. Resolved once, empty if genuinely absent.
 TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)}"
 JICM_INGEST_TIMEOUT_RAG="${JICM_INGEST_TIMEOUT_RAG:-600}"
-JICM_INGEST_TIMEOUT_GRAPHITI="${JICM_INGEST_TIMEOUT_GRAPHITI:-900}"
+# 900 -> 5400. THIS IS THE SECOND OF TWO BOUNDS ON THE SAME INGEST, and it is the one that
+# fires on every actuation cycle (step 5.9); jicm-watcher.sh's REST/R2 path has its own
+# (GRAPHITI_OUTER_BOUND). They MUST move together — graphiti-auto-ingest.py no longer sends
+# one truncated 8K episode, it chunks the whole checkpoint into 4000-char parts and sends
+# them in sequence, so wall-clock is now (chunks x per-chunk). Real checkpoints plan 4-9
+# chunks and a chunk against jarvis-core measures 271-719s, so 900 would SIGTERM nearly
+# every cycle — and a killed multi-chunk run looks exactly like the truncation bug this
+# replaced. I fixed the REST site first and missed this one; the running ingest showed
+# `timeout ... 900` and gave it away.
+# Safe because nothing waits on this: it is a detached `( ... ) &` and the per-chunk bound
+# inside the Python is the real hang detector. Keep in step with JICM_GRAPHITI_OUTER_BOUND.
+JICM_INGEST_TIMEOUT_GRAPHITI="${JICM_INGEST_TIMEOUT_GRAPHITI:-5400}"
 
 # Run a detached ingest under a hard time bound.  _bounded <label> <seconds> <cmd...>
 # These run as `( … ) &` children, and an unbounded hang in one is worse than it looks:
