@@ -102,7 +102,8 @@ case "$LANE" in
     # so `--fresh` is its normal reset: a seed must offer the default tool/permission surface,
     # never the residue of whatever one-off interactive session last used it.
     protos|Protos|1)           KEY="protos"; WIN="Protos" ;;
-    *) _die "unknown lane '$LANE' (expected jaques|genie|dev|w0|protos)" ;;
+    urist|Urist|2)             KEY="urist";  WIN="Urist" ;;
+    *) _die "unknown lane '$LANE' (expected jaques|genie|dev|w0|protos|urist)" ;;
 esac
 
 _log "==== lane-restart requested: lane=$KEY window=$WIN dry_run=$DRY_RUN force=$FORCE ===="
@@ -465,8 +466,43 @@ fi
 # --- 9. Respawn just this window. -k kills the existing process; scoped to one window, so no
 # --- other lane is affected (that is the entire point of this script).
 OLD_PID="$("$TMUX_BIN" display -p -t "$SESSION_NAME:$WIN" '#{pane_pid}' 2>/dev/null)"
-_log "respawning $SESSION_NAME:$WIN (old pane pid $OLD_PID)"
-if ! "$TMUX_BIN" respawn-window -k -t "$SESSION_NAME:$WIN" "$NEW_CMD" 2>>"$LOG"; then
+
+# --- 8b. Hand the MCP-server credentials to the respawned pane.
+#
+# 🔴 WITHOUT THIS, A RESTART SILENTLY FAILS AT ITS MAIN JOB. The persona mcp.json files hold
+#    "${NEO4J_PASSWORD}" / "${ANNAS_SECRET_KEY}" rather than literals (the literals were removed
+#    from a PUBLIC repo). Claude Code expands those from the LAUNCHING PROCESS's environment.
+#    respawn-window builds the new pane from the tmux SERVER's environment, and this server was
+#    started long before those exports existed — measured 2026-08-24: NEO4J_PASSWORD,
+#    NEO4J_USER, NEO4J_URI and ANNAS_SECRET_KEY were all ABSENT from both `show-environment -t`
+#    and `-g`. So every lane restarted by this script came back with graphiti returning
+#    Neo.ClientError.Security.Unauthorized and annas-archive silently supplying nothing.
+#
+# ⚠️ VIA `-e`, NEVER an inline `export` in $NEW_CMD. An inline export is recorded permanently in
+#    `pane_start_command`, where `tmux list-windows -F '#{pane_start_command}'` prints it on
+#    demand — and THIS SCRIPT REUSES pane_start_command, so the secret would be copied forward
+#    into every future restart. Same rule as the Alfred executors.
+_RESPAWN_ENV=()
+_cred_for_restart() { bash "$PROJECT_DIR/.claude/scripts/get-credential.sh" "$1" --or-empty 2>/dev/null; }
+_r_neo4j_pw="$(_cred_for_restart .database.neo4j.password)"
+if [ -n "$_r_neo4j_pw" ]; then
+    _RESPAWN_ENV+=(-e "NEO4J_PASSWORD=${_r_neo4j_pw}")
+    _RESPAWN_ENV+=(-e "NEO4J_USER=$(_cred_for_restart .database.neo4j.user)")
+    _RESPAWN_ENV+=(-e "NEO4J_URI=bolt://localhost:7687")
+else
+    _log "WARNING: NEO4J_PASSWORD unresolved — graphiti MCP will fail auth in $WIN after restart"
+fi
+_r_annas="$(_cred_for_restart .annas_archive.secret_key)"
+if [ -n "$_r_annas" ]; then
+    _RESPAWN_ENV+=(-e "ANNAS_SECRET_KEY=${_r_annas}")
+else
+    _log "WARNING: ANNAS_SECRET_KEY unresolved — annas-archive MCP will supply nothing in $WIN"
+fi
+unset _r_neo4j_pw _r_annas
+
+_log "respawning $SESSION_NAME:$WIN (old pane pid $OLD_PID, ${#_RESPAWN_ENV[@]} env args)"
+if ! "$TMUX_BIN" respawn-window -k -t "$SESSION_NAME:$WIN" \
+        ${_RESPAWN_ENV[@]+"${_RESPAWN_ENV[@]}"} "$NEW_CMD" 2>>"$LOG"; then
     _die "tmux respawn-window FAILED — window may be dead; inspect '$SESSION_NAME:$WIN' by hand"
 fi
 
