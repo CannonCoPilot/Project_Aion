@@ -81,8 +81,50 @@ SIGNAL_MAX_AGE_SEC="${JICM_WATCHER_SIGNAL_MAX_AGE:-900}"  # C2 backstop: an unre
 
 mkdir -p "$JICM_DIR" "$JICM_SIGNALS_DIR" "$JICM_REGISTRY_DIR" "$(dirname "$WATCH_LOG")" 2>/dev/null
 
-_log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$WATCH_LOG"; }
+_log() {
+    printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$WATCH_LOG"
+    case "$*" in *ALERT*) _deliver_alert "$*" ;; esac
+}
 _now() { date +%s; }
+
+# Give ALERTs a DURABLE sink. Until now every alert this daemon raised went only to
+# jicm-watcher.log — a scrolling file whose one reader is the W8 console, which nobody is
+# necessarily looking at. Three separate unread alert channels were found in a single pass
+# on 2026-08-24, so the failure mode here is well established: the stack produces good
+# alerts and delivers none of them.
+#
+# Routed to an EXISTING sink on purpose — the w0 inbox is proven bidirectional — rather
+# than inventing a fourth channel nobody reads either.
+#
+# --no-nudge is REQUIRED, not an optimisation. The nudge path types into a live tmux pane,
+# and W0 is Sir's session: an alert storm would inject text over whatever he is doing, and
+# could destroy an unsent line in his input box (TRAP 16). Durability without intrusion.
+#
+# Deduped by content hash so a condition that re-fires every poll cannot flood the inbox.
+# Hooking _log rather than each call site means every alert, including ones added later,
+# is delivered by construction.
+ALERT_INBOX_KEY="${JICM_ALERT_INBOX_KEY:-w0}"
+ALERT_DEDUP_SEC="${JICM_ALERT_DEDUP_SEC:-21600}"   # 6h
+_deliver_alert() {
+    local msg="$1" inbox="$PROJECT_DIR/.claude/scripts/aion-inbox.sh"
+    [[ -x "$inbox" || -f "$inbox" ]] || return 0
+    local dir="$JICM_SIGNALS_DIR/alert-delivered"
+    mkdir -p "$dir" 2>/dev/null || return 0
+    # Hash the message with volatile numbers stripped, so "605s behind" and "612s behind"
+    # dedupe as ONE condition instead of re-delivering on every poll.
+    local key; key=$(printf '%s' "$msg" | sed 's/[0-9]\{1,\}//g' | shasum | cut -c1-16)
+    local marker="$dir/$key"
+    if [[ -f "$marker" ]]; then
+        local age=$(( $(_now) - $(stat -f %m "$marker" 2>/dev/null || echo 0) ))
+        [[ "$age" -lt "$ALERT_DEDUP_SEC" ]] && return 0
+    fi
+    # Best-effort and bounded: alert DELIVERY must never be able to wedge the daemon.
+    printf '%s\n\n_(raised by the JICM watcher; deduped for %sh)_\n' "$msg" "$(( ALERT_DEDUP_SEC / 3600 ))" \
+      | ${TIMEOUT_BIN:+"$TIMEOUT_BIN" 20} bash "$inbox" send "$ALERT_INBOX_KEY" \
+          --from watcher --subject "JICM alert" --no-nudge >/dev/null 2>&1 || true
+    : > "$marker"
+    return 0
+}
 
 # Report how a backgrounded R1/R2 ingest ENDED. Without this the ingests were pure
 # fire-and-forget `( … ) &` with no rc check, and `timeout` kills its child WITHOUT

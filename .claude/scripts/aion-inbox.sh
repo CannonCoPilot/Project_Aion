@@ -51,21 +51,43 @@ UNREAD_MARK="<!-- UNREAD -->"
 READ_MARK="<!-- read -->"
 
 # Lane keys must match jicm-config.sh's, or a message lands in a file nobody loads.
+#
+# 🔴 A HARDCODED ROSTER DRIFTS, AND IT ALREADY DID. urist was added 2026-08-24 with a
+# registry entry, a pane and an inbox file — and this function still rejected it, so
+# `aion-inbox.sh send urist` exited 64. The lane LOOKED wired up and was unreachable, which
+# only surfaces the first time somebody actually needs to message it. The warning above was
+# written before the drift and did not prevent it, because a comment cannot enforce a list.
+# So ask the JICM registry, which is the source of truth for which lanes exist. The static
+# roster survives only as a fallback for when the registry is unavailable.
+_lane_keys() {
+    local reg="$PROJECT_DIR/.claude/context/jicm/registry"
+    if [[ -d "$reg" ]] && compgen -G "$reg/*.json" >/dev/null 2>&1; then
+        ls -1 "$reg"/*.json 2>/dev/null | sed 's|.*/||; s|\.json$||'
+        return 0
+    fi
+    printf '%s\n' w0 dev genie jaques protos urist
+}
+
 _valid_key() {
+    local k
+    while IFS= read -r k; do
+        [[ "$k" == "$1" ]] && return 0
+    done < <(_lane_keys)
+    # Registry misses are not fatal: a legitimate lane may not have registered yet.
     case "$1" in
-        w0|dev|genie|jaques|protos) return 0 ;;
+        w0|dev|genie|jaques|protos|urist) return 0 ;;
         *) return 1 ;;
     esac
 }
 
 _usage() {
-    cat <<'USAGE'
+    cat <<USAGE
 usage:
   aion-inbox.sh send <key> [--from X] [--subject S] [--no-nudge]  < body
   aion-inbox.sh read <key> [--all]
   aion-inbox.sh ack  <key>
   aion-inbox.sh list
-keys: w0 dev genie jaques protos
+keys: $(_lane_keys | tr '\n' ' ')
 USAGE
 }
 
