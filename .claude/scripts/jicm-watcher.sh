@@ -496,6 +496,14 @@ _signal_valid() {
 MAINT_EVERY_SEC="${JICM_WATCHER_MAINT_SEC:-100}"
 declare -i LAST_MAINT=0
 TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-}"   # resolved once in jicm-config.sh; empty = unbounded
+# Outer backstop for the chunked Graphiti ingest. Derivation: chunks are 4000 chars, so
+# the largest real checkpoint (jaques, 25,244) plans ~7, and a chunk against jarvis-core
+# measured 271-719s (n=9). Worst case is therefore well over an hour. This is a BACKSTOP,
+# not the hang detector — graphiti-auto-ingest.py bounds each chunk itself and names the
+# one that stalled. Safe to set this high only because nothing waits on the ingest: it is
+# a detached `( ... ) &`, no `wait` exists in this script, and _rest_pass skips any key
+# holding an actuating lock, so a long ingest cannot delay a JICM cycle.
+GRAPHITI_OUTER_BOUND="${JICM_GRAPHITI_OUTER_BOUND:-5400}"
 # Overridable so the DOWN path can actually be exercised. The legacy watcher hardcoded these,
 # which meant the branch that writes the alert file could only ever be tested by taking
 # a real service down — so in practice it never was.
@@ -941,11 +949,23 @@ _rest_run() {
               _ingest_outcome "R1 RAG" "$key" 600 "$_rc" ) &
             _log "REST: R1 checkpoint → RAG launched (pid $!, collection=$JK_RAG_COLLECTION)"
         fi
+        # 900 -> GRAPHITI_OUTER_BOUND. The ingest no longer sends one truncated 8K episode;
+        # it CHUNKS the whole checkpoint and sends each part in sequence, so the wall-clock
+        # is now (chunks x per-chunk). Real checkpoints plan 2-4 chunks, and a single chunk
+        # against jarvis-core measures min 271s / median 504s / max 719s (n=9, watcher log),
+        # so 4 chunks can legitimately need ~2900s. At 900 this would have SIGTERMed every
+        # multi-chunk run and looked exactly like the truncation bug it replaces.
+        #
+        # This outer value is a BACKSTOP, not the hang detector — graphiti-auto-ingest.py
+        # bounds each chunk itself at GRAPHITI_INGEST_TIMEOUT and reports which one stalled.
+        # Raising it is safe here specifically because nothing waits on this process: it is
+        # a detached `( ... ) &`, no `wait` exists in this script, and _rest_pass skips any
+        # key with an actuating lock, so a long ingest cannot delay a JICM cycle.
         if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" && -f "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" ]]; then
             ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED" GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
               _rc=0
-              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 900} "$py" "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" >> "$JICM_LOG_FILE" 2>&1 || _rc=$?
-              _ingest_outcome "R2 Graphiti" "$key" 900 "$_rc" ) &
+              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 "$GRAPHITI_OUTER_BOUND"} "$py" "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" >> "$JICM_LOG_FILE" 2>&1 || _rc=$?
+              _ingest_outcome "R2 Graphiti" "$key" "$GRAPHITI_OUTER_BOUND" "$_rc" ) &
             _log "REST: R2 checkpoint → Graphiti launched (pid $!, group=$JK_GRAPHITI_GROUP)"
         fi
     fi
