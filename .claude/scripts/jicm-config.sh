@@ -215,6 +215,13 @@ jicm_derive_key() {                          # <my_session_id>
     # the unset-JARVIS_WINDOW fallback, or it inherits the w0 candidate and a paneless
     # w0-bg-* key sharing W0's legacy state paths.
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then candidate="jaques"
+    # urist (aion:2) — the Dwarf Fortress Archon, added 2026-08-24. Placed here for the SAME
+    # reason as genie/jaques/protos: above the unset-JARVIS_WINDOW fallback. Falling through
+    # would hand Urist the w0 candidate and, via the occupancy gate, a paneless w0-bg-* key
+    # sharing W0's legacy state paths — self-actuating and invisible to the pane-driven path.
+    # Both role and window are accepted so the lane still resolves if one env var is lost
+    # across a resume. Window 2 was freed when the HUD folded into W8 on 2026-08-20.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "urist" || "${JARVIS_WINDOW:-}" == "2" ]]; then candidate="urist"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then candidate="w0"
     else echo "${my_sid:-unknown}"; return; fi
     # C3 OCCUPANCY GATE (JICM v9 R1): claim a pane-actuated key ONLY if I actually occupy
@@ -247,6 +254,13 @@ jicm_default_target() {
         # jaques (aion:13) — pane-actuated: it holds real paid client work, so it gets the
         # full cycle. Must stay in step with launch-aion.sh window_target_index().
         jaques) echo "${JICM_TMUX_SESSION}:13" ;;
+        # urist (aion:2) — the Dwarf Fortress Archon. Pane-actuated like the other work-holding
+        # lanes: it owns the Chronicler pipeline and live fortress state, so it gets the full
+        # cycle rather than the second-class self-actuating bg path.
+        # Must stay in step with launch-aion.sh window_target_index() — if one moves and the
+        # other does not, actuation drives the WRONG PANE, which is how a restart once fired
+        # into Protos. These two are a pair; edit them together or not at all.
+        urist)  echo "${JICM_TMUX_SESSION}:2"  ;;
         *)      echo "" ;;
     esac
 }
@@ -572,6 +586,15 @@ JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # 33% of 1M
 # and since every zero-state reset respawns it right back to ~98.7K, it would have reset forever
 # — killing the seed the Nexus forks from, on a loop. Hence the guard at the end of this function.
 JICM_PROTOS_BASELINE_TOKENS="${JICM_PROTOS_BASELINE_TOKENS:-98771}"
+# MEASURED BASELINES (the floor a lane cannot go below — system prompt + CLAUDE.md + tools).
+# A threshold must be set RELATIVE to one of these, never copied from a comment. Protos was
+# once set to 20K/25K against a 98.7K floor, which is a permanent over-threshold state: it
+# would have reset forever and presented as "JICM keeps cycling Protos", not as a config error.
+#   protos : 98,771  (2026-08-15, measured live on aion:1)
+#   urist  : 40,657  (2026-08-24, measured live on aion:2 at its second UserPromptSubmit)
+# Urist deliberately gets NO case below: its floor is ~41K against the default 300K/330K on a
+# 1M window, which is ample headroom and nowhere near the floor guard. Recorded here so the
+# default is a CHOICE on record rather than an untested assumption.
 jicm_key_thresholds() {                      # <key>
     case "${1:-}" in
         protos|protos-bg-*)

@@ -2,33 +2,20 @@
 # Launch Aion (Jarvis + Alfred unified Archon session) in a tmux session for autonomous control
 # This enables auto-command execution via tmux send-keys
 #
-# Window layout — authoritative source is window_target_index() below; the ASCII
-# sketch that follows is legacy and may not match current indices.
-# ┌─────────────────────────────────────────┐
-# │            Claude Code (window 0)       │
-# └─────────────────────────────────────────┘
-# ┌─────────────────────────────────────────┐
-# │            Watcher (window 1)           │
-# └─────────────────────────────────────────┘
-# ┌─────────────────────────────────────────┐
-# │            Ennoia (window 2)            │
-# └─────────────────────────────────────────┘
-# ┌─────────────────────────────────────────┐
-# │            Virgil (window 3)            │
-# └─────────────────────────────────────────┘
-# ┌─────────────────────────────────────────┐
-# │            Commands (window 4)          │
-# └─────────────────────────────────────────┘
-# ┌─────────────────────────────────────────┐
-# │            HUD-live (window 7+)         │
-# └─────────────────────────────────────────┘
+# Window layout — the ONE authoritative source is window_target_index() below.
+# Do NOT restate indices here. This header carried a legacy ASCII sketch that named
+# Watcher 1, Ennoia 2, Virgil 3, Commands 4 and Jarvis-dev 5; every one of those was
+# wrong, and a stale index in a live instruction is how `restart watcher` once sent
+# keys into aion:1, which is Protos, a live lane. Describe ROLES here, read indices
+# from the map.
 #
-# Watcher (window 1): JICM v6 context monitoring + compression
-# Ennoia (window 2): Session orchestration, intent-driven wake-up
-# Virgil (window 3): Task tracking, agent monitoring, file changes
-# Commands (window 4): Signal file → command injection via send-keys
-# Jarvis-dev (window 5): Second Claude session for dev testing (--dev mode only)
-# HUD-live (window 7+): Read-only htop-style dashboard over watcher state surface
+# Watcher:    JICM context monitoring + actuation (the launchd daemon; W8 is its console)
+# Ennoia:     Session orchestration, intent-driven wake-up
+# Virgil:     Task tracking, agent monitoring, file changes
+# Commands:   Signal file → command injection via send-keys
+# Jarvis-dev: Second Claude session for dev testing (--dev mode only)
+# HUD:        Read-only dashboard over watcher state; folded into the Watcher window
+#             on 2026-08-20, so its mapped index is currently unoccupied
 #
 # Modes:
 #   (default)    Full Aion with session persistence (W0-W4, resume by UUID)
@@ -86,7 +73,7 @@ export AION_MODEL="${AION_MODEL:-claude-opus-5[1m]}"
 #
 #   0: Jarvis       — Master Archon
 #   1: Protos       — Alfred seed (fork cache)
-#   2: HUD          — Live dashboard
+#   2: Urist        — Dwarf Fortress Archon (cwd Projects/DwarfCron)
 #   3: LiteLLM      — Model proxy
 #   4: Ollama       — Local model monitor
 #   5: MLX-Embed    — Embedding server
@@ -110,10 +97,19 @@ window_target_index() {
     case "$1" in
         Jarvis)     echo 0 ;;
         Protos)     echo 1 ;;
-        HUD)        echo 2 ;;   # index 2 is FREE since 2026-08-20: the dashboard folded
-                                # into W8 "Watcher". Mapping kept so restoring a second
-                                # copy is a one-line change; reorder_windows() skips any
-                                # name with no live window.
+        # Urist (aion:2) — Dwarf Fortress Archon, added 2026-08-24. Takes the slot the HUD
+        # vacated on 2026-08-20 when the dashboard folded into W8 "Watcher".
+        # WHY 2 AND NOT 14: chain windows (Alfred fork-resume) start at 14, and
+        # alfred/.claude/jobs/lib/host-executor-bridge.sh `_next_chain_index()` has to move in
+        # lockstep with any Archon that lands there. A chain fork onto an Archon's pane injects
+        # an Alfred task into a live session — not hypothetical, it happened to window 12 during
+        # the Genie install. Using the genuinely free slot avoids that coupling entirely.
+        # PAIRED WITH jicm-config.sh jicm_default_target(): urist -> :2. Edit both or neither.
+        Urist)      echo 2 ;;
+        # HUD has NO index: it lives inside the Watcher window (W8) and is launched there.
+        # It previously mapped to 2. Restoring a standalone second copy now means picking a
+        # free index deliberately rather than assuming 2 is still vacant — it is not.
+        HUD)        echo "" ;;
         LiteLLM)    echo 3 ;;
         Ollama)     echo 4 ;;
         MLX-Embed)  echo 5 ;;
@@ -130,7 +126,7 @@ window_target_index() {
 }
 
 # Highest index FIRST — reorder_windows() relies on this to avoid collisions.
-WINDOW_ORDER="Jacques Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
+WINDOW_ORDER="Jacques Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM Urist Protos Jarvis"
 
 reorder_windows() {
     # Move each named window to its assigned index. Process in the order
@@ -186,7 +182,7 @@ JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
 # W12:Genie launches from Projects/WVU, so Claude Code files its sessions under a
-# DIFFERENT project slug than W0/W5. That separation is deliberate and load-bearing:
+# DIFFERENT project slug than W0/W11. That separation is deliberate and load-bearing:
 # Genie gets its own JSONL dir and its own L2 memory dir for free, and can never be
 # picked up by W0's latest-session scan.
 GENIE_PROJECT_SLUG="-Users-nathanielcannon-Claude-Projects-WVU"
@@ -534,6 +530,85 @@ launch_jaques_window() {
     echo -e "  ${GREEN}✓${NC} Jacques window (${jaques_mode}: ${jaques_uuid})"
 }
 
+# --- W2: URIST — Dwarf Fortress Archon (added 2026-08-24) --------------------
+# Owns DFHack Lua tooling, the Chronicler/DwarfCron pipeline, live fortress state and the
+# DF-Windows VM. Structurally mirrors launch_jaques_window(); read that one's comments too,
+# they carry the traps this block inherits.
+#
+# Deterministic seed: UUID v5 of "project_aion_urist_w2" in NAMESPACE_URL.
+#   python3 -c 'import uuid;print(uuid.uuid5(uuid.NAMESPACE_URL,"project_aion_urist_w2"))'
+URIST_SEED_UUID="5f42db27-28ed-57de-95b3-47c4f6bf4385"
+
+# cwd is the DwarfCron repo, NOT the monorepo — that earns Urist its own Claude Code project
+# slug (own L2 memory dir, own JSONL dir) for free, and auto-discovers DwarfCron/CLAUDE.md
+# as the project file so domain law loads without being duplicated into the persona.
+URIST_LAUNCH_DIR="/Users/nathanielcannon/Claude/Projects/DwarfCron"
+URIST_PROJECT_SLUG="-Users-nathanielcannon-Claude-Projects-DwarfCron"
+URIST_PROJECTS_DIR="$HOME/.claude/projects/${URIST_PROJECT_SLUG}"
+
+# Prints "<uuid> <resume|new>". Same trust model as the dev/genie/jaques resolvers.
+resolve_urist_session() {
+    local candidate=""
+    [[ -s "$PROJECT_DIR/.claude/context/.current-urist-uuid" ]] && \
+        candidate="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-urist-uuid")"
+    # Pass Urist's OWN projects dir + launch dir: session_resumable defaults to W0's, and
+    # Claude Code files sessions under a slug derived from cwd, so the defaults would never
+    # find Urist's seed and every launch would mint a fresh random session.
+    if [[ -n "$candidate" ]] && session_resumable "$candidate" "$URIST_PROJECTS_DIR" "$URIST_LAUNCH_DIR"; then
+        echo "$candidate resume"; return 0
+    fi
+    if session_resumable "$URIST_SEED_UUID" "$URIST_PROJECTS_DIR" "$URIST_LAUNCH_DIR"; then
+        echo "$URIST_SEED_UUID resume"; return 0
+    fi
+    if [[ ! -f "$URIST_PROJECTS_DIR/${URIST_SEED_UUID}.jsonl" ]]; then
+        echo "$URIST_SEED_UUID new"; return 0
+    fi
+    echo "$(uuidgen) new"
+}
+
+# Create the W2:Urist tmux window. Caller reorders afterward if needed.
+launch_urist_window() {
+    [[ -d "$URIST_LAUNCH_DIR" ]] || {
+        echo -e "  ${YELLOW}⊘${NC} Urist skipped (no $URIST_LAUNCH_DIR)"
+        return 0
+    }
+
+    local urist_uuid urist_mode
+    read -r urist_uuid urist_mode < <(resolve_urist_session)
+
+    local proxy_url="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
+    local urist_headers="x-aion-project: dwarfcron\nx-aion-agent-name: urist-w2\nx-aion-session-id: $(uuidgen)"
+    # JARVIS_WINDOW=2 is LOAD-BEARING. Without it jicm_derive_key falls through to the w0
+    # candidate and the occupancy gate demotes Urist to a paneless w0-bg-* key sharing W0's
+    # legacy state paths — self-actuating and invisible to the pane-driven path. That is
+    # exactly how Protos was mis-keyed for weeks.
+    # JICM_PROJECT_DIR is equally load-bearing: cwd is outside the monorepo, so every hook
+    # would otherwise write lane state into DwarfCron/.claude/ where the watcher, actuator
+    # and this launcher would never find it.
+    local env_urist="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=urist JARVIS_WINDOW=2 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=urist-core JICM_RAG_COLLECTION=urist-sessions ANTHROPIC_BASE_URL=$proxy_url"
+    # NO APOSTROPHES IN THE STRING BELOW. It is interpolated into a single-quoted argument
+    # inside the tmux command line; an apostrophe closes that quote early and the shell then
+    # glob-expands what follows. On the first Jacques launch that produced an empty pane and
+    # zero hooks, which looks exactly like a settings-root bug and is not.
+    local sysappend="You are W2:Urist, the Dwarf Fortress Archon of Project Aion. You own DFHack Lua tooling, the Chronicler and DwarfCron product code, the live fortress and its saves, and the DF-Windows VM. DwarfCron/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on the Chronicler data model and pipeline rules; never restate it from memory. Your memory namespace is urist-context/research/sessions/codebase plus the urist-core graph; never write to any jarvis-, genie- or jaques- collection or graph. NEVER set enabler.fps or calculated_fps to 0 via Lua: it freezes the game permanently, use the timestream plugin. Corroborate any fortress claim across three sources (bridge state file, live DFHack probe, DB denizen registry) before asserting it. Do not short-cut Chronicler functionality with ad-hoc scripts; a phase is complete only when a stand-alone packaged executable exists. Aion core engineering belongs to W11:Jarvis-dev; research belongs to W12:Genie; Snorkel contract work belongs to W13:Jacques."
+    local urist_mcp="$PROJECT_DIR/.claude/personas/urist/mcp.json"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/urist --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$urist_mcp' --strict-mcp-config --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-urist.log"
+
+    local first
+    if [[ "$urist_mode" == "resume" ]]; then
+        first="$base --resume $urist_uuid"
+    else
+        first="$base --session-id $urist_uuid"
+    fi
+    local loop_resume="$base --resume $urist_uuid"
+    local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/urist/CLAUDE.md"
+
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Urist" -d \
+        "cd '$URIST_LAUNCH_DIR' && export $env_urist && export ANTHROPIC_CUSTOM_HEADERS=$'$urist_headers' && $first '$init'; while true; do echo ''; echo 'Urist exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Urist" automatic-rename off 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} Urist window (${urist_mode}: ${urist_uuid})"
+}
+
 # --- THE WATCHER (2026-08-20 rename) -----------------------------------------
 # 🔴 THE LAUNCHER MUST NEVER START THE WATCHER DAEMON ITSELF.
 # jicm-watcher.sh (formerly jicm-supervisor.sh) runs under launchd as
@@ -673,7 +748,7 @@ if [[ "$LITE_MODE" == "true" ]]; then
     fi
 fi
 
-# --dev only controls W5 creation; W0 resumes by default regardless
+# --dev only controls W11 creation; W0 resumes by default regardless
 # Use --fresh explicitly if you want a clean W0 slate
 
 # Auto-detect iTerm2
@@ -1140,7 +1215,7 @@ fi
 if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo -e "${GREEN}Session '$SESSION_NAME' already exists.${NC}"
 
-    # If --dev requested and W5 doesn't exist, add it to the running session
+    # If --dev requested and W11 doesn't exist, add it to the running session
     if [[ "$DEV_MODE" == "true" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
@@ -1410,7 +1485,7 @@ if [[ -n "$JARVIS_SESSION_ID_FOR_PIPELINE" ]]; then
 fi
 
 # Restart loop: --continue is safe here because W0's JSONL was the most recently
-# modified file (it just exited). W5 contamination only affects initial launch.
+# modified file (it just exited). W11 contamination only affects initial launch.
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
 W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS=$'$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
@@ -1497,6 +1572,13 @@ fi
 if [[ "${JAQUES:-on}" != "off" ]]; then
     echo "Launching Jacques (Contract Archon) in tmux window..."
     launch_jaques_window
+fi
+
+# W2: Urist (Dwarf Fortress Archon). Permanent, not flag-gated; self-skips if
+# Projects/DwarfCron is absent, and URIST=off suppresses it for a lean launch.
+if [[ "${URIST:-on}" != "off" ]]; then
+    echo "Launching Urist (Dwarf Fortress Archon) in tmux window..."
+    launch_urist_window
 fi
 
 # MLX-Embed window — always present; starts server if not already running
@@ -1655,21 +1737,27 @@ echo -e "${GREEN}╔════════════════════
 echo -e "${GREEN}║                    Aion is ready!                             ║${NC}"
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
+# Indices are READ FROM window_target_index(), never retyped. A hand-maintained copy
+# of this list is how the summary came to claim chain windows start at W12 — which is
+# GENIE's window, and W13 is Jacques. Both are live Archon lanes.
 echo -e "${CYAN}Tmux Windows:${NC}"
-echo "  W0  Jarvis        Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"
-echo "  W1  Protos        Alfred seed (fork cache, model=${AION_MODEL})"
-echo "  W2  HUD           Live dashboard"
-echo "  W3  LiteLLM       Model proxy (:4000)"
-echo "  W4  Ollama        Local model monitor (:11434)"
-echo "  W5  MLX-Embed     Qwen3-Embedding-4B server (:8000)"
-echo "  W6  Ennoia        Session orchestrator"
-echo "  W7  Virgil        Codebase guide"
-echo "  W8  Watcher       JICM v7.9 context monitor"
-echo "  W9  Commands      Signal file → command injection"
-echo "  W10 Styx          Host executor daemon + reaper"
-[[ "$DEV_MODE" == "true" ]] && \
-echo "  W11 Jarvis-dev    Developer test driver"
-echo "  W12+              Chain windows (Alfred fork-resume tasks)"
+_w() { printf '  W%-3s %-13s %s\n' "$(window_target_index "$1")" "$1" "$2"; }
+_w Jarvis      "Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"
+_w Protos      "Alfred seed (fork cache, model=${AION_MODEL})"
+_w Urist       "Dwarf Fortress Archon (cwd Projects/DwarfCron)"
+_w LiteLLM     "Model proxy (:4000)"
+_w Ollama      "Local model monitor (:11434)"
+_w MLX-Embed   "Qwen3-Embedding-4B server (:8000)"
+_w Ennoia      "Session orchestrator"
+_w Virgil      "Codebase guide"
+_w Watcher     "JICM context monitor + console"
+_w Commands    "Signal file → command injection"
+_w Styx        "Host executor daemon + reaper"
+[[ "$DEV_MODE" == "true" ]] && _w Jarvis-dev "Developer test driver"
+_w Genie       "Research Archon (cwd Projects/WVU)"
+_w Jacques     "Contract Archon (cwd Projects/SnorkelTasks)"
+echo "  W14+              Chain windows (Alfred fork-resume tasks)"
+echo "       (the HUD has no window of its own: it runs inside W$(window_target_index Watcher) Watcher)"
 echo ""
 echo -e "${CYAN}Archon Service Summary:${NC}"
 echo -n "  Jarvis Infra : "; check_port 5432 && check_port 6333 "/collections" && check_port 7474 && echo -e "${GREEN}PG+Qdrant+Neo4j ✓${NC}" || echo -e "${YELLOW}partial${NC}"
@@ -1691,8 +1779,11 @@ if [[ "$ITERM2_MODE" == "true" ]]; then
     exec "$TMUX_BIN" -CC attach-session -t "$SESSION_NAME"
 else
     echo "Keyboard shortcuts:"
-    echo "  Ctrl+b then 0-4 - Switch windows: Jarvis (0), Watcher (1), Ennoia (2), Virgil (3), Commands (4)"
-    [[ "$DEV_MODE" == "true" ]] && echo "  Ctrl+b then 5   - Switch to Jarvis-dev (test driver)"
+    # Derived from window_target_index(). Ctrl+b <n> only reaches single-digit windows,
+    # so anything above 9 is listed with the by-name form instead of a wrong digit.
+    echo "  Ctrl+b then 0-9 - Jarvis ($(window_target_index Jarvis)), Ennoia ($(window_target_index Ennoia)), Virgil ($(window_target_index Virgil)), Watcher ($(window_target_index Watcher)), Commands ($(window_target_index Commands))"
+    echo "  Ctrl+b then '   - Then type an index above 9 (Jarvis-dev $(window_target_index Jarvis-dev), Genie $(window_target_index Genie), Jacques $(window_target_index Jacques))"
+    [[ "$DEV_MODE" == "true" ]] && echo "  Ctrl+b then '   - Then $(window_target_index Jarvis-dev) for Jarvis-dev (test driver)"
     echo "  Ctrl+b then d     - Detach (leave running)"
     echo "  Ctrl+b then x     - Close current window"
     echo ""

@@ -721,9 +721,22 @@ cmd_nudge() {
     # destructive, and the buffer is not always junk: a HUMAN's unsent line lives in the
     # same place. Snapshot the pane first so a discarded line is always recoverable from
     # the log rather than lost silently. Cheap, and the only way to un-ring that bell.
-    local snap="${JICM_LOG_DIR:-$PROJECT_DIR/.claude/logs}/nudge-preclear.${key}.txt"
-    "$TMUX_BIN" capture-pane -p -t "$TMUX_TARGET" > "$snap" 2>/dev/null \
-        && _log "nudge: pane snapshot before clear-input -> $snap"
+    #
+    # 2026-08-24, TWO defects fixed in this safety net itself:
+    #   1. The path was FIXED (nudge-preclear.<key>.txt), so every nudge OVERWROTE the
+    #      previous snapshot. Two nudges and the first discarded human line was gone —
+    #      the bell this code exists to un-ring rang again, silently. Now timestamped,
+    #      with a stable `.latest` pointer for anything that wants the most recent one.
+    #   2. `capture-pane -p` with no -S captures only the VISIBLE pane. Measured on
+    #      aion:13 the same day: visible ~4KB versus ~138KB with -S -2000. Content
+    #      scrolled above the fold was never in the "recoverable" snapshot, so the
+    #      guarantee in this comment was wider than the implementation delivered.
+    local _snapdir="${JICM_LOG_DIR:-$PROJECT_DIR/.claude/logs}"
+    local snap="${_snapdir}/nudge-preclear.${key}.$(date +%Y%m%d-%H%M%S).txt"
+    if "$TMUX_BIN" capture-pane -p -S -2000 -t "$TMUX_TARGET" > "$snap" 2>/dev/null; then
+        cp -f "$snap" "${_snapdir}/nudge-preclear.${key}.latest.txt" 2>/dev/null
+        _log "nudge: pane snapshot before clear-input -> $snap ($(wc -c < "$snap" | tr -d ' ') bytes)"
+    fi
 
     _inject clear-input; sleep 0.3
     _inject text "$text";  sleep 0.5
