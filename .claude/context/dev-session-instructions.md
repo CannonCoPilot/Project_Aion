@@ -19,23 +19,36 @@ You are running in **W11:Jarvis-dev** — the autonomous test driver for Project
 
 ## Environment
 
-You are inside a **tmux session** named `aion` with 12 fixed windows (chain windows stack at W12+):
+You are inside a **tmux session** named `aion` with 14 fixed windows (chain windows stack at W14+):
 
 | Window | Name | Role | How to interact |
 |--------|------|------|-----------------|
 | W0 | Jarvis | System Under Test (primary Archon) | Via dev scripts |
 | W1 | Protos | Alfred seed session (fork cache) | Read pane |
-| W2 | HUD | Live dashboard | Read pane |
+| W2 | Urist | Dwarf Fortress Archon (cwd `Projects/DwarfCron`) | Read pane |
 | W3 | LiteLLM | Model proxy (:4000) | Read pane |
 | W4 | Ollama | Local model monitor (:11434) | Read pane |
 | W5 | MLX-Embed | Qwen3-Embedding-4B (:8000) | Read pane |
 | W6 | Ennoia | Session orchestrator | Read state files |
 | W7 | Virgil | Codebase guide | Read state files |
-| W8 | Watcher | JICM v7.9 monitoring W0 | Read logs, restart |
+| W8 | Watcher | JICM watcher console (HUD v2) | Read logs, restart |
 | W9 | Commands | Command signal handler | Write signal files |
 | W10 | Styx | Host executor daemon (bridge) | Read pane |
 | W11 | Jarvis-dev | **YOU ARE HERE** — test driver | Direct execution |
-| W12+ | chain-* | Alfred fork-resume task windows | Read pane |
+| W12 | Genie | Research Archon (cwd `Projects/WVU`) | Read pane |
+| W13 | Jacques | Contract Archon (cwd `Projects/SnorkelTasks`) | Read pane |
+| W14+ | chain-* | Alfred fork-resume task windows | Read pane |
+
+**Source of truth is the launcher**, `.claude/scripts/launch-aion.sh` (header comment +
+`window_target_index()`). If this table and the launcher ever disagree, the launcher is right —
+fix the table. W2 was `HUD` until 2026-08-24; Urist took that slot. Chain windows moved from
+W12 to W14 when Genie and Jacques claimed 12/13, and `_next_chain_index()` in
+`alfred/.claude/jobs/lib/host-executor-bridge.sh` must move with them — a chain fork landing
+on an Archon's pane injects an Alfred task into a live session.
+
+**The JICM watcher is `jicm-watcher.sh`** — a registry-driven, multi-lane daemon (JICM v9) run
+under launchd as `com.aion.jicm-watcher`, NOT launched from the launcher and NOT W0-only. The
+v7.9 W0-only singleton is retired at `.claude/scripts/retired/`; do not revive it.
 
 ### Critical Environment Facts
 
@@ -89,7 +102,7 @@ Each `Projects/<name>` is a SEPARATE repo. Never stage changes across that bound
 | `send-to-jarvis.sh` | `bash .claude/scripts/dev/send-to-jarvis.sh "prompt" --wait 30` | Send prompt to W0, wait for idle |
 | `capture-jarvis.sh` | `bash .claude/scripts/dev/capture-jarvis.sh --tail 20` | Capture W0 pane output |
 | `watch-jicm.sh` | `bash .claude/scripts/dev/watch-jicm.sh --once --json` | JICM state as JSON |
-| `restart-watcher.sh` | `bash .claude/scripts/dev/restart-watcher.sh --threshold 15` | Restart watcher with custom threshold |
+| ~~`restart-watcher.sh`~~ | **DISARMED — do not use** | Targeted W1 with `respawn-window -k`; W1 is now the live Protos session. Restart the watcher with `launchctl kickstart -k gui/$UID/com.aion.jicm-watcher`. |
 
 ### Direct tmux Commands
 
@@ -191,7 +204,7 @@ When the user tasks you with DwarfCron work, read the relevant docs on demand. D
 | W0 idle detection false negative | Capture output, grep for `❯` directly |
 | Script permission denied | `chmod +x .claude/scripts/dev/*.sh` |
 | JICM stuck in COMPRESSING | Check `.compression-in-progress` flag, remove if stale |
-| Watcher not running | Check W8 pane, restart with `restart-watcher.sh` |
+| Watcher not running | `launchctl list \| grep com.aion.jicm-watcher`, then `launchctl kickstart -k gui/$UID/com.aion.jicm-watcher`. W8 is the read-only console, not the process. |
 | Command signal not consumed | Verify W9 command-handler (Commands) running, check W9 pane |
 | send-keys text not submitting | MUST split text and Enter into separate send-keys calls |
 | Context compaction mid-test | Document progress to files, read back after compaction |

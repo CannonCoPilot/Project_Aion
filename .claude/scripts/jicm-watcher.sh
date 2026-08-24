@@ -521,6 +521,13 @@ MAINT_NEO4J_URL="${JICM_HEALTH_NEO4J_URL:-http://localhost:7474}"
 # box. Steady-state latency is 1-13ms, so 2s is ~150x headroom — a probe that exceeds
 # it is reporting LOAD, and is now classified as `timeout` rather than as "down".
 MAINT_PROBE_TIMEOUT="${JICM_HEALTH_PROBE_TIMEOUT:-2}"
+# Confirm delay. A SINGLE sample cannot tell "down" from "not up YET": on 2026-08-24 the
+# MAINTAIN pass probed at 17:09:45 and MLX-Embed logged "loaded successfully" at 17:09:49,
+# so the launcher's own cold start libelled the service it had just spawned. Any failure is
+# therefore re-probed once after this delay, and only a SECOND failure alerts. Cost is zero
+# on a healthy pass (only failures re-probe) and bounded at 3x this on a total outage.
+# Set to 0 to restore single-sample behaviour when testing the alert branch.
+MAINT_PROBE_CONFIRM_SEC="${JICM_HEALTH_PROBE_CONFIRM_SEC:-6}"
 # Leak threshold, expressed as a MULTIPLE OF THE FRESH FOOTPRINT rather than a bare constant.
 # Measured 2026-08-15 on a clean restart of aion:5 (Qwen3-Embedding-4B-4bit-DWQ, 4-bit quantised):
 #   server up, model not yet exercised .... 2473 MB
@@ -570,6 +577,20 @@ _probe() {
         *)  cause="curl-rc-$rc" ;;
     esac
     awk -v t="${t:-0}" -v c="$cause" 'BEGIN{printf "false|%d|%s\n", t*1000, c}'
+}
+
+# Re-probe a FAILED sample once before believing it. This is the splitting test between the
+# two states a single failed probe conflates -- "the service is down" and "the service is
+# still coming up" -- which have opposite remedies: one needs a human, the other needs six
+# seconds. Passing through the second sample (not the first) also keeps the reported cause
+# and latency honest: whatever we alert on is what we last actually measured.
+_probe_confirm() {
+    local url="$1" first="$2" ok
+    IFS='|' read -r ok _ _ <<<"$first"
+    [[ "$ok" == "true" ]] && { printf '%s\n' "$first"; return; }
+    [[ "$MAINT_PROBE_CONFIRM_SEC" -gt 0 ]] || { printf '%s\n' "$first"; return; }
+    sleep "$MAINT_PROBE_CONFIRM_SEC"
+    _probe "$url"
 }
 
 # RSS IS NOT THE MEASUREMENT. MLX-Embed reached a 59 GB phys_footprint at 3d21h uptime while `ps`
@@ -671,9 +692,15 @@ _maint_service_health() {   # M2 + M3
     local unreachable degraded detail svc sname sok scause sms
     local mlx_pid mlx_gb leak_note mem_free_pct
 
-    qdrant="$(_probe "$MAINT_QDRANT_URL/collections")"; IFS='|' read -r qok qms qc <<<"$qdrant"
-    mlx="$(_probe "$MAINT_MLX_URL")";                   IFS='|' read -r mok mms mc <<<"$mlx"
-    neo4j="$(_probe "$MAINT_NEO4J_URL")";               IFS='|' read -r nok nms nc <<<"$neo4j"
+    # Each probe is confirmed before it is believed -- see _probe_confirm. Probe all three
+    # FIRST, then confirm only the failures, so three simultaneously-booting services cost
+    # one confirm delay between them rather than three in series.
+    qdrant="$(_probe "$MAINT_QDRANT_URL/collections")"
+    mlx="$(_probe "$MAINT_MLX_URL")"
+    neo4j="$(_probe "$MAINT_NEO4J_URL")"
+    qdrant="$(_probe_confirm "$MAINT_QDRANT_URL/collections" "$qdrant")"; IFS='|' read -r qok qms qc <<<"$qdrant"
+    mlx="$(_probe_confirm "$MAINT_MLX_URL" "$mlx")";                      IFS='|' read -r mok mms mc <<<"$mlx"
+    neo4j="$(_probe_confirm "$MAINT_NEO4J_URL" "$neo4j")";                IFS='|' read -r nok nms nc <<<"$neo4j"
 
     # Leak watch. Threshold is deliberately well above a healthy steady state (~2.5 GB measured
     # right after a restart) and well below the point where swap starts thrashing.

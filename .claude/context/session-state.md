@@ -35,15 +35,20 @@ Entry points: `ocr-spike/CHAPTER-WORKFLOW.md` (**read § THE ROUND TEMPLATE firs
 ---
 
 ## Live processes (tmux `aion` session)
-- W0 Jarvis: Master Archon (this session)
-- W1 Watcher: JICM v7.9
-- W11 Jarvis-dev: engineering/infrastructure agent
-- W10 Bridge: host-executor-bridge.sh --daemon
-- W1 Protos: warm Claude session for chain forks (Alfred identity)
+Authoritative map: `.claude/scripts/launch-aion.sh` header + `window_target_index()`.
+- W0 Jarvis: Master Archon · W1 Protos: warm session for chain forks (Alfred identity)
+- W2 Urist: DF Archon · W12 Genie: Research Archon · W13 Jacques: Contract Archon
+- W8 Watcher: JICM **console (read-only)**. The watcher itself is the launchd job
+  `com.aion.jicm-watcher` (jicm-watcher.sh, v9, registry-driven, all lanes incl. W0) —
+  NOT a tmux process, and NOT the retired v7.9 W0-only singleton.
+- W10 Styx: host-executor-bridge.sh --daemon · W11 Jarvis-dev: engineering/infrastructure agent
+- W14+ chain-*: Alfred fork-resume windows (`_next_chain_index()` starts at 14)
 
 ## Notes
 - MCPs configured: 3 active (jarvis-rag, jarvis-graphiti, jarvis-pulse) + 4 disabled in `.mcp.json.disabled-2026-05-04` backup. Current session still has 7 loaded (MCP changes apply on next restart).
-- JICM threshold: soft 250K, hard 300K (state-hook v7.9)
+- JICM threshold: soft **300K** / hard **330K** (`jicm-config.sh`, v9 defaults; Protos lane 140K/160K).
+  Override per-session with `JICM_SOFT_TOKENS`/`JICM_HARD_TOKENS` — but the launchd daemon reads
+  its plist environment, not your shell.
 - Pulse API prod: `localhost:8700`; dev: `localhost:8800`
 - Dev DB: `pulse_dev` / pw in `.claude/secrets/credentials.yaml`
 
