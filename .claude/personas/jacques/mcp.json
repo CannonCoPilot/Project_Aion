@@ -3,7 +3,7 @@
     "Jacques' MCP set, loaded with --mcp-config + --strict-mcp-config so it REPLACES the root",
     ".mcp.json rather than merging. This is the only place GRAPHITI_GROUP_ID actually binds:",
     "the root .mcp.json declares it as a LITERAL 'jarvis-core', and an env value declared in an",
-    "mcp server's config overrides the launching process's environment — so exporting",
+    "mcp server's config overrides the launching process's environment \u2014 so exporting",
     "GRAPHITI_GROUP_ID in the launcher alone would silently do nothing and Jacques' entities would",
     "land in the Master Archon's graph. Learned on the Genie install.",
     "",
@@ -11,14 +11,25 @@
     "annas-archive likewise. Smaller tool surface, and one less place a tracked secret travels."
   ],
   "mcpServers": {
-    "jarvis-rag": {
-      "command": "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
+    "annas-archive": {
+      "command": "/Users/nathanielcannon/Claude/Projects/AnnasTools/.venv/bin/python",
       "args": [
-        "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py"
+        "/Users/nathanielcannon/Claude/Projects/AnnasTools/src/annas_tools/mcp_server.py"
       ],
       "env": {
-        "MLX_EMBED_URL": "http://localhost:8000",
-        "QDRANT_URL": "http://localhost:6333"
+        "ANNAS_SECRET_KEY": "${ANNAS_SECRET_KEY}",
+        "ANNAS_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/library"
+      },
+      "disabled": false
+    },
+    "arxiv": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "arxiv-mcp-server"
+      ],
+      "env": {
+        "ARXIV_STORAGE_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/jacques/arxiv"
       }
     },
     "jarvis-graphiti": {
@@ -46,6 +57,26 @@
       "env": {
         "PULSE_URL": "http://localhost:8800/api/v1"
       }
+    },
+    "jarvis-rag": {
+      "command": "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py"
+      ],
+      "env": {
+        "MLX_EMBED_URL": "http://localhost:8000",
+        "QDRANT_URL": "http://localhost:6333"
+      }
+    },
+    "scholar-gateway": {
+      "command": "/Users/nathanielcannon/Claude/Projects/ScholarGateway/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Projects/ScholarGateway/src/scholar_gateway/mcp_server.py"
+      ],
+      "env": {
+        "SCHOLAR_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/jacques/papers"
+      },
+      "disabled": false
     }
   }
 }

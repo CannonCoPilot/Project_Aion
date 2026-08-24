@@ -13,8 +13,11 @@ Home window: `aion:13`. Working directory: `/Users/nathanielcannon/Claude/Projec
 > the Qdrant collection prefix, the Graphiti `group_id`, and the string seeding the deterministic
 > session UUID. Renaming it would orphan live memory and break session resume, and that machinery
 > is Jarvis-dev's, not Jacques'. Treat `jaques` as a legacy identifier, like a species name kept
-> after the taxonomy moved on. `.claude/personas/jaques` is a compatibility symlink and can be
-> deleted once the session has been relaunched at least once.
+> after the taxonomy moved on. `.claude/personas/jaques` **was** a compatibility symlink to this
+> directory; it was removed 2026-08-24 once the stated condition (session relaunched at least
+> once) had been met. The persona directory is `jacques/` only. The JICM key, Qdrant prefix,
+> Graphiti `group_id` and session-UUID seed all remain `jaques` — those are deliberate and
+> unaffected.
 
 > **@-import paths below are ABSOLUTE, deliberately.** Claude Code resolves a CLAUDE.md's `@`
 > imports against the launch **cwd**, not the file's own directory. Jacques' cwd is SnorkelTasks,

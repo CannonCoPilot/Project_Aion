@@ -1,7 +1,9 @@
 persona: jaques
 
 # Nexus-side persona for HEADLESS execution. Distinct from the interactive W13:Jacques
-# Archon (.claude/personas/jaques/CLAUDE.md); same remit, same memory namespace.
+# Archon (.claude/personas/jacques/CLAUDE.md); same remit, same memory namespace.
+# NOTE: the Archon persona dir is `jacques/` (the `jaques/` symlink was retired 2026-08-24).
+# THIS directory stays `jaques/` — it is the Nexus persona key, a different namespace.
 # Scheduled/dispatched face of the Snorkel AI contract work.
 
 engine:
