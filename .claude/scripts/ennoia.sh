@@ -24,7 +24,13 @@ IDLE_THRESHOLD="${IDLE_THRESHOLD:-900}"  # 15 minutes in seconds
 SESSION_STATE="$PROJECT_DIR/.claude/context/session-state.md"
 # Priorities now consolidated into session-state.md (Session 28b)
 PRIORITIES="$PROJECT_DIR/.claude/context/session-state.md"
-WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state"
+# 🔴 DO NOT point this back at `.claude/context/.jicm-state`.
+# That was the v7.3 → v7.9 back-compat shim, RETIRED at 7.9.6c. It is frozen at
+# 2026-05-04 and it never carried `context_pct:` / `context_tokens:` at all, so the old
+# `awk '/^context_pct:/'` scrape matched nothing for ~4 months and rendered `Context: ? (?)`.
+# Canonical state is JSON: per-lane under jicm/state/<key>.json, and w0 (this monitor's
+# subject) at the legacy shared path below. Same cutover jicm-prep-context.sh made.
+WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
 ENNOIA_STATE="$PROJECT_DIR/.claude/context/.ennoia-state"
 ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"
 ENNOIA_RECOMMENDATION="$PROJECT_DIR/.claude/context/.ennoia-recommendation"
@@ -101,6 +107,29 @@ detect_mode() {
     fi
 
     echo "attend"
+    return 0
+}
+
+# Read canonical JICM state for w0 into JS_TOKENS / JS_PCT / JS_STATE.
+# Every field is left EMPTY when unreadable, so a missing reading renders as a visible "?"
+# instead of a stale number. A frozen value is BELIEVED; a missing one is questioned.
+read_jicm_state() {
+    JS_TOKENS=""; JS_PCT=""; JS_STATE=""
+    [[ -r "$WATCHER_STATUS" ]] || return 0
+    command -v jq >/dev/null 2>&1 || return 0
+    local t h
+    t=$(jq -r '.tokens // empty'                 "$WATCHER_STATUS" 2>/dev/null || true)
+    h=$(jq -r '.hard_threshold_tokens // empty'  "$WATCHER_STATUS" 2>/dev/null || true)
+    JS_STATE=$(jq -r '.action // empty'          "$WATCHER_STATUS" 2>/dev/null || true)
+    JS_TOKENS="$t"
+    # Percent of the HARD threshold, matching the W8 console. Percent-of-window reads far
+    # lower (21% vs 65% for the same w0 reading) and would contradict the one screen a
+    # human actually watches.
+    # JS_PCT is a BARE INTEGER, no '%', so callers can compare it arithmetically.
+    # Callers append the '%' at render time.
+    if [[ "$t" =~ ^[0-9]+$ ]] && [[ "$h" =~ ^[0-9]+$ ]] && [[ "$h" -gt 0 ]]; then
+        JS_PCT="$(( t * 100 / h ))"
+    fi
     return 0
 }
 
@@ -488,7 +517,9 @@ render() {
             plan_title=$(resolve_active_plan)
             [[ -n "$plan_title" ]] && echo "  → Plan: $plan_title"
             local unpushed
-            unpushed=$(git -C "$PROJECT_DIR" log --oneline origin/Project_Aion..HEAD 2>/dev/null | wc -l | tr -d ' ')
+            # `origin/Project_Aion` is NOT a ref (remote=origin, branch=main), so this
+            # always failed and reported 0. @{upstream} follows the real tracking branch.
+            unpushed=$(git -C "$PROJECT_DIR" log --oneline '@{upstream}..HEAD' 2>/dev/null | wc -l | tr -d ' ')
             [[ $unpushed -gt 0 ]] && echo "  → $unpushed commits unpushed"
             local branch
             branch=$(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null)
@@ -503,9 +534,9 @@ render() {
 
         attend)
             echo; echo "  CURRENT: $(get_intent)"
-            local pct
-            pct=$(awk '/^context_pct:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
-            echo "  Context: ${pct:-?}"
+            read_jicm_state
+            local pct_d="?"; [[ -n "$JS_PCT" ]] && pct_d="${JS_PCT}%"
+            echo "  Context: ${pct_d}"
             ;;
 
         idle)
@@ -539,12 +570,12 @@ render() {
 
     # Footer
     printf '\n%.0s─' $(seq 1 "$cols"); echo
-    local tokens pct rec_indicator
-    tokens=$(awk '/^context_tokens:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
-    pct=$(awk '/^context_pct:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
+    local rec_indicator
+    read_jicm_state
+    local pct_f="?"; [[ -n "$JS_PCT" ]] && pct_f="${JS_PCT}%"
     rec_indicator=""
     [[ -f "$ENNOIA_RECOMMENDATION" ]] && rec_indicator=" | REC: ready"
-    printf '  Mode: %s | Context: %s (%s)%s\n' "$mode" "${pct:-?}" "${tokens:-?}" "$rec_indicator"
+    printf '  Mode: %s | W0 context: %s (%s tok)%s\n' "$mode" "$pct_f" "${JS_TOKENS:-?}" "$rec_indicator"
 
     # Update status file
     local has_rec="false"

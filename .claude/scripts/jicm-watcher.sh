@@ -84,6 +84,27 @@ mkdir -p "$JICM_DIR" "$JICM_SIGNALS_DIR" "$JICM_REGISTRY_DIR" "$(dirname "$WATCH
 _log() { printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$*" >> "$WATCH_LOG"; }
 _now() { date +%s; }
 
+# Report how a backgrounded R1/R2 ingest ENDED. Without this the ingests were pure
+# fire-and-forget `( … ) &` with no rc check, and `timeout` kills its child WITHOUT
+# writing anything — so a killed ingest left NO trace at all. Measured 2026-08-22:
+# the nightly Graphiti run was SIGTERMed at its 900s cap and the night's L5 checkpoint
+# was lost in silence; two other nights hit the same truncation error, retried, and
+# completed fine. Reading three error lines as "three lost nights" was only possible
+# because the OUTCOME was never recorded. Absence of evidence was absence of measurement.
+#
+# A timeout kill is NOT an acceptable steady state (No Silent Degradation): it ALERTs so
+# the APPROACH gets redesigned. Raising the cap is not the remedy — the run is 456-718s
+# against a 900s cap and climbing, so the cap is the symptom, not the disease.
+_ingest_outcome() {
+    local what="$1" key="$2" cap="$3" rc="$4"
+    case "$rc" in
+        0)   _log "REST: ${what} ingest OK key=${key}" ;;
+        124|137)
+             _log "ALERT ⚠️ ${what} ingest KILLED at its ${cap}s cap key=${key} (rc=${rc}) — this checkpoint did NOT land, so that context is MISSING from the graph and nothing else will retry it. NEEDS A HUMAN: do NOT just raise the cap; find why the run grew past it (entity-extraction retries after a truncated LLM response are the known driver)." ;;
+        *)   _log "ALERT ⚠️ ${what} ingest FAILED key=${key} rc=${rc} — checkpoint did not land. NEEDS A HUMAN: check this log above for the traceback." ;;
+    esac
+}
+
 # Parse an ISO-8601 UTC last_seen ("…Z") to epoch seconds. macOS BSD date; TZ=UTC so
 # the Z timestamp isn't misread as local time. Returns 0 on empty/unparseable.
 _iso_epoch() {
@@ -723,9 +744,31 @@ _maint_identity_changes() {   # M4
 # Path-independent, no schema change, and it measures the behaviour rather than the config.
 #
 # A THRESHOLD, not zero: a fresh lane — or a freshly ROTATED gate log — legitimately shows 0/0.
+#
+# 🔴 "many prompts + ZERO tool samples" IS NOT SUFFICIENT — it has (at least) THREE causes, and
+# only one is the defect. Both false ones have already been observed on real lanes:
+#   1. the gate is not registered on PostToolUse for this lane   ← THE DEFECT
+#   2. it IS registered, but every tool call landed inside jicm-gate.sh's 30s PostToolUse
+#      debounce (lines 154-160), which the UserPromptSubmit pass also stamps. Observed on
+#      URIST 2026-08-24: 3 tool_use records, 0 gate lines, sampler perfectly healthy.
+#   3. the lane never actually RAN a tool. Observed on PROTOS 2026-08-19: its entire transcript
+#      held ONE tool_use, and the classifier DENIED it, so it never executed. PostToolUse fires
+#      AFTER a tool runs; zero samples was CORRECT there.
+# Each false cause nearly produced a defect report. A check that cries wolf gets ignored, which
+# would cost exactly the 5-day blindness this audit exists to prevent.
+#
+# So the alert now requires POSITIVE evidence that the lane ran enough tools that some must have
+# fallen outside the debounce: MIN_TOOLS tool_use records in its own transcript. If that cannot
+# be counted, the audit is UNMEASURABLE and stays SILENT — it never converts "I could not look"
+# into "this lane is broken".
 _audit_sampler_coverage() {
     local logs key ups ptu marker
     local MIN_PROMPTS="${JICM_SAMPLER_AUDIT_MIN_PROMPTS:-10}"
+    # Well above any plausible single-debounce burst: 3 calls can share one 30s window, 40 cannot.
+    local MIN_TOOLS="${JICM_SAMPLER_AUDIT_MIN_TOOLS:-40}"
+    # Bounded like _state_lag_sec — this runs every maintenance pass over every key, so it must
+    # not scale with transcript size.
+    local TAIL_BYTES="${JICM_SAMPLER_AUDIT_TAIL_BYTES:-1048576}"
     logs=""
     [[ -f "$PROJECT_DIR/.claude/logs/jicm-gate.log" ]]   && logs="$PROJECT_DIR/.claude/logs/jicm-gate.log"
     [[ -f "$PROJECT_DIR/.claude/logs/jicm-gate.log.1" ]] && logs="$logs $PROJECT_DIR/.claude/logs/jicm-gate.log.1"
@@ -734,9 +777,27 @@ _audit_sampler_coverage() {
         ups=$(grep -h "key=$key " $logs 2>/dev/null | grep -c 'ev=UserPromptSubmit')
         ptu=$(grep -h "key=$key " $logs 2>/dev/null | grep -c 'ev=PostToolUse')
         marker="$JICM_SIGNALS_DIR/sampler-gap.$key.alerted"
-        if [[ "$ups" -ge "$MIN_PROMPTS" && "$ptu" -eq 0 ]]; then
+        # Did this lane actually run tools? Answer from the TRANSCRIPT, not the gate log —
+        # the gate log's silence is the very thing under suspicion.
+        local tr tools=-1
+        jicm_key_paths "$key" 2>/dev/null
+        tr=$(jq -r '.transcript_path // empty' "$JK_STATE" 2>/dev/null)
+        if [[ -n "$tr" && -r "$tr" ]]; then
+            tools=$(tail -c "$TAIL_BYTES" "$tr" 2>/dev/null | grep -c '"type":"tool_use"' || true)
+        fi
+        if [[ "$tools" -lt 0 ]]; then
+            # Unmeasurable. Say nothing rather than guess, and never clear a standing alert
+            # on the strength of a reading we could not take.
+            continue
+        fi
+        if [[ "$ups" -ge "$MIN_PROMPTS" && "$ptu" -eq 0 && "$tools" -lt "$MIN_TOOLS" ]]; then
+            # Not enough tool activity to distinguish "unregistered" from "debounced" or
+            # "ran no tools". Silent by design — this is the false-flag path.
+            continue
+        fi
+        if [[ "$ups" -ge "$MIN_PROMPTS" && "$ptu" -eq 0 && "$tools" -ge "$MIN_TOOLS" ]]; then
             [[ -f "$marker" ]] && continue
-            _log "ALERT ⚠️ SAMPLER GAP key=$key — $ups prompt samples, ZERO PostToolUse samples. jicm-gate.sh is NOT registered on .hooks.PostToolUse in the settings.json THIS lane loads, so a tool-heavy turn is invisible between prompts and the lane can jump 100K+ in one turn unseen. Fix: add the gate to that project's PostToolUse, then RESTART the lane — registration is cached at session start (the script BODY is not)."
+            _log "ALERT ⚠️ SAMPLER GAP key=$key — $ups prompt samples, ZERO PostToolUse samples, and $tools tool_use records in its transcript (>= $MIN_TOOLS, so they CANNOT all sit inside the gate's 30s debounce). jicm-gate.sh is NOT registered on .hooks.PostToolUse in the settings.json THIS lane loads, so a tool-heavy turn is invisible between prompts and the lane can jump 100K+ in one turn unseen. Fix: add the gate to that project's PostToolUse, then RESTART the lane — registration is cached at session start (the script BODY is not)."
             echo "$(_now)" > "$marker"
         elif [[ "$ptu" -gt 0 ]]; then
             rm -f "$marker" 2>/dev/null
@@ -833,12 +894,16 @@ _rest_run() {
         if [[ "${JICM_RAG_ENABLED:-true}" == "true" && -f "$JICM_AUTO_INGEST_SCRIPT" ]]; then
             ( export PROJECT_DIR JICM_RAG_DEDUP_THRESHOLD JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
               export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION" JICM_COMPRESSED_FILE="$JK_COMPRESSED" JICM_SESSION_ID="$sid"
-              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 600} "$py" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1 ) &
+              _rc=0
+              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 600} "$py" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1 || _rc=$?
+              _ingest_outcome "R1 RAG" "$key" 600 "$_rc" ) &
             _log "REST: R1 checkpoint → RAG launched (pid $!, collection=$JK_RAG_COLLECTION)"
         fi
         if [[ "${JICM_GRAPHITI_ENABLED:-true}" == "true" && -f "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" ]]; then
             ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED" GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
-              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 900} "$py" "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" >> "$JICM_LOG_FILE" 2>&1 ) &
+              _rc=0
+              ${TIMEOUT_BIN:+"$TIMEOUT_BIN" -s TERM -k 15 900} "$py" "$PROJECT_DIR/.claude/scripts/graphiti-auto-ingest.py" >> "$JICM_LOG_FILE" 2>&1 || _rc=$?
+              _ingest_outcome "R2 Graphiti" "$key" 900 "$_rc" ) &
             _log "REST: R2 checkpoint → Graphiti launched (pid $!, group=$JK_GRAPHITI_GROUP)"
         fi
     fi

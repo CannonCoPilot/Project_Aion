@@ -525,10 +525,34 @@ load_log_tail() {
     local target_log="$HUD_WATCHER_LOG"
     [[ -f "$target_log" ]] || target_log="$JICM_LOG_FILE"   # last-resort fallback
     [[ -f "$target_log" ]] || return 0
+    # 2026-08-24: this log has TWO writers and the watcher LOSES on volume — measured
+    # 323 watcher lines against 2,257 from other writers. The watcher redirects its own
+    # children into its own log (jicm-watcher.sh:339, :820, and the REST pass launching
+    # the RAG/Graphiti ingests), so ollama embedding chatter and LiteLLM HTTP lines
+    # drowned every ACTUATE/REST/reap line in this panel.
+    #
+    # Filter to the watcher's OWN line format — what _log() emits, jicm-watcher.sh:84 —
+    # PLUS anything from a child that a human would want to see. Filtering on format
+    # alone would have suppressed the child-authored "ALERT: TIMEOUT" and the nightly
+    # "Unterminated string" ERROR, which are the most valuable lines in the file. A
+    # filter that hides failures is worse than the noise it removes.
+    #
+    # Child output stays IN the file: interleaved next to the ACTUATE line that spawned
+    # it is genuinely useful when debugging a cycle. The defect was the panel, not the
+    # capture. Window is bounded (40x) so cost does not grow with the log.
     local line
     while IFS= read -r line; do
         HUD_LOG_LINES+=("$line")
-    done < <(tail -n "$HUD_LOG_TAIL" "$target_log" 2>/dev/null)
+    done < <(tail -n "$(( HUD_LOG_TAIL * 40 ))" "$target_log" 2>/dev/null \
+             | grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}T|ALERT|ERROR|TIMEOUT|FAIL|Traceback' \
+             | tail -n "$HUD_LOG_TAIL")
+    # If the window held nothing at all, fall back to a raw tail. An empty panel reads
+    # as "the watcher is dead" — the exact misreport HUD v1 made for three days.
+    if [[ ${#HUD_LOG_LINES[@]} -eq 0 ]]; then
+        while IFS= read -r line; do
+            HUD_LOG_LINES+=("$line")
+        done < <(tail -n "$HUD_LOG_TAIL" "$target_log" 2>/dev/null)
+    fi
     # Cycle count via grep — also from loop log
     # Note: drop "|| echo 0" — grep -c always emits a number, so the fallback
     # only fires when grep exits 1 (no matches), producing "0\n0" which breaks
@@ -873,21 +897,35 @@ load_watcher_daemon() {
 # The FROZEN STATE / SAMPLER GAP net is the reason this daemon can be trusted, so its
 # state is headline data. Counting is BY TIMESTAMP, never by line count: the log holds
 # 46 historical alerts and `grep -c` on it reads like an active alarm.
+# ⚠️ THIS LOG IS A MIXED-FORMAT SINK — do not assume field 1 is a timestamp.
+# It carries the daemon's own `ISO-with-offset<TAB>msg` lines PLUS raw stderr from child
+# processes, which use their own formats and often no stamp at all:
+#   · jicm-digest/tdigest.py writes a bare `ALERT degenerate output: ...` to stderr
+#   · the Graphiti ingest writes `2026-08-24 00:04:35,585 | ERROR | ...`
+# The old code did `WA_LAST="$line"` UNCONDITIONALLY, so an unstamped line became "the last
+# alert" purely by being last in the file; its epoch parsed to 0, WA_LAST_AGE stayed empty,
+# and the panel rendered `last: ALERT (? ago)` next to a correct `none in 24h`.
+# RULE: a line whose timestamp does not parse cannot be ORDERED, so it must never win "last".
+# It is still counted and surfaced (WA_UNSTAMPED) — dropping it would hide a real alert.
 load_watcher_alerts() {
-    WA_24H=0; WA_LAST=""; WA_LAST_AGE=""; WA_LOCKS=""
+    WA_24H=0; WA_LAST=""; WA_LAST_AGE=""; WA_LOCKS=""; WA_UNSTAMPED=0
     [[ -f "$HUD_WATCHER_LOG" ]] || return 0
-    local cutoff line ts
+    local cutoff line ts newest=0
     cutoff=$(( $(date +%s) - 86400 ))
     while IFS= read -r line; do
         ts=$(awk '{print $1}' <<<"$line")
         local e; e=$(_iso_local_epoch "$ts")
+        if [[ "$e" -le 0 ]]; then
+            # Unorderable. Count it so silence is never manufactured by a parse failure.
+            WA_UNSTAMPED=$(( WA_UNSTAMPED + 1 ))
+            continue
+        fi
         [[ "$e" -gt "$cutoff" ]] && WA_24H=$(( WA_24H + 1 ))
-        WA_LAST="$line"
+        # Newest BY TIMESTAMP, not by file position — the sink is not ordered.
+        if [[ "$e" -ge "$newest" ]]; then newest="$e"; WA_LAST="$line"; fi
     done < <(grep -E 'ALERT|FROZEN STATE|SAMPLER GAP' "$HUD_WATCHER_LOG" 2>/dev/null | tail -200)
-    if [[ -n "$WA_LAST" ]]; then
-        local lts le now
-        lts=$(awk '{print $1}' <<<"$WA_LAST"); le=$(_iso_local_epoch "$lts"); now=$(date +%s)
-        [[ "$le" -gt 0 ]] && WA_LAST_AGE=$(( now - le ))
+    if [[ "$newest" -gt 0 ]]; then
+        WA_LAST_AGE=$(( $(date +%s) - newest ))
     fi
     local lk
     for lk in "${JICM_SIGNALS_DIR:-$PROJECT_DIR/.claude/context/jicm/signals}"/actuating.*; do
@@ -1089,6 +1127,10 @@ render_daemon_section() {
         local lkey; lkey=$(sed -nE 's/.*key=([A-Za-z0-9_-]+).*/\1/p' <<<"$WA_LAST")
         last_t="${C_DIM}last:${C_NC} ${C_LGRAY}${kind}${lkey:+ key=$lkey}${C_NC} ${C_DIM}($(_fmt_age "$WA_LAST_AGE") ago)${C_NC}"
     fi
+    # Unstamped alerts are real alerts that simply cannot be dated (child-process stderr).
+    # Surface the count so "none in 24h" is never read as "nothing happened".
+    [[ "${WA_UNSTAMPED:-0}" -gt 0 ]] && \
+        last_t="${last_t}   ${C_GOLD}+${WA_UNSTAMPED} undated${C_NC}"
     local lock_t
     if [[ -z "$WA_LOCKS" ]]; then lock_t="${C_DIM}none${C_NC}"
     else lock_t="${C_MAGENTA}${WA_LOCKS}${C_NC} ${C_DIM}(cycle in flight)${C_NC}"; fi

@@ -134,13 +134,32 @@ phase_jicm_reset() {
     if ! should_run 1; then return; fi
     phase_header 1 "JICM Reset"
 
-    # Safety: skip if actively compressing
+    # Safety: skip if actively compressing.
+    # 🔴 THIS INTERLOCK WAS DEAD. It read `state:` from `$CONTEXT_DIR/.jicm-state`, the
+    # v7.3 -> v7.9 shim retired at 7.9.6c and frozen at `state: WATCHING` since 2026-05-04.
+    # It therefore returned a PLAUSIBLE value that could never be COMPRESSING/HALTING, so
+    # this phase would happily delete JICM signal files mid-compression. A missing reading
+    # is visible; a frozen one is believed. Canonical state is JSON.
     local watcher_state=""
-    if [[ -f "$CONTEXT_DIR/.jicm-state" ]]; then
-        watcher_state=$(awk '/^state:/{print $2}' "$CONTEXT_DIR/.jicm-state" 2>/dev/null || true)
+    if [[ -r "$CONTEXT_DIR/.jicm-state-hook.json" ]] && command -v jq >/dev/null 2>&1; then
+        watcher_state=$(jq -r '.action // empty' "$CONTEXT_DIR/.jicm-state-hook.json" 2>/dev/null || true)
     fi
-    if [[ "$watcher_state" == "COMPRESSING" ]] || [[ "$watcher_state" == "HALTING" ]]; then
+    # An in-flight actuation lock is the other, stronger signal that a cycle is running —
+    # and unlike the state field it is written by the actuator itself for exactly this purpose.
+    local actuating=""
+    for _lk in "$CONTEXT_DIR"/jicm/signals/actuating.*; do
+        [[ -e "$_lk" ]] || continue
+        actuating="yes"; break
+    done
+    if [[ "$watcher_state" == "COMPRESSING" ]] || [[ "$watcher_state" == "HALTING" ]] \
+       || [[ -n "$actuating" ]]; then
         phase_result "skipped (compression active)"
+        return
+    fi
+    # Refuse to run blind: if neither signal is readable we cannot show a cycle is idle,
+    # and deleting signal files on an unknown state is the failure this guard exists to stop.
+    if [[ -z "$watcher_state" ]]; then
+        phase_result "skipped (JICM state unreadable — refusing to prune signals blind)"
         return
     fi
 

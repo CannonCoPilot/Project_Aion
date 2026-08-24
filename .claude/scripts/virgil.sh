@@ -20,7 +20,34 @@ set -euo pipefail
 
 PROJECT_DIR="${JARVIS_PROJECT_DIR:-$HOME/Claude/Project_Aion}"
 FILE_ACCESS="$PROJECT_DIR/.claude/logs/file-access.json"
-WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state"
+# 🔴 DO NOT point this back at `.claude/context/.jicm-state` — the v7.3 → v7.9 shim,
+# RETIRED at 7.9.6c, frozen at 2026-05-04, and it never carried `context_pct:` /
+# `context_tokens:` at all. The old awk scrape rendered `Tokens: ? (?) | State: ?`,
+# and `state:` was worse than the `?`s: it returned a plausible frozen `WATCHING`.
+WATCHER_STATUS="$PROJECT_DIR/.claude/context/.jicm-state-hook.json"
+
+# Read canonical JICM state for w0 into JS_TOKENS / JS_PCT / JS_STATE.
+# Fields stay EMPTY when unreadable, so a missing reading renders "?" (visible) rather
+# than a stale number (believed). Percent is of the HARD threshold, matching the W8 console.
+read_jicm_state() {
+    JS_TOKENS=""; JS_PCT=""; JS_STATE=""
+    [[ -r "$WATCHER_STATUS" ]] || return 0
+    command -v jq >/dev/null 2>&1 || return 0
+    local t h
+    t=$(jq -r '.tokens // empty'                 "$WATCHER_STATUS" 2>/dev/null || true)
+    h=$(jq -r '.hard_threshold_tokens // empty'  "$WATCHER_STATUS" 2>/dev/null || true)
+    JS_STATE=$(jq -r '.action // empty'          "$WATCHER_STATUS" 2>/dev/null || true)
+    JS_TOKENS="$t"
+    # JS_PCT is a BARE INTEGER, no '%'. virgil_says does arithmetic on it
+    # (`[[ "$pct" -ge 70 ]]`), and a "65%" string is an arithmetic syntax error there.
+    # That comparison had never once run: under the dead shim pct was ALWAYS empty, so
+    # `${pct:-0}` fed it 0 forever and Virgil's top-priority rule was silently unreachable.
+    # Callers append the '%' at render time.
+    if [[ "$t" =~ ^[0-9]+$ ]] && [[ "$h" =~ ^[0-9]+$ ]] && [[ "$h" -gt 0 ]]; then
+        JS_PCT="$(( t * 100 / h ))"
+    fi
+    return 0
+}
 ENNOIA_STATUS="$PROJECT_DIR/.claude/context/.ennoia-status"
 VIRGIL_TASKS="$PROJECT_DIR/.claude/context/.virgil-tasks.json"
 VIRGIL_AGENTS="$PROJECT_DIR/.claude/context/.virgil-agents.json"
@@ -71,7 +98,10 @@ for lr, path, count in recent[:8]:
 " "$FILE_ACCESS" 2>/dev/null
 }
 
-get_unpushed() { git -C "$PROJECT_DIR" log --oneline origin/Project_Aion..HEAD 2>/dev/null | wc -l | tr -d ' '; }
+# `origin/Project_Aion` is NOT a ref — the remote is `origin` and the branch is `main`, so
+# that revspec always failed and this rule silently returned 0 forever. @{upstream} tracks
+# whatever the branch is actually configured against, so it survives a rename of either.
+get_unpushed() { git -C "$PROJECT_DIR" log --oneline '@{upstream}..HEAD' 2>/dev/null | wc -l | tr -d ' '; }
 
 # --- Tasks Section (reads .virgil-tasks.json) ---
 render_tasks_section() {
@@ -123,7 +153,7 @@ render_agents_section() {
     fi
     local output
     output=$(python3 -c "
-import json, sys
+import json, sys, os
 from datetime import datetime, timezone
 try:
     d = json.load(open(sys.argv[1]))
@@ -133,6 +163,7 @@ agents = d.get('agents', [])
 if not agents:
     print('  (no active agents)')
     sys.exit(0)
+SLOW_SEC = int(os.environ.get('VIRGIL_AGENT_SLOW_SEC', '1800'))
 now = datetime.now(timezone.utc)
 for a in agents:
     atype = a.get('type', '?')
@@ -145,12 +176,23 @@ for a in agents:
         try:
             st = datetime.fromisoformat(started.replace('Z','+00:00'))
             secs = int((now - st).total_seconds())
+            # Always carry the largest unit. A minutes-only format rendered a 173-day
+            # fossil as '248882m01s', which reads as a number rather than as 'this is
+            # obviously not a live agent' — it hid the very thing it was reporting.
             if secs < 60:
                 elapsed = f'{secs}s'
-            else:
+            elif secs < 3600:
                 elapsed = f'{secs // 60}m{secs % 60:02d}s'
-            if secs > 600 and status == 'running':
-                stale = ' \\033[31m(possibly stalled)\\033[0m'
+            elif secs < 86400:
+                elapsed = f'{secs // 3600}h{(secs % 3600) // 60:02d}m'
+            else:
+                elapsed = f'{secs // 86400}d{(secs % 86400) // 3600:02d}h'
+            # We have NO liveness signal for a subagent, so 'stalled' is an inference we
+            # cannot support. Report the observation (it has been running a long time)
+            # and let the reader judge. The old 10-minute red 'possibly stalled' fired on
+            # every ordinary long agent, which is how a real warning gets tuned out.
+            if secs > SLOW_SEC and status == 'running':
+                stale = ' \\033[33m(long-running)\\033[0m'
         except (ValueError, TypeError):
             pass
     icon = '\\033[33m*' if status == 'running' else '\\033[32mv'
@@ -196,26 +238,28 @@ render_files_touched() {
 # --- Virgil Says (highest priority rule wins) ---
 virgil_says() {
     local pct unpushed tasks_count agents_running
-    pct=$(awk '/^context_pct:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
+    read_jicm_state
+    pct="$JS_PCT"
     unpushed=$(get_unpushed)
     # Check for stalled agents
     agents_running=$(python3 -c "
-import json, sys
+import json, sys, os
 from datetime import datetime, timezone
 try:
     d = json.load(open(sys.argv[1]))
     agents = [a for a in d.get('agents', []) if a.get('status') == 'running']
-    stalled = 0
+    SLOW_SEC = int(os.environ.get('VIRGIL_AGENT_SLOW_SEC', '1800'))
+    slow = 0
     now = datetime.now(timezone.utc)
     for a in agents:
         try:
             st = datetime.fromisoformat(a['started'].replace('Z','+00:00'))
-            if (now - st).total_seconds() > 600:
-                stalled += 1
+            if (now - st).total_seconds() > SLOW_SEC:
+                slow += 1
         except (KeyError, ValueError, TypeError):
             pass
-    if stalled > 0:
-        print(f'stalled:{stalled}')
+    if slow > 0:
+        print(f'slow:{slow}')
     elif agents:
         print(f'running:{len(agents)}')
 except Exception:
@@ -224,9 +268,9 @@ except Exception:
 
     if [[ "${pct:-0}" -ge 70 ]]; then
         echo "Context at ${pct}%. Compression imminent."
-    elif [[ "$agents_running" == stalled:* ]]; then
-        local n="${agents_running#stalled:}"
-        echo "${n} agent(s) possibly stalled (>10 min)."
+    elif [[ "$agents_running" == slow:* ]]; then
+        local n="${agents_running#slow:}"
+        echo "${n} agent(s) running over $(( ${VIRGIL_AGENT_SLOW_SEC:-1800} / 60 )) min."
     elif [[ "${unpushed:-0}" -gt 0 ]]; then
         echo "${unpushed} commit(s) unpushed to remote."
     elif [[ "$agents_running" == running:* ]]; then
@@ -276,11 +320,9 @@ render() {
     fi
 
     echo; echo "${C_BOLD} CONTEXT${C_RESET}"
-    local tokens pct state
-    tokens=$(awk '/^context_tokens:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
-    pct=$(awk '/^context_pct:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
-    state=$(awk '/^state:/{print $2}' "$WATCHER_STATUS" 2>/dev/null)
-    echo "  Tokens: ${tokens:-?} (${pct:-?}) | State: ${state:-?}"
+    read_jicm_state
+    local pct_d="?"; [[ -n "$JS_PCT" ]] && pct_d="${JS_PCT}%"
+    echo "  W0 tokens: ${JS_TOKENS:-?} (${pct_d} of hard) | State: ${JS_STATE:-?}"
 
     render_ennoia_section
 
