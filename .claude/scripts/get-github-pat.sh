@@ -26,13 +26,26 @@ KEYCHAIN_ACCOUNT="${GITHUB_USER:-CannonCoPilot}"
 # Function to get PAT from file
 get_pat_from_file() {
     if [[ -f "$CREDENTIALS_FILE" ]]; then
-        # Try yq first (preferred)
-        if command -v yq &> /dev/null; then
-            local pat=$(yq -r '.github.pat // .github.cannoncopilot_pat // .github.aifred_pat // empty' "$CREDENTIALS_FILE" 2>/dev/null)
-            if [[ -n "$pat" && "$pat" != "null" ]]; then
-                echo "$pat"
-                return 0
-            fi
+        # Try the shared resolver first. It handles the two traps that made the
+        # previous yq call here DEAD CODE for months:
+        #   1. `// empty` is a JQ idiom. mikefarah yq v4 rejects it outright
+        #      (`lexer: invalid input text "empty"`), exits non-zero and prints
+        #      NOTHING — which under `2>/dev/null` is indistinguishable from
+        #      "key absent", so this branch ALWAYS failed and silently fell
+        #      through to the grep/sed fallback below. That fallback happened to
+        #      work, which is exactly why nobody noticed.
+        #   2. credentials.yaml is multi-document; a naive read spans the `---`.
+        local resolver="$SCRIPT_DIR/get-credential.sh"
+        if [[ -x "$resolver" ]]; then
+            local key
+            for key in .github.pat .github.cannoncopilot_pat .github.aifred_pat .github.aifred_token; do
+                local pat
+                pat=$(AION_CREDENTIALS_FILE="$CREDENTIALS_FILE" bash "$resolver" "$key" --or-empty 2>/dev/null)
+                if [[ -n "$pat" ]]; then
+                    echo "$pat"
+                    return 0
+                fi
+            done
         fi
 
         # Fallback to grep/sed for simple YAML

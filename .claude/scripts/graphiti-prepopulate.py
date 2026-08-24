@@ -29,6 +29,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "infrastructure" / "rag-service"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from aion_credentials import require_credential  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -39,7 +42,10 @@ LOG_FILE = os.path.join(PROJECT_DIR, ".claude/logs/graphiti-prepopulate.log")
 
 NEO4J_URI = os.getenv("NEO4J_URI", "bolt://localhost:7687")
 NEO4J_USER = os.getenv("NEO4J_USER", "neo4j")
-NEO4J_PASSWORD = os.getenv("NEO4J_PASSWORD", "70stc9h60XCCSiQrdxDR9rQQxtGVlDa2")
+# Resolved from credentials.yaml (gitignored), never hardcoded. The literal that
+# used to sit here was a live password in a PUBLIC repo AND the only reason the
+# nightly ingest authenticated, since jicm-watcher.sh exports no NEO4J_* vars.
+NEO4J_PASSWORD = require_credential("NEO4J_PASSWORD", ".database.neo4j.password")
 LITELLM_BASE_URL = os.getenv("LITELLM_BASE_URL", "http://localhost:4000/v1")
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen3-8b-nothink")

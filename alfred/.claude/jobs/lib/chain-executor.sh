@@ -171,9 +171,26 @@ fork_chain_window() {
         log "Attaching persona MCP config: ${persona_mcp_config}"
     fi
 
+    # Secrets for the forked session's MCP servers. See the twin block in
+    # host-executor-bridge.sh for the full rationale. Short version: persona
+    # mcp.json files use "${NEO4J_PASSWORD}" instead of a literal, this fork does
+    # not inherit the launcher's environment, and `-e` is used rather than an
+    # inline `export` so the password never lands in `pane_start_command`.
+    local _tmux_env_args=()
+    local _neo4j_pw
+    _neo4j_pw="$(bash "${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/scripts/get-credential.sh" \
+                 .database.neo4j.password --or-empty 2>/dev/null)"
+    if [ -n "$_neo4j_pw" ]; then
+        _tmux_env_args=(-e "NEO4J_PASSWORD=${_neo4j_pw}")
+    else
+        log "WARNING: NEO4J_PASSWORD unresolved — graphiti MCP will fail auth in ${window_name}"
+    fi
+
     log "Forking seed ${seed_sid:0:12} → ${window_name}"
     "$TMUX_BIN" new-window -d -t "$TMUX_SESSION" -n "${window_name}" \
+        ${_tmux_env_args[@]+"${_tmux_env_args[@]}"} \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
+    unset _neo4j_pw
 
     # Wait for the fork to become interactive (with external import auto-confirm)
     local waited=0

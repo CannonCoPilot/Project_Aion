@@ -1,14 +1,19 @@
 {
   "_comment": [
-    "Jacques' MCP set, loaded with --mcp-config + --strict-mcp-config so it REPLACES the root",
-    ".mcp.json rather than merging. This is the only place GRAPHITI_GROUP_ID actually binds:",
-    "the root .mcp.json declares it as a LITERAL 'jarvis-core', and an env value declared in an",
-    "mcp server's config overrides the launching process's environment — so exporting",
-    "GRAPHITI_GROUP_ID in the launcher alone would silently do nothing and Jacques' entities would",
-    "land in the Master Archon's graph. Learned on the Genie install.",
+    "Urist's MCP set (Dwarf Fortress Archon, aion:2). Loaded with --mcp-config +",
+    "--strict-mcp-config so it REPLACES the root .mcp.json rather than merging.",
     "",
-    "scholar-gateway is omitted: Jacques' domain is client task authoring, not literature search.",
-    "annas-archive likewise. Smaller tool surface, and one less place a tracked secret travels."
+    "GRAPHITI_GROUP_ID MUST be declared HERE, not only in the launcher. The root .mcp.json",
+    "declares it as a LITERAL 'jarvis-core', and an env value declared in an MCP server's",
+    "config overrides the launching process's environment — so exporting it in launch-aion.sh",
+    "alone silently does nothing and Urist's entities land in the Master Archon's graph.",
+    "Learned on the Genie install, repeated on Jacques, and it is the single easiest thing",
+    "to get wrong when adding a lane.",
+    "",
+    "scholar-gateway, annas-archive and arxiv are omitted deliberately: Urist's domain is",
+    "fortress state, DFHack tooling and the Chronicler pipeline, not literature search.",
+    "Smaller tool surface, smaller prompt, and one less place a tracked secret travels.",
+    "If DF wiki or academic lookup ever becomes real work, add it as a decision on record."
   ],
   "mcpServers": {
     "jarvis-rag": {
@@ -35,7 +40,7 @@
         "LLM_MODEL": "qwen3-8b-nothink",
         "EMBED_MODEL": "qwen3-embedding:4b",
         "EMBEDDING_DIM": "2560",
-        "GRAPHITI_GROUP_ID": "jaques-core"
+        "GRAPHITI_GROUP_ID": "urist-core"
       }
     },
     "jarvis-pulse": {

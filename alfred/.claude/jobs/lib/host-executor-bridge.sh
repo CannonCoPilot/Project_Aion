@@ -260,9 +260,32 @@ get_or_create_chain_window() {
         log "Removed stale window ${window_name} (idx ${_stale_idx}) before fork"
     done
 
+    # Secrets for the forked session's MCP servers. The persona mcp.json files
+    # reference "${NEO4J_PASSWORD}", which Claude Code expands from the launched
+    # process's environment (verified by probe 2026-08-24), so the config carries
+    # no literal secret. This fork does NOT inherit the launcher's environment,
+    # which is why the value has to be handed over explicitly here.
+    #
+    # ⚠️ PASSED VIA `tmux -e`, NOT an inline `export` in the command string.
+    # An inline export would be recorded permanently in `pane_start_command`,
+    # where `tmux list-windows -F '#{pane_start_command}'` would print the
+    # password on demand. `-e` sets the pane environment and leaves that field
+    # clean (verified both ways). Do not "simplify" this back into the string.
+    local _tmux_env_args=()
+    local _neo4j_pw
+    _neo4j_pw="$(bash "${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/scripts/get-credential.sh" \
+                 .database.neo4j.password --or-empty 2>/dev/null)"
+    if [ -n "$_neo4j_pw" ]; then
+        _tmux_env_args=(-e "NEO4J_PASSWORD=${_neo4j_pw}")
+    else
+        log "WARNING: NEO4J_PASSWORD unresolved — graphiti MCP will fail auth in ${window_name}"
+    fi
+
     log "Forking seed → ${window_name} for chain ${chain_id:0:12}"
     "$TMUX_BIN" new-window -d -t "${TMUX_SESSION}:$(_next_chain_index)" -n "${window_name}" \
+        ${_tmux_env_args[@]+"${_tmux_env_args[@]}"} \
         "cd '${ALFDEV_DIR}' && export ANTHROPIC_BASE_URL=http://localhost:9800 && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: chain-${chain_id}' && claude --resume '${seed_sid}' --fork-session --dangerously-skip-permissions --permission-mode bypassPermissions ${mcp_flag}" 2>/dev/null
+    unset _neo4j_pw
 
     local waited=0
     local fork_import_handled=false

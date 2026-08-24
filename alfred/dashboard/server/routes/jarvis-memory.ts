@@ -5,6 +5,12 @@ import { execSync } from 'child_process'
 
 const JARVIS_DIR = process.env.JARVIS_PROJECT_DIR || '/Users/nathanielcannon/Claude/Jarvis'
 const DOCKER_HOST = process.env.DOCKER_HOST_IP || 'host.docker.internal'
+// Neo4j credentials come from the environment only. A literal password used to sit
+// inline in the graphiti-overview route below; this repo is PUBLIC, so it was a live
+// credential in git history. Deliberately NO fallback default — a wrong-or-missing
+// password and a correct one must not look the same at startup.
+const NEO4J_USER = process.env.NEO4J_USER || 'neo4j'
+const NEO4J_PASSWORD = process.env.NEO4J_PASSWORD || ''
 const METRICS_JSONL = join(JARVIS_DIR, '.claude/logs/context-window-metrics.jsonl')
 const JSONL_STATS = join(JARVIS_DIR, '.claude/context/.jsonl-compression-stats.json')
 const TELEMETRY_DIR = join(JARVIS_DIR, '.claude/logs/telemetry')
@@ -474,7 +480,12 @@ export async function jarvisMemoryRoutes(app: FastifyInstance) {
   app.get<{ Querystring: { sample?: string } }>('/api/jarvis/graphiti-overview', async (req) => {
     const sampleSize = parseInt(req.query.sample || '30', 10)
     const neo4jUrl = `http://${DOCKER_HOST}:7474/db/neo4j/query/v2`
-    const neo4jAuth = 'Basic ' + Buffer.from('neo4j:70stc9h60XCCSiQrdxDR9rQQxtGVlDa2').toString('base64')
+    if (!NEO4J_PASSWORD) {
+      // Say what is wrong instead of firing a request that 401s and renders as an
+      // empty graph, which reads identically to "the knowledge graph is empty".
+      return { error: 'NEO4J_PASSWORD is not set in the dashboard server environment', buckets: [] }
+    }
+    const neo4jAuth = 'Basic ' + Buffer.from(`${NEO4J_USER}:${NEO4J_PASSWORD}`).toString('base64')
 
     async function cypher(query: string): Promise<Record<string, unknown>[]> {
       try {
