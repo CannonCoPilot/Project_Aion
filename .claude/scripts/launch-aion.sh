@@ -1211,6 +1211,60 @@ else
     preflight_services
 fi
 
+# ⚠️ ORDER IS LOAD-BEARING: THIS BLOCK MUST STAY ABOVE THE has-session BRANCH BELOW.
+#    That branch is the "top up a running session" path (and the install path) and it
+#    calls launch_dev_window / launch_genie_window / launch_jaques_window directly. This
+#    block used to sit ~100 lines BELOW those calls, so any lane added to an already
+#    running session launched with NEO4J_PASSWORD and ANNAS_SECRET_KEY UNSET — its
+#    graphiti MCP then 401s and Anna's silently supplies nothing, while a full cold
+#    launch works fine. Observed live 2026-08-24 on W11. Do not move it back down.
+# Load MCP-server credentials from the gitignored credentials.yaml so settings.json
+# and every persona mcp.json can reference them via ${VAR} expansion instead of
+# carrying literal secrets.
+#
+# ✅ EXPANSION IS VERIFIED, not assumed (probe, 2026-08-24): Claude Code expands
+#    "${VAR}" in an mcp.json `env` block from the LAUNCHING process's environment,
+#    and honours "${VAR:-default}". So exporting here is sufficient, and it is why
+#    the persona configs can hold no secret at all.
+#
+# ⚠️ USE BARE ${VAR} IN THE CONFIGS, NEVER ${VAR:-<the password>}. A defaulted
+#    fallback would re-embed the secret AND make this wiring untestable, because the
+#    server would authenticate fine even when the export silently failed.
+#
+# 🔴 THE PREVIOUS VERSION OF THIS BLOCK NEVER EXPORTED ANYTHING. It used
+#    `yq -r '.annas_archive.secret_key // ""' | head -1`, but credentials.yaml is a
+#    MULTI-DOCUMENT yaml file and `annas_archive` lives in document 1, so `head -1`
+#    took document 0's empty line. ANNAS_SECRET_KEY was therefore unset in every
+#    launched session, and settings.json's "${ANNAS_SECRET_KEY}" expanded to empty.
+#    The old comment called that "silent failure tolerated ... fails loudly
+#    downstream" — it did not fail loudly, it just quietly supplied nothing.
+#    get-credential.sh handles the multi-doc read (and yq's rejection of jq's
+#    `// empty` idiom); do not inline a yq call here again.
+CREDS_FILE="$PROJECT_DIR/.claude/secrets/credentials.yaml"
+GET_CRED="$PROJECT_DIR/.claude/scripts/get-credential.sh"
+if [[ -x "$GET_CRED" && -r "$CREDS_FILE" ]]; then
+    _cred() { AION_CREDENTIALS_FILE="$CREDS_FILE" bash "$GET_CRED" "$1" --or-empty 2>/dev/null; }
+
+    ANNAS_KEY="$(_cred '.annas_archive.secret_key')"
+    [[ -n "$ANNAS_KEY" ]] && export ANNAS_SECRET_KEY="$ANNAS_KEY"
+
+    # Neo4j / Graphiti. Consumed by every persona mcp.json and by
+    # graphiti-auto-ingest.py. Exported unconditionally so a lane that is missing
+    # the credential fails at connect time with a real auth error rather than
+    # silently falling back to a literal committed in a PUBLIC repo.
+    NEO4J_PW="$(_cred '.database.neo4j.password')"
+    [[ -n "$NEO4J_PW" ]] && export NEO4J_PASSWORD="$NEO4J_PW"
+    NEO4J_USR="$(_cred '.database.neo4j.user')"
+    export NEO4J_USER="${NEO4J_USR:-neo4j}"
+    export NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
+
+    if [[ -z "$NEO4J_PW" ]]; then
+        echo "⚠️  NEO4J_PASSWORD unresolved from credentials.yaml (.database.neo4j.password)." >&2
+        echo "    Graphiti MCP and L5 ingest will fail to authenticate. Check: $GET_CRED .database.neo4j.password" >&2
+    fi
+    unset ANNAS_KEY NEO4J_PW NEO4J_USR
+fi
+
 # Check if session already exists
 if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo -e "${GREEN}Session '$SESSION_NAME' already exists.${NC}"
@@ -1310,52 +1364,6 @@ echo "Starting Aion..."
 # Set TERM for best compatibility with Claude's ink UI
 export TERM=xterm-256color
 
-# Load MCP-server credentials from the gitignored credentials.yaml so settings.json
-# and every persona mcp.json can reference them via ${VAR} expansion instead of
-# carrying literal secrets.
-#
-# ✅ EXPANSION IS VERIFIED, not assumed (probe, 2026-08-24): Claude Code expands
-#    "${VAR}" in an mcp.json `env` block from the LAUNCHING process's environment,
-#    and honours "${VAR:-default}". So exporting here is sufficient, and it is why
-#    the persona configs can hold no secret at all.
-#
-# ⚠️ USE BARE ${VAR} IN THE CONFIGS, NEVER ${VAR:-<the password>}. A defaulted
-#    fallback would re-embed the secret AND make this wiring untestable, because the
-#    server would authenticate fine even when the export silently failed.
-#
-# 🔴 THE PREVIOUS VERSION OF THIS BLOCK NEVER EXPORTED ANYTHING. It used
-#    `yq -r '.annas_archive.secret_key // ""' | head -1`, but credentials.yaml is a
-#    MULTI-DOCUMENT yaml file and `annas_archive` lives in document 1, so `head -1`
-#    took document 0's empty line. ANNAS_SECRET_KEY was therefore unset in every
-#    launched session, and settings.json's "${ANNAS_SECRET_KEY}" expanded to empty.
-#    The old comment called that "silent failure tolerated ... fails loudly
-#    downstream" — it did not fail loudly, it just quietly supplied nothing.
-#    get-credential.sh handles the multi-doc read (and yq's rejection of jq's
-#    `// empty` idiom); do not inline a yq call here again.
-CREDS_FILE="$PROJECT_DIR/.claude/secrets/credentials.yaml"
-GET_CRED="$PROJECT_DIR/.claude/scripts/get-credential.sh"
-if [[ -x "$GET_CRED" && -r "$CREDS_FILE" ]]; then
-    _cred() { AION_CREDENTIALS_FILE="$CREDS_FILE" bash "$GET_CRED" "$1" --or-empty 2>/dev/null; }
-
-    ANNAS_KEY="$(_cred '.annas_archive.secret_key')"
-    [[ -n "$ANNAS_KEY" ]] && export ANNAS_SECRET_KEY="$ANNAS_KEY"
-
-    # Neo4j / Graphiti. Consumed by every persona mcp.json and by
-    # graphiti-auto-ingest.py. Exported unconditionally so a lane that is missing
-    # the credential fails at connect time with a real auth error rather than
-    # silently falling back to a literal committed in a PUBLIC repo.
-    NEO4J_PW="$(_cred '.database.neo4j.password')"
-    [[ -n "$NEO4J_PW" ]] && export NEO4J_PASSWORD="$NEO4J_PW"
-    NEO4J_USR="$(_cred '.database.neo4j.user')"
-    export NEO4J_USER="${NEO4J_USR:-neo4j}"
-    export NEO4J_URI="${NEO4J_URI:-bolt://localhost:7687}"
-
-    if [[ -z "$NEO4J_PW" ]]; then
-        echo "⚠️  NEO4J_PASSWORD unresolved from credentials.yaml (.database.neo4j.password)." >&2
-        echo "    Graphiti MCP and L5 ingest will fail to authenticate. Check: $GET_CRED .database.neo4j.password" >&2
-    fi
-    unset ANNAS_KEY NEO4J_PW NEO4J_USR
-fi
 
 # Context management environment variables
 # - ENABLE_TOOL_SEARCH: Enable MCP tool search to reduce context usage
