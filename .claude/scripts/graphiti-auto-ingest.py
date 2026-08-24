@@ -126,8 +126,33 @@ async def main():
         log_to_file("SKIP: checkpoint empty")
         return
 
-    if len(content) > MAX_CONTENT_CHARS:
-        content = content[:MAX_CONTENT_CHARS] + "\n\n[... truncated at 8000 chars]"
+    # MAX_CONTENT_CHARS discards the TAIL of every oversized checkpoint. Measured
+    # 2026-08-24: dev 14,103 chars -> 43% dropped; jaques 25,280 -> 68% dropped. EVERY
+    # cycle, not occasionally. It was doing this in complete silence: the marker went into
+    # the episode body where only the LLM ever saw it, and the metadata recorded only the
+    # POST-truncation size (checkpoint_bytes: 8059), so every downstream reader saw a
+    # small checkpoint rather than a truncated one.
+    #
+    # This is a below-threshold result being accepted terminally, which the workspace
+    # guardrail forbids. Making it LOUD is the minimum; the cap itself still needs a
+    # redesign, because raising it is not free — extraction costs ~500s per 8K chars on
+    # the local 8B model, against jicm-watcher.sh's 900s kill.
+    original_chars = len(content)
+    truncated = original_chars > MAX_CONTENT_CHARS
+    if truncated:
+        dropped = original_chars - MAX_CONTENT_CHARS
+        content = content[:MAX_CONTENT_CHARS] + f"\n\n[... truncated at {MAX_CONTENT_CHARS} chars]"
+        # stderr so it reaches the watcher log, whose console panel greps for ALERT.
+        msg = (
+            f"ALERT L5 checkpoint TRUNCATED before ingest: kept {MAX_CONTENT_CHARS} of "
+            f"{original_chars} chars, DROPPED {dropped} ({dropped * 100 // original_chars}%) "
+            f"from {Path(CHECKPOINT_FILE).name}. That content is NOT in the graph and nothing "
+            f"will retry it. NEEDS A HUMAN: this is a standing cap, not a one-off — raising "
+            f"MAX_CONTENT_CHARS alone will push the run past its 900s kill, so the ingest "
+            f"approach needs redesigning (chunked episodes with per-chunk bounds)."
+        )
+        print(msg, file=sys.stderr, flush=True)
+        log_to_file(msg)
 
     name = f"JICM cycle {datetime.now(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')}"
     source = f"jicm-compression-cycle — {Path(CHECKPOINT_FILE).name}"
@@ -145,6 +170,11 @@ async def main():
             "edges": edges,
             "elapsed_seconds": round(elapsed, 2),
             "checkpoint_bytes": len(content.encode()),
+            # Record what was ACTUALLY on disk alongside what was ingested. Reporting only
+            # the post-truncation size made a truncated checkpoint indistinguishable from a
+            # small one, which is how this stayed invisible.
+            "checkpoint_chars_original": original_chars,
+            "truncated": truncated,
             "group_id": GROUP_ID,
         }
         meta_file = os.path.join(PROJECT_DIR, ".claude/context/.graphiti-last-ingest.json")
