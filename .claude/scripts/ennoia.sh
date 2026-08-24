@@ -516,13 +516,26 @@ render() {
             local plan_title
             plan_title=$(resolve_active_plan)
             [[ -n "$plan_title" ]] && echo "  → Plan: $plan_title"
-            local unpushed
-            # `origin/Project_Aion` is NOT a ref (remote=origin, branch=main), so this
-            # always failed and reported 0. @{upstream} follows the real tracking branch.
-            unpushed=$(git -C "$PROJECT_DIR" log --oneline '@{upstream}..HEAD' 2>/dev/null | wc -l | tr -d ' ')
-            [[ $unpushed -gt 0 ]] && echo "  → $unpushed commits unpushed"
             local branch
             branch=$(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null)
+
+            # Unpushed count, or `na` when unmeasurable. Two dead revspecs preceded this:
+            # `origin/Project_Aion` was never a ref, and bare `@{upstream}` fataled because
+            # `main` had no tracking branch. Both yielded a confident `0` — the HEALTHY
+            # reading — so the rule looked fine while it could never fire. Resolve the ref
+            # explicitly and say so when it is missing. See virgil.sh:get_unpushed.
+            # Verify changes with `git rev-parse --verify`, never by reading the count.
+            local unpushed_base unpushed
+            unpushed_base=$(git -C "$PROJECT_DIR" rev-parse --verify --quiet '@{upstream}' 2>/dev/null)
+            [[ -z "$unpushed_base" && -n "$branch" ]] && \
+                unpushed_base=$(git -C "$PROJECT_DIR" rev-parse --verify --quiet "origin/$branch" 2>/dev/null)
+            if [[ -z "$unpushed_base" ]]; then
+                echo "  → Unpushed: unknown (no upstream for this branch)"
+            else
+                unpushed=$(git -C "$PROJECT_DIR" log --oneline "$unpushed_base..HEAD" 2>/dev/null | wc -l | tr -d ' ')
+                [[ ${unpushed:-0} -gt 0 ]] && echo "  → $unpushed commits unpushed"
+            fi
+
             echo "  → Branch: ${branch:-unknown}"
 
             echo; echo "${C_BOLD}  MAINTENANCE QUEUE${C_RESET}"

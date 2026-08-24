@@ -98,10 +98,33 @@ for lr, path, count in recent[:8]:
 " "$FILE_ACCESS" 2>/dev/null
 }
 
-# `origin/Project_Aion` is NOT a ref — the remote is `origin` and the branch is `main`, so
-# that revspec always failed and this rule silently returned 0 forever. @{upstream} tracks
-# whatever the branch is actually configured against, so it survives a rename of either.
-get_unpushed() { git -C "$PROJECT_DIR" log --oneline '@{upstream}..HEAD' 2>/dev/null | wc -l | tr -d ' '; }
+# Unpushed-commit count, or the string `na` when it CANNOT be measured.
+#
+# Two dead revspecs preceded this. `origin/Project_Aion` was never a ref (the remote is
+# `origin`, the branch is `main`). `@{upstream}` alone was no better here: `main` had no
+# tracking branch configured, so it fataled too. BOTH returned an empty count that `wc -l`
+# turned into a confident `0`, and this rule could never fire.
+#
+# ⚠️ A COUNT OF 0 AND AN UNMEASURABLE REVSPEC ARE INDISTINGUISHABLE BY VALUE. That is why
+# both bugs survived: `0 unpushed` is the healthy reading, so the failure rendered as good
+# news. Resolve the ref EXPLICITLY and return `na` when it does not exist — never a number.
+# The sentinel is a string on purpose: it must sit outside the value domain it guards
+# (a numeric sentinel collided with real negative lag in `_state_lag_sec`).
+#
+# Verify a change here with `git rev-parse --verify <revspec>`, NOT by eyeballing the count.
+get_unpushed() {
+    local base
+    # Prefer the configured tracking branch; fall back to origin/<current-branch>.
+    base=$(git -C "$PROJECT_DIR" rev-parse --verify --quiet '@{upstream}' 2>/dev/null) \
+        || base=""
+    if [[ -z "$base" ]]; then
+        local br
+        br=$(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null)
+        [[ -n "$br" ]] && base=$(git -C "$PROJECT_DIR" rev-parse --verify --quiet "origin/$br" 2>/dev/null)
+    fi
+    [[ -z "$base" ]] && { echo "na"; return; }
+    git -C "$PROJECT_DIR" log --oneline "$base..HEAD" 2>/dev/null | wc -l | tr -d ' '
+}
 
 # --- Tasks Section (reads .virgil-tasks.json) ---
 render_tasks_section() {
@@ -271,8 +294,12 @@ except Exception:
     elif [[ "$agents_running" == slow:* ]]; then
         local n="${agents_running#slow:}"
         echo "${n} agent(s) running over $(( ${VIRGIL_AGENT_SLOW_SEC:-1800} / 60 )) min."
-    elif [[ "${unpushed:-0}" -gt 0 ]]; then
+    elif [[ "$unpushed" != "na" && "${unpushed:-0}" -gt 0 ]]; then
         echo "${unpushed} commit(s) unpushed to remote."
+    elif [[ "$unpushed" == "na" ]]; then
+        # Ranked BELOW real conditions but never silent: an unmeasurable push state must not
+        # render as "All systems nominal", which is what the two dead revspecs did for months.
+        echo "Cannot measure unpushed commits — no upstream for this branch."
     elif [[ "$agents_running" == running:* ]]; then
         local n="${agents_running#running:}"
         echo "${n} agent(s) actively working."
