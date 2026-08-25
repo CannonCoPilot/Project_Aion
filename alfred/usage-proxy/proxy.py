@@ -22,7 +22,7 @@ from typing import Optional
 import asyncpg
 import httpx
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi.responses import Response, StreamingResponse
 
 # ─── Configuration ───────────────────────────────────────────────────────────
 
@@ -33,6 +33,18 @@ DB_NAME = os.getenv("PROXY_DB_NAME", "pulse_dev")
 DB_USER = os.getenv("PROXY_DB_USER", "pulse_dev")
 DB_PASS = os.getenv("PROXY_DB_PASSWORD", "")
 PROXY_PORT = int(os.getenv("PROXY_PORT", "9800"))
+
+# Encodings we may advertise upstream — derived from what this httpx build can actually
+# DECODE, so the two can never desync. Read from a private httpx attribute, hence the
+# fallback: if a future httpx renames it, degrade to the codecs stdlib always supports
+# rather than taking the whole proxy down. `identity` is dropped from the advertised set
+# (it is the implicit default) but is the safe floor if introspection yields nothing.
+try:
+    DECODABLE_ENCODINGS = ", ".join(
+        k for k in httpx._decoders.SUPPORTED_DECODERS if k != "identity"
+    ) or "identity"
+except Exception:  # pragma: no cover — private-API guard
+    DECODABLE_ENCODINGS = "gzip, deflate"
 
 # Model pricing (per million tokens). claude-opus-4-8 assumed equal to the
 # opus-4-x tier ($15/$75) — VERIFY against Anthropic's published 4.8 rates.
@@ -93,6 +105,24 @@ async def proxy(request: Request, path: str):
     headers.pop("host", None)
     headers.pop("content-length", None)
 
+    # ONLY ADVERTISE ENCODINGS httpx CAN ACTUALLY DECODE.
+    # Claude Code sends `accept-encoding: gzip, deflate, br, zstd`. Forwarding that
+    # verbatim made upstream reply in Brotli, which this httpx build cannot decode
+    # (SUPPORTED_DECODERS == identity/gzip/deflate — brotli and zstandard are not
+    # installed). The body then arrived still-compressed, json.loads() died on byte
+    # 0x83, FastAPI turned that into a 500, and the caller saw an opaque failure.
+    #
+    # That is what broke Claude-in-Chrome for 7 days: auto mode's safety classifier
+    # is one of the few NON-STREAMING callers, and the streaming path never does a
+    # whole-body json.loads, so ordinary traffic never tripped it. The classifier's
+    # 500 surfaced to the user as "<model> is temporarily unavailable", which pointed
+    # every investigation upstream instead of here.
+    #
+    # Negotiating down to what we can decode is correct regardless of which codecs are
+    # installed later: it can never desync from SUPPORTED_DECODERS the way a hardcoded
+    # passthrough can. Do NOT "fix" this by forwarding the client's header again.
+    headers["accept-encoding"] = DECODABLE_ENCODINGS
+
     # Parse request body for context (with x-aion-* header fallback for clients
     # that can't easily inject metadata.* into the body — e.g. claude-code's
     # internal SDK). See designs/reverse-proxy-paradigm-and-surfacing-2026-05-05.md §8.5.
@@ -125,11 +155,18 @@ async def _handle_non_streaming(request, path, headers, body, req_context):
         http_status=upstream_resp.status_code,
     ))
 
-    # Forward response transparently
-    return JSONResponse(
-        content=json.loads(resp_body) if resp_body else {},
+    # Forward response transparently — RELAY THE BYTES, DO NOT RE-SERIALISE.
+    # The old code did JSONResponse(content=json.loads(resp_body)), which meant ANY
+    # body that was not valid UTF-8 JSON crashed the proxy and became a 500. That
+    # converted every recoverable upstream condition (a CDN error page, a compressed
+    # body, a plain-text 502) into an opaque proxy failure that looked like an outage.
+    # Relaying bytes also restores this module's stated contract: it observes, it does
+    # not modify. `content-type` must ride along for the client to parse the body.
+    return Response(
+        content=resp_body,
         status_code=upstream_resp.status_code,
         headers=_passthrough_headers(resp_headers),
+        media_type=resp_headers.get("content-type"),
     )
 
 
@@ -208,7 +245,12 @@ async def _record_telemetry(
                 # Capture model from response if not in request
                 if not req_context.get("model") and "model" in body_json:
                     req_context["model"] = body_json["model"]
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                # UnicodeDecodeError is NOT a subclass of JSONDecodeError, so a
+                # non-UTF-8 body used to escape this handler and land in the generic
+                # `except Exception` below — logged as a vague "telemetry error"
+                # instead of naming a decode problem. A response body we cannot parse
+                # simply has no usage to record; the request itself still succeeds.
                 pass
 
         input_tokens = usage.get("input_tokens", 0)
@@ -374,7 +416,15 @@ def _compute_cost(model: str, input_t: int, output_t: int, cache_read: int, cach
 
 
 def _passthrough_headers(resp_headers: dict) -> dict:
-    """Select headers to forward to the client. Forward all anthropic-* and rate-limit headers."""
+    """Select headers to forward to the client. Forward all anthropic-* and rate-limit headers.
+
+    DELIBERATELY OMITS `content-encoding` and `content-length`, and that omission is
+    load-bearing, not an oversight: httpx has already DECODED the body by the time we
+    relay it, so the upstream `content-encoding: gzip` no longer describes the bytes the
+    client receives. Forwarding it would make the client try to gunzip plaintext. The
+    stale `content-length` is wrong for the same reason; Starlette recomputes it.
+    Do not add either to this allowlist.
+    """
     forward = {}
     for k, v in resp_headers.items():
         kl = k.lower()

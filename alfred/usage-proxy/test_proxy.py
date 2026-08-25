@@ -685,3 +685,109 @@ class TestRealJSONLParsing:
         total_cache_read = sum(r["cache_read_tokens"] for r in records)
         # Jarvis sessions load massive system prompts — expect substantial cache
         assert total_cache_read > 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 5. REGRESSION — CONTENT-ENCODING NEGOTIATION (2026-08-24)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestContentEncodingRegression:
+    """Guards the defect that broke Claude-in-Chrome for seven days.
+
+    The proxy forwarded the CLIENT's `accept-encoding` verbatim. Claude Code sends
+    `gzip, deflate, br, zstd`; upstream honoured it and replied in Brotli; this httpx
+    build decodes only identity/gzip/deflate; so the still-compressed body reached
+    `json.loads()` and raised UnicodeDecodeError on byte 0x83, which FastAPI turned
+    into a 500.
+
+    Only NON-STREAMING callers were affected — the streaming path never parses a whole
+    body — and auto mode's browser safety classifier is one of the few. It reported the
+    500 as "<model> is temporarily unavailable", which sent the investigation upstream
+    instead of here. Five levers were "refuted" against that false trail.
+    """
+
+    def test_advertised_encodings_are_all_decodable(self):
+        """The advertised set must never exceed what httpx can actually decode."""
+        from proxy import DECODABLE_ENCODINGS
+        supported = set(httpx._decoders.SUPPORTED_DECODERS)
+        for enc in (e.strip() for e in DECODABLE_ENCODINGS.split(",")):
+            assert enc in supported, f"advertised {enc!r} which httpx cannot decode"
+
+    def test_brotli_and_zstd_absent_unless_installed(self):
+        """The exact codecs that caused the outage. Only advertise if truly installed."""
+        from proxy import DECODABLE_ENCODINGS
+        supported = set(httpx._decoders.SUPPORTED_DECODERS)
+        for enc in ("br", "zstd"):
+            if enc not in supported:
+                assert enc not in DECODABLE_ENCODINGS
+
+    def _mock_upstream(self, payload: bytes, content_type: str):
+        fake = MagicMock()
+        fake.content = payload
+        fake.status_code = 200
+        fake.headers = {"content-type": content_type, "request-id": "req_regression"}
+        client = MagicMock()
+        client.request = AsyncMock(return_value=fake)
+        return client
+
+    def test_client_accept_encoding_is_overridden_upstream(self):
+        """THE ROOT CAUSE. A client asking for br/zstd must not reach upstream."""
+        import proxy as proxy_mod
+        from proxy import DECODABLE_ENCODINGS
+        mock_client = self._mock_upstream(b'{"ok":true}', "application/json")
+        with patch.object(proxy_mod, "http_client", mock_client), \
+             patch.object(proxy_mod, "pool", None):
+            TestClient(app).post(
+                "/v1/messages",
+                json={"model": "claude-opus-4-6", "stream": False},
+                headers={"accept-encoding": "gzip, deflate, br, zstd"},
+            )
+        sent = mock_client.request.call_args.kwargs["headers"]
+        # The client asked for br+zstd; upstream must receive only what WE can decode.
+        # Asserting equality with DECODABLE_ENCODINGS rather than a literal is
+        # deliberate: this repo's test venv HAS brotli while the proxy container does
+        # NOT, so any hardcoded expectation is wrong in one of the two environments.
+        # That divergence is the whole reason the value is derived instead of literal.
+        assert sent["accept-encoding"] == DECODABLE_ENCODINGS
+        supported = set(httpx._decoders.SUPPORTED_DECODERS)
+        for enc in (e.strip() for e in sent["accept-encoding"].split(",")):
+            assert enc in supported
+
+    def test_undecodable_body_is_relayed_not_500(self):
+        """Defence in depth: an unparseable body must pass through, never become a 500.
+
+        0x83 is the literal first byte from the production traceback.
+        """
+        import proxy as proxy_mod
+        payload = b"\x83\x00\xff\xfe"
+        mock_client = self._mock_upstream(payload, "application/octet-stream")
+        with patch.object(proxy_mod, "http_client", mock_client), \
+             patch.object(proxy_mod, "pool", None):
+            resp = TestClient(app).post(
+                "/v1/messages", json={"model": "m", "stream": False}
+            )
+        assert resp.status_code == 200, "unparseable body must not become a proxy 500"
+        assert resp.content == payload, "bytes must be relayed verbatim, not re-encoded"
+
+    def test_json_body_relayed_byte_for_byte(self):
+        """The proxy observes; it does not modify. Whitespace included."""
+        import proxy as proxy_mod
+        payload = b'{"id":"msg_1",  "usage":{"input_tokens":5}}'
+        mock_client = self._mock_upstream(payload, "application/json")
+        with patch.object(proxy_mod, "http_client", mock_client), \
+             patch.object(proxy_mod, "pool", None):
+            resp = TestClient(app).post(
+                "/v1/messages", json={"model": "m", "stream": False}
+            )
+        assert resp.content == payload
+
+    def test_stale_content_encoding_never_forwarded(self):
+        """httpx hands back DECODED bytes, so upstream's content-encoding would lie."""
+        result = _passthrough_headers({
+            "content-encoding": "gzip",
+            "content-length": "12345",
+            "anthropic-ratelimit-tokens-remaining": "5000",
+        })
+        assert "content-encoding" not in result
+        assert "content-length" not in result
+        assert "anthropic-ratelimit-tokens-remaining" in result
