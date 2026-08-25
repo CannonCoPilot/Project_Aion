@@ -40,8 +40,18 @@ session-metrics.jsonl
 # Agent sessions (transient)
 .claude/agents/sessions/*.md
 
-# MCP configuration (may contain paths)
-.mcp.json
+# MCP configuration
+# `.mcp.json` IS TRACKED (2026-08-25, Sir's decision) — same reasoning as the root .gitignore.
+# This is Protos'/Alfred's MCP config, reached as ~/Claude/Alfred-Dev (a SYMLINK to this
+# directory; the launcher enters via the symlink so Claude Code does not see the monorepo .git).
+# Safe to track because every credential in it is a `${VAR}` expansion — verified by sweeping all
+# values of ../.claude/secrets/credentials.yaml against it: zero literal secrets.
+# BEFORE COMMITTING A CHANGE HERE, RE-RUN THAT SWEEP — the monorepo is PUBLIC.
+# Backups stay ignored: a `.bak` predates the ${VAR} substitution and can still hold the literal.
+# That is not hypothetical — .mcp.json.bak-20260824-140032 in THIS directory carried the leaked
+# Anna's Archive key and had to be redacted by hand. The root `*.bak-*` rule happens to catch that
+# one name; this rule does not depend on the backup being named a particular way.
+.mcp.json.*
 
 # OpenCode local settings
 opencode.local.json
