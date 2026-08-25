@@ -367,8 +367,6 @@
       "WebFetch",
       "WebSearch",
       "Write",
-      "Write(/Users/nathanielcannon/Claude/Project_Aion/alfred/**)",
-      "Write(/Users/nathanielcannon/Claude/Projects/**)",
       "mcp__annas-archive",
       "mcp__jarvis-graphiti",
       "mcp__jarvis-pulse",
@@ -378,7 +376,6 @@
     "deny": [
       "Read(~/.ssh/**)",
       "Read(**/.env)",
-      "Write(/Users/nathanielcannon/Claude/Archive/AIfred/**)",
       "Edit(/Users/nathanielcannon/Claude/Archive/AIfred/**)",
       "Bash(rm -rf /*)",
       "Bash(rm -rf ~/*)",
@@ -409,7 +406,9 @@
       "authenticate + complete_authentication until OAuth completes, so their real tool names are",
       "UNKNOWABLE right now. A guessed rule like mcp__claude_ai_Gmail__send_message would match",
       "nothing and read as protection while protecting nothing — the same dead-rule class as the",
-      "Write(path) rules Claude Code warns about on every startup. ADD THEM AFTER AUTHENTICATING:",
+      "Write(path) rules Claude Code used to warn about on every startup (removed 2026-08-25: only",
+      "Edit(path) rules are matched by file permission checks, and Edit covers ALL file-editing",
+      "tools including Write). ADD THEM AFTER AUTHENTICATING:",
       "  1. authenticate the connector, 2. list its real tool names, 3. deny the destructive ones",
       "     (permanent delete, empty trash) here, using the exact names.",
       "Until then the guard is bypassPermissions plus the operator, not a fictional rule."
