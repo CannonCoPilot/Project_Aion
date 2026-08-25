@@ -1,13 +1,46 @@
 {
+  "_comment": [
+    "PROTOS / ALFRED MCP CONFIG. Protos (aion:1) is the Alfred fork SEED — chain-executor forks",
+    "this warm session, so every chain window inherits what is configured here. Its cwd is this",
+    "directory, reached as ~/Claude/Alfred-Dev (a SYMLINK to it; the launcher enters via the",
+    "symlink so Claude Code does not see the monorepo .git).",
+    "",
+    "THIS IS A SEPARATE FILE FROM THE ROOT .mcp.json ON PURPOSE — it carries mcp-gateway, which",
+    "is protos-specific (dockerised memory/fetch gateway) and exists in no other lane. Everything",
+    "else is deliberately kept in step with the root config; if you change one, check the other.",
+    "",
+    "--watch PATHS ARE ABSOLUTE, AND MUST STAY ABSOLUTE. mcp-hot-reload resolves watch globs",
+    "against process.cwd(), and this lane's cwd is alfred/ — not the repo root. The root config's",
+    "RELATIVE pattern ('infrastructure/rag-service/...') would resolve to alfred/infrastructure/...",
+    "here, which does not exist, so hot reload would silently watch NOTHING while still appearing",
+    "configured. That is worse than having no wrapper at all.",
+    "",
+    "PER-LANE VALUES ARE ${VAR:-default} SO A CHAIN FORK CAN OVERRIDE THEM. The launcher exports",
+    "NONE of these for Protos (unlike genie/jaques/urist), so the defaults below are what Protos",
+    "actually gets. Verified 2026-08-25: GRAPHITI_GROUP_ID is absent from the tmux server env, the",
+    "session env, and the live process env, so the default reliably fires.",
+    "",
+    "GRAPHITI_GROUP_ID DEFAULTS TO protos-core AND MUST NEVER DEFAULT TO jarvis-core. Protos is the",
+    "lane that gets forked FROM; pointing it at jarvis-core would pollute W0's graph with every",
+    "chain's writes. The ${VAR:-} form is also the lever for the open question of N chains sharing",
+    "one namespace: if that mixing is unwanted, set GRAPHITI_GROUP_ID per fork in chain-executor.sh",
+    "rather than editing this file.",
+    "",
+    "SECRETS USE BARE ${VAR} WITH NO DEFAULT, DELIBERATELY. A default would re-embed the secret in",
+    "a tracked file AND make a failed export invisible, because the server would authenticate fine",
+    "even when the export silently did nothing. This file IS tracked (2026-08-25) — before",
+    "committing a change here, sweep it against .claude/secrets/credentials.yaml."
+  ],
   "mcpServers": {
     "annas-archive": {
+      "type": "stdio",
       "command": "/Users/nathanielcannon/Claude/Projects/AnnasTools/.venv/bin/python",
       "args": [
         "/Users/nathanielcannon/Claude/Projects/AnnasTools/src/annas_tools/mcp_server.py"
       ],
       "env": {
         "ANNAS_SECRET_KEY": "${ANNAS_SECRET_KEY}",
-        "ANNAS_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/library"
+        "ANNAS_DOWNLOAD_PATH": "${ANNAS_DOWNLOAD_PATH:-/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/library}"
       }
     },
     "arxiv": {
@@ -17,12 +50,16 @@
         "arxiv-mcp-server"
       ],
       "env": {
-        "ARXIV_STORAGE_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/protos/arxiv"
+        "ARXIV_STORAGE_PATH": "${ARXIV_STORAGE_PATH:-/Users/nathanielcannon/Claude/Project_Aion/projects/protos/arxiv}"
       }
     },
     "jarvis-graphiti": {
-      "command": "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
+      "type": "stdio",
+      "command": "mcp-hot-reload",
       "args": [
+        "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
+        "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/graphiti_mcp_server.py",
+        "--watch",
         "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/graphiti_mcp_server.py"
       ],
       "env": {
@@ -34,10 +71,11 @@
         "LLM_MODEL": "qwen3-8b-nothink",
         "EMBED_MODEL": "qwen3-embedding:4b",
         "EMBEDDING_DIM": "2560",
-        "GRAPHITI_GROUP_ID": "protos-core"
+        "GRAPHITI_GROUP_ID": "${GRAPHITI_GROUP_ID:-protos-core}"
       }
     },
     "jarvis-pulse": {
+      "type": "stdio",
       "command": "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
       "args": [
         "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/pulse_mcp_server.py"
@@ -47,8 +85,12 @@
       }
     },
     "jarvis-rag": {
-      "command": "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
+      "type": "stdio",
+      "command": "mcp-hot-reload",
       "args": [
+        "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python",
+        "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py",
+        "--watch",
         "/Users/nathanielcannon/Claude/Project_Aion/infrastructure/rag-service/mcp_server.py"
       ],
       "env": {
@@ -73,12 +115,13 @@
       }
     },
     "scholar-gateway": {
+      "type": "stdio",
       "command": "/Users/nathanielcannon/Claude/Projects/ScholarGateway/.venv/bin/python",
       "args": [
         "/Users/nathanielcannon/Claude/Projects/ScholarGateway/src/scholar_gateway/mcp_server.py"
       ],
       "env": {
-        "SCHOLAR_DOWNLOAD_PATH": "/Users/nathanielcannon/Claude/Project_Aion/projects/protos/papers"
+        "SCHOLAR_DOWNLOAD_PATH": "${SCHOLAR_DOWNLOAD_PATH:-/Users/nathanielcannon/Claude/Project_Aion/projects/protos/papers}"
       }
     }
   }
