@@ -37,7 +37,41 @@ EMBED_MODEL = os.getenv("EMBED_MODEL", "qwen3-embedding:4b")
 EMBED_DIM = int(os.getenv("EMBEDDING_DIM", "2560"))
 DEFAULT_GROUP_ID = os.getenv("GRAPHITI_GROUP_ID", "jarvis-core")
 
+# Sentinels a caller may pass as `group_id` to read ACROSS groups.
+ALL_GROUPS_SENTINELS = {"*", "all"}
+
 mcp = FastMCP("jarvis-graphiti")
+
+
+def resolve_group_ids(group_id: str | None) -> list[str] | None:
+    """WRITE-OWN / READ-ANY. Resolve a `group_id` argument into graphiti's `group_ids`.
+
+    Every Archon WRITES only to its own group (DEFAULT_GROUP_ID, set per-lane via the
+    GRAPHITI_GROUP_ID env var) but may READ any group on demand. Reads therefore stay
+    scoped to the caller's own graph by DEFAULT — that keeps the primary signal focused
+    and un-diluted — while another Archon's knowledge is one explicit argument away.
+    It is a secondary source you reach for, not a default you swim in.
+
+        None        -> [DEFAULT_GROUP_ID]   own group (the primary source)
+        "*" / "all" -> None                 EVERY group (graphiti treats None as no filter)
+        "a,b"       -> ["a", "b"]           an explicit subset
+        "genie-core"-> ["genie-core"]       one other Archon
+
+    Returning None for the all-groups case is deliberate and verified against a live
+    graph: `search(group_ids=None)` returned edges from both jarvis-core and jaques-core,
+    while `["genie-core"]` stayed scoped. Do not "fix" that None into a list of known
+    groups — enumerating them would silently miss any group created after this call.
+
+    Use `list_groups` to discover what is readable before naming one.
+    """
+    if group_id is None:
+        return [DEFAULT_GROUP_ID]
+    normalized = group_id.strip().lower()
+    if normalized in ALL_GROUPS_SENTINELS:
+        return None
+    if "," in group_id:
+        return [g.strip() for g in group_id.split(",") if g.strip()]
+    return [group_id.strip()]
 
 # --- Lazy Singleton ---
 _graphiti_instance = None
@@ -157,12 +191,15 @@ async def search(
 
     Args:
         query: Natural language search query.
-        group_id: Filter to a specific group. Default: jarvis-core.
+        group_id: Which graph(s) to read. Omit for your OWN group (the default and the
+            primary source). Pass "*" or "all" to search EVERY Archon's graph, a single
+            id like "genie-core" to read one other Archon, or a comma-separated list.
+            Call list_groups first if you do not know what exists.
         num_results: Number of results (1-20).
     """
     graphiti = await get_graphiti()
     num_results = max(1, min(20, num_results))
-    group_ids = [group_id or DEFAULT_GROUP_ID]
+    group_ids = resolve_group_ids(group_id)
 
     edges = await graphiti.search(
         query=query,
@@ -187,14 +224,16 @@ async def search_nodes(
 
     Args:
         query: Natural language search query.
-        group_id: Filter to a specific group. Default: jarvis-core.
+        group_id: Which graph(s) to read. Omit for your OWN group. "*"/"all" for every
+            Archon's graph, an id like "genie-core" for one other, or a comma-separated
+            list. See list_groups.
         num_results: Max results per category (1-20).
     """
     from graphiti_core.search.search_config_recipes import COMBINED_HYBRID_SEARCH_RRF
 
     graphiti = await get_graphiti()
     num_results = max(1, min(20, num_results))
-    group_ids = [group_id or DEFAULT_GROUP_ID]
+    group_ids = resolve_group_ids(group_id)
 
     # Override the limit in the config
     config = COMBINED_HYBRID_SEARCH_RRF.model_copy(update={"limit": num_results})
@@ -234,10 +273,24 @@ async def add_episode(
         name: Short descriptive name for the episode (e.g., "Session 26 summary").
         content: The text content to extract knowledge from.
         source_description: Where this content came from (e.g., "Jarvis session log").
-        group_id: Group to assign this episode to. Default: jarvis-core.
+        group_id: Optional, and it may ONLY name your own group. Every Archon writes to
+            its own graph; cross-group writes are rejected. Omit it.
         source_type: One of: text, message, json. Default: text.
     """
     from graphiti_core.nodes import EpisodeType
+
+    # WRITE-OWN is enforced, not merely defaulted. Reads span groups freely, but a write
+    # into another Archon's graph would put knowledge somewhere its owner never looks and
+    # cannot account for — and silently, since the call would succeed. Rejecting loudly is
+    # the only honest option: the alternative (quietly rewriting group_id to our own) would
+    # make a caller believe it wrote where it asked.
+    if group_id is not None and group_id.strip() != DEFAULT_GROUP_ID:
+        raise ValueError(
+            f"Cross-group write refused: this session writes to {DEFAULT_GROUP_ID!r}, "
+            f"not {group_id!r}. Every Archon writes only to its own graph (set per-lane "
+            f"via GRAPHITI_GROUP_ID). Reading another group IS allowed — pass group_id to "
+            f"search/search_nodes/get_episodes instead, or omit it here to write your own."
+        )
 
     type_map = {
         "text": EpisodeType.text,
@@ -279,11 +332,13 @@ async def get_episodes(
 
     Args:
         last_n: Number of recent episodes to retrieve (1-50).
-        group_id: Filter to a specific group. Default: jarvis-core.
+        group_id: Which graph(s) to read. Omit for your OWN group. "*"/"all" for every
+            Archon's graph, an id like "genie-core" for one other, or a comma-separated
+            list. See list_groups.
     """
     graphiti = await get_graphiti()
     last_n = max(1, min(50, last_n))
-    group_ids = [group_id or DEFAULT_GROUP_ID]
+    group_ids = resolve_group_ids(group_id)
 
     episodes = await graphiti.retrieve_episodes(
         reference_time=datetime.now(timezone.utc),
@@ -316,6 +371,54 @@ async def get_entity(
         "node": node_to_dict(node),
         "edges": [edge_to_dict(e) for e in edges],
         "edge_count": len(edges),
+    }
+
+
+@mcp.tool()
+async def list_groups() -> dict:
+    """List every Archon graph you can READ, with sizes, and flag which one is yours.
+
+    Read-any is useless without discovery: you cannot pass `group_id="genie-core"` to
+    search if you do not know Genie exists. Groups are enumerated from the LIVE graph
+    rather than a hardcoded roster, so an Archon added tomorrow appears here with no
+    code change.
+
+    You WRITE only to `your_group_id`. You may READ any id below, or pass "*" to any
+    search tool to span all of them at once.
+    """
+    graphiti = await get_graphiti()
+    result = await graphiti.driver.execute_query(
+        """
+        MATCH (n:Entity) WHERE n.group_id IS NOT NULL
+        RETURN n.group_id AS group_id, count(n) AS entities
+        ORDER BY entities DESC
+        """
+    )
+    try:
+        rows = [
+            {
+                "group_id": r["group_id"],
+                "entities": r["entities"],
+                "is_yours": r["group_id"] == DEFAULT_GROUP_ID,
+            }
+            for r in result.records
+        ]
+    except (AttributeError, KeyError):
+        rows = []
+
+    # A brand-new Archon has written nothing yet, so it has no Entity rows and would be
+    # invisible in its OWN listing — which reads as "you have no graph" rather than
+    # "your graph is empty". Synthesise the row instead of omitting it.
+    if not any(r["is_yours"] for r in rows):
+        rows.append({"group_id": DEFAULT_GROUP_ID, "entities": 0, "is_yours": True})
+
+    return {
+        "your_group_id": DEFAULT_GROUP_ID,
+        "writable": [DEFAULT_GROUP_ID],
+        "readable": [r["group_id"] for r in rows],
+        "groups": rows,
+        "hint": 'Omit group_id to read your own. Pass "*" to read all. Pass an id, or '
+                '"a,b", to read specific others. Writes always go to your_group_id.',
     }
 
 

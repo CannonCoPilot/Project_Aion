@@ -209,6 +209,32 @@ START_CMD="$("$TMUX_BIN" display -p -t "$SESSION_NAME:$WIN" '#{pane_start_comman
 START_CMD="${START_CMD#\"}"; START_CMD="${START_CMD%\"}"
 case "$START_CMD" in *claude*) : ;; *) _die "pane_start_command does not launch claude — wrong window?" ;; esac
 
+# --- 4b. MIGRATE STALE MCP FLAGS. The retained command is a SNAPSHOT of how the pane was first
+# --- launched, so it faithfully replays flags that have since changed centrally. Replaying is
+# --- normally what we want (no duplication of launch-aion.sh) but it cannot see a flag change.
+#
+# 2026-08-24: the per-persona mcp.json files were retired in favour of one shared .mcp.json with
+# ${VAR:-default} expansion, and --strict-mcp-config was dropped because it replaces EVERY config
+# source and was silently costing genie/jaques/urist all 8 claude.ai connectors. A pane launched
+# before that change would restart pointing --mcp-config at a DELETED file, and --strict-mcp-config
+# would then give the lane ZERO MCP servers — silently, since a missing config is not an error.
+# Caught by --dry-run before it hit a live Archon.
+_pre_mcp="$START_CMD"
+START_CMD="$(printf '%s' "$START_CMD" | sed -E "s#--mcp-config '[^']*/personas/[^']*/mcp\.json'#--mcp-config '$PROJECT_DIR/.mcp.json'#g; s# --strict-mcp-config##g")"
+[[ "$START_CMD" != "$_pre_mcp" ]] && _log "migrated stale MCP flags: shared .mcp.json, --strict-mcp-config dropped"
+unset _pre_mcp
+
+# GUARD (durable, not migration-specific): never respawn a lane pointed at an --mcp-config that
+# does not exist. Claude Code does not treat a missing config as an error — it just starts with
+# nothing — so without this check the lane comes up looking healthy and silently toolless.
+_mcp_target="$(printf '%s' "$START_CMD" | sed -nE "s/.*--mcp-config '([^']*)'.*/\1/p")"
+if [[ -n "$_mcp_target" && ! -f "$_mcp_target" ]]; then
+    _die "--mcp-config target does not exist: $_mcp_target
+    Respawning would give this lane ZERO MCP servers, silently. Fix the path (or the launcher)
+    before restarting; a missing MCP config is not reported as an error by Claude Code."
+fi
+unset _mcp_target
+
 # --- 5. Rewrite the session id, and normalise --session-id to --resume. A first-ever launch
 # --- uses `--session-id <uuid>` (create); replaying that verbatim against an id that now exists
 # --- is a different operation than resuming it.

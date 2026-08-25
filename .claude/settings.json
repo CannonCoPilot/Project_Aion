@@ -387,7 +387,32 @@
       "Bash(mkfs:*)",
       "Bash(dd if=:*)",
       "Bash(chmod -R 777 /*)",
-      "Bash(chown -R:*)"
+      "Bash(chown -R:*)",
+      "mcp__jarvis-rag__delete_file"
+    ],
+    "_denyPolicy": [
+      "GENEROUS BY DESIGN — read is open to every Archon, write is broadly allowed, and only",
+      "IRREVERSIBLE DESTRUCTION is denied. That mirrors the Bash rules above (rm -rf, mkfs, dd):",
+      "the guard is against unrecoverable loss, not against the lanes doing their work.",
+      "",
+      "Every Archon now loads all 6 project MCP servers plus all claude.ai connectors, so these",
+      "rules apply uniformly — there is no per-lane MCP scoping left to hide behind.",
+      "",
+      "mcp__jarvis-rag__delete_file is the ONLY verified destructive MCP tool in the estate:",
+      "it drops every vector for a file from a Qdrant collection. Everything else either writes",
+      "(allowed) or changes state reversibly (pulse_close). graphiti has no delete tool, and its",
+      "add_episode now REFUSES cross-group writes in the server itself, which is a stronger",
+      "guarantee than a permission rule because it cannot be bypassed by a lane that skips these",
+      "settings.",
+      "",
+      "NO GMAIL/DRIVE/CALENDAR DENY RULES ARE LISTED, DELIBERATELY. Those connectors expose only",
+      "authenticate + complete_authentication until OAuth completes, so their real tool names are",
+      "UNKNOWABLE right now. A guessed rule like mcp__claude_ai_Gmail__send_message would match",
+      "nothing and read as protection while protecting nothing — the same dead-rule class as the",
+      "Write(path) rules Claude Code warns about on every startup. ADD THEM AFTER AUTHENTICATING:",
+      "  1. authenticate the connector, 2. list its real tool names, 3. deny the destructive ones",
+      "     (permanent delete, empty trash) here, using the exact names.",
+      "Until then the guard is bypassPermissions plus the operator, not a fictional rule."
     ]
   }
 }

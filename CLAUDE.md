@@ -52,6 +52,25 @@ NEVER let any code, design, architecture, component, or aim convert a below-thre
 - Escalation to human review carries the **implicit expectation of further retooling/adaptation to re-approach bar-passing automation** — not a request to accept a gap. We hold the threshold precisely to expose real limits and then exhaust every avenue to meet them.
 - "The method can't reach it" always means **"redesign the method,"** never "lower the aim." Same anti-laundering posture as the extirpated book-level gates.
 
+### Never route around an auth wall (MANDATORY — all Archons)
+**Always TRY the tool.** Never skip, defer, or silently substitute a capability because you
+anticipate an authentication problem. An unauthenticated connector is a *remediable blocker*,
+not a reason to choose a worse path.
+
+When a tool fails on auth: **say so explicitly, name the tool and the connector, and give the
+user concrete remediation steps** (which connector, what flow, what you were trying to do).
+Then continue with everything that does not depend on it.
+
+- ❌ "I'll use web search instead, since Google Drive probably isn't connected." — this is the
+  banned move. It hides a fixable gap and quietly downgrades the result.
+- ✅ "`mcp__claude_ai_Google_Drive__*` returned *Needs authentication*. Run the connector's
+  OAuth flow to enable it. Meanwhile here is what I could complete without it: …"
+
+Rationale: an unattempted tool produces **no signal**. Skipping it means the auth gap stays
+invisible, never gets fixed, and every future session pays the same tax. Trying it converts a
+silent absence into a one-line, actionable request. This is the same anti-laundering posture as
+**No Silent Degradation** — a capability gap must surface, never be quietly worked around.
+
 ### Overriding rule
 Do NOT short-cut Chronicler app functionality with ad-hoc commands/scripts. No Phase complete unless a stand-alone executable exists, packaged hands-off, user-controlled.
 
