@@ -76,8 +76,15 @@
 # Agent sessions (transient)
 .claude/agents/sessions/*.md
 
-# MCP configuration (may contain paths/credentials)
-.mcp.json
+# MCP configuration
+# `.mcp.json` IS TRACKED (2026-08-25, Sir's decision). It is the single source of truth for
+# every Archon lane's MCP servers, replacing three per-persona configs that were themselves
+# tracked -- leaving it ignored made the estate unreproducible from a clone.
+# It is safe to track ONLY because every credential in it is a `${VAR}` expansion. Verified by
+# sweeping all 87 values of `.claude/secrets/credentials.yaml` against it: zero literal secrets.
+# BEFORE COMMITTING A CHANGE HERE, RE-RUN THAT SWEEP -- this repo is PUBLIC.
+# Backups stay ignored: a `.bak` predates the ${VAR} substitution and may hold the literal
+# (that is exactly what happened to Alfred-Dev/.mcp.json.bak-20260824).
 .mcp.json.*
 
 # OpenCode local settings
