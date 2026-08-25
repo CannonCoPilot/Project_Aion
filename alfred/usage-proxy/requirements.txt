@@ -1,5 +1,15 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.32.0
-httpx>=0.28.0
+# [brotli,zstd] are NOT optional niceties — they decide what this proxy may advertise
+# upstream. proxy.py derives `accept-encoding` from httpx's SUPPORTED_DECODERS, so
+# without these the proxy negotiates down to gzip/deflate and large contexts transfer
+# uncompressed-ish. With them, Claude Code's preferred br/zstd survive end to end.
+# Declared as httpx EXTRAS rather than bare `brotli`/`zstandard` so the codecs can never
+# drift from the httpx that consumes them.
+# History: these being absent caused a 7-day Claude-in-Chrome outage — the proxy used to
+# forward the client's accept-encoding verbatim, then choked decoding the Brotli reply.
+# That forwarding bug is fixed independently in proxy.py; adding the codecs is the
+# performance half. Do not remove one assuming the other covers it.
+httpx[brotli,zstd]>=0.28.0
 asyncpg>=0.30.0
 python-dotenv>=1.0.0
