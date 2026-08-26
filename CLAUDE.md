@@ -20,6 +20,10 @@ They live in `.claude/personas/jarvis/CLAUDE.md` (Jarvis) and `alfred/.claude/CL
 │   └── projects/        # Dev artifacts
 ├── Projects/            # Deliverable code (DwarfCron, AnnasTools, etc.)
 ├── GitRepos/            # Read-only reference repos
+├── Staging/             # Bulk downloads ONLY — Spotlight- and TimeMachine-excluded
+│   ├── incoming/        #   unverified landing zone
+│   ├── verified/        #   checksum/provenance confirmed; symlink targets
+│   └── archive/         #   retained originals
 └── Archive/             # Retired items (read-only)
 ```
 
@@ -79,6 +83,86 @@ Do NOT short-cut Chronicler app functionality with ad-hoc commands/scripts. No P
 - **Session-confirm before first write**: `~/Documents/`, `~/Desktop/`, `~/Downloads/`, `~/Pictures/`, `~/Public/`
 - **NEVER write**: `/tmp`, `/var`, `/etc`, `/usr`, `/Applications/`, anywhere outside `~/`, `Archive/`
 - **Temp files**: project-local `.claude/scratch/` (gitignored), NOT `/tmp`
+- **Bulk downloads**: `~/Claude/Staging/` — see Bulk Download Policy below
+
+### Bulk Download Policy (MANDATORY — all Archons)
+**Never download large files or batches of files into an indexed, backed-up, or
+version-controlled tree.** All bulk retrieval lands in `~/Claude/Staging/`.
+
+**Why this is a hard rule.** On 2026-08-26 the Mac Studio took a kernel panic:
+`userspace watchdog timeout: no successful checkins from logd in 120 seconds`.
+Six Chrome downloads hit quarantine at 13:34:2x; the panic captured at 13:38:51.
+Gatekeeper validation (`syspolicyd`, `amfid`, `trustd`) and Spotlight indexing
+(`mds_stores`, 143,880 pageIns) hit the same NVMe simultaneously. logd's
+`com.apple.firehose.io-wl` thread blocked on a lock whose holder was parked in
+uninterruptible I/O, missed its 120s checkin, and the kernel took the machine
+down. Downloading into an indexed tree is not a style preference — it is the
+documented trigger for a whole-machine crash.
+
+**Thresholds — "large" or "batch" means any of:**
+- a single file > 100 MB
+- more than 5 files in one operation
+- any archive that expands to > 500 MB
+- any unbounded/streaming fetch (crawls, dataset pulls, model weights, corpora)
+
+**Where things go:**
+
+| Path | Purpose |
+|---|---|
+| `~/Claude/Staging/incoming/` | landing zone; unverified, may contain quarantined files |
+| `~/Claude/Staging/verified/` | checksum/provenance confirmed; safe to reference |
+| `~/Claude/Staging/archive/` | retained originals after extraction |
+
+`~/Claude/Staging/` carries `.metadata_never_index` and a Time Machine exclusion,
+so nothing under it is Spotlight-indexed or backed up. **Those markers are the
+whole point — never remove them, and never create a parallel staging area
+without them.**
+
+**Never** download directly into: `Project_Aion/`, `Projects/<Name>/`,
+`GitRepos/`, `~/.claude/`, or `~/Downloads/`. The first four are Spotlight-indexed
+and git-tracked; `~/Downloads/` is Spotlight-indexed and is where Chrome's
+quarantine storm originates.
+
+**What to do with them — reference, don't copy.**
+Bulk data stays in Staging exactly once. Projects reach it by symlink:
+
+```bash
+# correct: project points at staging, one physical copy
+ln -s ~/Claude/Staging/verified/corpus-2026 \
+      ~/Claude/Projects/Palimpsest/data/corpus-2026
+
+# wrong: duplicates GBs into an indexed, git-tracked tree
+cp -R ~/Claude/Staging/verified/corpus-2026 ~/Claude/Projects/Palimpsest/data/
+```
+
+Add the symlink itself to the project's `.gitignore` — git must never follow it.
+A symlink keeps one copy on disk, keeps the payload out of the index, and lets
+the project tree stay small enough to grep.
+
+**Batch discipline:**
+- **Serialize, don't parallelize.** Fetch sequentially. Parallel downloads
+  multiply Gatekeeper and Spotlight pressure at exactly the moment logd is
+  busiest — that is the panic condition.
+- **Prefer `curl`/`wget` over a browser.** CLI fetches do not set
+  `com.apple.quarantine`, so Gatekeeper never deep-scans them. Browser downloads
+  do. This single choice removes most of the risk.
+- **Verify before promoting.** Checksum in `incoming/`, then move to `verified/`.
+- **Extract in place.** Unpack inside Staging; never expand an archive into a
+  project tree.
+
+**Quarantine handling.** For inert data from a known-good source (datasets,
+corpora, PDFs, text archives) it is reasonable to clear the flag after verifying
+provenance:
+```bash
+xattr -d com.apple.quarantine <file>
+```
+**Never do this for executables, apps, installers, `.dylib`s, or anything you
+will run.** Clearing quarantine on runnable code disables Gatekeeper for that
+file. If it is executable, leave the flag on and let macOS scan it — accept the
+I/O cost, download it alone, and do it when no other bulk work is running.
+
+**Cleanup is part of the task.** An Archon that stages data owns its removal.
+Report what was left in `incoming/` when handing off.
 
 ## Git workflow
 
