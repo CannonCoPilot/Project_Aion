@@ -1,0 +1,541 @@
+<title>Loom as a Semantic Mesh — Design Analysis</title>
+<style>
+  :root{
+    --bg:#f5f7f9; --card:#ffffff; --sunk:#eceff3;
+    --ink:#111823; --ink2:#41505f; --ink3:#6d7d8d;
+    --line:#dde3ea; --line2:#c5d0da;
+    --accent:#0e7490; --accent-ink:#0b5c73; --accent-bg:#e2f2f6;
+    --good:#1f8a5f; --good-bg:#e3f4ec;
+    --warn:#a56a08; --warn-bg:#fbf0dc;
+    --bad:#b8402f; --bad-bg:#fbe8e5;
+    --measure:70ch;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#070b10; --card:#0f151d; --sunk:#0c1219;
+      --ink:#e6edf5; --ink2:#a8b6c5; --ink3:#77879a;
+      --line:#1c2632; --line2:#2b3947;
+      --accent:#3fb5cf; --accent-ink:#7ed4e8; --accent-bg:#0d2831;
+      --good:#4ecf96; --good-bg:#0d2a1f;
+      --warn:#e5b155; --warn-bg:#2c2210;
+      --bad:#f08070; --bad-bg:#2d1512;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f7f9; --card:#ffffff; --sunk:#eceff3;
+    --ink:#111823; --ink2:#41505f; --ink3:#6d7d8d;
+    --line:#dde3ea; --line2:#c5d0da;
+    --accent:#0e7490; --accent-ink:#0b5c73; --accent-bg:#e2f2f6;
+    --good:#1f8a5f; --good-bg:#e3f4ec;
+    --warn:#a56a08; --warn-bg:#fbf0dc;
+    --bad:#b8402f; --bad-bg:#fbe8e5;
+  }
+  :root[data-theme="dark"]{
+    --bg:#070b10; --card:#0f151d; --sunk:#0c1219;
+    --ink:#e6edf5; --ink2:#a8b6c5; --ink3:#77879a;
+    --line:#1c2632; --line2:#2b3947;
+    --accent:#3fb5cf; --accent-ink:#7ed4e8; --accent-bg:#0d2831;
+    --good:#4ecf96; --good-bg:#0d2a1f;
+    --warn:#e5b155; --warn-bg:#2c2210;
+    --bad:#f08070; --bad-bg:#2d1512;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;background:var(--bg);color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:16.5px;line-height:1.68;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:60px 26px 110px;display:flex;flex-direction:column;gap:26px}
+  code,.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  code{background:var(--sunk);border:1px solid var(--line);border-radius:3px;padding:1px 5px;font-size:.86em}
+
+  /* masthead */
+  header{border-bottom:3px solid var(--ink);padding-bottom:26px;display:flex;flex-direction:column;gap:12px;margin-bottom:14px}
+  .kicker{font-size:11.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:800}
+  h1{margin:0;font-size:clamp(31px,5.2vw,50px);line-height:1.02;letter-spacing:-.03em;font-weight:820;text-wrap:balance}
+  .dek{margin:0;max-width:var(--measure);font-size:18px;color:var(--ink2)}
+  .badges{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+  .badge{font-size:11.5px;font-family:ui-monospace,Menlo,monospace;padding:4px 9px;border:1px solid var(--line2);border-radius:99px;color:var(--ink2);background:var(--card)}
+
+  /* sections */
+  section{display:flex;flex-direction:column;gap:16px;padding-top:22px}
+  .sec-head{display:flex;gap:15px;align-items:baseline;border-bottom:1px solid var(--line);padding-bottom:11px}
+  .num{font-family:ui-monospace,Menlo,monospace;font-size:13px;font-weight:800;color:var(--accent);flex:none;padding-top:2px}
+  h2{margin:0;font-size:25px;letter-spacing:-.02em;font-weight:760;text-wrap:balance}
+  h3{margin:14px 0 0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+  p{margin:0;max-width:var(--measure)}
+  ul,ol{margin:0;padding-left:22px;max-width:var(--measure);display:flex;flex-direction:column;gap:9px}
+  li::marker{color:var(--ink3)}
+  strong{font-weight:670;color:var(--ink)}
+
+  /* cards */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px}
+  .cap{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);font-weight:750;margin-bottom:14px}
+
+  /* proportion bar */
+  .prop{display:flex;flex-direction:column;gap:9px}
+  .prop-track{height:46px;background:var(--sunk);border:1px solid var(--line);border-radius:5px;overflow:hidden;display:flex;position:relative}
+  .prop-fill{background:var(--accent);height:100%;display:flex;align-items:center;justify-content:center;min-width:3px}
+  .prop-lab{display:flex;justify-content:space-between;font-size:13.5px;color:var(--ink2);flex-wrap:wrap;gap:8px}
+  .prop-lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+
+  /* pipeline strip */
+  .pipe{display:flex;flex-direction:column;border:1px solid var(--line);border-radius:7px;overflow:hidden;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .pipe-row{display:grid;grid-template-columns:118px 1fr;border-bottom:1px solid var(--line)}
+  .pipe-row:last-child{border-bottom:none}
+  .pipe-k{padding:11px 14px;background:var(--sunk);color:var(--ink2);font-weight:700;border-right:1px solid var(--line)}
+  .pipe-v{padding:11px 14px;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .seg{padding:4px 12px;border-radius:4px;font-size:12px;font-weight:700;white-space:nowrap}
+  .seg-ok{background:var(--good-bg);color:var(--good);border:1px solid var(--good)}
+  .seg-no{background:var(--bad-bg);color:var(--bad);border:1px solid var(--bad)}
+  .seg-n{background:var(--sunk);color:var(--ink3);border:1px solid var(--line2)}
+
+  /* tables */
+  .tw{overflow-x:auto;border:1px solid var(--line);border-radius:7px;background:var(--card)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:540px}
+  th{text-align:left;padding:11px 15px;background:var(--sunk);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink3);border-bottom:1px solid var(--line);font-weight:780;white-space:nowrap}
+  td{padding:11px 15px;border-bottom:1px solid var(--line);color:var(--ink2);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.n{font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  td.m{font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--ink);white-space:nowrap}
+  td.c{text-align:center;font-size:17px}
+
+  /* callouts */
+  .note{border-left:4px solid var(--accent);background:var(--accent-bg);padding:16px 20px;border-radius:0 6px 6px 0;display:flex;flex-direction:column;gap:8px}
+  .note.bad{border-left-color:var(--bad);background:var(--bad-bg)}
+  .note.warn{border-left-color:var(--warn);background:var(--warn-bg)}
+  .note.good{border-left-color:var(--good);background:var(--good-bg)}
+  .note h4{margin:0;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink);font-weight:800}
+  .note p{font-size:15px;color:var(--ink2)}
+
+  /* mermaid */
+  .dia{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:22px 18px;overflow-x:auto}
+  .dia pre.mermaid{display:flex;justify-content:center;min-width:max-content;margin:0;background:none;border:none}
+
+  /* cost ledger */
+  .ledger{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+  .led{border:1px solid var(--line);border-radius:8px;padding:19px;background:var(--card);display:flex;flex-direction:column;gap:11px}
+  .led.win{border-color:var(--good);border-width:2px}
+  .led.lose{border-color:var(--bad);border-width:2px}
+  .led h4{margin:0;font-size:15px;font-weight:750}
+  .led .big{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .led.win .big{color:var(--good)} .led.lose .big{color:var(--bad)}
+  .led p{font-size:14px;color:var(--ink2)}
+  .led ul{font-size:14px;padding-left:19px;gap:6px}
+
+  /* latency bars */
+  .lat{display:flex;flex-direction:column;gap:11px}
+  .lat-row{display:grid;grid-template-columns:150px 1fr 82px;align-items:center;gap:13px;font-size:14px}
+  .lat-name{color:var(--ink2);font-size:13.5px}
+  .lat-bar{height:20px;background:var(--sunk);border-radius:3px;overflow:hidden;border:1px solid var(--line)}
+  .lat-in{height:100%;border-radius:2px}
+  .lat-v{font-family:ui-monospace,Menlo,monospace;font-size:12.5px;text-align:right;font-variant-numeric:tabular-nums;color:var(--ink)}
+
+  /* phases */
+  .phases{display:flex;flex-direction:column;gap:0;border-left:2px solid var(--line2);padding-left:0;margin-left:9px}
+  .ph{display:grid;grid-template-columns:52px 1fr;gap:16px;padding:0 0 22px 0;position:relative}
+  .ph-n{width:34px;height:34px;border-radius:50%;background:var(--card);border:2px solid var(--line2);color:var(--ink2);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;margin-left:-18px;flex:none;font-family:ui-monospace,Menlo,monospace}
+  .ph.gate .ph-n{background:var(--warn);border-color:var(--warn);color:#fff}
+  .ph-b{display:flex;flex-direction:column;gap:5px}
+  .ph-b h4{margin:0;font-size:15.5px;font-weight:730}
+  .ph-b p{font-size:14.5px;color:var(--ink2)}
+  .ph-gate{font-size:12.5px;font-family:ui-monospace,Menlo,monospace;color:var(--accent-ink);background:var(--accent-bg);padding:5px 11px;border-radius:4px;align-self:flex-start;border:1px solid var(--accent)}
+
+  footer{border-top:1px solid var(--line);padding-top:22px;margin-top:22px;color:var(--ink3);font-size:14px;display:flex;flex-direction:column;gap:7px}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:640px){
+    .wrap{padding:36px 15px 70px}
+    .lat-row{grid-template-columns:106px 1fr 62px;gap:9px}
+    .pipe-row{grid-template-columns:88px 1fr}
+  }
+</style>
+
+<div class="wrap">
+
+<header>
+  <div class="kicker">Project Aion · Design Analysis · No implementation</div>
+  <h1>Loom as a Semantic Mesh</h1>
+  <p class="dek">An assessment of the proposal to route prompts through Loom so they collect semantically related context from local knowledge layers before reaching the model — measured against what Aion already runs, and against how prompt caching actually works.</p>
+  <div class="badges">
+    <span class="badge">2026-08-27</span>
+    <span class="badge">verdict: build it, with one inversion</span>
+    <span class="badge">6.4 MB reachable vs 42 KB loaded</span>
+    <span class="badge">cache economics decide the design</span>
+  </div>
+</header>
+
+<!-- 1 -->
+<section>
+  <div class="sec-head"><span class="num">01</span><h2>The proposal in one paragraph</h2></div>
+  <p>Prompts would pass through Loom on their way to the model. Loom reads the prompt, searches local knowledge layers for related material — project history, related documents, guidelines, design patterns — and folds what it finds into the message. The enriched prompt is cached and sent upstream in place of what was typed at the terminal. The stated goal is a counterpart to the <code>CLAUDE.md</code> auto-load mechanism that is adaptive rather than fixed, and logged rather than invisible.</p>
+
+  <div class="note good">
+    <h4>Short answer</h4>
+    <p><strong>The diagnosis is correct and the mechanism exists.</strong> There is a purpose-built, cache-preserving way to inject context mid-conversation, and it is available today with no beta flag. But the injection should happen <em>client-side in the hook layer</em>, not inside the gateway — because Claude Code owns the conversation transcript and the cost difference is roughly twelvefold. Loom becomes the retrieval <em>service</em> rather than always being the <em>injector</em>. Section 5 shows the arithmetic.</p>
+  </div>
+</section>
+
+<!-- 2 -->
+<section>
+  <div class="sec-head"><span class="num">02</span><h2>The problem is real, and it can be measured</h2></div>
+  <p>Every Archon session loads a fixed set of files unconditionally. Everything else in the curated knowledge base is invisible unless someone happens to search for it. Measured on this workspace today:</p>
+
+  <div class="card">
+    <div class="cap">Context the model can see, versus context that exists</div>
+    <div class="prop">
+      <div class="prop-track">
+        <div class="prop-fill" style="width:0.67%"></div>
+      </div>
+      <div class="prop-lab">
+        <span>The teal sliver is <b>42,777 bytes</b> of always-loaded memory (~11,257 tokens)</span>
+        <span>The full bar is <b>6,412,558 bytes</b> across <b>409</b> Markdown files</span>
+      </div>
+    </div>
+  </div>
+
+  <p>Static memory surfaces about <strong>0.67%</strong> of the available corpus, and which 0.67% is decided in advance by hand. That is the actual defect. Note carefully that this is <em>not primarily a cost problem</em> — 11,257 tokens is roughly 1.1% of a one-million-token window, which is negligible. It is a <strong>relevance</strong> problem: the material that would help with today's task is usually not the material someone chose to pin last month.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Tier</th><th>File</th><th>Size</th><th>When loaded</th></tr></thead>
+      <tbody>
+        <tr><td>Project instructions</td><td class="m">CLAUDE.md</td><td class="n">9,821 B</td><td>always</td></tr>
+        <tr><td>Persona identity</td><td class="m">personas/jarvis/CLAUDE.md</td><td class="n">10,796 B</td><td>always</td></tr>
+        <tr><td>Cross-session memory</td><td class="m">MEMORY.md</td><td class="n">17,918 B</td><td>always</td></tr>
+        <tr><td>Session state</td><td class="m">session-state.md</td><td class="n">4,242 B</td><td>always</td></tr>
+        <tr><td><strong>Total resident</strong></td><td class="m">—</td><td class="n"><strong>42,777 B</strong></td><td><strong>~11,257 tokens</strong></td></tr>
+        <tr><td>Curated context corpus</td><td class="m">.claude/context/**/*.md</td><td class="n">6,412,558 B</td><td><strong>never, unless grepped</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <h4>This session produced a textbook example of the failure</h4>
+    <p>Five Loom design documents totalling <strong>82 KB</strong> — directly relevant to evaluating Loom — sat in <code>alfred/.claude/context/systems/</code> the entire time. No memory tier surfaced them. They were discovered by accident, during a <code>grep</code> run for an unrelated purpose. A semantic layer keyed on the word "Loom" would have surfaced them in the first second of the task. That is the whole argument in one incident: <strong>the knowledge existed, was indexed nowhere the model reads, and appeared only by luck.</strong></p>
+  </div>
+</section>
+
+<!-- 3 -->
+<section>
+  <div class="sec-head"><span class="num">03</span><h2>A primitive version already exists</h2></div>
+  <p>This idea is not new to the workspace. A hook called <code>relevance-retrieval.js</code> is already registered on every prompt, and its own header describes it as <em>"the rattlesnake reflex for memory recall."</em> It has the right shape and the wrong engine.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Property</th><th>What it does today</th><th>What the proposal needs</th></tr></thead>
+      <tbody>
+        <tr><td>Matching</td><td>Hard-coded keyword <strong>regular expressions</strong> mapped to file paths</td><td>Semantic similarity over embeddings</td></tr>
+        <tr><td>Budget</td><td><strong>800 characters</strong>, one injection per prompt</td><td>Tunable token budget per lane</td></tr>
+        <tr><td>Sources</td><td>A static table written by hand</td><td>The whole 6.4 MB corpus, ranked</td></tr>
+        <tr><td>Network</td><td><strong>None</strong> — "file reads only", &lt;500 ms</td><td>Vector search within a latency budget</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>Eight hundred characters is <strong>0.012%</strong> of the corpus per prompt. The hook is a lookup table wearing the costume of a retrieval system. Crucially, though, <strong>it is already wired into the right place in the request lifecycle</strong> — which turns out to matter enormously, for reasons the next two sections make clear.</p>
+
+  <h3>The retrieval infrastructure is also already running</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Component</th><th>Role in a semantic mesh</th><th>Latency</th></tr></thead>
+      <tbody>
+        <tr><td class="m">Qdrant · jarvis-rag</td><td>Primary semantic search — 4 collections, 2560-dimension Qwen3 vectors</td><td class="n">2–3 s</td></tr>
+        <tr><td class="m">Graphiti · Neo4j</td><td>Structural expansion across entities and relationships</td><td class="n">20–30 s</td></tr>
+        <tr><td class="m">MLX embed :8000</td><td>Embedding provider, already the matching model</td><td class="n">fast</td></tr>
+        <tr><td class="m">relevance-retrieval.js</td><td>The injection point, already registered</td><td class="n">&lt;500 ms</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p><strong>So the missing piece is not infrastructure.</strong> It is the ranking-and-injection layer that connects the vector store to the prompt, with a budget, a relevance floor, and an audit trail.</p>
+</section>
+
+<!-- 4 -->
+<section>
+  <div class="sec-head"><span class="num">04</span><h2>The technical crux: how prompt caching actually works</h2></div>
+  <p>This section decides the architecture. It is not a matter of taste or preference — it is arithmetic, and getting it wrong is the single most expensive mistake available in this design space.</p>
+
+  <p>Prompt caching is a <strong>prefix match</strong>. The system hashes the request from the beginning up to each cache breakpoint. <strong>Any byte that changes anywhere in that prefix invalidates everything after it.</strong> The request is assembled in a fixed order, and that order is what makes injection position so consequential:</p>
+
+  <div class="card">
+    <div class="cap">Request render order, and what each change invalidates</div>
+    <div class="pipe">
+      <div class="pipe-row"><div class="pipe-k">order</div><div class="pipe-v"><span class="seg seg-n">1 · tools</span><span class="seg seg-n">2 · system</span><span class="seg seg-n">3 · messages</span></div></div>
+      <div class="pipe-row"><div class="pipe-k">edit tools</div><div class="pipe-v"><span class="seg seg-no">tools lost</span><span class="seg seg-no">system lost</span><span class="seg seg-no">messages lost</span></div></div>
+      <div class="pipe-row"><div class="pipe-k">switch model</div><div class="pipe-v"><span class="seg seg-no">tools lost</span><span class="seg seg-no">system lost</span><span class="seg seg-no">messages lost</span></div></div>
+      <div class="pipe-row"><div class="pipe-k">edit system</div><div class="pipe-v"><span class="seg seg-ok">tools kept</span><span class="seg seg-no">system lost</span><span class="seg seg-no">messages lost</span></div></div>
+      <div class="pipe-row"><div class="pipe-k">append message</div><div class="pipe-v"><span class="seg seg-ok">tools kept</span><span class="seg seg-ok">system kept</span><span class="seg seg-ok">prefix kept</span></div></div>
+    </div>
+  </div>
+
+  <div class="note bad">
+    <h4>The mistake the naive reading walks straight into</h4>
+    <p>Read the <code>edit system</code> row again. <strong>Injecting retrieved context into the system prompt destroys the system cache and every message after it — on every single turn.</strong> Genie is currently running 234,000 tokens at a 99% cache hit rate; Jacques is at 335,000 tokens, also 99%. Cached reads cost roughly <strong>0.1×</strong> the base input price. Losing the cache means reprocessing the entire conversation at full price, every turn — an input-cost increase of about <strong>tenfold</strong>, with no error message and no visible symptom other than the bill.</p>
+  </div>
+
+  <h3>The mechanism that makes this safe</h3>
+  <p>There is a purpose-built escape hatch, and it is available <strong>today</strong> on Opus 5, Opus 4.8, Fable 5 and Mythos 5, <strong>with no beta header required</strong>:</p>
+
+  <div class="note good">
+    <h4>Append a system-role message to the messages array</h4>
+    <p>Instead of editing the top-level <code>system</code> field, append <code>{"role": "system", "content": "…"}</code> to <code>messages[]</code>. Because it sits <em>after</em> the cached history rather than before it, <strong>the entire cached prefix survives untouched</strong>. This is exactly the shape a semantic mesh needs.</p>
+  </div>
+
+  <p>There is a second property that is easy to overlook and matters just as much:</p>
+
+  <div class="note warn">
+    <h4>It is also the prompt-injection-safe channel — and retrieval makes that essential</h4>
+    <p>Text placed inside a <em>user</em> turn can be forged by anything that writes to user-visible input. <strong>Retrieved documents are precisely that.</strong> A semantic mesh takes third-party file content and places it into the prompt; if that content lands in a user turn, then any retrieved file can impersonate the operator and issue instructions. The <code>role: "system"</code> channel cannot be spoofed from content. This is not a nicety — it is the difference between a retrieval layer and an injection vulnerability.</p>
+  </div>
+
+  <h3>Two more constraints worth knowing before designing</h3>
+  <ul>
+    <li><strong>Four breakpoints maximum</strong> per request, and the minimum cacheable prefix on Opus 5 is <strong>512 tokens</strong> — short injections will not cache at all, silently.</li>
+    <li><strong>A twenty-block lookback window.</strong> Each breakpoint searches backwards at most twenty content blocks to find a previous cache entry. Agentic loops already emit many tool-call and tool-result blocks per turn; adding an injected block each turn eats into that budget and can push a breakpoint out of range, producing a total cache miss that nothing reports.</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section>
+  <div class="sec-head"><span class="num">05</span><h2>Why the gateway is the wrong place to inject</h2></div>
+  <p>Loom sits at the <code>/v1/messages</code> boundary. By the time a request arrives there, Claude Code has already assembled everything — the system prompt, the <code>CLAUDE.md</code> imports, the tool definitions, the entire conversation history, and the new user turn. This creates one decisive asymmetry:</p>
+
+  <p><strong>Claude Code owns the transcript. Loom does not.</strong> Anything Loom adds in flight never becomes part of the client's record of the conversation. Three consequences follow.</p>
+
+  <div class="dia">
+    <pre class="mermaid">
+flowchart LR
+  subgraph G["Gateway injection — Loom appends"]
+    direction TB
+    G1["Turn N<br/>client sends history"] --> G2["Loom appends inject_N"]
+    G2 --> G3["cache WRITE at 1.25×"]
+    G3 --> G4["Turn N+1<br/>client sends history<br/>WITHOUT inject_N"]
+    G4 --> G5["Loom appends inject_N+1<br/>(different content)"]
+    G5 --> G6["inject_N never read<br/>0× return"]
+  end
+  subgraph C["Client injection — hook appends"]
+    direction TB
+    C1["Turn N<br/>hook adds inject_N"] --> C2["enters client transcript"]
+    C2 --> C3["cache WRITE at 1.25×"]
+    C3 --> C4["Turn N+1<br/>history INCLUDES inject_N"]
+    C4 --> C5["cache READ at 0.1×"]
+    C5 --> C6["and every turn after"]
+  end
+  style G6 fill:#fbe8e5,stroke:#b8402f,color:#111823
+  style C5 fill:#e3f4ec,stroke:#1f8a5f,color:#111823
+  style C6 fill:#e3f4ec,stroke:#1f8a5f,color:#111823
+    </pre>
+  </div>
+
+  <h3>Consequence one — injected tokens are paid for and never reused</h3>
+  <div class="ledger">
+    <div class="led lose">
+      <h4>Gateway injection</h4>
+      <div class="big">1.25× · forever</div>
+      <p>Every injected token pays the cache <strong>write</strong> premium and is never read back, because the next request from the client does not contain it.</p>
+      <ul>
+        <li>3,000 tokens injected per turn</li>
+        <li>≈ 3,750 token-equivalents written</li>
+        <li>0 tokens read back</li>
+        <li>Repeats identically every turn</li>
+      </ul>
+    </div>
+    <div class="led win">
+      <h4>Client-side injection</h4>
+      <div class="big">0.1× · thereafter</div>
+      <p>The content enters the transcript, becomes part of the stable prefix, and is served from cache on every subsequent turn.</p>
+      <ul>
+        <li>3,000 tokens injected once</li>
+        <li>≈ 3,750 token-equivalents written once</li>
+        <li>≈ 300 token-equivalents per later turn</li>
+        <li>Amortises across the conversation</li>
+      </ul>
+    </div>
+  </div>
+  <p>The same content costs roughly <strong>twelve times more</strong> when delivered from the gateway than when delivered from the hook. That figure is not a modelling assumption; it falls directly out of the published 1.25× write and 0.1× read multipliers.</p>
+
+  <h3>Consequence two — the transcript develops holes</h3>
+  <p>The model's replies would reference context that the client never recorded. JICM then compresses a transcript with gaps in it, so checkpoints and scrollback summaries describe reasoning whose inputs are missing. After a <code>/clear</code> and restore, the conclusions survive but the evidence for them does not. This interacts badly with a system whose entire premise is careful context preservation.</p>
+
+  <h3>Consequence three — lookback pressure</h3>
+  <p>An extra content block per turn consumes part of the twenty-block lookback window described in section 4. In tool-heavy agentic loops this can silently push a breakpoint out of range.</p>
+
+  <div class="note good">
+    <h4>Where the gateway <em>is</em> exactly right</h4>
+    <p><strong>Single-shot calls have no conversation state to diverge from.</strong> Nexus jobs, cron dispatches and headless persona runs are one request and one response — there is no transcript to keep consistent and no next turn that would have read the cache. For those callers, gateway-side injection is not merely acceptable, it is the <em>only</em> place it can happen, because they have no hook layer at all. This is the observation that lets one system serve both worlds.</p>
+  </div>
+</section>
+
+<!-- 6 -->
+<section>
+  <div class="sec-head"><span class="num">06</span><h2>Recommended architecture — three tiers</h2></div>
+  <p>The split follows directly from the two previous sections. The central move is an inversion of the original proposal: <strong>Loom becomes the retrieval service rather than always being the injector.</strong> That single change lets one implementation serve interactive lanes (where injection must be client-side) and Nexus jobs (where it must be gateway-side).</p>
+
+  <div class="dia">
+    <pre class="mermaid">
+flowchart TB
+  A["<b>Tier A — Static invariants</b><br/>CLAUDE.md · identity · guardrails · form of address<br/>Always resident. Shrink toward invariants only."]
+  B["<b>Tier B — Adaptive injection</b><br/>UserPromptSubmit hook, client-side<br/>Cache-safe · transcript-honest · budgeted · logged<br/>Primary path for interactive Archon lanes"]
+  C["<b>Tier C — Loom retrieval service</b><br/>Embedding · RAG and graph fan-out · ranking · caching · audit<br/>Serves Tier B over HTTP<br/>ALSO injects directly for single-shot Nexus callers"]
+  Q[("Qdrant<br/>jarvis-rag")]
+  G[("Graphiti<br/>Neo4j")]
+  A --- B
+  B -->|"POST /v1/enrich"| C
+  C --> Q
+  C --> G
+  C -.->|"gateway-side injection<br/>single-shot only"| N["Nexus jobs<br/>(no hook layer)"]
+  style A fill:#eceff3,stroke:#c5d0da,color:#111823
+  style B fill:#e2f2f6,stroke:#0e7490,color:#111823
+  style C fill:#e2f2f6,stroke:#0e7490,color:#111823
+    </pre>
+  </div>
+
+  <h3>What happens on an interactive turn</h3>
+  <div class="dia">
+    <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant U as Sir
+  participant H as Hook
+  participant L as Loom
+  participant V as Qdrant
+  participant CC as Claude Code
+  participant M as Model
+  U->>H: types a prompt
+  H->>L: POST /v1/enrich {prompt, cwd, lane, budget}
+  L->>V: embed and search
+  V-->>L: candidate passages with scores
+  L->>L: rank · apply floor · trim to budget · cache
+  L-->>H: passages + provenance + request_id
+  H->>CC: additionalContext (role:"system" block)
+  CC->>M: full request, injection inside the transcript
+  M-->>CC: response
+  Note over CC,M: next turn reads the injection from cache at 0.1×
+    </pre>
+  </div>
+
+  <p>Note what does <em>not</em> change in that diagram: the request still travels upstream through the usage proxy on port 9800 exactly as it does today. The enrichment path runs <strong>alongside</strong> the model path, not in front of it — which avoids chaining two proxies on <code>ANTHROPIC_BASE_URL</code>, a configuration already recorded as breaking Chrome's classifier.</p>
+</section>
+
+<!-- 7 -->
+<section>
+  <div class="sec-head"><span class="num">07</span><h2>What it solves, adds, replaces, and touches</h2></div>
+
+  <h3>Problems it solves</h3>
+  <ol>
+    <li><strong>The 0.67% surfacing problem.</strong> Six and a half megabytes of curated context become reachable by relevance instead of by prior enumeration.</li>
+    <li><strong>Staleness of hand-picked selection.</strong> <code>MEMORY.md</code> is manually curated and capped at 140 lines. Retrieval has no such ceiling and needs no curator.</li>
+    <li><strong>Opacity.</strong> Every injection carries a request identifier, a relevance score, a source path and a reason. The current auto-load mechanism is invisible by comparison — which is precisely the complaint that motivated the proposal.</li>
+    <li><strong>Cross-lane amnesia.</strong> Urist, Genie and Jacques currently have <em>no</em> vector or graph access at all. An HTTP enrichment service reaches them without giving each lane its own MCP stack.</li>
+  </ol>
+
+  <h3>Capabilities it adds</h3>
+  <ul>
+    <li>Semantic ranking, where today there is only keyword matching</li>
+    <li>Provenance and citation for every injected passage</li>
+    <li>A tunable token budget, per lane and per turn</li>
+    <li>Content-hash-keyed caching of enrichments — Loom already has this exact shape for its compression cache</li>
+  </ul>
+
+  <h3>What it replaces</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Component</th><th>Fate</th></tr></thead>
+      <tbody>
+        <tr><td class="m">PATTERN_TRIGGERS table</td><td>Superseded by semantic retrieval. The hook itself survives as the injection point.</td></tr>
+        <tr><td class="m">MEMORY.md link section</td><td>The ~40 hand-maintained pointer links are a manual index of exactly what retrieval does automatically. Should shrink toward invariants.</td></tr>
+        <tr><td class="m">JICM · session-state · L1–L5</td><td><strong>Untouched.</strong> Session-level compression is a different concern from per-turn retrieval; the two compose.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>New infrastructure required</h3>
+  <ol>
+    <li>An <code>/v1/enrich</code> endpoint in Loom, returning ranked passages with provenance</li>
+    <li>Relevance threshold calibration, with an evaluation harness — see section 9</li>
+    <li>An injection budget policy, expressed per lane</li>
+    <li>Cache invalidation when source files change (filesystem watcher bumping a content hash)</li>
+    <li>A provenance format so injected passages remain attributable inside the context</li>
+    <li>Metrics covering injection rate, score distribution, cache hit rate <strong>and measured outcome</strong></li>
+  </ol>
+</section>
+
+<!-- 8 -->
+<section>
+  <div class="sec-head"><span class="num">08</span><h2>Risks, in order of severity</h2></div>
+
+  <div class="card">
+    <div class="cap">Latency budget — the synchronous path must stay under roughly 300 ms</div>
+    <div class="lat">
+      <div class="lat-row"><span class="lat-name">Budget ceiling</span><div class="lat-bar"><div class="lat-in" style="width:1%;background:var(--ink3)"></div></div><span class="lat-v">300 ms</span></div>
+      <div class="lat-row"><span class="lat-name">Existing hook</span><div class="lat-bar"><div class="lat-in" style="width:1.6%;background:var(--good)"></div></div><span class="lat-v">&lt;500 ms</span></div>
+      <div class="lat-row"><span class="lat-name">Qdrant search</span><div class="lat-bar"><div class="lat-in" style="width:10%;background:var(--warn)"></div></div><span class="lat-v">2–3 s</span></div>
+      <div class="lat-row"><span class="lat-name">Graphiti traversal</span><div class="lat-bar"><div class="lat-in" style="width:100%;background:var(--bad)"></div></div><span class="lat-v">20–30 s</span></div>
+    </div>
+  </div>
+  <p>The graph layer is <strong>two orders of magnitude</strong> over any acceptable synchronous budget. It cannot sit on the prompt path. The workable arrangement is Qdrant synchronously within a hard timeout, with Graphiti running asynchronously and its results arriving on a later turn.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr></thead>
+      <tbody>
+        <tr><td>Injecting into the system prompt destroys the cache</td><td><strong>critical</strong></td><td>Never touch <code>system</code> or <code>tools</code>. Append a <code>role:"system"</code> message. Verify with <code>cache_read_input_tokens</code>.</td></tr>
+        <tr><td>Prompt injection carried in retrieved files</td><td>high</td><td>Use the system-role operator channel, never a user turn. Frame retrieved material explicitly as data, with provenance.</td></tr>
+        <tr><td>Retrieval poisoning — irrelevant context degrades output</td><td>high</td><td>A hard relevance floor. A low-scoring passage must be dropped, never included speculatively.</td></tr>
+        <tr><td>Loom's audit has no cache-token fields</td><td>high</td><td>Its schema records only <code>tokens_in</code> and <code>tokens_out</code>. Extend it — the contract explicitly permits extra fields — before routing anything through it.</td></tr>
+        <tr><td>Retrieval fails and the bare prompt is sent</td><td><strong>guardrail</strong></td><td>Must raise an alert. Under the No Silent Degradation rule a failed enrichment is a visible defect, never a quiet fallback.</td></tr>
+        <tr><td>Non-reproducibility — same prompt, different context</td><td>medium</td><td>Log the exact injection against each request identifier so any turn can be replayed.</td></tr>
+        <tr><td>Licence</td><td>contractual</td><td>PolyForm Internal Use 1.0.0 — internal use only. <strong>Never embed in DwarfCron/Chronicler</strong>, which is a portfolio deliverable.</td></tr>
+        <tr><td>OAuth token visible in the audit log</td><td>high</td><td>Loom forwards the Authorization header and Claude Code authenticates by OAuth. Configure scanner redaction <em>before</em> first use.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 9 -->
+<section>
+  <div class="sec-head"><span class="num">09</span><h2>The question nobody can answer yet</h2></div>
+  <div class="note warn">
+    <h4>Does injected context actually improve the output?</h4>
+    <p>There is no evidence either way in this workspace. Under the standing guidance on testing chaotic models, a single run cannot attribute a change — establishing this needs a fixed task set, K paired variants, and a signed-rank test, with injection on or off as the only varied factor.</p>
+    <p><strong>Build the evaluation harness before building the retriever.</strong> Without it the mesh is unfalsifiable: it will always <em>look</em> as though it is working, because context is visibly present, and no one will be able to say whether the answers got better. A system that cannot fail a test cannot pass one either.</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section>
+  <div class="sec-head"><span class="num">10</span><h2>Phased plan</h2></div>
+  <div class="phases">
+    <div class="ph"><div class="ph-n">0</div><div class="ph-b"><h4>Reconcile the existing design documents</h4><p>Update the five documents from March in place, against what loom-oss has become. They are the institutional record; a sixth document would fragment it.</p></div></div>
+    <div class="ph"><div class="ph-n">1</div><div class="ph-b"><h4>Build the evaluation harness first</h4><p>A fixed task set, paired on-and-off runs, and a scoring method — before any retriever exists to be flattered by it.</p></div></div>
+    <div class="ph"><div class="ph-n">2</div><div class="ph-b"><h4>Deploy Loom inert</h4><p>Port 4444, SQLite backend, no lane routed to it. Confirm health endpoint and dashboard.</p><span class="ph-gate">gate: /health responds</span></div></div>
+    <div class="ph"><div class="ph-n">3</div><div class="ph-b"><h4>Extend the audit schema</h4><p>Add cache-token fields, so the telemetry Aion already depends on survives the transition.</p><span class="ph-gate">gate: cache_read_input_tokens present</span></div></div>
+    <div class="ph"><div class="ph-n">4</div><div class="ph-b"><h4>Implement /v1/enrich</h4><p>Qdrant only. Hard latency budget. No graph traversal on the synchronous path.</p><span class="ph-gate">gate: p95 under 300 ms</span></div></div>
+    <div class="ph"><div class="ph-n">5</div><div class="ph-b"><h4>Rewire the hook, one lane only</h4><p>Point <code>relevance-retrieval.js</code> at the service on a single low-value lane — not W0, not Genie.</p><span class="ph-gate">gate: cache hit rate unchanged from baseline</span></div></div>
+    <div class="ph gate"><div class="ph-n">6</div><div class="ph-b"><h4>A/B test — the hard gate</h4><p>Run the harness from phase 1. If paired testing shows no improvement, <strong>stop and redesign the retrieval approach</strong>. Do not ship it merely because the infrastructure now exists.</p><span class="ph-gate">gate: measured improvement, or stop</span></div></div>
+    <div class="ph"><div class="ph-n">7</div><div class="ph-b"><h4>Roll out and wire Nexus</h4><p>Remaining lanes, then point Nexus at the four stable endpoints — an API whose own documentation calls it the "Core Nexus contract."</p></div></div>
+    <div class="ph"><div class="ph-n">8</div><div class="ph-b"><h4>Revive the training-capture design</h4><p>The original March intent, now far cheaper because Loom's audit layer already records what those documents proposed instrumenting by hand.</p></div></div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section>
+  <div class="sec-head"><span class="num">11</span><h2>Verdict</h2></div>
+  <p><strong>The diagnosis is right.</strong> Static memory surfaces less than one percent of the corpus, by a selection fixed in advance, and this very session produced a concrete instance of the resulting failure.</p>
+  <p><strong>The mechanism is right.</strong> System-role messages appended to the messages array are both cache-preserving and injection-safe. They are, in effect, purpose-built for this.</p>
+  <p><strong>The placement needs one inversion.</strong> Loom should be the retrieval service; the injection point for interactive lanes stays client-side in the hook, because Claude Code owns the transcript and the cache economics differ by roughly twelvefold. Loom still injects directly for single-shot Nexus callers, which have no hook layer and no transcript to diverge from.</p>
+  <div class="note">
+    <h4>The strongest argument for building it</h4>
+    <p>It is not token savings — those are marginal. It is that a system whose institutional memory is <strong>150 times larger than what it can see</strong> has a specific, addressable, measurable defect, and every piece of infrastructure needed to fix it is already running on this machine.</p>
+  </div>
+</section>
+
+<footer>
+  <div>Companion document: <code>projects/project-aion/plans/loom-semantic-mesh-design.md</code></div>
+  <div>Extends the five 2026-03-29 Loom documents in <code>alfred/.claude/context/systems/</code> — training capture, a complementary concern.</div>
+  <div>Analysis only. No implementation performed. All figures measured on this workspace, 2026-08-27.</div>
+</footer>
+
+</div>
