@@ -25,6 +25,21 @@
   is the v7.9 W0-only singleton that used to be called "the watcher"; it is not launched by
   anything. Do not revive it: cycling, MAINTAIN and REST all moved to the daemon above.
 
+### Status Line
+- `jarvis-statusline-v9.sh` — **THE shared status line for every Archon lane.** One layout for
+  all six Claude lanes (Jarvis, Protos, Urist, Jarvis-dev, Genie, Jacques); it contains no
+  persona branching by design.
+  Referenced by **ABSOLUTE path** from every `settings.json`, because `$CLAUDE_PROJECT_DIR`
+  resolves to the satellite dir for lanes rooted outside `Project_Aion/` (`alfred/`,
+  `Projects/DwarfCron/`, `Projects/WVU/`, `Projects/SnorkelTasks/`), none of which have
+  `.claude/scripts/` — a relative path renders nothing, silently.
+  **A lane that renders a different layout is drift, not configuration.** It means that lane's
+  project `settings.json` omits `statusLine` and fell through to the user-level default. Fix by
+  adding the key, not by editing the script.
+  For `alfred/`, the key must be added to `alfred/scripts/profile-loader.js` — that script
+  overwrites `alfred/.claude/settings.json` wholesale and never reads the existing file.
+- `archived/jarvis-statusline-v8.sh` — superseded 2026-08-26. Do not revive.
+
 ### Signal-Based Automation
 - `signal-helper.sh` — Signal utility functions
 - `jarvis-watcher.sh` — Legacy v5 watcher (command signal execution only)

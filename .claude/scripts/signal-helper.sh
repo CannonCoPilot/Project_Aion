@@ -516,7 +516,7 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
                 printf "Cost: \$%.2f\n" "$COST"
             else
                 echo "ERROR: Statusline capture not found at $STATUSLINE_FILE"
-                echo "Ensure jarvis-statusline.sh is configured in ~/.claude/settings.json"
+                echo "Ensure jarvis-statusline-v9.sh is configured as statusLine in ~/.claude/settings.json"
             fi
             ;;
         pending)
