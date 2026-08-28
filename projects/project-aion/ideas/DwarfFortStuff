@@ -997,7 +997,7 @@ Add by-age gender violin plots to Demographics tab
 ~~~~~~~~~~~~~~~~~~~~~~~
 ---- chronicler DB Checks ----
 user: jarvis
-pass: OSDbeydP6TOBGoJUym6rTBfULKJYqqPE
+pass: ${POSTGRES_PASSWORD}  # value in .claude/secrets/credentials.yaml
 
 cd /Users/nathanielcannon/Claude/Projects/DwarfCron
 source .venv/bin/activate

@@ -34,7 +34,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
 HF_ID = 19639
 WORLD_ID = 1
 OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_DSN = "postgresql://jarvis:OSDbeydP6TOBGoJUym6rTBfULKJYqqPE@localhost:5432/chronicler"
+import os  # noqa: E402  — credential must never be a literal in a TRACKED file
+DB_DSN = os.environ.get(
+    "CHRONICLER_DSN",
+    "postgresql://jarvis:{}@localhost:5432/chronicler".format(
+        os.environ["POSTGRES_PASSWORD"]))
 
 
 async def query(conn, label, sql, *args):

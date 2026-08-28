@@ -255,7 +255,7 @@ This is the same merge strategy used by Java-based Legends Viewer — parse base
 - `repos/` blocks cloned reference repos (dfhack, Dwarf-Therapist) which are third-party and shouldn't be vendored
 - The repo stays at ~3.5MB instead of ~1.1GB
 
-**Note**: `chronicler/config.py` contains a hardcoded DB password fallback (`OSDbeydP6TOBGoJUym6rTBfULKJYqqPE`). Since the repo is private and this is a local Docker postgres password, it's low risk — but if you ever make the repo public, that should be moved to env-only.
+**Note**: `chronicler/config.py` contains a hardcoded DB password fallback (`<redacted 2026-08-28 — value in .claude/secrets/credentials.yaml>`). ⚠️ CORRECTED 2026-08-28: THE REPO IS PUBLIC (`private: false`), so this rationale was FALSE WHEN WRITTEN and the credential was published. Rotation, not redaction, is the remedy. Original note follows: Since the repo is private and this is a local Docker postgres password, it's low risk — but if you ever make the repo public, that should be moved to env-only.
 
 ### 2026-02-20 [05460e52ad36]
 

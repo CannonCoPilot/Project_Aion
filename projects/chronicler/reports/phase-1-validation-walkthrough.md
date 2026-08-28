@@ -24,7 +24,7 @@ cd /Users/nathanielcannon/Claude/Projects/DwarfCron
 .venv/bin/pip install -e .
 ```
 user: jarvis
-pass: OSDbeydP6TOBGoJUym6rTBfULKJYqqPE
+pass: ${POSTGRES_PASSWORD}  # value in .claude/secrets/credentials.yaml
 ---
 
 ## Overview: What the Phase 1 DoD Requires
