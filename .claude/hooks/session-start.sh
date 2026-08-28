@@ -671,7 +671,13 @@ fi
 # time out after 60s and nudge blind). A key with no checkpoint gets a minimal nudge to its own
 # scratchpad — the same treatment dev gets, and NEVER W0's context.
 if [[ "$SOURCE" == "clear" ]] && [[ "$JICM_KEY" != "w0" ]] && [[ "$JICM_KEY" != "dev" ]]; then
-    KEY_SCRATCH=".claude/context/.scratchpad.${JICM_KEY}.md"
+    # ABSOLUTE (2026-08-27), for the same reason jicm-actuate.sh:_scratchpad_path is:
+    # a relative hint assumes the lane's cwd is the monorepo, which is false for every
+    # out-of-tree lane (urist=Projects/DwarfCron, genie=Projects/WVU, jaques). Those are
+    # exactly the lanes that reach this branch. Prefer the config-derived JK_SCRATCHPAD
+    # so this stays one source of truth with jicm-config.sh:jicm_key_paths; fall back to
+    # the absolute construction if config failed to load.
+    KEY_SCRATCH="${JK_SCRATCHPAD:-$PROJECT_DIR/.claude/context/.scratchpad.${JICM_KEY}.md}"
     if [[ -f "$JK_COMPRESSED" ]]; then
         echo "$TIMESTAMP | SessionStart | JICM key=$JICM_KEY: injecting OWN checkpoint ($(wc -c < "$JK_COMPRESSED" | tr -d ' ') bytes)" >> "$LOG_DIR/session-start-diagnostic.log"
         KEY_CTX="Context cleared, $LOCAL_DATE at $LOCAL_TIME (lane: $JICM_KEY).

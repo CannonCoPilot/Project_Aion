@@ -209,15 +209,26 @@ _resolve_target() {
 # than re-cased here: this used to be a second, independent definition, and it disagreed
 # with jicm-config.sh's — the nudge sent the session to one file while prep read another.
 # One source of truth; a path can no longer drift between the two sides of a cycle.
-_scratchpad_rel() { echo "${JK_SCRATCHPAD#$PROJECT_DIR/}"; }
+#
+# ABSOLUTE, not PROJECT_DIR-relative (2026-08-27). The old form stripped "$PROJECT_DIR/"
+# and emitted a relative path, which silently assumed the target lane's cwd IS the
+# monorepo. That holds for w0/dev/protos and is false for every out-of-tree lane —
+# urist (cwd=Projects/DwarfCron), genie (Projects/WVU), jaques — all of which set
+# JICM_PROJECT_DIR precisely because they launch elsewhere. Observed live on urist:
+# the resume nudge sent it to DwarfCron/.claude/context/jicm/checkpoints/urist.compressed.md,
+# which does not exist, while its real 12.7KB checkpoint sat in the monorepo. The flush
+# prompt (step 1.5) had the same defect in the WRITE direction — it asked an out-of-tree
+# lane to save working state to a path nothing on the read side ever consults.
+# An absolute path is correct from any cwd, so this needs no per-lane table to drift.
+_scratchpad_path() { echo "$JK_SCRATCHPAD"; }
 _resume_prompt() {
     # "Watcher here." prefix = filter parity: jicm-prep-context.sh's user-message
     # filter excludes startswith("Watcher here.") so this nudge never pollutes a
     # future checkpoint. SAFE vs the W0 legacy watcher's HALT session-detection, which
     # matches the SPECIFIC phrase "Watcher here. Context is getting heavy" (prep
     # find_best_jsonl:139), never a bare prefix — so "Refresh complete" can't collide.
-    local ck; ck="${JK_COMPRESSED#$PROJECT_DIR/}"
-    echo "Watcher here. Refresh complete — read $ck for current state and $(_scratchpad_rel) for transient working details, then resume work immediately. No greeting needed."
+    local ck; ck="$JK_COMPRESSED"
+    echo "Watcher here. Refresh complete — read $ck for current state and $(_scratchpad_path) for transient working details, then resume work immediately. No greeting needed."
 }
 
 # --- Injection + idle/signal primitives (proven mechanism, key-targeted) -----
@@ -298,7 +309,7 @@ _step_flush() {   # 1.5 — ask the live session to flush working state before w
     if [[ -z "$TMUX_TARGET" || ! -x "$INJECT_SCRIPT" ]]; then
         _log "1.5 flush skipped (no pane to prompt — self/background key)"; return 0
     fi
-    local rel; rel="$(_scratchpad_rel)"
+    local rel; rel="$(_scratchpad_path)"
     # "Watcher here." prefix = the same filter parity the resume nudge relies on:
     # jicm-prep-context.sh drops user messages starting with it, so this instruction
     # never reads back as if the USER had asked for it.
@@ -801,19 +812,20 @@ cmd_sense() {
 }
 
 # DELIBERATIVE PRE-FLIGHT (prepare) — save-gate over the key's durable state; NO clear.
-# Ported + generalized from jicm-self.sh:cmd_prepare (per-key scratchpad via _scratchpad_rel).
+# Ported + generalized from jicm-self.sh:cmd_prepare (per-key scratchpad via _scratchpad_path).
 cmd_prepare() {
     local key="$1"
     jicm_key_paths "$key"
-    local scratch="$PROJECT_DIR/$(_scratchpad_rel)" now age ready=1
+    local scratch; scratch="$(_scratchpad_path)"
+    local now age ready=1
     now="$(date +%s)"
     echo "jicm-actuate · prepare · key=$key · deliberate save-gate (NO clear performed):"
     if [[ -f "$scratch" ]]; then
         age=$(( (now - $(stat -f %m "$scratch" 2>/dev/null || echo "$now")) / 60 ))
-        echo "  scratchpad : present, ${age}m ago  ($(_scratchpad_rel))"
+        echo "  scratchpad : present, ${age}m ago  ($(_scratchpad_path))"
         [[ "$age" -gt 30 ]] && ready=0
     else
-        echo "  scratchpad : MISSING — write working state to $(_scratchpad_rel) first"; ready=0
+        echo "  scratchpad : MISSING — write working state to $(_scratchpad_path) first"; ready=0
     fi
     if [[ -f "$JK_COMPRESSED" ]]; then
         echo "  checkpoint : present, $(( (now - $(stat -f %m "$JK_COMPRESSED" 2>/dev/null || echo "$now")) / 60 ))m old"
