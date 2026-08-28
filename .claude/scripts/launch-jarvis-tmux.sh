@@ -350,14 +350,72 @@ preflight_services() {
         echo -e "  ${YELLOW}!${NC} Pulse API — not reachable on :8800"
     fi
 
-    # 8. Usage Proxy + failover logic
+    # 8. Usage Proxy — repair, then alert, then acknowledge
+    # This block used to `unset ANTHROPIC_BASE_URL` on a failed health check and
+    # print one yellow line. Every lane then launched straight to
+    # api.anthropic.com: sessions worked, all cost/cache telemetry stopped, and
+    # nothing alerted. `PROXY_OFFLINE` was set and read by nothing.
+    # That is No Silent Degradation violated by our own launcher. Kept in step
+    # with the same block in launch-aion.sh — fix both or neither.
     if curl -sf --max-time 2 http://localhost:9800/health >/dev/null 2>&1; then
         echo -e "  ${GREEN}✓${NC} Usage Proxy (localhost:9800)"
         export ANTHROPIC_BASE_URL="http://localhost:9800"
     else
-        echo -e "  ${YELLOW}⚠${NC} Usage Proxy DOWN — Claude Code will route direct to Anthropic (telemetry offline)"
-        unset ANTHROPIC_BASE_URL
-        PROXY_OFFLINE=true
+        # REPAIR. `docker start` on the container by name, deliberately not the
+        # compose path used by `--restart proxy` below: that one cd's into
+        # $HOME/Claude/Alfred-Dev, a pre-monorepo location.
+        echo -e "  ${YELLOW}…${NC} Usage Proxy not answering — starting container..."
+        docker start aifred-dev-usage-proxy >/dev/null 2>&1
+        local proxy_waited=0
+        while [[ $proxy_waited -lt 20 ]]; do
+            curl -sf --max-time 2 http://localhost:9800/health >/dev/null 2>&1 && break
+            sleep 2; proxy_waited=$((proxy_waited + 2))
+        done
+
+        if curl -sf --max-time 2 http://localhost:9800/health >/dev/null 2>&1; then
+            echo -e "  ${GREEN}✓${NC} Usage Proxy (localhost:9800) — recovered after ${proxy_waited}s"
+            export ANTHROPIC_BASE_URL="http://localhost:9800"
+        else
+            # ALERT. Critical, not a warning — invisible from inside a session
+            # because the lanes keep working.
+            unset ANTHROPIC_BASE_URL
+            PROXY_OFFLINE=true
+            failures=$((failures + 1))
+            echo -e "  ${RED}✗${NC} ${RED}Usage Proxy DOWN after ${proxy_waited}s of repair attempts${NC}"
+            echo -e "    ${RED}EVERY LANE WILL RUN UNTELEMETERED.${NC} Sessions will work normally."
+            echo -e "    ${RED}No cost, cache or rate-limit data will be recorded for this run.${NC}"
+            echo -e "    Diagnose: ${CYAN}docker logs --tail 50 aifred-dev-usage-proxy${NC}"
+
+            local inbox="$PROJECT_DIR/.claude/scripts/aion-inbox.sh"
+            if [[ -x "$inbox" ]]; then
+                printf '%s\n' \
+                    "Usage proxy :9800 failed its health check at launch and did NOT recover after ${proxy_waited}s of auto-start attempts." \
+                    "" \
+                    "ANTHROPIC_BASE_URL is unset, so every lane launched this run routes DIRECT to api.anthropic.com." \
+                    "Sessions work normally. Cost, cache and rate-limit telemetry are NOT being recorded." \
+                    "" \
+                    "This is a visible defect that stays OPEN until the proxy is restored." \
+                    "Diagnose: docker logs --tail 50 aifred-dev-usage-proxy" \
+                    "Restore:  docker start aifred-dev-usage-proxy" \
+                    | "$inbox" send w0 --from launch-jarvis-tmux --subject "TELEMETRY OFF — usage proxy down at launch" --no-nudge >/dev/null 2>&1
+            fi
+
+            # ACKNOWLEDGE. Must `exit`, not `return`: BOTH callers of
+            # preflight_services discard the return value, so a `return 1`
+            # would abort nothing and launch untelemetered regardless.
+            if [[ -t 0 \
+                  && "${HEALTH_CHECK_ONLY:-false}" != "true" \
+                  && "${AION_ALLOW_UNTELEMETERED:-0}" != "1" ]]; then
+                echo ""
+                echo -ne "  ${YELLOW}Launch anyway, with telemetry off? [y/N] ${NC}"
+                local proxy_ack=""
+                read -r proxy_ack
+                case "$proxy_ack" in
+                    y|Y|yes|YES) echo -e "  ${YELLOW}Acknowledged — continuing untelemetered.${NC}" ;;
+                    *) echo -e "  ${RED}Aborted. Restore the proxy and relaunch.${NC}"; exit 1 ;;
+                esac
+            fi
+        fi
     fi
 
     # 9. Pipeline Watcher (Docker container)
@@ -399,6 +457,18 @@ preflight_services() {
         echo -e "${RED}Pre-flight: $failures critical service(s) failed. Continuing anyway...${NC}"
     else
         echo -e "${GREEN}Pre-flight: all services healthy.${NC}"
+    fi
+
+    # PROXY_OFFLINE used to be set and read by nothing. It is now the last thing
+    # printed, because a defect the operator scrolled past is a defect nobody has.
+    if [[ "$PROXY_OFFLINE" == "true" ]]; then
+        echo ""
+        echo -e "${RED}╔══════════════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${RED}║  TELEMETRY IS OFF FOR THIS RUN                                   ║${NC}"
+        echo -e "${RED}║  The usage proxy did not come up. Lanes route direct to the API. ║${NC}"
+        echo -e "${RED}║  Cost, cache and rate-limit data are NOT being recorded.         ║${NC}"
+        echo -e "${RED}║  Restore: docker start aifred-dev-usage-proxy, then relaunch.    ║${NC}"
+        echo -e "${RED}╚══════════════════════════════════════════════════════════════════╝${NC}"
     fi
     echo ""
 }
