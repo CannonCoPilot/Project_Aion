@@ -1,0 +1,131 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+Pruned 2026-08-26 (207 → 80); prior `.scratchpad.md.pre-prune-20260826`. Earlier prunes 08-25/23/22/21.
+Durable elsewhere (do NOT re-summarise here): far-chaining → `collation_read._rows_and_lines` comment ·
+S6-bar rationale → top of `score_head_regions` · cand-4 / R2.2l / three-wrong-bars / the R2.2n+R2.2o
+span-rule refutations / the 15-instance signature-defect tally → `OCR-ROADMAP.md` · bar rules → **L2**
+`reference_instrument_independence_and_bars.md`.
+Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+
+## ✅ 2026-08-26 — SUITE o GREEN (41 cmds, 137 lines, 0 anchored FAILs) → COMMITTED `09e45ac`.
+**WORKING TREE CLEAN.** Four commits now unpushed: `db013a0` · `884e9c0` · `1c87a64` · `09e45ac`.
+### 🔴 R14.6a CLOSED — **DISTANT SUPERVISION CANNOT LABEL MARGINALIA, THE ONE CLASS THAT MATTERS.**
+`witness/audit_label_sources.py`, exit 1, prints **`MARGINALIA label sources ADMISSIBLE : 0/2`**.
+ADMISSIBLE (5/7): MainText (150,834 verse reads / 5 files in `originaldr/reconstruction/reads/`) ·
+Argument (1,334 blocks) · RunningHead · Catchword/Signature · VerseNumber.
+🔴 **Marginalia ABSENT** — §3.2 item 2 + R14.6 said *"from the 1,334 apparatus blocks"*; **all 1,334 are
+`kind='argument'`** (0 note, all 5 reads files checked). Argument ≠ MarginNote (archetype C vs B). FIXED.
+🟡 **`scan_marginal` (214,453 words) CIRCULAR — DO NOT USE.** It is `margin_by_page` = `layout.type_lines`'
+OWN output ⇒ agreement READS AS VALIDATION. **A circular label is worse than a missing one** (visible).
+⇒ **R14.1's fine-tune would teach every class EXCEPT the one it was redirected to fix** (Surya MN 0/19).
+### 📌 REGISTER STATE (current): OPEN **86** · ceilings claim **13/86** · uncovered **36** · standard **41 cmds**.
+⚠️ **REGISTER TRAP (new, cost one wrong denominator)**: the OPEN block is **parsed for step ids**, so
+naming a **CLOSED** step in the register's own prose — even parenthetically, as attribution — **enrols it
+as OPEN**. Read 87 until "filed by R14.6a's finding" became "filed by the label-source audit".
+⚠️ **CLAIM-HEADLINE RULE**: the standard binds to a claim's **FIRST** fraction, which becomes the suite
+log's status line ⇒ **lead with the REPRESENTATIVE fraction, never the flattering one** (`0/2` before
+`5/7`). Learned when `20/20` made a run whose finding was `0/19` read as "Surya: 20/20".
+
+### 🔴🔴 RESUME HERE — **R14.6c (DECIDED, unblocked). R14.6b BLOCKED ON SIR.**
+**R14.6c** = generate labels for the **6 admissible classes (Marginalia INCLUDED as of 08-26)** over
+leaves 400–419, then **SCORE them vs
+the 121-entry hand gold `witness/gold/head_regions_OT1-1609-B_400-419.json` BEFORE any corpus-scale run.**
+⚠️ **The gold is the generator's SCORER, never its trainer.** Follow `score_surya_layout.py`'s discipline:
+**page-fraction addressing** (`xlf/xrf/y0f/y1f`, R2.2c), bind by **BEST overlap**, **orphans reported
+separately, never folded into accuracy**, label map **DECLARED before the run**. Then register the command
+(41→42), re-run `audit_prereq_ceilings` if the register moves, suite, commit green.
+### ✅✅ 2026-08-26 — **R14.6b RESOLVED WITHOUT A SCRAPE. MARGINALIA IS ADMISSIBLE. R14.1 UNBLOCKED.**
+🔴 **I WAS WRONG TWICE, ONE ROOT CAUSE: a "nothing exists" verdict from a ONE-LOCATION search.**
+**SRC IS ON DISK** → `/Users/nathanielcannon/Claude/Projects/palimpsest/.scratch/original-douay-rheims`
+(34MB). It is at **`palimpsest/.scratch/`, NOT `ocr-spike/.scratch/`** where I looked. Holds
+`annotations/` (394 files, 53 books) = **3,754 side-note objects + 3,538 `<mn>` anchors**. README:
+*"OT 1609, NT 1582 … rendered faithfully from the original printed volumes"*, **CC0** ⇒ OUR EDITION.
+🚫 **DO NOT SCRAPE odr_com.** Sir authorised it, but the data is ALREADY LOCAL + CC0 + edition-matched,
+so the redundant outward-facing fetch was NOT performed. **Asked Sir to re-scope R14.6b from "scrape"
+→ "INGEST THE LOCAL SRC CORPUS" — UNANSWERED.**
+🎁 **The notes carry the VERSE THEY ATTACH TO** ⇒ S5 / Gate 10e note↔verse relation FOR FREE.
+✅ Audit fixed + re-run: **`1/2` Marginalia sources admissible · `6/7` classes · exit 1** (healthy —
+the CIRCULAR source still sits unguarded beside the real one).
+✅ **BOTH run-1 findings SURVIVE:** (1) §3.2 item 2 + R14.6 name the WRONG source (the 1,334 blocks are
+ALL `kind='argument'`; Argument = archetype C, MarginNote = archetype B). (2) **`scan_marginal`
+(214,453 w) IS CIRCULAR — NEVER SUBSTITUTE** (it is `layout.type_lines`' own output).
+### 🔴🔴🔴 **2026-08-26 LATE — SIR SUPPLIED THE PATH. THE WHOLE TRANSCRIPTION TREE WAS NEVER SEARCHED.**
+**⇒ `/Users/nathanielcannon/Claude/Projects/palimpsest/imports/Scripture/Bibles/DouayRheims_DR/sources/`**
+`transcriptions/` holds FOUR unexamined corpora: **`madueke` · `originaldouayrheims-com` · `janvier` ·
+`s-dismas`**. (Sibling `sources/scans/` is the JP2 leaf path already in use — I used it and never
+looked at its siblings.)
+🔴 **ROOT CAUSE OF MY 3rd FALSE ABSENCE — A TRUNCATED SEARCH REPORTED AS EXHAUSTIVE.** I ran
+`find ~/Claude -maxdepth 7`; that path is at **depth 8**, so the search was CUT OFF and I wrote
+"searched ALL of `~/Claude`". **A depth-bounded find returns "not found" in EXACTLY the same shape as
+an exhaustive one — no error, no warning.** ⚠️ **NEVER report a bounded search as exhaustive; state the
+bound, or use `-maxdepth` high enough / none.** (1st: wrong dir for SRC. 2nd: audit searched only
+`reconstruction/reads/`. 3rd: this. Same disease — a limit that does not announce itself.)
+### ✅ **MADUEKE FOUND — NOT GONE.** `transcriptions/madueke/`: **`madueke-b__Original-Douay-Rheims-
+Bible-Merged.pdf` (28.5MB)** + **`madueke-a__…pdf` (5MB)** + `raw-a-webscrape/` + `raw-b-extract/`.
+⚠️ `ingest_madueke_b.py` looks for `originaldr/sources/madueke-b/Original-DouayRheims-Bible.pdf` —
+**a DIFFERENT path that does not exist**. The ingest is reproducible again if that path is repointed
+(R11.3a pinning should point HERE). Derived `reads/madueke_b.json` + `.claude/scratch/madueke_b_bbox.xhtml` also present.
+### 🔴 **REVISIT MARGINALIA — THE odr_com SCRAPE WAS ALREADY DONE. DO NOT RE-SCRAPE.**
+**`transcriptions/originaldouayrheims-com/apparatus/` = 763 files**, per-book JSON (`acts.json`,
+`colossians.json`, …) + `_coverage-report.json` + `_raw/`; whole dir 31MB, 1,469 files incl.
+`scrape-workspace/`. ⇒ The cross-map note *"odr_com apparatus = raw scrape follow-up (not in
+odr_com.json)"* meant **not folded into `odr_com.json`**, NOT "never scraped".
+⚠️ **`janvier/original-douay-rheims-repo/` has the SAME shape as the SRC clone** (annotations · bible ·
+LICENSE · README · SCHEMA) ⇒ **`.scratch/original-douay-rheims` is probably a COPY of janvier**, so my
+"3,754 side-notes" may be the SAME corpus counted from a scratch copy rather than a 2nd witness.
+**MUST CHECK before claiming two independent Marginalia sources** (diff janvier vs .scratch; then
+compare BOTH against `originaldouayrheims-com/apparatus/`, which may be a genuinely INDEPENDENT one).
+### ➡️ **NEXT, IN ORDER:** (1) diff janvier vs `.scratch/original-douay-rheims`; inventory
+`odr-com/apparatus/` (n notes, per-verse anchors?) (2) **re-scope R14.6b → "INGEST THE LOCAL CORPORA"**
+(Sir directed; NO scrape) and rewrite the stale R14.6a/R14.6b doc text (3) re-run
+`audit_label_sources.py` with ALL FOUR corpora as searched locations + record the maxdepth lesson
+(4) commit chores below.
+### 📜 VISUAL REPORT PUBLISHED — republish the SAME path to keep the URL:
+`scratchpad/r14-6a-forensic.html` → https://claude.ai/code/artifact/127029f3-e38a-4574-bcf6-6b6de7e41d12
+### ⏭️ **COMMIT NOT DONE** (Sir asked; nothing committed since `1c87a64`). Uncommitted:
+`witness/audit_label_sources.py` (NEW, corrected) · `OCR-MASTERPLAN.md` · `OCR-ROADMAP.md`.
+🔴 **BOTH DOC EDITS STILL TELL THE STALE "MARGINALIA IS BLOCKED" STORY — REWRITE the R14.6a RESULT
+block + R14.6b row to the CORRECTED story BEFORE committing.** Then (1) register
+`audit_label_sources.py` in the standard's AUDIT block (40→41; claim's FIRST fraction = **`1/2`**,
+which it now prints) (2) file **R14.6b · R14.6c** in the OPEN register (84→86) (3) re-measure
+`audit_prereq_ceilings` + update its claim (now **11/84**) (4) suite ~45 min (5) commit ONLY green.
+### ➡️ THEN: **R14.1** (blocked on Marginalia labels) · **R2.2o.1b** (body-block gap gold; lifts the
+head-band coverage limit on BOTH R2.2o.1 and R14.0, and BLOCKS R2.2o.2) · **R15.1** gate-register audit
+(insurance, off the model's critical path) · **R13.1** wiring (S6, recognition, not boxing).
+
+## 📌 QUOTING RULES for the two live scores (full result blocks are in `OCR-ROADMAP.md` R14.0 / R2.2o.1)
+* **R14.0 surya vs `region_head`**: WINS MT 80/80 vs 67/80, TIES RH, **LOSES MN 0/19 vs 17/19** ⇒ the
+  geometric part is **THE ONLY THING THAT CAN NAME A MARGINAL NOTE** = the §3.2 item 5 **clamp** role.
+* ⚠️ **MT 80/80 IS CONTAINMENT, NEVER QUOTE AS A WIN** (bound boxes median **0.5555 of the PAGE**; Gate
+  10b unmeasured). ⚠️ Both scores are **TOP 3 ROWS ONLY** ⇒ **never quote R2.2o.1's "99.5%"**.
+* ⚠️ **MN 0.8947 "rests on two cancelling errors"** (`region_head` L169) ⇒ R2.2o.4 must re-audit the 19.
+* ⚠️ `LayoutPredictor` needs `llama-server` (NOT installed; `brew install llama.cpp`); `FastLayoutPredictor`
+  does not — recorded, not routed around.
+* ⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — read 20/20 while 13 running heads were orphaned. Any
+  row-clustering criterion needs a companion that sees the head and note grids.
+
+## ⚙️ SUITE — OPERATIONAL RULES (~45 min, 41 cmds, 4 heavy scorers at 20-25 min each)
+⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). BACKGROUND **with `-u`**.
+⚠️ **NEVER two suites at once** (d/e raced); kill by exact PID. ⚠️ **Do NOT edit tracked `witness/` code
+while a suite runs** — the scorers are read at run time.
+⚠️ **`grep -c FAIL` FALSE-POSITIVES** (a HEADING contains 'FAIL') — anchor: `grep -nE '^ *FAIL|^FAILED'`.
+⚠️ `ps aux | grep -c "[t]est_..."` ALSO false-positives (the SHELL carries the pattern in its own argv);
+**bracket ≠ self-match proof**. ⚠️ **A KILLED WATCHER IS NOT A KILLED SUITE** — check `ps` + log progress,
+never a notification's status word. ⚠️ **CPU ≪ elapsed ≠ hung** when children exist; `pgrep -P` first.
+⚠️ Claims parse ONLY in ``` fences, only if the line has `->`; a decimal pair is a TRAP
+(`acc 0.8760 / 1.0000` → `8760/1`). **Block membership, not claim text, decides if exit 1 is healthy.
+Editing the OPEN register ⇒ ALWAYS re-run `audit_prereq_ceilings` + update its claim.**
+⚠️ **NEVER `git add -A`** here — staging stays deliberate and scoped by path.
+
+## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source lives in the SESSION scratchpad, not
+the repo — **re-extract via WebFetch before editing.** `scratchpad/originaldr-architecture.html` →
+https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+* 🔴 **Pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`; `.git/hooks/`=samples).
+  Manual run: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+* `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDRnotes` 192 KB untracked — deliberately
+  NOT gitignored so the fragility stays visible; believed Sir's. **Leave both.**
+* **R11.2b**: the standard parses only `witness/`-prefixed cmds ⇒ 2 repo-root R11 entries **uncovered**
+  (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+* ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never
+  edit, R7.5d).

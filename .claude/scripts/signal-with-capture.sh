@@ -47,7 +47,7 @@ fi
 # Check tmux session exists
 if ! "$TMUX_BIN" has-session -t "$TMUX_SESSION" 2>/dev/null; then
     echo -e "${RED}ERROR: tmux session '$TMUX_SESSION' not found${NC}"
-    echo "Start Jarvis with: .claude/scripts/launch-jarvis-tmux.sh"
+    echo "Start Jarvis with: .claude/scripts/launch-aion.sh"
     exit 1
 fi
 

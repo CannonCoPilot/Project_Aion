@@ -1,4 +1,45 @@
 #!/bin/bash
+# ============================================================================
+# ⛔ RETIRED 2026-08-27 — SUPERSEDED BY .claude/scripts/launch-aion.sh
+# ============================================================================
+# DO NOT REVIVE. DO NOT EDIT TO "KEEP IT WORKING."
+#
+# This is the pre-monorepo launcher. It describes the old "Aion Quartet"
+# layout (Claude / Watcher / Ennoia / Commands) in the comment below; the
+# live environment is 14 tmux windows with six Claude lanes, built by
+# launch-aion.sh. Nothing invoked this file at retirement: no launchd plist,
+# no shell alias, no crontab entry, no hook. The only reference in live code
+# was a COMMENT in session-start.sh, updated to name launch-aion.sh instead.
+#
+# WHY IT IS RETIRED RATHER THAN MAINTAINED
+# It had drifted, and drift in a launcher is silent by nature — you only find
+# out at launch, when you are least able to debug it:
+#   * 14 references to $HOME/Claude/Alfred-Dev, a pre-monorepo path. The
+#     `--restart proxy|pulse|dashboard|pipeline` modes all cd there.
+#   * It carried the same silent telemetry-loss defect as launch-aion.sh
+#     (unset ANTHROPIC_BASE_URL, PROXY_OFFLINE read by nothing) and had to be
+#     fixed twice, once per launcher, in commits aebf9b0 and 92f5271. That
+#     duplication IS the argument for retirement: two launchers kept in step
+#     by hand is how they diverged in the first place.
+#
+# The proxy fix is preserved here so the file is a faithful record of its
+# final state, not so that it can be run.
+#
+# Kept for reference only — history, and the odd design decision worth
+# re-reading. Use launch-aion.sh.
+# ============================================================================
+
+if [[ "${AION_RUN_RETIRED_LAUNCHER:-0}" != "1" ]]; then
+    echo "⛔ launch-jarvis-tmux.sh was RETIRED on 2026-08-27." >&2
+    echo "   Superseded by: .claude/scripts/launch-aion.sh" >&2
+    echo "   It targets the pre-monorepo layout and pre-monorepo paths; running" >&2
+    echo "   it now would build the wrong session and restart nothing." >&2
+    echo "" >&2
+    echo "   To run it anyway for archaeology: AION_RUN_RETIRED_LAUNCHER=1 $0" >&2
+    exit 1
+fi
+
+# ── Original header follows ─────────────────────────────────────────────────
 # Launch Jarvis (Claude) in a tmux session for autonomous control
 # This enables auto-command execution via tmux send-keys
 #

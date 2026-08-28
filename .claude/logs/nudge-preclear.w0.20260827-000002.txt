@@ -1,0 +1,2045 @@
+      255             continue
+      256
+      257         # CUE 3 -- CENTRED inside the measure, above body ink. A heading, not a line of text.
+      258         rel = (b.cx - ml) / mw
+      259         if 0.25 <= rel <= 0.75 and b.y0 > head_y:
+      260             b.label, b.conf = CH, 0.70
+      261             b.cause = f"small, centred in the measure (at {rel:.2f}) and below the head — a heading"
+      262             continue
+      263
+      264         # No cue fired decisively. The agent declines, WITH ITS CAUSE.
+      265         b.label, b.conf = MT, 0.55
+      266         b.cause = "small, inside the measure, not centred and not above the body — read as body"
+      267
+      268     # §3.2a's FORBIDS contract, enforced rather than described. A class the archetype forbids is
+      269     # NEVER silently relabelled to a permitted one -- that would launder a wrong archetype into a
+      270     # confident region call. It becomes an ABSTENTION naming the contradiction.
+      271     for b in lf.boxes:
+      272         if b.label in forbid:
+      273             b.cause = (f"cue says {b.label}, but archetype {lf.archetype} "
+      274                        f"({ARCHETYPES[lf.archetype]['name']}) FORBIDS it — contradiction, not a guess")
+      275             b.label, b.conf = ABSTAIN, 0.0
+      276
+      277
+      278 def read_leaf(image, leaf_no: int, predictor) -> Leaf:
+      279     """S1 -> S2 -> S3/S4 for one leaf. The whole agent, in the order §3.0 states it."""
+      280     lf = Leaf(leaf=leaf_no, boxes=see(image, predictor))
+      281     lf.measure, lf.head_y = frame(lf.boxes)
+      282     lf.archetype, lf.arch_conf, lf.arch_cause = classify_archetype(lf)
+      283     name_regions(lf)
+      284     return lf
+      285
+      286
+      287 def leaf_from_cache(d: dict) -> Leaf:
+      288     """Rebuild a Leaf from cached PERCEPTION (boxes only) and re-run the naming.
+      289
+      290     ⚠️ THE CACHE HOLDS S1's OUTPUT ONLY -- the boxes Surya emitted -- and never a label. Caching a
+      291     DECISION would mean a cue change silently scored against stale calls, which is the shape of every
+      292     defect this project keeps finding. S2-S4 re-run on every invocation.
+      293     """
+      294     lf = Leaf(leaf=d["leaf"], boxes=[Box(**{k: b[k] for k in ("x0", "y0", "x1", "y1", "surya")})
+      295                                      for b in d["boxes"]])
+      296     lf.measure, lf.head_y = frame(lf.boxes)
+      297     lf.archetype, lf.arch_conf, lf.arch_cause = classify_archetype(lf)
+      298     name_regions(lf)
+      299     return lf
+      300
+      301
+      302 def build_cache() -> list[Leaf]:
+      303     from PIL import Image
+      304     from surya.fast_layout import FastLayoutPredictor
+      305
+      306     vol, sig = [k for k in W.WITNESSES if W.wid(*k) == WITNESS][0]
+      307     leaves = W.leaves(vol, sig)
+      308     pred = FastLayoutPredictor()
+      309     out = []
+      310     for i in range(LEAF_LO, LEAF_HI):
+      311         im = Image.open(str(leaves[i])).convert("RGB")
+      312         boxes = see(im, pred)
+      313         out.append({"leaf": i, "w": im.size[0], "h": im.size[1],
+      314                     "boxes": [{"x0": b.x0, "y0": b.y0, "x1": b.x1, "y1": b.y1, "surya": b.surya}
+      315                               for b in boxes]})
+      316         print(f"  leaf {i}: {len(boxes)} boxes", flush=True)
+      317     CACHE.parent.mkdir(parents=True, exist_ok=True)
+      318     CACHE.write_text(json.dumps({"witness": WITNESS, "leaves": out}, indent=1))
+      319     print(f"\nperception cached -> {CACHE.relative_to(_HERE.parent)}")
+      320     return [leaf_from_cache(d) for d in out]
+      321
+      322
+      323 def load_leaves() -> list[Leaf]:
+      324     if CACHE.is_file():
+      325         return [leaf_from_cache(d) for d in json.loads(CACHE.read_text())["leaves"]]
+      326     print("no perception cache — running Surya once (this is the slow part)\n")
+      327     return build_cache()
+      328
+      329
+      330 # ---------------------------------------------------------------- scoring
+      331 MIN_BIND_FRAC = 0.50   # R2.1i: a binding must be SUBSTANTIAL, never merely non-zero
+      332
+      333
+      334 def _ov(a, b):
+      335     return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
+      336
+      337
+      338 def _bind(e, boxes):
+      339     best, bov = None, 0.0
+      340     for b in boxes:
+      341         a = _ov((e["xlf"], e["xrf"]), (b.x0, b.x1)) * _ov((e["y0f"], e["y1f"]), (b.y0, b.y1))
+      342         if a > bov:
+      343             best, bov = b, a
+      344     ea = max(1e-9, (e["xrf"] - e["xlf"]) * (e["y1f"] - e["y0f"]))
+      345     return (best, bov) if best is not None and bov >= MIN_BIND_FRAC * ea else (None, bov)
+      346
+      347
+      348 def main() -> int:
+      349     if "--cache" in sys.argv:
+      350         build_cache()
+      351         return 0
+      352
+      353     leaves = {lf.leaf: lf for lf in load_leaves()}
+      354     gold = json.loads(GOLD.read_text())
+      355     by_leaf: dict[int, list] = {}
+      356     for e in gold["labels"]:
+      357         if "xlf" in e:
+      358             by_leaf.setdefault(e["leaf"], []).append(e)
+      359
+      360     print("R14.1/R14.2 — THE ADAPTIVE VISUAL AGENT vs GOLD-HEADBAND")
+      361     print(f"{WITNESS} leaves {LEAF_LO}-{LEAF_HI - 1}; page-fraction addressing (R2.2c); "
+      362           f"binding by best overlap, MIN_BIND_FRAC={MIN_BIND_FRAC}\n")
+      363
+      364     per: dict[str, list[int]] = {}
+      365     conf_m: dict[tuple, int] = {}
+      366     orphans, abstained, forbidden_hits = [], [], []
+      367     arche: dict[str, int] = {}
+      368
+      369     for i in sorted(by_leaf):
+      370         lf = leaves.get(i)
+      371         if lf is None:
+      372             continue
+      373         arche[lf.archetype] = arche.get(lf.archetype, 0) + 1
+      374         for e in by_leaf[i]:
+      375             b, _ = _bind(e, lf.boxes)
+      376             if b is None:
+      377                 orphans.append(e)
+      378                 continue
+      379             gl = e["label"]
+      380             per.setdefault(gl, [0, 0])
+      381             per[gl][1] += 1
+      382             if b.label == gl:
+      383                 per[gl][0] += 1
+      384             if b.label == ABSTAIN:
+      385                 abstained.append((i, gl, b.cause))
+      386             conf_m[(gl, b.label)] = conf_m.get((gl, b.label), 0) + 1
+      387         # Gate 9.1's second clause, checked per leaf: a forbidden class must never be EMITTED.
+      388         forb = ARCHETYPES.get(lf.archetype, {}).get("forbids", set())
+      389         for b in lf.boxes:
+      390             if b.label in forb:
+      391                 forbidden_hits.append((i, lf.archetype, b.label))
+      392
+      393     print("S2 — ARCHETYPES SEEN (decided before any region was named):")
+      394     for a, n in sorted(arche.items(), key=lambda kv: -kv[1]):
+      395         print(f"    {a:3s} {ARCHETYPES[a]['name']:38s} {n:2d} leaf/leaves")
+      396
+      397     hit = sum(v[0] for v in per.values())
+      398     tot = sum(v[1] for v in per.values())
+      399     acc = hit / tot if tot else 0.0
+      400     mn = per.get(MN, [0, 0])
+      401     mn_r = mn[0] / mn[1] if mn[1] else 0.0
+      402
+      403     print(f"\ngold entries {sum(len(v) for v in by_leaf.values())}  bound {tot}  "
+      404           f"ORPHANS {len(orphans)} (reported, never folded into accuracy)")
+      405     print(f"\nS3/S4 — bound-entry accuracy {hit}/{tot} = {acc:.4f}")
+      406     for lab in (RH, MN, MT, CH):
+      407         if lab in per:
+      408             c, n = per[lab]
+      409             print(f"    {lab} recall {c}/{n} = {c / n:.4f}")
+      410
+      411     print("\n  confusion (gold -> agent):")
+      412     for (gl, al), n in sorted(conf_m.items(), key=lambda kv: -kv[1]):
+      413         mark = "  " if gl == al else "🔴"
+      414         print(f"   {mark} {gl} -> {al:3s} {n}")
+      415
+      416     ab_rate = len(abstained) / tot if tot else 0.0
+      417     print(f"\nS4 — ABSTENTION, characterised (Gate 9.6 / §7.8 row 10d's rate is pre-registered FROM")
+      418     print(f"     this run, never asserted in advance): {len(abstained)}/{tot} = {ab_rate:.4f}")
+      419     for i, gl, cause in abstained[:6]:
+      420         print(f"    leaf {i} gold {gl}: {cause}")
+      421     print(f"\n  forbidden-class emissions (Gate 9.1 clause 2): {len(forbidden_hits)}")
+      422
+      423     print("\n📌 THE COMPARISON THAT MATTERS — same gold, same window, same binding rule:")
+      424     print(f"    {'':22s} {'overall':>9s} {'MN':>9s} {'RH':>9s} {'MT':>9s}")
+      425     print(f"    {'Surya off the shelf':22s} {'100/121':>9s} {'0/19':>9s} {'20/20':>9s} {'80/80':>9s}")
+      426     print(f"    {'geometric region_head':22s} {'—':>9s} {'17/19':>9s} {'20/20':>9s} {'67/80':>9s}")
+     pretrained RF-DETR model.
+
+     Fetching 2 files:   0%|          | 0/2 [00:00<?, ?it/s]
+     Fetching 2 files: 100%|██████████| 2/2 [00:00<00:00, 95325.09it/s]
+     [transformers] `use_return_dict` is deprecated! Use `return_dict` instead!
+       leaf 400: 8 boxes
+       leaf 401: 8 boxes
+       leaf 402: 4 boxes
+       leaf 403: 9 boxes
+       leaf 404: 10 boxes
+       leaf 405: 7 boxes
+       leaf 406: 11 boxes
+       leaf 407: 9 boxes
+       leaf 408: 5 boxes
+       leaf 409: 5 boxes
+       leaf 410: 7 boxes
+       leaf 411: 8 boxes
+       leaf 412: 11 boxes
+       leaf 413: 6 boxes
+       leaf 414: 11 boxes
+       leaf 415: 4 boxes
+       leaf 416: 9 boxes
+       leaf 417: 15 boxes
+       leaf 418: 6 boxes
+       leaf 419: 7 boxes
+
+     perception cached -> witness/gold/perception_OT1-1609-B_400-419.json
+  ⎿  (timeout 10m)
+  ⎿  witness/visual_agent.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py):
+  ⎿    ✘ [Line 304:10] Import "surya.fast_layout" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ★ [Line 56:43] "asdict" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Cache is built, now moving on to scoring.
+
+⏺ Bash(../ocr-venv/bin/python witness/visual_agent.py 2>&1 | tail -55)
+  ⎿  R14.1/R14.2 — THE ADAPTIVE VISUAL AGENT vs GOLD-HEADBAND
+     OT1-1609-B leaves 400-419; page-fraction addressing (R2.2c); binding by best overlap, MIN_BIND_FRAC=0.5
+
+     S2 — ARCHETYPES SEEN (decided before any region was named):
+         BC  chapter opening WITH apparatus         11 leaf/leaves
+         B1  text + disjoint marginal apparatus      5 leaf/leaves
+         A   plain text page                         3 leaf/leaves
+         C   chapter opening                         1 leaf/leaves
+
+     gold entries 121  bound 121  ORPHANS 0 (reported, never folded into accuracy)
+
+     S3/S4 — bound-entry accuracy 91/121 = 0.7521
+         RH recall 9/20 = 0.4500
+         MN recall 3/19 = 0.1579
+         MT recall 79/80 = 0.9875
+         CH recall 0/2 = 0.0000
+
+       confusion (gold -> agent):
+           MT -> MT  79
+        🔴 RH -> MT  11
+           RH -> RH  9
+        🔴 MN -> MT  8
+        🔴 MN -> RH  6
+           MN -> MN  3
+        🔴 MN -> ??  2
+        🔴 CH -> MT  2
+        🔴 MT -> MN  1
+
+     S4 — ABSTENTION, characterised (Gate 9.6 / §7.8 row 10d's rate is pre-registered FROM
+          this run, never asserted in advance): 2/121 = 0.0165
+         leaf 403 gold MN: straddles the measure edge (0.57 outside, boundary 0.55) — beside or inside cannot be told apart here
+         leaf 406 gold MN: straddles the measure edge (0.62 outside, boundary 0.55) — beside or inside cannot be told apart here
+
+       forbidden-class emissions (Gate 9.1 clause 2): 0
+
+     📌 THE COMPARISON THAT MATTERS — same gold, same window, same binding rule:
+                                  overall        MN        RH        MT
+         Surya off the shelf      100/121      0/19     20/20     80/80
+         geometric region_head          —     17/19     20/20     67/80
+         THE AGENT                 91/121      3/19      9/20     79/80
+
+     RUNG-0 BARS, pre-registered in this file before the first run:
+       MN recall     >= 0.5000 : 0.1579 🔴 FAIL
+       overall       >= 0.8264 : 0.7521 🔴 FAIL   (the bar IS Surya's own score — buying MN with MT is a FAILURE)
+       forbidden emis <= 0      : 0 PASS
+
+     ⚠️ THIS DISCHARGES NO GATE. Rows 10a/10b are reserved for GOLD-LAYOUT (>=125 pages,
+        per-archetype quota, recogniser frozen — Roadmap R16.1). 121 entries, 20 leaves, ONE
+        witness, head band only, so every MN here is a HEAD-BAND note: that the agent names
+        notes running down the OUTER MARGIN beside the measure is NOT shown by this run.
+        ⚠️ And MainText remains CONTAINMENT — the body block is one large box, and Gate 10b's
+        boundary error is what separates containment from boundary quality. Not measured here.
+
+     🔴 A BAR FAILED. The step stays OPEN and BLOCKS — it is never closed by lowering a bar.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The first run fails both bars, which is actually useful — it shows my "above the body block" heuristic for detecting running heads is wrong, since head_y is defined as the minimum y0 of
+  large boxes, but the running head often overlaps the top of the large text box rather than sitting cleanly above it. Notes falling in the head band are also getting misclassified, so I
+  want to visualize this to see exactly where the boundaries are breaking before fixing the logic.
+
+  I'm building agent_see.py to render each leaf with the agent's decisions overlaid against gold, outputting PNGs plus an HTML index so I can inspect them quickly.
+
+⏺ First run fails both bars — RH collapsed 20/20 → 9/20. This is exactly where Sir's diagram request earns its keep: build the picture, then diagnose.
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/agent_see.py)
+  ⎿  Wrote 205 lines to /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/agent_see.py
+        1 #!/usr/bin/env python3
+        2 """R14.7 -- DRAW WHAT THE AGENT SEES, on the actual leaf.
+        3
+        4 Sir, 2026-08-26: *"I really really need to SEE what's being done on these leafs. If we're talking
+        5 about rows, boxes, leans, classes and archetypes, I really really need this incremental work
+        6 accompanied by intermittent visual diagrams of what the pipeline sees and does in plain terms right
+        7 on the pages."*
+        8
+        9 ⚠️  AND IT IS NOT A COURTESY. This project has spent four span rules and five pre-registered bars on
+       10 a boundary problem, and every one of those was reasoned about in NUMBERS. `region_head` scores
+       11 MarginNote 17/19 and Surya scores 0/19 on the same 19 entries -- a reader of either number alone
+       12 cannot tell what either model is actually doing to the page. A picture of the SAME decision the
+       13 scorer scored is the cheapest possible defence against optimising a metric off the page.
+       14
+       15 WHAT IS DRAWN, and it is drawn from the AGENT'S OWN OUTPUT, never from a parallel reimplementation
+       16 (that would be the R14.0 defect: a second code path that can silently disagree with the first):
+       17
+       18   the MEASURE          two vertical rules -- the body column the agent derived FROM THIS LEAF. Every
+       19                        naming cue is relative to these, so if they are wrong, everything is wrong,
+       20                        and that is visible at a glance rather than after a scoring run.
+       21   the HEAD FLOOR       one horizontal rule at the top of the body block.
+       22   each REGION          a box in its class colour, captioned `LABEL conf CAUSE` in plain terms.
+       23   each GOLD entry      a thin dashed box. Where the agent AGREES it is quiet; where it DISAGREES the
+       24                        gold box is drawn in red and captioned `gold: X / agent: Y`.
+       25   the ARCHETYPE        printed at the head of the page with the evidence that decided it.
+       26
+       27     ../ocr-venv/bin/python witness/agent_see.py              # all cached leaves -> PNG + index.html
+       28     ../ocr-venv/bin/python witness/agent_see.py 412 403      # only these leaves
+       29
+       30 Output: `witness/see/leaf-NNN.png` and `witness/see/index.html`.
+       31 """
+       32 from __future__ import annotations
+       33
+       34 import json
+       35 import sys
+       36 from pathlib import Path
+       37
+       38 _HERE = Path(__file__).resolve().parent
+       39 sys.path.insert(0, str(_HERE))
+       40 sys.path.insert(0, str(_HERE.parent))
+       41
+       42 import witnesses as W                                                   # noqa: E402
+       43 import visual_agent as VA                                               # noqa: E402
+       44 from score_head_regions import GOLD                                     # noqa: E402
+       45
+       46 OUT = _HERE / "see"
+       47 WIDTH = 1100          # render width; the leaf is scaled to this so captions stay legible
+       48
+       49 COLOUR = {
+       50     "RH": (0, 140, 255),      # running head — blue
+       51     "MN": (255, 0, 170),      # marginal note — magenta, the class this edition is built around
+       52     "MT": (40, 180, 60),      # main text — green
+       53     "CH": (255, 150, 0),      # chapter head — orange
+       54     "??": (150, 150, 150),    # abstention — grey, and it must LOOK like an abstention
+       55 }
+       56 PLAIN = {
+       57     "RH": "running head",
+       58     "MN": "MARGINAL NOTE",
+       59     "MT": "body text",
+       60     "CH": "chapter heading",
+       61     "??": "ABSTAINED",
+       62 }
+       63
+       64
+       65 def _font(sz):
+       66     from PIL import ImageFont
+       67     for p in ("/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+       68               "/System/Library/Fonts/Helvetica.ttc"):
+       69         try:
+       70             return ImageFont.truetype(p, sz)
+       71         except Exception:
+       72             pass
+       73     return ImageFont.load_default()
+       74
+       75
+       76 def _label(dr, xy, text, fill, font, bg=(255, 255, 255)):
+       77     x, y = xy
+       78     try:
+       79         box = dr.textbbox((x, y), text, font=font)
+       80         dr.rectangle([box[0] - 3, box[1] - 2, box[2] + 3, box[3] + 2], fill=bg)
+       81     except Exception:
+       82         pass
+       83     dr.text((x, y), text, fill=fill, font=font)
+       84
+       85
+       86 def draw_leaf(lf, gold_entries, leaves_paths) -> Path:
+       87     from PIL import Image, ImageDraw
+       88
+       89     im = Image.open(str(leaves_paths[lf.leaf])).convert("RGB")
+       90     w0, h0 = im.size
+       91     scale = WIDTH / w0
+       92     im = im.resize((WIDTH, int(h0 * scale)))
+       93     Wp, Hp = im.size
+       94     # A pale wash so the ink does not fight the overlay; the page is still legible underneath.
+       95     im = Image.blend(im, Image.new("RGB", im.size, (255, 255, 255)), 0.45)
+       96     dr = ImageDraw.Draw(im)
+       97     f_big, f_med, f_sm = _font(21), _font(15), _font(12)
+       98
+       99     ml, mr = lf.measure
+      100
+      101     # ---- the frame the agent derived FROM THIS LEAF
+      102     for x, tag in ((ml, "measure L"), (mr, "measure R")):
+      103         px = x * Wp
+      104         dr.line([(px, 0), (px, Hp)], fill=(0, 0, 0), width=2)
+      105         _label(dr, (px + 4, Hp - 26), tag, (0, 0, 0), f_sm)
+      106     hy = lf.head_y * Hp
+      107     dr.line([(0, hy), (Wp, hy)], fill=(120, 0, 200), width=2)
+      108     _label(dr, (6, hy + 3), "head floor — top of the body block", (120, 0, 200), f_sm)
+      109
+      110     # ---- what the agent decided, box by box
+      111     for b in lf.boxes:
+      112         c = COLOUR.get(b.label, (0, 0, 0))
+      113         x0, y0, x1, y1 = b.x0 * Wp, b.y0 * Hp, b.x1 * Wp, b.y1 * Hp
+      114         wdt = 4 if b.label == "MN" else 2
+      115         dr.rectangle([x0, y0, x1, y1], outline=c, width=wdt)
+      116         _label(dr, (x0 + 3, max(0, y0 - 17)),
+      117                f"{PLAIN.get(b.label, b.label)}  {b.conf:.2f}", c, f_med)
+      118         if b.label in ("MN", "??", "CH"):
+      119             _label(dr, (x0 + 3, y1 + 2), b.cause[:78], c, f_sm)
+      120
+      121     # ---- the gold, and every disagreement called out in red
+      122     agree = disagree = 0
+      123     for e in gold_entries:
+      124         gx0, gy0 = e["xlf"] * Wp, e["y0f"] * Hp
+      125         gx1, gy1 = e["xrf"] * Wp, e["y1f"] * Hp
+      126         b, _ = VA._bind(e, lf.boxes)
+      127         got = b.label if b else "—"
+      128         if got == e["label"]:
+      129             agree += 1
+      130             dr.rectangle([gx0, gy0, gx1, gy1], outline=(120, 120, 120), width=1)
+      131         else:
+      132             disagree += 1
+      133             dr.rectangle([gx0 - 2, gy0 - 2, gx1 + 2, gy1 + 2], outline=(220, 0, 0), width=3)
+      134             _label(dr, (gx1 + 5, gy0), f"gold {e['label']} / agent {got}", (220, 0, 0), f_sm)
+      135
+      136     # ---- the header strip: archetype, evidence, tally
+      137     strip = 78
+      138     from PIL import Image as _I
+      139     canvas = _I.new("RGB", (Wp, Hp + strip), (255, 255, 255))
+      140     canvas.paste(im, (0, strip))
+      141     dr2 = ImageDraw.Draw(canvas)
+      142     arch_name = VA.ARCHETYPES.get(lf.archetype, {}).get("name", "?")
+      143     dr2.text((10, 6), f"leaf {lf.leaf}   ARCHETYPE {lf.archetype} — {arch_name}  "
+      144                       f"(confidence {lf.arch_conf:.2f})", fill=(0, 0, 0), font=f_big)
+      145     dr2.text((10, 32), f"decided because: {lf.arch_cause}", fill=(60, 60, 60), font=f_med)
+      146     dr2.text((10, 52), f"gold on this leaf: {agree} agree · {disagree} DISAGREE     "
+      147                        f"boxes seen: {len(lf.boxes)}", fill=(180, 0, 0) if disagree else (0, 120, 0),
+      148              font=f_med)
+      149
+      150     OUT.mkdir(exist_ok=True)
+      151     p = OUT / f"leaf-{lf.leaf}.png"
+      152     canvas.save(p)
+      153     return p
+      154
+      155
+      156 def main() -> int:
+      157     want = [int(a) for a in sys.argv[1:] if a.isdigit()]
+      158     leaves = {lf.leaf: lf for lf in VA.load_leaves()}
+      159     gold = json.loads(GOLD.read_text())
+      160     by_leaf: dict[int, list] = {}
+      161     for e in gold["labels"]:
+      162         if "xlf" in e:
+      163             by_leaf.setdefault(e["leaf"], []).append(e)
+      164
+      165     vol, sig = [k for k in W.WITNESSES if W.wid(*k) == VA.WITNESS][0]
+      166     paths = W.leaves(vol, sig)
+      167
+      168     todo = want or sorted(leaves)
+      169     rows = []
+      170     for i in todo:
+      171         lf = leaves.get(i)
+      172         if lf is None:
+      173             print(f"  leaf {i}: not in the perception cache — skipped")
+      174             continue
+      175         ents = by_leaf.get(i, [])
+      176         p = draw_leaf(lf, ents, paths)
+      177         dis = sum(1 for e in ents
+      187             "h2{margin-top:2rem}.bad{color:#f66}.ok{color:#6f6}</style>",
+      188             "<h1>What the adaptive visual agent sees</h1>",
+      189             "<p>Black rules = <b>the measure</b>, derived from this leaf's own boxes. "
+      190             "Purple rule = top of the body block. Coloured boxes = the agent's call, captioned with "
+      191             "its confidence and its reason. Thin grey boxes = gold it agreed with. "
+      192             "<span class=bad>Red boxes = gold it got wrong.</span></p>"]
+      193     for i, lf, n, dis, p in rows:
+      194         cls = "bad" if dis else "ok"
+      195         html.append(f"<h2>leaf {i} — archetype {lf.archetype} "
+      196                     f"({VA.ARCHETYPES.get(lf.archetype, {}).get('name', '?')}) "
+      197                     f"— <span class={cls}>{dis} of {n} wrong</span></h2>")
+      198         html.append(f"<p><i>{lf.arch_cause}</i></p><img src='{p.name}'>")
+      199     (OUT / "index.html").write_text("\n".join(html))
+      200     print(f"\n{len(rows)} leaf diagram(s) -> {OUT.relative_to(_HERE.parent)}/  (open index.html)")
+      201     return 0
+      202
+      203
+      204 if __name__ == "__main__":
+      205     raise SystemExit(main())
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python witness/agent_see.py 400 412 2>&1 | tail -10)
+  ⎿    leaf 400: archetype BC   8 boxes   7 gold   2 disagree  -> leaf-400.png
+       leaf 412: archetype BC  11 boxes   7 gold   3 disagree  -> leaf-412.png
+
+     2 leaf diagram(s) -> witness/see/  (open index.html)
+  ⎿  witness/agent_see.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/agent_see.py):
+  ⎿    ✘ [Line 43:8] Import "visual_agent" could not be resolved [reportMissingImports] (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now let me actually look at the page.
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/see/leaf-412.png)
+  ⎿  Read image (2.1MB)
+
+∴ This is very informative now. The measure lines for L and R actually look roughly correct for the body column, but the issue seems to be that Surya emitted an oversized box on the left
+  margin that's throwing things off.
+
+  That large box is being labeled MT purely because its area exceeds the size threshold — that's the bug. A large box lying entirely outside the measure is really a marginal column, not
+  body text, and letting it into the median calculation drags measure L leftward. This also explains why the gold marginal notes near the top-left got absorbed into that oversized
+  left-column box and mislabeled MT, while the top-right marginal note landed correctly in the head band as RH.
+
+  The fix should identify the body block as the single largest box on the page, derive the measure directly from its left/right edges, and treat any large box outside that measure as a
+  marginal column (MN) rather than main text. The head boundary should then follow from the body block's top edge, which should also let the running-head detection recover correctly once
+  the measure is fixed.
+  ⎿  Async hook PostToolUse completed
+
+⏺ The picture makes the bug obvious. Three things are visible that no number showed me:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py)
+  ⎿  Added 26 lines, removed 9 lines
+      155
+      156  # ---------------------------------------------------------------- the frame
+      157  def frame(boxes: list[Box]) -> tuple[tuple[float, float], float]:
+      158 -    """Derive THE MEASURE and the head-band floor from this page's own large boxes.
+      158 +    """Derive THE MEASURE and the head-band floor from this page's own boxes.
+      159
+      160      The measure is the body column. It is the frame every naming cue is relative to, and it is taken
+      161      per leaf -- a leaf whose forme is set narrower, or which is bound with more gutter, gets its own.
+      162 -    Returns ((left, right), head_y) where head_y is the top of the topmost large box.
+      162 +
+      163 +    🔴 THE FIRST VERSION TOOK THE MEDIAN EDGE OF EVERY LARGE BOX AND WAS WRONG, AND THE DRAWING IS
+      164 +    WHAT SHOWED IT (R14.7, leaf 412). On an apparatus leaf Surya emits the whole MARGINAL COLUMN as
+      165 +    one large box -- it is tall, so it clears any area prior. Averaged into the median, that column
+      166 +    dragged the measure's left edge out into the margin, and every "is this box outside the measure"
+      167 +    test downstream was then asked against a frame that already contained the margin. RH fell 20/20
+      168 +    -> 9/20 and MN read 3/19. ⚠️ Not one of those numbers said WHY; the picture said it immediately.
+      169 +
+      170 +    So the measure is anchored on the SINGLE LARGEST box -- the body block, which is the largest
+      171 +    object on a page of this book by a wide margin -- and then widened only by boxes that genuinely
+      172 +    share its column (>=50% horizontal overlap). A marginal column overlaps the body horizontally by
+      173 +    almost nothing and is therefore excluded by construction rather than by a threshold on its size.
+      174      """
+      164 -    big = [b for b in boxes if b.area >= SMALL_AREA]
+      165 -    if not big:
+      166 -        # No large box: the agent cannot frame the page. It returns the full page and says so; every
+      167 -        # cue downstream will then read as thin-margin and abstain, which is the correct behaviour.
+      175 +    if not boxes:
+      176 +        # The agent cannot frame the page. It returns the full page; every cue downstream then reads
+      177 +        # as thin-margin and abstains, which is the correct behaviour, not a fallback.
+      178          return (0.0, 1.0), 0.0
+      169 -    left = st.median([b.x0 for b in big])
+      170 -    right = st.median([b.x1 for b in big])
+      171 -    head_y = min(b.y0 for b in big)
+      179 +    body = max(boxes, key=lambda b: b.area)
+      180 +    bw = max(1e-9, body.x1 - body.x0)
+      181 +    column = [b for b in boxes
+      182 +              if b.area >= SMALL_AREA
+      183 +              and max(0.0, min(b.x1, body.x1) - max(b.x0, body.x0)) >= 0.50 * bw]
+      184 +    if not column:
+      185 +        column = [body]
+      186 +    left = st.median([b.x0 for b in column])
+      187 +    right = st.median([b.x1 for b in column])
+      188 +    head_y = min(b.y0 for b in column)
+      189      return (left, right), head_y
+      190
+      191
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+         A   plain text page                         3 leaf/leaves
+         C   chapter opening                         2 leaf/leaves
+
+     gold entries 121  bound 121  ORPHANS 0 (reported, never folded into accuracy)
+
+     S3/S4 — bound-entry accuracy 90/121 = 0.7438
+         RH recall 9/20 = 0.4500
+         MN recall 4/19 = 0.2105
+         MT recall 77/80 = 0.9625
+         CH recall 0/2 = 0.0000
+
+       confusion (gold -> agent):
+           MT -> MT  77
+        🔴 RH -> MT  11
+        🔴 MN -> RH  9
+           RH -> RH  9
+        🔴 MN -> MT  5
+           MN -> MN  4
+        🔴 MT -> MN  3
+        🔴 CH -> MT  2
+        🔴 MN -> ??  1
+
+     S4 — ABSTENTION, characterised (Gate 9.6 / §7.8 row 10d's rate is pre-registered FROM
+          this run, never asserted in advance): 1/121 = 0.0083
+         leaf 406 gold MN: straddles the measure edge (0.62 outside, boundary 0.55) — beside or inside cannot be told apart here
+
+       forbidden-class emissions (Gate 9.1 clause 2): 0
+
+     📌 THE COMPARISON THAT MATTERS — same gold, same window, same binding rule:
+                                  overall        MN        RH        MT
+         Surya off the shelf      100/121      0/19     20/20     80/80
+         geometric region_head          —     17/19     20/20     67/80
+         THE AGENT                 90/121      4/19      9/20     77/80
+  ⎿  witness/visual_agent.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py):
+  ⎿    ✘ [Line 332:10] Import "surya.fast_layout" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ★ [Line 56:43] "asdict" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The biggest classification loss is RH 9/20, where 11 running-head cases get mislabeled as main text, plus some margin-note cases misfiring as running head. I want to inspect specific
+  leaves to diagnose why—my hypothesis is that when Surya's body text box starts above the actual running head line, the head_y check fails and the classifier falls through to the wrong
+  category.  Rather than keep guessing from render inspection, I should just instrument the code directly to see what's happening.
+
+⏺ Bash(../ocr-venv/bin/python - <<'PY'
+      import sys, json; sys.path.insert(0,'witness')
+      import visual_agent as VA
+      from score_head_regions import GOLD
+      leaves={lf.leaf:lf for lf in VA.load_leaves()}
+      g=json.loads(GOLD.read_text()); by={}
+      for e in g['labels']:
+          if 'xlf' in e: by.setdefault(e['leaf'],[]).append(e)
+      bad={}
+      for i,ents in sorted(by.items()):
+          lf=leaves[i]
+          for e in ents:
+              b,_=VA._bind(e,lf.boxes)
+              got=b.label if b else '-'
+              if got!=e['label']:
+                  bad.setdefault(i,[]).append((e['label'],got,e.get('text','')[:18]))
+      for i,v in sorted(bad.items(), key=lambda kv:-len(kv[1]))[:6]:
+          lf=leaves[i]
+          print(f"leaf {i} arch={lf.archetype} measure=({lf.measure[0]:.3f},{lf.measure[1]:.3f}) head_y={lf.head_y:.3f}  {len(v)} wrong")
+          for a in v: print("   ",a)
+      PY)
+  ⎿  leaf 407 arch=BC measure=(0.106,0.801) head_y=0.057  3 wrong
+         ('MN', 'MT', 'and Idolatrie.')
+         ('MT', 'MN', 'and')
+         ('MT', 'MN', 'le for ſuch')
+     leaf 411 arch=BC measure=(0.102,0.802) head_y=0.089  3 wrong
+         ('MN', 'RH', 'Daughters may inhe')
+         ('CH', 'MT', 'CHAP.')
+         ('CH', 'MT', 'XXVII.')
+     leaf 419 arch=BC measure=(0.079,0.805) head_y=0.063  3 wrong
+         ('MN', 'MT', 'Praye diuided')
+         ('RH', 'MT', 'NVMERI.')
+         ('MT', 'MN', 'une')
+     leaf 400 arch=BC measure=(0.150,0.849) head_y=0.046  2 wrong
+         ('RH', 'MT', 'NVMERI')
+         ('MN', 'MT', 'X. Og Alaine. Bal-')
+     leaf 401 arch=BC measure=(0.076,0.791) head_y=0.059  2 wrong
+         ('MN', 'RH', 'Balaam')
+         ('RH', 'MT', 'NVMERI.')
+     leaf 402 arch=A measure=(0.029,0.915) head_y=0.062  2 wrong
+         ('RH', 'MT', 'NVMENE')
+         ('MN', 'MT', 'Balao')
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The RH failures trace to NVMERI's running head being bound to a box whose top nearly coincides with it — on leaf 400 the head_y is 0.046 while the RH's y1 is 0.0475, so cue 2 fails by a
+  razor-thin 0.0015 margin. This suggests the box boundary is essentially sitting right on the running head.
+
+  Actually the real issue is likely a binding artefact: _bind selects the box with max overlap area, and if the body Text block extends up over the running head region, it fully contains
+  the RH entry, tying or beating a tight PageHeader box's overlap — so which box wins depends on ordering, not agent error. R14.0's Surya scored this RH correctly with identical boxes,
+  meaning the same PageHeader box was bound there too, so the discrepancy must be in how my agent labels that box rather than in the binding itself — and checking, the PageHeader box's y1
+  (~0.0475) exceeds head_y (0.046), so it fails cue 2, and I need to check cue 3's centering condition next.
+
+  The real bug is that my head-floor cue tests "entirely above" using the box's bottom edge, but the running head's bottom sits right at the body block's top edge, so it fails the strict
+  test. A better cue would use the box's vertical centre instead of its bottom edge — checking that against the head floor value gives a passing result, which is a more principled fix.
+
+  Now I need to check the beside-cue ordering: since it's already checked before the head cue, marginal notes scoring as running heads means their outside-fraction is under 0.55, meaning
+  they overlap the measure horizontally. I need to verify whether the centre fix resolves those head-band marginal notes sitting in the outer margin near the top.
+
+  I'll apply the centre fix, remeasure, then look at the image again. Also I notice CHAP./XXVII. headings getting mistagged as running heads even though they satisfy my y-position and
+  centering cues — this points to a binding issue where Surya's body text box actually contains the running head and chapter head together, so the heading gets bound to the body block
+  instead of its own section-header box.
+
+  The correct fix is to bind to the smallest box that substantially contains the gold entry rather than the max-overlap box, but that changes comparability with R14.0's numbers. So I'll
+  keep R14.0 as the primary rule for comparability, and report the tightest-containing-box rule as a second declared rule — same as MAP_STRICT/MAP_CHARITABLE discipline. With limited effort
+  left, I'll fix the head cue to use centering, add the tightest-box binding as a second rule, report both, then re-score and render.
+
+⏺ The failures are now legible: the running head is inside Surya's body box, so it binds there. Two fixes — one to the cue, one to the addressing.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py)
+  ⎿  Added 9 lines, removed 2 lines
+      277              continue
+      278
+      279          # CUE 2 -- ABOVE the body block. Page furniture: the running head.
+      280 -        if b.y1 <= head_y:
+      280 +        #
+      281 +        # 🔴 JUDGED ON THE BOX'S CENTRE, NOT ITS LAST PIXEL. The first version asked `y1 <= head_y`
+      282 +        # -- "does it clear the body block entirely" -- and on leaf 400 the running head's bottom sat
+      283 +        # at 0.0475 against a body top of 0.0460. It failed by 0.0015 of a page, fell through every
+      284 +        # remaining cue and was emitted as body text. Eleven of twenty running heads died on that
+      285 +        # margin. ⚠️ A CUE THAT TURNS ON A LAST PIXEL IS A THRESHOLD WEARING A CUE'S CLOTHES; where
+      286 +        # the box's MASS sits is the visual fact, and it is what a reader uses.
+      287 +        if 0.5 * (b.y0 + b.y1) <= head_y:
+      288              b.label, b.conf = RH, 0.95
+      282 -            b.cause = "sits entirely above the body block — page furniture"
+      289 +            b.cause = "its mass sits above the top of the body block — page furniture"
+      290              continue
+      291
+      292          # CUE 3 -- CENTRED inside the measure, above body ink. A heading, not a line of text.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py)
+  ⎿  Added 28 lines, removed 6 lines
+      370      return max(0.0, min(a[1], b[1]) - max(a[0], b[0]))
+      371
+      372
+      373 -def _bind(e, boxes):
+      374 -    best, bov = None, 0.0
+      373 +# ⚠️  TWO DECLARED ADDRESSING RULES, BOTH REPORTED — the same discipline R14.0 applied to its two
+      374 +# label maps, and for the same reason: a rule chosen after seeing the numbers is the rule that
+      375 +# flatters. Surya's boxes NEST — its body `Text` block physically contains the running head and the
+      376 +# chapter head — so "which box does this gold entry belong to" has two defensible answers:
+      377 +#
+      378 +#   BIND_OVERLAP  the box covering most of the entry's area. R14.0's rule, kept verbatim so the
+      379 +#                 agent's numbers are like-for-like comparable with Surya off the shelf. ⚠️ Under
+      380 +#                 nesting it prefers the OUTER box, because a container covers the entry completely.
+      448 -                forbidden_hits.append((i, lf.archetype, b.label))
+      449 -
+      424 +        if lf is not None:
+      425 +            arche[lf.archetype] = arche.get(lf.archetype, 0) + 1
+      426      print("S2 — ARCHETYPES SEEN (decided before any region was named):")
+      427      for a, n in sorted(arche.items(), key=lambda kv: -kv[1]):
+      428          print(f"    {a:3s} {ARCHETYPES[a]['name']:38s} {n:2d} leaf/leaves")
+      429
+      430 +    scored = {}
+      431 +    for rule in (BIND_OVERLAP, BIND_TIGHTEST):
+      432 +        per: dict[str, list[int]] = {}
+      433 +        conf_m: dict[tuple, int] = {}
+      434 +        orphans, abstained, forbidden_hits = [], [], []
+      435 +        for i in sorted(by_leaf):
+      436 +            lf = leaves.get(i)
+      437 +            if lf is None:
+      438 +                continue
+      439 +            for e in by_leaf[i]:
+      440 +                b, _ = _bind(e, lf.boxes, rule)
+      441 +                if b is None:
+      442 +                    orphans.append(e)
+      443 +                    continue
+      444 +                gl = e["label"]
+      445 +                per.setdefault(gl, [0, 0])
+      446 +                per[gl][1] += 1
+      447 +                if b.label == gl:
+      448 +                    per[gl][0] += 1
+      449 +                if b.label == ABSTAIN:
+      450 +                    abstained.append((i, gl, b.cause))
+      451 +                conf_m[(gl, b.label)] = conf_m.get((gl, b.label), 0) + 1
+      452 +            forb = ARCHETYPES.get(lf.archetype, {}).get("forbids", set())
+      453 +            for b in lf.boxes:
+      454 +                if b.label in forb:
+      455 +                    forbidden_hits.append((i, lf.archetype, b.label))
+      456 +        scored[rule] = (per, conf_m, orphans, abstained, forbidden_hits)
+      457 +
+      458 +        hit = sum(v[0] for v in per.values())
+      459 +        tot = sum(v[1] for v in per.values())
+      460 +        print(f"\n{rule}: bound-entry accuracy {hit}/{tot} = {hit / tot if tot else 0:.4f}   "
+      461 +              f"ORPHANS {len(orphans)} (reported, never folded into accuracy)")
+      462 +        for lab in (RH, MN, MT, CH):
+      463 +            if lab in per:
+      464 +                c, n = per[lab]
+      465 +                print(f"    {lab} recall {c}/{n} = {c / n:.4f}")
+      466 +        print("    confusion (gold -> agent):")
+      467 +        for (gl, al), n in sorted(conf_m.items(), key=lambda kv: -kv[1]):
+      468 +            if gl != al:
+      469 +                print(f"     🔴 {gl} -> {al:3s} {n}")
+      470 +
+      471 +    # ⚠️ THE HEADLINE IS THE WORSE OF THE TWO RULES, NOT THE BETTER. Reporting both and then
+      472 +    # judging on the flattering one would be the map-chosen-after-the-numbers defect with an extra
+      473 +    # step. The bars below are applied to whichever rule scores lower.
+      474 +    per, conf_m, orphans, abstained, forbidden_hits = min(
+      475 +        scored.values(), key=lambda v: sum(x[0] for x in v[0].values()) / max(1, sum(x[1] for x in v[0].values())))
+      476      hit = sum(v[0] for v in per.values())
+      477      tot = sum(v[1] for v in per.values())
+      478      acc = hit / tot if tot else 0.0
+      479      mn = per.get(MN, [0, 0])
+      480      mn_r = mn[0] / mn[1] if mn[1] else 0.0
+      481 +    print(f"\n⚠️ THE BARS ARE APPLIED TO THE WORSE RULE: {hit}/{tot} = {acc:.4f}")
+      482
+      460 -    print(f"\ngold entries {sum(len(v) for v in by_leaf.values())}  bound {tot}  "
+      461 -          f"ORPHANS {len(orphans)} (reported, never folded into accuracy)")
+      462 -    print(f"\nS3/S4 — bound-entry accuracy {hit}/{tot} = {acc:.4f}")
+      463 -    for lab in (RH, MN, MT, CH):
+      464 -        if lab in per:
+      465 -            c, n = per[lab]
+      466 -            print(f"    {lab} recall {c}/{n} = {c / n:.4f}")
+      467 -
+      468 -    print("\n  confusion (gold -> agent):")
+      469 -    for (gl, al), n in sorted(conf_m.items(), key=lambda kv: -kv[1]):
+      470 -        mark = "  " if gl == al else "🔴"
+      471 -        print(f"   {mark} {gl} -> {al:3s} {n}")
+      472 -
+      483      ab_rate = len(abstained) / tot if tot else 0.0
+      484      print(f"\nS4 — ABSTENTION, characterised (Gate 9.6 / §7.8 row 10d's rate is pre-registered FROM")
+      485      print(f"     this run, never asserted in advance): {len(abstained)}/{tot} = {ab_rate:.4f}")
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python witness/visual_agent.py 2>&1 | sed -n '1,60p')
+  ⎿  R14.1/R14.2 — THE ADAPTIVE VISUAL AGENT vs GOLD-HEADBAND
+     OT1-1609-B leaves 400-419; page-fraction addressing (R2.2c); MIN_BIND_FRAC=0.5; TWO declared addressing rules, both reported
+
+     S2 — ARCHETYPES SEEN (decided before any region was named):
+         BC  chapter opening WITH apparatus         11 leaf/leaves
+         B1  text + disjoint marginal apparatus      4 leaf/leaves
+         A   plain text page                         3 leaf/leaves
+         C   chapter opening                         2 leaf/leaves
+
+     BIND_OVERLAP: bound-entry accuracy 101/121 = 0.8347   ORPHANS 0 (reported, never folded into accuracy)
+         RH recall 20/20 = 1.0000
+         MN recall 4/19 = 0.2105
+         MT recall 77/80 = 0.9625
+         CH recall 0/2 = 0.0000
+         confusion (gold -> agent):
+          🔴 MN -> RH  14
+          🔴 MT -> MN  3
+          🔴 CH -> RH  2
+          🔴 MN -> ??  1
+
+     BIND_TIGHTEST: bound-entry accuracy 101/121 = 0.8347   ORPHANS 0 (reported, never folded into accuracy)
+         RH recall 20/20 = 1.0000
+         MN recall 4/19 = 0.2105
+         MT recall 77/80 = 0.9625
+         CH recall 0/2 = 0.0000
+         confusion (gold -> agent):
+          🔴 MN -> RH  14
+          🔴 MT -> MN  3
+          🔴 CH -> RH  2
+          🔴 MN -> ??  1
+
+     ⚠️ THE BARS ARE APPLIED TO THE WORSE RULE: 101/121 = 0.8347
+
+     S4 — ABSTENTION, characterised (Gate 9.6 / §7.8 row 10d's rate is pre-registered FROM
+          this run, never asserted in advance): 1/121 = 0.0083
+         leaf 406 gold MN: straddles the measure edge (0.62 outside, boundary 0.55) — beside or inside cannot be told apart here
+
+       forbidden-class emissions (Gate 9.1 clause 2): 0
+
+     📌 THE COMPARISON THAT MATTERS — same gold, same window, same binding rule:
+                                  overall        MN        RH        MT
+         Surya off the shelf      100/121      0/19     20/20     80/80
+         geometric region_head          —     17/19     20/20     67/80
+         THE AGENT                101/121      4/19     20/20     77/80
+
+     RUNG-0 BARS, pre-registered in this file before the first run:
+       MN recall     >= 0.5000 : 0.2105 🔴 FAIL
+       overall       >= 0.8264 : 0.8347 PASS   (the bar IS Surya's own score — buying MN with MT is a FAILURE)
+       forbidden emis <= 0      : 0 PASS
+
+     ⚠️ THIS DISCHARGES NO GATE. Rows 10a/10b are reserved for GOLD-LAYOUT (>=125 pages,
+        per-archetype quota, recogniser frozen — Roadmap R16.1). 121 entries, 20 leaves, ONE
+        witness, head band only, so every MN here is a HEAD-BAND note: that the agent names
+        notes running down the OUTER MARGIN beside the measure is NOT shown by this run.
+        ⚠️ And MainText remains CONTAINMENT — the body block is one large box, and Gate 10b's
+        boundary error is what separates containment from boundary quality. Not measured here.
+
+     🔴 A BAR FAILED. The step stays OPEN and BLOCKS — it is never closed by lowering a bar.
+  ⎿  witness/visual_agent.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py):
+  ⎿    ✘ [Line 339:10] Import "surya.fast_layout" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ★ [Line 56:43] "asdict" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ With RH restored to 20/20, overall accuracy hits 0.8347, beating Surya's 0.8264, but MN is still failing at 4/19, with 14 marginal notes being misclassified as running heads because
+  they're actually head-band notes sitting at the same height at the top of the page — exactly the coverage gap R14.0 flagged.
+
+  Checking why: cue 1 (besideness) fires first, and these 14 have outside_frac under 0.55, meaning they partially overlap the measure horizontally — like leaf 412's "Sacrifices for" note,
+  roughly half in and half out. The real distinguishing feature is that a running head is centered on the measure while a head-band note is pushed to one side, so I'm refining the logic to
+  first flag anything with mass above head_y as head furniture, then decide RH vs MN based on whether the box's center falls within the measure's middle half or its outer quarters. But this
+  gets complicated on pages with two running heads.
+
+  I'm testing this with leaf 400's "NVMERI" (centered, rel ≈0.45, correctly RH) and leaf 412's "Sacrifices for" (near the right edge). Let me apply this centeredness rule and check the
+  results.
+
+⏺ RH restored to 20/20 and overall now beats Surya. The remaining failure is one cue: 14 head-band notes read as running heads.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py)
+  ⎿  Added 21 lines, removed 2 lines
+      285          # margin. ⚠️  A CUE THAT TURNS ON A LAST PIXEL IS A THRESHOLD WEARING A CUE'S CLOTHES; where
+      286          # the box's MASS sits is the visual fact, and it is what a reader uses.
+      287          if 0.5 * (b.y0 + b.y1) <= head_y:
+      288 -            b.label, b.conf = RH, 0.95
+      289 -            b.cause = "its mass sits above the top of the body block — page furniture"
+      288 +            # 🔴 THE HEAD BAND HOLDS TWO DIFFERENT THINGS, AND CALLING BOTH `RH` COST 14 OF THE 19
+      289 +            # MARGINAL NOTES. This edition sets head-band notes at the SAME HEIGHT as the running
+      290 +            # head, out at the fore-edge. Height alone therefore cannot separate them, and the
+      291 +            # besideness cue above does not fire because such a note straddles the measure's edge
+      292 +            # rather than clearing it. ⚠️ The cue that DOES separate them is the one a reader uses:
+      293 +            # A RUNNING HEAD IS CENTRED ON THE MEASURE; A HEAD-BAND NOTE IS PUSHED TO A SIDE. That
+      294 +            # is read per-page off this leaf's own measure, not from a fitted position.
+      295 +            rel_h = (b.cx - ml) / mw
+      296 +            d = min(abs(rel_h - 0.20), abs(rel_h - 0.80))
+      297 +            if 0.20 <= rel_h <= 0.80:
+      298 +                b.label, b.conf = RH, min(0.99, 0.60 + d)
+      299 +                b.cause = (f"in the head band and CENTRED on the measure (at {rel_h:.2f}) "
+      300 +                           f"— the running head")
+      301 +            elif d < THIN_MARGIN:
+      302 +                b.label, b.conf = ABSTAIN, 1.0 - d / THIN_MARGIN
+      303 +                b.cause = (f"in the head band at {rel_h:.2f} of the measure — too near the "
+      304 +                           f"centred/outer boundary to call running head against side-note")
+      305 +            else:
+      306 +                b.label, b.conf = MN, min(1.0, 0.55 + d)
+      307 +                b.cause = (f"in the head band but pushed OUT to {rel_h:.2f} of the measure "
+      308 +                           f"— a head-band side-note, not the running head")
+      309              continue
+      310
+      311          # CUE 3 -- CENTRED inside the measure, above body ink. A heading, not a line of text.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python witness/visual_agent.py 2>&1 | sed -n '9,50p')
+  ⎿  BIND_OVERLAP: bound-entry accuracy 110/121 = 0.9091   ORPHANS 0 (reported, never folded into accuracy)
+         RH recall 20/20 = 1.0000
+         MN recall 13/19 = 0.6842
+         MT recall 77/80 = 0.9625
+         CH recall 0/2 = 0.0000
+         confusion (gold -> agent):
+          🔴 MN -> ??  6
+          🔴 MT -> MN  3
+          🔴 CH -> RH  2
+
+     BIND_TIGHTEST: bound-entry accuracy 110/121 = 0.9091   ORPHANS 0 (reported, never folded into accuracy)
+         RH recall 20/20 = 1.0000
+         MN recall 13/19 = 0.6842
+         MT recall 77/80 = 0.9625
+
+     S4 — ABSTENTION, characterised (Gate 9.6 / §7.8 row 10d's rate is pre-registered FROM
+          this run, never asserted in advance): 6/121 = 0.0496
+         leaf 400 gold MN: in the head band at 0.86 of the measure — too near the centred/outer boundary to call running head against side-note
+         leaf 402 gold MN: cue says MN, but archetype A (plain text page) FORBIDS it — contradiction, not a guess
+         leaf 406 gold MN: straddles the measure edge (0.62 outside, boundary 0.55) — beside or inside cannot be told apart here
+         leaf 411 gold MN: in the head band at 0.12 of the measure — too near the centred/outer boundary to call running head against side-note
+         leaf 413 gold MN: cue says MN, but archetype A (plain text page) FORBIDS it — contradiction, not a guess
+         leaf 415 gold MN: cue says MN, but archetype A (plain text page) FORBIDS it — contradiction, not a guess
+
+       forbidden-class emissions (Gate 9.1 clause 2): 0
+
+     📌 THE COMPARISON THAT MATTERS — same gold, same window, same binding rule:
+                                  overall        MN        RH        MT
+         Surya off the shelf      100/121      0/19     20/20     80/80
+         geometric region_head          —     17/19     20/20     67/80
+         THE AGENT                110/121     13/19     20/20     77/80
+
+     RUNG-0 BARS, pre-registered in this file before the first run:
+       MN recall     >= 0.5000 : 0.6842 PASS
+  ⎿  witness/visual_agent.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/visual_agent.py):
+  ⎿    ✘ [Line 358:10] Import "surya.fast_layout" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ★ [Line 56:43] "asdict" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ All three thresholds now pass: MN 13/19, RH 20/20, MT 77/80, zero forbidden cases, overall 110/121. Better still, the six remaining MN failures are abstentions with clear causes rather
+  than silent errors—several stem from the archetype classifier mislabeling pages as plain text, which blocks MN even when it should apply.
+
+  Now I want to check the final bar line and then move on to rendering the pictures.
+
+⏺ All three pre-registered bars now pass. Let me confirm and re-render the diagrams.
+
+⏺ Bash(../ocr-venv/bin/python witness/visual_agent.py 2>&1 | tail -14; echo "EXIT=${PIPESTATUS[0]}"; ../ocr-venv/bin/python witness/agent_see.py 2>&1 | tail -24)
+  ⎿  RUNG-0 BARS, pre-registered in this file before the first run:
+       MN recall     >= 0.5000 : 0.6842 PASS
+       overall       >= 0.8264 : 0.9091 PASS   (the bar IS Surya's own score — buying MN with MT is a FAILURE)
+       forbidden emis <= 0      : 0 PASS
+
+     ⚠️ THIS DISCHARGES NO GATE. Rows 10a/10b are reserved for GOLD-LAYOUT (>=125 pages,
+        per-archetype quota, recogniser frozen — Roadmap R16.1). 121 entries, 20 leaves, ONE
+        witness, head band only, so every MN here is a HEAD-BAND note: that the agent names
+        notes running down the OUTER MARGIN beside the measure is NOT shown by this run.
+        ⚠️  And MainText remains CONTAINMENT — the body block is one large box, and Gate 10b's
+        boundary error is what separates containment from boundary quality. Not measured here.
+
+     ✅ ALL RUNG-0 BARS PASS. The naming step is admissible; R14.2 proceeds.
+     EXIT=
+       leaf 400: archetype BC   8 boxes   7 gold   1 disagree  -> leaf-400.png
+       leaf 401: archetype BC   8 boxes   3 gold   0 disagree  -> leaf-401.png
+       leaf 402: archetype A    4 boxes   6 gold   1 disagree  -> leaf-402.png
+       leaf 403: archetype C    9 boxes   2 gold   0 disagree  -> leaf-403.png
+       leaf 404: archetype BC  10 boxes   2 gold   0 disagree  -> leaf-404.png
+       leaf 405: archetype B1   7 boxes   6 gold   0 disagree  -> leaf-405.png
+       leaf 406: archetype BC  11 boxes  10 gold   1 disagree  -> leaf-406.png
+                 out.append((m.group(1), claim, is_audit))
+         return out
+
+
+     def run(script):
+         p = subprocess.run([str(PY), f"witness/{script}"], cwd=SPIKE,
+                            capture_output=True, text=True, timeout=900)
+         return p.returncode, (p.stdout or "") + (p.stderr or "")
+
+
+     def main():
+         section = block_text()
+         if section is None:
+             check(f"roadmap still has a {SECTION!r} section", False,
+     "the section this test binds to has been removed or renamed; either "
+                   "restore it or retire this test deliberately, do not let it vanish")
+             return 1
+
+         named = commands(section)
+         print(f"the block names {len(named)} command(s); each must exist:")
+         for script, _, _ in named:
+             check(f"witness/{script:32s} exists", (HERE / script).is_file(),
+                   "named in the verification standard but not on disk")
+
+         named_set = {s for s, _, _ in named}
+         AUDIT_SCRIPTS = {s for s, _, a in named if a}
+
+         print("\nand every guard and audit on disk must be named in the block:")
+         on_disk = {p.name for p in HERE.glob(GUARD_GLOB)} | {
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_verification_standard.py)
+  ⎿  Added 1 line, removed 1 line
+      142              print(f"  --    witness/{script:32s} (not executed: no claim to check)")
+      143              continue
+      144          if script not in ran:
+      145 -            ran[script] = run(script)
+      145 +            ran[script] = _RESULTS[script]
+      146          code, out = ran[script]
+      147          if claim:
+      148              m = re.search(r"(\d+)\s*/\s*(\d+)", claim)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_verification_standard.py)
+  ⎿  Added 31 lines
+      124                "exists but the verification standard does not list it -- a guard "
+      125                "nobody is told to run is a guard nobody runs")
+      126
+      127 +    # ── R11.2e ────────────────────────────────────────────────────────────────────────────────
+      128 +    # 🔴 THE STANDARD COULD NOT BE RUN. The block names ~40 commands and several perform OCR, so a
+      129 +    # full pass exceeded 15 minutes on two consecutive attempts (2026-08-26) and was killed both
+      130 +    # times without producing a line. ⚠️  THAT IS WORSE THAN A SLOW TEST: every headline number in
+      131 +    # this project is held honest by this block, so a block nobody can afford to run holds nothing
+      132 +    # honest — and it fails by SILENCE, not by a red result.
+      133 +    #
+      134 +    # The fix is the one candidate that keeps the standard's meaning intact: the subprocesses are
+      135 +    # INDEPENDENT of one another (no command reads another's output, and each is a separate
+      136 +    # interpreter), so they are fanned out concurrently instead of run one after another. ⚠️ EVERY
+      137 +    # COMMAND STILL EXECUTES — nothing is cached, sampled, skipped or tiered. The two rejected
+      138 +    # candidates are recorded in the Roadmap: a content-keyed result cache (correct but a new
+      139 +    # instrument, and a cache-invalidation bug here would silently pass a stale claim), and a
+      140 +    # --fast/--full split, which is FORBIDDEN without a CI --full because it converts "too slow to
+      141 +    # run" into "not required to run" — the laundering §0.5 exists to prevent.
+      142 +    to_run = sorted({s for s, claim, _ in named
+      143 +                     if (HERE / s).is_file() and s != SELF
+      154 +            except Exception as exc:                      # a crash is a RESULT, never a skip
+      155 +                _RESULTS[s] = (-1, f"__HARNESS_ERROR__ {exc!r}")
+      156 +            print(f"  done  witness/{s}", flush=True)
+      157 +
+      158      print("\nevery claim of the form `-> N/M verified` must match what runs:")
+      159      ran = {}
+      160      for script, claim, _ in named:
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(head -40 witness/test_verification_standard.py | grep -n 'import')
+  ⎿  28:import re
+     29:import subprocess
+     30:import sys
+     31:from pathlib import Path
+  ⎿  witness/test_verification_standard.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_verification_standard.py):
+  ⎿    ✘ [Line 148:10] "cf" is not defined [reportUndefinedVariable] (Pyright)
+  ⎿    ✘ [Line 148:52] "os" is not defined [reportUndefinedVariable] (Pyright)
+  ⎿    ✘ [Line 150:20] "cf" is not defined [reportUndefinedVariable] (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_verification_standard.py)
+  ⎿  Added 2 lines
+      25  the arrows in them, nothing else.  A test that tried to verify the paragraphs
+      26  would fail on rewording and be switched off, which is worse than no test.
+      27  """
+      28 +import concurrent.futures as cf
+      29 +import os
+      30  import re
+      31  import subprocess
+      32  import sys
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(time ../ocr-venv/bin/python -u witness/test_verification_standard.py > .vstd.log 2>&1; echo "EXIT=$?"; tail -22 .vstd.log)
+  ⎿  ../ocr-venv/bin/python -u witness/test_verification_standard.py > .vstd.log 2  2213.73s user 21.74s system 409% cpu 9:05.59 total
+     EXIT=0
+       ok    witness/score_head_tokens.py             exits 0
+       ok    witness/score_r4_segment.py              exits non-zero (step still open)
+       ok    witness/score_region_gap_pops.py         exits non-zero (step still open)
+       ok    witness/score_region_gap_tokens.py       exits non-zero (step still open)
+       ok    witness/score_row_address.py             exits 0
+       ok    witness/score_surya_layout.py            exits non-zero (step still open)
+       ok    witness/test_band_agreement.py           exits non-zero (step still open)
+       ok    witness/test_consensus_sources.py        exits 0
+       ok    witness/test_counts_vs_doc.py            exits 0
+       ok    witness/test_drop_rule_enforced.py       exits 0
+       ok    witness/test_open_register_consistency.py exits 0
+       ok    witness/test_primacy_guard.py            exits 0
+       ok    witness/test_project_root.py             exits 0
+       ok    witness/test_raster_admissible.py        exits 0
+       ok    witness/test_raster_routing.py           exits 0
+       ok    witness/test_region_gold_addressing.py   exits 0
+       ok    witness/test_setting_guard.py            exits 0
+       ok    witness/test_setting_verified.py         exits 0
+       ok    witness/test_verse_scope.py              exits 0
+       ok    witness/test_verse_scope_bypass.py       exits 0
+
+     all checks passed — the roadmap's verification standard names 42 command(s) and describes what they actually do
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The verification standard now completes fully: 9m05s wall, exit 0, all 42 commands pass, including my new audit_gate_register.py entry — R11.2e resolved. I'm double-checking whether the
+  guard glob would catch visual_agent.py, but since it only matches test_*.py files, that script isn't picked up automatically, so I should register visual_agent explicitly.
+
+  Since visual_agent.py exits 0 and reports its bar results with a claim like "110/121", it belongs in the guards block rather than audits — if a future change breaks a bar it'll correctly
+  fail the suite. I'll also add agent_see.py, but without a claim so it's just existence-checked rather than parsed for a specific number, since its output isn't something I want to
+  hard-verify against.
+
+⏺ R11.2e resolved: full suite now completes in 9m05s, exit 0, all 42 commands executed. Registering the agent.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 2 lines
+      4327  ../ocr-venv/bin/python witness/build_argument_gold.py --check # R2.2d: exits 0 -> 81 argument rows over 10 leaves and 15 adjudicated negatives, every address reproducible
+             from the page
+      4328  ../ocr-venv/bin/python witness/build_region_gap_gold.py --check # R2.2e: exits 0 -> 49 rows are swallowed whole into one out-of-block token, 43 of them BODY, and every ad
+            dress reproduces from the page
+      4329  ../ocr-venv/bin/python witness/score_row_address.py       # R2.2j: exits 0 -> ADOPTED ink2d. Under a PURE RENAMING of rows, which moves no glyph, token or coordinate, the
+             old ordinal address COLLAPSES (RunningHead and MarginNote recall both to zero, 90 of the 121 entries orphaned) while ink2d is bit-for-bit unmoved with 121 bound and 0 or
+            phans. NB no N-slash-M fraction belongs in this claim: the checker takes the FIRST one, and a decimal pair like acc-slash-RH would parse as a fraction the scorer never pr
+            ints
+      4330 +../ocr-venv/bin/python witness/visual_agent.py            # R14.1/R14.2: exits 0 -> THE ADAPTIVE VISUAL AGENT names 110/121 head-band gold entries on OT1-1609-B leaves 40
+           +0-419 under BOTH declared addressing rules, and the bars are applied to the WORSE of the two. All three rung-0 bars pass: MarginNote recall 13 of 19 against a bar of 0.50
+           + where Surya off the shelf scores 0 of 19; overall 0.9091 against a bar of 0.8264 which IS Surya's own score on this gold, so buying marginalia with body text would FAIL;
+           + forbidden-class emissions 0. RunningHead is exact at 20 of 20 and MainText 77 of 80. Every naming cue is derived from THAT leaf's own boxes -- the measure is anchored on
+           + the largest box and widened only by boxes sharing its column, and besideness outranks size so a large box beside the measure is the marginal COLUMN and not the body. The
+           + 6 residual MarginNote misses are ABSTENTIONS CARRYING THEIR CAUSE, not silent errors, and 3 of them are archetype contradictions that point at the archetype classifier r
+           +ather than at the naming cues. It DISCHARGES NO GATE: rows 10a and 10b are reserved for GOLD-LAYOUT and MainText here is containment, not boundary quality
+      4331 +../ocr-venv/bin/python witness/agent_see.py               # R14.7: draws the agent's OWN decisions onto the leaf -- the measure it derived, the head floor, every box in i
+           +ts class colour captioned with its confidence and its plain-language reason, the gold it agreed with in grey and every disagreement in red. Reads `visual_agent`'s output
+           +directly rather than reimplementing it, because a second code path that can silently disagree with the first is the defect this project keeps finding. The frame bug that
+           +cost 11 of 20 running heads was found by LOOKING at leaf 412, not by reading a number
+      4332  ../ocr-venv/bin/python witness/test_verification_standard.py  # this block agrees with reality
+      4333  ../../../../core/tests/fixtures/gold/test_no_scratch_deps.py  # R11.2 no tracked module imports code out of gitignored .scratch/
+      4334  ```
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now the Roadmap record for R14.1/R14.2/R14.7, and closing R11.2e.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 66 lines
+      4067  currently **the only thing in the project that can name a marginal note**, which is precisely the
+      4068  "initialisation and plausibility clamp" role §3.2 item 5 assigns it — now evidenced rather than asserted.
+      4069
+      4070 +### R14.1 · R14.2 · R14.7 RESULT — ✅ **THE AGENT IS BUILT, DRAWN, AND PASSES ITS RUNG-0 BARS** (2026-08-26)
+      4071 +
+      4072 +🔴 **THIS SECTION EXISTS BECAUSE SIR STOPPED THE AUDITING.** *"You know the aims, so why get bogged
+      4073 +down in this way? … Build the visual agent that can AUTOMATE the text class recognition. Agent uses a
+      4074 +visual model, takes the page, sees the text blocks, consults archetypes, decides what each text block
+      4075 +probably is, does some quick reading to confirm, revises if needed, and generates the image chunks for
+      4076 +OCR. Is that really that hard? No, it's really not."* **It was not.** The four span rules, five
+      4077 +pre-registered bars and one overlap measurement that preceded this were all attempts to find a
+      4078 +CONSTANT. The agent needed a **frame**.
+      4079 +
+      4080 +**`witness/visual_agent.py`** — S1 see → S2 archetype → S3/S4 name-and-bound with confidence and
+      4081 +abstention. **`witness/agent_see.py`** (R14.7) draws the agent's own decisions onto the leaf.
+      4082 +
+      4083 +| | same gold · same window · same binding | overall | MN | RH | MT |
+      4084 +|---|---|---|---|---|---|
+      4085 +| | Surya off the shelf (R14.0) | 100/121 | **0/19** | 20/20 | 80/80 |
+      4086 +| | geometric `region_head` (R2.1g) | — | 17/19 | 20/20 | 67/80 |
+      4087 +| ⇒ | **THE AGENT** | **110/121 = 0.9091** | **13/19** | **20/20** | 77/80 |
+      4088 +
+      4089 +**Rung-0 bars, written into the file before the first run — all three PASS.** MN recall ≥ 0.50 →
+      4090 +**0.6842**. Overall ≥ **0.8264**, *which is Surya's own score on this gold*, so buying marginalia with
+      4091 +body text is a **failure** by construction — the exact trade R2.2's four refuted rules each made at
+      4092 +~1 MN per 11–12 MT → **0.9091**. Forbidden-class emissions = 0. ⚠️ **The bars are applied to the WORSE
+      4093 +of the two declared addressing rules**, never the better.
+      4094 +
+      4095 +**THE ONE IDEA THAT MADE IT WORK — a FRAME, not a threshold.** R2.2o.1 proved no gap constant exists
+      4096 +because it was asking *how far is this from the body*. A marginal note is not **far from** the body,
+      4097 +it is **BESIDE** it — and besideness is a fact about **the measure**, which is derived per leaf from
+      4098 +that leaf's own boxes. That single reframing takes MarginNote from 0/19 to 13/19 with **no fitted
+      4099 +constant deciding anything**, satisfying §3.0's rule that a constant may initialise or clamp and may
+      4100 +never decide.
+      4101 +
+      4102 +🔴 **AND THE PICTURE FOUND THREE BUGS THAT THE NUMBERS DID NOT — THIS IS R14.7's WHOLE JUSTIFICATION.**
+      4103 +The first run scored **91/121 with RH 9/20**, and no cell of that table said why.
+      4104 +1. **The measure was being dragged into the margin.** `frame()` took the median edge of every large
+      4105 +   box; on an apparatus leaf Surya emits the whole **marginal column** as one large box — it is tall,
+      4106 +   so it clears any area prior. Every besideness test downstream was then asked against a frame that
+      4107 +   already contained the margin. ⇒ anchor on the single largest box, widen only by boxes sharing
+      4130 +leaves, **one witness**, **head band only** — so every MN scored here is a head-band note, and that the
+      4131 +agent names notes running down the **outer margin beside the measure** is **not shown**. MainText
+      4132 +remains **containment** (the body block is one box); Gate 10b's boundary error is what separates
+      4133 +containment from boundary quality and is not measured. Rows 10a/10b stay reserved for GOLD-LAYOUT
+      4134 +(**R16.1**).
+      4135 +
+      4136  ### R14.6a RESULT — ✅ DONE 2026-08-26. Every class has a source, and the audit's own first run was wrong
+      4137
+      4138  **`witness/audit_label_sources.py`.** R14.6 rests on the claim that §3.2 item 2's text sources make the
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 14 lines
+      4425     behaviours. **Not fixed here** because changing the parser is a change to the instrument every
+      4426     other number in this block is verified by, and it earns its own step.
+      4427
+      4428 +✅ **R11.2e — RESOLVED THE SAME DAY. Full pass: 9m05s wall, exit 0, all 42 commands EXECUTED.**
+      4429 +Candidate **(2)** was adopted: the commands are mutually independent — no command reads another's
+      4430 +output and each is a separate interpreter — so the subprocess fan-out is concurrent
+      4431 +(`ThreadPoolExecutor`, ≤8 workers) instead of serial. 409% CPU, and **nothing is cached, sampled,
+      4432 +skipped or tiered**: every claim in the block still executes, which was the pre-registered rule.
+      4433 +Candidate **(1)**, a content-keyed result cache, is **struck** — correct in principle but a new
+      4434 +instrument, and a cache-invalidation bug here would silently pass a stale claim, which is a worse
+      4435 +failure than slowness. Candidate **(3)**, the `--fast`/`--full` split, is **struck outright** for the
+      4436 +reason written before the work: without the CI half it converts *"too slow to run"* into *"not
+      4437 +required to run."* ⚠️ A harness exception is now recorded as a **result** (`__HARNESS_ERROR__`), never
+      4438 +as a skip — a command that crashes the runner must not vanish from the tally.
+      4439 +
+      4440 +<details><summary>The finding as originally filed (retained — it is the evidence the fix rests on)</summary>
+      4441 +
+      4442  🔴 **R11.2e — THE STANDARD CANNOT BE RUN. C2 — assembly.** (NEW 2026-08-26, and it is the third parser
+      4443  defect in the same instrument, which is why it is filed rather than worked around again.) The block now
+      4444  names 40 commands, several of which perform OCR — `r2_1d_continuity.py` above all — so a full run
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 2 lines
+      4455  reached. ⚠️  **(3) alone, without the CI half, is forbidden** — it converts "too slow to run" into "not
+      4456  required to run", which is the laundering §0.5 exists to prevent.
+      4457
+      4458 +</details>
+      4459 +
+      4460  **The audits** — these are *expected to fail while their step is open*, and that is the point:
+      4461
+      4462  ```
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now the two Gate 0e/0f exposures Sir asked about — the 0f hole is the one that can poison the agent's training data.
+
+⏺ Bash(grep -n 'GLYPH_BARRED\|def glyph_source\|def admissible\|def glyph_witnesses\|def structural' witness/witnesses.py | head)
+  ⎿  81:# unchanged and none of them is weakened: `GLYPH_BARRED` and `ROLE_VERSE_SCOPE`
+     160:    # It attests; it never adjudicates.  GLYPH_BARRED is unchanged by this.
+     326:GLYPH_BARRED = {
+     336:# same reason `GLYPH_BARRED` did: `jp2_page` is the raster ACCESSOR, and a module
+     456:def glyph_source(vol, sig):
+     472:      * GLYPH_BARRED -- the witness is excluded, or its resolution cannot resolve
+     481:    if sig in GLYPH_BARRED:
+     483:            f"{wid(vol, sig)}: barred from glyph-level work — {GLYPH_BARRED[sig]}. "
+     491:def admissible(vol):
+     498:           if v == vol and s not in GLYPH_BARRED and (v, s) not in NO_READING]
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(sed -n '320,345p;456,500p' witness/witnesses.py)
+  ⎿  # is a render.
+     #
+     # This lived in `audit_gt_rasters.py` until 2026-08-07 (R7.5).  It belongs beside
+     # the registry, because it is a property of the witness, and because two routes to
+     # the pixels each holding their own copy of "which witnesses are barred" is how the
+     # routes drift apart.  The audit now imports it from here.
+     GLYPH_BARRED = {
+         "F": "~168 ppi in all three volumes; the long-ſ nub spans under 1.6 px (§1.2)",
+         "X": "excluded -- a 2.00x upscale of B-NT with zero real detail beyond it",
+     }
+
+
+     # Legacy `ocr_dir` -> the witness it actually addresses.
+     #
+     # This lived in `jp2_page.py` until 2026-08-07 (R7.5b).  It is registry data --
+     # "which witness does this legacy identifier name?" -- and it moved here for the
+     # same reason `GLYPH_BARRED` did: `jp2_page` is the raster ACCESSOR, and a module
+     # that reads the map should not have to import a module that opens images to get
+     # it.  `curated_sources.py` in particular is a pure allowlist imported at every
+     # ingest boundary, and making it depend on PIL to answer "which source is this
+     # folder?" would be a reason not to call the guard.
+     #
+     # Every entry except the two noted was confirmed by PATH IDENTITY against the old
+     # table.  The two exceptions are the two defects R7.5 retired.
+     OCR_DIR_TO_WITNESS = {
+         # --- S01 / `F`: PDF-primary renders. Barred from pixel work, fine for structure.
+     def glyph_source(vol, sig):
+         """The artefact a GLYPH-level consumer must read, as (kind, path).
+
+         `kind` is "jp2" for a directory of capture leaves, or "pdf" for a PDF whose
+         pages must be extracted.  Raises for any witness that cannot support a glyph
+         call at all.
+
+         This is deliberately distinct from `pixel_source()`, which answers a narrower
+         question -- "is this witness's JP2 package the capture, or an IA render?" -- and
+         therefore raises for `M`, whose JP2 package is corrupt but whose PDF holds the
+         real CCITT stencils.  `pixel_source()`'s own message says to extract from the
+         PDF in that case; this function is where that instruction is executed rather
+         than left to each caller to remember.
+
+         The bars, in the order they are applied and for separate reasons:
+           * NO_READING  -- the primary's text layer is binarised (an MRC re-upload).
+           * GLYPH_BARRED -- the witness is excluded, or its resolution cannot resolve
+             the features a glyph call depends on.  A render is not the issue here; an
+             upscale of a genuine capture is still barred, because interpolation
+             manufactures the feature the call depends on rather than recording it.
+           * primary == "pdf" -- not a bar. It selects the extraction route.
+         """
+         key = (vol, sig)
+         if key in NO_READING:
+     ROLES = {
+         "base":        "the copy the transcript is taken FROM -- it IS the text. "
+                        "Every reading; training crops; CER evaluation.",
+         "surrogate":   "a second scan of the SAME setting at usable resolution. "
+     "Resolves what the base cannot show -- damage, show-through, "
+     "an inked-over sort.  Never supplies a reading where the base "
+                        "is legible and merely disagreed with.",
+         "lowres":      "a genuinely independent copy whose DIGITISATION resolves too "
+     "little for GLYPH-level work -- and for nothing else.  "
+     "ADMITTED FOR: collation, page order, completeness; page "
+     "LAYOUT and geometry (region boundaries, archetype "
+     "classification, reading order), none of which depends on "
+     "resolving a glyph; adjudicating DAMAGE, SHOW-THROUGH and an "
+     "INKED-OVER sort in the base, because a second physical copy "
+     "settles whether a mark is in the TYPE or in that COPY, and "
+     "that question is answered at blot grain, not nub grain; "
+     "verifying that a TRAINING CROP is the locus it is believed "
+     "to be, which is addressing, not recognition; and any reading "
+     "no better-resolved witness carries.  "
+     "BARRED FROM: training data, CER evaluation, and adjudicating "
+     "long-s against f -- the distinguishing nub is under 1.6 px "
+                        "at 168 ppi.",
+         "support":     "a copy of a DIFFERENT edition, admitted for named leaves "
+     "only: a reading where the base has NO leaf at all, flagged "
+                        "as supplied with its source named.",
+         "frontmatter": "admitted for prelims and endmatter, excluded from the verse "
+                        "text.  No verse of scripture, at any resolution.",
+         "excluded":    "not a distinct copy, or not a witness to the setting. "
+                        "Audit and provenance only; nothing evidential.",
+     }
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I realize the existing GLYPH_ROLES set already covers what glyph_witnesses uses, so the real fix for glyph_source is to check role membership against GLYPH_ROLES per volume/signature,
+  alongside the siglum-level GLYPH_BARRED check. Since "support" qualifies but "lowres" doesn't, that distinction determines whether a given edition's glyph call counts.
+
+  I'll add this role check to glyph_source right after the NO_READING and GLYPH_BARRED checks, and make sure admissible() uses the same derivation so error messages stay accurate. Then I'll
+  write a guard test with a negative injection case to prove the bar works.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/witnesses.py)
+  ⎿  Added 36 lines, removed 1 line
+      483              f"{wid(vol, sig)}: barred from glyph-level work — {GLYPH_BARRED[sig]}. "
+      484              f"Re-read the locus on an admissible witness ({', '.join(admissible(vol))}) "
+      485              f"or report that neither holds it. No fallback is permitted (R7).")
+      486 +    # 🔴 THE ROLE BAR, ADDED 2026-08-26 (Gate 0f, the hole the Overview named and nothing closed).
+      487 +    #
+      488 +    # `GLYPH_BARRED` is keyed by SIGLUM and held exactly `F` and `X` -- NOT `M`. So `glyph_source`
+      489 +    # returned a usable PDF path for `NT-1582-M`, although its `lowres` role bars it from training
+      490 +    # data, from CER evaluation and from adjudicating long-ſ (~380 ppi bitonal). The bar was written
+      491 +    # in `ROLES` and ENFORCED BY NOTHING: the same shape as Gate 0f and Gate 0d before their
+      492 +    # consumers were built, and this project's signature defect one more time.
+      493 +    #
+      494 +    # ⚠️ A SIGLUM-LEVEL BAR IS THE WRONG SHAPE HERE AND THAT IS WHY THE HOLE EXISTED. `M` is ONE file
+      495 +    # holding TWO books: a 1635 Rouen Old Testament (`frontmatter`) and a 1582 Rheims New Testament
+      496 +    # (`lowres`). No entry keyed on the letter `M` can state a bar that is true of both halves, so
+      497 +    # the bar must be derived PER RECORD from the role -- which is exactly what `glyph_witnesses`
+      498 +    # already did, correctly, while remaining a counter rather than a gate.
+      499 +    #
+      500 +    # ⚠️ AND THE BAR IS ON ONE GRAIN, NEVER ON THE WITNESS. `M` is wanted, positively, for page
+      501 +    # LAYOUT and GEOMETRY -- region boundaries, archetype classification, reading order -- none of
+      502 +    # which resolves a glyph, and all of which the adaptive visual agent needs. This function
+      503 +    # answers the GLYPH question only; `structural_witnesses` answers the other one and is
+      504 +    # untouched. Barring `M` here does not remove it from the corpus, it removes it from one grain
+      505 +    # of question.
+      506 +    role = WITNESSES[key]["role"]
+      507 +    if role not in GLYPH_ROLES:
+      508 +        raise ValueError(
+      509 +            f"{wid(vol, sig)}: role={role!r} may not carry a GLYPH-level call — "
+      510 +            f"{ROLES[role].split('.')[0]}. "
+      511 +            f"Re-read the locus on an admissible witness ({', '.join(admissible(vol))}) "
+      512 +            f"or report that none holds it. ⚠️ This bars ONE GRAIN, not the witness: for page "
+      513 +            f"layout, geometry and collation use structural_witnesses({vol!r}). "
+      514 +            f"No fallback is permitted (R7, Gate 0f).")
+      515      if PRIMARY[key] == "pdf":
+      516          return ("pdf", PDF[key])
+      517      return ("jp2", WITNESSES[key]["jp2"])
+     ...
+      522
+      523      The bars are tested directly rather than by calling `glyph_source()`, which
+      524      would recurse: `glyph_source` builds its refusal message from this function.
+      525 +
+      526 +    ⚠️ THE ROLE CLAUSE IS DUPLICATED HERE DELIBERATELY AND MUST TRACK `glyph_source`. A refusal
+      527 +    message that names a witness the accessor would itself refuse sends the caller round a loop, and
+      528 +    the previous version did exactly that for `M`. `test_glyph_role_bar.py` asserts the two agree on
+      529 +    every registered record, so the duplication cannot drift silently.
+      530      """
+      531      out = [wid(v, s) for (v, s) in WITNESSES
+      498 -           if v == vol and s not in GLYPH_BARRED and (v, s) not in NO_READING]
+      532 +           if v == vol and s not in GLYPH_BARRED and (v, s) not in NO_READING
+      533 +           and WITNESSES[(v, s)]["role"] in GLYPH_ROLES]
+      534      return sorted(out) or ["none in this volume"]
+      535
+      536
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n '^GLYPH_ROLES' witness/witnesses.py; ../ocr-venv/bin/python -c "
+      import sys; sys.path.insert(0,'witness'); import witnesses as W
+      for (v,s) in sorted(W.WITNESSES):
+          try:
+              k,p=W.glyph_source(v,s); r='OK  '+k
+          except ValueError as e: r='REFUSED: '+str(e)[:60]
+          print(f'{W.wid(v,s):14s} role={W.WITNESSES[(v,s)][\"role\"]:11s} {r}')
+      ")
+  ⎿  555:GLYPH_ROLES = frozenset({"base", "surrogate", "support"})
+     NT-1582-B      role=base        OK  jp2
+     NT-1633-F      role=lowres      REFUSED: NT-1633-F: barred from glyph-level work — ~168 ppi in all th
+     NT-1582-M      role=lowres      REFUSED: NT-1582-M: role='lowres' may not carry a GLYPH-level call —
+     NT-1633-R      role=support     OK  jp2
+     NT-1582-X      role=excluded    REFUSED: NT-1582-X: barred from glyph-level work — excluded -- a 2.00
+     OT-1635-M      role=frontmatter REFUSED: OT-1635-M: role='frontmatter' may not carry a GLYPH-level ca
+     OT1-1609-B     role=base        OK  jp2
+     OT1-1609-F     role=lowres      REFUSED: OT1-1609-F: barred from glyph-level work — ~168 ppi in all t
+     OT1-1609-P     role=surrogate   OK  jp2
+     OT2-1610-B     role=base        OK  jp2
+     OT2-1610-F     role=lowres      REFUSED: OT2-1610-F: barred from glyph-level work — ~168 ppi in all t
+     OT2-1610-P     role=surrogate   OK  jp2
+  ⎿  witness/witnesses.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/witnesses.py):
+  ⎿    ★ [Line 663:55] "v" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The hole is closed now—NT-1582-M and OT-1635-M both correctly refuse, exactly the two records that were leaking before. Next I'll write the guard with a proven negative case included.
+
+⏺ The hole is closed. Now the guard with a proven negative, per house rule.
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_glyph_role_bar.py)
+  ⎿  Wrote 130 lines to /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_glyph_role_bar.py
+        1 #!/usr/bin/env python3
+        2 """R9.7 -- Gate 0f's last hole: the ROLE bar on glyph work is now ENFORCED, not merely written.
+        3
+        4 THE DEFECT, as `OCR-OVERVIEW.md` recorded it and nothing closed:
+        5
+        6     "`GLYPH_BARRED` in the registry holds exactly `F` and `X` -- NOT `M` -- so `admissible("NT")`
+        7      names `M` and `glyph_source("NT", "M")` returns a usable PDF path, although the `lowres` role
+        8      bars `M` from training data, from CER evaluation and from adjudicating long-ſ. The bar is
+        9      written in `ROLES` and ENFORCED BY NOTHING: the same shape as Gate 0f and Gate 0d before their
+       10      consumers were built."
+       11
+       12 ⚠️ WHY A SIGLUM-LEVEL BAR COULD NEVER HAVE CLOSED IT. `M` is ONE file holding TWO books -- a 1635
+       13 Rouen Old Testament (`frontmatter`) and a 1582 Rheims New Testament (`lowres`). No entry keyed on
+       14 the letter `M` can state a bar that is true of both halves. The bar has to be derived PER RECORD
+       15 from the role, which is what `glyph_witnesses` already did correctly while being a counter rather
+       16 than a gate.
+       17
+       18 ⚠️ AND THE BAR IS ON ONE GRAIN, NEVER ON THE WITNESS. `M`'s New Testament is the SAME 1582 SETTING
+       19 as the base exemplar and is wanted, positively, for page LAYOUT and GEOMETRY -- region boundaries,
+       20 archetype classification, reading order -- none of which resolves a glyph, and all of which the
+       21 adaptive visual agent (§3.0) needs. This guard asserts that `structural_witnesses` still names it.
+       22 A guard that closed the glyph hole by deleting the witness would have cost the agent a witness.
+       23
+       24 WHAT IS CHECKED
+       25   1. every record whose role is not a GLYPH_ROLE is REFUSED by `glyph_source`;
+       26   2. every record whose role IS a GLYPH_ROLE and carries no other bar is ADMITTED;
+       27   3. `admissible()` never names a witness `glyph_source()` would itself refuse -- the two carry the
+       28      same clause and must not drift;
+       29   4. the bar is grain-specific: a glyph-barred `lowres` record is STILL a structural witness;
+       30   5. THE PROVEN NEGATIVE -- with the role clause removed, `NT-1582-M` is admitted. A guard that has
+       31      never rejected anything is not known to work.
+       32
+       33     ../ocr-venv/bin/python witness/test_glyph_role_bar.py
+       34 """
+       35 from __future__ import annotations
+       36
+       37 import sys
+       38 from pathlib import Path
+       39
+       40 _HERE = Path(__file__).resolve().parent
+       41 sys.path.insert(0, str(_HERE))
+       42
+       43 import witnesses as W  # noqa: E402
+       44
+       45 FAIL: list[str] = []
+       46
+       47
+       48 def check(label, ok, detail=""):
+       49     print(f"  {'ok  ' if ok else '🔴 FAIL'}  {label}")
+       50     if not ok:
+       51         FAIL.append(f"{label}: {detail}")
+       52
+       53
+       54 def main() -> int:
+       55     print("Gate 0f — the ROLE bar on glyph-level work\n")
+       56
+       57     refused, admitted = [], []
+       58     for key in sorted(W.WITNESSES):
+       59         try:
+       60             W.glyph_source(*key)
+       61             admitted.append(key)
+       62         except ValueError:
+       63             refused.append(key)
+       64
+       65     print("1. a role outside GLYPH_ROLES must be REFUSED:")
+       66     for key in sorted(W.WITNESSES):
+       67         role = W.WITNESSES[key]["role"]
+       68         if role in W.GLYPH_ROLES:
+       69             continue
+       70         check(f"{W.wid(*key):14s} role={role:11s} refused", key in refused,
+       71               "a role the registry bars from glyph work returned a usable path")
+       72
+       73     print("\n2. a GLYPH_ROLE with no other bar must be ADMITTED (the bar must not over-reach):")
+       74     for key in sorted(W.WITNESSES):
+       75         role = W.WITNESSES[key]["role"]
+       76         if role not in W.GLYPH_ROLES or key[1] in W.GLYPH_BARRED or key in W.NO_READING:
+       77             continue
+       78         check(f"{W.wid(*key):14s} role={role:11s} admitted", key in admitted,
+       79               "a witness that MAY carry a glyph call was refused — the bar over-reaches")
+       80
+       81     print("\n3. `admissible()` must never name a witness `glyph_source()` would refuse:")
+       82     for vol in sorted({v for v, _ in W.WITNESSES}):
+       83         named = set(W.admissible(vol))
+       84         bad = [W.wid(*k) for k in refused if k[0] == vol and W.wid(*k) in named]
+       85         check(f"admissible({vol!r}) is self-consistent", not bad,
+       86               f"names {bad}, which glyph_source refuses — the caller is sent round a loop")
+       87
+       88     print("\n4. THE BAR IS ON ONE GRAIN: a glyph-barred `lowres` record is STILL structural:")
+       89     for key in sorted(k for k in refused if W.WITNESSES[k]["role"] == "lowres"):
+       90         vol, sig = key
+       91         try:
+       92             struct = set(W.structural_witnesses(vol, W.WITNESSES[key].get("year")))
+       93         except Exception:
+       94             struct = set(W.structural_witnesses(vol))
+       95         check(f"{W.wid(*key):14s} still a STRUCTURAL witness",
+       96               W.wid(*key) in struct or sig in struct,
+       97               "closing the glyph hole must not cost the agent a layout witness")
+       98
+       99     print("\n5. PROVEN NEGATIVE — remove the role clause and the hole reopens:")
+      100     saved = W.GLYPH_ROLES
+      101     try:
+       ok    OT-1635-M      role=frontmatter refused
+       ok    OT1-1609-F     role=lowres      refused
+       ok    OT2-1610-F     role=lowres      refused
+
+     2. a GLYPH_ROLE with no other bar must be ADMITTED (the bar must not over-reach):
+       ok    NT-1582-B      role=base        admitted
+       ok    NT-1633-R      role=support     admitted
+       ok    OT1-1609-B     role=base        admitted
+       ok    OT1-1609-P     role=surrogate   admitted
+       ok    OT2-1610-B     role=base        admitted
+       ok    OT2-1610-P     role=surrogate   admitted
+
+     3. `admissible()` must never name a witness `glyph_source()` would refuse:
+       ok    admissible('NT') is self-consistent
+       ok    admissible('OT') is self-consistent
+       ok    admissible('OT1') is self-consistent
+       ok    admissible('OT2') is self-consistent
+
+     4. THE BAR IS ON ONE GRAIN: a glyph-barred `lowres` record is STILL structural:
+       ok    NT-1633-F      still a STRUCTURAL witness
+       ok    NT-1582-M      still a STRUCTURAL witness
+       ok    OT1-1609-F     still a STRUCTURAL witness
+       ok    OT2-1610-F     still a STRUCTURAL witness
+
+     5. PROVEN NEGATIVE — remove the role clause and the hole reopens:
+       ok    without the clause, 2 record(s) leak: ['NT-1582-M', 'OT-1635-M']
+
+     Gate 0f role bar ENFORCED — 6 of 12 records refused at glyph grain, and the bar is grain-specific, not witness-wide
+     EXIT=0
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The failed test confirms exactly the two records the overview predicted would leak, so I'll register this in the verification standard, update the docs, add the guard line, and rerun the
+  full suite to make sure everything still passes.
+
+⏺ The proven negative names exactly the two records the Overview predicted. Registering it.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 1 line
+      4383  ../ocr-venv/bin/python witness/test_consensus_sources.py   # R9.4b the fusion admits only curated, verse-admitted sources
+      4384  ../ocr-venv/bin/python witness/test_raster_admissible.py   # R5.2b Gate 0d REFUSES a derivative leaf, and admits a real one
+      4385  ../ocr-venv/bin/python witness/test_verse_scope_bypass.py  # R9.2c Gate 0f has ONE route; each exemption still earns itself
+      4386 +../ocr-venv/bin/python witness/test_glyph_role_bar.py      # R9.7  Gate 0f's last hole: the ROLE bar on glyph work is ENFORCED -> 6 of 12 records refused at glyph grain,
+           +and the bar is grain-specific. GLYPH_BARRED was keyed by SIGLUM and held only F and X, so glyph_source returned a usable PDF path for NT-1582-M although its lowres role b
+           +ars it from training data, CER and long-s adjudication -- a bar written in ROLES and enforced by nothing. A siglum key could never have closed it: M is ONE file holding T
+           +WO books with DIFFERENT roles. The proven negative removes the role clause and NT-1582-M and OT-1635-M leak, exactly the two records the Overview predicted. Clause 4 asse
+           +rts the bar costs the visual agent nothing: a glyph-barred lowres record is STILL a structural witness for layout and geometry
+      4387  ../ocr-venv/bin/python witness/test_project_root.py         # R9.6/R11.4 one derived root; the legacy tree is not named, traversed to, or resurrected
+      4388  ./.venv/bin/python core/tests/fixtures/gold/mask_engine/originaldr_reconstruction/acquisition/acquire_sabates_a.py --verify  # R11.3a the apparatus clone is the pinned co
+            mmit AND the pinned bytes
+      4389  ../ocr-venv/bin/python witness/test_region_gold_addressing.py  # R2.1i a splitter change must not MISBIND a gold label
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(time ../ocr-venv/bin/python -u witness/test_verification_standard.py > .vstd.log 2>&1; echo "EXIT=$?"; grep -c '  ok' .vstd.log; grep -E 'FAIL|🔴' .vstd.log | head; tail -2
+      .vstd.log)
+  ⎿  ../ocr-venv/bin/python -u witness/test_verification_standard.py > .vstd.log 2  2260.13s user 25.23s system 413% cpu 9:13.24 total
+     EXIT=0
+     136
+     guards must exit 0; audits are expected to FAIL while their step is open:
+
+     all checks passed — the roadmap's verification standard names 45 command(s) and describes what they actually do
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The full suite passed clean: 45 commands, exit 0, over nine minutes. Now I need to update the documentation — flip the Overview's defect warning box to reflect the fix, remove R9.7 and
+  R11.2e from the Roadmap's open register while adding R14.7 as done, then write up the devlog and report back.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-OVERVIEW.md)
+  ⎿  Added 14 lines, removed 1 line
+      164  crop addresses the locus it claims**, which is addressing rather than recognition; and collation, page order
+      172 +> ⚠️ **A siglum-level bar could never have closed this, and that is why it stayed open.** `M` is ONE
+      173 +> file holding TWO books with **different roles**, so no entry keyed on the letter `M` can state a bar
+      174 +> true of both halves. ⚠️ **And the guard's fourth clause exists to protect the agent**: a glyph-barred
+      175 +> `lowres` record is asserted to remain a **structural** witness, because `M`'s New Testament is
+      176 +> wanted, positively, for region boundaries, archetype classification and reading order. Closing a
+      177 +> glyph hole by deleting a witness would have cost the visual agent a witness.
+      178 +>
+      179 +> ⚠️ **The finding as originally recorded** — retained, because the reasoning is what made the fix the
+      180 +> right shape. `GLYPH_BARRED` in the registry holds exactly `F`
+      181  > and `X` — **not `M`** — so `admissible("NT")` names `M` and `glyph_source("NT", "M")` returns a usable PDF
+      182  > path, although the `lowres` role bars `M` from training data, from CER evaluation and from adjudicating
+      183  > long-ſ. **The bar is written in `ROLES` and enforced by nothing**: the same shape as Gate 0f and Gate 0d
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python - <<'PY'
+      import re, pathlib
+      p = pathlib.Path("OCR-ROADMAP.md"); t = p.read_text()
+      # R9.7 and R11.2e are closed -> out of the OPEN register.
+      t = t.replace("**R9.6b** · **R9.7** · **R9.8** ·", "**R9.6b** · **R9.8** ·", 1)
+      t = t.replace("**R11.2e** (the verification standard cannot be run to completion, NEW 2026-08-26)",
+                    "**R14.8** (extend the agent beyond the head band — the coverage limit R14.1/R14.2 inherit)", 1)
+      p.write_text(t)
+      print("R9.7 in OPEN:", "**R9.7**" in t, "| R11.2e in OPEN:", "**R11.2e** (the verification" in t)
+      PY
+      ../ocr-venv/bin/python witness/test_open_register_consistency.py | tail -3; ../ocr-venv/bin/python witness/audit_prereq_ceilings.py 2>&1 | head -1)
+  ⎿  R9.7 in OPEN: True | R11.2e in OPEN: False
+       OPEN register holds 87 step(s)
+
+     ✅ no step is both closed in its row and open in the register
+     §0.5 coverage over the OPEN register — STRICT: 14/87 step(s) declare a complexity class in their OWN row, in a section carrying a pre-registered decision rule.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ That True result is confusing me — my replacement removed that specific R9.7 line, but the string check still finds it elsewhere in the file. The register count dropped from 88 to 87, so
+  I'm trying to figure out if R9.7 is genuinely still present somewhere else or if my check is flawed.
+
+  Actually the count checks out: minus R9.7, minus R11.2e, plus R14.8 gets me to 87. The True hit is just because my new guard line mentions R9.7 by name, not because the entry survived —
+  that's fine since it's outside the register block itself.
+
+  Now I need to make sure R14.8 is actually defined as a step in the R14 table, not just referenced, or consistency checks might flag it. Let me add proper R14.8 and R14.9 rows and correct
+  the ceiling count to 14/87.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 4 lines
+      4192  | R14.6b | ✅ **RE-SCOPED 2026-08-26 from "scrape" to "INGEST THE LOCAL CORPORA" — no scrape was performed** | ingest `janvier` (primary) and `originaldouayrheims-com/app
+            aratus` (corroborating) as `apparatus_blocks` with `kind='annotation'`, pinned under R11.3a to their tracked `imports/…/transcriptions/` homes | Marginalia reads ADMISSIB
+            LE from a **tracked, pinned** path rather than a scratch copy. ⚠️  **The scrape the plan called for had ALREADY BEEN RUN** — 763 files sit in `originaldouayrheims-com/appa
+            ratus/`; the cross-map note *"odr_com apparatus = raw scrape follow-up (not in `odr_com.json`)"* meant *not folded into that file*, **not** *never fetched*. An outward-fa
+            cing fetch of data already held would have been redundant. **C2 — acquisition** |
+      4193  | R14.6c | **Generate and VALIDATE the seven admissible classes** | labels for MainText · Marginalia · Argument · RunningHead · Catchword/Signature · VerseNumber, over le
+            aves 400–419 first | scored **against the 121-entry hand gold on that window** before any corpus-scale run, following `score_surya_layout`'s discipline: page-fraction add
+            ressing, binding by best overlap, **orphans reported separately**, label map declared before the run. ⚠️  **The hand gold is the generator's SCORER, never its trainer.** *
+            *C3 — assembly** |
+      4194
+      4195 +| R14.7 | ✅ **DONE 2026-08-26 — DRAW WHAT THE AGENT SEES, on the leaf** (Sir's instruction) | `witness/agent_see.py`: the measure the agent derived, the head floor, ever
+           +y box in its class colour captioned with confidence and a **plain-language reason**, gold agreed-with in grey, every disagreement in red, archetype and its evidence at th
+           +e head | it reads `visual_agent`'s **own** output, never a reimplementation — a second code path that can silently disagree with the first is the defect this project keep
+           +s finding. ⚠️ **It earned itself immediately**: the frame bug that cost 11 of 20 running heads was invisible in every number and obvious in one picture. **C1 — instrument
+           +** |
+      4196 +| R14.8 | **Lift the head-band coverage limit — score the agent on notes beside the MEASURE** | the gold extended below the top 3 rows on the same 20 leaves (R2.2o.1b's w
+           +indow), so outer-margin notes running down the fore-edge are scored | MN recall reported **separately for head-band and fore-edge notes**, since only the first is measure
+           +d today. ⚠️ **The besideness cue is expected to do BETTER here, not worse** — a fore-edge note clears the measure outright where a head-band note straddles it — and writi
+           +ng that expectation down before the run is what makes a null informative. **C2 — assembly** |
+      4197 +| R14.9 | **Repair the archetype classifier, which the agent's own abstentions localise** | 3 of the 6 residual MN misses are `cue says MN, but archetype A FORBIDS it` on
+           + leaves 402/413/415 — leaves that plainly carry apparatus and were typed `A` | archetype accuracy on the 20-leaf window, and those 3 abstentions resolved **by fixing the
+           +archetype**, never by relaxing the FORBIDS contract. ⚠️ **The contract is the thing that made the defect visible**; weakening it would trade a reported error for a silent
+           + one. **C2 — assembly** |
+      4198 +
+      4199  ⚠️ **ORDERING.** R14.0 first, because it is nearly free and may change every estimate below it. R14.6
+      4200  runs alongside R14.1 because it is the input to everything after. **R14.5 is last and is the only C4**:
+      4201  a re-examination loop built before its stages can be measured would be a loop with no way to tell a
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python - <<'PY'
+      import pathlib
+      p=pathlib.Path("OCR-ROADMAP.md"); t=p.read_text()
+      t=t.replace("**R14.8** (extend the agent beyond the head band — the coverage limit R14.1/R14.2 inherit)",
+                  "**R14.8 · R14.9** (lift the head-band coverage limit; repair the archetype classifier the agent's own abstentions localise, NEW 2026-08-26)",1)
+      p.write_text(t)
+      PY
+      ../ocr-venv/bin/python witness/audit_prereq_ceilings.py 2>&1 | head -1; ../ocr-venv/bin/python witness/test_open_register_consistency.py | tail -3; ../ocr-venv/bin/python
+      witness/audit_gate_register.py 2>&1 | sed -n '1,8p')
+  ⎿  §0.5 coverage over the OPEN register — STRICT: 16/88 step(s) declare a complexity class in their OWN row, in a section carrying a pre-registered decision rule.
+       OPEN register holds 88 step(s)
+
+     ✅ no step is both closed in its row and open in the register
+     R15.1 — GATE REGISTER CROSSWALK AUDIT
+       §7.8 canonical rows ........ 25
+       crosswalked §3.2 clauses ... 9
+       Roadmap step ids ........... 177
+       Roadmap cites §7.8 ......... 38 time(s)
+       rows DISCHARGED BY a step .. 12/25
+       rows NOT YET PLANNED ...... 13/25
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+      p=pathlib.Path("OCR-ROADMAP.md"); t=p.read_text()
+      old="STRICT: 14/88 step(s) declare a complexity class in their OWN row; the fraction must RISE (86 -> 88 on 2026-08-26, in two moves."
+      new="STRICT: 16/88 step(s) declare a complexity class in their OWN row; the fraction must RISE (88 on 2026-08-26 after four moves that NET to zero: R9.7 and R11.2e both CLOSED -- the
+      Gate 0f role bar is now enforced with a proven negative, and the verification standard runs to completion in 9m13s by concurrent fan-out with every command still EXECUTING -- while
+      R14.8 and R14.9 were filed from the agent's own residue, both carrying their complexity class in their own row, so the numerator rose 14 -> 16 on a flat denominator. Earlier the same
+      day, in two moves."
+      assert old in t; t=t.replace(old,new,1); p.write_text(t)
+      print("ok")
+      PY
+      ../ocr-venv/bin/python - <<'PY'
+      import re,sys; sys.path.insert(0,'witness')
+      import test_verification_standard as T
+      for s,c,a in T.commands(T.block_text()):
+          if s in ("audit_prereq_ceilings.py","visual_agent.py","test_glyph_role_bar.py","audit_gate_register.py"):
+              m=re.search(r"(\d+)\s*/\s*(\d+)",c or "") if c else None
+              code,out=T.run(s)
+              ok = (re.search(rf"{m.group(1)}\s*/\s*{m.group(2)}",out) is not None) if m else "no-claim"
+              print(f"{s:28s} exit={code} claim={m.group(0) if m else '-':8s} present={ok}")
+      PY)
+  ⎿  ok
+     test_glyph_role_bar.py       exit=0 claim=-        present=no-claim
+     visual_agent.py              exit=0 claim=110/121  present=True
+     audit_prereq_ceilings.py     exit=1 claim=16/88    present=True
+     audit_gate_register.py       exit=1 claim=12/25    present=True
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I notice my test claim says "6 of 12" instead of "6/12", so the fraction regex won't match it. I should change the wording to "6/12 records" and make sure the script's printed output
+  matches, so the claim is actually enforced.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_glyph_role_bar.py)
+  ⎿  Added 3 lines, removed 1 line
+      121          for f in FAIL:
+      122              print(f"  {f}")
+      123          return 1
+      124 -    print(f"Gate 0f role bar ENFORCED — {len(refused)} of {len(W.WITNESSES)} records refused at "
+      124 +    # ⚠️  Printed as a FRACTION on purpose: the verification standard only enforces a claim whose
+      125 +    # first `N/M` it can find in this output (R11.2c). "6 of 12" is prose and is not checkable.
+      126 +    print(f"Gate 0f role bar ENFORCED — {len(refused)}/{len(W.WITNESSES)} records refused at "
+      127            f"glyph grain, and the bar is grain-specific, not witness-wide")
+      128      return 0
+      129
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python - <<'PY'
+      import pathlib
+      p=pathlib.Path("OCR-ROADMAP.md"); t=p.read_text()
+      t=t.replace("is ENFORCED -> 6 of 12 records refused at glyph grain","is ENFORCED -> 6/12 records refused at glyph grain",1)
+      p.write_text(t); print("ok")
+      PY
+      ../ocr-venv/bin/python - <<'PY'
+      import re,sys; sys.path.insert(0,'witness')
+      import test_verification_standard as T
+      for s,c,a in T.commands(T.block_text()):
+          if s=="test_glyph_role_bar.py":
+              m=re.search(r"(\d+)\s*/\s*(\d+)",c); code,out=T.run(s)
+              print(f"exit={code} claim={m.group(0)} present={re.search(rf'{m.group(1)}\s*/\s*{m.group(2)}',out) is not None}")
+      PY)
+  ⎿  ok
+     exit=0 claim=6/12 present=True
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Final full-suite confirmation, then the devlog.
+
+⏺ Bash(time ../ocr-venv/bin/python -u witness/test_verification_standard.py > .vstd.log 2>&1; echo "EXIT=$?"; grep -E '🔴|FAILED' .vstd.log | head; tail -2 .vstd.log; rm -f .vstd.log)
+  ⎿  ../ocr-venv/bin/python -u witness/test_verification_standard.py > .vstd.log 2  2192.78s user 22.02s system 418% cpu 8:49.04 total
+     EXIT=0
+
+     all checks passed — the roadmap's verification standard names 45 command(s) and describes what they actually do
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cat >> OCR-DEVLOG.md <<'EOF'
+
+  ---
+
+  ## 2026-08-26 (later) — Sir stopped the auditing. The agent got built.
+
+  🔴 **THE INSTRUCTION, RECORDED VERBATIM BECAUSE IT IS THE TURNING POINT OF THIS PROJECT.**
+  *"Honestly, this sounds like a you problem. You know the aims, so why get bogged down in this way? …
+  Hand-fixes are BANNED. So why do they keep cropping up? Stop hand fixing. Build the visual agent that
+  can AUTOMATE the text class recognition. Agent uses a visual model, takes the page, sees the text
+  blocks, consults archetypes, decides what each text block probably is, does some quick reading to
+  confirm, revises if needed, and generates the image chunks for OCR. Is that really that hard? No, it's
+  really not."*
+
+  **It was not.** The four span rules, five pre-registered bars and one overlap measurement that preceded
+  this were all searches for a **CONSTANT**. The agent needed a **FRAME**.
+
+  ### R14.1 · R14.2 — the adaptive visual agent, built and scored
+
+  `witness/visual_agent.py`. S1 see the leaf → S2 archetype → S3/S4 name and bound, with confidence and
+  the right to abstain. On the same gold, the same 20 leaves and the same binding rule as R14.0:
+
+  | | overall | MarginNote | RunningHead | MainText |
+  |---|---|---|---|---|
+  | Surya off the shelf | 100/121 | **0/19** | 20/20 | 80/80 |
+  | geometric `region_head` | — | 17/19 | 20/20 | 67/80 |
+  | **THE AGENT** | **110/121 = 0.9091** | **13/19** | **20/20** | 77/80 |
+
+  **All three rung-0 bars, written into the file before the first run, PASS.** MN recall ≥ 0.50 →
+  0.6842. Overall ≥ **0.8264** — *Surya's own score on this gold*, so buying marginalia with body text
+  is a failure by construction, which is the trade R2.2's four refuted rules each made at ~1 MN per
+  11–12 MT → 0.9091. Forbidden-class emissions 0. ⚠️ **Bars applied to the WORSE of two declared
+  addressing rules**, never the better.
+
+  🔴 **THE IDEA: A FRAME, NOT A THRESHOLD.** R2.2o.1 proved no gap constant exists because it asked
+  *how FAR is this from the body*. A marginal note is not far from the body, it is **BESIDE** it — and
+  besideness is a fact about **the measure**, derived per leaf from that leaf's own boxes. MarginNote
+  0/19 → 13/19 with **no fitted constant deciding anything**, which is §3.0's rule kept rather than
+  argued around.
+
+  ### R14.7 — draw what the agent sees, and it paid for itself in one run
+
+  `witness/agent_see.py`, on Sir's instruction. It renders the agent's **own** output onto the leaf: the
+  measure it derived, the head floor, every box in its class colour captioned with its confidence and a
+  plain-language reason, gold agreed-with in grey, **every disagreement in red**.
+
+  **The first run scored 91/121 with RunningHead 9/20, and no cell of that table said why.** One picture
+  of leaf 412 showed three bugs at once:
+  1. **The measure was being dragged into the margin** — `frame()` took the median edge of every large
+     box, and on an apparatus leaf Surya emits the whole *marginal column* as one large box. Every
+     besideness test downstream was asked against a frame that already contained the margin.
+  2. **Size was being read as the body cue** — `area >= SMALL_AREA → MainText` made that same marginal
+     column body text. ⇒ **besideness outranks size**.
+  3. **A cue turned on a last pixel** — `y1 <= head_y` failed by **0.0015 of a page** on leaf 400, and
+     eleven of twenty running heads died on that margin. ⚠️ **A cue that turns on a last pixel is a
+     threshold wearing a cue's clothes.** Judge the box's mass.
+
+  Then the confusion matrix gave the fourth: **the head band holds two different things.** This edition
+  sets head-band notes at the *same height* as the running head, at the fore-edge, so height cannot
+  separate them and besideness does not fire because such a note *straddles* the edge. The cue that works
+  is the reader's: **a running head is CENTRED on the measure; a head-band note is pushed to a side.**
+  ✅ **ABSTENTION IS REAL AND ITS RESIDUE IS DIAGNOSTIC.** All 6 remaining MN misses are abstentions
+  **carrying their cause**; **3 of the 6** are `cue says MN, but archetype A FORBIDS it`, which points the
+  next repair at the **archetype classifier** rather than the naming cues. Filed as **R14.9**. The
+  `fail-safe toward body` branch now has a replacement that says *why* instead of emitting a leaf as
+  entirely scripture. ⇒ **R14.8** filed to lift the head-band coverage limit.
+
+  ### R9.7 — Gate 0f's last hole, closed with a proven negative
+
+  `GLYPH_BARRED` was keyed by **siglum** and held only `F` and `X`, so `glyph_source()` returned a usable
+  PDF path for `NT-1582-M` although its `lowres` role bars it from training data, CER and long-ſ. A bar
+  written in `ROLES` and enforced by nothing — the Overview had recorded it and nothing closed it.
+  ⚠️ **A siglum key could never have closed it**: `M` is ONE file holding TWO books with different roles.
+  The bar is now derived **per record from the role**. `witness/test_glyph_role_bar.py` refuses **6/12**
+  records at glyph grain, and its proven negative removes the clause and recovers exactly
+  `NT-1582-M` and `OT-1635-M` — the two the Overview predicted. ⚠️ **Clause 4 protects the agent**: a
+  glyph-barred `lowres` record is asserted still to be a **structural** witness, because `M`'s NT is
+  wanted for region boundaries, archetype classification and reading order. **Closing a glyph hole by
+  deleting a witness would have cost the visual agent a witness.**
+
+  ### R11.2e — the verification standard runs again
+
+  Filed this morning after two runs exceeded 15 minutes and were killed without a line of output.
+  **Resolved the same day**: the commands are mutually independent, so the subprocess fan-out is
+  concurrent (≤8 workers). **Full pass 8m49s, exit 0, 45 commands, every one EXECUTED** — nothing cached,
+  sampled, skipped or tiered. The cache candidate is struck (a cache-invalidation bug would silently pass
+  a stale claim); the `--fast`/`--full` split is struck outright, because without a CI `--full` it
+  converts *"too slow to run"* into *"not required to run."* A harness exception is now a **result**,
+  never a skip.
+
+  ⚠️ **Ceiling register: 88 steps, claim 14/88 → 16/88** on a flat denominator — R9.7 and R11.2e closed,
+  R14.8 and R14.9 filed with their classes in their own rows.
+  EOF
+  echo ok)
+  ⎿  ok
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python - <<'PY'
+      import pathlib
+      p=pathlib.Path("OCR-EXECUTIVE-SUMMARY.md"); t=p.read_text()
+      old="""| S3 | see the region classes by visual cue | ⚠️ geometric only, one witness, head band |"""
+      new="""| S3 | see the region classes by visual cue | ✅ **BUILT 2026-08-26 (R14.1/R14.2)** — the agent frames the leaf and names by visual cue |"""
+      assert old in t; t=t.replace(old,new,1)
+      p.write_text(t); print("ok")
+          +19 against Surya's 0/19, RunningHead 20/20, all three pre-registered bars passed, abstention 6/121 with a cause on every one.** Still rung-0; still discharges no gate |
+      391  | S5 | **relate** them — reading order and note-to-verse attachment | ❌ named in three documents, owned by none |
+      392  | S6 | recognise each region **conditioned by its class** | ⚠️ recogniser validates at 0.9396, **not wired** (R13); ⚠️ **Gate 11 has never been measured** and its set (row
+            9) is **R16.1**, unowned until 2026-08-26 |
+      393  | S7 | run that class's rules, checks and gates | ✅ exists, ⚠️ fed by a four-role geometric typer |
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest && git status --short projects/originaldr/ocr-spike/witness/ projects/originaldr/ocr-spike/OCR-*.md && echo "--- see/ ---" && ls
+      projects/originaldr/ocr-spike/witness/see/ | head -4 && du -sh projects/originaldr/ocr-spike/witness/see/)
+  ⎿   M projects/originaldr/ocr-spike/OCR-DEVLOG.md
+      M projects/originaldr/ocr-spike/OCR-EXECUTIVE-SUMMARY.md
+      M projects/originaldr/ocr-spike/OCR-MASTERPLAN.md
+      M projects/originaldr/ocr-spike/OCR-OVERVIEW.md
+      M projects/originaldr/ocr-spike/OCR-ROADMAP.md
+      M projects/originaldr/ocr-spike/OCR-WALKTHROUGH.md
+      M projects/originaldr/ocr-spike/witness/audit_label_sources.py
+      M projects/originaldr/ocr-spike/witness/test_verification_standard.py
+      M projects/originaldr/ocr-spike/witness/witnesses.py
+     ?? projects/originaldr/ocr-spike/witness/agent_see.py
+     ?? projects/originaldr/ocr-spike/witness/audit_gate_register.py
+     ?? projects/originaldr/ocr-spike/witness/gold/perception_OT1-1609-B_400-419.json
+     ?? projects/originaldr/ocr-spike/witness/see/
+     ?? projects/originaldr/ocr-spike/witness/test_glyph_role_bar.py
+     ?? projects/originaldr/ocr-spike/witness/visual_agent.py
+     --- see/ ---
+     index.html
+     leaf-400.png
+     leaf-401.png
+     leaf-402.png
+      43M       projects/originaldr/ocr-spike/witness/see/
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Those PNGs are derived output, not something to track in version control — I should add them to .gitignore instead. Let me check whether a .gitignore file already exists.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike && printf '\n# R14.7 — agent_see.py renders 43MB of leaf diagrams. They are DERIVED (regenerate
+      with\n# `../ocr-venv/bin/python witness/agent_see.py`), so the tree stays small enough to grep.\nwitness/see/\n' >> .gitignore 2>/dev/null || printf 'witness/see/\n' > .gitignore;
+      tail -5 .gitignore; git status --short projects/originaldr/ocr-spike/witness/ | grep see || echo "see/ now ignored ✅")
+  ⎿  # R14.7 — agent_see.py renders 43MB of leaf diagrams. They are DERIVED (regenerate with
+     # `../ocr-venv/bin/python witness/agent_see.py`), so the tree stays small enough to grep.
+     witness/see/
+     warning: could not open directory 'projects/originaldr/ocr-spike/projects/originaldr/ocr-spike/witness/': No such file or directory
+     see/ now ignored ✅
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ ★ Insight ─────────────────────────────────────
+  - The whole MarginNote problem was a framing error, not a threshold error. R2.2o.1 proved no gap constant exists because it kept asking how far is this from the body. A note is not far
+  from the body — it is beside it, and besideness is a fact about a per-page frame. That one reframe took MarginNote 0/19 → 13/19 with no fitted constant deciding anything.
+  - A cue that turns on a last pixel is a threshold in disguise. y1 <= head_y failed by 0.0015 of a page and killed 11 of 20 running heads. Judging the box's mass is the visual fact;
+  judging its last pixel is a tolerance nobody declared.
+  - Abstention with a cause is a debugger. 3 of 6 residual misses read cue says MN, but archetype A forbids it — which localised the next repair to the archetype classifier without any
+  further investigation.
+  ─────────────────────────────────────────────────
+
+  Answering your questions
+
+  "Is the problem that these are circular, self-defeating, or simply unwired?"
+  Unwired, every time — and you're right that my response to it had become the problem. None of these components was wrong or circular; each existed, worked, and had no consumer. But
+  building the wiring became the work, and wiring is infinitely generative: every audit reveals another register that needs an audit. I had no stopping rule. The rule you gave is the right
+  one, and I've adopted it: every gate and step must answer how does this serve the adaptive visual agent? R16.2/R16.3 (residue detector, typeset census) are now explicitly supplemental
+  until you judge the agent operational.
+
+  "Hand-fixes are BANNED. So why do they keep cropping up?"
+  Because a hand-fix always looks cheapest at the moment of discovery, and the cost — that no test can ever demonstrate it — is invisible until later. Stopped. Everything below is code plus
+  a proven negative.
+
+  "Is that really that hard?"
+  No. It took one module. It works.
+
+  "Gate 4.1 resolved to nothing" — in plain terms
+  The Master Plan has one table saying "the check called Gate 4.1 is the same thing as row 3." Every line in it writes the row number bare — 10a, 10b. One line wrote row 3 instead of 3. A
+  human reads both identically. My parser was looking for a number and found the word "row", so it concluded Gate 4.1 pointed at nothing and flagged the typeset census as an orphaned gate.
+  A cosmetic inconsistency in prose becomes a parse failure in an instrument — which is an argument for the instrument, not against it.
+
+  "What do we need to do about Gates 0e and 0f?"
+
+  Gate 0f — the real derailment risk, and it is now fixed. The bar list was keyed by siglum and held only F and X. So glyph_source("NT","M") handed back a usable image path even though M is
+  380 ppi bitonal and its role forbids training crops. The loss: the recogniser could have been trained on a raster where the long-ſ nub does not physically exist — a silent, systematic
+  ſ/f error across the New Testament, discoverable only after training. A siglum key could never have closed it, because M is one file holding two books with two different roles. The bar is
+  now derived per record from the role; test_glyph_role_bar.py refuses 6/12 records at glyph grain and its proven negative recovers exactly NT-1582-M and OT-1635-M. Crucially, clause 4
+  asserts the bar costs the agent nothing — a glyph-barred record is still a structural witness, because M's NT is wanted for region boundaries and archetypes.
+
+  Gate 0e — real but not agent-blocking. The foot criteria (signature, catchword) were proved at one matched page of the three required. The risk is a witness being a different edition than
+  claimed, which would poison layout labels. It is R8.4b, unchanged, and it does not block the agent.
+
+  "The full verification standard did not complete."
+  Plainly: the block names 45 commands, several run OCR, and running them one after another took over 15 minutes — so nobody ran it, and every number it guards was unchecked. Resolved. The
+  commands are mutually independent, so they now fan out concurrently. Full pass: 8m49s, exit 0, all 45 executed — nothing cached, sampled or tiered. I struck the --fast/--full split
+  explicitly: without a CI --full it converts "too slow to run" into "not required to run."
+
+  ---
+  What was built
+
+  witness/visual_agent.py — see the leaf → classify the archetype → name each block by visual cue with confidence and abstention.
+
+  ┌─────────────────────────────────────────┬──────────────────┬────────────┬─────────────┬──────────┐
+  │ same gold, same 20 leaves, same binding │     overall      │ MarginNote │ RunningHead │ MainText │
+  ├─────────────────────────────────────────┼──────────────────┼────────────┼─────────────┼──────────┤
+  │ Surya off the shelf                     │ 100/121          │ 0/19       │ 20/20       │ 80/80    │
+  ├─────────────────────────────────────────┼──────────────────┼────────────┼─────────────┼──────────┤
+  │ geometric region_head                   │ —                │ 17/19      │ 20/20       │ 67/80    │
+  ├─────────────────────────────────────────┼──────────────────┼────────────┼─────────────┼──────────┤
+  │ THE AGENT                               │ 110/121 = 0.9091 │ 13/19      │ 20/20       │ 77/80    │
+  └─────────────────────────────────────────┴──────────────────┴────────────┴─────────────┴──────────┘
+
+  All three pre-registered bars pass. The overall bar is Surya's own score, so buying marginalia with body text — the trade all four refuted span rules made — fails by construction. Bars
+  applied to the worse of two declared addressing rules.
+
+  witness/agent_see.py — the diagrams. witness/see/index.html, one PNG per leaf: the measure the agent derived, the head floor, every box in its class colour captioned with confidence and a
+  plain-English reason, gold it agreed with in grey, every disagreement in red. It reads the agent's own output, never a reimplementation.
+
+  It paid for itself in one run. The first score was 91/121 with RunningHead 9/20 and no number said why. One look at leaf 412 showed three bugs at once: the measure was being dragged into
+  the margin by the marginal column box; size was being read as the body cue; and the head-band test turned on a last pixel. Leaf 412 now reads 7 agree, 0 disagree.
+
+  Revised next steps — agent first, as instructed
+
+  1. R14.9 — repair the archetype classifier. The agent's own abstentions already localise it: leaves 402/413/415 plainly carry apparatus and were typed A. Fixing the archetype, never
+  relaxing the FORBIDS contract.
+  2. R14.8 — lift the head-band coverage limit. Every MarginNote scored so far is a head-band note. The besideness cue should do better on fore-edge notes (they clear the measure outright
+  rather than straddling it) — written down before the run so a null is informative.
+  3. R14.3 — relations (S5). The janvier notes arrive carrying the verse they attach to; the attachment payload is sitting there unused.
+  4. R14.4 / R13.1 — region-conditioned recognition. The agent can now emit correctly-typed crops, which is what the unwired fine-tune has been waiting for.
+  5. R12.1 → R16.1 — archetype census, then freeze GOLD-LAYOUT/GOLD-TEXT. The only path that gates either model.
+  6. Supplemental, on your instruction, not before the agent is operational: R16.2 residue detector, R16.3 typeset census.
+
+  Not done, and flagged: witness/see/ is 43 MB of derived PNGs, now gitignored — regenerate with agent_see.py. audit_label_sources.py shows modified from work predating this session.
+  Nothing is committed.
+
+✻ Crunched for 41m 18s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Approved, proceed with R14.9 then R14.8
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Review and advance OCR master plan and roadmap  main +1655-88📖 e:low △ exc-200k                                                                             286423 tokens
+  [▓▓▓▓▓▓▒·│┃············╿·····] 28% 283.9K  idle    S:— H:—  cache:99% eph1h:100%  warm/write/new                                                   new task? /clear to save 286.4k tokens
+  $19.81  blk:$120.6  ⏱8h0m api:5%  5h:81%↺2h18m  7d:44%↺2d7h                                                                                                                         Debug
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

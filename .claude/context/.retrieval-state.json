@@ -43,7 +43,8 @@
     "error_debug:Error()` that appends to `.cla",
     "methodology:pattern: data went to",
     "error_debug:crashes: $(grep -c 'rc=1 ' .ca",
-    "error_debug:crashed=$(grep -c 'rc=1 ' .cam"
+    "error_debug:crashed=$(grep -c 'rc=1 ' .cam",
+    "error_debug:FAIL\\|Traceback\" /Users"
   ],
   "recent_projects": [
     "chronicler",

@@ -1,111 +1,77 @@
 # JICM v7 Context Checkpoint
-Generated: 2026-08-19T21:19:16Z
-Method: LLM-enriched (qwen3:8b)
-
-## Current Task
-Audit the 170 accepted rates, including handling the provenance error that failed all 20 curated ARA rows, and mine the unit vocabulary from the accepted rates.
-
-## Progress
-1. **Audit the 170 accepted rates** - DONE (provenance error identified, 20 curated ARA rows failed)
-2. **Fold in the three fixable classes** - TODO
-3. **Harvest the full 6,567 open-access nitrogenase papers** - TODO
-4. **Mine the unit vocabulary from the accepted rates** - TODO
-5. **Scrape citations from the papers and rank them based on likelihood of containing nitrogen fixation rates** - TODO
-6. **Commit and push current progress to the branch for review** - DONE
-7. **Organize the work into a dedicated space on the GitHub repository** - TODO
-
-## Critical Context
-- The provenance error that failed the curated ARA rows is related to review papers.
-- The data quality report (`docs/03_data_quality_report.md`) benchmarks against `Jen_data from literature/` and includes improvements in denominator completeness and `subject_type` column.
-- The scripts (`scripts/`) are labeled as a snapshot and not a package.
-- The README was overwritten but recovered from git, preserving the ARA audit and `diazotroph_typestrain_shortlist.csv`.
-
-## Key Paths
-- `/Users/nathanielcannon/Claude/Project_Aion/docs/02_agentic_tool_proposal.md`
-- `/Users/nathanielcannon/Claude/Project_Aion/docs/03_data_quality_report.md`
-- `/Users/nathanielcannon/Claude/Project_Aion/data/`
-- `/Users/nathanielcannon/Claude/Project_Aion/scripts/`
-- `/Users/nathanielcannon/Claude/Project_Aion/docs/00_ar_audit_and_shortlist.md`
-
-## Next Step
-Push the current progress to the branch `cannon/data-provenance-audit` and organize the workflow documentation into a dedicated space on the GitHub repository.
-
-## Resume Instructions
-Resume the audit of the 170 accepted rates, focusing on the three fixable classes and the mining of unit vocabulary. Ensure the workflow documentation is organized and ready for review by Ember and Jen.
-
----
-
-## Raw Session Data (Tier 1 extraction)
-
+Generated: 2026-08-27T17:38:41Z
 
 ## Session Status
-(session-state.md last updated 11568m ago — may be stale, prefer conversation for current task)
+(session-state.md last updated 11041m ago — may be stale, prefer conversation for current task)
 
 ## Git State
 Branch: main
 ### Uncommitted Changes
 ```
  M .claude/context/.current-dev-uuid
+ M .claude/context/.current-genie-uuid
+ M .claude/context/.current-jaques-uuid
  M .claude/context/.current-w0-uuid
  M .claude/context/.graphiti-last-ingest.json
- D .claude/context/.graphiti-reindex-queue
  M .claude/context/.jsonl-compression-stats.json
+ M .claude/context/.last-sample.w0
  M .claude/context/.memory-health.json
  M .claude/context/.pre-clear-scrollback-summary.md
  M .claude/context/.pre-clear-scrollback.md
+ M .claude/context/.retrieval-state.json
+ M .claude/context/.scratchpad.dev.md
  M .claude/context/.scratchpad.genie.md
  M .claude/context/.scratchpad.jaques.md
  M .claude/context/.scratchpad.md
- M .claude/context/insights/.captured-hashes.json
- M .claude/context/insights/insights-log.md
- M .claude/context/jicm/chain/protos.jsonl
- M .claude/context/jicm/checkpoints/protos.compressed.md
 ```
 ### Recent Commits
 ```
- .claude/context/.scratchpad.dev.md   | 116 +++++++++++++++++++++++++++++++++++
- .claude/scripts/aion-lane-restart.sh |  15 +++--
- .claude/scripts/jicm-supervisor.sh   |  38 ++++++++++++
- 3 files changed, 165 insertions(+), 4 deletions(-)
+ .claude/scripts/CLAUDE.md                          | 15 ++++
+ .../scripts/{ => archived}/jarvis-statusline-v8.sh |  0
+ .claude/scripts/signal-helper.sh                   |  2 +-
+ CLAUDE.md                                          | 84 ++++++++++++++++++++++
+ alfred/.claude/settings.json                       |  4 ++
+ alfred/scripts/profile-loader.js                   |  8 +++
+ 6 files changed, 112 insertions(+), 1 deletion(-)
 ```
 
 ## Recent Conversation (last 10 messages)
 
 ### User Messages
-fold the adjudication rules into table_extract.py
-Quick check from W11:Jarvis-dev (no action needed beyond this): please run the shell command `date` once and reply with just its output. I am verifying a JICM token-sampler registration fix on your lane.
-hand-audit the 170 accepted rates
-"That is the same provenance error that failed all 20 curated ARA rows" Does this mean that the curated fixation rate data was failed as invalid because it was from review papers? fold in the three fixable classes
-harvest the full 6,567 open-access nitrogenase papers
-touch base with the running shells. who is the progress?
-Let it keep running. In the meantime here's a new idea.  What about scraping the citations from the papers and then ranking them based on likelihood that they contain nitrogen fixation rates, nitrogenase ativity, whatever, based on their title and/or the context of the paper's text where the citation is embedded.  Or, have you already scraped all of this.  What's your paper search methodology? What can we improve at that end to gather more information dense sets of papers?
-mine the unit vocabulary from the accepted rates
-can you commit and then push at the current progress point please?  Put it on my branch so that I can point Ember and Jen to the results and the workflow breakdown for their review and feedback.  Then move forward with adding the magnitude plausibility flag.
-can I get you to push this all to https://github.com/emm0012-wvu/IMAGINE-AI/tree/cannon/data-provenance-audit/Cannon_data_provenance into it's own organized space?  I need documentation of the workfow, a proposal for a fully engineered agentic workflow to provide us with a reusable tool with some degree of reproducibility, and control over model endpoints and API calls to the tool.  It needs a summary of the data, with a data quality report using the original literature-mined fixation dataset from Jen as the baseline for comparison. And of course it must include the data. Multiple datasets is good, if they are representative of incremental stages, or representative of the gathered data at different stages of filtering and clean up.
+pull the 19 genomes and rerun the nif panel
+adjudicate the two flagged PGPR papers
+fix the negative control profile
+run the parser across the other 32 exposed papers
 
 ### Assistant Responses
-Baseline characterised. Jen's `literature_quant_measurements.csv` is 26,692 rows over 11,722 DOIs — but dominated by taxonomic phenotypes (GC%, pH, NaCl, temp), with only 1,643 `enzyme_activity` and 8.4% open access. Her `literature_rates_curated.csv` has **20 `nitrogenase_ARA` rows** — that's the fixation-rate baseline. Building the deliverable:
-Note a number I need to reconcile: 273 accepted → **136** protein-normalised for this corpus; the 159 in my earlier manifest pooled in the retired old corpus. Let me verify and fix that before it propagates:
-Now the data quality report, benchmarked against the existing dataset:
-The tool proposal — this needs to be a real engineering document:
-Now the pipeline scripts and a data dictionary, so the datasets are self-describing:
-I overwrote the existing README without reading it first — checking what was there:
-That README documented the ARA audit **and** `diazotroph_typestrain_shortlist.csv` — including a culturability caveat that belongs with Jen and Rebecca. I nearly destroyed it. Restoring it as its own doc, updated for the full-text work done since:
-Two team conventions in `CLAUDE.md` I need to respect. I'm compliant on branching (not pushing to `main`), but let me check the data-size one before committing:
-8.3 MB of result CSVs across 22 files — text, not genomes or caches, and explicitly the deliverable. Committing and pushing to your branch:
-Pushed to `emm0012-wvu/IMAGINE-AI` on `cannon/data-provenance-audit`, all inside `Cannon_data_provenance/`. Nothing outside that folder is touched and **no PR is open** — that stays a two-party decision.
+Confirmed: those columns hold `+` symbols only. Two fixes — a rate column must contain actual numbers, and header detection must not treat the "2" in "N₂-free medium" as data.
+Classification is now correct. Spot-checking the DROP verdicts, since a bare number like "43" could match a temperature column by coincidence.
+My own audit has three false positives, and they're instructive:
+The three false positives are gone. Verifying they reclassified for the right reasons, and spot-checking the remaining suspects.
+All 50 suspects share one signature: the accepted "ARA rate" is the *same organism's* IAA value from an adjacent column. Since a rate column exists in four of these papers, let me recover the correct values — that's what running the parser is for.
+29 of 50 recovered — and PMC7536287 independently recovers **29.6**, matching the dedicated re-extraction written separately. Two independent parsers agreeing is good cross-validation. But PMC9607798 mapping both rates to 1618.2 needs a look.
+A real bug in my recovery: PMC9607798 has **two rows both labelled `A1501`** (0 mM and 200 mM mannitol), and matching on label alone returns the first for both. The correct values are 1618.2 and 1564.8. Recovering by row *index* instead.
+Correct now. Pinning all of it with tests — every one of these came from a real false positive or bug in this session.
+Two claims I wrote are wrong — the max ratio is 37×, not 20×, and corrections are **not** all downward (PMC9607798's 22.88 → 1618.2 goes up). Getting the real numbers.
+Done and committed (`c2c73c4`). 119 tests pass, tree clean.
 
-**What's there:**
+I inverted the question rather than pointing the parser at 32 papers directly. Finding each paper's ARA column would mean correctly identifying the right table and column in 33 papers of very different shape, failing *silently* whenever it guessed wrong — and many flagged tables aren't rate tables at all (PMC12843690's is genome statistics, PMC11220614's a photosensitiser review). Instead I located each **already-accepted value** and read the heading above it. That demonstrates misalignment rather than inferring it.
 
-- **`docs/01_workflow.md`** — the pipeline stage by stage, each with its *measured* loss: 6,368 hits → 6,367 retrieved → 5,431 past the topic gate → 7,953 rates proposed → 273 accepted → ~205 defensible. Includes the finding that most changes how you'd spend compute: **querying on the biomass denominator yields 1.15 accepted rates/paper vs 0.009 for the broad topic query — ~128×.**
-- **`docs/02_agentic_tool_proposal.md`** — run manifests pinning code/prompt/model digest/corpus hash, a content-addressed cache so re-runs are free and identical, provider adapters (Ollama/LiteLLM/Anthropic/OpenAI) selected by config, enforced budget and rate limits, and rule packs as YAML so a second phenotype doesn't mean a second script. Phased at ~3–4 weeks, with phases 1–2 independently valuable. It's honest that **bit-reproducibility on re-inference isn't achievable** — it promises traceability plus replay instead.
-- **`docs/03_data_quality_report.md`** — benchmarked against `Jen_data from literature/`. Side-by-side on provenance, denominator completeness (60% → 99.6%), `subject_type` (absent → present), and retained rejections (none → 7,511 with reasons).
-- **`data/`** — six staged datasets with a column-level README, plus a caution against pooling denominator classes.
-- **`scripts/`** — the seven working scripts, labelled a snapshot rather than a package.
+Colspan alone was insufficient: in PMC12016538 the `Strain` heading carries `rowspan=2`, so the second header row starts at column 1 and a colspan-only parse shifts every sub-heading one column left. The audit resolves a full occupancy grid over both spans.
 
-**Three things to flag:**
+**Of all 451 rates:** 206 confirmed (45.7%), 130 absent from tables (likely from prose), 64 under uninformative headings, and **50 suspect (11.1%)**. All 50 share one signature — the accepted "ARA rate" is the same organism's **IAA production** value:
 
-1. **I nearly destroyed your existing README.** I overwrote it before reading it, then recovered it from git — it documented the ARA audit *and* `diazotroph_typestrain_shortlist.csv`, including the culturability caveat that the call belongs with Jen and Rebecca. It's preserved in full as `docs/00_ara_provenance_audit.md`, annotated where the later full-text reading superseded it (*
+| paper | rates | remedy |
+|---|---|---|
+| PMC7236179 | **22** | re-extract — 22/22 recovered |
+| PMC7727330 | **21** | **DROP — no ARA in the paper** |
+| PMC7536287 | 3 | recovered (29.60) |
+| PMC7835727 | 2 | recovered |
+| PMC9607798 | 2 | recovered |
+
+**29 of 50 recovered automatically**, because the misextraction stayed on the correct *row* — right organism, wrong assay — so the fix reads across to that row's rate column. Independent cross-check: this audit recovers ED5 as **29.60**, matching the separately written re-extraction script.
+
+**PMC7727330's 21 must be dropped, not corrected.** That paper runs **no acetylene reduction assay at all** — every ARA mention is intro, discussion, or references, and its nitrogen-fixation columns are qualitative (`Growth on N₂-free medium`, `Expression of nifH`, holding `+` symbols). Its 21 "rates" are IAA values for a measurement never made. Matching
 
 ## Resume Instructions
 You are Jarvis. Context was cleared via JICM v7 stop-and-wait cycle.
@@ -121,51 +87,72 @@ Foundation docs (CLAUDE.md, capability-map.yaml, identity) are auto-loaded.
 
 ---
 
-## Session History Digest (previous session 1af5ddf2)
+## Session History Digest (previous session b6bd39d2)
 
 *What actually happened in the session before this one — distilled from its full
 transcript. The checkpoint above is curated working state; this is the record.*
 
-# .scratchpad.genie.md
+# FORENSIC RECORD
 
-## In-Progress Work
+## Session Summary
 
-### Data Provenance Audit Push to Team Repo
+The session focused on resolving issues with the genomic data pipeline, particularly around the adjudication of PGPR (Plant Growth-Promoting Rhizobacteria) papers and the correction of misaligned ARA (Acetylene Reduction Assay) rates. The work involved identifying and fixing errors in the extraction of ARA values from scientific papers, ensuring that the correct columns were being used for data retrieval.
 
-- Push to `emm0012-wvu/IMAGINE-AI` on `cannon/data-provenance-audit` branch completed.
-- Delivered:
-  - `docs/01_workflow.md` - Detailed pipeline workflow with measured losses at each stage.
-  - `docs/02_agentic_tool_proposal.md` - Proposal for a fully engineered agentic workflow with reproducibility and endpoint control.
-  - `docs/03_data_quality_report.md` - Data quality report benchmarked against Jen's dataset.
-  - `data/` - Six staged datasets with column-level documentation.
-  - `scripts/` - Seven working scripts as a snapshot of the current pipeline.
+Key activities included:
+- Re-extracting ARA values from the paper PMC7536287, which had previously been misaligned due to a colspan issue in the table structure.
+- Running a parser across 32 other papers with similar issues to identify and correct misaligned ARA values.
+- Identifying 50 suspect rates across 8 papers, with the dominant issue being ARA values incorrectly placed under IAA (Indole-3-Acetic Acid) production columns.
+- Correcting 29 of these rates and dropping 21 that were found to be invalid or non-existent in the context of the paper.
 
-### Key Findings
+The session also involved updating the control profiles used in the nif panel scan to ensure they were independent and not part of the same Pfam clan as the target profiles. This was crucial for maintaining the integrity of the results and ensuring that the control profiles did not introduce bias.
 
-- **Querying on biomass denominator yields 1.15 accepted rates/paper vs 0.009 for broad topic query (~128× improvement).**
-- **Pipeline reproduced one of the same failure modes as Jen's dataset** - five accepted rates were values cited from other papers.
-- **Data quality improvements**:
-  - Provenance completeness: 60% → 99.6%
-  - `subject_type` completeness: absent → present
-  - Retained rejections: none → 7,511 with reasons
+## File and Metric Usage
 
-### Issues and Considerations
+### Files
 
-- **Nearly destroyed existing README** - Recovered and preserved in `docs/00_ara_provenance_audit.md`.
-- **Team conventions**:
-  - `CLAUDE.md` asks contributors to claim work with a dated line in `PROGRESS.md` - not added due to shared file dependency.
-  - PR not opened - requires user decision.
+- **12_genomic_track_methods.md**: Updated to reflect the latest changes and findings from the session, including the correction of ARA values and the update to control profiles.
+- **.scratchpad.genie.md**: Updated to document the in-progress work and decisions made during the session, particularly the pending decision on applying the audit results to the corpus of record.
+- **nif_panel_scan.py**: Modified to include the new control profiles and ensure the scanner was using the updated logic.
+- **fetch_nif_profiles.py**: Adjusted to fetch the new control profiles and ensure they were correctly integrated into the pipeline.
+- **adjudicate_pgpr_negatives.py**: Used to adjudicate the negative cases in the PGPR papers, ensuring that the correct data was being used for analysis.
+- **pull_strain_genomes.py**: Updated to handle the new assembly accessions and ensure the genomes were correctly pulled and merged into the manifest.
+- **rate_strain_resolution.json**: Updated to reflect the new resolution of strain rates after the corrections were made.
+- **adjudicate_route_b.py**: Modified to handle the adjudication of Route B papers, ensuring that the correct accessions were being used.
+- **route_b_assemblies.json**: Updated to include the new assemblies identified during the adjudication process.
+- **strain_genomes_manifest.json**: Updated to reflect the new genomes pulled and merged into the manifest.
+- **genie.compressed.md**: Updated to reflect the latest state of the project, including the new findings and corrections.
 
-### Current State
+### Commit-like Hashes
 
-- **Final corpus**: 273 accepted rates from 85 papers over 6,367 screened.
-- **Protein-normalised rates**: 136 fully canonical, 144 with partial canonical parse.
-- **Magnitude flag**: 7 rates flagged for implausible values.
-- **Pipeline scripts**: 7 working scripts in `scripts/` directory.
-- **Data size**: 8.3 MB across 22 files, within git limits.
+- **406fd04**: Commit that introduced the adjudication of Route B papers and the initial correction of ARA values.
+- **c2c73c4**: Final commit that applied the audit results and updated the control profiles.
+- **2f8c28b**: Commit that re-extracted the ARA values from PMC7536287 and corrected the misalignment.
+- **3a0de6d**: Commit that adjudicated the negative cases in the PGPR papers and updated the control profiles.
+- **496dc1f**: Commit that pulled the new genomes and updated the manifest.
 
-### Next Steps
+### Key Numbers / Metrics
 
-- Address team conventions (PROGRESS.md entry and PR).
-- Finalize documentation and ensure all deliverables are properly documented.
-- Continue monitoring and refining the pipeline for further improvements.
+- **29.60**: Corrected ARA value for ED5 in PMC7536287.
+- **22.88**: ARA value that was found to be incorrect and needed correction.
+- **45.7%**: Percentage of confirmed ARA values after the audit.
+- **11.1%**: Percentage of suspect ARA values identified during the audit.
+- **22/22**: All 22 rates in PMC7236179 were successfully re-extracted and corrected.
+- **43%**: Percentage of rates that were neither confirmed nor refuted during the audit.
+- **29.26**: ARA value that was found to be incorrect and needed correction.
+- **1096.10**: Incorrect ARA value that was identified as part of the hydrolytic enzymes column.
+- **732.93**: Incorrect ARA value that was identified as part of the IAA production column.
+- **517.19**: Incorrect ARA value that was identified as part of the IAA production column.
+- **30.24**: Corrected ARA value for ED5 in another paper.
+- **8.23**: Minimum ARA value reported in the paper.
+- **0.159**: Minimum ARA value that was incorrectly identified due to a colspan issue.
+- **1.68**: ARA value that was correctly identified and used in the analysis.
+- **1.41**: ARA value that was correctly identified and used in the analysis.
+- **42%**: Percentage of rates that were exposed to the colspan issue.
+- **38%**: Percentage of rates that were not affected by the colspan issue.
+- **1.80**: ARA value that was correctly identified and used in the analysis.
+- **0.95**: ARA value that was correctly identified and used in the analysis.
+- **57/264**: Number of papers and rates that were initially flagged due to colspan issues.
+- **59%**: Percentage of rates that were initially flagged due to colspan issues.
+- **0.05**: ARA value that was correctly identified and used in the analysis.
+- **100%**: Percentage of confirmed ARA values in the strain genomes.
+- **24/54**: Number of core-positive strains identified after the corrections were made.

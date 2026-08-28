@@ -1,0 +1,2043 @@
+
+  ---
+
+  ### 5. Progress on Failed Steps
+
+  | Step | Trials Failed | Partial Credit? | Notes |
+  |---|---|---|---|
+  | Step 1 | 2 (`__KxKce75`, `__QkzUrzb`) | Partial — analysis correct, output wrong | `__QkzUrzb` got analysis right but never wrote files; `__KxKce75` wrote wrong values |
+  | Step 4 | 4/4 | Partial — 6/7 claims correct (`__Vrcp2qy`); 5/7 correct (`__KxKce75`, `__MBKsxHP`) | C2 wrong in all 4; C6 additionally wrong in 2 |
+
+  On Step 4, agents were close — getting 85–86% of claims right — but the single recurrent C2 error dragged every trial's Step 4 score to 0.
+
+  ---
+
+  ### 6. Key Takeaways
+
+  - **Steps 2 & 3 are solved** — 100% pass rate, no issues.
+  - **Step 4 / C2 is a systematic blind spot**: the `contradicted` vs. `not_evidenced` distinction when evidence is simply absent (rather than actively disconfirming) is a reliable failure
+  mode across all agents tested.
+  - **Step 1 execution fragility**: two trials failed for different reasons (turn exhaustion vs. wrong aggregation level), suggesting Step 1 has moderate brittleness even when agents
+  understand the task.
+  - No model-level differentiation is possible from this data (model identities not reported), but the C2 failure being universal suggests this is a cross-model reasoning gap with the
+  specific evidentiary standard required.
+  98a49052-afbe-40b0-9e51-f727cf3c236f
+  Gn4f64pRyyzsj
+  '/Users/nathanielcannon/Downloads/taxprofiler-execution-audit-001 (3).zip' '/Users/nathanielcannon/Downloads/taxprofiler-execution-audit-001 (2).zip' (these are not the same files, but
+  they have been given the same name)
+  ⎿  Async hook PostToolUse completed
+
+∴ I see feedback pasted for the beech task 52859a0a, plus a second UID with two zip files in Downloads that share the same filename despite being different files — I should figure out how
+  to distinguish and handle both properly.
+
+  Digging into the beech feedback: the task passed calibration at FRONTIER difficulty with oracle 100/nop 0, but it's flagged for having tests no agent run ever passed. That's worth
+  examining — a universally-failed test could signal a task defect, but since oracle passes it and the reviewer's own analysis calls it a capability limitation rather than a design flaw, it
+  seems defensible. There's also a real lesson about turn-budget brittleness: an agent nailed the analysis but ran out of turns before writing the final output, suggesting the task needs
+  better guidance around pacing or a timeout buffer for the write-up step.
+
+  Another issue worth noting is aggregation-level ambiguity — the task asked for a single run-level figure but an agent produced 87 individual values instead, which points to a need for
+  explicit schema language about the expected output granularity. I'm also weighing the binary step-reward design: since one wrong claim among seven zeroes the whole step, a single hard
+  cell can dominate the score, which is fine if intentional but worth flagging. The milestone structure's partial credit (0.75, 0.50) gives useful diagnostic granularity that a single
+  binary reward wouldn't capture.
+
+  Now I want to actually open the two zip files sitting in Downloads and inspect their contents read-only.
+
+⏺ Two things here: feedback to absorb, and two same-named archives to disambiguate. Let me look at the archives first since that's the ambiguous part.
+
+⏺ Bash(cd ~/Downloads && for f in "taxprofiler-execution-audit-001 (2).zip" "taxprofiler-execution-audit-001 (3).zip"; do echo "=== $f"; ls -la "$f" | awk '{print $5, $6, $7, $8}'; shasum
+      -a 256 "$f" | cut -c1-16; unzip -l "$f" | tail -3; done)
+  ⎿  === taxprofiler-execution-audit-001 (2).zip
+     10482 Aug 21 11:19
+     c0939ebf41358f50
+          2500  08-14-2026 05:31   taxprofiler-execution-audit-001/submission/diagnosis.json
+     ---------                     -------
+         20767                     11 files
+     === taxprofiler-execution-audit-001 (3).zip
+     96477 Aug 21 11:19
+     60bbfe431a2b2a38
+            53  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-1/reward-details.json
+     ---------                     -------
+        418194                     31 files
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Projects/SnorkelTasks
+
+∴ These aren't task bundles but agent trial outputs — one has a submission diagnosis file, the other has trial reward details, suggesting these are downloaded run artifacts for the
+  taxprofiler task. I should list the full contents to see what's there.
+
+⏺ Bash(cd ~/Downloads && echo "=== (2)"; unzip -l "taxprofiler-execution-audit-001 (2).zip" | sed -n '3,20p'; echo "=== (3)"; unzip -l "taxprofiler-execution-audit-001 (3).zip" | sed -n
+      '3,40p')
+  ⎿  === (2)
+     ---------  ---------- -----   ----
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/
+            99  08-14-2026 05:31   taxprofiler-execution-audit-001/pytest.log
+           267  08-14-2026 05:31   taxprofiler-execution-audit-001/oracle.txt
+            19  08-14-2026 05:31   taxprofiler-execution-audit-001/reward.json
+           363  08-14-2026 05:31   taxprofiler-execution-audit-001/trial.log
+          8771  08-14-2026 05:31   taxprofiler-execution-audit-001/reward-details.json
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/submission/
+          3125  08-14-2026 05:31   taxprofiler-execution-audit-001/submission/report_claims.json
+           967  08-14-2026 05:31   taxprofiler-execution-audit-001/submission/unexecuted_analyses.json
+          4656  08-14-2026 05:31   taxprofiler-execution-audit-001/submission/audit_report.md
+          2500  08-14-2026 05:31   taxprofiler-execution-audit-001/submission/diagnosis.json
+     ---------                     -------
+         20767                     11 files
+     === (3)
+     ---------  ---------- -----   ----
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/trial-3/
+            99  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-3/pytest.log
+         75700  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-3/trajectory.json
+            19  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-3/reward.json
+          3073  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-3/trial.log
+          8865  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-3/reward-details.json
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/trial-4/
+            99  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-4/pytest.log
+         69374  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-4/trajectory.json
+            19  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-4/reward.json
+          3073  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-4/trial.log
+          8725  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-4/reward-details.json
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/trial-5/
+            99  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-5/pytest.log
+         72734  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-5/trajectory.json
+            19  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-5/reward.json
+          3073  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-5/trial.log
+          8721  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-5/reward-details.json
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/trial-2/
+            99  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-2/pytest.log
+         77446  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-2/trajectory.json
+            19  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-2/reward.json
+          3775  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-2/trial.log
+          8755  08-13-2026 16:27   taxprofiler-execution-audit-001/trial-2/reward-details.json
+             0  08-14-2026 14:11   taxprofiler-execution-audit-001/trial-1/
+          1338  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-1/pytest.log
+         70864  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-1/trajectory.json
+            16  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-1/reward.json
+          2137  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-1/trial.log
+            53  08-13-2026 16:26   taxprofiler-execution-audit-001/trial-1/reward-details.json
+     ---------                     -------
+        418194                     31 files
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Projects/SnorkelTasks
+  ⎿  Async hook PostToolUse completed
+
+∴ I found calibration artifacts for the other beech task too — one oracle run with submission outputs from 08-14, and five agent trials with trajectories from 08-13. This gives me real
+  per-check failure data plus full trajectories, so I'm unpacking it into scratch to analyze.
+
+⏺ These are calibration artifacts for the other beech task — (2) is a single oracle run with its submission outputs, (3) is five agent trials with full trajectories. Unpacking to scratch/:
+
+⏺ Bash(mkdir -p scratch/taxprofiler-feedback && cd scratch/taxprofiler-feedback && rm -rf oracle trials && mkdir -p oracle trials && unzip -q
+      "$HOME/Downloads/taxprofiler-execution-audit-001 (2).zip" -d oracle && unzip -q "$HOME/Downloads/taxprofiler-execution-audit-001 (3).zip" -d trials && cat
+      oracle/taxprofiler-execution-audit-001/reward.json && echo "---" && for t in 1 2 3 4 5; do echo -n "trial-$t: "; cat trials/taxprofiler-execution-audit-001/trial-$t/reward.json; echo;
+      done)
+  ⎿  {
+       "reward": 1.0
+     }---
+     trial-1: {"reward": 0.0}
+
+     trial-2: {
+       "reward": 1.0
+     }
+     trial-3: {
+       "reward": 1.0
+     }
+     trial-4: {
+       "reward": 1.0
+     }
+     trial-5: {
+       "reward": 1.0
+     }
+  ⎿  Async hook PostToolUse completed
+
+∴ 4 out of 5 solved gives an 80% solve rate, right at the top edge of the core band — since difficulty for beech is assigned by Snorkel, this looks like their calibration point. Trial-1
+  shows a reward of 0 with a suspiciously tiny reward-details file, which smells like an error, so I want to dig into that trial's failure and check the pytest log.
+
+⏺ Bash(cd scratch/taxprofiler-feedback/trials/taxprofiler-execution-audit-001 && cat trial-1/reward-details.json && echo "=== pytest" && cat trial-1/pytest.log && echo "=== triallog" &&
+      tail -20 trial-1/trial.log)
+  ⎿  Error: Exit code 1
+     (eval):cd:1: no such file or directory: scratch/taxprofiler-feedback/trials/taxprofiler-execution-audit-001
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(find . -maxdepth 3 -type d | head)
+  ⎿  .
+     ./trials
+     ./oracle
+     ./trials/taxprofiler-execution-audit-001
+     ./oracle/taxprofiler-execution-audit-001
+     ./trials/taxprofiler-execution-audit-001/trial-3
+     ./trials/taxprofiler-execution-audit-001/trial-4
+     ./trials/taxprofiler-execution-audit-001/trial-5
+     ./trials/taxprofiler-execution-audit-001/trial-2
+     ./trials/taxprofiler-execution-audit-001/trial-1
+
+⏺ Bash(cd trials/taxprofiler-execution-audit-001 && cat trial-1/reward-details.json; echo "=== pytest"; cat trial-1/pytest.log; echo "=== trial.log tail"; tail -12 trial-1/trial.log)
+  ⎿  {"reward": {"score": 0.0, "preflight_failed": true}}
+     === pytest
+     ................F....                                                    [100%]
+     =================================== FAILURES ===================================
+     _________________ test_citations_cover_the_load_bearing_fields _________________
+
+         def test_citations_cover_the_load_bearing_fields():
+             """
+             The diagnosis turns on timing and on memory. Both must be cited, or the conclusion is
+             being asserted rather than evidenced.
+             """
+             c = _load(CLAIMS)
+             cited_fields = {str(cit.get("field", "")) for cit in c["citations"]}
+             missing = [f for f in CITE["required_fields"] if f not in cited_fields]
+     >       assert not missing, (
+                 f"citations do not include the fields the diagnosis rests on: {missing}. "
+                 f"Fields cited: {sorted(cited_fields)}."
+             )
+     E       AssertionError: citations do not include the fields the diagnosis rests on: ['realtime_hours']. Fields cited: ['duration_hours', 'error_action', 'exit_status',
+     'memory_requested_gib', 'peak_rss_gib', 'status', 'time_limit_hours'].
+     E       assert not ['realtime_hours']
+
+     /tests/test_outputs.py:746: AssertionError
+     =========================== short test summary info ============================
+     FAILED ../dev::test_citations_cover_the_load_bearing_fields - AssertionError:...
+     1 failed, 20 passed in 0.08s
+     === trial.log tail
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Parser warnings: - Extra text detected before JSON object
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Parser warnings: - No valid JSON object found
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     Trajectory dumped to jobs/swa-calibration/swa-untemplated-k5-terminus-r2/taxprofiler-execution-audit-001__75eLoPQ/agent/trajectory.json
+     The verifier.env contains an API key (often the case for LLM-based verifiers). You will incur costs associated with the API calls.
+  ⎿  Async hook PostToolUse completed
+
+∴ Trial-1 failed one test: it needed the field named realtime_hours cited specifically, but the agent instead cited semantically equivalent fields like duration_hours and time_limit_hours
+  plus several others. This looks like the same failure pattern as before — the check demands an exact field name rather than accepting any value that conveys the same information.
+
+  The preflight_failed: true flag is confusing since pytest shows 20 passed and only 1 failed, so the zero reward likely comes from that single failing test rather than a preflight issue.
+  This is another instance of the "grade the declared value" defect class I've already flagged in memory.
+
+  I'm thinking the fix should mirror the "acceptable_statuses" pattern used in the starfish task — accepting a set of synonym fields rather than one exact name — but that pattern never got
+  ported over to beech. The real question is whether realtime_hours and duration_hours are truly interchangeable for this diagnosis, which depends on whether the task hinges on wall-clock
+  time versus total including queue wait, so I need to check what the beech task's data actually shows.
+
+  I want to look at the task's expected_truth and field definitions to judge this fairly rather than assume it's unfair, and also check the reward-details across trials 2-5 for per-check
+  margins, comparing against the oracle submission. Let me pull up the task bundle.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/SnorkelTasks && ls projects/ec-beech/tasks/ && grep -rn "required_fields"
+      projects/ec-beech/tasks/taxprofiler-execution-audit-001/tests/*.json 2>/dev/null | head)
+  ⎿  ARCHIVE-original-submission-2026-07-31-DO-NOT-SUBMIT.tar.gz
+     demultiplex-capacity-review-001
+     demultiplex-flowcell-release-001
+     demultiplex-read-fate-audit-001
+     demultiplex-resource-rightsizing-001
+     taxprofiler-execution-audit-001
+     projects/ec-beech/tasks/taxprofiler-execution-audit-001/tests/expected_truth.json:160:    "required_fields": [
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd projects/ec-beech/tasks/taxprofiler-execution-audit-001 && python3 -c "
+      import json;d=json.load(open('tests/expected_truth.json'))
+      def walk(o,p=''):
+          if isinstance(o,dict):
+              for k,v in o.items():
+                  if 'cit' in k.lower() or 'field' in k.lower(): print(p+'/'+k,'=',json.dumps(v)[:400])
+                  walk(v,p+'/'+k)
+      walk(d)")
+  ⎿  /citations = {"comment": "Values the agent must cite, and the tolerance each is checked against. The verifier resolves every citation against task_telemetry.csv and compares.",
+     "required_fields": ["realtime_hours", "time_limit_hours", "peak_rss_gib"], "relative_tolerance": 0.01}
+     /citations/required_fields = ["realtime_hours", "time_limit_hours", "peak_rss_gib"]
+     /thresholds/min_verified_citations = 3
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd projects/ec-beech/tasks/taxprofiler-execution-audit-001 && head -2 environment/data/task_telemetry.csv && echo "=== README mentions" && grep -n "realtime\|duration"
+      environment/data/README.md | head -20)
+  ⎿  Error: Exit code 1
+     (eval):cd:1: no such file or directory: projects/ec-beech/tasks/taxprofiler-execution-audit-001
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(head -1 environment/data/task_telemetry.csv && echo "=== README" && grep -n "realtime\|duration" environment/data/README.md | head -20)
+  ⎿  task_id,process,process_full,sample,database,status,exit_status,attempt,error_action,executor,cpus_requested,memory_requested_gib,time_limit_hours,realtime_hours,duration_hours,peak_rs
+     s_gib,pcpu_percent,pmem_percent,read_bytes,write_bytes
+     === README
+     20:  `realtime_hours` is the observed execution time.
+
+⏺ Bash(sed -n '12,30p' environment/data/README.md)
+  ⎿  ## Column notes for `task_telemetry.csv`
+
+     - One row is one *attempt*. A task that was retried contributes more than one row for the
+       same process and sample; `attempt` distinguishes them and `error_action` records what the
+       workflow engine decided to do after an unsuccessful attempt.
+     - `memory_requested_gib` and `peak_rss_gib` are gibibytes. `peak_rss_gib` is the maximum
+       resident set size observed for that attempt.
+     - `time_limit_hours` is the maximum runtime requested from the scheduler for that attempt.
+       `realtime_hours` is the observed execution time.
+     - `exit_status` is the process exit status as recorded by the workflow engine.
+     - Some fields are empty where the workflow engine did not record a value.
+     - `database` is populated for processes that were run once per reference database.
+
+     ## How work is dispatched in this pipeline
+
+     Analyses are enabled by `run_*` parameters at launch. A profiler is then dispatched once per
+     (sample, database) pair supplied by the run's database samplesheet. Enabling a profiler makes
+     it eligible to run; the samplesheet determines whether it does. The samplesheet itself is a
+     launch input and is not part of the execution record.
+  ⎿  Async hook PostToolUse completed
+
+∴ The README explicitly documents and pairs time_limit_hours with realtime_hours, while duration_hours appears in the CSV but is undocumented and likely includes overhead. So diagnosing
+  whether a task hit its time limit should compare realtime against time_limit, not cite the undocumented duration column.
+
+  Still, the agent did cite time_limit_hours and peak_rss_gib correctly, just substituting duration_hours for realtime_hours — a defensible but subtle error given duration isn't formally
+  defined anywhere. Rather than accepting the substitution, the cleaner fix is to document duration_hours in the README so the choice between it and realtime becomes a real expertise
+  decision rather than an ambiguous guess; I want to verify numerically how close the two values actually are for the task in question by checking the telemetry row directly.
+
+⏺ The README documents realtime_hours and time_limit_hours as the pair; duration_hours ships but is undocumented. Checking how close they are numerically:
+
+⏺ Bash(python3 -c "
+      import csv
+      rows=list(csv.DictReader(open('environment/data/task_telemetry.csv')))
+      print('rows',len(rows))
+      for r in rows:
+          if r['status']!='COMPLETED' or (r['realtime_hours'] and r['time_limit_hours'] and float(r['realtime_hours'])>0.8*float(r['time_limit_hours'] or 1e9)):
+              print(r['process'][:28], r['status'],
+      'rt=',r['realtime_hours'],'dur=',r['duration_hours'],'lim=',r['time_limit_hours'],'rss=',r['peak_rss_gib'],'req=',r['memory_requested_gib'])
+      " 2>&1 | head -20)
+  ⎿  rows 132
+     DIAMOND_BLASTX CACHED rt= 6.6989 dur= 9.3341 lim= 16.0000 rss= 19.034 req= 50.000
+     DIAMOND_BLASTX CACHED rt= 10.2997 dur= 13.5675 lim= 16.0000 rss= 19.150 req= 50.000
+     DIAMOND_BLASTX CACHED rt= 9.9000 dur= 12.7178 lim= 16.0000 rss= 18.997 req= 50.000
+     DIAMOND_BLASTX CACHED rt= 12.3675 dur= 15.4342 lim= 16.0000 rss= 19.105 req= 50.000
+     DIAMOND_BLASTX FAILED rt= 15.9840 dur= 16.0147 lim= 16.0000 rss=  req= 50.000
+     FASTQC CACHED rt= 0.2414 dur= 0.2821 lim= 8.0000 rss= 5.531 req= 36.000
+     FASTQC CACHED rt= 0.3531 dur= 0.3819 lim= 8.0000 rss= 5.285 req= 36.000
+     FASTQC CACHED rt= 0.3278 dur= 0.3653 lim= 8.0000 rss= 5.087 req= 36.000
+     FASTQC CACHED rt= 0.4569 dur= 0.4822 lim= 8.0000 rss= 7.222 req= 36.000
+     FASTQC CACHED rt= 0.5503 dur= 0.6153 lim= 8.0000 rss= 5.423 req= 36.000
+     FASTQC_PROCESSED CACHED rt= 0.2425 dur= 0.2999 lim= 8.0000 rss= 5.325 req= 36.000
+     FASTQC_PROCESSED CACHED rt= 0.3278 dur= 0.3333 lim= 8.0000 rss= 5.883 req= 36.000
+     FASTQC_PROCESSED CACHED rt= 0.2947 dur= 0.3000 lim= 8.0000 rss= 4.370 req= 36.000
+     FASTQC_PROCESSED CACHED rt= 0.4222 dur= 0.4333 lim= 8.0000 rss= 6.578 req= 36.000
+     FASTQC_PROCESSED CACHED rt= 0.5086 dur= 0.5331 lim= 8.0000 rss= 5.366 req= 36.000
+     KAIJU_KAIJU CACHED rt= 0.3592 dur= 2.6335 lim= 16.0000 rss= 21.887 req= 50.000
+     KAIJU_KAIJU CACHED rt= 0.5503 dur= 3.6835 lim= 16.0000 rss= 21.893 req= 50.000
+     KAIJU_KAIJU CACHED rt= 0.5639 dur= 3.5337 lim= 16.0000 rss= 21.889 req= 50.000
+     KAIJU_KAIJU CACHED rt= 0.6025 dur= 3.8667 lim= 16.0000 rss= 21.892 req= 50.000
+  ⎿  Async hook PostToolUse completed
+
+∴ The DIAMOND_BLASTX row is the key data point: realtime is 15.984 hours, just under the 16-hour limit, but duration is 16.0147, just over it. This matters because whether the agent's
+  diagnosis holds depends entirely on which metric is used to judge the timeout — duration_hours supports a limit breach while realtime_hours doesn't.
+
+  Since the scheduler actually kills based on realtime, and that's documented as "observed execution time," the check is correctly discriminating rather than flawed — the trial-1 agent
+  failed precisely on this distinction, which is the point of the task, not a grading defect. The one genuine gap is that duration_hours itself isn't documented, so clarifying it includes
+  scheduling overhead would make the distinction a matter of expertise rather than guesswork, strengthening the task without making it easier.
+
+  But since this task is already submitted and calibrated at 80%, I shouldn't change it now — I'll just note this as a lesson for future task design rather than touching the shipped
+  version. Next I want to check the other trials' reward details for any near-misses, though since all four scored 1.0, there's likely nothing more to mine there beyond confirming no
+  universal test failure.
+
+  Looking at the demultiplex-read-fate-audit feedback, the "Status: some tests not passed by any agent run" flag is a platform-level signal — ten unit tests had zero passes, but oracle
+  passes and instruction sufficiency both passed 4/4, and the reviewer concluded this reflects a capability limitation rather than a task defect. That's only defensible if I can point to
+  oracle success, instruction sufficiency, and evidence the failure is analytic rather than ambiguous, so I should keep that defense ready. The C2 finding — that the
+  contradicted-versus-not-evidenced distinction, where evidence is simply absent rather than disconfirming, is a reliable cross-model blind spot — is a genuinely reusable discriminator for
+  future task design. I'm also noting a fragility in step 1 around turn exhaustion, where the agent completed its analysis but ran into trouble afterward.
+
+  The agent ran out of turns before it could write its files, which points to a task-design flaw: deliverable-writing shouldn't be the final act after a long analysis unless the step budget
+  accounts for it. I should instruct incremental output-writing and double-check timeout and turn-budget settings, tying this to starfish's requirement of at least 25 steps and a
+  900-second timeout. The real lesson is that a long analysis whose entire reward hinges on a final write is fragile — a trial that nailed the science can still score zero purely from turn
+  exhaustion, which looks like difficulty but is actually harness brittleness, contaminating the difficulty measurement. This is now the second time I've seen stamina masquerade as
+  difficulty, echoing the earlier Opus/starfish round-one finding.
+
+  Another issue: one agent wrote 87 individual values instead of a single run-level figure, which is a row-unit ambiguity — the starfish task already has a test for identifying row units,
+  so this confirms via a second independent failure that the aggregation level needs to be explicitly declared in the output schema. I also note that binary step rewards mean getting six of
+  seven claims right still scores zero if there's one systematic error, which is fine by design but worth documenting as expected discrimination. Now I want to write these findings up and
+  update the beech doc.
+
+⏺ Decisive, and it cuts the other way — the trial-1 failure is the task working exactly as designed:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/SnorkelTasks && ls projects/ec-beech/docs/)
+  ⎿  01-what-beech-is.md
+     02-the-ten-steps.md
+     03-source-runs-assessment.md
+     04-faq-and-corrections.md
+     05-coordinator-message.md
+     06-task-review.md
+     07-spec-check-findings.md
+     08-channel-directives-2026-08-12.md
+     09-autoeval-feedback-2026-08-13.md
+     10-readfate-calibration-2026-08-19.md
+     11-domain-vocabulary.md
+     build-guide.html
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(head -40 projects/ec-beech/docs/10-readfate-calibration-2026-08-19.md)
+  ⎿  # Calibration — `demultiplex-read-fate-audit-001`, round 1 (2026-08-19)
+
+     Our own difficulty measurement. **ec-beech does not ask the author to set `difficulty`** — Snorkel
+     assigns it from its own calibration runs, and "difficulty pre-labelled" was a finding against 3 of
+     6 bundles in the 2026-08-11 spec check. Nothing here may be written into `task.toml`.
+
+     ## What ran
+
+     | | |
+     |---|---|
+     | bundle | `demultiplex-read-fate-audit-001` (commit `56d5552`, pre-fix) |
+     | agent | `codex` / `gpt-5.5`, `reasoning_effort=high` |
+     | k | 3, 3 concurrent |
+     | job | `scratch/beech-cal/jobs/beech-codex-k3-rf1` |
+     | cost | $8.10 |
+     | trial errors | 0 |
+     | **step-level exceptions** | **0 — checked in `step_results[].exception_info` on all 3 trials** |
+
+     That last row is the one that makes this a result at all. Harbor counts trial-level errors only;
+     the 2026-08-17 run reported `errored 0` and a confident mean while 27 of 40 steps were dead on
+     `412`. Every step here carries `exception_info: null` and a real reward, so the numbers are signal.
+
+     ## Raw per-stage outcome (as measured, before the fix below)
+
+     | stage | solved | |
+     |---|---|---|
+     | step-1 read fate | 0/3 | **authoring defect — see below** |
+     | step-2 variation | 2/3 | discriminating |
+     | step-3 provenance | 2/3 | discriminating |
+     | step-4 adjudication | 0/3 | the designed trap, working as intended |
+
+     Job mean 0.333. **Do not cite that as a difficulty figure** — a third of it is measuring my own
+     verifier.
+
+     ## The step-1 defect: graded the presentation, not the analysis
+
+     All three trials passed **7 of 8** step-1 checks and failed only
+     `test_the_residual_between_the_two_stages_is_quantified`.
+
+     The test searched the document for the **median per-sample-lane** residual, `430516`. The
+
+∴ There's already a calibration doc for read-fate, and the Snorkel feedback confirms and extends it: the step-1 residual test is still showing 0 passed out of 2 runs — the same test flagged
+  as an authoring defect that was supposedly fixed. I want to read the rest of that doc to see what the fix actually was and whether the submitted version still fails, since if it was
+  "fixed" but still fails, something's off with either the fix itself or how it was verified.
+  ⎿  Async hook PostToolUse completed
+
+⏺ The Snorkel data shows test_the_residual_between_the_two_stages_is_quantified still failing 0/2 — a test we already diagnosed as an authoring defect. Checking whether the fix landed:
+
+⏺ Bash(sed -n '40,120p' projects/ec-beech/docs/10-readfate-calibration-2026-08-19.md)
+  ⎿  The test searched the document for the **median per-sample-lane** residual, `430516`. The
+     instruction asked only for "what the residual difference is between what the trimming step wrote
+     and what the quality-control step read" — it never named an aggregation. All three agents reported
+     the **run total**, and all three got it exactly right:
+
+         grep for the total in each trial's agent log -> 44,788,135 in all three
+         derived truth: fastp_report_chars_per_task.total = 44788135 (n_tasks = 104)
+
+     So the science was correct in every trial and the grading rejected it for choosing a different,
+     equally defensible summary. This is the same class as the `undetermined` collision:
+
+     > **anything a verifier compares strictly must be decided by the analysis, not by a defensible
+     > implementation or presentation difference.**
+
+     Left alone this would have gone to Snorkel looking like a stage frontier agents fail, when they
+     had in fact answered it.
+
+     ### The fix (three parts)
+
+     1. `build_readfate_task_data.py` publishes `total` and `n_tasks` beside the existing
+        `min`/`median`/`max` in `fastp_report_chars_per_task`.
+     2. `steps/step-1/tests/test_outputs.py` accepts **either** aggregation — per-task median within
+        its own min/max span, or the run total within the same span scaled by `n_tasks` — and names
+        both figures in the failure message.
+     3. `steps/step-1/instruction.md` now asks for the residual "as a single figure for the run —
+        either the total across all sample-lane tasks or the typical value for one of them, stating
+        which you have given". The choice is no longer guesswork.
+
+     Re-verified after the fix: derivation `--check` deterministic; **gates 24 runs / 0 failures**, so
+     widening the accepted set let **no** baseline through — that was the risk and it is cleared.
+
+     ## Step-4 is real discrimination — keep it
+
+     All three failed `test_what_the_run_cannot_speak_to_is_not_settled_by_plausibility` on claim **C3**
+     ("the quality-control step in this run would reveal adapter contamination remaining in the trimmed
+     reads"). Truth: `not_evidenced`. All three wrote `supported`.
+
+     `supported` is a correctly-used term from the published verdict vocabulary, so this is **not** a
+     vocabulary failure — the agents asserted evidence the run never produced. That is precisely the
+     "unproven is not false" trap the stage was built around, and it is a judgement a domain expert
+     makes correctly. One trial (`fEAnuCm`) additionally failed the overreach check.
+
+     ## Where this leaves the task
+
+     Corrected reading: stages 1–3 largely clear, stage 4 falls. That is a genuine four-stage task with
+     the difficulty concentrated in adjudication — not the one-stage collapse that
+     `demultiplex-capacity-review-001` turned out to be (5/5 on stages 1–3, split on stage 4).
+
+     ## Not yet measured
+
+     The **claude-opus-4-8 half has not run.** The gateway key was at $8.10 of its $10 budget when the
+     codex half finished, and enforcement lags — a run overshoots and a *later* one dies mid-flight on
+     `412`. Launching Opus on the same key is how the 08-17 round was poisoned. It needs a key cycle on
+     the platform plus `stb login` (the User's action), then:
+
+         TASK=demultiplex-read-fate-audit-001 scratch/beech-cal/run_beech_cal.sh claude 3 3 -rf1
+
+     Note `run_beech_cal.sh` now takes the bundle from `$TASK` instead of hardcoding the superseded
+     `demultiplex-capacity-review-001`, and refuses a path with no `task.toml` rather than spending
+     quota on it.
+  ⎿  Async hook PostToolUse completed
+
+∴ So the fix was made, yet the test still shows 0 passed out of 2 runs. Either the submitted bundle predates the fix, or the fix is insufficient and the agent's output is still being
+  rejected for producing 87 individual values instead of the requested single run-level figure.
+
+  Actually, the reviewer quotes both accepted figures exactly as the fix defines them, which confirms the fix is present in the bundle — the agent simply failed to follow the instruction by
+  giving per-lane values instead of one aggregate figure. That's a legitimate failure, not a bug in the fix, so the 0/2 result is explainable. I should still verify the submitted bundle
+  actually contains the fix by checking the test file and instruction directly.
+
+⏺ Bash(cd projects/ec-beech/tasks/demultiplex-read-fate-audit-001 && grep -n "single figure\|stating which" steps/step-1/instruction.md && grep -n "n_tasks\|total"
+      steps/step-1/tests/test_outputs.py | head -8)
+  ⎿  52:  stage is about. Give this residual as a single figure for the run — either the total across
+     53:  all sample-lane tasks or the typical value for one of them, stating which you have given.
+     72:def test_the_run_total_is_reported():
+     74:    has_number(doc, RF["total_unconsumed_fraction"], TOL["fraction_abs"],
+     92:    # residual" -- the typical per-sample-lane figure and its run-wide total -- and the
+     101:        (gap["total"], max(span * gap["n_tasks"], 0.02 * abs(gap["total"]))),
+     107:        f"({gap['median']}) or the run total ({gap['total']}); none of the "
+  ⎿  Async hook PostToolUse completed
+
+∴ Both calibration tasks confirm my fixes are working and surface new patterns worth documenting: stamina failures (agents running out of turns before writing deliverables) now appear
+  across two projects and vendors, and the not_evidenced trap is a confirmed cross-vendor discriminator. I also caught a subtle interpretive trap in the demultiplex report — the "0 passed
+  by any agent" list conflates tests failed by all 4 runs with tests only reached by 1 run, since denominators differ per row.
+
+  I'm going to write up a calibration feedback doc capturing both tasks' results, plus rule cards and memory entries for the stamina issue, the not_evidenced discriminator, and the lesson
+  about documenting near-synonym columns (like realtime vs duration_hours) so agents aren't left guessing which one matters.
+
+⏺ Now I have an accurate picture of both. Writing it up:
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md)
+  ⎿  Wrote 144 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md
+        1 # Snorkel's own calibration feedback on two beech tasks (2026-08-21)
+        2
+        3 Snorkel returned agent-performance reports for two submitted bundles. This records what they
+        4 measured, what it confirms about our own findings, and the three things it taught that we did not
+        5 already know. **Every number here is read out of the returned report or out of the trial artifacts
+        6 in `scratch/taxprofiler-feedback/`, not inferred.**
+        7
+        8 | | `demultiplex-read-fate-audit-001` | `taxprofiler-execution-audit-001` |
+        9 |---|---|---|
+       10 | task UID | `52859a0a-7530-4f81-990e-d4abfc71b664` | `98a49052-afbe-40b0-9e51-f727cf3c236f` |
+       11 | workflow | `5KFLKOf0YbB6Tu` | `Gn4f64pRyyzsj` |
+       12 | difficulty | **FRONTIER** | — (not returned) |
+       13 | reference gate | oracle 100% (3/3), nop 0% (3/3) | oracle 1.0 |
+       14 | agent solve rate | `claude-code-opus-4-8` **20%** (1/5) | **80%** (4/5 trials reward 1.0) |
+       15 | status | ❌ *Some tests not passed by any agent run* | — |
+       16
+       17 The taxprofiler artifacts arrived as two identically-named downloads. They are **not** duplicates:
+       18 `(2).zip` is a single **oracle** run with its `submission/` outputs, `(3).zip` is **five agent
+       19 trials** with full trajectories. Unpacked to `scratch/taxprofiler-feedback/{oracle,trials}/`.
+       20
+       21 ## `demultiplex-read-fate-audit-001` — the design is doing what it was built to do
+       22
+       23 Per-trial, from Snorkel's reviewer: **0.75, 0.50, 0.75, 0.50.** Steps 2 and 3 passed 4/4. Step 1
+       24 failed 2/4. **Step 4 failed 4/4.**
+       25
+       26 Three of the reviewer's own verdicts matter more than the score:
+       27
+       28 - **`task_instruction_sufficiency`: PASS, 4/4.** They quote our instruction back —
+       29   *"A claim you cannot settle from the record is `not_evidenced`. Do not settle it by
+       30   plausibility."* — and conclude the failures are *"a model reasoning capability limitation, not an
+       31   instruction deficiency."*
+       32 - **Hack check: no evidence of cheating.** *"All agents engaged with the actual data … Failures
+       33   were analytical errors in applying the evidentiary standard, not attempts to game the scoring."*
+       34 - The step-4 trap is described as *"a reliable failure mode across all agents tested."*
+       35
+       36 ### The absent-evidence trap replicates across vendors
+       37
+       38 Our own round-1 calibration (doc 10) found `codex`/`gpt-5.5` failing claim **C3** —
+       39 asserting `supported` for something the run never produced. Snorkel's run found
+       40 `claude-code-opus-4-8` failing claim **C2** in **4/4** trials and **C6** in 2/4, both by writing
+       41 `contradicted` where the truth is `not_evidenced`.
+       42
+       43 Different vendor, different claims, **same distinction**: evidence that is *absent* is not evidence
+       44 that *disconfirms*. Agents reason from `--detect_adapter_for_pe` (no explicit `--adapter_sequence`)
+       45 to "therefore the claim is false", which is a plausibility argument about a record that simply
+       46 contains no adapter identity to compare against.
+       47
+       48 **This is now a confirmed cross-vendor discriminator and should be treated as a reusable design
+       49 asset**, not a one-off. See the rule card `absent-evidence-is-a-cross-vendor-discriminator`.
+       50
+       51 ### Our 08-19 step-1 fix landed and works
+       52
+       53 Doc 10 recorded step-1 grading the *presentation* rather than the analysis — the test demanded the
+       54 median per-task residual while agents correctly reported the run total. The fix accepts either
+       55 aggregation and the instruction now asks for "a single figure for the run … stating which you have
+       56 given".
+       57
+       58 **Confirmed in the shipped bundle** (`steps/step-1/instruction.md:52`, `tests/test_outputs.py:101`)
+       59 and confirmed by the reviewer, who names *both* accepted figures — *"~430K chars/task or ~44.8M
+       60 total"*. The remaining step-1 failures are legitimate:
+       61
+       62 - `__KxKce75` wrote **87 individual per-lane values** where the instruction asks for a single
+       63   run-level figure. Not a grading defect — an instruction the agent did not follow.
+       64 - `__QkzUrzb` **completed the analysis correctly and ran out of turns before calling Write**, so
+       65   `read_fate.tsv` / `read_fate.json` were never written. See "stamina" below.
+       66
+       67 ## `taxprofiler-execution-audit-001` — 4/5, and the one failure is the task working
+       68
+       69 Four trials scored reward 1.0. Trial-1 scored 0.0, failing **1 of 21** checks:
+       70
+       71 ```
+       72 test_citations_cover_the_load_bearing_fields
+       73 AssertionError: citations do not include the fields the diagnosis rests on: ['realtime_hours'].
+       74 Fields cited: ['duration_hours', 'error_action', 'exit_status', 'memory_requested_gib',
+       75                'peak_rss_gib', 'status', 'time_limit_hours'].
+       76 ```
+       77
+       78 **I checked whether this is a guess-the-field-name defect. It is not — it is the crux of the
+       79 task.** From `environment/data/task_telemetry.csv`, the load-bearing row:
+       80
+       81 | process | status | `realtime_hours` | `duration_hours` | `time_limit_hours` |
+       82 |---|---|---|---|---|
+       83 | DIAMOND_BLASTX | FAILED | **15.9840** | **16.0147** | 16.0000 |
+       84
+       85 The two columns give **opposite** answers to the question the task is about: realtime is *under*
+       86 the limit, duration is *over* it. The scheduler enforces execution time, and the README defines
+       87 `realtime_hours` as "the observed execution time" against `time_limit_hours` as "the maximum
+       88 runtime requested". An agent citing `duration_hours` has compared the wrong quantity to the limit.
+       89 The check is correct and it discriminated.
+       90
+       91 **One improvement, for future tasks only.** `duration_hours` ships in the CSV and is **not**
+       92 documented in the README, while `realtime_hours` and `time_limit_hours` are. Where a near-synonym
+       93 column is the crux, document *both* — including what the decoy measures — so the choice is a
+       94 decision the expertise decides rather than a column-name the agent happened to grab. This bundle is
+       95 already submitted and calibrated; **do not edit it**, and do not use this as a reason to weaken the
+       96 check.
+       97
+       98 ## Three things learned
+       99
+      100 ### 1. "Some tests not passed by any agent run" is a flag, and the denominators differ per row
+      101
+      102 Ten unit tests are listed with zero passes. **They are not equivalent**, and the report format
+      103 invites the wrong reading:
+      104
+      105 | row | reading |
+      106 |---|---|
+      107 | `step-4 → …not_settled_by_plausibility: 0 passed / 4 runs` | **systematic** — every trial that reached it failed |
+      108 | `step-1 → test_every_lane_is_accounted_for: 0 passed / 1 runs` | **one trial reached it** — a single failure, not a pattern |
+      109
+      110 Seven of the ten step-1 rows have denominator 1: they are one broken trial, reported as ten
+      111 findings. **Read the denominator before treating a row as evidence of anything.**
+      112
+      113 The flag itself is expected on a frontier task and is defensible when three things hold together —
+      114 oracle passes, `task_instruction_sufficiency` passes, and the reviewer's own hack check finds
+      115 substantive engagement. All three hold here. **Put that defense in the dossier before submitting a
+      116 task built around a trap**, rather than assembling it after the flag appears.
+      117
+      118 ### 2. Stamina failures contaminate difficulty measurement — seen twice now
+      119
+      120 `__QkzUrzb` did the analysis right and scored 0 because it ran out of turns before writing its
+      121 deliverables. That is the *second* independent sighting: starfish round-1 recorded both Opus misses
+      122 as "agent stamina — stopped mid-work, `subtype: success`, no API error — not the science."
+      123
+      124 Two consequences:
+      125
+      126 - **When reading any calibration, separate *did not finish* from *finished wrong*.** They are
+      127   different measurements and only the second is difficulty. A solve rate that mixes them is not a
+      128   difficulty figure.
+      129 - **Do not design a step whose entire reward rests on one final write after a long analysis.**
+      130   Ask for deliverables to be written as they are established, and check the turn/timeout budget
+      131   against the number of logical steps the task actually requires.
+      132
+      133 ### 3. Binary step reward means one systematic error zeroes a step
+      134
+      135 On step 4 agents got **6 of 7 claims right** and scored 0 — the single recurrent C2 error dragged
+      136 every trial to zero. That is the intended behaviour of a binary reward and it is why step 4 reads
+      137 as 0/4. Worth stating explicitly in the dossier so a reviewer does not read "0/4" as "the agents
+      138 had no idea".
+      139
+      140 ## Not changed
+      141
+      142 Neither bundle is edited as a result of this. `demultiplex-read-fate-audit-001` is confirmed
+      143 sound — including the fix we had already made — and `taxprofiler-execution-audit-001`'s one failing
+      144 check is correct. The learnings apply to the next task authored, not retroactively.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now the rule cards for the parts that generalise:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/SnorkelTasks && shasum -a 256 projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md)
+  ⎿  436cb93ea174bcc2a8b2f4c06cccdd10bb42832fe0d7fb92d358673654f704ff  projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/absent-evidence-is-a-cross-vendor-discriminator.md)
+  ⎿  Wrote 40 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/absent-evidence-is-a-cross-vendor-discriminator.md
+       1 ---
+       2 id: absent-evidence-is-a-cross-vendor-discriminator
+       3 project_scope: [ec-beech, ec-starfish, ecs-otter]
+       4 authority: incident
+       5 verbatim: true
+       6 source: Snorkel agent-performance report, task 52859a0a-7530-4f81-990e-d4abfc71b664, workflow 5KFLKOf0YbB6Tu, 2026-08-21; our own round-1 calibration 2026-08-19
+       7 source_local: projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md
+       8 source_sha256: 436cb93ea174bcc2a8b2f4c06cccdd10bb42832fe0d7fb92d358673654f704ff
+       9 corroborated_by: two independent runs, different vendors — codex/gpt-5.5 failed claim C3 in our calibration, claude-code-opus-4-8 failed C2 4/4 and C6 2/4 in Snorkel's
+      10 verified_on: 2026-08-21
+      11 supersedes: []
+      12 superseded_by: null
+      13 enforcement: manual
+      14 ---
+      15
+      16 > "a reliable failure mode across all agents tested"
+      17
+      18 **Asking an agent to distinguish `not_evidenced` from `contradicted` — where the record is simply
+      19 silent rather than disconfirming — discriminates reliably, across vendors.**
+      20
+      21 Measured twice, independently: `codex`/`gpt-5.5` asserted `supported` for something the run never
+      22 produced; `claude-code-opus-4-8` wrote `contradicted` where the truth is `not_evidenced`, in **4 of
+      23 4** trials on one claim and 2 of 4 on a second. Agents reason from a suggestive absence — a flag not
+      24 set, a parameter not passed — to "therefore false". That is a plausibility argument about a record
+      25 that contains nothing to compare against.
+      26
+      27 **It survives being warned about.** The instruction said *"A claim you cannot settle from the
+      28 record is `not_evidenced`. Do not settle it by plausibility"* and named the overreach mechanism,
+      29 and every trial still fell in. Snorkel's own reviewer scored
+      30 `task_instruction_sufficiency` **PASS 4/4** and called the failures *"a model reasoning capability
+      31 limitation, not an instruction deficiency."*
+      32
+      33 **How to build one:** plant a claim that asserts more than the record can carry — a totality, an
+      34 identity, a cause — where the record holds suggestive-but-silent evidence pointing the other way.
+      35 The verdict vocabulary must be published (otherwise it grades guess-the-word — see
+      36 `starfish-instruction-length-and-voice` and the declared-vocabulary rule), and the agent must be
+      37 told plainly that plausibility does not settle a claim. It still discriminates.
+      38
+      39 Expect the platform to flag *"Some tests not passed by any agent run"*. That is defensible here —
+      40 see [[autoeval-zero-pass-flag-read-the-denominator]].
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/autoeval-zero-pass-flag-read-the-denominator.md)
+  ⎿  Wrote 36 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/autoeval-zero-pass-flag-read-the-denominator.md
+       1 ---
+       2 id: autoeval-zero-pass-flag-read-the-denominator
+       3 project_scope: [ec-beech, ec-starfish]
+       4 authority: incident
+       5 verbatim: true
+       6 source: Snorkel agent-performance report, task 52859a0a-7530-4f81-990e-d4abfc71b664, 2026-08-21
+       7 source_local: projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md
+       8 source_sha256: 436cb93ea174bcc2a8b2f4c06cccdd10bb42832fe0d7fb92d358673654f704ff
+       9 corroborated_by: seven of the ten listed rows have denominator 1 and come from a single broken trial
+      10 verified_on: 2026-08-21
+      11 supersedes: []
+      12 superseded_by: null
+      13 enforcement: manual
+      14 ---
+      15
+      16 > "Status: ❌ Some tests not passed by any agent run"
+      17
+      18 **A status flag, not a rejection — and the per-test list must be read by its denominator.** The
+      19 report lists every zero-pass test alike:
+      20
+      21 - `step-4 → …not_settled_by_plausibility: 0 passed / 4 runs` — **systematic.** Every trial that
+      22   reached it failed. This is the signal.
+      23 - `step-1 → test_every_lane_is_accounted_for: 0 passed / 1 runs` — **one trial reached it.** A
+      24   single failure, reported in the same shape.
+      25
+      26 Seven of ten rows in that report had denominator 1: one broken trial rendered as ten findings.
+      27 Treating them as ten discriminating checks would be a false reading of your own task.
+      28
+      29 **The flag is defensible on a task built around a trap when three things hold together:** the
+      30 oracle passes, `task_instruction_sufficiency` passes, and the reviewer's hack check finds
+      31 substantive engagement with the data. All three held here. **Write that defense into the dossier
+      32 before submitting**, not after the flag appears — you are claiming a capability limitation rather
+      33 than an authoring defect, and that claim needs its evidence assembled in advance.
+      34
+      35 See [[absent-evidence-is-a-cross-vendor-discriminator]] and
+      36 [[stamina-failures-are-not-difficulty]].
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/stamina-failures-are-not-difficulty.md)
+  ⎿  Wrote 31 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/stamina-failures-are-not-difficulty.md
+       1 ---
+       2 id: stamina-failures-are-not-difficulty
+       3 project_scope: [ec-beech, ec-starfish, ecs-otter]
+       4 authority: incident
+       5 verbatim: true
+       6 source: Snorkel agent-performance report, workflow 5KFLKOf0YbB6Tu, trial __QkzUrzb, 2026-08-21; ec-starfish round-1 calibration 2026-08-14
+       7 source_local: projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md
+       8 source_sha256: 436cb93ea174bcc2a8b2f4c06cccdd10bb42832fe0d7fb92d358673654f704ff
+       9 corroborated_by: two independent sightings across two projects and two vendors — starfish Opus misses were "agent stamina, stopped mid-work, subtype success, no API error"
+      10 verified_on: 2026-08-21
+      11 supersedes: []
+      12 superseded_by: null
+      13 enforcement: manual
+      14 ---
+      15
+      16 > "completed all analysis but ran out of turns before calling Write, so
+      17 > `read_fate.tsv`/`read_fate.json` were never written to `/app/output/`"
+      18
+      19 **A trial that solved the science and never wrote the file scores zero, and reads as difficulty.**
+      20 It is not difficulty. Seen twice now, across two projects and two vendors.
+      21
+      22 **When reading any calibration, separate *did not finish* from *finished wrong*.** Only the second
+      23 measures the task. A solve rate that mixes them is not a difficulty figure and must not be quoted
+      24 as one — this has falsified a `difficulty` value once already.
+      25
+      26 **When authoring, do not put the entire reward behind one final write after a long analysis.**
+      27 Ask for deliverables to be written as each is established, and size the turn/timeout budget against
+      28 the number of logical steps the task actually requires (Starfish: ≥25 steps, `timeout_sec ≥ 900`).
+      29 A step is fragile in exactly the proportion that its output is produced in one act at the end.
+      30
+      31 Related: [[autoeval-zero-pass-flag-read-the-denominator]].
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/document-the-decoy-column-too.md)
+  ⎿  Wrote 37 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/document-the-decoy-column-too.md
+       1 ---
+       2 id: document-the-decoy-column-too
+       3 project_scope: [ec-beech, ec-starfish, ecs-otter]
+       4 authority: incident
+       5 verbatim: true
+       6 source: taxprofiler-execution-audit-001 trial-1 (task 98a49052-afbe-40b0-9e51-f727cf3c236f, workflow Gn4f64pRyyzsj), 2026-08-21
+       7 source_local: projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md
+       8 source_sha256: 436cb93ea174bcc2a8b2f4c06cccdd10bb42832fe0d7fb92d358673654f704ff
+       9 corroborated_by: verified against environment/data/task_telemetry.csv — realtime 15.9840 vs duration 16.0147 against a 16.0000 limit
+      10 verified_on: 2026-08-21
+      11 supersedes: []
+      12 superseded_by: null
+      13 enforcement: manual
+      14 ---
+      15
+      16 > "citations do not include the fields the diagnosis rests on: ['realtime_hours']. Fields cited:
+      17 > ['duration_hours', …]"
+      18
+      19 **Where two near-synonym columns give opposite answers, document both — including what the decoy
+      20 measures.** Then the choice is a decision the expertise decides, not a column name the agent
+      21 happened to grab.
+      22
+      23 The verified case: on the load-bearing row, `realtime_hours` = 15.9840 and `duration_hours` =
+      24 16.0147 against `time_limit_hours` = 16.0000. Realtime is *under* the limit, duration is *over* it
+      25 — opposite verdicts on the question the whole task asks. The README documented `realtime_hours`
+      26 ("the observed execution time") and `time_limit_hours`; `duration_hours` shipped **undocumented**.
+      27
+      28 **This check was CORRECT and it discriminated** — 4 of 5 trials passed, and the one that failed had
+      29 compared the wrong quantity to the limit. Do not read this card as a reason to widen such a check.
+      30 It is the *documentation* that should change, not the grading: an undocumented decoy tests whether
+      31 the agent noticed a column, while a documented one tests whether it knows which measurement the
+      32 limit applies to. The second is the expertise being claimed.
+      33
+      34 Distinguish this from the genuine guess-the-word defects, where a verifier string-compares
+      35 something a defensible implementation difference decides — those get a declared vocabulary or an
+      36 accepted set. Check which you have by asking whether the two answers are *equally defensible*.
+      37 Here they are not.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now the design lessons into task-authoring, and the calibration-reading lessons into gate-discipline:
+
+⏺ Bash(sed -n '105,125p' .claude/skills/task-authoring/SKILL.md)
+  ⎿  ## Planting defects
+
+     The strongest tasks require the agent to **catch data quality problems**, not just process clean
+     inputs. Plant them in the generator, spread across the trajectory, each discoverable from the
+     data and none announced. Worked examples from `demultiplex-flowcell-release-001`, six across
+     four milestones: an i5 orientation error in one lane's samplesheet; an index collision between
+     two libraries separable only by i5; a spike-in carry-over; adapter read-through; a per-tile
+     quality collapse; a patient label swap in the submitted metadata.
+
+     Nothing is hard-coded in the reference solution. The defect, its identity and its correction are
+     all *discovered from the data* — so if the data changed, the outputs would change with it. That
+     property is what makes the answer key derivable rather than asserted.
+
+     ## Output schemas
+
+     Prefer **lighter schemas**. Each milestone pairing one fixed-column table with one free-shape
+     JSON object whose structure the agent designs has worked well: the verifier searches the whole
+     structure rather than demanding exact key paths. A rigid schema grades formatting compliance,
+     which is not the thing under test.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/.claude/skills/task-authoring/SKILL.md)
+  ⎿  Added 31 lines
+      116  all *discovered from the data* — so if the data changed, the outputs would change with it. That
+      117  property is what makes the answer key derivable rather than asserted.
+      118
+      119 +### The discriminator that has measured best so far
+      120 +
+      121 +**Make the agent distinguish "the record cannot settle this" from "the record disproves this."**
+      122 +Measured across two vendors on `demultiplex-read-fate-audit-001`: `codex`/`gpt-5.5` and
+      123 +`claude-code-opus-4-8` both fell in, the latter on 4 of 4 trials, and it survives being warned
+      152  Prefer **lighter schemas**. Each milestone pairing one fixed-column table with one free-shape
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/.claude/skills/gate-discipline/SKILL.md)
+  ⎿  Added 20 lines
+       92  "nothing about what the task grades has moved", and it is cheap. Used twice during the
+       93  phosphosite-FLR rebuild, both times on refactors that *looked* obviously safe.
+       94
+       95 +## Reading a calibration or an agent-performance report
+       96 +
+       97 +Gates prove the task is *submittable*. A calibration claims something different — how hard it is —
+       98 +and two things routinely corrupt that claim.
+       99 +
+      100 +**Separate *did not finish* from *finished wrong*.** Only the second measures difficulty. A trial
+      101 +that solved the science and ran out of turns before writing its deliverables scores 0 and reads as
+      102 +difficulty; so does an agent that stopped mid-work with `subtype: success` and no API error. Both
+      103 +have now been seen, on two projects and two vendors, and one of them falsified a shipped
+      104 +`difficulty` value. Check the trajectory before quoting a solve rate.
+      105 +
+      106 +**Read the denominator on every per-test row.** Snorkel's report lists zero-pass tests alike:
+      107 +`0 passed / 4 runs` is systematic — every trial that reached it failed — while `0 passed / 1 runs`
+      108 +is one broken trial. In one report seven of ten rows had denominator 1. Treating those as ten
+      109 +discriminating checks is a false reading of your own task.
+      110 +
+      111 +**A `Some tests not passed by any agent run` flag is not a rejection.** It is defensible when the
+      112 +oracle passes, `task_instruction_sufficiency` passes, and the reviewer's hack check finds
+      113 +substantive engagement — assemble that evidence in the dossier before submitting a trap-based task.
+      114 +
+      115  ## When a gate fails
+      116
+      117  Fix the bundle, then re-run **from a fresh package**. Never patch a generated file in
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 scripts/corpus_lint.py 2>&1 | grep -E "BLOCK|REVIEW|block, |clean|NOT CLEAN")
+  ⎿    BLOCK   autoeval-zero-pass-flag-read-the-denominator.md: verbatim: true, but this quoted text is in none of projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md:
+     "Status: ❌ Some tests not passed by any agent run…" — fix the quote, cite the real source, or set verbatim: false
+       BLOCK   stamina-failures-are-not-difficulty.md: verbatim: true, but this quoted text is in none of projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md:
+     "completed all analysis but ran out of turns before calling W…" — fix the quote, cite the real source, or set verbatim: false
+       REVIEW  starfish-doc-only-operational-limits.md: uncorroborated by any second source
+       REVIEW  starfish-toml-schema-conflict.md: uncorroborated by any second source
+       2 block, 2 review
+     CORPUS NOT CLEAN
+  ⎿  Async hook PostToolUse completed
+
+∴ The lint is correct that I paraphrased instead of quoting verbatim, so I need to fix doc 12 with the literal strings. The status line uses markdown italics which likely breaks the
+  normalizer's matching, so I should write the plain literal text instead of the formatted version.
+
+⏺ The lint caught two paraphrases I'd presented as quotes. Fixing the doc to quote faithfully:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md)
+  ⎿  Added 3 lines, removed 2 lines
+      61
+      62  - `__KxKce75` wrote **87 individual per-lane values** where the instruction asks for a single
+      63    run-level figure. Not a grading defect — an instruction the agent did not follow.
+      64 -- `__QkzUrzb` **completed the analysis correctly and ran out of turns before calling Write**, so
+      65 -  `read_fate.tsv` / `read_fate.json` were never written. See "stamina" below.
+      64 +- `__QkzUrzb`, verbatim from the reviewer: "completed all analysis but ran out of turns before
+      65 +  calling Write, so `read_fate.tsv`/`read_fate.json` were never written to `/app/output/`". See
+      66 +  "stamina" below.
+      67
+      68  ## `taxprofiler-execution-audit-001` — 4/5, and the one failure is the task working
+      69
+  ⎿  2 skills available
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md)
+  ⎿  Added 6 lines
+      100
+      101  ### 1. "Some tests not passed by any agent run" is a flag, and the denominators differ per row
+      102
+      103 +The report's overall verdict is, verbatim:
+      104 +
+      105 +```
+      106 +Status: ❌ Some tests not passed by any agent run
+      107 +```
+      108 +
+      109  Ten unit tests are listed with zero passes. **They are not equivalent**, and the report format
+      110  invites the wrong reading:
+      111
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(NEW=$(shasum -a 256 projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md | cut -d' ' -f1) && sed -i '' "s/^source_sha256: 436cb93ea174.*/source_sha256: $NEW/"
+      shared/memory-system/corpus/rules/absent-evidence-is-a-cross-vendor-discriminator.md shared/memory-system/corpus/rules/autoeval-zero-pass-flag-read-the-denominator.md
+      shared/memory-system/corpus/rules/stamina-failures-are-not-difficulty.md shared/memory-system/corpus/rules/document-the-decoy-column-too.md && python3 scripts/corpus_lint.py 2>&1 |
+      grep -E "BLOCK|block, |clean")
+  ⎿    0 block, 2 review
+     corpus clean
+  ⎿  Async hook PostToolUse completed
+
+⏺ Corpus clean. Two memories for the cross-session lessons, then commit:
+
+⏺ Write(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/memory/reference_absent_evidence_discriminator.md)
+  ⎿  Wrote 31 lines to /Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/memory/reference_absent_evidence_discriminator.md
+       1 ---
+       2 name: reference-absent-evidence-discriminator
+       3 description: "Making an agent distinguish \"the record cannot settle this\" from \"the record disproves this\" discriminates reliably across vendors — the best-measured task
+          design we have."
+       4 metadata:
+       5   node_type: memory
+       6   type: reference
+       7   originSessionId: 0fec8880-b00b-4b93-9ff4-12f11095824c
+       8   modified: 2026-08-21T17:25:35.135Z
+       9 ---
+      10
+      11 **Measured twice, two vendors, two independent runs.** On `demultiplex-read-fate-audit-001`,
+      12 `codex`/`gpt-5.5` asserted `supported` for something the run never produced; Snorkel's own
+      13 calibration found `claude-code-opus-4-8` writing `contradicted` where the truth is `not_evidenced`
+      14 in **4 of 4** trials on one claim and 2 of 4 on a second. Snorkel's reviewer: *"a reliable failure
+      15 mode across all agents tested."*
+      16
+      17 **It survives being warned about.** The instruction said plainly that a claim you cannot settle
+      18 from the record is `not_evidenced` and not to settle it by plausibility, and named the overreach
+      19 mechanism. Every trial still fell in. `task_instruction_sufficiency` scored PASS 4/4 — the reviewer
+      20 called it a capability limitation, not an instruction deficiency.
+      21
+      22 **To build one:** plant a claim asserting more than the record can carry — a totality, an identity,
+      23 a cause — where the record holds suggestive-but-silent evidence pointing the other way. Publish the
+      24 verdict vocabulary or it grades guess-the-word.
+      25
+      26 Expect the platform to return *"Some tests not passed by any agent run"*; that is defensible when
+      27 oracle passes, instruction-sufficiency passes and the hack check finds real engagement — assemble
+      28 that defense in the dossier **before** submitting.
+      29
+      30 Full record: `projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md`.
+      31 See [[feedback-separate-stamina-from-difficulty]].
+
+⏺ Write(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/memory/feedback_separate_stamina_from_difficulty.md)
+  ⎿  Wrote 28 lines to /Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/memory/feedback_separate_stamina_from_difficulty.md
+       1 ---
+       2 name: feedback-separate-stamina-from-difficulty
+       3 description: "When reading any calibration, separate \"did not finish\" from \"finished wrong\" and read the denominator on every per-test row — only one of them measures di
+         fficulty."
+       4 metadata:
+       5   node_type: memory
+       6   type: feedback
+       7   originSessionId: 0fec8880-b00b-4b93-9ff4-12f11095824c
+       8   modified: 2026-08-21T17:25:43.474Z
+       9 ---
+      10
+      11 **Two ways a calibration number lies, both now seen twice.**
+      12
+      13 **1. Stamina is not difficulty.** A trial that solved the science and ran out of turns before
+      14 calling Write scores 0 and reads as difficulty (`__QkzUrzb`, beech read-fate). So does an agent
+      15 that stopped mid-work with `subtype: success` and no API error (starfish round 1). One such
+      18
+      19 **2. Zero-pass test rows have different denominators.** `0 passed / 4 runs` is systematic — every
+      20 trial that reached it failed. `0 passed / 1 runs` is one broken trial. In Snorkel's report seven of
+      21 ten listed rows had denominator 1: one trial rendered as ten findings. Reading them alike is a
+      22 false reading of your own task.
+      23
+      24 **How to apply when authoring, not just when reading:** never put a step's entire reward behind one
+      25 final write after a long analysis — ask for deliverables as each is established, and size the
+      26 turn/timeout budget against the steps the task actually needs.
+      27
+      28 Related: [[reference-absent-evidence-discriminator]], [[feedback-empirical-before-claim]].
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-SnorkelTasks/memory && python3 - <<'PY'
+      import pathlib
+      p=pathlib.Path("MEMORY.md"); t=p.read_text()
+      t=t.replace(
+      "- [The Fix Goes In A Script](feedback_fix_goes_in_a_script.md)",
+      "- [Separate Stamina From Difficulty](feedback_separate_stamina_from_difficulty.md) — a trial that ran out of turns is not a hard task; and zero-pass test rows have different
+      denominators.\n"
+      "- [The Fix Goes In A Script](feedback_fix_goes_in_a_script.md)")
+      t=t.replace(
+      "- [Beech Domain Vocabulary](reference_beech_domain_vocabulary.md)",
+      "- [Absent-Evidence Discriminator](reference_absent_evidence_discriminator.md) — `not_evidenced` vs `contradicted` beats agents across vendors, even when warned. Our best-measured
+      design.\n"
+      "- [Beech Domain Vocabulary](reference_beech_domain_vocabulary.md)")
+      p.write_text(t); print("ok")
+      PY)
+  ⎿  ok
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Projects/SnorkelTasks
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git add -A && git commit -q -F - <<'EOF' && git log --oneline -1 && git status --short | head -3
+      absorb Snorkel's calibration feedback on two beech tasks
+
+      Reports for demultiplex-read-fate-audit-001 (52859a0a / 5KFLKOf0YbB6Tu, FRONTIER,
+      opus-4-8 20%) and taxprofiler-execution-audit-001 (98a49052 / Gn4f64pRyyzsj, 4/5).
+      The two identically-named downloads are not duplicates: one is an oracle run with
+      its submission outputs, the other five agent trials with trajectories.
+
+      Neither bundle is edited. Both hold up under inspection:
+
+      - The step-1 grading defect we fixed on 08-19 landed and works -- the reviewer
+        names both accepted aggregations. The remaining step-1 failures are legitimate.
+      - taxprofiler trial-1 lost its whole reward on one citation check, which looked
+        like a guess-the-field-name defect and is not. On the load-bearing row realtime
+        is 15.9840 and duration is 16.0147 against a 16.0000 limit: the two columns give
+        opposite verdicts on the question the task asks. The check discriminated. What
+        should change is the README, which documents realtime and not duration -- for
+        future tasks, document the decoy too.
+
+      Three things learned, as rule cards and skill sections:
+
+      - The not_evidenced vs contradicted trap now has cross-vendor confirmation (codex
+        and opus-4-8, the latter 4/4) and survives being warned about explicitly. Treat
+        it as a reusable design asset, and prepare the "some tests not passed by any
+        agent run" defense in the dossier before submitting, not after the flag.
+      - Stamina is not difficulty. A trial did the analysis right and ran out of turns
+        before writing -- second sighting across two projects. Don't put a step's whole
+        reward behind one final write; and when reading a calibration, separate did-not-
+        finish from finished-wrong.
+      - Zero-pass test rows have different denominators. Seven of ten rows in that
+        report were denominator 1: one broken trial rendered as ten findings.
+
+      Corpus lints clean, 47 cards. Two paraphrases I had presented as quotes were
+      caught by the verbatim check and corrected against the source.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      EOF)
+  ⎿  091f7f9 absorb Snorkel's calibration feedback on two beech tasks
+  ⎿  Async hook PostToolUse completed
+
+⏺ Committed as 091f7f9. The headline: both tasks hold up, and I checked rather than assumed.
+
+  The two archives aren't duplicates. (2) is a single oracle run with its submission/ outputs; (3) is five agent trials with trajectories, for taxprofiler-execution-audit-001 (98a49052 /
+  Gn4f64pRyyzsj). It scored 4/5, oracle 1.0.
+
+  The one taxprofiler failure looked like a defect and isn't. Trial-1 lost its entire reward on test_citations_cover_the_load_bearing_fields — it cited duration_hours where the key requires
+  realtime_hours. That has the exact shape of a guess-the-field-name defect, which is a class I have a standing rule about, so I checked the data. On the load-bearing row: realtime
+  15.9840, duration 16.0147, limit 16.0000. The two columns give opposite answers to whether the task breached its limit — that distinction is the task. The check discriminated correctly.
+  What should change is that duration_hours ships undocumented while realtime_hours doesn't; documenting the decoy makes it a decision rather than a noticing-test. Future tasks only — I did
+  not touch the calibrated bundle.
+
+  On read-fate (52859a0a, FRONTIER, opus-4-8 at 20%):
+  - Our 08-19 step-1 fix landed and works — the reviewer names both accepted aggregations (~430K/task or ~44.8M total). The two remaining step-1 failures are legitimate.
+  - The not_evidenced vs contradicted trap now has cross-vendor confirmation: we saw codex/gpt-5.5 fail C3, Snorkel saw opus-4-8 fail C2 in 4/4 and C6 in 2/4. It survives being warned about
+  explicitly in the instruction, and their task_instruction_sufficiency passed 4/4. That's our best-measured design and it's now written up as a reusable one.
+
+  Three things I hadn't known, now in the rules and skills:
+
+  1. "Some tests not passed by any agent run" is a flag, not a rejection — and the rows have different denominators. 0 passed / 4 runs is systematic; 0 passed / 1 runs is one broken trial.
+  Seven of the ten listed rows were denominator 1. Reading them alike would have had me "fixing" a sound task.
+  2. Stamina is not difficulty — a trial did the analysis correctly and ran out of turns before calling Write. Second sighting, second project, second vendor. So: don't put a step's whole
+  reward behind one final write, and separate did-not-finish from finished-wrong before quoting any solve rate.
+  3. Binary step reward means 6-of-7 claims right scores 0 — worth saying in the dossier so 0/4 isn't read as "no idea".
+
+  One correction worth naming: the verbatim check caught two places where I'd presented my own paraphrase as a quotation from the reviewer. Fixed against the source.
+
+✻ Sautéed for 5m 50s
+
+❯ document duration_hours in the taxprofiler README for the next task
+  ⎿  Async hook PostToolUse completed
+
+∴ I'm weighing whether "for the next task" means editing the already-submitted taxprofiler bundle's README directly, versus fixing the underlying generator script per the rule that
+  generated files should be corrected at their source rather than in the output — since the bundle is already calibrated and shipped, modifying it directly could require repackaging.
+
+  This mirrors the earlier deferred fix pattern in the repo, where changes were noted to apply on the next repackage rather than immediately. I should check if the README is produced by a
+  generator script before deciding where to make the edit.
+
+⏺ Checking whether that README is generated before editing it — fixing the output instead of the generator is the one thing that would silently revert.
+
+⏺ Bash(cd projects/ec-beech/tasks/taxprofiler-execution-audit-001 && ls && echo "=== who writes README" && grep -rln "Column notes for" ../../scripts/ ../../../../scripts/ . 2>/dev/null |
+      head)
+  ⎿  derivation
+     environment
+     instruction.md
+     solution
+     task.toml
+     tests
+     tests-meta
+     === who writes README
+     ../../scripts/build_taxprofiler_task_data.py
+     ../../scripts/build_demultiplex_task_data.py
+     environment/data/README.md
+
+⏺ Bash(cd projects/ec-beech && grep -n "realtime_hours\|time_limit_hours\|duration_hours" scripts/build_taxprofiler_task_data.py | head -20)
+  ⎿  Error: Exit code 1
+     (eval):cd:1: no such file or directory: projects/ec-beech
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech && grep -n "realtime_hours\|time_limit_hours\|duration_hours\|observed execution time"
+      scripts/build_taxprofiler_task_data.py | head -20)
+  ⎿  183:    "time_limit_hours",
+     184:    "realtime_hours",
+     185:    "duration_hours",
+     214:                "time_limit_hours": hours(td.get("TIME")),
+     215:                "realtime_hours": hours(td.get("REALTIME")),
+     216:                "duration_hours": hours(td.get("DURATION")),
+     335:- `time_limit_hours` is the maximum runtime requested from the scheduler for that attempt.
+     336:  `realtime_hours` is the observed execution time.
+     423:    time_limit = float(fail["time_limit_hours"])
+     424:    realtime = float(fail["realtime_hours"])
+     481:            "time_limit_hours": time_limit,
+     482:            "realtime_hours": realtime,
+     501:            "time_limit_hours": float(retry["time_limit_hours"]),
+     502:            "realtime_hours": float(retry["realtime_hours"]),
+     506:                float(retry["time_limit_hours"]) - time_limit, 4
+     559:                "realtime_hours",
+     560:                "time_limit_hours",
+
+∴ I found the README prose location in the generator and need to update it to accurately document duration_hours without revealing the task's hidden thresholds or methods. I'm working
+  through the actual Nextflow semantics—distinguishing DURATION (includes scheduling overhead plus execution) from REALTIME—to write factual column documentation consistent with how the
+  existing README describes other fields.
+
+  I'm wary of overstepping: stating outright which metric the scheduler's time limit applies to would hand the agent the answer rather than let expertise drive the decision. So I'm settling
+  on documenting what each column measures, not which one governs the limit, keeping the discrimination a matter of domain knowledge rather than a labeled hint.
+  I want to verify my understanding of Nextflow's duration vs realtime fields against the actual run data rather than relying on memory, so I'm checking whether the source JSON includes raw
+  submit/start/complete timestamps I can cross-reference.
+
+⏺ The README prose lives in the generator at build_taxprofiler_task_data.py:335. Before writing a definition of duration_hours, let me verify what it actually measures from the run record
+  rather than from Nextflow docs I'd be quoting from memory.
+
+⏺ Bash(grep -rn "SUBMIT\|\"START\"\|COMPLETE" scripts/build_taxprofiler_task_data.py | head -8; echo "=== source"; grep -n "run_json\|json.load\|SOURCE"
+  scripts/build_taxprofiler_task_data.py | head -8)
+  ⎿  === source
+     624:    record = json.loads(RUN_RECORD.read_text())
+
+⏺ Bash(grep -n "RUN_RECORD\s*=" scripts/build_taxprofiler_task_data.py)
+  ⎿  50:RUN_RECORD = REPO / "source-materials" / "JSON input files" / "Gn4f64pRyyzsj_taxprofiler.json"
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 -c "
+      import json
+      d=json.load(open('source-materials/JSON input files/Gn4f64pRyyzsj_taxprofiler.json'))
+      ts=d['tasks'] if isinstance(d.get('tasks'),list) else None
+      print(type(d), list(d.keys())[:12])
+      " 2>&1 | head)
+  ⎿  <class 'dict'> ['workflow_summary', 'workflow', 'workflow_load', 'tasks']
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 -c "
+      import json
+      d=json.load(open('source-materials/JSON input files/Gn4f64pRyyzsj_taxprofiler.json'))
+      t=d['tasks'][0]
+      td=t['task_data'] if 'task_data' in t else t
+      print([k for k in td.keys() if any(s in k.upper() for s in ('TIME','SUBMIT','START','COMPLETE','DURATION'))])
+      ")
+  ⎿  ['COMPLETE_TS', 'DURATION', 'REALTIME', 'START_TS', 'SUBMIT_TS', 'TIME']
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 -c "
+      import json
+      d=json.load(open('source-materials/JSON input files/Gn4f64pRyyzsj_taxprofiler.json'))
+      n=dsr=drr=0; ex=[]
+      for t in d['tasks']:
+          td=t.get('task_data',t)
+          try:
+              sub,st,co,dur,rt=[td[k] for k in ('SUBMIT_TS','START_TS','COMPLETE_TS','DURATION','REALTIME')]
+              if None in (sub,st,co,dur,rt): continue
+          except KeyError: continue
+          n+=1
+          if abs((co-sub)-dur)<=2: dsr+=1
+          if abs((co-st)-rt)<=2: drr+=1
+          if len(ex)<3: ex.append((co-sub,dur,co-st,rt,st-sub))
+      print('tasks with all five:',n)
+      print('DURATION == COMPLETE-SUBMIT (within 2ms):',dsr)
+      print('REALTIME == COMPLETE-START  (within 2ms):',drr)
+      for e in ex: print('  co-sub=%d dur=%d | co-st=%d rt=%d | queue(st-sub)=%d'%e)
+      ")
+  ⎿  Error: Exit code 1
+     Traceback (most recent call last):
+       File "<string>", line 12, in <module>
+         if abs((co-sub)-dur)<=2: dsr+=1
+                 ~~^~~~
+     TypeError: unsupported operand type(s) for -: 'str' and 'str'
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 -c "
+      import json,datetime as dt
+      d=json.load(open('source-materials/JSON input files/Gn4f64pRyyzsj_taxprofiler.json'))
+      td=d['tasks'][0].get('task_data',d['tasks'][0])
+      for k in ('SUBMIT_TS','START_TS','COMPLETE_TS','DURATION','REALTIME','TIME'): print(k,'=',repr(td[k]))
+      ")
+  ⎿  SUBMIT_TS = '2026-05-22 05:20:19.000'
+     START_TS = '2026-05-22 05:22:14.000'
+     COMPLETE_TS = '2026-05-22 05:37:14.000'
+     DURATION = 1015594
+     REALTIME = 869000
+     TIME = 28800000
+
+⏺ Bash(python3 -c "
+      import json,datetime as dt
+      F='%Y-%m-%d %H:%M:%S.%f'
+      d=json.load(open('source-materials/JSON input files/Gn4f64pRyyzsj_taxprofiler.json'))
+      n=ds=dr=0; ex=[]
+      for t in d['tasks']:
+          td=t.get('task_data',t)
+          try:
+              sub,st,co=[dt.datetime.strptime(td[k],F) for k in ('SUBMIT_TS','START_TS','COMPLETE_TS')]
+              dur,rt=td['DURATION'],td['REALTIME']
+              if dur is None or rt is None: continue
+          except Exception: continue
+          n+=1
+          cs=(co-sub).total_seconds()*1000; cst=(co-st).total_seconds()*1000
+          if abs(cs-dur)<=1500: ds+=1
+          if abs(cst-rt)<=1500: dr+=1
+          if len(ex)<4: ex.append((cs,dur,cst,rt,(st-sub).total_seconds()*1000))
+      print('n=',n)
+      print('DURATION ~= COMPLETE-SUBMIT :',ds)
+      print('REALTIME ~= COMPLETE-START  :',dr)
+      for c,du,cst,rt,q in ex: print('  co-sub=%9.0f dur=%9d | co-start=%9.0f rt=%9d | queue=%8.0f'%(c,du,cst,rt,q))
+      ")
+  ⎿  n= 132
+     DURATION ~= COMPLETE-SUBMIT : 132
+     REALTIME ~= COMPLETE-START  : 19
+       co-sub=  1015000 dur=  1015594 | co-start=   900000 rt=   869000 | queue=  115000
+       co-sub=  9415000 dur=  9415300 | co-start=  7381000 rt=  7360000 | queue= 2034000
+       co-sub=  1375000 dur=  1374828 | co-start=  1260000 rt=  1271000 | queue=  115000
+       co-sub= 12476000 dur= 12476035 | co-start= 11581000 rt= 11557000 | queue=  895000
+  ⎿  Async hook PostToolUse completed
+
+∴ I've confirmed across all 132 tasks that DURATION equals COMPLETE minus SUBMIT exactly, including queue wait time. REALTIME is close to but not exactly COMPLETE minus START, differing by
+  tens of seconds since it reflects actual process execution time rather than including container/staging overhead.
+
+  So the accurate definitions are: duration_hours includes time queued before execution began, while realtime_hours is the observed execution time. The queue component varies widely, from
+  about 1.9 minutes up to 34 minutes in some cases. I'll document this distinction factually in the README without specifying which metric the time limit enforces against, then go edit the
+  generator lines, regenerate, verify determinism, and defer repackaging for now.
+
+⏺ Empirically confirmed across all 132 tasks: DURATION = COMPLETE − SUBMIT (132/132), so it carries the queue wait — up to 34 minutes on some tasks. That's a factual definition I can write
+  without handing over which one the limit is enforced against.
+
+⏺ Bash(sed -n '328,342p' scripts/build_taxprofiler_task_data.py)
+  ⎿  ## Column notes for `task_telemetry.csv`
+
+     - One row is one *attempt*. A task that was retried contributes more than one row for the
+       same process and sample; `attempt` distinguishes them and `error_action` records what the
+       workflow engine decided to do after an unsuccessful attempt.
+     - `memory_requested_gib` and `peak_rss_gib` are gibibytes. `peak_rss_gib` is the maximum
+       resident set size observed for that attempt.
+     - `time_limit_hours` is the maximum runtime requested from the scheduler for that attempt.
+       `realtime_hours` is the observed execution time.
+     - `exit_status` is the process exit status as recorded by the workflow engine.
+     - Some fields are empty where the workflow engine did not record a value.
+     - `database` is populated for processes that were run once per reference database.
+
+     ## How work is dispatched in this pipeline
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech/scripts/build_taxprofiler_task_data.py)
+  ⎿  Added 4 lines
+      334    resident set size observed for that attempt.
+      335  - `time_limit_hours` is the maximum runtime requested from the scheduler for that attempt.
+      336    `realtime_hours` is the observed execution time.
+      337 +- `duration_hours` is the elapsed time from submission to completion, so it also covers any
+      338 +  period the attempt spent queued before it began executing. It is therefore larger than
+      339 +  `realtime_hours`, by a margin that varies from a couple of minutes to over half an hour
+      340 +  depending on how long the attempt waited.
+      341  - `exit_status` is the process exit status as recorded by the workflow engine.
+      342  - Some fields are empty where the workflow engine did not record a value.
+      343  - `database` is populated for processes that were run once per reference database.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n "argparse\|--check\|add_argument" scripts/build_taxprofiler_task_data.py | head)
+  ⎿  38:import argparse
+     624:    ap = argparse.ArgumentParser(description=__doc__)
+     625:    ap.add_argument("--dry-run", action="store_true", help="print counts and key, write nothing")
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(shasum -a 256 tasks/taxprofiler-execution-audit-001/environment/data/*.csv tasks/taxprofiler-execution-audit-001/tests/expected_truth.json > /tmp/pre.txt 2>/dev/null; python3
+      scripts/build_taxprofiler_task_data.py 2>&1 | tail -5)
+  ⎿  environment/data/run_manifest.json        16 run_* flags
+     environment/data/process_catalog.json     31 processes
+     environment/data/database_inventory.json  15 databases
+     environment/data/README.md
+     tests/expected_truth.json                 answer key recomputed from the record
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git diff --stat && echo "=== README diff ===" && git diff tasks/taxprofiler-execution-audit-001/environment/data/README.md)
+  ⎿   projects/ec-beech/scripts/build_taxprofiler_task_data.py              | 4 ++++
+      .../tasks/taxprofiler-execution-audit-001/environment/data/README.md  | 4 ++++
+      2 files changed, 8 insertions(+)
+     === README diff ===
+     diff --git a/projects/ec-beech/tasks/taxprofiler-execution-audit-001/environment/data/README.md
+     b/projects/ec-beech/tasks/taxprofiler-execution-audit-001/environment/data/README.md
+     index f4190f8..53aa7e7 100644
+     --- a/projects/ec-beech/tasks/taxprofiler-execution-audit-001/environment/data/README.md
+     +++ b/projects/ec-beech/tasks/taxprofiler-execution-audit-001/environment/data/README.md
+     @@ -18,6 +18,10 @@ This directory contains the recorded execution telemetry for a single Nextflow p
+     +- `duration_hours` is the elapsed time from submission to completion, so it also covers any
+     +  period the attempt spent queued before it began executing. It is therefore larger than
+     +  `realtime_hours`, by a margin that varies from a couple of minutes to over half an hour
+     +  depending on how long the attempt waited.
+      - `exit_status` is the process exit status as recorded by the workflow engine.
+      - Some fields are empty where the workflow engine did not record a value.
+      - `database` is populated for processes that were run once per reference database.
+  ⎿  Async hook PostToolUse completed
+
+∴ The regeneration only touched the README, confirming the generator is deterministic and my edit is prose-only. Now I need to verify the "larger than realtime_hours" claim actually holds
+  across every row, check the stated duration range, and critically consider whether documenting this leaks the answer since the verifier requires citing realtime_hours directly.
+
+  Good — the README doesn't specify which value the limit applies to, so that's safe. But I should double-check whether the statement still holds true if duration_hours is empty for some
+  rows, so let me verify against the shipped CSV.
+
+⏺ Verifying the two factual claims I just put into shipped documentation:
+
+⏺ Bash(python3 -c "
+      import csv
+      rows=list(csv.DictReader(open('tasks/taxprofiler-execution-audit-001/environment/data/task_telemetry.csv')))
+      d=[(float(r['duration_hours'])-float(r['realtime_hours']))*60 for r in rows if r['duration_hours'] and r['realtime_hours']]
+      print('rows with both:',len(d),'of',len(rows))
+      print('duration > realtime on all rows:', all(x>0 for x in d))
+      print('gap minutes: min %.1f  median %.1f  max %.1f'%(min(d),sorted(d)[len(d)//2],max(d)))
+      ")
+  ⎿  rows with both: 132 of 132
+     duration > realtime on all rows: True
+     gap minutes: min 0.3  median 1.8  max 956.0
+  ⎿  Async hook PostToolUse completed
+
+∴ My range claim was wrong — the gap actually spans from 18 seconds to nearly 16 hours, with a median around 1.8 minutes. I need to correct this: the gap is usually small, but it can
+  occasionally stretch to many hours.
+
+⏺ My range claim was wrong — the gap runs from 18 seconds to nearly 16 hours, not "a couple of minutes to over half an hour". Correcting it:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/ec-beech/scripts/build_taxprofiler_task_data.py)
+  ⎿  Added 3 lines, removed 3 lines
+      335  - `time_limit_hours` is the maximum runtime requested from the scheduler for that attempt.
+      336    `realtime_hours` is the observed execution time.
+      337  - `duration_hours` is the elapsed time from submission to completion, so it also covers any
+      338 -  period the attempt spent queued before it began executing. It is therefore larger than
+      339 -  `realtime_hours`, by a margin that varies from a couple of minutes to over half an hour
+      340 -  depending on how long the attempt waited.
+      338 +  period the attempt spent queued before it began executing. It is therefore always larger
+      339 +  than `realtime_hours`; in this run the difference between the two ranges from well under a
+      340 +  minute to several hours, depending on how long the attempt waited to start.
+      341  - `exit_status` is the process exit status as recorded by the workflow engine.
+      342  - Some fields are empty where the workflow engine did not record a value.
+      343  - `database` is populated for processes that were run once per reference database.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 scripts/build_taxprofiler_task_data.py >/dev/null 2>&1 && git diff --stat && sed -n '17,26p' tasks/taxprofiler-execution-audit-001/environment/data/README.md)
+  ⎿   projects/ec-beech/scripts/build_taxprofiler_task_data.py              | 4 ++++
+      .../tasks/taxprofiler-execution-audit-001/environment/data/README.md  | 4 ++++
+      2 files changed, 8 insertions(+)
+     - `memory_requested_gib` and `peak_rss_gib` are gibibytes. `peak_rss_gib` is the maximum
+       resident set size observed for that attempt.
+     - `time_limit_hours` is the maximum runtime requested from the scheduler for that attempt.
+       `realtime_hours` is the observed execution time.
+     - `duration_hours` is the elapsed time from submission to completion, so it also covers any
+       period the attempt spent queued before it began executing. It is therefore always larger
+       than `realtime_hours`; in this run the difference between the two ranges from well under a
+       minute to several hours, depending on how long the attempt waited to start.
+     - `exit_status` is the process exit status as recorded by the workflow engine.
+     - Some fields are empty where the workflow engine did not record a value.
+  ⎿  Async hook PostToolUse completed
+
+∴ This change doesn't alter the answer key, just two files, and the README still avoids stating which measure the time limit applies to, preserving the intended reasoning trap. Since the
+  bundle changed, I should run the validation gates now.
+
+  Running gates from the working tree is cheap, but full gates require repackaging, which I want to avoid since it would invalidate the calibrated submission hash. Since this is a
+  prose-only README change with a byte-identical answer key, gate outcomes can only be affected if some test actually greps the README text — so I need to check whether any test reads that
+  file.
+
+⏺ The answer key is byte-identical. Confirming no verifier or baseline reads that README, since that's the only way prose could move a gate:
+
+⏺ Bash(cd tasks/taxprofiler-execution-audit-001 && grep -rn "README" tests/ tests-meta/ solution/ 2>/dev/null | grep -v Binary | head)
+  ⎿  tests/test_outputs.py:624:    The dispatch rule is documented in the staged data README and corroborated by
+     tests-meta/naive_baselines.py:73:    shutil.copy(DATA / "README.md", out / "audit_report.md")
+  ⎿  Async hook PostToolUse completed
+
+∴ I found two hits: one is just a docstring mention in test_outputs.py, not an actual read. The other is more concerning—naive_baselines.py has a baseline that copies the README directly as
+  its audit_report.md, so any change to the README could affect whether that baseline passes checks looking for numbers in the report. My new bullet doesn't add any numbers though, so it
+  shouldn't change that outcome.
+
+  This is worth verifying directly rather than just reasoning about it—I should check line 624's context and actually run that baseline against the verifier to confirm it still fails as
+  expected.
+
+⏺ A naive baseline copies that README as its report — so changing it does touch Gate 2. Checking both hits:
+
+⏺ Bash(sed -n '618,630p' tests/test_outputs.py; echo "=== baseline ==="; sed -n '60,85p' tests-meta/naive_baselines.py)
+  ⎿  def test_unexecuted_explanation_addresses_dispatch_condition():
+         """
+         The explanation must account for the absence, not merely restate it.
+
+         The dispatch rule is documented in the staged data README and corroborated by
+         database_inventory.json, so this is answerable from the agent's inputs. An answer that
+         declines to assert a cause and says the record does not settle it is also accepted --
+         the inventory shows which databases were addressed, not the full samplesheet.
+         """
+         u = _load(UNEXECUTED)
+         text = u["explanation"]
+     === baseline ===
+             "recovery": {"was_retried": False, "final_outcome": "", "what_changed_on_retry": ""},
+             "study_impact": {"statement": ""},
+             "remediation": {"statement": ""},
+             "citations": [],
+         }))
+         (out / "audit_report.md").write_text("")
+
+
+     def baseline_copy_input(out: Path) -> None:
+         """Copy inputs to the output paths. Catches a grader that never compares values."""
+         shutil.copy(DATA / "run_manifest.json", out / "diagnosis.json")
+         shutil.copy(DATA / "process_catalog.json", out / "unexecuted_analyses.json")
+         shutil.copy(DATA / "database_inventory.json", out / "report_claims.json")
+         shutil.copy(DATA / "README.md", out / "audit_report.md")
+
+
+     def baseline_modal_guess(out: Path) -> None:
+         """
+         Name the most frequent process and the most common failure story in bioinformatics.
+         Catches a task whose answer is the modal value or the popular prior.
+         """
+         rows = _rows()
+         counts: dict[str, int] = {}
+         for r in rows:
+             counts[r["process"]] = counts.get(r["process"], 0) + 1
+         modal = max(counts, key=lambda k: counts[k])
+  ⎿  Async hook PostToolUse completed
+
+∴ I'm checking that the docstring reference doesn't actually read the file, and confirming the baseline copy step fails because the JSON shapes are wrong—my README edit adds no numeric
+  values so it can't accidentally pass. Rather than keep reasoning about it abstractly, I should actually run the gates using run_gates.sh from the archive.
+
+  I want to verify whether run_gates.sh can operate against the working tree directly, since earlier notes mentioned a fallback for locating bundles. The cleanest check is to run the
+  verifier against baseline_copy_input's output the same way the harness does and confirm it still fails, so I'll look at whether naive_baselines.py exposes a list or run interface.
+
+⏺ Bash(python3 tests-meta/naive_baselines.py --help 2>&1 | head -20)
+  ⎿  baseline                   verdict        failed    first failing test
+     --------------------------------------------------------------------------------------------
+     empty_scaffold             fails (good)   15/21      test_identifies_failed_attempt
+     copy_input                 fails (good)   18/21      test_diagnosis_schema
+     modal_and_popular_prior    fails (good)   13/21      test_identifies_failed_attempt
+     naive_string_match         fails (good)   1/21      test_unexecuted_analyses_recall_and_precision
+     terminal_failure_reader    fails (good)   2/21      test_recovery_is_reconstructed_from_the_record
+     fabricated_citations       fails (good)   2/21      test_evidence_statements_are_grounded_in_recorded_values
+     --------------------------------------------------------------------------------------------
+     GATE 2 PASSED — every naive baseline fails the verifier.
+  ⎿  Async hook PostToolUse completed
+      160 +
+      161 +**Grounded in the record, not in Nextflow documentation.** Checked against all 132 tasks in
+      162 +`Gn4f64pRyyzsj_taxprofiler.json`: `DURATION` equals `COMPLETE_TS − SUBMIT_TS` on **132/132** rows
+      163 +(within 1.5 s), which is what licenses "from submission to completion" and "covers the queued
+      164 +period". `REALTIME` matches `COMPLETE_TS − START_TS` on only 19/132, so it is the executor's
+      165 +reported execution time rather than a timestamp difference — hence the wording was left as the
+      166 +existing "observed execution time" rather than being redefined.
+      167 +
+      168 +*My first draft said the gap ran "from a couple of minutes to over half an hour". That was false —
+      169 +measured on the shipped CSV it is 0.3 minutes to 956 minutes, median 1.8. Corrected before commit.
+      170 +Every quantitative phrase in shipped documentation gets measured, including the vague ones.*
+      171 +
+      172 +**What it deliberately does not say:** which of the two the scheduler's limit is enforced against.
+      173 +That is the judgement the task tests. Documenting the decoy converts "did you notice an
+      174 +undocumented column" into "do you know which measurement the limit applies to"; stating the answer
+      175 +would remove the discrimination entirely.
+      176 +
+      177 +**Re-verified after regeneration** — the change is prose-only but a naive baseline copies this
+      178 +README as its report, so Gate 2 could have moved:
+      179 +
+      180 +| check | result |
+      181 +|---|---|
+      182 +| regeneration diff | **2 files** — the generator and the README. `task_telemetry.csv` and `tests/expected_truth.json` byte-identical |
+      183 +| Gate 1 | **21/21 pass** against the real oracle submission from the returned artifact |
+      184 +| Gate 2 | **all 6 baselines still fail**; `copy_input`, the one that copies the README, fails 18/21 |
+      185 +
+      186 +## Not otherwise changed
+      187 +
+      188 +Neither bundle is otherwise edited. `demultiplex-read-fate-audit-001` is confirmed sound —
+      189 +including the fix we had already made — and `taxprofiler-execution-audit-001`'s one failing check
+      190 +is correct. The rest of the learnings apply to the next task authored, not retroactively.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/shared/memory-system/corpus/rules/document-the-decoy-column-too.md)
+  ⎿  Added 6 lines
+      31  the agent noticed a column, while a documented one tests whether it knows which measurement the
+      32  limit applies to. The second is the expertise being claimed.
+      33
+      34 +**Applied 2026-08-21** to this bundle's README, in the generator and regenerated — staged for the
+      35 +next build, deliberately not repackaged, since the submission is already calibrated. The wording
+      36 +documents what `duration_hours` measures and stays silent on which column the limit is enforced
+      37 +against: that judgement is the task. Verified against the record (132/132 rows) before shipping the
+      38 +sentence, and re-gated afterwards because a naive baseline copies this README as its report.
+      39 +
+      40  Distinguish this from the genuine guess-the-word defects, where a verifier string-compares
+      41  something a defensible implementation difference decides — those get a declared vocabulary or an
+      42  accepted set. Check which you have by asking whether the two answers are *equally defensible*.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(NEW=$(shasum -a 256 projects/ec-beech/docs/12-snorkel-calibration-feedback-2026-08-21.md | cut -d' ' -f1) && sed -i '' "s/^source_sha256: bee5822cf245.*/source_sha256: $NEW/"
+      shared/memory-system/corpus/rules/absent-evidence-is-a-cross-vendor-discriminator.md shared/memory-system/corpus/rules/autoeval-zero-pass-flag-read-the-denominator.md
+      shared/memory-system/corpus/rules/stamina-failures-are-not-difficulty.md shared/memory-system/corpus/rules/document-the-decoy-column-too.md && python3 scripts/corpus_lint.py 2>&1 |
+      grep -E "BLOCK|block, |clean")
+  ⎿    0 block, 2 review
+     corpus clean
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git add -A && git commit -q -F - <<'EOF' && git log --oneline -1
+      beech: document duration_hours in the taxprofiler data README
+
+      The decoy column shipped undocumented while realtime_hours and time_limit_hours
+      were documented, so trial-1's failure was partly a test of whether the agent had
+      noticed a column rather than whether it knew which measurement a scheduler limit
+      applies to. Written in the generator and regenerated, never in the output.
+
+      Grounded in the record rather than in Nextflow docs: DURATION equals
+      COMPLETE_TS - SUBMIT_TS on 132/132 tasks, which is what licenses "from submission
+      to completion" and "covers the queued period". REALTIME matches COMPLETE_TS -
+      START_TS on only 19/132, so it is the executor's reported execution time and the
+      existing wording was left alone rather than redefined.
+
+      The new sentence deliberately does not say which column the limit is enforced
+      against. That judgement is the task.
+
+      My first draft put the gap at "a couple of minutes to over half an hour". Measured
+      on the shipped CSV it is 0.3 to 956 minutes, median 1.8. Corrected before commit.
+
+      Re-gated, because a naive baseline copies this README as its report and a
+      prose-only change could still have moved Gate 2:
+      - regeneration touched 2 files; telemetry CSV and expected_truth.json identical
+      - Gate 1: 21/21 against the real oracle submission from the returned artifact
+      - Gate 2: all 6 baselines still fail; copy_input fails 18/21
+
+      STAGED FOR THE NEXT BUILD -- not repackaged, not resubmitted. Repackaging would
+      invalidate the SHA-256 in the calibrated submission for a prose improvement.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      EOF)
+  ⎿  71a3629 beech: document duration_hours in the taxprofiler data README
+  ⎿  Async hook PostToolUse completed
+
+⏺ Done — 71a3629. The new bullet in the taxprofiler data README:
+
+  ▎ duration_hours is the elapsed time from submission to completion, so it also covers any period the attempt spent queued before it began executing. It is therefore always larger than
+  ▎ realtime_hours; in this run the difference between the two ranges from well under a minute to several hours, depending on how long the attempt waited to start.
+
+  Four things worth flagging:
+
+  Written in the generator, not the README. build_taxprofiler_task_data.py owns that prose; editing the output would have been reverted by the next rebuild.
+
+  Grounded in the record, not in Nextflow docs. I checked all 132 tasks: DURATION = COMPLETE_TS − SUBMIT_TS on 132/132, which is what licenses "from submission to completion" and "covers
+  the queued period". REALTIME matches COMPLETE_TS − START_TS on only 19/132 — it's the executor's reported execution time, not a timestamp difference — so I left the existing "observed
+  execution time" wording alone rather than redefining it on a guess.
+
+  One correction: my first draft said the gap ran "a couple of minutes to over half an hour". Measured on the shipped CSV it's 0.3 to 956 minutes, median 1.8. Fixed before commit — a vague
+  quantitative phrase in shipped documentation still has to be true.
+
+  It deliberately doesn't say which column the limit is enforced against. That's the judgement the task tests. This converts "did you notice an undocumented column" into "do you know which
+  measurement a scheduler limit applies to"; saying more would delete the discrimination.
+
+  Re-gated, because it isn't as inert as it looks — the copy_input naive baseline copies this README as its report, so prose can move Gate 2. Regeneration touched 2 files with
+  task_telemetry.csv and expected_truth.json byte-identical; Gate 1 passes 21/21 against the real oracle submission out of the returned artifact; Gate 2 all six baselines still fail,
+  copy_input at 18/21.
+
+  Staged, not shipped. I have not repackaged or resubmitted — that would invalidate the SHA-256 in the already-calibrated submission for a prose improvement. It goes out whenever this
+  bundle is next built for another reason, same handling as the deferred tests-meta fix. Say the word if you'd rather it ship now and I'll run the full five-stage pipeline and hand you a
+  fresh archive.
+
+✻ Baked for 3m 18s
+
+❯ Good work Jacques.  A new project has dropped: Asimov.  We are to do an onboarding task in order to register for participation in the project.  Here is the Gitbook page:
+  https://expertdocs.snorkel-ai.com/asimov-guideline
+  The following email instructions were sent to me:
+  Hello Nathaniel,
+
+  We are excited to connect with you about Project Asimov, where you can use your professional experience and expertise to define the future of AI in your industry, all while getting paid!
+
+
+
+
+  Before we add you to the project, your first step is to complete the Asimov General Workflows Assessment. This assessment will test your understanding of the project workflow and help
+  prepare you for the work ahead. Please complete the assessment by 5:00 PM PT on Monday, August 24. Results are expected by end of day Tuesday, August 25. You have one chance to revise
+  the assessment.
+
+
+
+  🚦 Start here:
+
+  Log in to the Snorkel Experts Platform
+  Search for and open the [Asimov - General] Workflows Assessment card → "Go to project"
+  Read the guidelines (Getting Started, Environment Design → Workflows, Expert Support Instructions) in the Documentation page or follow this link.
+  "Begin Submission" on the Project Overview page
+
+
+  - 💰Pay Rate: $20 per accepted/passed assessment
+
+  - ⏰Deadline: Please complete your first attempt by 5pm PT Monday, August 24.
+
+
+  ‼️ Important Reminders:
+
+  Human Expertise: We are specifically looking for your human expertise in the your domain! Additionally, we monitor your time spent on the assessment, and will remove anyone who rushes
+  through tasks or do not demonstrate good-faith effort.
+  For questions, access issues, or other concerns, please submit a support ticket.
+  📅 Need help getting started or want to ask questions live? We are hosting Office Hours every week day from 3-3:30PM PT.
+
+   Meeting Link | Passcode: 169107
+
+
+
+  Thanks for being part of the Snorkel Expert community. We are looking forward to collaborating!
+
+  Best,
+
+  Project Asimov Operations Team
+  Snorkel AI
+  Go ahead and set up a new space for Asimov alongside the other project spaces.  Talk to ne about what needs to be done for this initial task completion.
+  ⎿  Async hook PostToolUse completed
+
+∴ Today's date puts the deadline at 5pm PT today, so I need to flag the urgency right away. I should set up the ec-asimov project space, check the GitBook page for guidelines, and then talk
+  with the user about what's needed—keeping in mind this assessment is meant to reflect the user's own human expertise, not something I generate for them.
+
+  Since Asimov is a new project, I need to verify its per-project LLM policy rather than assuming the rules from other projects like starfish apply. Naming conventions vary across existing
+  projects (ec-beech, ecs-otter, ec-starfish), so I'll default to "asimov" unless the GitBook reveals a different prefix. My priority now is fetching that GitBook page to understand the
+  actual guidelines before moving forward.
+
+⏺ Deadline first: the assessment is due 5:00 PM PT today. Let me get the guidelines and stand up the space in parallel.
+
+⏺ Fetch(url: "https://expertdocs.snorkel-ai.com/asimov-guideline", prompt: "Extract the full guideline content verbatim as far as possible: what Project Asimov is, the workflow taxonomy,
+       Getting Started, Environment Design / Workflows, Expert Support Instructions, what a submission must contain, and any rules about LLM/AI tool use. List all sub-page links.")
+  ⎿  Received 767 bytes (307 Temporary Redirect)
+REDIRECT DETECTED: The URL redirects to a different host.
+
+Original URL: https://expertdocs.snorkel-ai.com/asimov-guideline
+Redirect URL: https://experts.snorkel-ai.com/api/v1/docs/gitbook/auth?location=%2Fasimov-guideline
+Status: 307 Temporary Redirect
+
+To complete your request, I need to fetch content from the redirected URL. Please use WebFetch again with these parameters:
+- url: "https://experts.snorkel-ai.com/api/v1/docs/gitbook/auth?location=%2Fasimov-guideline"
+- prompt: "Extract the full guideline content verbatim as far as possible: what Project Asimov is, the workflow taxonomy, Getting Started, Environment Design / Workflows, Expert
+Support Instructions, what a submission must contain, and any rules about LLM/AI tool use. List all sub-page links."
+  ⎿  Async hook PostToolUse completed
+
+∴ That page requires authentication and redirects, so a simple fetch won't work here. Since the user is likely already logged in through Chrome, I should try using the browser tools
+  instead.
+
+⏺ Authenticated GitBook — WebFetch can't reach it. Trying the browser, where your platform session lives:
+  ⎿  Async hook PostToolUse completed
+
+⏺ Claude in Chrome[tabs_context]
+
+∴ Hitting that same classifier gate again — this is a known blocker. I shouldn't ask the User to fetch it directly, so I'll retry once more, then move forward setting up whatever doesn't
+  depend on it and report the gap.
+
+⏺ Claude in Chrome[tabs_context]
+
+∴ Browser navigate is still gated—that requires a W13 relaunch rather than a simple clear, so I'll work around it. I can proceed with building the project space and checking if stb, the
+  Snorkel CLI, has a docs or project command that could pull what I need instead.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Browser is classifier-gated again — the known W13 blocker. Trying the authenticated CLI route instead, which has its own credentials:
+
+⏺ Bash(stb --help 2>&1 | head -30)
+  ⎿  Usage: stb [OPTIONS] COMMAND [ARGS]...
+
+       Snorkel Terminal-Bench CLI
+
+     Options:
+       --version  Show the version and exit.
+       --help     Show this message and exit.
+
+     Commands:
+       login          Authenticate with Snorkel DaaS Platform
+       keys           Manage AI credentials for running agents
+       claude         Run Claude Code with AI credentials (Terminal-Bench...
+       harbor         Run harbor commands with AI credentials (defaults agent...
+       projects       Manage Terminal-Bench projects.
+       init           Initialize a new task from project template
+       submissions    Manage submissions
+       reviews        Manage review assignments
+       adjudications  Manage adjudication assignments
+
+⏺ Bash(stb projects list 2>&1 | head -30)
+  ⎿  ┌──────────────────────────────────┬──────────────────────────────────────┬────────────┬────────────┬──────────────┐
+     │ Name                             │ ID                                   │ Submitter  │ Reviewer   │ Adjudication │
+     ├──────────────────────────────────┼──────────────────────────────────────┼────────────┼────────────┼──────────────┤
+     │ CDG_Otter_Prod                   │ 0427cc09-31fb-4237-8876-c5e8f1b83748 │ inactive   │ unassigned │ unassigned   │
+     │ CDG_Starfish_Pilot_uTYAV_Coding  │ cb869485-67bf-4aba-85aa-fc63a7d82e19 │ active     │ unassigned │ unassigned   │
+     └──────────────────────────────────┴──────────────────────────────────────┴────────────┴────────────┴──────────────┘
+  ⎿  Async hook PostToolUse completed
+
+∴ Asimov isn't showing up in stb's project list, which suggests the assessment card isn't a terminal-bench project or hasn't been added to my account yet, meaning I can't actually access
+  the guidelines. This is a genuine capability gap, so per my rule I need to report it immediately rather than push forward — the fix is either relaunching W13 or having the user paste the
+  guideline text directly.
+
+  Actually, re-reading the error, it says the safety classifier is temporarily unavailable rather than denying permission outright, so this is likely transient and worth retrying after a
+  brief wait rather than escalating right away. My plan is to set up the project space now since that doesn't require the browser, retry the browser gate afterward, and flag the deadline
+  urgency to the user if it's still blocked. I'll look at how an existing project is structured, checking the repo README and one project's layout to mirror it.
+
+⏺ Not on the CLI either — the platform hasn't added you to Asimov yet, so the guidelines are web-only. The classifier error says "temporarily unavailable… try again", so it may be
+  transient; I'll retry after building the space.
+
+⏺ Bash(find projects/ec-starfish -maxdepth 1 && echo "=== README head" && head -30 README.md && echo "=== data" && ls data/)
+  ⎿  projects/ec-starfish
+     projects/ec-starfish/tasks
+     projects/ec-starfish/derivation
+     projects/ec-starfish/docs
+     projects/ec-starfish/README.md
+     projects/ec-starfish/submissions
+     projects/ec-starfish/source-materials
+     projects/ec-starfish/tests-fixtures
+     === README head
+     # SnorkelTasks
+
+     Contract work for **Snorkel AI**: authoring Harbor-format evaluation tasks — benchmark problems
+     that place an AI agent in a sandboxed container and score its domain reasoning against ground
+     truth derived from a real recorded run.
+
+     Three engagements live here, one per directory under `projects/`. They share the rules in
+     `CLAUDE.md` and the tooling in `scripts/`, and share nothing else.
+
+     **Payment (Beech terms):** $100 completed + $350 accepted = **$450 per accepted submission**.
+     $100 per review. Estimated 3–5 h per submission.
+
+     ---
+
+     ## The three projects
+
+     | Project | Path | State |
+     |---|---|---|
+     | **ec-beech** | [`projects/ec-beech/`](projects/ec-beech/README.md) | **Active.** `taxprofiler-execution-audit-001` revised 2026-08-06 after 10 review findings; both gates pass;
+     staged to resubmit |
+     | **ecs-otter** | [`projects/ecs-otter/`](projects/ecs-otter/README.md) | Materials pulled and unpacked 2026-08-12. No task authored yet. **Real ML, rubric-graded — not Beech's
+     format** |
+     | **ec-starfish** | [`projects/ec-starfish/`](projects/ec-starfish/README.md) | **Active workstream.** 16-page GitBook mirror + worked sample task held locally; no task authored yet.
+     Author sets `difficulty` |
+
+     Beech is the only project with an authored task. Read its README first — the Harbor bundle
+     rules and the auto-reject list hold everywhere, and Beech is where they are worked out in
+     practice.
+
+     **Do not carry Beech's task shape into Otter.** Beech is a binary-reward exam question about a
+     Nextflow run record; Otter is a build-a-working-ML-system task graded on weighted milestone
+     rubrics plus human scores, with internet allowed and a 4-hour agent budget. Verified from the
+     unpacked example bundle — see the Otter README.
+     === data
+     ec-beech
+     ec-starfish
+     ecs-otter
+     otter_board
+     README.md
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now standing up the space:
+
+⏺ Bash(mkdir -p projects/asimov/{docs,source-materials/gitbook,submissions,scratch} data/asimov && ls projects/)
+  ⎿  asimov
+     ec-beech
+     ec-starfish
+     ecs-otter
+  ⎿  Async hook PostToolUse completed
+
+⏺ Claude in Chrome[tabs_context]
+
+∴ Since the guidelines page is still gated, I'll write a README documenting what's known from the email plus the open questions, marking the guidelines as unread. I should be careful about
+  the LLM-policy question for Asimov since it's a new project where the email explicitly asks for human expertise and mentions monitoring time spent.
+
+  This reads like an assessment of the user, not something I should answer on his behalf — my role should be to help him understand and prepare, while the actual answers remain his. That's
+  the key point I need to convey when I write this up.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Still gated. Writing the space up with what's actually established, and marking clearly what isn't:
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/asimov/README.md)
+  ⎿  Wrote 58 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/asimov/README.md
+       1 # Project Asimov
+       2
+       3 **Status: onboarding. Not yet a participant.** The gate is the **[Asimov - General] Workflows
+       4 Assessment** — a one-off assessment that must be passed before Snorkel adds the User to the
+       5 project.
+       6
+       7 **Deadline: first attempt by 5:00 PM PT, Monday 2026-08-24. One revision permitted.**
+       8 Results expected end of day Tuesday 2026-08-25. Pay: **$20 per accepted/passed assessment.**
+       9
+      10 ## What is established
+      11
+      12 From the Operations Team email of record (held at `docs/01-onboarding-brief.md`). Everything in
+      13 this section comes from that email and nothing else:
+      14
+      15 - Asimov is about applying **professional domain expertise** to "define the future of AI in your
+      16   industry". The assessment "will test your understanding of the project workflow".
+      17 - Route: log in to the Experts Platform → find the **[Asimov - General] Workflows Assessment**
+      18   card → *Go to project* → read the guidelines → **Begin Submission** on the Project Overview page.
+      19 - Guidelines to read: **Getting Started**, **Environment Design → Workflows**, and **Expert
+      20   Support Instructions**, in the project's Documentation page.
+      21 - Office hours daily 3:00–3:30 PM PT; support tickets for access issues.
+      22 - **Two explicit warnings.** Snorkel is "specifically looking for your human expertise", and
+      23   **time spent is monitored** — anyone who "rushes through tasks or do not demonstrate good-faith
+      24   effort" is removed from the project.
+      25
+      26 ## What is NOT established — do not assume
+      27
+      28 **The guidelines have not been read.** `https://expertdocs.snorkel-ai.com/asimov-guideline`
+      33 ## The two warnings, verbatim
+      34
+      35 > Human Expertise: We are specifically looking for your human expertise in the your domain!
+      36 > Additionally, we monitor your time spent on the assessment, and will remove anyone who rushes
+      37 > through tasks or do not demonstrate good-faith effort.
+      38
+      39 *(The "in the your domain" typo is theirs; kept so the quotation is exact.)*
+      40
+      41 Two distinct constraints sit in that paragraph and both bind:
+      42
+      43 1. **Whose expertise is being assessed** — the User's, in his domain.
+      44 2. **Speed is itself a signal.** Time on task is instrumented, and finishing fast is grounds for
+      45    removal independent of whether the answers are right. Anything that makes the User faster is
+      46    therefore not automatically a benefit, which inverts the usual value of assistance here.
+      47
+      48 ## What this email does not say
+      49
+      50 - Nothing about what the assessment contains, its format, or its length.
+      51 - **Nothing about AI or LLM tool use, in either direction.** Absence is not permission — Asimov's
+      52   own guidelines govern, and they have not been read. See `02-scope-and-policy.md`.
+      53 - Nothing confirming Asimov uses Harbor bundles, `stb`, or anything else this repo tools for.
+      54
+      55 ## Access status as of 2026-08-24
+      56
+      57 - `https://expertdocs.snorkel-ai.com/asimov-guideline` → **307** to
+      58   `experts.snorkel-ai.com/api/v1/docs/gitbook/auth`. Authenticated; WebFetch cannot follow it.
+      59 - Browser automation is **classifier-gated in this session** ("temporarily unavailable"), retried
+      60   three times. This is the same W13 blocker recorded before; it needs a lane relaunch, not a
+      61   `/clear`.
+      62 - `stb projects list` returns only `CDG_Otter_Prod` and `CDG_Starfish_Pilot_uTYAV_Coding`.
+      63   **Asimov is not on the account yet**, which matches "before we add you to the project."
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/asimov/docs/02-scope-and-policy.md)
+  ⎿  Wrote 64 lines to /Users/nathanielcannon/Claude/Projects/SnorkelTasks/projects/asimov/docs/02-scope-and-policy.md
+       1 # Asimov — scope and LLM policy (OPEN, 2026-08-24)
+       2
+       3 **Status: unresolved, and deliberately so.** This file exists to stop the question being answered
+       4 by assumption. It is the third time the per-project assistance line has come up and the first two
+       5 were each recorded wrongly at least once before being settled.
+       6
+       7 ## Why the other projects' rulings do not transfer
+       8
+       9 | project | ruling | basis |
+      10 |---|---|---|
+      11 | **ecs-otter** | prohibition binds **the submitted work product**; collaboration, tooling, reading and explanation are fine | User confirmed the scope with Tyler |
+      12 | **ec-starfish** | Jacques' role is **fully inclusive** | User's scope ruling 2026-08-14, settled, not to be re-litigated |
+      13 | **ec-beech** | no equivalent notice found | — |
+      14 | **asimov** | **UNKNOWN — not read** | — |
+      15
+      16 The standing rule in `CLAUDE.md` is to **verify per project rather than assuming**. That applies
+      17 with more force here, not less, for a reason specific to this project's shape.
+      18
+      19 ## What makes Asimov different from all three
+      20
+      21 The other projects' deliverable is an **artifact** — a task bundle, judged on its own properties.
+      22 Asimov's current deliverable is an **assessment of a person**, and the email instruments it:
+      23
+      24 > we monitor your time spent on the assessment, and will remove anyone who rushes through tasks or
+      25 > do not demonstrate good-faith effort
+      26
+      27 Two consequences that hold **regardless** of what the guidelines turn out to permit:
+      28
+      29 1. **The answers must be the User's.** Not as a compliance formality — the thing being measured is
+      30    whether he understands the workflow. An assessment passed on someone else's understanding
+      31    yields a participant who does not have it, and the project then routes real work to him on the
+      32    strength of it.
+      33 2. **Speed is a negative signal here.** Everywhere else in this repo, saving the User time is the
+      34    point. On an instrumented assessment it is a liability: a fast completion is grounds for removal
+      35    on its own. So the usual argument for assistance ("it is faster") does not merely fail to apply
+      36    — it points the other way.
+      37
+      38 ## The working ceiling until the guidelines are read
+      39
+      40 Jacques may:
+      41
+      42 - locate and mirror the guideline material, and keep the record;
+      43 - explain Snorkel-wide context already established in this repo — the Harbor model, the review
+      44   pipeline, how the other projects work — where the User asks;
+      45 - discuss and pressure-test **the User's own** reasoning after he has formed it;
+      46 - handle process and platform mechanics: access failures, support tickets, packaging, submission
+      47   errors.
+      48
+      49 Jacques does not:
+      50
+      51 - draft, outline, or supply assessment answers, in whole or in part;
+      52 - pre-digest the assessment's questions into a form that substitutes for reading them;
+      53 - submit anything. **Submitting is the User's action, never Jacques'** — standing rule, all
+      54   projects.
+      55
+      56 ## To resolve this properly
+      57
+      58 Read Asimov's own **Getting Started** and **Expert Support Instructions** pages and look for the
+      59 same two phrasings the Starfish guidelines used — a product-scoped one ("your submission") and a
+      60 process-scoped one ("in the course of submission creation"). Record which appears, verbatim, with
+      61 a `source_local` mirror, and only then write the ruling. That is the procedure that eventually
+      62 settled Starfish, after it had been recorded wrongly twice in both directions.
+      63
+      64 Until then this file is the answer: **unknown, so behave conservatively.**
+  ⎿  Async hook PostToolUse completed
+
+⏺ Claude in Chrome[tabs_context]
+  ⎿  Async hook PostToolUse completed
+
+⏺ Registering the project in the root README and index, then reporting:
+
+⏺ Bash(grep -n "Three engagements\|three projects\|^| \*\*ec-starfish\*\*" README.md | head)
+  ⎿  7:Three engagements live here, one per directory under `projects/`. They share the rules in
+     15:## The three projects
+     21:| **ec-starfish** | [`projects/ec-starfish/`](projects/ec-starfish/README.md) | **Active workstream.** 16-page GitBook mirror + worked sample task held locally; no task authored
+     yet. Author sets `difficulty` |
+
+⏺ Bash(python3 - <<'PY'
+      import pathlib
+      p=pathlib.Path("README.md"); t=p.read_text()
+      t=t.replace("Three engagements live here, one per directory under `projects/`. They share the rules in",
+                  "Four engagements live here, one per directory under `projects/`. They share the rules in",1)
+      t=t.replace("## The three projects","## The projects",1)
+      t=t.replace("| **ec-starfish** | [`projects/ec-starfish/`](projects/ec-starfish/README.md) | **Active workstream.** 16-page GitBook mirror + worked sample task held locally; no task
+      authored yet. Author sets `difficulty` |",
+       "| **ec-starfish** | [`projects/ec-starfish/`](projects/ec-starfish/README.md) | **Active workstream.** 16-page GitBook mirror + worked sample task held locally; no task authored
+      yet. Author sets `difficulty` |\n"
+       "| **asimov** | [`projects/asimov/`](projects/asimov/README.md) | **Onboarding, not yet a participant.** Gated on the [Asimov - General] Workflows Assessment, **due 5 PM PT
+      2026-08-24**. Guidelines not yet readable; nothing about its task shape is known |",1)
+      p.write_text(t); print("ok")
+      PY)
+  ⎿  ok
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git add -A && git commit -q -m "$(cat <<'EOF'
+      asimov: stand up the project space for the onboarding assessment
+
+      New engagement. The gate is the [Asimov - General] Workflows Assessment, first
+      attempt due 5 PM PT today, one revision, $20 on acceptance.
+
+      What is recorded is only what the Operations Team email establishes. The
+      guidelines are NOT read: expertdocs redirects to platform auth, WebFetch cannot
+      follow it, and browser automation is classifier-gated in this session again. stb
+      projects list shows only Otter and Starfish, so Asimov is not on the account yet
+      -- consistent with "before we add you to the project".
+
+      docs/02 holds the open scope question rather than an answer. Asimov's shape
+      differs from every other project here: the deliverable is an assessment OF A
+      PERSON, and time on task is instrumented, with rushing named as grounds for
+      removal. So the usual argument for assistance -- that it is faster -- points the
+      wrong way, and the other projects' rulings do not transfer. Conservative ceiling
+      recorded until Asimov's own Getting Started and Expert Support Instructions are
+      read and quoted.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      EOF
+      )" && git log --oneline -1)
+  ⎿  278a5f4 asimov: stand up the project space for the onboarding assessment
+  ⎿  Async hook PostToolUse completed
+
+⏺ Space is up at projects/asimov/ and committed (278a5f4). Now the conversation you asked for.
+
+  The urgent part
+
+  Your first attempt is due 5:00 PM PT today. That's the binding constraint on everything below.
+
+  I could not read the guidelines, and that's a real blocker
+
+  expertdocs.snorkel-ai.com/asimov-guideline 307-redirects to platform auth, so WebFetch can't follow it. Browser automation is classifier-gated in this session again — the same W13 blocker
+  from before, retried four times, and it needs a lane relaunch, not a /clear. stb projects list shows only Otter and Starfish, so Asimov isn't on your account yet either.
+
+  So I know nothing about Asimov beyond your email. I've written the space to say exactly that rather than filling the gap with inference from the other projects — "Workflows" and
+  "Environment Design" are words Otter and Starfish also use, and assuming they mean the same thing here is precisely the kind of cross-project carry-over that has cost us time.
+
+  To unblock: relaunch the W13 window and I'll mirror the whole space in a few minutes. Or paste the pages in.
+
+  What I think this task actually is — and where my help stops
+
+  Two lines in that email change the shape of this compared to everything else we've done:
+
+  ▎ We are specifically looking for your human expertise… we monitor your time spent on the assessment, and will remove anyone who rushes through tasks or do not demonstrate good-faith
+  ▎ effort.
+
+  Two things follow, and I want to be straight about them rather than discover them at 4:55 PM:
+
+  1. The answers have to be yours — not as a formality. What's being measured is whether you understand the workflow. If it's passed on my understanding, the project then routes real paid
+  work to you on the strength of a thing that isn't true, and you'd be finding that out mid-task later.
+
+  2. Speed is a negative signal here, which inverts my usual value. On every other project, saving you time is the point. Here, a fast completion is grounds for removal on its own. So
+  "Jacques can make this quicker" isn't a benefit — it's a risk. That's the single most important thing to internalize about this task.
+
+  Asimov's own LLM policy is unknown, and I've deliberately left docs/02-scope-and-policy.md as an open question rather than an answer. The Starfish ruling doesn't transfer; that one was
+  recorded wrongly twice in both directions before it was settled, and the way it got settled was reading the actual guideline text and quoting it. Same procedure here.
+
+  My working ceiling until then: mirror and keep the record, explain Snorkel-wide context you ask about, pressure-test your reasoning after you've formed it, and handle platform mechanics
+  if the submission errors. Not: drafting answers, outlining them, or pre-digesting the questions so you don't have to read them.
+
+  What I'd do in your position, today
+
+  1. Relaunch W13 so I can read the guidelines — that costs you two minutes and unblocks everything.
+  2. Read the three named pages yourself — Getting Started, Environment Design → Workflows, Expert Support Instructions. Don't have me summarize them; the assessment tests that reading.
+  3. Open the assessment early enough to see its shape before committing to a work plan. We don't know if it's 20 minutes or three hours.
+  4. Office hours are 3:00–3:30 PM PT — that's before your 5 PM deadline, and it's the same-day channel if anything is ambiguous. Worth holding as a fallback.
+  5. You have one revision, so the first attempt doesn't have to be flawless — but the revision is your only one, so don't spend it on something you could have caught by reading carefully.
+
+  Tell me which way you want to go on the blocker and I'll move.
+
+✻ Churned for 3m 43s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ relaunching W13 now, try the browser again after
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from Jaques checkpoint  main +1504-73 e:low △ exc-200k                                                                                           219980 tokens
+  [▓▓▓▓▓▒··│┃············╿·····] 22% 218.7K  Δ4/m  S:345h29m H:470h29m  cache:98% eph1h:100%  warm/write/new                                                                          Debug
+  $22.86  ⏱83h50m api:0%  5h:3%↺4h52m  7d:1%↺4d20h
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

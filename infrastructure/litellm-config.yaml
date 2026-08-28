@@ -74,4 +74,6 @@ general_settings:
 router_settings:
   routing_strategy: simple-shuffle
   num_retries: 2
-  timeout: 120
+  # Raised 120 -> 900 for long-generation extraction jobs (WVU rate mining).
+  # 120s x (1 + 2 retries) was surfacing as HTTP 500 at ~364s on 6000-token calls.
+  timeout: 900

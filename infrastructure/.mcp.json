@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jarvis-rag": {
+      "type": "stdio",
+      "command": "/Users/nathanielcannon/Claude/Jarvis/infrastructure/.venv/bin/python",
+      "args": [
+        "/Users/nathanielcannon/Claude/Jarvis/infrastructure/rag-service/mcp_server.py"
+      ],
+      "env": {
+        "QDRANT_URL": "http://localhost:6333",
+        "MLX_EMBED_URL": "http://localhost:8000"
+      }
+    }
+  }
+}

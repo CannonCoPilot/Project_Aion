@@ -1,0 +1,80 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wrong-bars → `OCR-ROADMAP.md` · far-bucket
+§ → comment IN `collation_read._rows_and_lines` · denominator+stale-comment rules → **L2**
+`reference_instrument_independence_and_bars.md` · S6-bar rationale → top of `score_head_regions`.
+Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒ far-chaining edit is
+regression-free. a/b/c/f all GREEN, 38 cmds.
+### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN. Old key `("far",bs,id(bx))`
+was **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by construction**, shredding the RUNNING HEAD.
+Full § = the comment in the function. probe_v16: inert 20/20 at False; at True == arm B.
+⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above, median +0.329) ⇒ a **descender
+component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ) ⇒ chaining fabricates
+*some* phantom rows. Refuted as dominant; NOT refuted as present.
+### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATORS, not the rates:**
+| arm | RH | MN | MT | bind-none | ACC |
+|control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+|A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|**10**|0.8919|
+|B=A+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0.8992|
+**A's rates were never comparable to control** — RH summed over 13 where control sums 19. B restores
+the denominators AND takes bind-none 10→2, so only now do the rates mean anything: on equal
+denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL failure, not a bookkeeping one.
+✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2 ⇒ R2.2i/R2.2k inseparable).
+### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `region_head` imports `collation_read`
+(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)` ⇒ RH/MN/CH/MT **do not exist**
+until after clustering returns; `_rows_and_lines(boxes,p)` gets no band/measure/labels. **Do NOT
+invent a geometric splitter there.**
+### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_regions` (rationale § at top of the module):
+`FULL_ACCOUNTING` (pairs must == len(entries)=121; control hits it exactly, cand4 = 116 + 5 sinks) +
+`BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+PASS/exit 0, cand4 FAIL/exit 1**; `quiet=True` returns BEFORE the bar so the coarse/fine perturbation
+tests are unaffected. ⚠️ **NOT pre-registered** — values from the CONTROL and the module's own
+"must be 0" lines, never the candidate. ✅ **SUITE g GREEN, byte-identical to f; the scorer still
+`prints 20/20` and `exits 0`** (both were real risks: new output lines can break claim parsing).
+### ➡️ NEXT (1) MN is the live question: B is −2 MN vs control on equal denominators.
+(2) AFTER: R2.2d step (2) CONTIGUITY
+(**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides —
+resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️ **R2.2c BLOCKS every region number.**
+⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — read 20/20 while 13 running heads were orphaned, AND again
+while the far bucket shredded short lines. **Twice in one run.** Any row-clustering criterion needs a
+companion that sees the head and note grids.
+### 🟡 R2.2m OPEN (R2.2l CLOSED 08-21, § in roadmap) — same uncounted idiom, filtering containment obs
+by `cexcl`; accounting is per-OBSERVATION not per-entry. Register **72**, claim **1/72**.
+## ⚙️ SUITE — OPERATIONAL RULES (4 heavy scorers; ~1h, each heavy one 20-25 min)
+⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). BACKGROUND **with
+`-u`** — redirected stdout is buffered.
+⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — a HEADING contains 'FAIL'; anchor it
+(`grep -nE '^ *FAIL|^FAILED'`). ⚠️ `ps aux | grep -c "[t]est_..."` ALSO false-positives — the SHELL
+running the compound command carries the pattern in its own argv. **Bracket ≠ self-match proof.**
+⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns children** — the parent
+`test_verification_standard.py` reads ~0:00.04 CPU over 10 min because it `wait()`s on children.
+**Check descendants (`pgrep -P`) before killing anything.** Near-miss on a healthy heavy scorer.
+⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+⚠️ Claims parse ONLY in ``` fences, only if the line has `->`, and the **FIRST fraction must be one
+the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000` → `8760/1`). **Block membership, not
+claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS re-run
+`audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED.
+⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+**#15 = the S6 bar above** (`score_head_regions` printed "must be 0" / "must be len(entries) under
+EVERY splitter" for months and the verdict read neither) · #14 R2.2l · #13 L2/K3 · #12 R2.2h ·
+#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+`audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️ **Every criterion set needs one link that can fail for a
+reason OUTSIDE the rule under test** — five days running (E3·G1·M1·strip line count·bind-none).
+## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source lives in the SESSION scratchpad, not
+the repo — **re-extract via WebFetch before editing.** `scratchpad/originaldr-architecture.html` →
+https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+* 🔴 **Pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`; `.git/hooks/`=samples).
+  Manual: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+* `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDRnotes` 192 KB untracked — deliberately
+  NOT gitignored so the fragility stays visible; believed Sir's. **Leave both.**
+* **R11.2b**: standard parses only `witness/`-prefixed cmds ⇒ 2 repo-root R11 entries **uncovered**
+  (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+* ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never edit, R7.5d).

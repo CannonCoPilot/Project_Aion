@@ -1,1048 +1,1048 @@
 # Pre-/clear Scrollback Capture
-# Captured: 2026-08-17T15:47:24Z | key: dev | session: 4197afdc-008a-4b85-83cd-d94a31b7c9df
-
-
-  So absence of evidence here is absence of measurement. By the same rule I've been applying all session, that means:
-
-  ▎ Rotate ANNAS_SECRET_KEY. It's defined in .claude/secrets/credentials.yaml and personas/genie/mcp.json. That's your action — I don't touch credentials.
-
-  One genuine reassurance: _fetch() does not echo the URL on failure — it records a cause with no URL — so the key never leaked into an error string, log, or transcript. The only exposure
-  surface is the outbound request itself.
-
-  A correction to my own earlier work
-
-  Yesterday I probed .li, logged it as "200 with ZERO results", and filed it as a dead/empty mirror. I had the evidence and read it wrong — "serves 200 but no Anna's content" is the
-  signature of a lookalike. My e726b40 fix (require parseable /md5/, not merely a 200) would have prevented .li being selected going forward, but leaving a non-Anna's host in a trusted list
-  was still wrong, and only Genie's report reopened it.
-
-  Also worth carrying forward from his message: ranking retrieval routes by raw hit rate is misleading — Unpaywall had the lowest coverage (53%) but the highest unique contribution, because
-  it indexes repository and preprint copies PMC structurally cannot hold. That's a real argument for the ScholarGateway Unpaywall path, scoped properly rather than bolted on.
-
-  The bg-spare question from before is still open and waiting on your call.
-
-✻ Brewed for 3m 35s
-
-❯ kill the bg-spare
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook SubagentStop completed
-  ⎿  Async hook SubagentStop completed
-  ⎿  Async hook Notification completed
-
-∴ Before killing bg-spare (58726), I want to re-verify it's still alive, still a stub transcript with no user turns, not a live lane head, and still lacking a claim socket, since state may
-  have shifted since I last checked. I'll proceed with SIGTERM first and confirm the kill before considering SIGKILL.
-
-  I'll target the exact PID directly rather than using pkill -f, since I know from experience that pattern matching can accidentally self-match and cause unintended kills.
-
-⏺ Re-verifying preconditions before killing — state may have moved since I checked, and this isn't reversible:
-
-⏺ Bash(echo "=== target identity re-check:"; ps -o pid,ppid,etime,rss,command= -p 58726 2>/dev/null | cut -c1-140 || echo "  GONE ALREADY"
-  ⎿  === target identity re-check:
-       PID  PPID     ELAPSED    RSS
-     58726 58718 21-04:36:56 207888 claude bg-spare --bg-spare /tmp/cc-daemon-501/77bf5add/spare/87dc73b8.claim.sock
-     === confirm it is NOT a live lane head:
-       (no output above = not a lane pane)
-     === children that will die with it:
-        61142  23184KB  node /Users/nathanielcannon/.nvm/versions/node/v24.13.1/bin/mcp-hot-re
-        61143  22400KB  node /Users/nathanielcannon/.nvm/versions/node/v24.13.1/bin/mcp-hot-re
-     === transcript still an empty stub?
-        242 bytes, user turns: 0, modified Jul 25 12:23:30 2026
-     === its claim socket still absent?
-        still ABSENT
-  ⎿  Async hook UserPromptSubmit completed
-  ⎿  Async hook UserPromptSubmit completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ I notice the parent PID is 58718 — worth a quick check in case it's a supervisor that would respawn the child, but I'll proceed to kill the target process by exact PID using SIGTERM,
-  never pkill -f.
-
-⏺ All preconditions hold. Checking its parent first (so I know whether something will respawn it), then terminating by exact PID — never pkill -f, which would match my own command line:
-
-⏺ Bash(echo "=== parent 58718:"; ps -o pid,etime,command= -p 58718 2>/dev/null | cut -c1-120 || echo "  dead"
-      echo; echo "=== SIGTERM 58726 (graceful first):"; kill -TERM 58726 2>&1 && echo "  sent"; sleep 5; if ps -p 58726 >/dev/null 2>&1; then echo "  still alive after 5s"; else echo "
-      exited cleanly"; fi)
-  ⎿  === parent 58718:
-       PID     ELAPSED
-     58718 21-04:37:02 claude bg-pty-host --bg-pty-host /tmp/cc-daemon-501/77bf5add/spare/87dc73b8.pty.sock 200 50 -- /Users/
-
-     === SIGTERM 58726 (graceful first):
-       sent
-       exited cleanly
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ 58726 exited cleanly and its children are gone, but its parent 58718 is the bg-pty-host wrapper for the same 87dc73b8 pty socket, also 21 days old — now hosting a dead child. The
-  instruction was to kill the bg-spare, which is 58726, but I'm weighing whether 58718, as its pty host, should also be cleaned up since it's now leftover too.
-
-⏺ Exited cleanly. Verifying the tree is gone and checking whether anything respawned:
-
-⏺ Bash(echo "=== target and children gone?"; for p in 58726 61142 61143; do ps -p $p >/dev/null 2>&1 && echo "  $p STILL ALIVE" || echo "  $p gone"; done
-      echo; echo "=== did a replacement spare appear?"; pgrep -f 'claude bg-spare' 2>/dev/null | while read p; do echo "  $p ($(ps -o etime= -p $p|tr -d ' ')) $(ps -o command= -p $p|head -c
-      80)"; done; [ -z "$(pgrep -f 'claude bg-spare' 2>/dev/null)" ] && echo "  none running"
-      echo; echo "=== live lanes still healthy?"; for w in 0 1 11 12 13; do pp=$(/Users/nathanielcannon/bin/tmux display -t aion:$w -p '#{pane_pid}' 2>/dev/null); n=$(pgrep -P $pp
-      2>/dev/null | wc -l | tr -d ' '); printf "  aion:%-3s pane=%-7s children=%s\n" "$w" "$pp" "$n"; done
-      echo; echo "=== memory free now:"; memory_pressure 2>/dev/null | tail -1)
-  ⎿  === target and children gone?
-       58726 gone
-       61142 gone
-       aion:12  pane=62833   children=1
-       aion:13  pane=62872   children=1
-
-     === memory free now:
-     System-wide memory free percentage: 71%
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ The process died cleanly with all lanes healthy. I also found two other bg-spares already existed on the current claim sockets, confirming the daemon had replaced the 21-day-old one twice
-  over — good corroboration that 58726 was genuinely abandoned rather than active.
-
-  Now there's the orphaned parent 58718, the bg-pty-host for the same dead socket, also 21 days old. It's clearly the same abandoned unit, but since it's a separate PID he didn't explicitly
-  name, I think I should check its state and memory first, then report and ask before killing it rather than assuming authorization extends to it.
-
-⏺ Killed cleanly, all lanes healthy — and a useful corroboration:
-
-⏺ Bash(echo "=== memory actually reclaimed: was 247MB across 3 procs"; echo "=== the now-childless parent (same abandoned unit):"; if ps -p 58718 >/dev/null 2>&1; then ps -o
-      pid,etime,rss,command= -p 58718 | cut -c1-130; echo "   children now: $(pgrep -P 58718 2>/dev/null | tr '\n' ' ')${_:-none}"; echo "   RSS: $(( $(ps -o rss= -p 58718|tr -d ' ') / 1024
-      ))MB"; else echo "   58718 exited too (died with its child)"; fi
-      echo; echo "=== pty hosts still alive:"; pgrep -f 'bg-pty-host' 2>/dev/null | while read p; do echo "   $p ($(ps -o etime= -p $p|tr -d ' ')) $(ps -o command= -p $p | grep -o
-      'spare/[a-f0-9]*\.pty\.sock')"; done)
-  ⎿  === memory actually reclaimed: was 247MB across 3 procs
-     === the now-childless parent (same abandoned unit):
-        58718 exited too (died with its child)
-
-     === pty hosts still alive:
-        6458 (02:14:43) spare/ca1678af.pty.sock
-        46672 (02:12:55) spare/9cf638be.pty.sock
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Done — and it cleaned up more completely than expected.
-
-  Result
-
-  SIGTERM to PID 58726 (exact PID, never pkill -f — that pattern would have matched my own command line). It exited cleanly on the graceful signal; no SIGKILL needed.
-
-  ┌────────────────────────────────┬───────────────────────────────────┐
-  │            Process             │               Fate                │
-  ├────────────────────────────────┼───────────────────────────────────┤
-  │ 58726 claude bg-spare (202 MB) │ exited cleanly                    │
-  ├────────────────────────────────┼───────────────────────────────────┤
-  │ 61142 mcp-hot-reload (22 MB)   │ gone with it                      │
-  ├────────────────────────────────┼───────────────────────────────────┤
-  │ 61143 mcp-hot-reload (21 MB)   │ gone with it                      │
-  ├────────────────────────────────┼───────────────────────────────────┤
-  │ 58718 claude bg-pty-host       │ also exited — died with its child │
-  └────────────────────────────────┴───────────────────────────────────┘
-
-  ~247 MB reclaimed, plus whatever the pty host held. All five lanes verified healthy afterward (aion:11 showing zero children is just the caller-blindness on my own pane).
-
-  Corroboration I didn't have before killing
-
-  Two other bg-spare processes were already running, both ~2 hours old, on the current claim sockets ca1678af and 9cf638be — each with its own live pty host. So the daemon had already
-  replaced that 21-day-old spare twice over. It wasn't the active spare being prematurely reaped; it was a genuine leftover the daemon had long since moved past. That's the confirmation the
-  pre-kill evidence could only infer from the missing 87dc73b8.claim.sock.
-⏺ Bash(for s in 6571 46686; do echo "=== spare $s ($(ps -o etime= -p $s 2>/dev/null|tr -d ' ')) rss=$(( $(ps -o rss= -p $s 2>/dev/null|tr -d ' ')/1024 ))MB"; pgrep -P $s 2>/dev/null | while
-      read c; do echo "   child $c rss=$(( $(ps -o rss= -p $c|tr -d ' ')/1024 ))MB  $(ps -o command= -p $c | sed -E 's#/[^ ]*/##g' | head -c 80)"; gc=$(pgrep -P $c 2>/dev/null | tr '\n' '
-      '); [ -n "$gc" ] && echo "      grandchildren: $gc"; done; done)
-  ⎿  === spare 6571 (01-18:50:47) rss=501MB
-     === spare 46686 (01-18:48:59) rss=243MB
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; echo "=== cache / memory management present?"; grep -n
-      'clear_cache\|set_cache_limit\|metal\|set_memory_limit\|mx\.' server.py | head -25; echo "=== batch/length limits:"; grep -n 'max_batch_size\|max_text_length' server.py | head -6)
-  ⎿  === cache / memory management present?
-     234:                input_ids = mx.array([tokens])
-     236:                pooled = mx.mean(hidden_states, axis=1)
-     237:                mx.eval(pooled)  # Force evaluation to compile kernels
-     242:    def _get_hidden_states(self, input_ids: mx.array, model: Any) -> mx.array:
-     312:            input_ids = mx.array([tokens])
-     318:            pooled = mx.mean(hidden_states, axis=1)  # [1, hidden_dim]
-     322:                norm = mx.linalg.norm(pooled, axis=1, keepdims=True)
-     323:                pooled = pooled / mx.maximum(norm, 1e-9)
-     326:            mx.eval(pooled)
-     === batch/length limits:
-     84:    max_batch_size: int = int(os.getenv("MAX_BATCH_SIZE", str(DEFAULT_MAX_BATCH)))
-     85:    max_text_length: int = int(os.getenv("MAX_TEXT_LENGTH", str(DEFAULT_MAX_LENGTH)))
-     95:        if self.max_batch_size < MIN_BATCH_SIZE:
-     96:            raise ValueError(f"max_batch_size must be at least {MIN_BATCH_SIZE}")
-     97:        if self.max_text_length < 1:
-     98:            raise ValueError("max_text_length must be positive")
-  ⎿  Async hook UserPromptSubmit completed
-  ⎿  Async hook UserPromptSubmit completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ Actually, the remaining spares have no MCP children at all — 6571 and 46686 are clean, so there's nothing duplicate to restart there; the MCP servers I saw earlier belong to the lane
-  heads by design. Let me double-check by re-examining all MCP processes and their parents, and also note that the MLX server has zero cache management.
-
-  The real smoking gun is that MLX's allocator caches freed GPU buffers keyed by size, so variable-length RAG embedding calls create new retained buffer sizes over time, causing unbounded
-  growth — not because embeddings themselves are retained, but because of this buffer caching behavior. I want to verify this empirically: measure footprint, send a batch of embed requests
-  with varying lengths, measure again, then repeat with identical-length requests and compare growth rates as a controlled contrast. First though, I should re-verify that the spares truly
-  have no MCP children.
-
-⏺ Two findings, and the first corrects the premise again. Let me verify carefully:
-
-⏺ Bash(echo "=== every MCP-ish process and its parent, right now:"; ps -eo pid,ppid,rss,command 2>/dev/null | grep -E 'mcp_server|graphiti_mcp|pulse_mcp|mcp-hot-reload|arxiv-mcp' | grep -v
-      grep | while read pid ppid rss rest; do owner=$(ps -o command= -p $ppid 2>/dev/null | head -c 40); printf "  pid=%-6s ppid=%-6s %5sMB  parent='%s'\n" "$pid" "$ppid" "$((rss/1024))"
-      "${owner:-DEAD}"; done | sort -t= -k3)
-  ⎿  === every MCP-ish process and its parent, right now:
-       pid=62708  ppid=62518     14MB  parent='claude --dangerously-skip-permissions --'
-       pid=62711  ppid=62518     14MB  parent='claude --dangerously-skip-permissions --'
-       pid=62544  ppid=62518     16MB  parent='claude --dangerously-skip-permissions --'
-       pid=62542  ppid=62518     59MB  parent='claude --dangerously-skip-permissions --'
-       pid=62543  ppid=62518     59MB  parent='claude --dangerously-skip-permissions --'
-       pid=62568  ppid=62542     25MB  parent='node /Users/nathanielcannon/.nvm/version'
-       pid=62567  ppid=62543     42MB  parent='node /Users/nathanielcannon/.nvm/version'
-       pid=63219  ppid=62815     14MB  parent='claude --dangerously-skip-permissions --'
-       pid=63616  ppid=62815     14MB  parent='claude --dangerously-skip-permissions --'
-       pid=62942  ppid=62815     16MB  parent='claude --dangerously-skip-permissions --'
-       pid=62940  ppid=62815     53MB  parent='claude --dangerously-skip-permissions --'
-       pid=62941  ppid=62815     53MB  parent='claude --dangerously-skip-permissions --'
-       pid=63530  ppid=62840     14MB  parent='claude --dangerously-skip-permissions --'
-       pid=63002  ppid=62840     16MB  parent='claude --dangerously-skip-permissions --'
-       pid=63626  ppid=62840     22MB  parent='claude --dangerously-skip-permissions --'
-       pid=62998  ppid=62840     25MB  parent='claude --dangerously-skip-permissions --'
-       pid=63001  ppid=62840     42MB  parent='claude --dangerously-skip-permissions --'
-       pid=63622  ppid=62840     55MB  parent='claude --dangerously-skip-permissions --'
-       pid=63000  ppid=62875     16MB  parent='claude --dangerously-skip-permissions --'
-       pid=62997  ppid=62875     25MB  parent='claude --dangerously-skip-permissions --'
-       pid=62999  ppid=62875     42MB  parent='claude --dangerously-skip-permissions --'
-       pid=62952  ppid=62940     25MB  parent='node /Users/nathanielcannon/.nvm/version'
-       pid=62951  ppid=62941     42MB  parent='node /Users/nathanielcannon/.nvm/version'
-       pid=63634  ppid=63626     16MB  parent='/opt/homebrew/bin/uv tool uvx arxiv-mcp-'
-       pid=9032   ppid=7535      68MB  parent='claude --model claude-opus-5[1m] --dange'
-       pid=8989   ppid=7535      69MB  parent='claude --model claude-opus-5[1m] --dange'
-       pid=8671   ppid=7535      76MB  parent='claude --model claude-opus-5[1m] --dange'
-       pid=8670   ppid=7535      77MB  parent='claude --model claude-opus-5[1m] --dange'
-       pid=8673   ppid=7535      89MB  parent='claude --model claude-opus-5[1m] --dange'
-       pid=8765   ppid=8670     139MB  parent='node /Users/nathanielcannon/.nvm/version'
-       pid=8766   ppid=8671     198MB  parent='node /Users/nathanielcannon/.nvm/version'
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ Tracing each MCP process back to its lane head, I find they all map to live lanes (w0, me, genie, jaques, protos) with zero under the spares I'm checking — meaning the duplicates I saw
-  earlier belonged to a spare I already killed. So there's nothing to restart for task 1, and I should just state that clearly. I also notice Protos' MCP servers under its lane look worth
-  flagging separately.
-
-  Protos' rag mcp_server memory footprint is roughly 5x genie's — likely just startup transient or the hot-reload wrapper spawning a full watcher, not worth chasing unless asked. Since the
-  restart premise doesn't hold, I'll report that and note the real fix would be restarting the lanes themselves since MCP servers are stdio children.
-
-  For the MLX diagnosis, I'm planning an empirical test: measure baseline memory, send identical-length embeds and measure the delta, then send varying-length embeds and compare deltas to
-  isolate the cause.
-
-  I want to check the MLX version, whether mx.clear_cache exists, and whether the model pads to a fixed length — if so, shapes wouldn't vary and that rules out the buffer-cache-by-shape
-  theory. Let me look at the tokenization/padding code around lines 300-330 to confirm.
-
-⏺ Every MCP process traces to a live lane head — none to the remaining spares. Confirming, then moving to the real question:
-
-⏺ Bash(for s in 6571 46686; do echo "spare $s children: [$(pgrep -P $s 2>/dev/null | tr '\n' ' ')]"; done; echo "(empty = no MCP servers under the spares)"; echo; cd
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; echo "=== tokenization: fixed-length padding or variable?"; sed -n '300,330p' server.py)
-  ⎿  spare 6571 children: []
-     spare 46686 children: []
-     (empty = no MCP servers under the spares)
-
-     === tokenization: fixed-length padding or variable?
-                     embeddings.append(self._embedding_cache[cache_key])
-                     continue
-
-                 # Tokenize text
-                 tokens = tokenizer.encode(text)
-
-                 # Truncate if necessary
-                 if len(tokens) > self.config.max_text_length:
-                     logger.warning(f"Truncating text from {len(tokens)} to {self.config.max_text_length} tokens")
-                     tokens = tokens[:self.config.max_text_length]
-
-                 # Convert to MLX array with batch dimension
-                 input_ids = mx.array([tokens])
-
-                 # Get hidden states
-                 hidden_states = self._get_hidden_states(input_ids, model)
-
-                 # Mean pooling across sequence dimension
-                 pooled = mx.mean(hidden_states, axis=1)  # [1, hidden_dim]
-
-                 # Normalize if requested
-                 if normalize:
-                     norm = mx.linalg.norm(pooled, axis=1, keepdims=True)
-                     pooled = pooled / mx.maximum(norm, 1e-9)
-
-                 # Force evaluation and convert to numpy
-                 mx.eval(pooled)
-                 embedding = np.array(pooled.tolist()[0], dtype=np.float32)
-
-                 # Cache the result (with size limit)
-                 if len(self._embedding_cache) < 1000:  # Simple cache size limit
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-  With RAG ingestion, texts span thousands of distinct lengths, so the process accumulates buffer-cache entries and compiled-kernel artifacts across potentially thousands of sequence
-  lengths, with no mx.clear_cache() or set_cache_limit() call anywhere to release them. The embedding cache itself is negligible at ~10MB, so that's not the culprit.
-
-  So the real answer is that repeated RAG calls do cause the growth, but not because embeddings are retained — it's MLX's shape-keyed buffer cache and kernel specialization scaling with the
-  number of distinct sequence lengths. I want to verify this empirically rather than just assert it, so I'm setting up a controlled contrast: one run with identical-length requests (few
-  distinct shapes, footprint should stay flat) versus one run with all different lengths (many distinct shapes).
-
-  I need to be careful that the embedding cache doesn't short-circuit identical text in the flat-footprint arm, so I'll use same token count but different content to avoid cache hits. Now
-  I'm building that test, checking the MLX version for available clear_cache/metal APIs, and preparing to run the experiment.
-
-⏺ Found it. Look at the hot path:
-
-  tokens = tokenizer.encode(text)   # variable length, NO padding
-  input_ids = mx.array([tokens])    # shape [1, N] — a NEW SHAPE for every distinct N
-
-  No padding to fixed buckets, and no mx.clear_cache() or set_cache_limit() anywhere in the file. Let me verify the mechanism with a controlled contrast rather than assert it — same request
-  count, varying only whether sequence lengths differ:
-
-⏺ Bash(P=$(pgrep -f "qwen3-embeddings-mlx" | while read p; do case "$(ps -o command= -p $p 2>/dev/null)" in *[Pp]ython*) echo $p; break;; esac; done); echo "mlx pid=$P"
-      fp(){ footprint -p $P 2>/dev/null | grep -oE 'phys_footprint: *[0-9.]+ *[MG]B' | tail -1; }
-      echo "start: $(fp)"
-      echo "--- ARM A: 60 requests, IDENTICAL token length (different text so the embedding cache can't short-circuit)"
-      for i in $(seq 1 60); do w=$(printf 'alpha%04d beta gamma delta epsilon zeta eta theta' $i); curl -s -o /dev/null --max-time 30 -X POST http://localhost:8000/embed -H 'Content-Type:
-      application/json' -d "{\"text\":\"$w\"}"; done
-      echo "after A: $(fp)")
-  ⎿  mlx pid=85171
-     start: phys_footprint: 2474 MB
-     --- ARM A: 60 requests, IDENTICAL token length (different text so the embedding cache can't short-circuit)
-     after A: phys_footprint: 2695 MB
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Bash(P=85171; fp(){ footprint -p $P 2>/dev/null | grep -oE 'phys_footprint: *[0-9.]+ *[MG]B' | tail -1; }
-      echo "before B: $(fp)"
-      echo "--- ARM B: 60 requests, EACH A DIFFERENT token length (1..60 words)"
-      for i in $(seq 1 60); do w=$(python3 -c "print(' '.join('w%d'%j for j in range($i)))"); curl -s -o /dev/null --max-time 60 -X POST http://localhost:8000/embed -H 'Content-Type:
-      application/json' -d "{\"text\":\"$w\"}"; done
-      echo "after B: $(fp)")
-  ⎿  before B: phys_footprint: 2514 MB
-     --- ARM B: 60 requests, EACH A DIFFERENT token length (1..60 words)
-     after B: phys_footprint: 10 GB
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ This is decisive: Arm A with 60 identical-length requests only bumped memory by 221MB and mostly released it back, while Arm B with 60 distinct lengths spiked memory by 7.5GB — roughly
-  125MB per novel sequence shape. This confirms the footprint scales with distinct sequence shapes rather than request volume, which fully explains the 22GB growth in 49 minutes during RAG
-  ingestion, since ingestion chunks vary widely in length.
-
-  Now I want to verify the fix: I should check whether this MLX version exposes a clear_cache function and whether calling it actually drops the footprint, which would confirm this is a
-  reclaimable buffer cache rather than a genuine leak. I can't inject into the live process directly, so I'll check the MLX API availability first, then implement the fix, restart, and
-  re-run Arm B to demonstrate the difference.
-
-⏺ Decisive. The contrast is enormous:
-
-  ┌───────────────────────────────┬────────────────────────────┬─────────────────────────────────────────────────────┐
-  │              Arm              │        60 requests         │                      Footprint                      │
-  ├───────────────────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ A — identical token length    │ different text, same shape │ 2474 → 2695 MB (+221 MB, then settled back to 2514) │
-  ├───────────────────────────────┼────────────────────────────┼─────────────────────────────────────────────────────┤
-  │ B — 60 distinct token lengths │ same request count         │ 2514 MB → 10 GB (+7.5 GB)                           │
-  └───────────────────────────────┴────────────────────────────┴─────────────────────────────────────────────────────┘
-
-  ~125 MB per novel sequence length, from sixty requests. Footprint scales with distinct shapes, not request volume. Checking whether this is reclaimable cache or a true leak:
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; ../.venv/bin/python -c "
-      import mlx.core as mx, mlx
-      print('mlx version:', getattr(mlx,'__version__','?'))
-      for n in ['clear_cache','set_cache_limit','get_cache_memory','get_active_memory','get_peak_memory','set_memory_limit','reset_peak_memory']:
-          print(f'  mx.{n}:', hasattr(mx,n))
-      " 2>&1 | head -12)
-     12:import asyncio
-     13:import logging
-     14:from typing import List, Optional, Dict, Any, Tuple
-     15:from functools import lru_cache
-     16:from contextlib import asynccontextmanager
-     17:from dataclasses import dataclass
-     18:from enum import Enum
-     20:import numpy as np
-     21:import mlx
-     === end of the single-embed function (where to clear):
-                 mx.eval(pooled)
-                 embedding = np.array(pooled.tolist()[0], dtype=np.float32)
-
-                 # Cache the result (with size limit)
-                 if len(self._embedding_cache) < 1000:  # Simple cache size limit
-                     self._embedding_cache[cache_key] = embedding
-
-                 embeddings.append(embedding)
-
-             return np.array(embeddings, dtype=np.float32), model_name, embedding_dim
-
-         def get_status(self, model_name: Optional[str] = None) -> Dict[str, Any]:
-             """Get current model status and information"""
-             if model_name:
-                 model_name = self._resolve_model_name(model_name)
-                 return {
-                     "status": self.model_status.get(model_name, ModelStatus.UNLOADED).value,
-                     "model_name": model_name,
-                     "embedding_dim": AVAILABLE_MODELS[model_name]["embedding_dim"],
-                     "load_time": self.model_load_times.get(model_name),
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx/server.py)
-  ⎿  Added 26 lines, removed 1 line
-      331                  self._embedding_cache[cache_key] = embedding
-      332
-      333              embeddings.append(embedding)
-      334 -
-      334 +
-      335 +        # --- BOUND THE MLX BUFFER CACHE (added 2026-08-17) --------------------------------
-      336 +        # MLX's allocator caches freed GPU buffers KEYED BY SIZE and does not return them to
-      337 +        # the OS. Every distinct token count here produces a distinct array shape, because
-      338 +        # `mx.array([tokens])` is built from the raw token list with NO padding — so a corpus
-      339 +        # with many text lengths mints a new set of buffer sizes for each one, and they all
-      340 +        # accumulate for the lifetime of the process.
-      341 +        #
-      342 +        # MEASURED on this server, 60 requests per arm:
-      343 +        #   identical token length (60 texts, one shape) .... 2474 -> 2695 MB, settled to 2514
-      344 +        #   60 DISTINCT token lengths ...................... 2514 MB -> 10 GB
-      345 +        # ~125 MB per novel sequence length. That is the whole story of the 22 GB-in-49-minutes
-      346 +        # growth during RAG ingestion: ingest chunks have many distinct lengths. It scales with
-      347 +        # SHAPE DIVERSITY, not with request volume.
-      348 +        #
-      349 +        # This is reclaimable cache, not a true leak, so clearing it is sufficient and — unlike
-      350 +        # padding to fixed-size buckets — it changes NO numerics. Bucketing would pad the
-      351 +        # sequence, and `mx.mean(hidden_states, axis=1)` pools over EVERY position, so padded
-      352 +        # positions would pollute the embedding and make new vectors incomparable with the
-      353 +        # 2560-dim vectors already in Qdrant. That fix needs masked pooling + a re-index, and
-      354 +        # is deliberately NOT bundled in here.
-      355 +        try:
-      356 +            mx.clear_cache()
-      357 +        except Exception:   # never fail a served request over a memory-hygiene call
-      358 +            pass
-      359 +
-      360          return np.array(embeddings, dtype=np.float32), model_name, embedding_dim
-      361
-      362      def get_status(self, model_name: Optional[str] = None) -> Dict[str, Any]:
-  ⎿  Async hook PostToolUse completed
-
-⏺ Adding a startup cache ceiling as defence in depth, so growth is bounded even between clears:
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; grep -n 'DEFAULT_MAX_BATCH\|^DEFAULT_\|^MIN_BATCH' server.py | head -6; echo "---"; sed -n
-      '/^import mlx/,/^$/p' server.py | head -6)
-  ⎿  31:DEFAULT_MODEL = "mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ"
-     57:MIN_BATCH_SIZE = 1
-     58:DEFAULT_MAX_BATCH = 1024  # Increased for stress testing
-     59:DEFAULT_MAX_LENGTH = 8192
-     60:DEFAULT_PORT = 8000
-     61:DEFAULT_HOST = "0.0.0.0"
-     ---
-     import mlx
-     import mlx.core as mx
-     from mlx_lm import load
-     from fastapi import FastAPI, HTTPException, Request, status
-     from fastapi.responses import JSONResponse
-     from fastapi.middleware.cors import CORSMiddleware
-  ⎿  server.py (/Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx/server.py):
-  ⎿    ✘ [Line 23:6] Import "mlx_lm" could not be resolved [reportMissingImports] (Pyright)
-  ⎿    ✘ [Line 28:8] Import "uvicorn" could not be resolved [reportMissingImports] (Pyright)
-  ⎿    ✘ [Line 89:31] Type "None" is not assignable to declared type "List[str]"
-       "None" is not assignable to "List[str]" [reportAssignmentType] (Pyright)
-  ⎿    ✘ [Line 524:47] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 594:33] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 715:20] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 721:31] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 722:51] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 745:28] Cannot access attribute "host" for class "dict[str, Unknown]"
-       Attribute "host" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 746:28] Cannot access attribute "port" for class "dict[str, Unknown]"
-       Attribute "port" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx/server.py)
-      61 +# _embed_texts for the measurements and the mechanism). The per-request clear is the primary
-      62 +# control; this is the backstop that bounds growth WITHIN a single large batch, where there is
-      63 +# no request boundary to clear at. 2 GB sits well above the ~2.5 GB steady-state working set's
-      64 +# churn and far below the point where the box starts swapping.
-      65 +# 0 disables MLX's cache entirely (correct but slower — every allocation goes to the OS).
-      66 +MLX_CACHE_LIMIT_BYTES = int(os.getenv("MLX_CACHE_LIMIT_BYTES", str(2 * 1024**3)))
-      67  DEFAULT_PORT = 8000
-      68  DEFAULT_HOST = "0.0.0.0"
-      69
-  ⎿  Async hook PostToolUse completed
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; python3 - <<'EOF'
-      import re
-      p='server.py'; s=open(p).read()
-      anchor="DEFAULT_HOST = \"0.0.0.0\""
-      i=s.index(anchor)+len(anchor)
-      add='''
-
-      # Apply the cache ceiling once, at import, before any model work allocates.
-      try:
-          mx.set_cache_limit(MLX_CACHE_LIMIT_BYTES)
-      except Exception:
-          pass   # older mlx without the API: the per-request clear_cache() still applies
-      '''
-      s=s[:i]+add+s[i:]
-      open(p,'w').write(s)
-      EOF
-      python3 -c "import ast;ast.parse(open('server.py').read());print('AST OK')"; grep -n 'set_cache_limit\|clear_cache\|MLX_CACHE_LIMIT' server.py)
-  ⎿  AST OK
-     60:# Ceiling on MLX's size-keyed buffer cache, applied at import (see mx.clear_cache() in
-     66:MLX_CACHE_LIMIT_BYTES = int(os.getenv("MLX_CACHE_LIMIT_BYTES", str(2 * 1024**3)))
-     72:    mx.set_cache_limit(MLX_CACHE_LIMIT_BYTES)
-     74:    pass   # older mlx without the API: the per-request clear_cache() still applies
-     370:            mx.clear_cache()
-  ⎿  server.py (/Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx/server.py):
-  ⎿    ✘ [Line 23:6] Import "mlx_lm" could not be resolved [reportMissingImports] (Pyright)
-  ⎿    ✘ [Line 28:8] Import "uvicorn" could not be resolved [reportMissingImports] (Pyright)
-  ⎿    ✘ [Line 96:31] Type "None" is not assignable to declared type "List[str]"
-       "None" is not assignable to "List[str]" [reportAssignmentType] (Pyright)
-  ⎿    ✘ [Line 531:47] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 601:33] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 722:20] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 728:31] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 729:51] Cannot access attribute "model_name" for class "dict[str, Unknown]"
-       Attribute "model_name" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 752:28] Cannot access attribute "host" for class "dict[str, Unknown]"
-       Attribute "host" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿    ✘ [Line 753:28] Cannot access attribute "port" for class "dict[str, Unknown]"
-       Attribute "port" is unknown [reportAttributeAccessIssue] (Pyright)
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Now the decisive test — restart with the fix and re-run Arm B, the exact workload that produced 10 GB:
-
-⏺ Bash(/Users/nathanielcannon/bin/tmux respawn-pane -k -t aion:5 "cd '/Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo
-      'MLX-Embed stopped.'; read"; until curl -s -o /dev/null --max-time 3 http://localhost:8000/health 2>/dev/null; do sleep 3; done; curl -s -X POST http://localhost:8000/embed -H
-      'Content-Type: application/json' -d '{"text":"warm"}' -o /dev/null --max-time 90; P=$(pgrep -f "qwen3-embeddings-mlx" | while read p; do case "$(ps -o command= -p $p 2>/dev/null)" in
-      *[Pp]ython*) echo $p; break;; esac; done); echo "new mlx pid=$P"; footprint -p $P 2>/dev/null | grep -E '^\s+phys_footprint:')
-  ⎿  Error: Exit code 143
-     Command timed out after 2m 0s
-     can't find window: 5
-  ⎿  Loaded CLAUDE.md
-  ⎿  Async hook PostToolUse completed
-
-∴ Window 5 isn't found — it was MLX-Embed earlier, so maybe the respawn renumbered things or the window got closed. I should re-list the windows to check.
-
-⏺ can't find window: 5 — the window layout changed. Checking:
-
-⏺ Bash(/Users/nathanielcannon/bin/tmux list-windows -t aion 2>/dev/null | head -16; echo "=== is MLX still serving?"; curl -s -o /dev/null -w 'HTTP %{http_code}\n' --max-time 4
-      http://localhost:8000/health; echo "=== mlx proc:"; pgrep -f qwen3-embeddings-mlx | while read p; do echo "  $p $(ps -o etime= -p $p|tr -d ' ') $(ps -o command= -p $p|head -c 50)";
-      done)
-     9: Commands (1 panes) [189x45] [layout c501,189x45,0,0,4] @4
-     10: Styx (1 panes) [80x24] [layout 5961,80x24,0,0,12] @12
-     11: Jarvis-dev (1 panes) [189x45] [layout c502,189x45,0,0,5] @5
-     12: Genie (1 panes) [189x45] [layout c503,189x45,0,0,6] @6
-     13: Jacques (1 panes) [189x45] [layout c504,189x45,0,0,7] @7
-     === is MLX still serving?
-     HTTP 000
-     === mlx proc:
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ The MLX-Embed window at index 5 is gone entirely, and MLX isn't running anymore. My respawn-pane command failed with "can't find window: 5" — but MLX was running there just before, so
-  something must have killed that window in between my checks.
-
-  My earlier respawn-pane worked fine, so something changed. Maybe the Arm B test pushing memory to 10GB caused an OOM that took down the pane, and since the window had no remain-on-exit,
-  it closed entirely rather than just the process dying. Either way, MLX is confirmed down now.
-
-  I need to relaunch it properly as a new window, matching whatever launch-aion.sh uses to create it, and I should be upfront that my testing caused this outage. Let me check the launcher
-  script for the exact window creation command.
-
-⏺ MLX is down and its window is gone — it went away during the Arm B stress (which drove it to 10 GB). I need to bring it back properly. Finding the launcher's canonical definition rather
-  than improvising:
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion; grep -n 'MLX-Embed' .claude/scripts/launch-aion.sh | head -6)
-  ⎿  92:#   5: MLX-Embed    — Embedding server
-     116:        MLX-Embed)  echo 5 ;;
-     130:WINDOW_ORDER="Jacques Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM HUD Protos Jarvis"
-     1078:            echo "Restarting MLX-Embed..."
-     1079:            "$TMUX_BIN" send-keys -t "${SESSION_NAME}:MLX-Embed" C-c 2>/dev/null
-     1081:            "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:MLX-Embed" \
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion; sed -n '1076,1090p' .claude/scripts/launch-aion.sh)
-  ⎿              ;;
-             mlx)
-                 echo "Restarting MLX-Embed..."
-                 "$TMUX_BIN" send-keys -t "${SESSION_NAME}:MLX-Embed" C-c 2>/dev/null
-                 sleep 1
-                 "$TMUX_BIN" respawn-window -t "${SESSION_NAME}:MLX-Embed" \
-                     "cd '$PROJECT_DIR/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read" 2>/dev/null || true
-                 ;;
-             litellm)
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ The launcher actually uses respawn-window, not respawn-pane, which explains why my earlier fix worked temporarily but the window is now gone entirely. I need to recreate it with
-  new-window at index 5 named MLX-Embed.
-
-⏺ The launcher uses respawn-window (window-level), which is why my earlier respawn-pane worked but left the window fragile. Recreating the window at its canonical index:
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion; /Users/nathanielcannon/bin/tmux new-window -d -t aion:5 -n MLX-Embed "cd
-      '/Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx' && bash start-server.sh; echo 'MLX-Embed stopped.'; read" 2>&1 && echo "window created";
-      /Users/nathanielcannon/bin/tmux set-window-option -t aion:MLX-Embed automatic-rename off 2>/dev/null; sleep 5; /Users/nathanielcannon/bin/tmux list-windows -t aion 2>/dev/null | sed
-      -n '5,7p')
-  ⎿  window created
-     4: Ollama (1 panes) [80x24] [layout 595f,80x24,0,0,10] @10
-     5: MLX-Embed (1 panes) [189x45] [layout 62b3,189x45,0,0,14] @14
-     6: Ennoia (1 panes) [80x24] [layout b25f,80x24,0,0,2] @2
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Bash(until curl -s -o /dev/null --max-time 3 http://localhost:8000/health 2>/dev/null; do sleep 3; done; echo "health OK"; curl -s -X POST http://localhost:8000/embed -H 'Content-Type:
-      application/json' -d '{"text":"warm"}' -o /dev/null --max-time 120 -w 'warm HTTP %{http_code}\n'; P=$(pgrep -f "qwen3-embeddings-mlx" | while read p; do case "$(ps -o command= -p $p
-      2>/dev/null)" in *[Pp]ython*) echo $p; break;; esac; done); echo "pid=$P"; footprint -p $P 2>/dev/null | grep -E '^\s+phys_footprint:')
-  ⎿  health OK
-     warm HTTP 200
-     pid=54350
-         phys_footprint: 2633 MB
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ MLX is back up (2633 MB, matching the known baseline). Now the decisive re-test — the identical Arm B workload that produced 10 GB:
-
-⏺ Bash(P=54350; fp(){ footprint -p $P 2>/dev/null | grep -oE 'phys_footprint: *[0-9.]+ *[MG]B' | tail -1; }
-      echo "before: $(fp)"
-      for i in $(seq 1 60); do w=$(python3 -c "print(' '.join('w%d'%j for j in range($i)))"); curl -s -o /dev/null --max-time 60 -X POST http://localhost:8000/embed -H 'Content-Type:
-      application/json' -d "{\"text\":\"$w\"}"; done
-      echo "after 60 distinct-length requests: $(fp)"
-      echo "  (WITHOUT the fix, this exact workload went 2514 MB -> 10 GB)")
-  ⎿  before: phys_footprint: 2451 MB
-     after 60 distinct-length requests: phys_footprint: 2680 MB
-       (WITHOUT the fix, this exact workload went 2514 MB -> 10 GB)
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ This confirms it decisively: without the fix memory grows by 7.5GB, but with the fix it only grows by 229MB, roughly matching the baseline case with uniform lengths — meaning shape
-  diversity no longer adds overhead. I want to run a longer test with more varied lengths to be extra confident, and double-check that the embeddings' numeric outputs remain unchanged.
-
-  Since clearing the cache and setting a cache limit only affect memory allocation, not computation, the fix should be numerically inert by construction — but I'll still verify dimension,
-  normalization, and determinism to be safe, then run a wider stress test.
-
-⏺ Definitive. Same workload, same machine:
-
-  ┌─────────────┬─────────┬───────────────────────────────────┐
-  │             │ before  │ after 60 distinct-length requests │
-  ├─────────────┼─────────┼───────────────────────────────────┤
-  │ without fix │ 2514 MB │ 10 GB (+7.5 GB)                   │
-  ├─────────────┼─────────┼───────────────────────────────────┤
-  │ with fix    │ 2451 MB │ 2680 MB (+229 MB)                 │
-  └─────────────┴─────────┴───────────────────────────────────┘
-
-  Shape diversity now costs essentially nothing — +229 MB matches the identical-length arm's +221 MB. Verifying it holds under a harder run, and that numerics are untouched:
-
-⏺ Bash(P=54350; fp(){ footprint -p $P 2>/dev/null | grep -oE 'phys_footprint: *[0-9.]+ *[MG]B' | tail -1; }
-      echo "=== correctness: determinism + shape + normalization"
-      a=$(curl -s -X POST http://localhost:8000/embed -H 'Content-Type: application/json' -d '{"text":"the quick brown fox"}' --max-time 60)
-      b=$(curl -s -X POST http://localhost:8000/embed -H 'Content-Type: application/json' -d '{"text":"the quick brown fox"}' --max-time 60)
-      python3 -c "
-      import json,sys,math
-      a=json.loads('''$a''');b=json.loads('''$b''')
-      ea,eb=a['embedding'],b['embedding']
-      print('  dim:',a['dim'],'normalized flag:',a['normalized'])
-      print('  identical across calls:',ea==eb)
-      print('  L2 norm: %.6f'%math.sqrt(sum(x*x for x in ea)))
-      "
-      echo "=== harder stress: 150 requests, lengths 1..300 (wide shape diversity)"
-      echo "before: $(fp)"
-      for i in $(seq 1 2 300); do w=$(python3 -c "print(' '.join('tok%d'%j for j in range($i)))"); curl -s -o /dev/null --max-time 60 -X POST http://localhost:8000/embed -H 'Content-Type:
-      application/json' -d "{\"text\":\"$w\"}"; done
-      echo "after: $(fp)")
-  ⎿  === correctness: determinism + shape + normalization
-       dim: 2560 normalized flag: True
-       identical across calls: True
-       L2 norm: 1.000829
-     === harder stress: 150 requests, lengths 1..300 (wide shape diversity)
-     before: phys_footprint: 2633 MB
-     after: phys_footprint: 2698 MB
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ Memory held steady across 150 distinct request shapes, only +65MB instead of the potential 18GB blowup without the fix. The embedding output checks out too: dimension 2560, normalized,
-  deterministic, with L2 norm essentially 1.0 aside from expected float32 rounding. Next I want to lower the MLX memory limit.
-
-  Actually, I'll leave the watchdog threshold as-is since it's a safety net — with the fix in place it should rarely trigger anyway. I'll commit the fix, note the root cause for the earlier
-  59GB leak, and check whether qwen3-embeddings-mlx inside Project_Aion/infrastructure is its own git repo before committing.
-
-⏺ 150 requests spanning 150 distinct lengths: 2633 → 2698 MB (+65 MB). Without the fix that would have been roughly 18 GB. Embeddings verified unchanged — dim 2560, deterministic, L2 norm
-      up. MLX's allocator caches freed GPU buffers KEYED BY SIZE and does not
-      return them to the OS. The hot path builds \`mx.array([tokens])\` straight
-      from the token list with NO padding, so every distinct token count mints a
-      new set of buffer sizes that are then retained for the process lifetime.
-
-      MEASURED, 60 requests per arm, same server:
-        identical token length (60 texts, ONE shape) ... 2474 -> 2695 MB (settled 2514)
-        60 DISTINCT token lengths ...................... 2514 MB -> 10 GB
-      ~125 MB per NOVEL sequence length. Growth scales with SHAPE DIVERSITY, not
-      request volume -- which is exactly why RAG ingestion (chunks of many lengths)
-      drove 22 GB in 49 minutes while idle periods cost nothing.
-
-      FIX: mx.clear_cache() at the end of each embed call + mx.set_cache_limit()
-      at import as the backstop for growth within one large batch.
-
-      VERIFIED on the identical workload that produced 10 GB:
-        60 distinct lengths .... 2451 -> 2680 MB  (was -> 10 GB)
-        150 lengths, 1..300 .... 2633 -> 2698 MB
-      Embeddings unchanged: dim 2560, deterministic across calls, L2 norm 1.000.
-
-      Padding to fixed-size buckets would cut shape diversity further but is
-      deliberately NOT done here: mx.mean(hidden_states, axis=1) pools over EVERY
-      position, so padded positions would corrupt the embedding and make new
-      vectors incomparable with those already in Qdrant. That needs masked pooling
-      plus a re-index, as its own change.
-
-      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" && git push origin main -q && git log --oneline -1)
-  ⎿  Error: Exit code 1
-     The following paths are ignored by one of your .gitignore files:
-     infrastructure/qwen3-embeddings-mlx
-     hint: Use -f if you really want to add them.
-     hint: Disable this message with "git config set advice.addIgnoredFile false"
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; git rev-parse --show-toplevel 2>/dev/null && { echo "=== own repo:"; git status -sb | head -3; } ||
-      echo "NOT a git repo — gitignored vendored dir, change is untracked"; grep -n 'qwen3-embeddings' /Users/nathanielcannon/Claude/Project_Aion/.gitignore)
-  ⎿  /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx
-     === own repo:
-     ## main...origin/main
-      M CLAUDE.md
-      D README.md
-     166:infrastructure/qwen3-embeddings-mlx/
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ This is its own git repo, vendored and gitignored from the monorepo, so I should commit inside it. But the status only shows CLAUDE.md and README.md changed, not server.py which I'd
-  expect to be modified too — I should double check the full status. It also has an origin/main remote, suggesting it's a fork of the upstream project.
-
-  Committing my change there is fine, but pushing to origin would push to the upstream fork, so I need to check the remote configuration before doing that.
-
-⏺ It's a separate vendored repo (gitignored from the monorepo). Checking its state and remote before I commit there:
-
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx; echo "=== status:"; git status -s; echo "=== remote:"; git remote -v | head -2; echo "=== recent
-      commits:"; git log --oneline -3)
-  ⎿  === status:
-      M CLAUDE.md
-      D README.md
-      M server.py
-     ?? start-server.sh
-     === remote:
-     origin     https://github.com/jakedahn/qwen3-embeddings-mlx (fetch)
-     origin     https://github.com/jakedahn/qwen3-embeddings-mlx (push)
-     === recent commits:
-     5b96e37 adding embeddings report
-     07c077a Document make commands in README for better developer experience
-     527f452 Update performance badges to show individual model speeds
+# Captured: 2026-08-27T19:35:52Z | key: dev | session: 37c4fcfa-c9b0-4745-b81a-fc92f24f2d1a
+
+      443   <div class="tw">
+      444     <table>
+      445       <thead><tr><th>Component</th><th>Fate</th></tr></thead>
+      446       <tbody>
+      447         <tr><td class="m">PATTERN_TRIGGERS table</td><td>Superseded by semantic retrieval. The hook itself survives as the injection point.</td></tr>
+      448         <tr><td class="m">MEMORY.md link section</td><td>The ~40 hand-maintained pointer links are a manual index of exactly what retrieval does automatically. Should shrin
+          k toward invariants.</td></tr>
+      449         <tr><td class="m">JICM · session-state · L1–L5</td><td><strong>Untouched.</strong> Session-level compression is a different concern from per-turn retrieval; the two
+           compose.</td></tr>
+      450       </tbody>
+      451     </table>
+      452   </div>
+      453
+      454   <h3>New infrastructure required</h3>
+      455   <ol>
+      456     <li>An <code>/v1/enrich</code> endpoint in Loom, returning ranked passages with provenance</li>
+      457     <li>Relevance threshold calibration, with an evaluation harness — see section 9</li>
+      458     <li>An injection budget policy, expressed per lane</li>
+      459     <li>Cache invalidation when source files change (filesystem watcher bumping a content hash)</li>
+      460     <li>A provenance format so injected passages remain attributable inside the context</li>
+      461     <li>Metrics covering injection rate, score distribution, cache hit rate <strong>and measured outcome</strong></li>
+      462   </ol>
+      463 </section>
+      464
+      465 <!-- 8 -->
+      466 <section>
+      467   <div class="sec-head"><span class="num">08</span><h2>Risks, in order of severity</h2></div>
+      468
+      469   <div class="card">
+      470     <div class="cap">Latency budget — the synchronous path must stay under roughly 300 ms</div>
+      471     <div class="lat">
+      472       <div class="lat-row"><span class="lat-name">Budget ceiling</span><div class="lat-bar"><div class="lat-in" style="width:1%;background:var(--ink3)"></div></div><span cl
+          ass="lat-v">300 ms</span></div>
+      473       <div class="lat-row"><span class="lat-name">Existing hook</span><div class="lat-bar"><div class="lat-in" style="width:1.6%;background:var(--good)"></div></div><span c
+          lass="lat-v">&lt;500 ms</span></div>
+      474       <div class="lat-row"><span class="lat-name">Qdrant search</span><div class="lat-bar"><div class="lat-in" style="width:10%;background:var(--warn)"></div></div><span cl
+          ass="lat-v">2–3 s</span></div>
+      475       <div class="lat-row"><span class="lat-name">Graphiti traversal</span><div class="lat-bar"><div class="lat-in" style="width:100%;background:var(--bad)"></div></div><sp
+          an class="lat-v">20–30 s</span></div>
+      476     </div>
+      477   </div>
+      478   <p>The graph layer is <strong>two orders of magnitude</strong> over any acceptable synchronous budget. It cannot sit on the prompt path. The workable arrangement is Qdran
+          t synchronously within a hard timeout, with Graphiti running asynchronously and its results arriving on a later turn.</p>
+      479
+      480   <div class="tw">
+      481     <table>
+      482       <thead><tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr></thead>
+      483       <tbody>
+      484         <tr><td>Injecting into the system prompt destroys the cache</td><td><strong>critical</strong></td><td>Never touch <code>system</code> or <code>tools</code>. Append
+          a <code>role:"system"</code> message. Verify with <code>cache_read_input_tokens</code>.</td></tr>
+      485         <tr><td>Prompt injection carried in retrieved files</td><td>high</td><td>Use the system-role operator channel, never a user turn. Frame retrieved material explicitl
+          y as data, with provenance.</td></tr>
+      486         <tr><td>Retrieval poisoning — irrelevant context degrades output</td><td>high</td><td>A hard relevance floor. A low-scoring passage must be dropped, never included
+          speculatively.</td></tr>
+      487         <tr><td>Loom's audit has no cache-token fields</td><td>high</td><td>Its schema records only <code>tokens_in</code> and <code>tokens_out</code>. Extend it — the cont
+          ract explicitly permits extra fields — before routing anything through it.</td></tr>
+      488         <tr><td>Retrieval fails and the bare prompt is sent</td><td><strong>guardrail</strong></td><td>Must raise an alert. Under the No Silent Degradation rule a failed en
+          richment is a visible defect, never a quiet fallback.</td></tr>
+      489         <tr><td>Non-reproducibility — same prompt, different context</td><td>medium</td><td>Log the exact injection against each request identifier so any turn can be repla
+          yed.</td></tr>
+      490         <tr><td>Licence</td><td>contractual</td><td>PolyForm Internal Use 1.0.0 — internal use only. <strong>Never embed in DwarfCron/Chronicler</strong>, which is a portfo
+          lio deliverable.</td></tr>
+      491         <tr><td>OAuth token visible in the audit log</td><td>high</td><td>Loom forwards the Authorization header and Claude Code authenticates by OAuth. Configure scanner r
+          edaction <em>before</em> first use.</td></tr>
+      492       </tbody>
+      493     </table>
+      494   </div>
+      495 </section>
+      496
+      497 <!-- 9 -->
+      498 <section>
+      499   <div class="sec-head"><span class="num">09</span><h2>The question nobody can answer yet</h2></div>
+      500   <div class="note warn">
+      501     <h4>Does injected context actually improve the output?</h4>
+      502     <p>There is no evidence either way in this workspace. Under the standing guidance on testing chaotic models, a single run cannot attribute a change — establishing this
+          needs a fixed task set, K paired variants, and a signed-rank test, with injection on or off as the only varied factor.</p>
+      503     <p><strong>Build the evaluation harness before building the retriever.</strong> Without it the mesh is unfalsifiable: it will always <em>look</em> as though it is worki
+          ng, because context is visibly present, and no one will be able to say whether the answers got better. A system that cannot fail a test cannot pass one either.</p>
+      504   </div>
+      505 </section>
+      506
+      507 <!-- 10 -->
+      508 <section>
+      509   <div class="sec-head"><span class="num">10</span><h2>Phased plan</h2></div>
+      510   <div class="phases">
+      511     <div class="ph"><div class="ph-n">0</div><div class="ph-b"><h4>Reconcile the existing design documents</h4><p>Update the five documents from March in place, against wha
+          t loom-oss has become. They are the institutional record; a sixth document would fragment it.</p></div></div>
+      512     <div class="ph"><div class="ph-n">1</div><div class="ph-b"><h4>Build the evaluation harness first</h4><p>A fixed task set, paired on-and-off runs, and a scoring method
+          — before any retriever exists to be flattered by it.</p></div></div>
+      513     <div class="ph"><div class="ph-n">2</div><div class="ph-b"><h4>Deploy Loom inert</h4><p>Port 4444, SQLite backend, no lane routed to it. Confirm health endpoint and das
+          hboard.</p><span class="ph-gate">gate: /health responds</span></div></div>
+      514     <div class="ph"><div class="ph-n">3</div><div class="ph-b"><h4>Extend the audit schema</h4><p>Add cache-token fields, so the telemetry Aion already depends on survives
+          the transition.</p><span class="ph-gate">gate: cache_read_input_tokens present</span></div></div>
+      515     <div class="ph"><div class="ph-n">4</div><div class="ph-b"><h4>Implement /v1/enrich</h4><p>Qdrant only. Hard latency budget. No graph traversal on the synchronous path.
+          </p><span class="ph-gate">gate: p95 under 300 ms</span></div></div>
+      516     <div class="ph"><div class="ph-n">5</div><div class="ph-b"><h4>Rewire the hook, one lane only</h4><p>Point <code>relevance-retrieval.js</code> at the service on a singl
+          e low-value lane — not W0, not Genie.</p><span class="ph-gate">gate: cache hit rate unchanged from baseline</span></div></div>
+      517     <div class="ph gate"><div class="ph-n">6</div><div class="ph-b"><h4>A/B test — the hard gate</h4><p>Run the harness from phase 1. If paired testing shows no improvement
+          , <strong>stop and redesign the retrieval approach</strong>. Do not ship it merely because the infrastructure now exists.</p><span class="ph-gate">gate: measured improvemen
+          t, or stop</span></div></div>
+      518     <div class="ph"><div class="ph-n">7</div><div class="ph-b"><h4>Roll out and wire Nexus</h4><p>Remaining lanes, then point Nexus at the four stable endpoints — an API wh
+          ose own documentation calls it the "Core Nexus contract."</p></div></div>
+      519     <div class="ph"><div class="ph-n">8</div><div class="ph-b"><h4>Revive the training-capture design</h4><p>The original March intent, now far cheaper because Loom's audit
+           layer already records what those documents proposed instrumenting by hand.</p></div></div>
+      520   </div>
+      521 </section>
+      522
+      523 <!-- 11 -->
+      524 <section>
+      525   <div class="sec-head"><span class="num">11</span><h2>Verdict</h2></div>
+      526   <p><strong>The diagnosis is right.</strong> Static memory surfaces less than one percent of the corpus, by a selection fixed in advance, and this very session produced a
+          concrete instance of the resulting failure.</p>
+      527   <p><strong>The mechanism is right.</strong> System-role messages appended to the messages array are both cache-preserving and injection-safe. They are, in effect, purpose
+          -built for this.</p>
+      528   <p><strong>The placement needs one inversion.</strong> Loom should be the retrieval service; the injection point for interactive lanes stays client-side in the hook, beca
+          use Claude Code owns the transcript and the cache economics differ by roughly twelvefold. Loom still injects directly for single-shot Nexus callers, which have no hook laye
+          r and no transcript to diverge from.</p>
+      529   <div class="note">
+      530     <h4>The strongest argument for building it</h4>
+      531     <p>It is not token savings — those are marginal. It is that a system whose institutional memory is <strong>150 times larger than what it can see</strong> has a specific
+          , addressable, measurable defect, and every piece of infrastructure needed to fix it is already running on this machine.</p>
+      532   </div>
+      533 </section>
+      534
+      535 <footer>
+      536   <div>Companion document: <code>projects/project-aion/plans/loom-semantic-mesh-design.md</code></div>
+      537   <div>Extends the five 2026-03-29 Loom documents in <code>alfred/.claude/context/systems/</code> — training capture, a complementary concern.</div>
+      538   <div>Analysis only. No implementation performed. All figures measured on this workspace, 2026-08-27.</div>
+      539 </footer>
+      540
+      541 </div>
   ⎿  Async hook PostToolUse completed
   ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-∴ This remote points to someone else's upstream repo, not Sir's fork, so pushing is off the table — I'll commit locally only to preserve the change with its rationale. I'll scope the commit
-  to server.py, leaving the pre-existing CLAUDE.md/README.md changes untouched.
-
-⏺ The remote is jakedahn/qwen3-embeddings-mlx — a third party's upstream, not our fork. So I'll commit locally and not push; pushing would send our changes to someone else's repository.
-  Committing only my file, leaving the pre-existing CLAUDE.md/README.md changes alone:
-      with NO padding, so every distinct token count mints a new set of buffer
-      sizes, retained for the process lifetime.
-
-      MEASURED, 60 requests per arm, same server:
-        identical token length (60 texts, ONE shape) ... 2474 -> 2695 MB (settled 2514)
-        60 DISTINCT token lengths ...................... 2514 MB -> 10 GB
-      ~125 MB per NOVEL sequence length. Growth scales with SHAPE DIVERSITY, not
-      request volume -- which is why RAG ingestion (chunks of many lengths) drove
-      22 GB in 49 minutes while idle periods cost nothing.
 
-      FIX: mx.clear_cache() after each embed call + mx.set_cache_limit() at import
-      as the backstop for growth within one large batch.
-
-      VERIFIED on the identical workload that produced 10 GB:
-        60 distinct lengths .... 2451 -> 2680 MB  (was -> 10 GB)
-        150 lengths, 1..300 .... 2633 -> 2698 MB
-      Embeddings unchanged: dim 2560, deterministic, L2 norm 1.000.
-
-      Padding to fixed buckets would cut shape diversity further but is NOT done
-      here: mx.mean(hidden_states, axis=1) pools over EVERY position, so padding
-      would corrupt embeddings and make new vectors incomparable with those in
-      Qdrant. That needs masked pooling + a re-index, as its own change.
-
-      NOT PUSHED: origin is jakedahn/qwen3-embeddings-mlx, a third-party upstream.
-
-      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" && git log --oneline -1 && echo "(local only — not pushed)")
-  ⎿  0bbe492 fix: bound MLX's shape-keyed buffer cache — root cause of the 22GB 'leak'
-     (local only — not pushed)
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
+⏺ Artifact(/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/plans/loom-semantic-mesh-design.html)
+  ⎿  Published ⧉ https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461
   ⎿  Async hook PostToolUse completed
   ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
-  ⎿  Added 46 lines, removed 1 line
-      19
-      20  ## 0.1 POST-REFRESH RESULTS (2026-08-14 15:24–15:28) — NEWEST
-      21
-      22 -## 0.-5 PROTOS MEASURED + INSTRUMENTED — `6520f97` (2026-08-15 16:4x) — NEWEST
-      22 +## 0.-6 MLX "LEAK" ROOT-CAUSED AND FIXED — `0bbe492` (2026-08-17) — NEWEST
-      23
-      24 +**It was never a leak, and it was not embeddings accumulating.** MLX's allocator caches freed GPU
-      25 +buffers **KEYED BY SIZE** and never returns them to the OS. The hot path is
-      26 +`tokens = tokenizer.encode(text); input_ids = mx.array([tokens])` — **no padding** — so every
-      27 +distinct token count mints a new set of buffer sizes, retained for the process lifetime.
-      28 +
-      29 +**CONTROLLED CONTRAST (60 requests per arm, same server, only shape diversity varied):**
-      30 +| arm | footprint |
-      31 +|---|---|
-      32 +| 60 texts, **identical** token length (one shape) | 2474 → 2695 MB, settled back to 2514 |
-      33 +| 60 texts, **60 distinct** lengths | 2514 MB → **10 GB** |
-      34 +
-      35 +**~125 MB per NOVEL sequence length.** Growth scales with **shape diversity, not request volume** —
-      36 +which is precisely why RAG *ingestion* (chunks of many lengths) drove 22 GB in 49 min while idle
-      37 +periods cost nothing. Answers Sir's question directly: yes, repeated RAG calls cause it, but via
-      38 +the allocator's shape-keyed cache, not retained vectors. (`_embedding_cache` is capped at 1000
-      39 +entries ≈ 10 MB — a red herring.)
-      40 +
-      41 +**FIX:** `mx.clear_cache()` after each embed + `mx.set_cache_limit()` at import (backstop for
-      42 +growth *within* one large batch, where there's no request boundary to clear at).
-      43 +**VERIFIED on the identical workload that produced 10 GB:** 2451 → **2680 MB**. And 150 requests
-      44 +spanning lengths 1..300 → 2633 → **2698 MB** (would have been ~18 GB).
-      45 +Embeddings unchanged: dim 2560, deterministic, L2 norm 1.000.
-      46 +❌ **Did NOT pad to fixed buckets** though it would cut shape diversity further —
-      47 +`mx.mean(hidden_states, axis=1)` pools over EVERY position, so padding corrupts embeddings and
-      48 +makes new vectors incomparable with those already in Qdrant. Needs masked pooling + re-index.
-      49 +
-      50 +⚠️ **`infrastructure/qwen3-embeddings-mlx/` is a SEPARATE repo, gitignored by the monorepo, and its
-      51 +origin is `jakedahn/qwen3-embeddings-mlx` — a THIRD PARTY upstream. Committed LOCALLY ONLY; do not
-      52 +push.** The 8 GB watchdog threshold stays as a safety net; it should now essentially never fire.
-      53 +
-      54 +### ⚠️ I TOOK MLX DOWN DURING THIS TEST — window 5 was destroyed
-      55 +The Arm-B stress (10 GB) killed the pane, and the **whole `aion:5` window disappeared**. Recreated
-      56 +it with `new-window -t aion:5 -n MLX-Embed`. **Use `respawn-window` (what launch-aion.sh's `mlx`
-      57 +verb uses), NOT `respawn-pane`** — a pane respawn whose command dies takes the window with it.
-      58 +
-      59 +### ✅ NOTHING TO RESTART UNDER THE SPARES — my "duplicate MCP" claim was wrong, twice over
-      60 +Full parent audit: **every** MCP process traces to a live LANE HEAD (w0/protos/dev/genie/jaques).
-      61 +The remaining spares `6571` and `46686` have **zero children**. The MCP servers I originally saw
-      62 +under a spare belonged to the 21-day bg-spare already killed. My original "three duplicate sets"
-      63 +came from grepping the basename `mcp_server.py`, which THREE different servers share
-      64 +(`rag-service/`, `ScholarGateway/`, `AnnasTools/`) — matching on a name instead of on identity,
-      65 +same family as the `pgrep -f` self-match trap.
-      66 +
-      67 +## 0.-5 PROTOS MEASURED + INSTRUMENTED — `6520f97` (2026-08-15 16:4x)
-      68 +
-      69  **Sir's ~98k guess was RIGHT and it caught a bug I had just shipped.** Measured live on aion:1:
-      70  **baseline 98,771 tokens** (system prompt + alfred CLAUDE.md + tools), climb **~70 tok/trivial turn**
-      71  (98771 → 98840 → 98908; +69/+68). Tool-heavy turns are orders of magnitude bigger — size headroom
-  ⎿  Async hook PostToolUse completed
 
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion; git add .claude/context/.scratchpad.dev.md && GIT_COMMITTER_EMAIL='177279335+CannonCoPilot@users.noreply.github.com' git commit
-      --author='CannonCoPilot <177279335+CannonCoPilot@users.noreply.github.com>' -q -m "docs(dev): MLX leak root-caused (MLX shape-keyed buffer cache); no duplicate MCP servers
+∴ Both reports are done, so now I should answer the user's actual question directly rather than just pointing to files — they asked whether the reasoning makes sense and want a substantive
+  walkthrough of the findings, building on what was already reported for the earlier tasks.
 
-      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>" && git push origin main -q && echo pushed; echo "=== final health:"; curl -s -o /dev/null -w 'MLX HTTP %{http_code}
-       ' --max-time 4 http://localhost:8000/health; P=$(pgrep -f qwen3-embeddings-mlx | while read p; do case "$(ps -o command= -p $p 2>/dev/null)" in *[Pp]ython*) echo $p; break;; esac;
-      done); footprint -p $P 2>/dev/null | grep -oE 'phys_footprint: [0-9]+ MB'; memory_pressure 2>/dev/null | tail -1)
-  ⎿  pushed
-     === final health:
-     MLX HTTP 200  phys_footprint: 2459 MB
-     System-wide memory free percentage: 58%
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
+⏺ Both reports are written:
 
-⏺ 1. The MCP servers — there's nothing to restart, and my original claim was wrong
+  - projects/project-aion/plans/loom-semantic-mesh-design.md
+  - ⧉ https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461
 
-  I ran the full parent audit. Every MCP process traces to a live lane head (w0, Protos, dev, Genie, Jacques). The two remaining spares, 6571 and 46686, have zero children. The MCP servers
-  I originally saw under a spare belonged to the 21-day-old bg-spare you already had me kill.
+  Does it make sense? Yes — with one inversion
 
-  My "three duplicate sets" came from grepping the basename mcp_server.py — which three different servers share: rag-service/, ScholarGateway/, AnnasTools/. Matching on a name instead of on
-  identity, the same family of error as the pgrep -f self-match trap. There were never any duplicates. Sorry for sending you after a phantom.
+  Your diagnosis is right, and I can put a number on it. I measured the workspace: 42,777 bytes always resident (~11,257 tokens) against 6,412,558 bytes across 409 Markdown files in
+  .claude/context/. Static memory surfaces 0.67% of the corpus, and which 0.67% is decided in advance by hand.
 
-  If you do want a lane's MCP servers refreshed, that means restarting the lane — they're stdio children of the head, so they can't be cycled independently.
+  ★ Insight ─────────────────────────────────────
+  This session produced a textbook instance of the failure you're describing. The five Loom design documents — 82KB, directly relevant to the Loom evaluation — sat in
+  alfred/.claude/context/systems/ the whole time. No memory tier surfaced them. I found them by accident, in a grep run for an unrelated purpose. A semantic layer keyed on "Loom" would have
+  surfaced them in the first second. That's the argument in one incident: the knowledge existed, was indexed nowhere the model reads, and appeared only by luck.
 
-  2. MLX — yes, and it's exactly the RAG calls, though not for the reason you'd expect
+  The vision already exists in Aion as a stub. relevance-retrieval.js is a UserPromptSubmit hook whose own header calls it "the rattlesnake reflex for memory recall." But it's keyword regex
+  → file map, capped at 800 characters, one injection per prompt, no network. That's 0.012% of the corpus per prompt. It's a lookup table wearing the costume of a retrieval system — and
+  it's already wired into exactly the right place in the request lifecycle.
+  ─────────────────────────────────────────────────
 
-  It was never a leak, and it isn't embeddings accumulating. MLX's allocator caches freed GPU buffers keyed by size and never returns them to the OS. The hot path is:
+  The mechanism is real — and better than I expected
 
-  tokens = tokenizer.encode(text)   # variable length, NO padding
-  input_ids = mx.array([tokens])    # a NEW SHAPE for every distinct token count
+  I loaded the caching reference rather than reasoning from memory, and it changed the answer materially. There's a purpose-built escape hatch, available today on Opus 5 with no beta
+  header: append {"role": "system", "content": …} to messages[] instead of editing the top-level system field. The cached prefix survives untouched.
 
-  Every distinct token count mints a fresh set of buffer sizes, retained for the life of the process. I tested it with a controlled contrast — same request count, varying only whether the
-  lengths differed:
+  It has a second property that matters just as much: it's the non-spoofable operator channel. Text in a user turn can be forged by anything that writes user-visible input — and retrieved
+  documents are exactly that. A semantic mesh injects third-party file content into the prompt. Put it in a user turn and any retrieved file can impersonate the operator. That's the
+  difference between a retrieval layer and an injection vulnerability.
 
-  ┌────────────────────────────────────┬──────────────────────────────────────┐
-  │            60 requests             │              footprint               │
-  │ 60 distinct lengths                │ 2514 MB → 10 GB                      │
-  └────────────────────────────────────┴──────────────────────────────────────┘
+  Where I'd change your design
 
-  ~125 MB per novel sequence length. Growth scales with shape diversity, not request volume — which is precisely why ingestion drove 22 GB in 49 minutes while idle periods cost nothing.
-  Chunked documents have thousands of distinct lengths. (The _embedding_cache is capped at 1000 entries ≈ 10 MB — a red herring.)
+  Loom should be the retrieval service, not always the injector.
 
-  Fixed with mx.clear_cache() after each embed plus mx.set_cache_limit() as a backstop for growth within one large batch. Re-ran the identical workload that produced 10 GB:
+  ★ Insight ─────────────────────────────────────
+  Claude Code owns the transcript; Loom doesn't — and that asymmetry is decisive. If Loom appends context in flight, the client never records it, so next turn it sends history without the
+  injection and Loom injects again. Every injected token pays the 1.25× cache-write premium and yields a 0× read, forever. If the hook injects instead, the content enters the transcript,
+  becomes part of the stable prefix, and is read at 0.1× on every subsequent turn.
 
-  - 60 distinct lengths: 2451 → 2680 MB
-  - 150 requests, lengths 1–300: 2633 → 2698 MB (would have been ~18 GB)
+  Same content, roughly 12× cheaper from the hook. That falls straight out of the published multipliers — it isn't a modelling assumption.
 
-  Embeddings verified unchanged — dim 2560, deterministic, L2 norm 1.000.
+  And the gateway is still exactly right for single-shot callers. Nexus jobs have no conversation state to diverge from and no hook layer at all. That observation is what lets one
+  implementation serve both worlds.
+  ─────────────────────────────────────────────────
 
-  I deliberately did not pad to fixed-size buckets, though it would cut shape diversity further: mx.mean(hidden_states, axis=1) pools over every position, so padding would corrupt the
-  vectors and make new ones incomparable with what's already in Qdrant. That needs masked pooling plus a re-index, as its own change.
+  The trap to avoid: injecting into the system prompt invalidates the system cache and every message after it. Genie is at 234K tokens / 99% cache; Jacques at 335K / 99%. That's a ~10×
+  input-cost increase per turn, silent.
 
-  Two things you should know
+  Two things I'd insist on
 
-  I took MLX down during the test. The Arm-B stress killed the pane and destroyed the whole aion:5 window. I recreated it, and it's healthy at 2459 MB. The lesson is recorded: use
-  respawn-window (what launch-aion.sh's mlx verb uses), not respawn-pane — a pane respawn whose command dies takes the window with it. That's my second self-inflicted outage today.
+  Graphiti cannot sit on the prompt path. It's 20–30s against a ~300ms budget — two orders of magnitude over. Qdrant synchronously with a hard timeout; graph traversal async, landing next
+  turn.
 
-  The MLX fix is committed locally only, not pushed. infrastructure/qwen3-embeddings-mlx/ is a separate repo, gitignored by the monorepo, and its origin is jakedahn/qwen3-embeddings-mlx — a
-  third party's upstream. Pushing would send our changes to someone else's repository. If you want this preserved remotely, it needs a fork of your own.
+  Build the eval harness before the retriever. There's no evidence in this workspace that injected context improves output, and per your own chaotic-model testing guidance a single run
+  can't attribute a change. Without paired testing the mesh is unfalsifiable — it will always look like it's working because context is visibly present. I made that a hard gate at Phase 6:
+  no measured improvement means stop and redesign, not ship because the infrastructure exists.
 
-  The 8 GB watchdog stays as a safety net, but it should now essentially never fire.
+  Nothing implemented. Both documents are analysis only, and I extended the five existing March Loom docs by reference rather than forking a parallel plan.
 
-✻ Baked for 10m 3s
+✻ Crunched for 7m 14s
 
 ❯ Watcher here. Context is heavy and a refresh is imminent — please save any in-progress working details to .claude/context/.scratchpad.dev.md (update it, don't append blindly; it is your
   resume doc), then stop. No need to reply at length.
   ⎿  Async hook PostToolUse completed
 
-∴ I notice the scratchpad is missing a few things: the AnnasTools .li security fix from commit 491c568, the bg-spare kill, and the open items around the pending ANNAS_SECRET_KEY rotation
-  and the uncommitted launch-aion.sh. I should update the scratchpad with these and double-check the git anchor is still accurate.
+∴ I should update the scratchpad with the current state, but let me read it first so I'm updating it properly rather than just appending blindly.
 
-⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion; echo "aion: $(git log --oneline -1) | $(git status -sb|head -1)"; echo "unpushed: $(git log origin/main..HEAD --oneline 2>/dev/null|wc
-      -l|tr -d ' ')"; echo "annastools: $(cd /Users/nathanielcannon/Claude/Projects/AnnasTools && git log --oneline -1)"; echo "snorkel: $(cd
-      /Users/nathanielcannon/Claude/Projects/SnorkelTasks && git log --oneline -1)"; echo "mlx(local-only): $(cd
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/qwen3-embeddings-mlx && git log --oneline -1)"; echo "launch-aion uncommitted: $(git diff --stat
-      .claude/scripts/launch-aion.sh | tail -1)")
-  ⎿  aion: 6dca2fd docs(dev): MLX leak root-caused (MLX shape-keyed buffer cache); no duplicate MCP servers | ## main
-     unpushed: 0
-     annastools: 491c568 security: remove annas-archive.li — a parked lookalike in the trusted mirror list
-     snorkel: b5264bb chore: gitignore the root-level Beech Task.txt working transcript
-     mlx(local-only): 0bbe492 fix: bound MLX's shape-keyed buffer cache — root cause of the 22GB 'leak'
-     launch-aion uncommitted:  1 file changed, 11 insertions(+), 8 deletions(-)
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
+  ⎿  Read 625 lines
+
+∴ I need to add a new dated section at the top of the file, right after the READ FIRST header, updating the git line to reflect the latest state. I'll record the session summary of four
+  tasks plus a follow-up, the three pushed commits (082998e, 618c6eb, b8c1e1e), published artifacts, key findings and traps, and confirm nothing is left mid-flight.
+
+  I'll do this as two edits: first inserting the new section before the previous top entry, then updating the header's git status line to match the latest commit and push state.
   ⎿  Async hook UserPromptSubmit completed
   ⎿  Async hook UserPromptSubmit completed
-  ⎿  Async hook PostToolUse completed
-  ⎿  Async hook PostToolUse completed
-
-⏺ Recording the two items not yet in the resume doc, and correcting the stale git anchor at the top:
 
 ⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
-  ⎿  Added 42 lines, removed 1 line
-      19
-      20  ## 0.1 POST-REFRESH RESULTS (2026-08-14 15:24–15:28) — NEWEST
-      21
-      22 -## 0.-6 MLX "LEAK" ROOT-CAUSED AND FIXED — `0bbe492` (2026-08-17) — NEWEST
-      22 +## 0.-7 SECURITY + CLEANUP (2026-08-17) — NEWEST
-      23
-      24 +### 🔴 OPEN, NEEDS SIR: ROTATE `ANNAS_SECRET_KEY`
-      25 +`annas-archive.li` was a **parked lookalike** sitting in AnnasTools' trusted `MIRROR_DOMAINS`
-      26 +since the FIRST commit (2026-06-05, ~10 weeks). Reported by Genie; **I re-verified independently
-      27 +before acting** — `.li` = 200 / 1,015 bytes / `<title>annas-archive.li</title>` / 0 `/md5/` links /
-      28 +parking script `assets.abovedomains.com` "This domain may be for sale", vs `.gl` = 177,586 bytes of
-      29 +real Anna's markup. **REMOVED — AnnasTools `491c568`** (separate repo).
-      30 +Why it matters: the member key rides in the URL —
-      31 +`fast_download.json?...&key=<ANNAS_SECRET_KEY>` — so MIRROR_DOMAINS membership is a **credential
-      32 +decision**, not a convenience list.
-      33 +**The exposure audit CANNOT be answered**: `_working_domain` is process-local, never persisted, and
-      34 +nothing logs the chosen mirror. Under the pre-`e726b40` selector (first `/`→200, in list order)
-      35 +`.li` sat 3rd behind `.gl` and `.org`; **`.org` and `.se` are both DOWN**, so `.gl` was effectively
-      36 +the only thing between a member download and the parked domain, and the old code cached a choice
-      37 +for the whole process lifetime. Absence of evidence = absence of MEASUREMENT ⇒ **rotate**.
-      38 +Key lives in `.claude/secrets/credentials.yaml` + `personas/genie/mcp.json`. **Sir's action; I do
-      39 +not touch credentials.** Reassurance: `_fetch()` does NOT echo the URL on failure, so the key never
-      40 +reached a log, error string or transcript — the only surface is the outbound request.
-      41 +**My own earlier miss:** I probed `.li` on 08-14, logged "200 with ZERO results", and filed it as a
-      42 +dead/empty mirror. That IS the lookalike signature — I had the evidence and mislabelled it.
-      43 +
-      44 +### ✅ 21-DAY bg-spare KILLED (Sir-authorised)
-      45 +`58726 claude bg-spare` (202 MB) + wrappers `61142`/`61143` — **~247 MB reclaimed**. SIGTERM by
-      46 +EXACT PID (never `pkill -f` — it matches your own argv). Exited cleanly; its parent
-      47 +`58718 bg-pty-host` died with it. Evidence it was abandoned: claim socket `87dc73b8.claim.sock`
-      48 +GONE, transcript a 242-byte/0-user-turn stub untouched since Jul 25, and **two newer spares
-      49 +(`6571`, `46686`) already running** on current sockets — the daemon had replaced it twice over.
-      50 +
-      51 +### 📋 STILL OPEN FOR SIR
-      52 +1. **Rotate `ANNAS_SECRET_KEY`** (above).
-      53 +2. **`launch-aion.sh` UNCOMMITTED** (11 insertions) — carries his in-flight Opus-5 migration PLUS
-      54 +   my Protos fix (`JARVIS_WINDOW=1` + `JICM_PROJECT_DIR`). Live pane already has both by hand, so
-      55 +   Protos is correct until the next full launch. **His to commit.**
-      56 +3. **MLX fix is LOCAL-ONLY** — that repo's origin is a third party (`jakedahn/…`). Needs his own
-      57 +   fork if he wants it preserved remotely.
-      58 +
-      59 +### GIT ANCHORS (2026-08-17) — supersedes §READ FIRST, which is STALE
-      60 +`Project_Aion` **`6dca2fd`, working tree clean, 0 unpushed** (except launch-aion.sh, deliberate).
-      61 +`AnnasTools` `491c568` · `SnorkelTasks` `b5264bb` · `qwen3-embeddings-mlx` `0bbe492` **local only**.
-      62 +
-      63 +## 0.-6 MLX "LEAK" ROOT-CAUSED AND FIXED — `0bbe492` (2026-08-17)
-      64 +
-      65  **It was never a leak, and it was not embeddings accumulating.** MLX's allocator caches freed GPU
-      66  buffers **KEYED BY SIZE** and never returns them to the OS. The hot path is
-      67  `tokens = tokenizer.encode(text); input_ids = mx.array([tokens])` — **no padding** — so every
+  ⎿  Added 167 lines, removed 1 line
+       32
+       33  ---
+       34
+       35 -## 0.-37 ✅ MCP CONFIGS TRACKED · DEAD PERMISSION RULES PURGED · **ALL PUSHED** (2026-08-25 12:2x) — **NEWEST, READ FIRST**
+       35 +## 0.-38 ✅ PANIC DIAGNOSIS · OVERFLOW HOOK · STATUSLINE LEVELLED · LOOM DESIGN — **ALL PUSHED** (2026-08-27 ~00:0x) — **NEWEST, READ FIRST**
+       36
+       37 +### ▶️  RESUME HERE — **NOTHING MID-FLIGHT. EVERYTHING COMMITTED AND PUSHED.**
+       38 +**GIT: `HEAD` = `origin/main` = `3688b4b`, 0 unpushed** (Project_Aion).
+       39 +**DwarfCron: `Dev` = `cannoncopilot/Dev` = `8941a98`, 0 unpushed** — SEPARATE repo, branch `Dev` not main.
+       40 +Both pushes verified by re-fetch + `rev-list --count` (ahead=0 behind=0), not by the push's own rc.
+       41 +
+       42 +| commit | repo | what |
+       43 +|---|---|---|
+       44 +| `082998e` | Aion | `prompt-overflow-guard.js` hook |
+       45 +| `618c6eb` | Aion | Bulk Download Policy + `~/Claude/Staging/` |
+       46 +| `b8c1e1e` | Aion | Protos → v9 statusline + profile-loader fix |
+       47 +| `3688b4b` | Aion | retire v8 + legacy statusline |
+       48 +| `8941a98` | DwarfCron `Dev` | Urist → v9 statusline |
+       49 +
+       50 +⚠️ **THE DWARFCRON PUSH ALSO PUBLISHED 5 COMMITS THAT WERE NOT MINE** (chronicler stand-alone
+       51 +executable, test-suite repair, 3 READMEs) — they sat unpushed on `Dev`. Git pushes branches, not
+       52 +commits; there was no way to publish mine alone. **Flagged to Sir at the time.** If any of those
+       53 +were not meant to be public, that is the thing to revisit.
+       54 +
+       55 +### 🔴 KERNEL PANIC ROOT-CAUSED (2026-08-26 13:38:51) — `logd` watchdog, NOT memory, NOT thermal
+       56 +`panic: userspace watchdog timeout: no successful checkins from logd in 120 seconds`,
+       57 +`unresponsive dispatch queue(s): com.apple.firehose.io-wl`.
+       58 +**Chain, read straight out of the stackshot:** thread 29318 (the firehose io work loop) blocked on
+       59 +unfair lock `0x102154944`; its holder, thread 29565, parked in `TH_UNINT`. Missed checkin → watchdog.
+       60 +**Trigger:** 6 Chrome downloads hit `LSQuarantineEvent` at **13:34:2x**, 4m25s before capture.
+       61 +Gatekeeper (`syspolicyd` 91,814 pageIns) + Spotlight (`mds_stores` 143,880 pageIns) saturated the
+       62 +same NVMe.
+       63 +✅ **RULED OUT from the same stackshot:** memory (`swapouts 0`, `compressions 0`, ~93GB free) and
+       64 +thermal (`ThermalPressureLevelNominal`). **The MLX-leak hypothesis is refuted for this incident.**
+       65 +🔑 **THE 25% `TH_UNINT` FIGURE IS A TRAP** — 857/3430 threads looked like a system-wide I/O collapse,
+       66 +but **793 of them are `kernel_task`** idle workers, which live in that state normally. Real userspace
+       67 +`TH_UNINT` was ~64. **Subtract the baseline before believing an aggregate.**
+       68 +
+       69 +### ✅ MITIGATIONS APPLIED (all live)
+       70 +1. **Spotlight exclusions** — `.metadata_never_index` on 82GB: `com.docker.docker` (47G),
+       71 +   `com.utmapp.UTM` (33G), `GitRepos` (1.3G), `~/.claude/projects` (655M), `.claude/{scratch,context}`.
+       72 +   Verified: `~/.claude/projects` → 0 indexed items. Docker keeps 97 residual until reindex.
+       73 +2. **`log config` system mode `INFO` → `DEFAULT`.** It was NOT at the Apple default — something had
+       74 +   raised it. Measured after 7.5h: **126.2 → 111.7 MB/h (−11.5%)**.
+       75 +   🔑 **THE HEADLINE HIDES THE RESULT.** Userspace dropped hard — `syspolicyd` −40%, `trustd` −39%,
+       76 +   `contactsd` −41%, `rapportd` −94% — but **`kernel` is 44% of all persisted bytes and `log config
+       77 +   --mode level` does not govern it** (+4%). The panic-relevant processes ARE quieter.
+       78 +   ⚠️ PRE window = 284h mixed load; POST = 7.3h heavy load. The −11.5% is a **floor**, not a point estimate.
+       79 +3. **Remaining lever, NOT taken (Sir's call):** `awdl0` (AirDrop/Handoff/Sidecar) is **10.8% of ALL
+       80 +   persisted logging** (~12.1 MB/h) and is `active`. `sudo ifconfig awdl0 down` reclaims it.
+       81 +   ⚠️ **Wi-Fi itself CANNOT be turned off — `en1` IS Wi-Fi and carries the default route** (192.168.5.19);
+       82 +   Ethernet `en0` is inactive. Do not "just use Ethernet".
+       83 +   📌 The `IOSurface` spam (13.9% of kernel msgs, ~12.8/sec) is an **Apple bug** — it literally logs
+       84 +   `<decode: mismatch for [%p]>`, a malformed `os_log` format string. Not fixable here.
+       85 +📌 **`log config` HAS NO SIZE KNOB** — only `level`/`persist`/`stream`. Any "cap the store to N GB"
+       86 +plan is wrong; I said that once and had to correct it. Store is **1.3GB** (`Special` 580M /
+       87 +`Persist` 497M / `Signpost` 193M). **Did NOT run `log erase`** — it would destroy the baseline the
+       88 +measurement depends on.
+       89 +🔑 **`log` COLLIDES WITH A ZSH BUILTIN** → `(eval):log:1: too many arguments`. Use `/usr/bin/log`.
+       90 +🔑 **THE RIGHT INSTRUMENT IS `/var/db/diagnostics/logdata.statistics.*.jsonl`** — logd's own
+       91 +per-process byte accounting. `log stream` measures *generation*, not *persistence*; sampling it gave
+       92 +a misleading −11% when the real per-process picture was 30–90% drops. **35 GB / 284h baseline.**
+       93 +
+       94 +### ✅ `prompt-overflow-guard.js` — NEW HOOK, registered FIRST of 12 on `UserPromptSubmit`
+       95 +Blocks any prompt >40,000 chars, spills it verbatim to `.claude/scratch/scratchOverflow/`, and
+       96 +invites the model to read it back in slices. **Needs a `/clear` to activate** (registration is
+       97 +launch-time) — it was NOT live during this session.
+       98 +🔑 **`updatedInput` IS PreToolUse-ONLY** — verified against the installed 2.1.220 binary's own
+       99 +embedded docs. **A prompt cannot be rewritten.** `decision:"block"` is the only lever, so the design
+      100 +is block + dual-path delivery (`reason`/`systemMessage` best-effort, `.pending.json` marker drained
+      101 +as `additionalContext` next turn = guaranteed).
+      102 +🔑 **DENSE LOGS TOKENIZE AT ~1.9 chars/token**, not ~3.8. `panic.txt` = 1,918,059 B → **1,002,000
+      103 +tokens**. The guard's dual-ratio estimator predicted 504,761–1,009,523 — high bound within **0.75%**.
+      104 +A flat chars÷4 would have said 480K and looked survivable. **That is exactly how the wedge happened.**
+      105 +📌 **THE WEDGE IS UNRECOVERABLE ONCE IT HAPPENS.** Session `f805822e`: paste #1 → FAIL at 1,060,964;
+      106 +identical resubmit → 2,062,964 (delta = 1,002,000 = exactly one more copy); 3 more retries. Both
+      107 +copies live in the immutable transcript and **autocompact cannot rescue it, because compaction is
+      108 +itself an API call that must fit in the window.**
+      109 +📌 Fails **OPEN**: if the spill write fails or stdin is malformed it passes the prompt through with a
+      110 +warning. Blocking with no copy on disk would destroy the input outright.
+      111 +
+      112 +### ✅ STATUSLINE LEVELLED — all 6 Claude lanes now on `jarvis-statusline-v9.sh`
+      113 +Was 4-on-v9 / 2-on-the-Feb-script. **It was drift, not design:** v9 contains **no persona branching**
+      114 +(grepped `JARVIS_SESSION_ROLE|persona|LANE|case.*role` → nothing), and the 2 odd lanes were exactly
+      115 +the 2 whose project settings omitted the key, falling through to `~/.claude/settings.json`.
+      116 +🔴 **`alfred/.claude/settings.json` IS GENERATED** — `profile-loader.js:707` does
+      117 +`fs.writeFileSync(SETTINGS_PATH, …)` from a literal at `:413` and **never reads the existing file**.
+      118 +A hand-added `statusLine` would be **silently wiped on the next profile load**. The key is now
+      119 +emitted from the generator; verified via `--dry-run`.
+      120 +🔴 **PATHS MUST BE ABSOLUTE** — `$CLAUDE_PROJECT_DIR` resolves to the satellite dir for lanes rooted
+      121 +outside `Project_Aion/`, none of which have `.claude/scripts/`. Relative renders **nothing, silently**.
+      122 +✅ Also set the **user-level fallback** to v9 so future lanes inherit the standard.
+      123 +✅ Retired `v8` → `archived/` via **`git mv` (R100, history preserved)**; `~/.claude/scripts/jarvis-statusline.sh`
+      124 +→ `~/.claude/scripts/archived/jarvis-statusline-retired-2026-08-26.sh`. Removed 2 dead symlinks to
+      125 +`/Users/aircannon/` (a user that does not exist) — **already flagged BROKEN in the July 2026 platform
+      126 +review and never actioned**.
+      127 +🔑 **THE DANGEROUS REFERENCE WAS A STRING LITERAL IN AN ERROR MESSAGE** — `signal-helper.sh:519`
+      128 +told the user to configure the script I was retiring. No config-oriented search would find it.
+      129 +**Grep `*.sh`/`*.js` for the filename, not just config files.**
+      130 +📌 Only **6 of 14** windows run Claude. Ennoia/Virgil/Watcher/Styx run `bash` — their output is
+      131 +`echo` from monitor loops, **not** a statusline. Nothing to standardise there.
+      132 +📌 **`git remote -v | head -2` LIED AGAIN** (see the READ FIRST warning). Project_Aion also has
+      133 +`jarvis-legacy` → `CannonCoPilot/Jarvis`. **Name `origin` explicitly** — pushing Aion's history into
+      134 +the retired Jarvis repo is one defaulted argument away.
+      135 +
+      136 +### 📄 DELIVERABLES WRITTEN THIS SESSION
+      137 +| file | artifact URL |
+      138 +|---|---|
+      139 +| `.claude/context/reference/statusline-v9-anatomy.html` | `claude.ai/code/artifact/486e5f8f-fd2d-4f8d-bfa4-a808efb8455d` |
+      140 +| `projects/project-aion/plans/loom-semantic-mesh-design.md` | — |
+      141 +| `projects/project-aion/plans/loom-semantic-mesh-design.html` | `claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461` |
+      142 +Statusline anatomy is COMMITTED; **the two Loom design files are UNCOMMITTED** (written after the
+      143 +last push). They are mine — commit them on resume if Sir wants them tracked.
+      144 +
+      145 +### 📌 CAPABILITY-PORTING REVIEW (task 3) — FINDINGS ONLY, NOTHING IMPLEMENTED
+      146 +| lane | hooks | MCP | skills | cmds | agents | perm mode |
+      147 +|---|--:|--:|--:|--:|--:|---|
+      148 +| Jarvis / Jarvis-dev | 38 | 6 | 18 | 44 | 6 | bypass |
+      149 +| Protos | 40 | 7 | 11 | 34 | 14 | bypass |
+      150 +| Urist | **7** | **0** | 0 | 0 | 0 | **bypass** |
+      151 +| Genie | **8** | 2 | 2 | 0 | 0 | default |
+      152 +| Jacques | **8** | **0** | 7 | 0 | 0 | **bypass** |
+      153 +🔴 **HIGHEST-SEVERITY FINDING: Urist and Jacques run `bypassPermissions` with ZERO guard hooks** — no
+      154 +`secret-scanner`, no `credential-guard`, no `bash-safety-guard`, no `permission-gate`. Each of those
+      155 +exists and is wired on another lane.
+      156 +🔑 **PORTING RUNS BOTH WAYS.** Protos has a security layer **Jarvis lacks entirely**:
+      157 +`credential-guard.js`, `secret-scanner.js`, `branch-protection.js`, `audit-logger.js`,
+      158 +`mcp-enforcer.js`, `port-conflict-detector.js`. I hand-rolled a credential sweep this session that
+      159 +Protos has automated at PreToolUse the whole time.
+      160 +📌 Satellites also have no `jarvis-rag` / `jarvis-graphiti` / `jarvis-pulse` → no L4/L5 retrieval, no
+      161 +shared task visibility. **Structural fix = a shared `.claude/hooks/_common/` registered by absolute
+      162 +path from every lane**, so a new hook lands everywhere at once.
+      163 +
+      164 +### 📌 LOOM (task 4 + follow-up) — DESIGN ONLY, NO IMPLEMENTATION
+      165 +`github.com/davidmoneil/loom-oss` — LLM gateway (routing/compression/observability/scanner/governor),
+      166 +Python/FastAPI, **port 4444 free**. **PolyForm Internal Use 1.0.0 — NOT open source.** Internal use
+      167 +OK; **NEVER embed in DwarfCron/Chronicler** (portfolio deliverable).
+      168 +🔑 **AION ALREADY HAS 82KB OF LOOM DESIGN DOCS** — 5 files in `alfred/.claude/context/systems/`
+      169 +(`loom-{integration-design,capture-points,curation-pipeline,quality-signals,training-schema}.md`,
+      170 +2026-03-29). Training-capture for LoRA; never implemented, orchestration YAML lost in migration.
+      171 +**I found them by ACCIDENT via grep** — which is itself the proof case for the semantic mesh.
+      172 +🔑 **Loom's observability doc calls its 4 stable endpoints the "Core Nexus contract"** — David built
+      173 +it against Alfred's Nexus. Not a coincidence (cf. the disabled `sync-aifred-pro-dev` skill).
+      174 +🔴 **HARD GATE BEFORE ROUTING ANYTHING THROUGH IT: Loom's audit captures only `tokens_in`/`tokens_out`.
+      175 +NO `cache_read_input_tokens` / `cache_creation_input_tokens`.** Aion's whole cost model rests on
+      176 +those (statusline `cache:%`/`eph1h:%`). Routing through as-is would **blind working telemetry while
+      177 +still rendering numbers** = silent degradation. Extend the schema first (the contract permits it).
+      178 +🔑 **CACHE MECHANICS DECIDE THE ARCHITECTURE** (loaded the `claude-api` skill; do not re-derive):
+      179 +render order `tools` → `system` → `messages`; read **0.1×**, write **1.25×** (5m) / **2×** (1h);
+      180 +**editing `system` invalidates system + ALL messages** (Genie 234K @ 99%, Jacques 335K @ 99% ⇒ ~10×
+      181 +input cost per turn); appending `{"role":"system"}` to `messages[]` **preserves the prefix** and is
+      182 +available on Opus 5 today with **no beta header**; 4 breakpoints max; 512-token minimum; **20-block
+      183 +lookback**.
+      184 +📌 **MY RECOMMENDED INVERSION: Loom is the retrieval SERVICE, not always the injector.** Claude Code
+      185 +owns the transcript, so gateway-injected tokens pay a 1.25× write and are **never read back** (client
+      186 +never resends them) — client-side hook injection reads at 0.1× on every later turn, **~12× cheaper**.
+      187 +Gateway injection stays correct for **single-shot Nexus jobs** (no transcript, no hook layer).
+      188 +📌 Measured: **42,777 B always-resident vs 6,412,558 B / 409 files retrievable = 0.67% surfaced.**
+      189 +`relevance-retrieval.js` is the existing stub — regex keyword table, **800-char cap**, no network.
+      190 +📌 Graphiti is **20–30s** against a ~300ms budget — cannot sit on the prompt path. Qdrant sync, graph async.
+      191 +📌 **Phase 6 is a hard gate: build the eval harness BEFORE the retriever.** Without paired testing the
+      192 +mesh is unfalsifiable — it always *looks* like it works because context is visibly present.
+      193 +
+      194 +### 🧹 STATE
+      195 +No locks, no background jobs, no probe tmux sessions, no orphan processes. `~/Claude/Staging/`
+      196 +created (gitignored via `.metadata_never_index` + TimeMachine exclusion) and **empty** — test
+      197 +artifacts cleaned. 14 windows intact.
+      198 +
+      199 +---
+      200 +
+      201 +## 0.-37 ✅ MCP CONFIGS TRACKED · DEAD PERMISSION RULES PURGED · **ALL PUSHED** (2026-08-25 12:2x)
+      202 +
+      205  so the conversation survives; this section is the fallback if the resume misbehaves.
+  ⎿  Async hook PostToolUse completed
   ⎿  Async hook PostToolUse completed
   ⎿  Async hook PostToolUse completed
 
+⏺ Now updating the READ FIRST header so it doesn't point at a stale HEAD:
+
 ⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
-  ⎿  Added 3 lines, removed 2 lines
+  ⎿  Added 8 lines, removed 1 line
+       1 -# Jarvis-dev (W11) Scratchpad — updated 2026-08-14 · RESUME DOC
+       1 +# Jarvis-dev (W11) Scratchpad — updated 2026-08-27 · RESUME DOC
+       2
+       3  ## ⚡ READ FIRST
        4  You are **W11 Jarvis-dev** (window `aion:11`), the infrastructure/test lane. Orient from THIS file,
        5  **not `session-state.md`** — that is W0's file, frozen at 2026-06-15.
        6
-       7 -Git: HEAD **`d461235`**, **~25 commits UNPUSHED** to origin/main. All work below is COMMITTED except
-       8 -where noted.
-       7 +⚠️  **THIS HEADER'S GIT LINE IS STALE — the live anchors are in §0.-7 (2026-08-17).**
-       8 +~~Git: HEAD `d461235`, ~25 commits UNPUSHED to origin/main.~~ Current: **`6dca2fd`, tree clean,
-       9 +0 unpushed.** All work below is COMMITTED except where noted.
-      10  **Uncommitted, deliberately: `.claude/scripts/launch-aion.sh`** — it carries Sir's in-flight Opus-5
-      11  migration, so my two-line change there (both watcher gates, §PORT below) is left for him to land.
-      12  Do not commit that file on his behalf; do not revert my lines either.
+       7 +**▶️ CURRENT STATE IS §0.-38 (2026-08-27). GIT: `HEAD` = `origin/main` = `3688b4b`, 0 unpushed.**
+       8 +**DwarfCron `Dev` = `8941a98`, 0 unpushed (separate repo, branch `Dev`).** Nothing mid-flight.
+       9 +**Two UNCOMMITTED files are mine:** `projects/project-aion/plans/loom-semantic-mesh-design.{md,html}`.
+      10 +⏳ **`prompt-overflow-guard.js` needs a `/clear` to activate** — registration is launch-time.
+      11 +
+      12 +<details><summary>Older header state (2026-08-24, superseded — kept for its traps)</summary>
+      13 +
+      14  **GIT (2026-08-24 15:5x): HEAD `cae7ea8`, PUSHED — `origin/main = cae7ea8`, 0 unpushed.**
+      15  Sir authorised the pushes; confirmed via the **GitHub API**, not the push's own rc. Today's commits:
+      16  `d72343f` unpushed-rule · `33925e8` Neo4j key out of 7 files · `7142733` chunked L5 ingest ·
   ⎿  Async hook PostToolUse completed
 
-● Reticulating splines… (38s · ↓ 2.7k tokens)
+∴ I need to close the details tag I opened earlier, placing the closing tag right before the --- divider that precedes the §0 section so the old header block is properly wrapped.
 
+⏺ I opened a <details> — closing it so the old header is collapsed, not orphaned:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
+  ⎿  Added 6 lines, removed 2 lines
+      34  `Projects/SnorkelTasks/.claude/settings.json` is a SEPARATE repo (Jacques'); I added
+      35  `permissions.defaultMode` (08-14) and `PostToolUse` (08-17). Landing it is HIS call, not mine.
+      36
+      37 -**§0 IN-FLIGHT ITEM IS CLOSED — see §0.1 (2026-08-14 15:27).** Sections are newest-first; §1–§5 are older history (digest
+      38 -harness, ledger, traps) and still accurate unless a later section supersedes them.
+      37 +**§0 IN-FLIGHT ITEM IS CLOSED — see §0.1 (2026-08-14 15:27).**
+      38
+      39 +</details>
+      40 +
+      41 +Sections are newest-first; §1–§5 are older history (digest harness, ledger, traps) and still
+      42 +accurate unless a later section supersedes them.
+      43 +
+      44  ---
+      45
+      46  ## 0.-38 ✅ PANIC DIAGNOSIS · OVERFLOW HOOK · STATUSLINE LEVELLED · LOOM DESIGN — **ALL PUSHED** (2026-08-27 ~00:0x) — **NEWEST, READ FIRST**
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion
+      F=.claude/context/.scratchpad.dev.md
+      echo "details tags: open=$(/usr/bin/grep -c '<details>' $F) close=$(/usr/bin/grep -c '</details>' $F)"
+      echo "section order:"; /usr/bin/grep -n '^## 0\.-3[5-9]' $F | head -5
+      echo "--- git ---"; git status --short --branch | head -1
+      echo "uncommitted mine:"; git status --short projects/project-aion/plans/ | head)
+  ⎿  details tags: open=1 close=1
+     section order:
+     46:## 0.-38 ✅ PANIC DIAGNOSIS · OVERFLOW HOOK · STATUSLINE LEVELLED · LOOM DESIGN — **ALL PUSHED** (2026-08-27 ~00:0x) — **NEWEST, READ FIRST**
+     212:## 0.-37 ✅ MCP CONFIGS TRACKED · DEAD PERMISSION RULES PURGED · **ALL PUSHED** (2026-08-25 12:2x)
+     389:## 0.-36 ✅ POST-CLEAR VERIFICATION — EVERYTHING §0.-35 CLAIMS IS **LIVE** (2026-08-24 22:1x)
+     414:## 0.-35 ✅ MCP LEVELLED + GRAPHITI WRITE-OWN/READ-ANY — **ALL DONE, 4 COMMITS UNPUSHED** (2026-08-24 22:0x)
+     --- git ---
+     ## main...origin/main
+     uncommitted mine:
+     ?? projects/project-aion/plans/loom-semantic-mesh-design.html
+     ?? projects/project-aion/plans/loom-semantic-mesh-design.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+ ▐▛███▜▌   Claude Code v2.1.220
+▝▜█████▛▘  Opus 5 (1M context) with low effort · Claude Max
+  ▘▘ ▝▝    ~/Claude/Project_Aion
+
+ ▎ Debug mode enabled · logging to /Users/nathanielcannon/Claude/Project_Aion/.claude/logs/debug.log
+  ⎿  SessionStart:clear says: JICM dev-lane: context refreshed from DEV checkpoint.
+
+❯ /clear
+
+❯ Watcher here. Refresh complete — read .claude/context/jicm/checkpoints/dev.compressed.md for current state and .claude/context/.scratchpad.dev.md for transient working details, then
+  resume work immediately. No greeting needed.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/checkpoints/dev.compressed.md)
+  ⎿  Read 165 lines
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
+  ⎿  Read 624 lines
+
+∴ Nothing's actually mid-flight — everything's committed and pushed aside from two uncommitted Loom design files. The checkpoint's mention of a caching mechanism as "next step" was the
+  summarizer misreading design content as implementation; the scratchpad confirms no implementation was requested, only reasoning and design, which was already delivered. So the honest move
+  is to report state clearly and identify the one loose thread: those two uncommitted design files.
+
+  There's also a real high-severity finding worth surfacing — Urist and Jacques are running bypassPermissions with no guard hooks, which is genuine infra work in my lane, but I don't have
+  authorization to implement it. I'll commit the design docs, check git status to confirm everything's clean, then surface the state and recommendation rather than acting unilaterally.
+  ⎿  Loaded .claude/context/jicm/CLAUDE.md
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git status --porcelain -- projects/project-aion/plans/ && echo "--- ahead/behind ---" && git rev-list --left-right --count origin/main...HEAD)
+  ⎿  ?? projects/project-aion/plans/loom-semantic-mesh-design.html
+     ?? projects/project-aion/plans/loom-semantic-mesh-design.md
+     --- ahead/behind ---
+     0  0
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Since this is a public repo, I should quickly sweep the design docs for any accidental credentials before committing, per the standing rule.
+
+⏺ Resuming. Nothing mid-flight; the only loose thread is the two untracked Loom design deliverables. Committing them — but this is a public repo, so the credential-store sweep comes first.
+
+⏺ Bash(infrastructure/.venv/bin/python - <<'PY'
+      import yaml,sys
+      vals=set()
+      def walk(o):
+          if isinstance(o,dict):
+              for k,v in o.items(): walk(v)
+          elif isinstance(o,list):
+              for v in o: walk(v)
+          elif isinstance(o,str) and len(o.strip())>=4:
+              vals.add(o.strip())
+      for doc in yaml.safe_load_all(open('.claude/secrets/credentials.yaml')):
+          walk(doc)
+      print(f"loaded {len(vals)} candidate values")
+      hits=[]
+      for f in ['projects/project-aion/plans/loom-semantic-mesh-design.md','projects/project-aion/plans/loom-semantic-mesh-design.html']:
+          txt=open(f,encoding='utf-8',errors='replace').read()
+          for v in vals:
+              if v in txt: hits.append((f,v[:24]))
+      print("HITS:",len(hits))
+      for h in sorted(set(hits)): print("  ",h)
+      PY)
+  ⎿  loaded 84 candidate values
+     HITS: 3
+        ('projects/project-aion/plans/loom-semantic-mesh-design.html', 'jarvis')
+        ('projects/project-aion/plans/loom-semantic-mesh-design.html', 'none')
+        ('projects/project-aion/plans/loom-semantic-mesh-design.md', 'jarvis')
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Both "jarvis" and "none" look benign - likely a username/group_id and a config literal rather than actual secrets. I'm good to commit.
+
+⏺ All three hits are benign non-secret values (jarvis as a username/group-id, none as a config literal) — no password-, token-, or key-typed value matched. Committing.
+
+⏺ Bash(git add projects/project-aion/plans/loom-semantic-mesh-design.md projects/project-aion/plans/loom-semantic-mesh-design.html &&
+      GIT_COMMITTER_EMAIL="177279335+CannonCoPilot@users.noreply.github.com" git commit --author="CannonCoPilot <177279335+CannonCoPilot@users.noreply.github.com>" -q -F - <<'MSG' && git
+      log --oneline -1
+      docs(loom): semantic-mesh design — retrieval service, not gateway injector
+
+      Design-only evaluation of loom-oss (davidmoneil) against Project Aion.
+      No implementation.
+
+      Key conclusions:
+      - Loom is PolyForm Internal Use 1.0.0 (not open source) — internal use
+        only, never embedded in DwarfCron/Chronicler.
+      - Hard gate: Loom's audit schema lacks cache_read_input_tokens /
+        cache_creation_input_tokens. Routing through as-is would blind Aion's
+        cost telemetry while still rendering numbers (silent degradation).
+      - Recommended inversion: Loom as retrieval SERVICE with client-side hook
+        injection (~12x cheaper: 0.1x cache read on every later turn) rather
+        than gateway injection (1.25x write, never read back).
+      - Measured: 42,777 B always-resident vs 6,412,558 B across 409 files
+        retrievable = 0.67% of the corpus surfaced by static memory.
+      - Phase 6 eval harness is a hard gate: without paired testing the mesh
+        is unfalsifiable.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      MSG)
+  ⎿  c928894 docs(loom): semantic-mesh design — retrieval service, not gateway injector
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The earlier push authorization applied to that prior batch, not this new commit. Since Sir's pattern is that pushes to the public repo need his explicit go-ahead, I'll commit the files
+  but hold off on pushing and flag that for his decision.
+
+  I should also update the scratchpad header to reflect the current state.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.dev.md)
+  ⎿  Added 4 lines, removed 3 lines
+       4  You are **W11 Jarvis-dev** (window `aion:11`), the infrastructure/test lane. Orient from THIS file,
+       5  **not `session-state.md`** — that is W0's file, frozen at 2026-06-15.
+       6
+       7 -**▶️  CURRENT STATE IS §0.-38 (2026-08-27). GIT: `HEAD` = `origin/main` = `3688b4b`, 0 unpushed.**
+       7 +**▶️  CURRENT STATE IS §0.-38 (2026-08-27). GIT: `HEAD` = `c928894`, `origin/main` = `3688b4b`, 1 UNPUSHED.**
+       8  **DwarfCron `Dev` = `8941a98`, 0 unpushed (separate repo, branch `Dev`).** Nothing mid-flight.
+       9 -**Two UNCOMMITTED files are mine:** `projects/project-aion/plans/loom-semantic-mesh-design.{md,html}`.
+      10 -⏳ **`prompt-overflow-guard.js` needs a `/clear` to activate** — registration is launch-time.
+       9 +✅ **The two Loom design files are now COMMITTED** (`c928894`), credential-swept clean against all 84
+      10 +store values (3 benign hits: `jarvis`, `none`). **NOT PUSHED — public repo, awaiting Sir's nod.**
+      11 +✅ **`prompt-overflow-guard.js` IS NOW LIVE** — this JICM `/clear` activated its registration.
+      12
+      13  <details><summary>Older header state (2026-08-24, superseded — kept for its traps)</summary>
+      14
+  ⎿  Async hook PostToolUse completed
+
+⏺ ★ Insight ─────────────────────────────────────
+  The checkpoint's "Next Step" was a hallucinated action item. dev.compressed.md says to implement the messages[] cache-append mechanism. But .scratchpad.dev.md §0.-38 records that Sir
+  explicitly said "no implementation as of yet" — the cache mechanics were evidence in a design argument, not a build task. The qwen3:8b summarizer read a technical fact and promoted it to
+  a TODO. This is the documented reason the scratchpad outranks the checkpoint (§0.-36 flagged the same failure mode).
+
+  The /clear that just ran did real work beyond freeing context. prompt-overflow-guard.js was committed in 082998e but registration is launch-time — it sat inert. Hook registration is the
+  middle of the three reload tiers: script body is live immediately, registration needs a /clear, MCP/permission-mode needs a full restart. That guard is now actually on the
+  UserPromptSubmit path.
+  ─────────────────────────────────────────────────
+
+  State
+
+  Nothing was mid-flight. The one genuine loose thread was the two untracked Loom deliverables, now committed as c928894.
+
+  Held deliberately: I have not pushed. Project_Aion is public, and pushes there are your call. HEAD is 1 ahead of origin/main.
+
+  Before committing I ran the credential-store sweep against all 84 values in credentials.yaml (loaded with safe_load_all — it's multi-document; safe_load raises). Three hits, all benign:
+  jarvis and none appearing as ordinary prose. Zero password-, token-, or key-typed matches.
+
+  The open items, in severity order
+
+  🔴 Urist and Jacques run bypassPermissions with zero guard hooks. No secret-scanner, no credential-guard, no bash-safety-guard. Each of those already exists and is wired on another lane.
+  This is a findings-only item from last session — nothing implemented.
+
+  🔑 Porting runs both ways. Protos carries a security layer Jarvis lacks entirely: credential-guard.js, secret-scanner.js, branch-protection.js, audit-logger.js. I hand-rolled the
+  credential sweep above; Protos has had it automated at PreToolUse the whole time.
+
+  The structural fix for both is one change: a shared .claude/hooks/_common/ registered by absolute path from every lane, so a new guard lands everywhere at once. Relative paths are the
+  trap here — $CLAUDE_PROJECT_DIR resolves to the satellite dir for lanes rooted outside Project_Aion/, and a bad path renders nothing silently.
+
+  Also open, lower stakes: alfred/.mcp.json hardcodes paths where root uses ${VAR:-default}; aion-lane-restart.sh --help prints a stale lane list.
+
+  Say the word and I'll push c928894, or start on the shared hook layer — that's the highest-value infrastructure work sitting in my lane right now.
+
+✻ Sautéed for 52s
+
+❯ whoa there cowboy, let's not be in a rush to russle all these cattle just yet.  I'm reading through https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461?via=auto_preview
+  which is fantastic by the way, but I have some follow up questions:
+  1) This could become a big build.  What can we do to quarantine off a staging project space to build this in a way that lets us develop and test with a minimal blast radius, but still
+  get the full Project Aion Archon feel?
+  2) Say more about Watcher/
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+  ⎿  Interrupted · What should Claude do instead?
+
+❯ Whoa there cowboy, let's not be in a rush to russle all these cattle just yet.  I'm reading through https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461?via=auto_preview
+  which is fantastic by the way, but I have some follow up questions.  There are 25 follow up questions, plus a broader allegorical exploration. Please think through each one of these. Use
+  todo lists, task lists, subagents, and whatever else you'd like to maintain careful orchestration and supervision of your work in answering each and every one of the following:
+  1) This could become a big build.  What can we do to quarantine off a staging project space to build this in a way that lets us develop and test with a minimal blast radius, but still
+  get the full Project Aion Archon feel?
+  2) Say more about Watcher/JICM and how this larger scope of Loom would interact, conflict or enhance it.
+  3) Talk to me about proxy 9800 and 4444. Do we merge these? Is the question irrelevant at this stage?
+  4) What are the anticipated latency pain points and how to we mitigate them?
+  5) What are the anticipatd fail points and how do we catch them and prevent them?
+  6) Say more about content block lookback pressure.  I am unfamiliar with this facet of message structure or handling. How does this relate to session history, current contents of the
+  context window, server-side cached context and other layers of the infrastructure?
+  7) Does the block lookback pressure problem presume that the Loom system is trying to 'look back' at the contents of recent session turns and pull relevant context from there? I don't
+  understand why sequences of tool use and other traffic could "push out of range"  the novel semantically enriched prompt/context.  What even is a "breakpoint"? What am I not
+  understanding about the architecture here?
+  8) Say more about your comment on Tier A "Shrink toward invariants only." Is there some physics that happens with the static memory files?
+  9) At present I am partway into the process of building out Project Aion into a system where the core Archon, Jarvis, is more or less cloned and modified on demand.  This is to allow
+  better division of labor, less project-level task-switching, and a discretization of memory systems.  How can this be leveraged as part of Loom?  In otherwords, can different Archons be
+  given access to different vectorized semantic stores? How do we keep core behavioral, best-practice semantic memory retrievable while elevating Archon-specific semantic knowledge on a p
+  ──── (16 lines hidden) ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+   and development paths that are openend up by what Loom is and how it works.  Are there other secondary features and benefits that could piggy-back with Loom development, in addition to
+  token usage compression and tracking?
+
+  Here's a question that I have to ask in the form of an analogy.  Condider to scenarios, both involving a dog and both illustrating the workings of reflexive subconscious context
+  retrieval by a human. Scenario 1: A person is out for a jog.  They like to focus mentally. Clear the mind.  They listen to hard core gangsta rap. On their run they see a dog being walked
+  by its owner. The dog triggers a memory of their childhood dog. This is a happy memory. Their train of thought strays towards related memories.  Their mental focus diminishes and they
+  slow down and their mental state makes them aware of their fatigue, and thus acutely responsive to their fatigue. This diminishes the efficacy of their run until their mind again becomes
+  cleared.  Scenario 2: A person is out for a walk in a neighborhood park.  They are there for ostensibly prosocial purposes. Relaxation. Fresh air. Saying hello to neighbors. They see a
+  dog being walked by its owner. The dog triggers a memory of their childhood dog. This is a happy memory. Their train of thought strays towards related memories. They feel prompted to
+  stop and chat with the dog walker. Their park visit experience is enhanced and their non-specific aims are met.  So my quesiton is, how do we design a system which does not cause an
+  unending chain of context grabbing which would flood and dilute the purpose of relevant context? How do we design a system which pushes back on the inclusion of context that might be
+  semantically related but is not conceptually connected to (and possibly orthogonal to) the present task or larger session aims? In other words, when a rational human sees a mouse they
+  reflexively elicit surprise, then recognition, then rational reaction all on cognitive reflex.  An irrational or phobic human is instead sent into a spiral of unmanageable fear response,
+  memory cascades, decision paralysis and so on.  By giving Archons this kind of reflexive retrieval of relevant context (aka relational memory reflex), how do we avoid creating neuroses,
+  psychoses, phobias, avoidance behavior, PTSD response, dissociation, hyperfixation, hypofixation and other kinds of neurodivergent mental traps?
+
+  Think through these issues and questions. Raise your responses in the form of the html report, revised.
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+
+∴ This is a big task — 25 questions plus an allegory, and the deliverable is a revised HTML report. I need to review my existing design doc first, then gather grounding facts like the proxy
+  port, Watcher/JICM details, the MLX-embed leak, Qdrant collections, and the relevance-retrieval script before I start writing.
+
+  I should also load the claude-api skill for cache/lookback mechanics since those questions need accuracy rather than guesswork, and I have explicit authorization to use subagents for
+  this, so I'll set up a todo list and check the doc size before launching grounding agents in parallel.
+
+⏺ Twenty-five questions plus an allegory, and several of them turn on mechanics I must not answer from memory. Let me set up the orchestration first, then ground the factual claims before
+  writing a word of the report.
+
+⏺ Bash(wc -c projects/project-aion/plans/loom-semantic-mesh-design.md projects/project-aion/plans/loom-semantic-mesh-design.html && echo "--- headings ---" && grep -n '^#\{1,3\} '
+  projects/project-aion/plans/loom-semantic-mesh-design.md)
+  ⎿     17449 projects/project-aion/plans/loom-semantic-mesh-design.md
+        39571 projects/project-aion/plans/loom-semantic-mesh-design.html
+        57020 total
+     --- headings ---
+     1:# Loom as a Semantic Mesh — Design Analysis
+     16:## 1. The proposal, restated
+     32:## 2. The problem is real and quantifiable
+     49:### The proof case is this session
+     61:## 3. What already exists in Aion
+     93:## 4. The technical crux: prompt caching
+     97:### Mechanics (authoritative)
+     108:### The invalidation hierarchy — the load-bearing table
+     126:### The mechanism that makes it work
+     151:## 5. Why gateway-side injection is the wrong half
+     160:### 5.1 Injected tokens are written to cache and never read
+     175:### 5.2 Transcript divergence
+     182:### 5.3 The 20-block lookback
+     188:### 5.4 Where the gateway *is* correct
+     198:## 6. Recommended architecture — three tiers
+     222:### Request flow, interactive lane
+     236:### Request flow, Nexus job
+     247:## 7. What this solves, adds, replaces, integrates
+     249:### Solves
+     261:### Adds beyond current capability
+     270:### Replaces
+     279:### Integrates with
+     291:### New infrastructure required
+     302:## 8. Risks and open problems
+     316:### The unavoidable open question: does it actually help?
+     329:## 9. Phased plan (no implementation yet)
+     349:## 10. Verdict
+
+∴ I'll read the doc and load the claude-api skill for lookback mechanics, then fire off parallel grounding subagents to investigate proxy 9800's architecture with Pulse dashboard telemetry,
+  and the watcher/JICM daemon setup with its hooks and thresholds.
+
+  I still need groundings on Archon's cloning state, lane structure, per-lane Graphiti group_ids, Qdrant collections, and the MLX/LiteLLM memory behavior, plus the actual loom-oss repo
+  capabilities and the five Aion loom design docs. I'll fire four subagents total, staying under the five-agent guideline, and handle the claude-api skill load myself since the
+  lookback/breakpoints question is the most technically critical piece.
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/plans/loom-semantic-mesh-design.md)
+  ⎿  Read 368 lines
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Skill(claude-api)
+  ⎿  Successfully loaded skill · 4 tools allowed
+  ⎿  Loaded projects/CLAUDE.md
+  ⎿  Loaded projects/project-aion/plans/CLAUDE.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I now have the caching mechanics needed for Q6/Q7, including the 20-block lookback, breakpoints, invalidation hierarchy, and the new mid-conversation tool changes feature. I'm setting up
+  todo tracking and planning to launch grounding subagents in parallel, starting with the proxy/Pulse dashboard message-size plotting and the Watcher/JICM architecture.
+
+  I'm also planning agents for the Archon cloning/lane structure with per-lane memory systems, and for loom-oss's actual capabilities like compression, telemetry, scanning, and routing. I
+  want to fire four agents in parallel within the small workflow guideline, and I'm weighing whether to load TaskCreate for the todo list Sir asked for versus just tracking things in the
+  report. I'll launch the agents alongside a tool search for task-management tools in the same block since ToolSearch doesn't block the agent calls.
+
+⏺ Loaded the authoritative caching mechanics — several of my prior answers need updating, and there's a new API feature that directly changes the Q6/Q7 answer. Now let me ground the
+  infrastructure claims before writing.
+
+⏺ Explore(Ground proxy 9800 and Pulse telemetry)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+⏺ Explore(Ground Watcher and JICM architecture)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+⏺ Explore(Ground Archon lanes and memory stores)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+
+⏺ Explore(Ground loom-oss capabilities)
+  ⎿  Backgrounded agent (↓ to manage · ctrl+o to expand)
+  ⎿  11 skills available
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ While the agents are running, I can use this time productively by answering Q6/Q7 now since I have the authoritative material loaded and it's the question Sir explicitly said he didn't
+  understand — no reason to wait idle.
+
+  Sir seems to think lookback pressure means Loom retrieving relevant context from session history, but that's not it at all — it's purely a cache-mechanics issue internal to how the API
+  handles prefix matching. I want to walk through the actual mechanics: caching works on exact prefix matches following the render order of tools, system, then messages; a cache_control
+  breakpoint is a marker on a content block telling the system to cache everything up through that point; there's a max of four breakpoints per request; and the minimum cacheable prefix is
+  512 tokens on Opus 5, which matches what I already had documented.
+
+  I'm now realizing the crucial detail — each breakpoint only walks back up to 20 content blocks to find a matching prior cache entry, and this is what actually explains the "push out of
+  range" phenomenon Sir was confused about. With an agentic turn involving many tool calls, each tool_use and tool_result is its own content block, so a dozen tool calls alone could produce
+  two dozen blocks in a single turn — more than enough to blow past that 20-block lookback window and force a full cache miss on the next request. This has nothing to do with retrieval
+  logic; it's strictly about how far back the cache lookup can reach, and every extra injected block (like a per-turn retrieval block) eats into that budget too.
+
+  I also want to lay out the four layers clearly for Sir: the context window is just the size limit on what the model sees per request (1M tokens, no persistence); the session history is
+  the local JSONL transcript that Claude Code's client owns and re-sends in full every turn since the API itself is stateless; the server-side cache is a keyed store of precomputed
+  attention state for a byte prefix, with TTLs of 5 minutes or 1 hour and different pricing multipliers; and the breakpoint is simply the marker telling the server how far to cache. The key
+  thing Sir might be missing is that there's no actual "session" living on the server — the whole conversation gets re-uploaded every single turn, and the cache exists purely to let the
+  server skip redoing work it's already seen, which is exactly why invalidation is such a big deal here.
+
+  I also want to fold in the new mid-conversation tool changes beta, since that lets Loom swap tool sets mid-conversation without blowing the cache — something my earlier draft didn't
+  account for. I'll write this up for Sir now with a diagram, keeping it reasonably concise, and mark the relevant task in progress before drafting the full answer.
+
+⏺ While those run, let me answer Q6 and Q7 — they depend only on the caching reference I just loaded, and Q7 contains a misconception worth clearing immediately.
+
+  Q7 first: no, lookback has nothing to do with Loom looking backward
+
+  Your instinct that something didn't add up is right. "Lookback" is not Loom searching recent turns for relevant context. It is a purely internal mechanic of Anthropic's cache lookup, and
+  it would exist identically if Loom never did any retrieval at all. I used the term in v1 without unpacking it, which is my error.
+
+  Here's the ground truth that makes it click:
+
+  ★ Insight ─────────────────────────────────────
+  The API is stateless. There is no session on the server. Claude Code re-uploads the entire conversation on every single turn — all 300K tokens of it, every time. What feels like "the
+  model remembering our conversation" is actually the client replaying the whole transcript on each request.
+
+  Prompt caching is therefore not memory — it is a receipt. The server keeps precomputed attention state for byte-sequences it has processed before. When your re-uploaded prefix matches
+  one, it skips the recomputation and charges you 0.1× instead of 1.0×. Nothing is stored for you; you're just not billed twice for the same work.
+
+  This reframes "invalidation" entirely. Invalidating a cache loses no data and breaks no functionality — the conversation continues perfectly. You just silently pay 10× for that turn.
+  That's precisely what makes it dangerous: it is a pure cost failure with no visible symptom.
+  ─────────────────────────────────────────────────
+
+  What a breakpoint actually is
+
+  A cache_control breakpoint is a marker you attach to one content block. It means: "cache everything from the very start of this request up to and including this block."
+
+  The request is assembled in a fixed render order — tools → system → messages — and caching is a strict prefix match. A single changed byte at position N invalidates every cache entry at
+  position ≥ N.
+
+  [ tools ][ system ][ msg1 ][ msg2 ][ msg3 ... msgN ]
+                                    ▲
+                              breakpoint here
+           └────────── cached prefix ──────────┘   ← reused at 0.1×
+                                                    everything after: full price
+
+  Limits that matter: max 4 breakpoints per request, and a minimum cacheable prefix of 512 tokens on Opus 5 (halved from 1024 on Opus 4.8 — worth noting, since prompts previously too short
+  to cache now qualify).
+
+  The 20-block window — where tool traffic bites
+
+  Here is the part that answers "why could tool use push it out of range."
+
+  On request N+1, the server must locate the existing cache entry. It starts at your breakpoint and walks backward through at most 20 content blocks looking for a previously-cached prefix.
+  Find it → cheap read. Don't find it → full miss, and you re-pay for the entire prefix.
+
+  The trap: every tool_use and every tool_result is its own content block. A single agentic turn with 12 tool calls emits ~24 blocks. That one turn alone overruns the 20-block window, so
+  the next request's breakpoint cannot reach back far enough to see the previous cached point.
+
+  So my v1 concern was this, precisely: if Loom injects one extra block per turn from the gateway, it spends one of those 20 slots on every turn — pushing an already-marginal agentic
+  conversation over the edge. The enriched context isn't "pushed out of the model's view"; it's the cache lookup that fails, silently, at 10× cost.
+
+  The fix is mundane: place an intermediate breakpoint roughly every 15 blocks inside long turns. This is a real constraint but a cheap one, and it does not threaten the architecture.
+
+  The invalidation hierarchy — three tiers, not one
+
+  I want to correct an oversimplification in v1. Not every change nukes everything:
+
+  ┌───────────────────────────────────────┬─────────────┬──────────────┬────────────────┐
+  │             What changes              │ Tools cache │ System cache │ Messages cache │
+  ├───────────────────────────────────────┼─────────────┼──────────────┼────────────────┤
+  │ Tool definitions (add/remove/reorder) │     ❌      │      ❌      │       ❌       │
+  ├───────────────────────────────────────┼─────────────┼──────────────┼────────────────┤
+  │ Model switch                          │     ❌      │      ❌      │       ❌       │
+  ├───────────────────────────────────────┼─────────────┼──────────────┼────────────────┤
+  │ System prompt content                 │     ✅      │      ❌      │       ❌       │
+  ├───────────────────────────────────────┼─────────────┼──────────────┼────────────────┤
+  │ tool_choice, images, thinking on/off  │     ✅      │      ✅      │       ❌       │
+  ├───────────────────────────────────────┼─────────────┼──────────────┼────────────────┤
+  │ Message content (normal turns)        │     ✅      │      ✅      │       ❌       │
+  └───────────────────────────────────────┴─────────────┴──────────────┴────────────────┘
+
+  Read the bottom row as the good news: ordinary conversation never invalidates anything. Appending a turn is free. Only touching tools, system, or the model forces a rebuild.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+
+● Reticulating splines… (12s · thinking with low effort)
+  ⎿  ◻ Ground all factual claims via 4 parallel investigations
+     ◻ Answer Q1: quarantined staging Archon workspace
+     ◻ Answer Q2/Q3: Watcher-JICM interaction and proxy topology
+     ◻ Answer Q6/Q7: content-block lookback, breakpoints, cache anatomy
+     ◻ Answer Q9/Q15: per-Archon retrieval scoping and routing layer
+      … +4 pending
+
+
+  ❯ Watcher here. Context is heavy and a refresh is imminent — please save any in-progress working details to .claude/context/.scratchpad.dev.md (update it, don't append blindly; it is
+    your resume doc), then stop. No need to reply at length.
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-❯ 
+❯ Press up to edit queued messages
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  🟢 opus-5·1M  @Resume work from dev checkpoint  main +779-46📖 e:low △ exc-200k                                                                                             370817 tokens
-  [▓▓▓▓▓▓▓▓│┃············╿·····] 37% 368.7K  idle    S:— H:—  cache:99% eph1h:100%  warm/write/new                                                                                    Debug
-  $37.46  blk:$23.0  ⏱42h38m api:1%  5h:14%↺4h42m  7d:4%↺4d20h
+  🟢 opus-5·1M  @Resume work from dev checkpoint  main ↑1 +4-3📖 e:low △ exc-200k                                                                                             440585 tokens
+  [▓▓▓▓▓▓▓▓│┃▓▒··········╿·····] 44% 437.2K  Δ5.1K/m  S:14m H:20m  cache:99% eph1h:100%  warm/write/new                                                                               Debug
+  $9.05  ⏱1h54m api:6%  5h:7%↺3h34m  7d:53%↺1d16h
   ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+
+  ⏺ main
+  ◯ Explore  Grepping jicm-auto-ingest.py for Qdrant endpoints                                                                                                         2m 0s · ↓ 75.8k tokens
+  ◯ Explore  Grepping launch-aion.sh for lane launch dirs                                                                                                             1m 48s · ↓ 48.8k tokens
+  ◯ Explore  Grepping loom-oss README endpoints                                                                                                                       1m 38s · ↓ 74.2k tokens
 

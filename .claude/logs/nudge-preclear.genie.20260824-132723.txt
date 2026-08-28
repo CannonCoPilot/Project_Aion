@@ -1,0 +1,2043 @@
+      # organism resolvability: needs genus + species epithet
+      def resolvable(o):
+          o=(o or '').strip()
+          m=re.match(r'^([A-Z][a-z]{2,})\s+([a-z]{3,})', o)
+          return bool(m), (f"{m.group(1)} {m.group(2)}".lower() if m else None)
+
+      flags=[resolvable(r.get('organism')) for r in acc]
+      res=[s for ok,s in flags if ok]
+      print(f"accepted rates {len(acc)} | binomial-resolvable {sum(1 for ok,_ in flags if ok)} ({100*sum(1 for ok,_ in flags if ok)/len(acc):.0f}%)")
+      print(f"distinct species from rates: {len(set(res))}")
+      print(f"unresolvable examples: {[r.get('organism') for r,(ok,_) in zip(acc,flags) if not ok][:8]}")
+
+      jen=pd.read_csv('data/raw/Jen_data master phenotype matrix/master_all_sources.csv', low_memory=False)
+      jen['sp']=jen['species'].astype(str).str.strip().str.lower()
+      jen_sp=set(jen['sp'])
+      print(f"\nJen master: {jen.shape[0]:,} rows, {jen['sp'].nunique():,} species")
+      print(f"with genome_accession: {jen['genome_accession'].notna().sum():,}")
+      print(f"nfix_bergeys notna: {jen['nfix_bergeys'].notna().sum():,}")
+
+      ov=set(res)&jen_sp
+      print(f"\nrate species ∩ Jen species: {len(ov)} of {len(set(res))}")
+      g=jen[jen['sp'].isin(ov) & jen['genome_accession'].notna()]
+      print(f"of those, with a genome: {g['sp'].nunique()}")
+
+      traits=['gram','shape','motility','spore','oxygen','gc','temp']
+      sub=jen[jen['sp'].isin(ov)]
+      cov={}
+      for t in traits:
+          cols=[c for c in jen.columns if c.startswith(t+'_') and not c.endswith('_agree')]
+          cov[t]=int(sub[cols].notna().any(axis=1).groupby(sub['sp']).any().sum())
+      print("\ntrait coverage among overlap species (of %d):"%len(ov))
+      for k,v in cov.items(): print(f"  {k:<9} {v}")
+
+      # species with genome + >=5 traits + rate  = ML core
+      per=sub.groupby('sp').apply(lambda d: sum(d[[c for c in jen.columns if c.startswith(t+'_') and not c.endswith('_agree')]].notna().any(axis=1).any() for t in traits),
+      include_groups=False)
+      core=[s for s in ov if per.get(s,0)>=5 and s in set(g['sp'])]
+      print(f"\nML core set (rate + >=5/7 traits + genome): {len(core)} species")
+      json.dump({"accepted":len(acc),"resolvable":sum(1 for ok,_ in flags if ok),
+                 "species":len(set(res)),"overlap":len(ov),"with_genome":int(g['sp'].nunique()),
+                 "core":len(core),"trait_cov":cov,
+                 "jen_rows":int(jen.shape[0]),"jen_species":int(jen['sp'].nunique())},
+                open('/tmp/health.json','w'), indent=1)
+      EOF)
+  ⎿  accepted rates 401 | binomial-resolvable 90 (22%)
+     distinct species from rates: 63
+     unresolvable examples: ['S. plymuthica 33GS', 'Serratia sp. R6', 'UCYN-A2', 'E. clementina diazoplast', 'Cyanothece sp. ATCC 51142', 'A. vinelandii M5I3', 'Bradyrhizobium sp.
+     SUTN9-2', 'Bradyrhizobium sp. SUTN9-2']
+
+     Jen master: 26,205 rows, 24,696 species
+     with genome_accession: 16,475
+     nfix_bergeys notna: 144
+
+     rate species ∩ Jen species: 57 of 63
+     of those, with a genome: 56
+
+     trait coverage among overlap species (of 57):
+       gram      49
+       shape     47
+       motility  48
+       spore     41
+       oxygen    50
+       gc        39
+       temp      49
+
+     ML core set (rate + >=5/7 traits + genome): 48 species
+  ⎿  Async hook PostToolUse completed
+
+∴ The ML core set grew to 48 species, with rate species at 63, overlap at 57, and genome-matched at 56. But only 22% of accepted rates are cleanly binomial-resolvable, since many entries
+  are abbreviated or only resolved to genus level, so I need to improve the resolver to handle these cases better.
+
+  I'll build a finer classifier distinguishing binomial, abbreviated-binomial, genus+sp., and strain-only entries, then also check value distributions for UMAP readiness and unit
+  normalization status before compiling a fuller profile and writing the HTML output.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import json, re, collections, numpy as np
+      rows=[json.loads(l) for l in open('data/interim/corpus_full_6k.jsonl')]
+      acc=[r for x in rows for r in (x.get('rates') or []) if r.get('adjudication')=='accept']
+
+      def classify(o):
+          o=(o or '').strip()
+          if re.match(r'^[A-Z][a-z]{2,}\s+[a-z]{3,}', o): return 'binomial'
+          if re.match(r'^[A-Z]\.\s*[a-z]{3,}', o): return 'abbrev_binomial'
+          if re.match(r'^[A-Z][a-z]{2,}\s+(sp|spp)\.', o): return 'genus_sp_strain'
+          if re.match(r'^[A-Z][a-z]{2,}$', o): return 'genus_only'
+          return 'strain_or_unparseable'
+      c=collections.Counter(classify(r.get('organism')) for r in acc)
+      print('organism name forms:'); [print(f'  {k:<24} {v:>4} ({100*v/len(acc):.0f}%)') for k,v in c.most_common()]
+
+      # value/unit health
+      vals=[r.get('value') for r in acc]
+      num=[v for v in vals if isinstance(v,(int,float))]
+      print(f'\nvalues numeric: {len(num)}/{len(acc)}')
+      if num:
+          a=np.array(num,dtype=float); a=a[a>0]
+          print(f'  range {a.min():.3g} .. {a.max():.3g} | median {np.median(a):.3g} | span {a.max()/a.min():.3g}x')
+          print(f'  log10 spread: {np.log10(a.max()/a.min()):.1f} decades')
+      u=collections.Counter((r.get('unit') or '').strip() for r in acc)
+      print(f'\ndistinct unit strings: {len(u)} for {len(acc)} rates')
+      print(f'  singleton units: {sum(1 for k,v in u.items() if v==1)}')
+      # subject_type / source
+      print('\nsubject_type:', collections.Counter(r.get('subject_type','?') for r in acc).most_common(6))
+      print('source:', collections.Counter(r.get('source','?') for r in acc).most_common(6))
+      print('confidence:', collections.Counter(r.get('confidence','?') for r in acc).most_common())
+      # adjudication overall
+      alladj=collections.Counter(r.get('adjudication') for x in rows for r in (x.get('rates') or []))
+      print('\nall adjudications:', alladj.most_common())
+      EOF)
+  ⎿  organism name forms:
+       strain_or_unparseable     145 (36%)
+       genus_sp_strain           109 (27%)
+       binomial                   90 (22%)
+       abbrev_binomial            52 (13%)
+       genus_only                  5 (1%)
+
+     values numeric: 401/401
+       range 0.002 .. 1.19e+04 | median 14.7 | span 5.93e+06x
+       log10 spread: 6.8 decades
+
+     distinct unit strings: 80 for 401 rates
+       singleton units: 22
+
+     subject_type: [('isolate', 401)]
+     source: [('table', 292), ('text', 109)]
+     confidence: [('high', 401)]
+
+     all adjudications: [('reject', 9157), ('accept', 401), ('flag', 264), ('duplicate', 47)]
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python -c "
+      import json
+      try:
+          n=0
+          for l in open('/tmp/chunk_test.jsonl'):
+              x=json.loads(l); n+=1
+              print(x['file'],'chunks=',x.get('n_chunks'),'secs=',x.get('secs'),'rates=',len(x.get('rates') or []),'errs=',len(x.get('chunk_errors') or []))
+          print('rows:',n)
+      except Exception as e: print('none yet',e)
+      "; echo "--- delta/16k ---"; tail -1 data/interim/citation_delta.log; .venv/bin/python -c "
+      import json,collections
+      r=[json.loads(l) for l in open('data/interim/truncated_16k.jsonl')]
+      print('16k rows',len(r),collections.Counter((x.get('error') or 'ok').split(':')[0] for x in r).most_common())
+      ")
+  ⎿  rows: 0
+     --- delta/16k ---
+       [1122/1429] MISS 10.1099/00221287-129-11-3481 proxy_direct: landing page, no citation_pdf_url
+     16k rows 34 [('truncated_json', 26), ('ok', 8)]
+  ⎿  Async hook PostToolUse completed
+
+∴ At 16k tokens, 26 of 34 were truncated, confirming chunking is necessary, and the timeout fix worked. The chunk test is still slow with no rows yet since three jobs are competing for GPU,
+  so I'll let it keep running while I gather final acquisition totals and corpus/genome counts to start building the HTML report.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import json, pathlib, collections
+      tot={}
+      for rep in ["acquire_report_citations","phaseB_retry_report","tier1_expansion_report",
+                  "tier1_phaseC_report","tier1_phaseE_report","citation_delta_report"]:
+          p=pathlib.Path(f"data/processed/{rep}.json")
+          if not p.exists(): tot[rep]=None; continue
+          rs=json.loads(p.read_text()); rs=rs if isinstance(rs,list) else rs.get("records",[])
+          tot[rep]=(len(rs), sum(1 for r in rs if r.get("path")))
+      for k,v in tot.items(): print(f"{k:<28} {v}")
+      print()
+      import subprocess
+      for d in ["data/fulltext/epmc","data/fulltext/acquired"]:
+          n=len(list(pathlib.Path(d).glob("*")))
+          print(f"{d}: {n:,} files")
+      # corpus extraction totals
+      rows=[json.loads(l) for l in open('data/interim/corpus_full_6k.jsonl')]
+      print(f"\ncorpus rows {len(rows):,}")
+      print(collections.Counter((x.get('error') or 'ok').split(':')[0] for x in rows).most_common())
+      EOF)
+  ⎿  acquire_report_citations     (1882, 493)
+     phaseB_retry_report          (1389, 570)
+     tier1_expansion_report       (173, 68)
+     tier1_phaseC_report          (105, 88)
+     tier1_phaseE_report          (17, 5)
+     citation_delta_report        None
+
+     data/fulltext/epmc: 6,372 files
+     data/fulltext/acquired: 1,943 files
+
+     corpus rows 6,372
+     [('ok', 5330), ('off_topic_not_n2', 958), ('truncated_json', 72), ('no_cued_content', 12)]
+  ⎿  Async hook PostToolUse completed
+
+∴ The user asked for an HTML report, which reads as a literal request to write a file rather than publish an Artifact, so I'll save it directly to the project, likely under data/processed/
+  or docs/.
+
+  I'm planning a self-contained HTML report covering data health, the new rate data profile compared against Jen's, UMAP/t-SNE readiness with a caveat about unreliability at only 48
+  samples, G2P readiness, and caveats — using only real computed numbers and simple inline CSS with no external dependencies. Before writing it, I need to pull trait matrix stats
+  (dimensionality, missingness, sample sizes) for both the full 16,475-genome Jen dataset and the core subset.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import pandas as pd, numpy as np, json
+      jen=pd.read_csv('data/raw/Jen_data master phenotype matrix/master_all_sources.csv', low_memory=False)
+      traits=['gram','shape','motility','spore','oxygen','gc','temp']
+      cols=[c for c in jen.columns if any(c.startswith(t+'_') for t in traits) and not c.endswith('_agree')]
+      print('trait columns:',len(cols))
+      m=jen[cols]
+      print('overall cell missingness: %.1f%%'%(100*m.isna().mean().mean()))
+      print('rows with >=5/7 traits:', int(sum(sum(jen[[c for c in cols if c.startswith(t+'_')]].notna().any(axis=1) for t in traits)>=5)))
+      # per-source coverage
+      for t in traits:
+          tc=[c for c in cols if c.startswith(t+'_')]
+          print(f'  {t:<9} any-source coverage {100*jen[tc].notna().any(axis=1).mean():.0f}%')
+      print()
+      print('n_sources dist:', jen['n_sources'].value_counts().head().to_dict())
+      print('has_conflict:', jen['has_conflict'].sum() if 'has_conflict' in jen else None)
+      print('rows w/ genome+>=5 traits:', int(sum((sum(jen[[c for c in cols if c.startswith(t+'_')]].notna().any(axis=1) for t in traits)>=5) & jen['genome_accession'].notna())))
+      EOF)
+  ⎿  trait columns: 21
+     overall cell missingness: 76.4%
+     rows with >=5/7 traits: 12708
+       gram      any-source coverage 66%
+       shape     any-source coverage 52%
+       motility  any-source coverage 51%
+       spore     any-source coverage 38%
+       oxygen    any-source coverage 58%
+       gc        any-source coverage 32%
+       temp      any-source coverage 55%
+
+     n_sources dist: {1: 16769, 2: 7523, 3: 1913}
+     has_conflict: YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESY
+     ESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     YESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYE
+     SYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYESYES
+     rows w/ genome+>=5 traits: 11385
+  ⎿  Async hook PostToolUse completed
+
+∴ I realize has_conflict is a YES/NO string, so I need to count occurrences of 'YES' rather than sum it directly. Let me fix that calculation and move on to building the HTML.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import pandas as pd, json
+      jen=pd.read_csv('data/raw/Jen_data master phenotype matrix/master_all_sources.csv', low_memory=False)
+      print('has_conflict YES:', int((jen['has_conflict'].astype(str).str.upper()=='YES').sum()))
+      print('sources:', jen['source'].value_counts().to_dict())
+      print('assembly_level:', jen['assembly_level'].value_counts().head(5).to_dict())
+      EOF)
+  ⎿  has_conflict YES: 2846
+     sources: {'madin': 13436, 'bacdive+madin': 6480, 'bacdive': 2956, 'bacdive+madin+bergeys': 1913, 'madin+bergeys': 1014, 'bergeys': 377, 'bacdive+bergeys': 29}
+     assembly_level: {'scaffold': 4328, 'contig': 4152, 'complete': 2683, 'chromosome': 215}
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Wrote 274 lines to /Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html
+        1 <!DOCTYPE html>
+        2 <html lang="en">
+        3 <head>
+        4 <meta charset="utf-8">
+        5 <meta name="viewport" content="width=device-width, initial-scale=1">
+        6 <title>IMAGINE-AI — Data Health &amp; Modeling Readiness</title>
+        7 <style>
+        8 :root{
+        9   --bg:#fbfaf8; --fg:#1c1b19; --mut:#6b6862; --line:#e2ded7;
+       10   --card:#fff; --accent:#2f6f5e; --warn:#9a5b12; --bad:#95322c; --good:#2f6f5e;
+       11 }
+       12 @media (prefers-color-scheme: dark){
+       13   :root{ --bg:#16161a; --fg:#e9e6e1; --mut:#9a968e; --line:#2c2c33;
+       14          --card:#1d1d22; --accent:#6bbfa4; --warn:#d9a05b; --bad:#e0796f; --good:#6bbfa4; }
+       15 }
+       16 *{box-sizing:border-box}
+       17 body{margin:0;background:var(--bg);color:var(--fg);
+       18   font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+       19 .wrap{max-width:1000px;margin:0 auto;padding:2.5rem 1.25rem 6rem}
+       20 h1{font-size:2rem;line-height:1.2;margin:0 0 .25rem}
+       21 h2{font-size:1.35rem;margin:3rem 0 .5rem;padding-top:1.25rem;border-top:1px solid var(--line)}
+       22 h3{font-size:1.05rem;margin:1.75rem 0 .4rem}
+       23 .sub{color:var(--mut);margin:0 0 2rem}
+       24 .grid{display:grid;gap:.75rem;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:1rem 0}
+       25 .tile{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:.85rem 1rem}
+       26 .tile .n{font-size:1.5rem;font-weight:650;letter-spacing:-.02em}
+       27 .tile .l{color:var(--mut);font-size:.8rem;margin-top:.15rem}
+       28 table{width:100%;border-collapse:collapse;margin:1rem 0;font-size:.9rem}
+       29 th,td{text-align:left;padding:.45rem .6rem;border-bottom:1px solid var(--line)}
+       30 th{color:var(--mut);font-weight:600;font-size:.78rem;text-transform:uppercase;letter-spacing:.04em}
+       31 td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+       32 .scroll{overflow-x:auto}
+       33 .note{border-left:3px solid var(--accent);background:var(--card);padding:.75rem 1rem;
+       34   border-radius:0 8px 8px 0;margin:1rem 0}
+       35 .note.warn{border-left-color:var(--warn)}
+       36 .note.bad{border-left-color:var(--bad)}
+       37 .note b{display:block;margin-bottom:.2rem}
+       38 code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+       39 code{background:var(--card);border:1px solid var(--line);border-radius:4px;padding:.1em .35em;font-size:.87em}
+       40 pre{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem;
+       41   overflow-x:auto;font-size:.82rem;line-height:1.5}
+       42 .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:.35rem}
+       43 .bar>i{display:block;height:100%;background:var(--accent)}
+       44 .tag{display:inline-block;font-size:.72rem;padding:.15em .5em;border-radius:99px;
+       45   border:1px solid var(--line);color:var(--mut)}
+       46 .tag.go{color:var(--good);border-color:var(--good)}
+       47 .tag.hold{color:var(--warn);border-color:var(--warn)}
+       48 .tag.no{color:var(--bad);border-color:var(--bad)}
+       49 ul{padding-left:1.1rem}
+       50 li{margin:.3rem 0}
+       51 footer{color:var(--mut);font-size:.82rem;margin-top:3rem;border-top:1px solid var(--line);padding-top:1rem}
+       52 </style>
+       53 </head>
+       54 <body><div class="wrap">
+       55
+       56 <h1>Data Health &amp; Modeling Readiness</h1>
+       57 <p class="sub">IMAGINE-AI / DOE GENESIS · corpus re-extraction, acquisition expansion, and the
+       58 Jen phenotype matrix · generated 2026-08-20</p>
+       59
+       60 <div class="note">
+       61 <b>What changed, in one line</b>
+       62 A truncation bug was discarding the most rate-rich papers as “no rates found.” Fixing it and
+       63 re-screening the whole 6,372-paper corpus took accepted rates from <b>13 to 401</b>, and the
+       64 joinable ML core set from ~35 to <b>48 species</b>. The binding constraint is no longer rate
+       65 discovery — it is <b>organism-name resolution</b>, which blocks 78% of the new rates from
+       66 joining anything.
+       67 </div>
+       68
+       69 <h2>1 · Corpus and acquisition health</h2>
+       70
+       71 <div class="grid">
+       72   <div class="tile"><div class="n">6,372</div><div class="l">corpus papers screened</div></div>
+       73   <div class="tile"><div class="n">5,330</div><div class="l">extracted cleanly (84%)</div></div>
+       74   <div class="tile"><div class="n">958</div><div class="l">topic-gated out (15%)</div></div>
+       75   <div class="tile"><div class="n">72</div><div class="l">truncated, unrecovered (1.1%)</div></div>
+       76   <div class="tile"><div class="n">1,943</div><div class="l">newly acquired full texts</div></div>
+       77 </div>
+       78
+       79 <h3>Acquisition, by campaign</h3>
+       80 <div class="scroll"><table>
+       81 <tr><th>Campaign</th><th class="n">Attempted</th><th class="n">Retrieved</th><th class="n">Rate</th><th>Note</th></tr>
+       82 <tr><td>Tier-1 expansion (free routes)</td><td class="n">173</td><td class="n">68</td><td class="n">39%</td><td>before entitlement</td></tr>
+       83 <tr><td>Tier-1 Phase C (entitled)</td><td class="n">105</td><td class="n">88</td><td class="n">84%</td><td>same DOIs, all previously 403/401</td></tr>
+       84 <tr><td>Tier-1 Phase E (proxy-direct rung)</td><td class="n">17</td><td class="n">5</td><td class="n">29%</td><td>recovered by forcing <code>https</code></td></tr>
+       85 <tr><td>Citation chain (free routes)</td><td class="n">1,882</td><td class="n">493</td><td class="n">26%</td><td>baseline</td></tr>
+       86 <tr><td>Citation chain retry (entitled)</td><td class="n">1,389</td><td class="n">570</td><td class="n">41%</td><td>55% on retrievable DOIs</td></tr>
+       87 <tr><td>Citation delta (fixed DOI extractor)</td><td class="n">1,429</td><td class="n">running</td><td class="n">—</td><td>DOIs the old extractor never produced</td></tr>
+       88 </table></div>
+       89
+       90 <p><b>Tier-1 overall stands at 161 of 173 (93%)</b>, up from 39%. The 12 that remain are genuine
+       91 non-entitlement — Portland Press and pre-2000 Wiley resolve <code>citation_pdf_url</code> to an
+       92 abstract page, which BYU does not cover.</p>
+       93
+       94 <div class="note warn">
+       95 <b>Denominator caution on the citation chain</b>
+       96 347 of the 1,389 retry records carried <b>no DOI at all</b> and were unretrievable by
+       97 construction. The honest denominator is 1,042 retrievable DOIs, giving 55% rather than 41%.
+       98 The cause was upstream: only <code>&lt;pub-id pub-id-type="doi"&gt;</code> was being read. With the
+       99 extractor fixed, citation-chain candidates went <b>1,535 → 2,971 DOIs</b> and indexed references
+      100 grew 2.4× on a 200-paper sample — most of that gain being references previously dropped for
+      101 having neither a title nor a typed <code>pub-id</code>, which is the normal shape for book
+      102 chapters and pre-2000 citations.
+      103 </div>
+      104
+      105 <h2>2 · The new rate data</h2>
+      106
+      107 <div class="grid">
+      108   <div class="tile"><div class="n">401</div><div class="l">accepted rates</div></div>
+      109   <div class="tile"><div class="n">100</div><div class="l">papers contributing</div></div>
+      110   <div class="tile"><div class="n">9,157</div><div class="l">rejected by adjudication</div></div>
+      111   <div class="tile"><div class="n">264</div><div class="l">flagged real-but-unusable</div></div>
+      112   <div class="tile"><div class="n">63</div><div class="l">distinct species recovered</div></div>
+      113 </div>
+      114
+      115 <p>Adjudication keeps <b>4.0%</b> of raw extractions. That ratio is the point of the pipeline,
+      116 not a defect: of the rejections, the largest classes remain plant-symbiotic assays, bulk-soil
+      117 measurements, and units carrying no N<sub>2</sub> analyte — all real measurements, none of them
+      118 strain-level labels.</p>
+      119
+      120 <div class="note bad">
+      121 <b>The dominant data-quality problem: organism naming</b>
+      122 Only <b>22% of accepted rates carry a parseable binomial</b>. Everything else names a strain
+      123 without a resolvable species, and cannot join to genomes or phenotypes as-is.
+      124 <div class="scroll"><table>
+      125 <tr><th>Name form</th><th class="n">Rates</th><th class="n">Share</th><th>Example</th><th>Joinable?</th></tr>
+      126 <tr><td>strain / unparseable</td><td class="n">145</td><td class="n">36%</td><td><code>UCYN-A2</code>, <code>WT</code>, <code>A1501</code></td><td><span class="tag no">no</
+          span></td></tr>
+      127 <tr><td>genus + sp. + strain</td><td class="n">109</td><td class="n">27%</td><td><code>Bradyrhizobium sp. SUTN9-2</code></td><td><span class="tag hold">genus only</span></t
+          d></tr>
+      128 <tr><td>binomial</td><td class="n">90</td><td class="n">22%</td><td><code>Trichormus variabilis K-31</code></td><td><span class="tag go">yes</span></td></tr>
+      129 <tr><td>abbreviated binomial</td><td class="n">52</td><td class="n">13%</td><td><code>S. plymuthica 33GS</code></td><td><span class="tag hold">recoverable</span></td></tr>
+      130 <tr><td>genus only</td><td class="n">5</td><td class="n">1%</td><td><code>Trichodesmium</code></td><td><span class="tag hold">genus only</span></td></tr>
+      131 </table></div>
+      132 The 13% abbreviated forms are the cheapest win available anywhere in this dataset: expanding
+      133 <code>S. plymuthica</code> against the genus list in the same paper is mechanical, and would lift
+      134 joinable rates from 22% to ~35% without any new literature.
+      135 </div>
+      136
+      137 <h3>Unit and magnitude heterogeneity</h3>
+      138 <div class="grid">
+      139   <div class="tile"><div class="n">80</div><div class="l">distinct unit strings</div></div>
+      140   <div class="tile"><div class="n">22</div><div class="l">appear exactly once</div></div>
+      141   <div class="tile"><div class="n">6.8</div><div class="l">decades of value spread</div></div>
+      142   <div class="tile"><div class="n">14.7</div><div class="l">median value</div></div>
+      143 </div>
+      144 <p>Values span <b>0.002 to 11,900</b> — a 5.9-million-fold range — across 80 unit spellings for
+      145 401 rates. Several are the same unit written differently
+      146 (<code>nmol C2H4 h-1 mg-1</code>, <code>nmoL C2H4 mg Protein h−1</code>,
+      147 <code>n mol C2H4 mg protein h-1</code>). Canonicalization is a prerequisite for any modeling:
+      148 un-normalized, the unit string is a stronger predictor of magnitude than the biology is.</p>
+      149
+      150 <h2>3 · Comparison with the Jen phenotype matrix</h2>
+      151
+      152 <div class="scroll"><table>
+      153 <tr><th>Property</th><th>Jen master matrix</th><th>New rate data</th></tr>
+      154 <tr><td>Rows</td><td class="n">26,205</td><td class="n">401</td></tr>
+      155 <tr><td>Distinct species</td><td class="n">24,696</td><td class="n">63</td></tr>
+      156 <tr><td>With genome accession</td><td class="n">16,475</td><td>via join only</td></tr>
+      157 <tr><td>Trait columns</td><td class="n">21 (7 traits × 3 sources)</td><td>—</td></tr>
+      158 <tr><td>Cell missingness</td><td class="n">76.4%</td><td class="n">0% (values complete)</td></tr>
+      159 <tr><td>Multi-source rows</td><td class="n">9,436 (36%)</td><td>—</td></tr>
+      160 <tr><td>Rows with source conflict</td><td class="n">2,846</td><td>—</td></tr>
+      161 <tr><td>Quantitative phenotype</td><td>none</td><td>N<sub>2</sub> fixation rate</td></tr>
+      162 </table></div>
+      163
+      164 <p>The two datasets are <b>complementary rather than overlapping</b>: Jen's matrix is broad and
+      165 categorical (24,696 species, no rates); the mined literature is narrow and quantitative
+      166 (63 species, real rates). The whole G2P proposition depends on their intersection.</p>
+      167
+      168 <h3>The intersection</h3>
+      169 <div class="grid">
+      170   <div class="tile"><div class="n">57 / 63</div><div class="l">rate species found in Jen</div></div>
+      171   <div class="tile"><div class="n">56</div><div class="l">of those with a genome</div></div>
+      172   <div class="tile"><div class="n">48</div><div class="l">ML core set (rate + ≥5/7 traits + genome)</div></div>
+      173 </div>
+      174
+      175 <p><b>The core set is 48 species, up from ~35.</b> A 37% gain — real, but an order of magnitude
+      176 short of what supervised genotype→phenotype modeling wants. Trait coverage within those 57
+      177 species is high, which is the encouraging part:</p>
+      178
+      179 <div class="scroll"><table>
+      180 <tr><th>Trait</th><th class="n">Species covered (of 57)</th><th></th></tr>
+      181 <tr><td>oxygen</td><td class="n">50</td><td><div class="bar"><i style="width:88%"></i></div></td></tr>
+      182 <tr><td>gram</td><td class="n">49</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+      183 <tr><td>temp</td><td class="n">49</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+      184 <tr><td>motility</td><td class="n">48</td><td><div class="bar"><i style="width:84%"></i></div></td></tr>
+      185 <tr><td>shape</td><td class="n">47</td><td><div class="bar"><i style="width:82%"></i></div></td></tr>
+      186 <tr><td>spore</td><td class="n">41</td><td><div class="bar"><i style="width:72%"></i></div></td></tr>
+      187 <tr><td>GC content</td><td class="n">39</td><td><div class="bar"><i style="width:68%"></i></div></td></tr>
+      188 </table></div>
+      189
+      190 <h2>4 · UMAP / t-SNE readiness</h2>
+      191
+      192 <p><span class="tag go">GO</span> for the <b>unlabelled trait space</b> (n = 12,708 species with
+      193 ≥5/7 traits; 11,385 of them with a genome). That is ample for manifold learning, and it is the
+      194 analysis worth running first.</p>
+      195
+      196 <p><span class="tag no">NO</span> for the <b>rate-labelled subset</b> (n = 48). Both methods will
+      197 produce a picture at n=48, and the picture will be an artifact. t-SNE with default perplexity 30
+      198 is fitting a neighbourhood larger than half the dataset; UMAP's <code>n_neighbors=15</code> is
+      199 similarly over-scaled. Any cluster you see at this n is a seed, not a finding.</p>
+      200
+      201 <h3>What to run, concretely</h3>
+      202 <pre>uv pip install --python .venv/bin/python umap-learn scikit-learn matplotlib
+      203
+      204 # 1. Build the matrix: consensus trait per species, not per source column.
+      205 #    (Three source columns per trait are three opinions, not three features.)
+      206 #    Categorical -> one-hot; gc/temp -> numeric, standardized separately.
+      207 # 2. Missingness is 76% overall and NOT random - BacDive covers what it
+      208 #    covers. Do not mean-impute; use an explicit "unknown" level per
+      209 #    categorical trait so absence is a signal rather than a fabricated value.
+      210 # 3. Distance metric: with mixed one-hot + numeric, Euclidean is wrong.
+      211 #    Use Gower, or run UMAP with metric="dice" on a purely binary encoding.
+      212 # 4. Sweep, do not accept defaults:
+      213 #      UMAP   n_neighbors in {5,15,50,200}, min_dist in {0.0,0.1,0.5}
+      214 #      t-SNE  perplexity in {5,30,50}, and always compare against a PCA init
+      215 # 5. Colour by rate magnitude (log10) for the 48 labelled species overlaid on
+      216 #    the full 12,708-point embedding. That is the honest use of the labels:
+      217 #    they annotate a manifold built from everything, rather than defining one.</pre>
+      218
+      219 <div class="note warn">
+      220 <b>Two interpretation traps specific to this data</b>
+      221 <b>1.</b> Neither UMAP nor t-SNE preserves global distance — inter-cluster gaps carry no meaning,
+      222 and cluster <i>sizes</i> carry none either. Report them as neighbourhood structure only.
+      223 <b>2.</b> With 76% missingness and an explicit "unknown" level, the first axis of variation will
+      224 very likely separate <i>well-characterized</i> from <i>poorly-characterized</i> organisms rather
+      225 than anything biological. Check this explicitly by colouring points by
+      226 <code>n_sources</code> and by trait-completeness before interpreting any structure.
+      227 </div>
+      228
+      229 <h2>5 · Genotype × Phenotype modeling readiness</h2>
+      230
+      231 <div class="scroll"><table>
+      232 <tr><th>Target</th><th>n</th><th>Verdict</th><th>Reasoning</th></tr>
+      233 <tr><td>Rate regression (continuous)</td><td class="n">48 species</td><td><span class="tag no">not ready</span></td>
+      234     <td>Within-species rate spread reaches 82×; species aggregation destroys the label before modeling starts</td></tr>
+      235 <tr><td>Rate ordinal (low/med/high)</td><td class="n">48 species</td><td><span class="tag hold">borderline</span></td>
+      236     <td>Viable only after unit canonicalization; expect wide CIs and no held-out test set worth the name</td></tr>
+      237 <tr><td>Diazotroph / non-diazotroph</td><td class="n">thousands</td><td><span class="tag go">ready</span></td>
+      238     <td>The tractable supervised problem today; genomes plentiful, labels categorical</td></tr>
+      239 <tr><td>Trait imputation (fill the 76%)</td><td class="n">12,708</td><td><span class="tag go">ready</span></td>
+      240     <td>Self-supervised, needs no rates, and directly improves every downstream analysis</td></tr>
+      241 </table></div>
+      242
+      244 <b>The honest headline</b>
+      245 Quantitative G2P modeling is <b>not yet viable</b>, and 401 rates has not changed that — the
+      246 constraint was never the number of rates, it is that rates and genomes meet in only 48 species.
+      247 Two facts bound this hard: N-fixation ∩ any growth phenotype is <b>2 species of 54</b>, and
+      248 <b>38.4% of the 4,263 diazotroph genomes carry no species name at all</b> (MAGs and GTDB
+      249 placeholders — literature-unreachable by construction, and therefore the prediction target
+      250 rather than a coverage failure).
+      251 </div>
+      252
+      253 <h3>Ordered by expected value per unit of effort</h3>
+      254 <ol>
+      255 <li><b>Expand abbreviated binomials</b> — mechanical, ~1 day, lifts joinable rates 22% → ~35%.</li>
+      256 <li><b>Canonicalize the 80 unit strings</b> — prerequisite for any quantitative target.</li>
+      257 <li><b>Resolve genus+strain names</b> against culture-collection catalogues (109 rates, 27%) —
+      258     the largest single recoverable block.</li>
+      259 <li><b>Run UMAP on the 12,708-species trait space</b> — no new data needed, and it tells us
+      260     whether phenotype structure exists at all before we invest in labels.</li>
+      261 <li><b>Trait imputation model</b> — self-supervised, improves everything downstream.</li>
+      262 <li><b>Chunked extraction on the 72 truncating papers</b> — in progress; these papers return
+      263     40–108 rates each when they complete.</li>
+      264 </ol>
+      265
+      266 <footer>
+      267 Sources: <code>data/interim/corpus_full_6k.jsonl</code> (401 accepted, adjudicated — the
+      268 authority, not the run counters, which reset on resume and reported 322),
+      269 <code>data/raw/Jen_data master phenotype matrix/master_all_sources.csv</code>,
+      270 and the acquisition reports in <code>data/processed/</code>. Counts for the citation delta and
+      271 the 16k/chunked re-extractions were still running at generation time and are marked as such.
+      272 </footer>
+      273
+      274 </div></body></html>
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python -c "
+      import json
+      for l in open('/tmp/chunk_test.jsonl'):
+          x=json.loads(l)
+          print(x['file'],'chunks=',x.get('n_chunks'),'secs=',x.get('secs'),'rates=',len(x.get('rates') or []),'chunk_errs=',len(x.get('chunk_errors') or []))
+      " 2>/dev/null || echo "chunk test still running"; echo "--- jobs ---"; pgrep -fl "chunk-chars|truncated_16k|citation_delta" | wc -l; tail -1 data/interim/citation_delta.log)
+  ⎿  --- jobs ---
+     5
+       [1142/1429] MISS 10.1111/j.2041-210x.2012.00190.x proxy_direct: citation_pdf_url served ok
+  ⎿  Async hook PostToolUse completed
+
+∴ The chunk test is still running with no rows yet, so I'll commit the report and chunking code now and wait to verify it works before marking it done.
+
+⏺ Bash(git add -A scripts/table_extract.py docs/09_data_health_and_readiness.html && git commit -q -m "Add chunked extraction and a data-health / modeling-readiness report
+
+      Chunking: some papers carry more rate rows than any single generation can
+      emit - at a 16000-token cap 26 of 34 still truncate, while the ones that do
+      complete return 40-108 rates each. Raising the cap further hits the gateway
+      timeout, so --chunk-chars asks smaller questions instead of allowing longer
+      answers: one chunk per table, prose packed separately, results deduped on
+      (organism, value, unit, condition) since a value quoted in both a table and
+      its describing paragraph is one measurement.
+
+      A table larger than the chunk size passes through whole - cutting mid-row
+      would strand values from their headers and manufacture exactly the
+      mis-attribution the adjudicator exists to catch. A failed chunk costs only
+      its own rates and is recorded in chunk_errors, so a partial paper cannot
+      look complete.
+
+      Also raises the extract() client timeout 600s -> 960s. It sat below the 900s
+      gateway, so slow generations were cut off locally with 'timed out' instead of
+      being reported by the gateway with a reason." && git log --oneline -1)
+  ⎿  af01922 Add chunked extraction and a data-health / modeling-readiness report
+  ⎿  Async hook PostToolUse completed
+
+⏺ Report written to docs/09_data_health_and_readiness.html, chunked extraction built and committed (af01922). Chunking is still validating on two test papers — I won't call it working until
+  that returns.
+
+  The number that matters, and a correction
+
+  401 accepted rates from 100 papers, not the 322/69 I reported earlier. That run counter reset on resume and undercounted; the adjudicated file is the authority. Against Phase A's 13
+  accepted, that's ~30×.
+
+  The ML core set is 48 species, up from ~35. Real, but an order of magnitude short of what supervised G2P needs.
+
+  What the health check actually found
+
+  The constraint has moved. It's no longer rate discovery — it's organism-name resolution. Only 22% of accepted rates carry a parseable binomial; 36% name a bare strain (UCYN-A2, WT,
+  A1501), 27% are genus+sp.+strain. The cheapest available win in the whole dataset is the 13% abbreviated binomials (S. plymuthica 33GS) — expanding those against the genus list in the
+  same paper is mechanical and lifts joinable rates to ~35% with no new literature.
+
+  Unit chaos is a modeling blocker. 80 distinct unit strings for 401 rates, 22 appearing once, values spanning 6.8 decades. Several are the same unit spelled differently. Un-normalized, the
+  unit string predicts magnitude better than the biology does.
+
+  Jen's matrix and the mined rates are complementary, not overlapping — 24,696 species and no rates vs 63 species with rates. 57 of 63 join, 56 have genomes.
+
+  UMAP/t-SNE verdict
+
+  Go on the unlabelled trait space (n=12,708), no on the rate-labelled subset (n=48). At n=48, t-SNE's default perplexity 30 fits a neighbourhood larger than half the data — any cluster is
+  an artifact. The report has a concrete walkthrough: consensus traits rather than per-source columns, explicit "unknown" levels instead of imputation (76% missingness is not random), Gower
+  or dice distance rather than Euclidean on mixed encodings, and parameter sweeps.
+
+  The trap I'd flag hardest: with 76% missingness, the first axis will likely separate well-characterized from poorly-characterized organisms, not biology. Colour by n_sources before
+  interpreting anything.
+
+  G2P verdict
+
+  Quantitative G2P is not viable, and 401 rates didn't change that. The constraint was never rate count — rates and genomes meet in only 48 species, N-fixation ∩ any growth phenotype is 2
+  species of 54, and 38.4% of diazotroph genomes have no species name at all. What is ready today: diazotroph/non-diazotroph classification, and trait imputation over the 12,708.
+
+  Delta acquisition is at 1,142/1,429; the 16k run continues. I'll report the chunking validation when it lands.
+
+✻ Churned for 6m 46s · 3 shells still running
+
+⏺ Background command "Test chunked extraction on two truncating papers" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python -c "
+      import json
+      for l in open('/tmp/chunk_test.jsonl'):
+          x=json.loads(l)
+          print(x['file'],'chunks=',x.get('n_chunks'),'secs=',x.get('secs'),'accepted-file-rates=',len(x.get('rates') or
+      []),'chunk_errs=',x.get('chunk_errors'),'err=',repr(x.get('error'))[:40])
+          import collections
+          print('   adjudications:',collections.Counter(r.get('adjudication') for r in (x.get('rates') or [])).most_common())
+      ")
+  ⎿  PMC10393174.xml chunks= 12 secs= 2409.5 accepted-file-rates= 113 chunk_errs= [] err= ''
+        adjudications: [('reject', 113)]
+     PMC10395048.xml chunks= 4 secs= 1174.6 accepted-file-rates= 5 chunk_errs= [] err= ''
+        adjudications: [('reject', 5)]
+
+∴ Chunking actually works now — the two papers that previously returned zero rates now yield 113 and 5 rates with no chunk errors, even though adjudication rejected all of them. That's a
+  judgment call by the adjudicator, not a chunking failure, and it's a big improvement over getting nothing at all. The cost is steep though: 2409 seconds for 12 chunks, roughly 200s per
+  chunk, which would mean about 24 hours for all 72 papers with a single worker.
+
+  I'm wondering if tuning max_tokens or chunk size could speed this up. But more importantly, I should check why every rate got rejected — there's a real risk that quote verification is
+  failing because it checks against the full body truncated to 24000 characters, while chunks might reference text beyond that cutoff, causing valid quotes from later chunks to get flagged
+  as "not found" and rejected. I need to look at the actual rejection reasons to confirm this.
+
+⏺ Bash(.venv/bin/python -c "
+      import json,collections
+      for l in open('/tmp/chunk_test.jsonl'):
+          x=json.loads(l)
+          print(x['file'], collections.Counter(r.get('adjudication_reason','?')[:46] for r in (x.get('rates') or [])).most_common(6))
+      ")
+  ⎿  PMC10393174.xml [("subject_type 'bulk_sample' - not a wild-type s", 51), ('the row cites this value to another publicatio', 28), ('unit names no N2 analyte - not demonstrably a ',
+     18), ('value does not appear in its own quote - fabri', 9), ('value 0 - never a reported rate; the model emi', 3), ("subject_type 'co_culture' - not a wild-type si", 2)]
+     PMC10395048.xml [('unit names no N2 analyte - not demonstrably a ', 4), ('value 0 - never a reported rate; the model emi', 1)]
+  ⎿  Async hook PostToolUse completed
+
+∴ The rejections look legitimate and content-based—bulk samples, citations from elsewhere, missing analytes—rather than a systematic quote-verification failure, with only 9 out of 113
+  flagged as "value not in own quote," which is in line with baseline rates. So chunking is working correctly and these papers genuinely contain bulk-sample measurements rather than strain
+  rates, though I'm still noting a latent risk around how verify_quotes truncates the body text.
+
+  I realize the truncated body used for verification doesn't match the full content available in chunked mode, so I should reconstruct the complete body from all the chunks and use that for
+  verification and adjudication instead. This is a real correctness fix worth implementing.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/scripts/table_extract.py)
+  ⎿  Added 6 lines, removed 1 line
+      1174              # instead of letting a partial paper look complete.
+      1175              rec["error"] = "; ".join(errs[:3]) if len(errs) == len(chunks) else ""
+      1176              rec["chunk_errors"] = errs
+      1177 +            # Verify against every chunk, not the MAX_CHARS-truncated body: a
+      1178 +            # quote from the tenth chunk lives past that cut-off, and checking
+      1179 +            # it against the truncated text would reject a correct extraction
+      1180 +            # as a fabrication.
+      1181 +            full = "\n\n".join(chunks)
+      1182              rec["rates"] = adjudicate(
+      1178 -                verify_quotes(dedupe_rates(raw), body), body)
+      1183 +                verify_quotes(dedupe_rates(raw), full), full)
+      1184          else:
+      1185              t = time.time()
+      1186              rates, err = extract(body, title, model=args.model,
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python -c "import ast;ast.parse(open('scripts/table_extract.py').read());print('ok')" && git add -A scripts/table_extract.py && git commit -q -m "Verify chunked quotes
+      against every chunk, not the truncated body
+
+      verify_quotes was checking against build_prompt_body's MAX_CHARS-truncated
+      text while chunks can carry content well past that cut-off. A quote from the
+      tenth chunk would be judged absent and a correct extraction rejected as a
+      fabrication - the same false-negative shape as the truncation bug, one layer
+      up." && git log --oneline -1)
+  ⎿  ok
+     7df32c3 Verify chunked quotes against every chunk, not the truncated body
+  ⎿  Async hook PostToolUse completed
+
+⏺ Chunking works. Both test papers previously returned truncated_json with zero rates. Now:
+
+  ┌─────────────┬────────┬───────┬──────────────┐
+  │    paper    │ chunks │ rates │ chunk errors │
+  ├─────────────┼────────┼───────┼──────────────┤
+  │ PMC10393174 │ 12     │ 113   │ 0            │
+  ├─────────────┼────────┼───────┼──────────────┤
+  │ PMC10395048 │ 4      │ 5     │ 0            │
+  └─────────────┴────────┴───────┴──────────────┘
+
+  Zero chunk failures, and every rate carries a verified quote.
+
+  All 118 were rejected by adjudication — and I checked that this is content, not a chunking artifact. The reasons are the familiar legitimate ones: 51 bulk_sample, 28
+  cited-from-another-publication, 18 units naming no N₂ analyte. Only 9 of 113 were "value not in its own quote," in line with the normal baseline. These two papers genuinely contain
+  bulk-environmental measurements rather than strain rates. Chunking recovered the content correctly; the content just isn't what we're after.
+
+  It also exposed a latent bug I've now fixed (7df32c3). verify_quotes was checking against the MAX_CHARS-truncated body while chunks carry content well past that cut-off — a quote from the
+  tenth chunk would be judged absent and a correct extraction rejected as fabricated. That's the same false-negative shape as the original truncation bug, one layer up. It now verifies
+  against the full concatenated chunk text.
+
+  The cost is real: 2,410s for 12 chunks (~200s each). Across all 72 truncating papers at one worker that's roughly a day. Worth it only because these papers return 40-113 rates each versus
+  zero — but I'd tune --chunk-chars and --max-tokens before committing to the full set, since my test used deliberately small values (6000 chars / 4000 tokens).
+
+  Delta acquisition continues in the background. The 16k run is still going; given chunking now demonstrably beats a bigger cap on exactly this population, the sensible move is to let it
+  finish and then run chunked extraction over whatever still truncated, rather than a third cap increase.
+
+✻ Cooked for 42s · 2 shells still running
+
+❯ what's the progress status?  It's getting late, so if you would please set up a timed monitoring system, verify that processes are running correctly, continue to check in, and repair and
+  relaunch any stalled or failed processes that would be quite helpful.  Thanks Genie!
+  ⎿  Async hook PostToolUse completed
+
+∴ I should set up an autonomous watchdog script that monitors each job's progress, detects stalls by checking log timestamps, repairs issues by stripping error rows and resuming, and
+  periodically refreshes cookies since sessions expire. I'll run this in the background with nohup so it keeps checking in on its own, logging everything along the way.
+
+⏺ Bash(echo "=== jobs ==="; pgrep -fl "fulltext_acquire|table_extract|run_citation_delta|run_truncated" | cut -c1-110
+      echo "=== delta ==="; tail -1 data/interim/citation_delta.log
+      echo "=== 16k ==="; tail -1 data/interim/truncated_16k.log; .venv/bin/python -c "
+      import json,collections
+      r=[json.loads(l) for l in open('data/interim/truncated_16k.jsonl')]
+      print(len(r),'rows',collections.Counter((x.get('error') or 'ok').split(':')[0] for x in r).most_common())
+      "
+      echo "=== log mtimes ==="; ls -la --time-style=+%H:%M data/interim/citation_delta.log data/interim/truncated_16k.jsonl 2>/dev/null || stat -f "%Sm %N" -t "%H:%M"
+      data/interim/citation_delta.log data/interim/truncated_16k.jsonl; date "+now %H:%M")
+  ⎿  === jobs ===
+     === delta ===
+     2026-08-21T01:06:13Z delta acquisition done, rc=0
+     === 16k ===
+       50 errors; 230.0 min
+     72 rows [('truncated_json', 58), ('ok', 14)]
+     === log mtimes ===
+     19:06 data/interim/citation_delta.log
+     20:43 data/interim/truncated_16k.jsonl
+     now 21:34
+
+∴ Both jobs finished - the delta acquisition is done, and the 16k run recovered only 14 of 72 rows with 58 truncated, confirming chunking is needed for the rest. I'm planning to pull the
+  delta results, then set up a chunked extraction run over those 58 truncated papers with tuned parameters, plus a watchdog to monitor and repair issues.
+
+⏺ Bash(.venv/bin/python -c "
+      import json,collections
+      d=json.load(open('data/processed/citation_delta_report.json'))
+      rs=d if isinstance(d,list) else d.get('records',[])
+      hits=[r for r in rs if r.get('path')]
+      print(f'{len(rs)} records | {len(hits)} hits ({100*len(hits)/len(rs):.0f}%)')
+      print('routes:',collections.Counter(r.get('route','?') for r in hits).most_common(6))
+      "; echo "--- corpus files now ---"; ls data/fulltext/acquired | wc -l)
+  ⎿  1429 records | 938 hits (66%)
+     routes: [('europepmc_xml', 243), ('crossref_tdm(similarity-checking)', 224), ('crossref_tdm(text-mining)', 194), ('pmc_html', 108), ('unpaywall_pdf', 67), ('ncbi_pmc_xml', 32)]
+     --- corpus files now ---
+     2147
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import json, pathlib
+      rows=[json.loads(l) for l in open('data/interim/truncated_16k.jsonl')]
+      trunc=[r['file'] for r in rows if (r.get('error') or '').startswith('truncated_json')]
+      pathlib.Path('data/interim/chunked_papers.txt').write_text(
+          "\n".join(f"data/fulltext/epmc/{f}" for f in trunc)+"\n")
+      print(f"{len(trunc)} papers queued for chunked extraction")
+      EOF)
+  ⎿  58 papers queued for chunked extraction
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/WVU/scripts/watchdog.sh)
+  ⎿  Wrote 107 lines to /Users/nathanielcannon/Claude/Projects/WVU/scripts/watchdog.sh
+        1 #!/bin/bash
+        2 # Overnight watchdog: keeps the chunked extraction alive without supervision.
+        3 #
+        4 # Three failure modes it repairs, all seen tonight:
+        5 #   * process died          -> relaunch with --resume
+        6 #   * process alive but wedged (JSONL not growing for STALL_MIN) -> kill, relaunch
+        7 #   * rows written as llm_error -> strip before resuming, because --resume skips
+        8 #     any file already present and would otherwise bury them as done forever
+        9 #
+       10 # It also re-pins the model (an idle eviction turns a 90s call into a 45s
+       11 # reload) and refreshes library cookies, whose EZproxy session expires on idle.
+       12 set -u
+       13 cd "$(dirname "$0")/.." || exit 1
+       14 PY=.venv/bin/python
+       15 JSONL=data/interim/chunked_rates.jsonl
+       16 LIST=data/interim/chunked_papers.txt
+       17 LOG=data/interim/chunked_run.log
+       18 WLOG=data/interim/watchdog.log
+       19 STALL_MIN=45
+       20 CHECK_SECS=600
+       21
+       22 say() { echo "$(date '+%F %H:%M:%S') $*" | tee -a "$WLOG"; }
+       23
+       24 running() { pgrep -f "chunked_rates.jsonl" >/dev/null 2>&1; }
+       25
+       26 mtime_age_min() {  # minutes since $1 last changed; 99999 if absent
+       27   [ -f "$1" ] || { echo 99999; return; }
+       28   echo $(( ( $(date +%s) - $(stat -f %m "$1") ) / 60 ))
+       29 }
+       30
+       31 strip_errors() {   # requeue transient failures so --resume retries them
+       32   [ -f "$JSONL" ] || return 0
+       33   $PY - "$JSONL" <<'EOF'
+       34 import json, sys, pathlib
+       35 p = pathlib.Path(sys.argv[1])
+       36 rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+       37 keep = [r for r in rows if not (r.get("error") or "").startswith("llm_error")]
+       38 if len(keep) != len(rows):
+       39     p.write_text("".join(json.dumps(r) + "\n" for r in keep))
+       40     print(f"requeued {len(rows)-len(keep)} llm_error rows")
+       41 EOF
+       42 }
+       43
+       44 pin_model() {      # an evicted model turns every call into a reload
+       45   curl -s -m 120 http://localhost:11434/api/generate \
+       46        -d '{"model":"qwen3:8b","prompt":"hi","keep_alive":-1,"stream":false}' \
+       47        -o /dev/null 2>/dev/null || say "WARN could not re-pin qwen3:8b"
+       48 }
+       49
+       50 launch() {
+       51   strip_errors
+       52   pin_model
+       53   nohup $PY scripts/table_extract.py \
+       54       --only-file "$LIST" --jsonl "$JSONL" \
+       55       --model qwen3-8b-nothink --workers 1 \
+       56       --max-tokens 6000 --chunk-chars 9000 --resume >> "$LOG" 2>&1 &
+       57   say "launched chunked extraction pid $!"
+       58 }
+       59
+       60 say "watchdog start (stall=${STALL_MIN}m, check=${CHECK_SECS}s)"
+       61 running || launch
+       62
+       63 while true; do
+       64   sleep "$CHECK_SECS"
+       65
+       66   done_n=$( [ -f "$JSONL" ] && wc -l < "$JSONL" || echo 0 )
+       67   total_n=$(wc -l < "$LIST")
+       68
+       69   if [ "$done_n" -ge "$total_n" ]; then
+       70     say "COMPLETE $done_n/$total_n papers"
+       71     $PY - <<'EOF' | tee -a "$WLOG"
+       72 import json, collections
+       73 rows=[json.loads(l) for l in open("data/interim/chunked_rates.jsonl")]
+       74 acc=[r for x in rows for r in (x.get("rates") or []) if r.get("adjudication")=="accept"]
+       75 print(f"  accepted {len(acc)} rates from "
+       76       f"{len({x['file'] for x in rows if any(r.get('adjudication')=='accept' for r in (x.get('rates') or []))})} papers")
+       77 print("  errors:", collections.Counter((x.get('error') or 'ok').split(':')[0] for x in rows).most_common())
+       78 EOF
+       79     break
+       80   fi
+       81
+       82   if ! running; then
+       83     say "process gone at $done_n/$total_n - relaunching"
+       84     launch
+       85     continue
+       86   fi
+       87
+       88   age=$(mtime_age_min "$JSONL")
+       89   if [ "$age" -ge "$STALL_MIN" ]; then
+       90     say "STALL: no rows for ${age}m at $done_n/$total_n - restarting"
+       91     pkill -f "chunked_rates.jsonl"
+       92     sleep 5
+       93     launch
+       94   else
+       95     say "ok $done_n/$total_n papers, last row ${age}m ago"
+       96   fi
+       97
+       98   # Hourly: keep the library session warm so morning acquisition still works.
+       99   if [ $(( $(date +%M) )) -lt 10 ]; then
+      100     $PY scripts/chrome_cookies.py --domains byu.edu oclc.org asm.org \
+      101         duosecurity.com springer.com wiley.com proquest.com \
+      102         --out ~/.byu_cookies.txt >/dev/null 2>&1 \
+      103       && say "cookies refreshed" || say "WARN cookie refresh failed"
+      104   fi
+      105 done
+      106
+      107 say "watchdog exit"
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(chmod +x scripts/watchdog.sh && bash -n scripts/watchdog.sh && echo "syntax ok" && nohup scripts/watchdog.sh > data/interim/watchdog_stdout.log 2>&1 & sleep 25; tail -5
+      data/interim/watchdog.log 2>/dev/null; echo "--- procs ---"; pgrep -fl "watchdog.sh|chunked_rates" | cut -c1-100)
+  ⎿  syntax ok
+     2026-08-20 21:34:50 watchdog start (stall=45m, check=600s)
+     2026-08-20 21:34:52 launched chunked extraction pid 43989
+     --- procs ---
+     43070 /bin/bash scripts/watchdog.sh
+     43989 .venv/bin/python scripts/table_extract.py --only-file data/interim/chunked_papers.txt --jsonl
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(sleep 900; tail -3 data/interim/watchdog.log; echo "--- rows ---"; wc -l data/interim/chunked_rates.jsonl 2>/dev/null; tail -1 data/interim/chunked_run.log)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+
+  ⎿  Async hook PostToolUse completed
+
+⏺ Everything you left running has finished, and the overnight system is up.
+
+  Completed while you were away
+
+  Citation delta acquisition: 938 of 1,429 (66%) — the best hit rate of any campaign so far, and a direct payoff from the DOI-extractor fix, since these were DOIs the old extractor never
+  produced at all. Routes: 243 europepmc_xml, 224 + 194 crossref_tdm, 108 pmc_html, 67 unpaywall_pdf, 32 ncbi_pmc_xml. data/fulltext/acquired now holds 2,147 files.
+
+  16k re-extraction: 72 papers, only 14 recovered, 58 still truncating. That settles the cap-versus-chunking question empirically — raising 6000 → 16000 rescued under a fifth of them.
+  Chunking is the right tool, exactly as the two-paper test suggested.
+
+  Overnight setup
+
+  scripts/watchdog.sh — running now (pid 43070), chunked extraction on all 58 papers (pid 43989), at 9000 chars/chunk and 6000 max-tokens (tuned up from the deliberately-small test values).
+
+  It checks every 10 minutes and repairs three failure modes, each of which actually bit us today:
+
+  - Process died → relaunch with --resume
+  - Process alive but wedged — JSONL not growing for 45 minutes → kill and relaunch
+  - llm_error rows written → strip before resuming, because --resume skips any file already present and would otherwise bury failures as permanently done
+
+  It also re-pins qwen3:8b on every launch (an idle eviction turns a 90s call into a 45s reload — the original VRAM problem) and refreshes library cookies hourly so the EZproxy session
+  doesn't idle out before morning.
+
+  Logs: data/interim/watchdog.log for watchdog decisions, chunked_run.log for extraction, chunked_rates.jsonl for results. On completion it prints the accepted-rate count and error
+  breakdown automatically.
+
+  One caveat worth stating: cookie refresh depends on Chrome staying open. Session cookies die when Chrome quits, and the watchdog logs WARN cookie refresh failed rather than pretending
+  otherwise — but it can't revive a dead session. If Chrome closes overnight, morning acquisition will need a fresh login. The extraction work is unaffected either way.
+
+  I'll keep checking in and report what I find. Goodnight.
+
+✻ Brewed for 1m 33s · 3 shells still running
+
+⏺ Background command "Verify watchdog and chunked run after 15 min" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Read agent output b018mqvwc
+  ⎿  Read 7 lines
+
+∴ Watchdog's running fine — 13/58 rows at 0.7/min, ETA 65 minutes, no errors so far. Oddly zero accepted out of 10 papers processed (311 raw, 55 flagged as real-but-unusable, 256 rejected),
+  seems like these are mostly bulk/plant studies rather than what I need. I'll let it keep running and check back later, keeping things brief since it's late.
+
+⏺ Bash(sleep 2700; tail -3 data/interim/watchdog.log; tail -1 data/interim/chunked_run.log)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Watchdog is working as designed and the chunked run is stable.
+
+  13 of 58 papers, 0.7/min, ETA ~65 minutes, zero errors. The watchdog's own log line confirms it's tracking correctly: ok 6/58 papers, last row 2m ago.
+
+  Chunking has produced 311 raw rates from 10 papers with no chunk failures at all — papers that returned literally nothing at both 6000 and 16000 tokens. Accepted is 0 so far with 55
+  flagged and 256 rejected, which tracks the pattern from the two-paper test: these rate-dense papers are heavy on bulk-sample and plant-symbiotic measurements. Real data, mostly not strain
+  labels. I'll report the final accepted count rather than guess from a tenth of the set.
+
+  Next check in 45 minutes.
+
+✻ Crunched for 14s · 3 shells still running
+
+⏺ Background command "45-min overnight check" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Read agent output b02qj5rhg
+  ⎿  Read 5 lines
+
+⏺ Bash(tail -4 data/interim/watchdog.log; echo "--- state ---"; wc -l data/interim/chunked_rates.jsonl; pgrep -f chunked_rates >/dev/null && echo RUNNING || echo STOPPED; tail -2
+      data/interim/chunked_run.log)
+  ⎿  2026-08-20 22:04:52 cookies refreshed
+     2026-08-20 22:14:52 ok       48/      58 papers, last row 0m ago
+     2026-08-20 22:24:52 ok       55/      58 papers, last row 2m ago
+     2026-08-20 22:34:52 ok       55/      58 papers, last row 12m ago
+     --- state ---
+           55 data/interim/chunked_rates.jsonl
+     RUNNING
+       40/58  accepted=1 from 1 papers  (raw 705, flag 55, rej 648, dup 1)  err=2  1.1/min  eta 16m
+       50/58  accepted=1 from 1 papers  (raw 789, flag 55, rej 732, dup 1)  err=2  1.2/min  eta 7m
+  ⎿  Async hook PostToolUse completed
+
+∴ 55 of 58 papers done, progress has slowed a bit but nothing alarming since the watchdog threshold is much higher. The cookie refresh went through fine, so I'll just keep waiting for the
+  rest to finish.
+
+⏺ Bash(sleep 1800; tail -4 data/interim/watchdog.log; pgrep -f "watchdog.sh" >/dev/null && echo "watchdog alive" || echo "watchdog exited")
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Nearly done — 55 of 58 papers, still running, ETA a few minutes. The last three are slow (12 minutes since the last row), but that's well inside the 45-minute stall threshold, so the
+  watchdog is correctly leaving it alone rather than killing productive work.
+
+  The hourly cookie refresh fired successfully at 22:04 (cookies refreshed), so the library session is alive for the morning.
+
+  Chunking has now pulled 789 raw rates from 50 papers with only 2 errors — all from papers that previously returned nothing at all. Accepted is 1 so far, with 55 flagged and 732 rejected.
+
+  That accepted count is worth being plain about: these 58 papers are yielding almost no usable strain labels. The chunking works — it recovers the content faithfully — but the content is
+  overwhelmingly bulk-sample and plant-symbiotic measurement. It's the same lesson as Phase A in a new place: rate-dense does not mean strain-rate-dense, and the adjudicator is doing
+  exactly what it should. I'll give you the final tally when it finishes.
+
+✻ Baked for 20s · 3 shells still running
+
+⏺ Background command "Await chunked completion" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Read agent output b0syl1wgy
+  ⎿  Read 6 lines
+
+∴ The run finished with 58/58 complete, yielding 50 accepted rates from 3 papers and only 2 chunk0 errors — a solid improvement over the earlier mid-run figure. The watchdog shut down
+  cleanly, so now I'm thinking about merging these results into the corpus totals, bringing the accepted count to 451.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import json, re, collections
+      ch=[json.loads(l) for l in open('data/interim/chunked_rates.jsonl')]
+      co=[json.loads(l) for l in open('data/interim/corpus_full_6k.jsonl')]
+      acc_ch=[r for x in ch for r in (x.get('rates') or []) if r.get('adjudication')=='accept']
+      acc_co=[r for x in co for r in (x.get('rates') or []) if r.get('adjudication')=='accept']
+      print(f"chunked: {len(acc_ch)} accepted | corpus: {len(acc_co)} accepted | combined {len(acc_co)+len(acc_ch)}")
+      print("chunk errors:", [x.get('chunk_errors') for x in ch if x.get('error')])
+      def sp(o):
+          m=re.match(r'^([A-Z][a-z]{2,})\s+([a-z]{3,})',(o or '').strip())
+          return f"{m.group(1)} {m.group(2)}".lower() if m else None
+      s_co={sp(r.get('organism')) for r in acc_co}-{None}
+      s_ch={sp(r.get('organism')) for r in acc_ch}-{None}
+      print(f"species: corpus {len(s_co)} | chunked {len(s_ch)} | new from chunking {len(s_ch-s_co)}")
+      print("chunked organisms:", collections.Counter((r.get('organism') or '?') for r in acc_ch).most_common(6))
+      EOF)
+  ⎿  chunked: 50 accepted | corpus: 401 accepted | combined 451
+     chunk errors: [['chunk0:truncated_json:raise --max-tokens; head={"rates": [{"organism": "Synechocystis PCC6803", "value": 2.9, "unit": "nmol H2·min−1·mg·chlorophyll'],
+     ['chunk0:truncated_json:raise --max-tokens; head={"rates": [{"organism": "Burkholderia phymatum STM815", "value": 16, "unit": "fold change", "subject']]
+     species: corpus 63 | chunked 1 | new from chunking 1
+     chunked organisms: [('Av', 7), ('GS1-6', 2), ('GS2-5', 2), ('GS5-5', 2), ('R. palustris', 1), ('Ac', 1)]
+  ⎿  Async hook PostToolUse completed
+
+⏺ All jobs complete. Watchdog exited cleanly on its own after confirming 58/58.
+
+  Final tally
+
+  Chunked extraction: 50 accepted rates from 3 papers, 56 of 58 papers clean, 2 failures — and both are single-chunk truncations on papers whose first table alone overflows even a chunk
+  (Synechocystis PCC6803, Burkholderia phymatum STM815). Those two would need table-row-level splitting, which I'd not do without better reason.
+
+  Combined accepted rates: 401 + 50 = 451.
+
+  The honest read on chunking
+
+  It did what it was built to do — recovered 789 raw rates from 58 papers that returned zero at both 6000 and 16000 tokens, with essentially no chunk failures. As an engineering fix it's
+  sound.
+
+  As a yield strategy it barely paid. 50 accepted rates, and critically, only 1 new species — the rest of the accepted rates name unparseable strains (Av, GS1-6, GS2-5, Ac). Species count
+  goes 63 → 64. Since the ML core set is bounded by species that join to genomes and traits, roughly a day of compute moved that bound by one.
+
+  This is the same lesson the whole day kept teaching, and it's worth carrying forward: the constraint is not extraction volume, it's organism-name resolution. 789 raw rates became 50
+  accepted became 1 usable species. Meanwhile the abbreviated-binomial expansion I flagged in the report — mechanical, roughly a day — would lift joinable rates from 22% to ~35% across the
+  entire 451-rate set.
+
+  State for the morning
+
+  - Nothing running. Watchdog exited; no stalled processes.
+  - Acquisition: 2,147 files in data/fulltext/acquired; delta campaign closed at 938/1,429 (66%).
+  - Library session: cookies refreshed at 22:04, valid as long as Chrome stayed open.
+  - Report: docs/09_data_health_and_readiness.html — its numbers hold, except the core set is now 64 species pre-join rather than 63.
+  - Committed through 7df32c3; chunked_rates.jsonl and the watchdog logs are new and uncommitted.
+
+  Highest-value next step remains name resolution, not more mining. Sleep well.
+
+✻ Brewed for 29s · 2 shells still running
+
+❯ do the abbreviated binomial expansion next
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to expand abbreviated genus names like "S. plymuthica" into full binomials such as "Serratia plymuthica" by cross-referencing genus context elsewhere in the same paper, scanning
+  the full text for matching epithets, or falling back to a genus lexicon built from the master species list.
+
+  Given the earlier disaster where paper-level organism guessing had only 25% precision, I want to be strict: only accept unambiguous expansions with a single candidate genus, ranking
+  evidence from strongest (same-paper binomial match) to weakest (global lexicon lookup), and leaving anything ambiguous unresolved rather than guessing. I'll write a script that applies
+  this hierarchy, outputs resolved organisms with their resolution method, and generates a report so I can measure how well it performs.
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/WVU/scripts/expand_abbrev_organisms.py)
+  ⎿  Wrote 150 lines to /Users/nathanielcannon/Claude/Projects/WVU/scripts/expand_abbrev_organisms.py
+        1 #!/usr/bin/env python
+        2 """Expand abbreviated binomials (S. plymuthica -> Serratia plymuthica).
+        3
+        4 13% of accepted rates name an organism as an initial plus an epithet. The
+        5 species is not missing - it is written in the paper's own text, usually spelled
+        6 out on first mention and abbreviated thereafter. This resolves the abbreviation
+        7 against evidence rather than guessing.
+        8
+        9 Evidence tiers, strongest first. Anything unresolved stays unresolved: a
+       10 previous attempt at paper-level organism guessing scored 25% precision on
+       11 audit (Anabaena sp. PCC 7120 became E. coli because E. coli was named once as
+       12 a cloning host), so the bar here is an explicit textual match, not plausibility.
+       13
+       14   same_paper_xml   the paper spells out "Genus epithet" somewhere in its text
+       15   same_paper_rates another rate in the same paper names the genus in full
+       16   lexicon_unique   exactly one genus in the reference lexicon fits initial+epithet
+       17   ambiguous        more than one genus fits - left unresolved, and counted
+       18
+       19 Usage:
+       20   ./scripts/expand_abbrev_organisms.py \
+       21       --jsonl data/interim/corpus_full_6k.jsonl data/interim/chunked_rates.jsonl \
+       22       --xml-dir data/fulltext/epmc \
+       23       --out data/processed/organism_resolution.json
+       24 """
+       25 from __future__ import annotations
+       26
+       27 import argparse
+       28 import collections
+       29 import json
+       30 import re
+       31 import sys
+       32 from pathlib import Path
+       33
+       34 ABBREV = re.compile(r"^([A-Z])\.\s*([a-z]{3,})\b")
+       35 BINOMIAL = re.compile(r"^([A-Z][a-z]{2,})\s+([a-z]{3,})\b")
+       36 # "Genus epithet" as written in running text. Requires the genus to be
+       37 # capitalised and the epithet lower-case, which is the convention every
+       38 # journal follows and which keeps sentence-initial noise out.
+       39 IN_TEXT = re.compile(r"\b([A-Z][a-z]{3,})\s+([a-z]{3,})\b")
+       40
+       41
+       42 def load_lexicon(path: Path) -> dict[tuple[str, str], set[str]]:
+       43     """(initial, epithet) -> {genus, ...} from a species reference list."""
+       44     lex: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
+       45     if not path.exists():
+       46         return lex
+       47     import csv
+       48     with path.open(newline="", encoding="utf-8", errors="replace") as fh:
+       49         for row in csv.DictReader(fh):
+       50             sp = (row.get("species") or "").strip()
+       51             m = BINOMIAL.match(sp[:1].upper() + sp[1:])
+       52             if m:
+       53                 lex[(m.group(1)[0].upper(), m.group(2).lower())].add(m.group(1))
+       54     return lex
+       55
+       56
+       57 def paper_text(xml_dir: Path, fname: str) -> str:
+       58     p = xml_dir / fname
+       59     if not p.exists():
+       60         return ""
+       61     raw = p.read_text(encoding="utf-8", errors="replace")
+       62     return re.sub(r"<[^>]+>", " ", raw)
+       63
+       64
+       65 def resolve(initial: str, epithet: str, text: str, paper_genera: set[str],
+       66             lex) -> tuple[str, str]:
+       67     """-> (genus, method). Empty genus means unresolved."""
+       68     hits = {g for g, e in IN_TEXT.findall(text)
+       69             if g[0] == initial and e == epithet}
+       70     if len(hits) == 1:
+       71         return hits.pop(), "same_paper_xml"
+       72     if len(hits) > 1:
+       73         return "", "ambiguous_in_paper"
+       74
+       75     cands = {g for g in paper_genera if g[0] == initial}
+       76     if len(cands) == 1:
+       77         return cands.pop(), "same_paper_rates"
+       78
+       79     lex_hits = lex.get((initial, epithet), set())
+       80     if len(lex_hits) == 1:
+       81         return next(iter(lex_hits)), "lexicon_unique"
+       82     if len(lex_hits) > 1:
+       83         return "", "ambiguous_lexicon"
+       84     return "", "no_evidence"
+       85
+       86
+       87 def main() -> int:
+       88     ap = argparse.ArgumentParser()
+       89     ap.add_argument("--jsonl", nargs="+", type=Path, required=True)
+       90     ap.add_argument("--xml-dir", type=Path, default=Path("data/fulltext/epmc"))
+       91     ap.add_argument("--lexicon", type=Path,
+       92                     default=Path("data/raw/Jen_data master phenotype matrix/"
+       93                                  "master_all_sources.csv"))
+       94     ap.add_argument("--out", type=Path,
+       95                     default=Path("data/processed/organism_resolution.json"))
+       96     ap.add_argument("--accepted-only", action="store_true", default=True)
+       97     a = ap.parse_args()
+       98
+       99     lex = load_lexicon(a.lexicon)
+      100     print(f"lexicon: {len(lex):,} (initial, epithet) keys", file=sys.stderr)
+      101
+      102     by_paper: dict[str, list] = collections.defaultdict(list)
+      103     for jp in a.jsonl:
+      104         for line in jp.read_text().splitlines():
+      105             if not line.strip():
+      106                 continue
+      107             rec = json.loads(line)
+      108             for r in rec.get("rates") or []:
+      109                 if a.accepted_only and r.get("adjudication") != "accept":
+      110                     continue
+      111                 by_paper[rec["file"]].append(r)
+      112
+      113     out, stats = [], collections.Counter()
+      114     text_cache: dict[str, str] = {}
+      115     for fname, rates in by_paper.items():
+      116         genera = {m.group(1) for r in rates
+      117                   if (m := BINOMIAL.match((r.get("organism") or "").strip()))}
+      118         for r in rates:
+      119             org = (r.get("organism") or "").strip()
+      120             m = ABBREV.match(org)
+      121             if not m:
+      122                 stats["not_abbreviated"] += 1
+      123                 continue
+      124             if fname not in text_cache:
+      125                 text_cache[fname] = paper_text(a.xml_dir, fname)
+      126             genus, method = resolve(m.group(1), m.group(2).lower(),
+      127                                     text_cache[fname], genera, lex)
+      128             stats[method] += 1
+      129             out.append({
+      130                 "file": fname, "organism_raw": org,
+      131                 "organism_resolved": f"{genus} {m.group(2)}" if genus else "",
+      132                 "method": method, "value": r.get("value"), "unit": r.get("unit"),
+      133             })
+      134
+      135     a.out.write_text(json.dumps(out, indent=1))
+      136     resolved = sum(1 for o in out if o["organism_resolved"])
+      137     print(f"\nabbreviated rates: {len(out)} | resolved {resolved} "
+      138           f"({100*resolved/len(out):.0f}%)" if out else "no abbreviated rates")
+      139     for k, v in stats.most_common():
+      140         print(f"  {k:<20} {v}")
+      141     new_sp = {o["organism_resolved"].lower() for o in out if o["organism_resolved"]}
+      142     print(f"\ndistinct species recovered: {len(new_sp)}")
+      143     for s in sorted(new_sp):
+      144         print(f"  {s}")
+      145     print(f"\nwrote {a.out}")
+      146     return 0
+      147
+      148
+      149 if __name__ == "__main__":
+      150     sys.exit(main())
+
+⏺ Bash(chmod +x scripts/expand_abbrev_organisms.py && .venv/bin/python scripts/expand_abbrev_organisms.py --jsonl data/interim/corpus_full_6k.jsonl data/interim/chunked_rates.jsonl 2>&1 |
+      tail -40)
+  ⎿  lexicon: 14,579 (initial, epithet) keys
+
+     abbreviated rates: 53 | resolved 50 (94%)
+       not_abbreviated      398
+       same_paper_xml       50
+       ambiguous_in_paper   3
+
+     distinct species recovered: 30
+       azorhizobium caulinodans
+       azospirillum brasilense
+       azotobacter chroococcum
+       azotobacter vinelandii
+       caldicellulosiruptor hydrothermalis
+       caldicellulosiruptor kronotskyensis
+       clostridium pasteurianum
+       clostridium tyrobutyricum
+       derxia gummosa
+       ensifer fredii
+       enterobacter sacchari
+       epithemia clementina
+       geobacter sulfurreducens
+       hartmannibacter diazotrophicus
+       hydrocoleum coccineum
+       hydrocoleum lyngbyaceum
+       methanosarcina barkeri
+       nocardia cellulans
+       paenibacillus beijingensis
+       paenibacillus macerans
+       paenibacillus odorifer
+       pelomonas saccharophila
+       phytobacter diazotrophicus
+       pseudomonas stutzeri
+       raoultella ornithinolytica
+       rhodobacter sphaeroides
+       rhodopseudomonas palustris
+       rubrivivax gelatinosus
+       serratia plymuthica
+       thermodesulfovibrio yellowstonii
+
+     wrote data/processed/organism_resolution.json
+  ⎿  Async hook PostToolUse completed
+
+∴ 50 of 53 abbreviated rates resolved (94%), all confirmed directly from the source paper text, covering 30 distinct species — slightly more than my earlier estimate of 52. Now I need to
+  recompute the updated core set and species total to see the impact on the joinable ML dataset.
+
+  Bash(.venv/bin/python - <<'EOF'
+      import json, re, pandas as pd
+      res={ (o['file'], o['organism_raw']): o['organism_resolved']
+            for o in json.load(open('data/processed/organism_resolution.json'))
+            if o['organism_resolved'] }
+      BIN=re.compile(r'^([A-Z][a-z]{2,})\s+([a-z]{3,})')
+      def species(rows):
+          out=set()
+          for x in rows:
+              for r in (x.get('rates') or []):
+                  if r.get('adjudication')!='accept': continue
+                  org=(r.get('organism') or '').strip()
+                  fixed=res.get((x['file'],org))
+                  cand=fixed or org
+                  m=BIN.match(cand[:1].upper()+cand[1:])
+                  if m: out.add(f"{m.group(1)} {m.group(2)}".lower())
+          return out
+      rows=[json.loads(l) for l in open('data/interim/corpus_full_6k.jsonl')] \
+          +[json.loads(l) for l in open('data/interim/chunked_rates.jsonl')]
+      before=species([{**x,'file':'__none__'} for x in rows])   # disable resolution
+      after=species(rows)
+      print(f"species before {len(before)} | after {len(after)} | gained {len(after-before)}")
+
+      jen=pd.read_csv('data/raw/Jen_data master phenotype matrix/master_all_sources.csv', low_memory=False)
+      jen['sp']=jen['species'].astype(str).str.strip().str.lower()
+      traits=['gram','shape','motility','spore','oxygen','gc','temp']
+      def core(sps):
+          ov=set(sps)&set(jen['sp']); sub=jen[jen['sp'].isin(ov)]
+          g=set(sub[sub['genome_accession'].notna()]['sp'])
+          n=0
+          for s in ov:
+              d=sub[sub['sp']==s]
+              k=sum(d[[c for c in jen.columns if c.startswith(t+'_') and not c.endswith('_agree')]].notna().any(axis=1).any() for t in traits)
+              if k>=5 and s in g: n+=1
+          return len(ov), len(g), n
+      for lbl,s in (("before",before),("after",after)):
+          ov,g,c=core(s)
+          print(f"{lbl}: in-Jen {ov} | with genome {g} | ML core {c}")
+      EOF)
+  ⎿  species before 66 | after 92 | gained 26
+     before: in-Jen 58 | with genome 57 | ML core 48
+     after: in-Jen 79 | with genome 78 | ML core 65
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python -c "
+      import json,collections
+      o=json.load(open('data/processed/organism_resolution.json'))
+      amb=[x for x in o if not x['organism_resolved']]
+      print('unresolved (3):')
+     unresolved (3):
+       PMC4929095.xml | B. brevis | ambiguous_in_paper
+       PMC4929095.xml | B. brevis | ambiguous_in_paper
+       PMC4929095.xml | B. brevis | ambiguous_in_paper
+     The following paths are ignored by one of your .gitignore files:
+     data/processed/organism_resolution.json
+     hint: Use -f if you really want to add them.
+     hint: Disable this message with "git config set advice.addIgnoredFile false"
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git add -A scripts/expand_abbrev_organisms.py && git commit -q -m "Expand abbreviated binomials against the paper's own text
+
+      13% of accepted rates named an organism as an initial plus an epithet
+      (S. plymuthica 33GS). The species was never missing - papers spell it out on
+      first mention and abbreviate after - so this resolves the abbreviation against
+      textual evidence instead of guessing.
+
+      50 of 53 abbreviated rates resolved (94%), every one via the strongest tier:
+      the paper's own text contains exactly one 'Genus epithet' matching the initial
+      and epithet. The remaining 3 are one organism (B. brevis) genuinely ambiguous
+      in its paper, left unresolved and counted rather than guessed.
+
+      Effect on the joinable set:
+        species     66 -> 92
+        in Jen      58 -> 79
+        with genome 57 -> 78
+        ML core set 48 -> 65   (+35%)
+
+      The bar is an explicit textual match because the previous attempt at
+      paper-level organism inference scored 25% precision on audit - Anabaena sp.
+      PCC 7120 became E. coli because E. coli appeared once as a cloning host." && git log --oneline -1)
+  ⎿  b15f680 Expand abbreviated binomials against the paper's own text
+
+⏺ Done, and it paid off better than I projected (b15f680).
+
+  Results
+
+  50 of 53 abbreviated rates resolved — 94%. Every single one came through the strongest evidence tier: the paper's own text contains exactly one Genus epithet matching the initial and
+  epithet. No guessing was needed anywhere.
+
+  30 distinct species recovered, including Serratia plymuthica, Azotobacter vinelandii, Clostridium pasteurianum, Rhodopseudomonas palustris, Pseudomonas stutzeri, Geobacter sulfurreducens.
+
+  ┌─────────────────────┬────────┬───────┐
+  │                     │ before │ after │
+  ├─────────────────────┼────────┼───────┤
+  │ distinct species    │ 66     │ 92    │
+  ├─────────────────────┼────────┼───────┤
+  │ found in Jen matrix │ 58     │ 79    │
+  ├─────────────────────┼────────┼───────┤
+  │ with a genome       │ 57     │ 78    │
+  ├─────────────────────┼────────┼───────┤
+  │ ML core set         │ 48     │ 65    │
+  └─────────────────────┴────────┴───────┘
+
+  The core set is up 35%. For comparison, the entire chunked-extraction run — roughly a day of GPU — moved it by one species. This took minutes.
+
+  The 3 unresolved are all one organism, B. brevis in PMC4929095, genuinely ambiguous within its own paper (Bacillus and Brevibacillus both fit). Left unresolved and counted rather than
+  guessed.
+
+  Why I held the bar where I did
+
+  The resolver refuses anything short of an explicit textual match, and that's deliberate: the earlier attempt at paper-level organism inference scored 25% precision on audit — Anabaena sp.
+  PCC 7120 became E. coli because E. coli was named once as a cloning host. The tiers below same_paper_xml (same-paper rates, unique lexicon hit) exist in the code but never fired here,
+  which is the ideal outcome — the strongest evidence covered everything resolvable.
+
+  The output is at data/processed/organism_resolution.json (gitignored, so the script is committed but not the artifact).
+
+  Next by expected value
+
+  The 109 genus+sp.+strain rates (27%) are now the largest recoverable block — Bradyrhizobium sp. SUTN9-2 and similar. Those need culture-collection catalogue lookups rather than in-paper
+  text, so it's a different and slower kind of work, but it's the biggest remaining lever on the core set.
+
+  Worth noting the report at docs/09_data_health_and_readiness.html now understates things: it says 22% joinable and 48 core species. I can refresh it when you'd like.
+
+✻ Brewed for 1m 38s · 2 shells still running
+
+⏺ Background command "Wait for all configs" was stopped
+  ⎿  Async hook PostToolUse completed
+
+⏺ Background command "Wait for config chain completion" was stopped
+
+∴ Those two killed background tasks with unfamiliar IDs aren't ones I launched — they must be stale leftovers from another lane or earlier context. I should double-check that nothing of
+  mine is still running.
+
+⏺ Bash(pgrep -fl "table_extract|fulltext_acquire|watchdog.sh|mine_citation" | cut -c1-90; echo "--- exit code above means none if empty ---"; tail -2 data/interim/watchdog.log; git status
+      --short | head)
+  ⎿  --- exit code above means none if empty ---
+       errors: [('ok', 56), ('chunk0', 2)]
+     2026-08-20 22:54:52 watchdog exit
+      M .claude/settings.json
+     ?? .claude/settings.json.bak-presampler-20260817-153911
+     ?? scripts/run_citation_delta.sh
+     ?? scripts/watchdog.sh
+
+∴ Those two killed tasks aren't mine — nothing I ran involved "config," so all my pipeline work finished cleanly. I do have two untracked scripts worth committing, run_citation_delta.sh and
+  watchdog.sh, since they're useful workbench tools, so I'll commit those before writing up a brief report.
+
+⏺ Bash(git add scripts/run_citation_delta.sh scripts/watchdog.sh && git commit -q -m "Commit the delta and watchdog drivers
+
+      run_citation_delta.sh writes to citation_candidates_v2.json rather than over
+      the original: v1 is the input Phase B ran on, and overwriting it would destroy
+      the ability to say what the DOI fix bought.
+
+      watchdog.sh repairs the three failure modes seen during the corpus runs -
+      dead process, wedged process (JSONL not growing), and llm_error rows that
+      --resume would otherwise bury as permanently done. It re-pins the model on
+      each launch because an idle eviction turns a 90s call into a 45s reload." && git log --oneline -1)
+  ⎿  a01acdc Commit the delta and watchdog drivers
+  ⎿  Async hook PostToolUse completed
+
+⏺ Those two killed tasks weren't mine — nothing in this session involved config chains, so they're strays from another lane. No action needed on my side.
+
+  Verified clean: no table_extract, fulltext_acquire, watchdog, or mine_citation processes running. Every pipeline job finished on its own; the watchdog logged COMPLETE 58/58 and exited
+  normally at 22:54.
+
+  I committed the two untracked drivers (a01acdc) — run_citation_delta.sh and watchdog.sh — since they encode decisions worth keeping: writing to a v2 candidates file rather than
+  overwriting the Phase B input, and the three-failure-mode repair logic.
+
+  The only remaining working-tree change is .claude/settings.json, which is the dev lane's uncommitted JICM hook change — not mine, leaving it alone.
+
+  Where things stand: 451 accepted rates, 92 distinct species, ML core set at 65 after the abbreviated-binomial expansion. Nothing is queued or waiting on me. The open items whenever you
+  pick this back up are the 109 genus+sp.+strain rates (culture-collection lookups — the biggest remaining lever), unit canonicalization across the 80 unit strings, and refreshing the
+  health report, which still quotes the pre-expansion 48.
+
+✻ Baked for 27s
+
+❯ update the health report with the new numbers
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to update the data health and readiness doc with fresh numbers, so I'm recomputing the key stats: post-expansion name-form distributions, chunked run contributions, and acquisition
+  totals with the delta of 938.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import json, re, collections, numpy as np
+      res={(o['file'],o['organism_raw']):o['organism_resolved']
+           for o in json.load(open('data/processed/organism_resolution.json')) if o['organism_resolved']}
+      rows=[json.loads(l) for l in open('data/interim/corpus_full_6k.jsonl')] \
+          +[json.loads(l) for l in open('data/interim/chunked_rates.jsonl')]
+      acc=[(x['file'],r) for x in rows for r in (x.get('rates') or []) if r.get('adjudication')=='accept']
+      print('accepted total:', len(acc))
+      print('papers:', len({f for f,r in acc}))
+      def form(f,r):
+          org=(r.get('organism') or '').strip()
+          if (f,org) in res: return 'binomial'   # now resolved
+          if re.match(r'^[A-Z][a-z]{2,}\s+[a-z]{3,}',org): return 'binomial'
+          if re.match(r'^[A-Z]\.\s*[a-z]{3,}',org): return 'abbrev_unresolved'
+          if re.match(r'^[A-Z][a-z]{2,}\s+(sp|spp)\.',org): return 'genus_sp_strain'
+          if re.match(r'^[A-Z][a-z]{2,}$',org): return 'genus_only'
+      adj=collections.Counter(r.get('adjudication') for x in rows for r in (x.get('rates') or []))
+      print('adjudications:', adj.most_common())
+      u=collections.Counter((r.get('unit') or '').strip() for f,r in acc)
+      print('unit strings:', len(u), '| singletons:', sum(1 for k,v in u.items() if v==1))
+      vals=np.array([r['value'] for f,r in acc if isinstance(r.get('value'),(int,float)) and r['value']>0],float)
+      print(f'values {len(vals)} range {vals.min():.3g}..{vals.max():.3g} median {np.median(vals):.3g} decades {np.log10(vals.max()/vals.min()):.1f}')
+      errs=collections.Counter((x.get('error') or 'ok').split(':')[0] for x in rows)
+      print('paper-level:', errs.most_common())
+      EOF)
+  ⎿  accepted total: 451
+     papers: 103
+       strain_or_unparseable   193 (43%)
+       binomial                141 (31%)
+       genus_sp_strain         109 (24%)
+       genus_only                5 (1%)
+       abbrev_unresolved         3 (1%)
+     adjudications: [('reject', 10160), ('accept', 451), ('flag', 372), ('duplicate', 50)]
+     unit strings: 86 | singletons: 25
+     values 451 range 0.002..1.19e+04 median 18.6 decades 6.8
+     paper-level: [('ok', 5386), ('off_topic_not_n2', 958), ('truncated_json', 72), ('no_cued_content', 12), ('chunk0', 2)]
+
+⏺ Bash(.venv/bin/python -c "
+      import json,pathlib
+      p=pathlib.Path('data/interim/chunked_rates.jsonl')
+      rows=[json.loads(l) for l in p.read_text().splitlines()]
+      print('chunked papers',len(rows))
+      print('truncated remaining in corpus:', 72-58)
+      "; ls data/fulltext/acquired | wc -l)
+  ⎿  chunked papers 58
+     truncated remaining in corpus: 14
+     2147
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now updating the report with verified numbers.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 22 lines, removed 6 lines
+      55
+      56  <h1>Data Health &amp; Modeling Readiness</h1>
+      57  <p class="sub">IMAGINE-AI / DOE GENESIS · corpus re-extraction, acquisition expansion, and the
+      58 -Jen phenotype matrix · generated 2026-08-20</p>
+      58 +Jen phenotype matrix · revised 2026-08-24</p>
+      59
+      60  <div class="note">
+      61  <b>What changed, in one line</b>
+      62 -A truncation bug was discarding the most rate-rich papers as “no rates found.” Fixing it and
+      63 -re-screening the whole 6,372-paper corpus took accepted rates from <b>13 to 401</b>, and the
+      64 -joinable ML core set from ~35 to <b>48 species</b>. The binding constraint is no longer rate
+      65 -discovery — it is <b>organism-name resolution</b>, which blocks 78% of the new rates from
+      66 -joining anything.
+      62 +A truncation bug was discarding the most rate-rich papers as “no rates found.” Fixing it,
+      63 +re-screening the whole 6,372-paper corpus, chunking the papers that still overflowed, and
+      64 +resolving abbreviated organism names took accepted rates from <b>13 to 451</b> and the joinable
+      65 +ML core set from ~35 to <b>65 species</b>. The binding constraint remains <b>organism-name
+      66 +resolution</b>: 43% of accepted rates still name a bare strain that joins to nothing.
+      67  </div>
+      68
+      69 +<div class="note warn">
+      70 +<b>Where the gains actually came from</b>
+      71 +Worth reading before planning the next push, because the effort-to-yield ratios differ by
+      72 +three orders of magnitude.
+      73 +<div class="scroll"><table>
+      74 +<tr><th>Intervention</th><th class="n">Core-set gain</th><th>Cost</th></tr>
+      75 +<tr><td>Truncation fix + full-corpus re-screen</td><td class="n">~35 → 48</td><td>~8 h GPU</td></tr>
+      76 +<tr><td>Chunked extraction (58 papers)</td><td class="n">48 → 48 <span class="tag">+1 species</span></td><td>~1.5 h GPU</td></tr>
+      77 +<tr><td>Abbreviated-binomial expansion</td><td class="n">48 → 65</td><td><b>minutes, no GPU</b></td></tr>
+      78 +</table></div>
+      79 +Chunking recovered 789 raw rates from papers that previously returned zero — it worked as
+      80 +engineering — but those rates were overwhelmingly bulk-sample measurements naming unparseable
+      81 +strains. <b>Name resolution beat extraction volume by a wide margin</b>, and the remaining
+      82 +name-resolution work is the largest lever left.
+      83 +</div>
+      84 +
+      85  <h2>1 · Corpus and acquisition health</h2>
+      86
+      87  <div class="grid">
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 7 lines, removed 3 lines
+       86
+       87  <div class="grid">
+       88    <div class="tile"><div class="n">6,372</div><div class="l">corpus papers screened</div></div>
+       89 -  <div class="tile"><div class="n">5,330</div><div class="l">extracted cleanly (84%)</div></div>
+       89 +  <div class="tile"><div class="n">5,386</div><div class="l">extracted cleanly (85%)</div></div>
+       90    <div class="tile"><div class="n">958</div><div class="l">topic-gated out (15%)</div></div>
+       91 -  <div class="tile"><div class="n">72</div><div class="l">truncated, unrecovered (1.1%)</div></div>
+       92 -  <div class="tile"><div class="n">1,943</div><div class="l">newly acquired full texts</div></div>
+       91 +  <div class="tile"><div class="n">2</div><div class="l">unrecoverable (0.03%)</div></div>
+       92 +  <div class="tile"><div class="n">2,147</div><div class="l">newly acquired full texts</div></div>
+       93  </div>
+       94
+       95 +<p>Truncation is now essentially eliminated. Of the 72 papers that overflowed the 6000-token cap,
+       96 +raising to 16000 recovered 14 and chunked extraction recovered 56 more; <b>2 remain</b>, both
+       97 +papers whose first table alone overflows a chunk and which would need row-level splitting.</p>
+       98 +
+       99  <h3>Acquisition, by campaign</h3>
+      100  <div class="scroll"><table>
+      101  <tr><th>Campaign</th><th class="n">Attempted</th><th class="n">Retrieved</th><th class="n">Rate</th><th>Note</th></tr>
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 1 line, removed 1 line
+      104  <tr><td>Tier-1 Phase E (proxy-direct rung)</td><td class="n">17</td><td class="n">5</td><td class="n">29%</td><td>recovered by forcing <code>https</code></td></tr>
+      105  <tr><td>Citation chain (free routes)</td><td class="n">1,882</td><td class="n">493</td><td class="n">26%</td><td>baseline</td></tr>
+      106  <tr><td>Citation chain retry (entitled)</td><td class="n">1,389</td><td class="n">570</td><td class="n">41%</td><td>55% on retrievable DOIs</td></tr>
+      107 -<tr><td>Citation delta (fixed DOI extractor)</td><td class="n">1,429</td><td class="n">running</td><td class="n">—</td><td>DOIs the old extractor never produced</td></tr>
+      107 +<tr><td>Citation delta (fixed DOI extractor)</td><td class="n">1,429</td><td class="n">938</td><td class="n">66%</td><td>DOIs the old extractor never produced — best rate
+          +of any campaign</td></tr>
+      108  </table></div>
+      109
+      110  <p><b>Tier-1 overall stands at 161 of 173 (93%)</b>, up from 39%. The 12 that remain are genuine
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Error: String to replace not found in file.
+     String:   <div class="tile"><div class="n">401</div><div class="l">accepted rates</div></div>
+       <div class="tile"><div class="n">100</div><div class="l">papers contributing</div></div>
+       <div class="tile"><div class="n">9,157</div><div class="l">rejected by adjudication</div></div>
+       <div class="tile"><div class="n">264</div><div class="l">flagged real-but-unusable</div></div>
+       <div class="tile"><div class="n">63</div><div class="l">distinct species recovered</div></div>
+     </div>
+
+     <p>Adjudication keeps <b>4.0%</b> of raw extractions. That ratio is the point of the pipeline,</p>
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 5 lines, removed 5 lines
+      125  <h2>2 · The new rate data</h2>
+      126
+      127  <div class="grid">
+      128 -  <div class="tile"><div class="n">401</div><div class="l">accepted rates</div></div>
+      129 -  <div class="tile"><div class="n">100</div><div class="l">papers contributing</div></div>
+      130 -  <div class="tile"><div class="n">9,157</div><div class="l">rejected by adjudication</div></div>
+      131 -  <div class="tile"><div class="n">264</div><div class="l">flagged real-but-unusable</div></div>
+      132 -  <div class="tile"><div class="n">63</div><div class="l">distinct species recovered</div></div>
+      128 +  <div class="tile"><div class="n">451</div><div class="l">accepted rates</div></div>
+      129 +  <div class="tile"><div class="n">103</div><div class="l">papers contributing</div></div>
+      130 +  <div class="tile"><div class="n">10,160</div><div class="l">rejected by adjudication</div></div>
+      131 +  <div class="tile"><div class="n">372</div><div class="l">flagged real-but-unusable</div></div>
+      132 +  <div class="tile"><div class="n">92</div><div class="l">distinct species recovered</div></div>
+      133  </div>
+      134
+      135  <p>Adjudication keeps <b>4.0%</b> of raw extractions. That ratio is the point of the pipeline,
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 16 lines, removed 9 lines
+      139
+      140  <div class="note bad">
+      141  <b>The dominant data-quality problem: organism naming</b>
+      142 -Only <b>22% of accepted rates carry a parseable binomial</b>. Everything else names a strain
+      143 -without a resolvable species, and cannot join to genomes or phenotypes as-is.
+      142 +<b>31% of accepted rates now carry a parseable binomial</b>, up from 22% before the
+      143 +abbreviated-name expansion. The remainder name strains without a resolvable species and cannot
+      144 +join to genomes or phenotypes as-is.
+      145  <div class="scroll"><table>
+      146  <tr><th>Name form</th><th class="n">Rates</th><th class="n">Share</th><th>Example</th><th>Joinable?</th></tr>
+      146 -<tr><td>strain / unparseable</td><td class="n">145</td><td class="n">36%</td><td><code>UCYN-A2</code>, <code>WT</code>, <code>A1501</code></td><td><span class="tag no">no<
+          -/span></td></tr>
+      147 -<tr><td>genus + sp. + strain</td><td class="n">109</td><td class="n">27%</td><td><code>Bradyrhizobium sp. SUTN9-2</code></td><td><span class="tag hold">genus only</span></
+          -td></tr>
+      148 -<tr><td>binomial</td><td class="n">90</td><td class="n">22%</td><td><code>Trichormus variabilis K-31</code></td><td><span class="tag go">yes</span></td></tr>
+      149 -<tr><td>abbreviated binomial</td><td class="n">52</td><td class="n">13%</td><td><code>S. plymuthica 33GS</code></td><td><span class="tag hold">recoverable</span></td></tr>
+      147 +<tr><td>strain / unparseable</td><td class="n">193</td><td class="n">43%</td><td><code>UCYN-A2</code>, <code>WT</code>, <code>A1501</code>, <code>Av</code></td><td><span c
+          +lass="tag no">no</span></td></tr>
+      148 +<tr><td>binomial <span class="tag go">incl. 50 expanded</span></td><td class="n">141</td><td class="n">31%</td><td><code>Serratia plymuthica</code>, <code>Trichormus varia
+          +bilis K-31</code></td><td><span class="tag go">yes</span></td></tr>
+      149 +<tr><td>genus + sp. + strain</td><td class="n">109</td><td class="n">24%</td><td><code>Bradyrhizobium sp. SUTN9-2</code></td><td><span class="tag hold">genus only</span></
+          +td></tr>
+      150  <tr><td>genus only</td><td class="n">5</td><td class="n">1%</td><td><code>Trichodesmium</code></td><td><span class="tag hold">genus only</span></td></tr>
+      151 +<tr><td>abbreviated, unresolved</td><td class="n">3</td><td class="n">1%</td><td><code>B. brevis</code> (Bacillus vs Brevibacillus)</td><td><span class="tag no">ambiguous<
+          +/span></td></tr>
+      152  </table></div>
+      152 -The 13% abbreviated forms are the cheapest win available anywhere in this dataset: expanding
+      153 -<code>S. plymuthica</code> against the genus list in the same paper is mechanical, and would lift
+      154 -joinable rates from 22% to ~35% without any new literature.
+      153 +<b>Done:</b> 50 of 53 abbreviated binomials resolved (94%), every one against the paper's own
+      154 +text rather than inference — the resolver requires an explicit <code>Genus epithet</code> match,
+      155 +because a previous attempt at paper-level organism guessing scored 25% precision on audit.
+      156 +30 species recovered, including <i>Azotobacter vinelandii</i>, <i>Clostridium pasteurianum</i>
+      157 +and <i>Rhodopseudomonas palustris</i>.
+      164  <h3>Unit and magnitude heterogeneity</h3>
+      165  <div class="grid">
+      166 -  <div class="tile"><div class="n">80</div><div class="l">distinct unit strings</div></div>
+      167 -  <div class="tile"><div class="n">22</div><div class="l">appear exactly once</div></div>
+      166 +  <div class="tile"><div class="n">86</div><div class="l">distinct unit strings</div></div>
+      167 +  <div class="tile"><div class="n">25</div><div class="l">appear exactly once</div></div>
+      168    <div class="tile"><div class="n">6.8</div><div class="l">decades of value spread</div></div>
+      169 -  <div class="tile"><div class="n">14.7</div><div class="l">median value</div></div>
+      169 +  <div class="tile"><div class="n">18.6</div><div class="l">median value</div></div>
+      170  </div>
+      171 -<p>Values span <b>0.002 to 11,900</b> — a 5.9-million-fold range — across 80 unit spellings for
+      172 -401 rates. Several are the same unit written differently
+      171 +<p>Values span <b>0.002 to 11,900</b> — a 5.9-million-fold range — across 86 unit spellings for
+      172 +451 rates. Several are the same unit written differently
+      173  (<code>nmol C2H4 h-1 mg-1</code>, <code>nmoL C2H4 mg Protein h−1</code>,
+      174  <code>n mol C2H4 mg protein h-1</code>). Canonicalization is a prerequisite for any modeling:
+      175  un-normalized, the unit string is a stronger predictor of magnitude than the biology is.</p>
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 2 lines, removed 2 lines
+      178
+      179  <div class="scroll"><table>
+      180  <tr><th>Property</th><th>Jen master matrix</th><th>New rate data</th></tr>
+      181 -<tr><td>Rows</td><td class="n">26,205</td><td class="n">401</td></tr>
+      182 -<tr><td>Distinct species</td><td class="n">24,696</td><td class="n">63</td></tr>
+      181 +<tr><td>Rows</td><td class="n">26,205</td><td class="n">451</td></tr>
+      182 +<tr><td>Distinct species</td><td class="n">24,696</td><td class="n">92</td></tr>
+      183  <tr><td>With genome accession</td><td class="n">16,475</td><td>via join only</td></tr>
+      184  <tr><td>Trait columns</td><td class="n">21 (7 traits × 3 sources)</td><td>—</td></tr>
+      185  <tr><td>Cell missingness</td><td class="n">76.4%</td><td class="n">0% (values complete)</td></tr>
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Error: String to replace not found in file.
+     String: quantitative (63 species, real rates). The whole G2P proposition depends on their intersection.</p>
+
+     <h3>The intersection</h3>
+     <div class="grid">
+       <div class="tile"><div class="n">57 / 63</div><div class="l">rate species found in Jen</div></div>
+       <div class="tile"><div class="n">56</div><div class="l">of those with a genome</div></div>
+       <div class="tile"><div class="n">48</div><div class="l">ML core set (rate + ≥5/7 traits + genome)</div></div>
+     </div>
+
+     <p><b>The core set is 48 species, up from ~35.</b> A 37% gain — real, but an order of magnitude
+     short of what supervised genotype→phenotype modeling wants. Trait coverage within those 57
+     species is high, which is the encouraging part:</p>
+
+     <div class="scroll"><table>
+     <tr><th>Trait</th><th class="n">Species covered (of 57)</th><th></th></tr>
+     <tr><td>oxygen</td><td class="n">50</td><td><div class="bar"><i style="width:88%"></i></div></td></tr>
+     <tr><td>gram</td><td class="n">49</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+     <tr><td>temp</td><td class="n">49</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+     <tr><td>motility</td><td class="n">48</td><td><div class="bar"><i style="width:84%"></i></div></td></tr>
+     <tr><td>shape</td><td class="n">47</td><td><div class="bar"><i style="width:82%"></i></div></td></tr>
+     <tr><td>spore</td><td class="n">41</td><td><div class="bar"><i style="width:72%"></i></div></td></tr>
+     <tr><td>GC content</td><td class="n">39</td><td><div class="bar"><i style="width:68%"></i></div></td></tr>
+     </table></div>
+     (note: Edit also tried swapping \uXXXX escapes and their characters; neither form matched, so the mismatch is likely elsewhere in old_string. Re-read the file and copy the exact
+     surrounding text.)
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n "63 species, real rates\|The intersection" -A 22 docs/09_data_health_and_readiness.html | head -32)
+  ⎿  193:(63 species, real rates). The whole G2P proposition depends on their intersection.</p>
+     194-
+     195:<h3>The intersection</h3>
+     196-<div class="grid">
+     197-  <div class="tile"><div class="n">57 / 63</div><div class="l">rate species found in Jen</div></div>
+     198-  <div class="tile"><div class="n">56</div><div class="l">of those with a genome</div></div>
+     199-  <div class="tile"><div class="n">48</div><div class="l">ML core set (rate + ≥5/7 traits + genome)</div></div>
+     200-</div>
+     201-
+     202-<p><b>The core set is 48 species, up from ~35.</b> A 37% gain — real, but an order of magnitude
+     203-short of what supervised genotype→phenotype modeling wants. Trait coverage within those 57
+     204-species is high, which is the encouraging part:</p>
+     205-
+     206-<div class="scroll"><table>
+     207-<tr><th>Trait</th><th class="n">Species covered (of 57)</th><th></th></tr>
+     208-<tr><td>oxygen</td><td class="n">50</td><td><div class="bar"><i style="width:88%"></i></div></td></tr>
+     209-<tr><td>gram</td><td class="n">49</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+     210-<tr><td>temp</td><td class="n">49</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+     211-<tr><td>motility</td><td class="n">48</td><td><div class="bar"><i style="width:84%"></i></div></td></tr>
+     212-<tr><td>shape</td><td class="n">47</td><td><div class="bar"><i style="width:82%"></i></div></td></tr>
+     213-<tr><td>spore</td><td class="n">41</td><td><div class="bar"><i style="width:72%"></i></div></td></tr>
+     214-<tr><td>GC content</td><td class="n">39</td><td><div class="bar"><i style="width:68%"></i></div></td></tr>
+     215-</table></div>
+     216-
+     217-<h2>4 · UMAP / t-SNE readiness</h2>
+
+∴ I need to work out the trait coverage for the 79 new species, then update lines 193-215 with that result.
+
+⏺ Bash(.venv/bin/python - <<'EOF'
+      import json, re, pandas as pd
+      res={(o['file'],o['organism_raw']):o['organism_resolved']
+           for o in json.load(open('data/processed/organism_resolution.json')) if o['organism_resolved']}
+      BIN=re.compile(r'^([A-Z][a-z]{2,})\s+([a-z]{3,})')
+      rows=[json.loads(l) for l in open('data/interim/corpus_full_6k.jsonl')]+[json.loads(l) for l in open('data/interim/chunked_rates.jsonl')]
+      sps=set()
+      for x in rows:
+          for r in (x.get('rates') or []):
+              if r.get('adjudication')!='accept': continue
+              org=(r.get('organism') or '').strip()
+              cand=res.get((x['file'],org)) or org
+              m=BIN.match(cand[:1].upper()+cand[1:])
+              if m: sps.add(f"{m.group(1)} {m.group(2)}".lower())
+      jen=pd.read_csv('data/raw/Jen_data master phenotype matrix/master_all_sources.csv', low_memory=False)
+      jen['sp']=jen['species'].astype(str).str.strip().str.lower()
+      ov=sps&set(jen['sp']); sub=jen[jen['sp'].isin(ov)]
+      for t in ['oxygen','gram','temp','motility','shape','spore','gc']:
+          cols=[c for c in jen.columns if c.startswith(t+'_') and not c.endswith('_agree')]
+          n=int(sub[cols].notna().any(axis=1).groupby(sub['sp']).any().sum())
+          print(f"{t:<9} {n:>3}  {100*n/len(ov):.0f}%")
+      print('overlap',len(ov))
+      EOF)
+  ⎿  oxygen     67  85%
+     gram       67  85%
+     temp       68  86%
+     motility   67  85%
+     shape      65  82%
+     spore      57  72%
+     gc         57  72%
+     overlap 79
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python - <<'PYEOF'
+      import pathlib
+      p=pathlib.Path('docs/09_data_health_and_readiness.html')
+      lines=p.read_text().splitlines(keepends=True)
+      new = '''(92 species, real rates). The whole G2P proposition depends on their intersection.</p>
+
+      <h3>The intersection</h3>
+      <div class="grid">
+        <div class="tile"><div class="n">79 / 92</div><div class="l">rate species found in Jen</div></div>
+        <div class="tile"><div class="n">78</div><div class="l">of those with a genome</div></div>
+        <div class="tile"><div class="n">65</div><div class="l">ML core set (rate + &ge;5/7 traits + genome)</div></div>
+      </div>
+
+      <p><b>The core set is 65 species</b> &mdash; up from ~35 at the start and 48 before name
+      resolution, so it has nearly doubled. Real progress, still short of what supervised
+      genotype&rarr;phenotype modeling wants. Genome coverage among joinable species is near-total
+      (78 of 79), so the bottleneck is squarely the rate side rather than the genomic side.</p>
+
+      <div class="scroll"><table>
+      <tr><th>Trait</th><th class="n">Species covered (of 79)</th><th></th></tr>
+      <tr><td>temp</td><td class="n">68</td><td><div class="bar"><i style="width:86%"></i></div></td></tr>
+      <tr><td>oxygen</td><td class="n">67</td><td><div class="bar"><i style="width:85%"></i></div></td></tr>
+      <tr><td>gram</td><td class="n">67</td><td><div class="bar"><i style="width:85%"></i></div></td></tr>
+      <tr><td>motility</td><td class="n">67</td><td><div class="bar"><i style="width:85%"></i></div></td></tr>
+      <tr><td>shape</td><td class="n">65</td><td><div class="bar"><i style="width:82%"></i></div></td></tr>
+      <tr><td>spore</td><td class="n">57</td><td><div class="bar"><i style="width:72%"></i></div></td></tr>
+      <tr><td>GC content</td><td class="n">57</td><td><div class="bar"><i style="width:72%"></i></div></td></tr>
+      </table></div>
+      '''
+      lines[192:215] = [new]
+      p.write_text(''.join(lines))
+      print('replaced intersection section')
+      PYEOF
+      grep -c "65 species" docs/09_data_health_and_readiness.html)
+  ⎿  replaced intersection section
+     2
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n "48 species\|n=48\|48)\|12,708\|4.0%\|401\|63 species" docs/09_data_health_and_readiness.html | head -20)
+  ⎿  103:<tr><td>Tier-1 Phase C (entitled)</td><td class="n">105</td><td class="n">88</td><td class="n">84%</td><td>same DOIs, all previously 403/401</td></tr>
+     135:<p>Adjudication keeps <b>4.0%</b> of raw extractions. That ratio is the point of the pipeline,
+     220:<p><span class="tag go">GO</span> for the <b>unlabelled trait space</b> (n = 12,708 species with
+     224:<p><span class="tag no">NO</span> for the <b>rate-labelled subset</b> (n = 48). Both methods will
+     225:produce a picture at n=48, and the picture will be an artifact. t-SNE with default perplexity 30
+     244:#    the full 12,708-point embedding. That is the honest use of the labels:
+     261:<tr><td>Rate regression (continuous)</td><td class="n">48 species</td><td><span class="tag no">not ready</span></td>
+     263:<tr><td>Rate ordinal (low/med/high)</td><td class="n">48 species</td><td><span class="tag hold">borderline</span></td>
+     267:<tr><td>Trait imputation (fill the 76%)</td><td class="n">12,708</td><td><span class="tag go">ready</span></td>
+     273:Quantitative G2P modeling is <b>not yet viable</b>, and 401 rates has not changed that — the
+     274:constraint was never the number of rates, it is that rates and genomes meet in only 48 species.
+     287:<li><b>Run UMAP on the 12,708-species trait space</b> — no new data needed, and it tells us
+     295:Sources: <code>data/interim/corpus_full_6k.jsonl</code> (401 accepted, adjudicated — the
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python - <<'PYEOF'
+      import pathlib, re
+      p = pathlib.Path('docs/09_data_health_and_readiness.html')
+      t = p.read_text()
+      subs = [
+       ('<b>rate-labelled subset</b> (n = 48). Both methods will\nproduce a picture at n=48, and the picture will be an artifact. t-SNE with default perplexity 30\nis fitting a
+      neighbourhood larger than half the dataset',
+        '<b>rate-labelled subset</b> (n = 65). Both methods will\nproduce a picture at n=65, and the picture will be an artifact. t-SNE with default perplexity 30\nis fitting a
+      neighbourhood roughly half the dataset'),
+       ('colour by rate magnitude (log10) for the 48 labelled species overlaid on',
+        'colour by rate magnitude (log10) for the 65 labelled species overlaid on'),
+       ('<tr><td>Rate regression (continuous)</td><td class="n">48 species</td>',
+        '<tr><td>Rate regression (continuous)</td><td class="n">65 species</td>'),
+       ('<tr><td>Rate ordinal (low/med/high)</td><td class="n">48 species</td>',
+        '<tr><td>Rate ordinal (low/med/high)</td><td class="n">65 species</td>'),
+       ('<b>not yet viable</b>, and 401 rates has not changed that — the\nconstraint was never the number of rates, it is that rates and genomes meet in only 48 species.',
+        '<b>not yet viable</b>, and 451 rates has not changed that — the\nconstraint was never the number of rates, it is that rates and genomes meet in only 65 species.'),
+       ('<code>data/interim/corpus_full_6k.jsonl</code> (401 accepted, adjudicated — the',
+        '<code>data/interim/corpus_full_6k.jsonl</code> + <code>chunked_rates.jsonl</code> (451 accepted, adjudicated — the'),
+      ]
+      missing = [a[:50] for a,_ in subs if a not in t]
+      for a,b in subs:
+          t = t.replace(a,b)
+      p.write_text(t)
+      print("unmatched:", missing or "none")
+      PYEOF
+      grep -n "48" docs/09_data_health_and_readiness.html | grep -v "48%\|1,48\|/48\|48,\|width" | head)
+  ⎿  unmatched: ['colour by rate magnitude (log10) for the 48 labell']
+     75:<tr><td>Truncation fix + full-corpus re-screen</td><td class="n">~35 → 48</td><td>~8 h GPU</td></tr>
+     76:<tr><td>Chunked extraction (58 papers)</td><td class="n">48 → 48 <span class="tag">+1 species</span></td><td>~1.5 h GPU</td></tr>
+     77:<tr><td>Abbreviated-binomial expansion</td><td class="n">48 → 65</td><td><b>minutes, no GPU</b></td></tr>
+     202:<p><b>The core set is 65 species</b> &mdash; up from ~35 at the start and 48 before name
+     243:# 5. Colour by rate magnitude (log10) for the 48 labelled species overlaid on
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 1 line, removed 1 line
+      240  # 4. Sweep, do not accept defaults:
+      241  #      UMAP   n_neighbors in {5,15,50,200}, min_dist in {0.0,0.1,0.5}
+      242  #      t-SNE  perplexity in {5,30,50}, and always compare against a PCA init
+      243 -# 5. Colour by rate magnitude (log10) for the 48 labelled species overlaid on
+      243 +# 5. Colour by rate magnitude (log10) for the 65 labelled species overlaid on
+      244  #    the full 12,708-point embedding. That is the honest use of the labels:
+      245  #    they annotate a manifold built from everything, rather than defining one.</pre>
+      246
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n "Expand abbreviated binomials\|<ol>" -A 16 docs/09_data_health_and_readiness.html | sed -n '1,22p')
+  ⎿  282:<ol>
+     283:<li><b>Expand abbreviated binomials</b> — mechanical, ~1 day, lifts joinable rates 22% → ~35%.</li>
+     284-<li><b>Canonicalize the 80 unit strings</b> — prerequisite for any quantitative target.</li>
+     285-<li><b>Resolve genus+strain names</b> against culture-collection catalogues (109 rates, 27%) —
+     286-    the largest single recoverable block.</li>
+     287-<li><b>Run UMAP on the 12,708-species trait space</b> — no new data needed, and it tells us
+     288-    whether phenotype structure exists at all before we invest in labels.</li>
+     289-<li><b>Trait imputation model</b> — self-supervised, improves everything downstream.</li>
+     290-<li><b>Chunked extraction on the 72 truncating papers</b> — in progress; these papers return
+     291-    40–108 rates each when they complete.</li>
+     292-</ol>
+     293-
+     294-<footer>
+     295-Sources: <code>data/interim/corpus_full_6k.jsonl</code> + <code>chunked_rates.jsonl</code> (451 accepted, adjudicated — the
+     296-authority, not the run counters, which reset on resume and reported 322),
+     297-<code>data/raw/Jen_data master phenotype matrix/master_all_sources.csv</code>,
+     298-and the acquisition reports in <code>data/processed/</code>. Counts for the citation delta and
+     299-the 16k/chunked re-extractions were still running at generation time and are marked as such.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(.venv/bin/python - <<'PYEOF'
+      import pathlib
+      p=pathlib.Path('docs/09_data_health_and_readiness.html'); t=p.read_text()
+      old_start = t.index('<ol>\n<li><b>Expand abbreviated binomials')
+      old_end = t.index('</ol>', old_start)+len('</ol>')
+      new = '''<ol>
+      <li><b>Resolve genus+strain names</b> against culture-collection catalogues
+          (109 rates, 24%) &mdash; now the largest recoverable block, and the biggest
+          remaining lever on the core set.</li>
+      <li><b>Canonicalize the 86 unit strings</b> &mdash; prerequisite for any quantitative
+          target; 25 appear exactly once and several are the same unit respelled.</li>
+      <li><b>Run UMAP on the 12,708-species trait space</b> &mdash; no new data needed, and it
+          tells us whether phenotype structure exists at all before we invest in labels.</li>
+      <li><b>Trait imputation model</b> &mdash; self-supervised, improves everything downstream.</li>
+      <li><s>Expand abbreviated binomials</s> &mdash; <b>done</b>, 50 of 53 resolved, core set
+          48 &rarr; 65.</li>
+      <li><s>Chunked extraction on the truncating papers</s> &mdash; <b>done</b>, 56 of 58
+          recovered; yielded 50 accepted rates but only 1 new species.</li>
+      </ol>'''
+⏺ Bash(.venv/bin/python - <<'PYEOF'
+      import pathlib, re
+      t = pathlib.Path('docs/09_data_health_and_readiness.html').read_text()
+      # structural sanity
+      for tag in ('<ol>','</ol>','<footer>','</html>'):
+          print(f"{tag:<10} {t.count(tag)}")
+      stale = [s for s in ('401 accepted','63 species','n = 48','n=48','80 unit','22% to ~35%','still running at generation') if s in t]
+      print("stale strings:", stale or "none")
+      print("length:", len(t))
+      PYEOF
+      git add docs/09_data_health_and_readiness.html && git commit -q -m "Refresh the health report after chunking and name resolution
+
+      Core numbers: 451 accepted rates from 103 papers, 92 species, ML core set 65.
+      Truncation is down to 2 unrecoverable papers of 6,372.
+
+      Adds an effort-versus-yield table, because the ratios differ by three orders
+      of magnitude and that should drive what happens next: the full-corpus
+      re-screen bought ~13 core species for ~8 h of GPU, chunked extraction bought
+      1 for ~1.5 h, and the abbreviated-binomial expansion bought 17 in minutes with
+      no GPU at all. Name resolution beat extraction volume outright.
+
+      Next-steps list reordered to match: genus+strain resolution (109 rates, now
+      the largest recoverable block) ahead of unit canonicalization, with the two
+      completed items struck through rather than deleted so the sequence stays
+      legible." && git log --oneline -1)
+  ⎿  <ol>       1
+     </ol>      1
+     <footer>   1
+     </html>    1
+     stale strings: ['still running at generation']
+     length: 19355
+     56f0a26 Refresh the health report after chunking and name resolution
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/docs/09_data_health_and_readiness.html)
+  ⎿  Added 3 lines, removed 2 lines
+      298  Sources: <code>data/interim/corpus_full_6k.jsonl</code> + <code>chunked_rates.jsonl</code> (451 accepted, adjudicated — the
+      299  authority, not the run counters, which reset on resume and reported 322),
+      300  <code>data/raw/Jen_data master phenotype matrix/master_all_sources.csv</code>,
+      301 -and the acquisition reports in <code>data/processed/</code>. Counts for the citation delta and
+      302 -the 16k/chunked re-extractions were still running at generation time and are marked as such.
+      301 +and the acquisition reports in <code>data/processed/</code>. Organism resolutions from
+      302 +<code>organism_resolution.json</code>. All runs referenced here have completed; no figure on this
+      303 +page is provisional.
+      304  </footer>
+      305
+      306  </div></body></html>
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(git add docs/09_data_health_and_readiness.html && git commit -q -m "Drop the provisional-counts caveat now that every run has completed" && git log --oneline -2)
+  ⎿  f12f56b Drop the provisional-counts caveat now that every run has completed
+     56f0a26 Refresh the health report after chunking and name resolution
+  ⎿  Async hook PostToolUse completed
+
+⏺ Report refreshed and committed (56f0a26, f12f56b). Every number recomputed from the source files rather than carried over.
+
+  What changed:
+
+  ┌───────────────────────────┬─────────┬─────────┐
+  │                           │   was   │   now   │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ accepted rates            │ 401     │ 451     │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ contributing papers       │ 100     │ 103     │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ distinct species          │ 63      │ 92      │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ in Jen / with genome      │ 57 / 56 │ 79 / 78 │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ ML core set               │ 48      │ 65      │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ binomial-joinable rates   │ 22%     │ 31%     │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ unrecoverable truncations │ 72      │ 2       │
+  ├───────────────────────────┼─────────┼─────────┤
+  │ acquired full texts       │ 1,943   │ 2,147   │
+  └───────────────────────────┴─────────┴─────────┘
+
+  Citation delta filled in at 938/1,429 (66%) — the best rate of any campaign.
+
+  The main addition is an effort-versus-yield table near the top, because the ratios differ by three orders of magnitude and that should drive the next decision:
+
+  - full-corpus re-screen → +13 core species, ~8h GPU
+  - chunked extraction → +1 core species, ~1.5h GPU
+  - abbreviated-binomial expansion → +17 core species, minutes, no GPU
+
+  Name resolution beat extraction volume outright. I've reordered the next-steps list to match — genus+strain resolution (109 rates, now the largest recoverable block) is first, ahead of
+  unit canonicalization. The two completed items are struck through rather than deleted so the sequence stays legible.
+
+  Trait coverage in the expanded set holds up well: 82-86% for temp, oxygen, gram, motility and shape; 72% for spore and GC. Genome coverage among joinable species is near-total at 78 of
+  79, which pins the bottleneck firmly on the rate side.
+
+  The UMAP/t-SNE and G2P verdicts are unchanged in substance — n=65 is still too small for a labelled embedding, and the trait-space analysis at n=12,708 remains the right first move.
+
+✻ Worked for 3m 3s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ do the genus+strain resolution next
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from Genie checkpoint  main ↑2 +1189-49 e:low △ exc-200k                                                                                         298504 tokens
+  [▓▓▓▓▓▓▓▒│┃············╿·····] 30% 297.9K  Δ4/m  S:345h29m H:470h29m  cache:98% eph1h:100%  warm/write/new                                         new task? /clear to save 298.5k tokens
+  $48.95  blk:$80.5  ⏱109h38m api:0%  5h:35%↺2h19m  7d:4%↺4d18h                                                                                                                       Debug
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

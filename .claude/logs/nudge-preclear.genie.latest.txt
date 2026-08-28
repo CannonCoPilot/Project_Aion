@@ -1,0 +1,2043 @@
+      236   train/test split is designed — as should the genotype-leakage
+           issue `PROGRESS.md` already
+      237   flags (10 strain-taxids sharing a genome with a different org
+          anism at a different µ).
+      238 - Nothing in the corpus has ever been checksum-verified. All 54
+          ,432 files are inventoried but
+      239   unverified; Drive supplies no hashes. Low risk, worth knowing
+          .
+      240
+      241 ---
+      242
+      243 *Full audit with methods and per-file provenance: `reports/corp
+          us-review-2026-08-11.md`.
+      244 Every figure above is either measured directly from the files o
+          r explicitly marked as reported
+      245 from project documentation.*
+
+⏺ One error to fix before this goes anywhere: I wrote a surname for Chris that
+  appears nowhere in the source. The notes say only "Chris."
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/reports/2026-08-14-prelimina
+        ry-findings.md)
+  ⎿  Added 1 line, removed 1 line
+      1  # IMAGINE-AI — preliminary findings on the assembled data
+      2
+      3  **For:** Ember Morrissey, Kamal Choudhary
+      4 -**From:** Nathaniel Cannon *(Chris Sanchez — see §6, still to be
+        - merged)*
+      4 +**From:** Nathaniel Cannon *(with Chris — see §6, still to be me
+        +rged)*
+      5  **Date:** 2026-08-14 · **Status:** preliminary, for discussion
+      6
+      7  ---
+
+⏺ Now a .docx, since the team works in Word and Google Docs.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      uv run --with python-docx --quiet python3 - <<'PYEOF'
+      import re, docx
+      from docx.shared import Pt, RGBColor, Inches
+      from docx.enum.text import WD_ALIGN_PARAGRAPH
+
+      src=open("reports/2026-08-14-preliminary-findings.md").read()
+      d=docx.Document()
+      for s in d.sections:
+          s.left_margin=s.right_margin=Inches(1.0);
+      s.top_margin=s.bottom_margin=Inches(0.9)
+      st=d.styles["Normal"]; st.font.name="Calibri"; st.font.size=Pt(11)
+      st.paragraph_format.space_after=Pt(7);
+      st.paragraph_format.line_spacing=1.13
+
+      def rich(p, text):
+          """Render **bold**, *italic*, `code` inline."""
+          for tok in re.split(r'(\*\*.+?\*\*|\*[^*]+?\*|`[^`]+?`)', text):
+              if not tok: continue
+              if tok.startswith("**") and tok.endswith("**"):
+      r=p.add_run(tok[2:-2]); r.bold=True
+              elif tok.startswith("*") and tok.endswith("*"):
+      r=p.add_run(tok[1:-1]); r.italic=True
+              elif tok.startswith("`") and tok.endswith("`"):
+                  r=p.add_run(tok[1:-1]); r.font.name="Consolas";
+      r.font.size=Pt(9.5)
+                  r.font.color.rgb=RGBColor(0xA0,0x30,0x30)
+              else: p.add_run(tok)
+
+      lines=src.split("\n"); i=0; in_code=False; code=[]
+      while i < len(lines):
+          ln=lines[i]
+          if ln.startswith("```"):
+              if in_code:
+                  p=d.add_paragraph();
+      p.paragraph_format.left_indent=Inches(0.3)
+                  r=p.add_run("\n".join(code)); r.font.name="Consolas";
+      r.font.size=Pt(9)
+                  code=[]; in_code=False
+              else: in_code=True
+              i+=1; continue
+          if in_code: code.append(ln); i+=1; continue
+
+          if ln.startswith("|") and i+1<len(lines) and
+      re.match(r'^\|[\s:|-]+\|$', lines[i+1]):
+              rows=[];
+              while i<len(lines) and lines[i].startswith("|"):
+                  if not re.match(r'^\|[\s:|-]+\|$', lines[i]):
+                      rows.append([c.strip() for c in
+      lines[i].strip().strip("|").split("|")])
+                  i+=1
+              t=d.add_table(rows=len(rows), cols=len(rows[0])); t.style="Light
+      Grid Accent 1"
+              for ri,row in enumerate(rows):
+                  for ci,cell in enumerate(row):
+                      if ci>=len(t.rows[ri].cells): continue
+                      cp=t.rows[ri].cells[ci].paragraphs[0];
+      cp.paragraph_format.space_after=Pt(2)
+                      rich(cp, cell)
+                      for rn in cp.runs:
+                          rn.font.size=Pt(9.5)
+                          if ri==0: rn.bold=True
+              d.add_paragraph(); continue
+
+          if ln.startswith("# "):   h=d.add_heading(ln[2:].strip(),0)
+          elif ln.startswith("##
+      "):h=d.add_heading(re.sub(r'\*\*','',ln[3:].strip()),1)
+          elif ln.startswith("###
+      "):h=d.add_heading(re.sub(r'\*\*','',ln[4:].strip()),2)
+          elif ln.strip()=="---":
+      d.add_paragraph("─"*68).alignment=WD_ALIGN_PARAGRAPH.CENTER
+          elif ln.startswith("- ") or ln.startswith("* "):
+              p=d.add_paragraph(style="List Bullet"); rich(p, ln[2:])
+          elif re.match(r'^\d+\. ', ln):
+              p=d.add_paragraph(style="List Number"); rich(p, re.sub(r'^\d+\.
+      ','',ln))
+          elif ln.startswith("> "):
+              p=d.add_paragraph(); p.paragraph_format.left_indent=Inches(0.35);
+      rich(p, ln[2:])
+              for r in p.runs: r.italic=True
+          elif ln.strip()=="": pass
+          else:
+              p=d.add_paragraph(); rich(p, ln)
+          i+=1
+
+      out="reports/2026-08-14-preliminary-findings.docx"
+      d.save(out); print("wrote", out)
+      PYEOF
+      ls -la reports/*.docx)
+  ⎿  wrote reports/2026-08-14-preliminary-findings.docx
+     -rw-r--r--@ 1 nathanielcannon  staff  44024 Aug 11 20:00
+     reports/2026-08-14-preliminary-findings.docx
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      uv run --with python-docx --quiet python3 -c "
+      import docx
+      d=docx.Document('reports/2026-08-14-preliminary-findings.docx')
+      print(f'paragraphs={len(d.paragraphs)} tables={len(d.tables)}')
+      for i,t in enumerate(d.tables): print(f'  table{i+1}:
+      {len(t.rows)}x{len(t.columns)}  first={t.rows[0].cells[0].text[:28]!r}')
+      print('--- first 14 paras ---')
+      n=0
+      for p in d.paragraphs:
+          if p.text.strip():
+              print(f'  [{p.style.name[:13]:13}] {p.text[:78]}'); n+=1
+          if n>=14: break
+      ")
+  ⎿  paragraphs=154 tables=3
+       table1: 7x3  first='Table'
+       table2: 12x2  first='Measurement type'
+       table3: 10x3  first='Organism'
+     --- first 14 paras ---
+       [Title        ] IMAGINE-AI — preliminary findings on the assembled
+     data
+       [Normal       ] For: Ember Morrissey, Kamal Choudhary
+       [Normal       ] From: Nathaniel Cannon (with Chris — see §6, still
+     to be merged)
+       [Normal       ] Date: 2026-08-14 · Status: preliminary, for
+     discussion
+       [Normal       ]
+     ────────────────────────────────────────────────────────────────────
+       [Heading 1    ] Summary
+       [Normal       ] I audited everything on the DOE Genesis AI-Nfix
+     Drive — 54,446 files, 82.2 GB
+       [Normal       ] each output table row by row. The harmonization work
+     is in better shape than I
+       [Normal       ] master matrix, the BacDive metabolic depth, the
+     NFixDB genome anchoring and th
+       [Normal       ] table are all real and immediately modelable.
+       [Normal       ] One finding changes a Phase I plan. The quantitative
+     nitrogen-fixation data th
+       [Normal       ] rate-prediction model would train on does not exist
+     in the assembled corpus. N
+       [Normal       ] 50 acetylene-reduction measurements total, of which
+     2 carry an organism name.
+       [Normal       ] meeting already anticipated this and chose
+     N-free-media growth rate as the pro
+
+⏺ Defect: wrapped markdown lines each became a separate Word paragraph, so body
+  text is fragmented. Fixing the converter to join them.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      mkdir -p scripts
+      cat > scripts/md2docx.py <<'PYEOF'
+      #!/usr/bin/env python3
+      """Render a project Markdown report to .docx for circulation.
+
+      The team reads Word and Google Docs; the repo keeps Markdown because it
+      diffs.
+      This bridges the two so there is one source of truth rather than a Word
+      file and
+      a Markdown file drifting apart.
+
+      Handles the subset actually used in these reports: ATX headings, pipe
+      tables,
+      fenced code, bullets, numbered lists, blockquotes, `---` rules, and inline
+      **bold** / *italic* / `code`. Soft-wrapped lines are joined into one
+      paragraph —
+      Markdown treats a single newline as a space, and not doing this fragments
+      every
+      body paragraph into one-line stubs.
+      """
+
+      from __future__ import annotations
+
+      import re
+      import sys
+      from pathlib import Path
+
+      import docx
+      from docx.enum.text import WD_ALIGN_PARAGRAPH
+      from docx.shared import Inches, Pt, RGBColor
+
+      INLINE = re.compile(r"(\*\*.+?\*\*|\*[^*]+?\*|`[^`]+?`)")
+      TABLE_SEP = re.compile(r"^\|[\s:|-]+\|$")
+      ORDERED = re.compile(r"^(\d+)\. ")
+
+
+      def rich(par, text: str) -> None:
+          for tok in INLINE.split(text):
+              if not tok:
+                  continue
+              if tok.startswith("**") and tok.endswith("**"):
+                  par.add_run(tok[2:-2]).bold = True
+              elif tok.startswith("*") and tok.endswith("*"):
+                  par.add_run(tok[1:-1]).italic = True
+              elif tok.startswith("`") and tok.endswith("`"):
+                  r = par.add_run(tok[1:-1])
+                  r.font.name, r.font.size = "Consolas", Pt(9.5)
+                  r.font.color.rgb = RGBColor(0xA0, 0x30, 0x30)
+              else:
+                  par.add_run(tok)
+
+
+      def is_block_start(ln: str) -> bool:
+          """Lines that must not be absorbed into a preceding paragraph."""
+          s = ln.strip()
+          return (
+              not s
+              or s.startswith(("#", "|", "```", "> ", "- ", "* "))
+              or s == "---"
+              or bool(ORDERED.match(s))
+          )
+
+
+      def convert(md_path: Path, out_path: Path) -> Path:
+          lines = md_path.read_text().split("\n")
+          d = docx.Document()
+          for s in d.sections:
+              s.left_margin = s.right_margin = Inches(1.0)
+              s.top_margin = s.bottom_margin = Inches(0.9)
+          normal = d.styles["Normal"]
+          normal.font.name = "Calibri"
+          normal.font.size = Pt(11)
+          normal.paragraph_format.space_after = Pt(8)
+          normal.paragraph_format.line_spacing = 1.13
+
+          i = 0
+          while i < len(lines):
+              ln = lines[i]
+              stripped = ln.strip()
+
+              if stripped.startswith("```"):
+                  i += 1
+                  buf = []
+                  while i < len(lines) and not
+      lines[i].strip().startswith("```"):
+                      buf.append(lines[i])
+                      i += 1
+                  i += 1
+                  p = d.add_paragraph()
+                  p.paragraph_format.left_indent = Inches(0.3)
+                  r = p.add_run("\n".join(buf))
+                  r.font.name, r.font.size = "Consolas", Pt(9)
+                  continue
+
+              if stripped.startswith("|") and i + 1 < len(lines) and
+      TABLE_SEP.match(lines[i + 1].strip()):
+                  rows = []
+                  while i < len(lines) and lines[i].strip().startswith("|"):
+                      if not TABLE_SEP.match(lines[i].strip()):
+                          rows.append([c.strip() for c in
+      lines[i].strip().strip("|").split("|")])
+                      i += 1
+                  width = max(len(r) for r in rows)
+                  t = d.add_table(rows=len(rows), cols=width)
+                  t.style = "Light Grid Accent 1"
+                  for ri, row in enumerate(rows):
+                      for ci in range(width):
+                          cell = t.rows[ri].cells[ci].paragraphs[0]
+                          cell.paragraph_format.space_after = Pt(2)
+                          rich(cell, row[ci] if ci < len(row) else "")
+                          for run in cell.runs:
+                              run.font.size = Pt(9.5)
+                              if ri == 0:
+                                  run.bold = True
+                  d.add_paragraph()
+                  continue
+
+              if stripped.startswith("#"):
+                  level = len(stripped) - len(stripped.lstrip("#"))
+                  d.add_heading(re.sub(r"\*\*|`", "", stripped[level:].strip()),
+      0 if level == 1 else level - 1)
+                  i += 1
+                  continue
+
+              if stripped == "---":
+                  d.add_paragraph("─" * 68).alignment =
+      WD_ALIGN_PARAGRAPH.CENTER
+                  i += 1
+                  continue
+
+              if stripped.startswith(("- ", "* ")) or ORDERED.match(stripped):
+                  ordered = bool(ORDERED.match(stripped))
+                  text = ORDERED.sub("", stripped) if ordered else stripped[2:]
+                  # Absorb the continuation lines of a wrapped list item.
+                  i += 1
+                  while i < len(lines) and lines[i].startswith(("  ", "\t")) and
+      not is_block_start(lines[i]):
+                      text += " " + lines[i].strip()
+                      i += 1
+                  rich(d.add_paragraph(style="List Number" if ordered else "List
+      Bullet"), text)
+                  continue
+
+              if stripped.startswith("> "):
+                  text = stripped[2:]
+                  i += 1
+                  while i < len(lines) and lines[i].strip().startswith("> "):
+                      text += " " + lines[i].strip()[2:]
+                      i += 1
+                  p = d.add_paragraph()
+                  p.paragraph_format.left_indent = Inches(0.35)
+                  rich(p, text)
+                  for r in p.runs:
+                      r.italic = True
+                  continue
+
+              if not stripped:
+                  i += 1
+                  continue
+
+              # Body paragraph: join soft-wrapped lines until the next block
+      element.
+              text = stripped
+              i += 1
+              while i < len(lines) and not is_block_start(lines[i]):
+                  text += " " + lines[i].strip()
+                  i += 1
+              rich(d.add_paragraph(), text)
+
+          d.save(out_path)
+          return out_path
+
+
+      def main(argv: list[str]) -> int:
+          if not argv:
+              print("usage: md2docx.py REPORT.md [OUT.docx]", file=sys.stderr)
+              return 1
+          src = Path(argv[0])
+          out = Path(argv[1]) if len(argv) > 1 else src.with_suffix(".docx")
+          print(f"wrote {convert(src, out)}")
+          return 0
+
+
+      if __name__ == "__main__":
+          sys.exit(main(sys.argv[1:]))
+      PYEOF
+      chmod +x scripts/md2docx.py
+      uv run --with python-docx --quiet python3 scripts/md2docx.py
+      reports/2026-08-14-preliminary-findings.md
+      uv run --with python-docx --quiet python3 -c "
+      import docx
+      d=docx.Document('reports/2026-08-14-preliminary-findings.docx')
+      print(f'paragraphs={len(d.paragraphs)} tables={len(d.tables)}')
+      n=0
+      for p in d.paragraphs:
+          if p.text.strip():
+              print(f'  [{p.style.name[:12]:12}] {p.text[:92]}'); n+=1
+          if n>=10: break
+      ")
+  ⎿  wrote reports/2026-08-14-preliminary-findings.docx
+     paragraphs=71 tables=3
+       [Title       ] IMAGINE-AI — preliminary findings on the assembled
+     data
+       [Normal      ] For: Ember Morrissey, Kamal Choudhary From: Nathaniel
+     Cannon (with Chris — see §6, still to
+       [Normal      ]
+     ────────────────────────────────────────────────────────────────────
+       [Heading 1   ] Summary
+       [Normal      ] I audited everything on the DOE Genesis AI-Nfix Drive
+     — 54,446 files, 82.2 GB — and analyzed
+       [Normal      ] One finding changes a Phase I plan. The quantitative
+     nitrogen-fixation data that a rate-pred
+       [Normal      ] Constructively: I identified 80 organisms that are
+     both NFixDB-confirmed diazotrophs and hav
+       [Normal      ]
+     ────────────────────────────────────────────────────────────────────
+       [Heading 1   ] 1. What the corpus actually contains
+       [Normal      ] Measured directly from the files, not from
+     documentation:
+
+∴ The header lines are getting merged together because they're consecutive
+  non-block elements in markdown. I need to separate them with blank lines so
+  each one renders as its own line instead of joining into a single paragraph.…
+
+⏺ Header block joined into one line. The correct markdown fix is a hard break
+  (two trailing spaces) — implementing that properly rather than hacking the
+  source.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/WVU/scripts/md2docx.py)
+  ⎿  Added 15 lines, removed 3 lines
+      145              continue
+      146
+      147          # Body paragraph: join soft-wrapped lines until the ne
+           xt block element.
+      148 -        text = stripped
+      148 +        # A line ending in two spaces is a Markdown hard break
+          + — it stays a
+      149 +        # separate visual line inside the same paragraph (this
+          + is what keeps a
+      150 +        # For:/From:/Date: header block from collapsing onto o
+          +ne line).
+      151 +        segments = [stripped]
+      152 +        hard = ln.endswith("  ")
+      153          i += 1
+      154          while i < len(lines) and not is_block_start(lines[i]):
+      151 -            text += " " + lines[i].strip()
+      155 +            if hard:
+      156 +                segments.append(lines[i].strip())
+      157 +            else:
+      158 +                segments[-1] += " " + lines[i].strip()
+      159 +            hard = lines[i].endswith("  ")
+      160              i += 1
+      153 -        rich(d.add_paragraph(), text)
+      161 +        p = d.add_paragraph()
+      162 +        for n, seg in enumerate(segments):
+      163 +            if n:
+      164 +                p.add_run().add_break()
+      165 +            rich(p, seg)
+      166
+      167      d.save(out_path)
+      168      return out_path
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      python3 - <<'EOF'
+      p="reports/2026-08-14-preliminary-findings.md"
+      s=open(p).read()
+      old="""**For:** Ember Morrissey, Kamal Choudhary
+      **From:** Nathaniel Cannon *(with Chris — see §6, still to be merged)*
+      **Date:** 2026-08-14 · **Status:** preliminary, for discussion"""
+      new="""**For:** Ember Morrissey, Kamal Choudhary
+      **From:** Nathaniel Cannon *(with Chris — see §6, still to be merged)*
+      **Date:** 2026-08-14 · **Status:** preliminary, for discussion"""
+      assert old in s
+      open(p,"w").write(s.replace(old,new))
+      print("added hard breaks to header")
+      EOF
+      uv run --with python-docx --quiet python3 scripts/md2docx.py
+      reports/2026-08-14-preliminary-findings.md
+      uv run --with python-docx --quiet python3 -c "
+      import docx
+      d=docx.Document('reports/2026-08-14-preliminary-findings.docx')
+      print(f'paragraphs={len(d.paragraphs)} tables={len(d.tables)}')
+      for p in d.paragraphs[:4]:
+          if p.text.strip(): print(repr(p.text[:110]))
+      print('--- tables ---')
+      for i,t in enumerate(d.tables):
+          print(f'  table{i+1} {len(t.rows)}x{len(t.columns)}: {[c.text for c in
+      t.rows[0].cells]}')
+          print(f'     row1: {[c.text[:26] for c in t.rows[1].cells]}')
+      ")
+  ⎿  added hard breaks to header
+     wrote reports/2026-08-14-preliminary-findings.docx
+     paragraphs=71 tables=3
+     'IMAGINE-AI — preliminary findings on the assembled data'
+     'For: Ember Morrissey, Kamal Choudhary\nFrom: Nathaniel Cannon (with
+     Chris — see §6, still to be merged)\nDate: 2'
+     '────────────────────────────────────────────────────────────────────'
+     'Summary'
+     --- tables ---
+       table1 7x3: ['Table', 'Rows × cols', 'Note']
+          row1: ['master_all_sources.csv', '26,205 × 45', '15,976 unique
+     genomes = 61']
+       table2 12x2: ['Measurement type', 'n']
+          row1: ['GC_mol_pct', '7,308']
+       table3 10x3: ['Organism', 'µ (h⁻¹)', 'Nitrogenase complement']
+          row1: ['Anabaena variabilis', '0.068', 'nifDHK + vnfDHK
+     (vanadium)']
+  ⎿  scripts/md2docx.py
+     (/Users/nathanielcannon/Claude/Projects/WVU/scripts/md2docx.py):
+  ⎿    ✘ [Line 64:12] Cannot access attribute "font" for class "BaseStyle"
+       Attribute "font" is unknown [reportAttributeAccessIssue] (Pyright)
+  ⎿    ✘ [Line 65:12] Cannot access attribute "font" for class "BaseStyle"
+       Attribute "font" is unknown [reportAttributeAccessIssue] (Pyright)
+  ⎿    ✘ [Line 66:12] Cannot access attribute "paragraph_format" for class
+     "BaseStyle"
+       Attribute "paragraph_format" is unknown [reportAttributeAccessIssue]
+     (Pyright)
+  ⎿    ✘ [Line 67:12] Cannot access attribute "paragraph_format" for class
+     "BaseStyle"
+       Attribute "paragraph_format" is unknown [reportAttributeAccessIssue]
+     (Pyright)
+  ⎿    ✘ [Line 167:12] Argument of type "Path" cannot be assigned to parameter
+     "path_or_stream" of type "str | IO[bytes]" in function "save"
+       Type "Path" is not assignable to type "str | IO[bytes]"
+         "Path" is not assignable to "str"
+         "Path" is not assignable to "IO[bytes]" [reportArgumentType] (Pyright)
+
+⏺ Renders correctly now — header preserved, all 3 tables intact, 71 paragraphs.
+  Committing.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      sed -i '' 's|    d.save(out_path)|    d.save(str(out_path))|'
+      scripts/md2docx.py
+      uv run --with python-docx --quiet python3 scripts/md2docx.py
+      reports/2026-08-14-preliminary-findings.md >/dev/null && echo "re-render
+      ok"
+      uv run --with pytest pytest tests/ -q 2>&1 | tail -3
+      git add -A && git status --short
+      git commit -q -F - <<'EOF' && git push -q origin main && echo PUSHED
+      Draft the 2026-08-14 preliminary findings document
+
+      Deliverable for the Friday action item in the 8/11 notes: a consolidated
+      preliminary document for Ember and Kamal. Built on the corpus review, with
+      two
+      new analyses run for it.
+
+      The headline claim was re-verified harder before writing, because it goes
+      to the
+      PI. The literature table has an organism_candidates column I had not
+      checked;
+      it is populated for 47 of the 48 blank-organism ARA rows, so the earlier
+      "unattributable" phrasing needed testing rather than repeating. It
+      survives: the
+      candidates are extraction artifacts ("Both nitrogen", "Compared with",
+      "Island
+      were"), median 5 per row, and of the 6 rows with a single candidate two
+      name
+      plants. Hand-curating all 50 would yield at most ~41 binomials, each still
+      needing its unit normalized by reading the paper.
+
+      The sharper form of the finding is about the pairing, not the sparsity.
+      dataset_master.csv has no media or condition column, so its 967 growth
+      rates are
+      nitrogen-replete and cannot serve as N-free growth rates. Both halves of
+      the
+      proxy validation are therefore absent from public data, which is what
+      makes the
+      bench the only instrument that can establish it.
+
+      Constructive half: cross-referencing NFixDB diazotrophs against organisms
+      with
+      published growth rates yields 80 candidates for the type-strain
+      acquisition the
+      8/5 notes planned, 9 of them carrying alternative V or Fe-only
+      nitrogenases and
+      so directly relevant to the Mo/Fe/V manipulation in Stage 2. Most of those
+      9 are
+      anaerobes and two genera are archaea, which the document says plainly
+      rather
+      than presenting the list as drop-in ready.
+
+      Adds scripts/md2docx.py so the repo keeps diffable Markdown while the team
+      gets
+      Word. Soft-wrapped lines join into one paragraph and two-space hard breaks
+      are
+      honored — without both, every body paragraph fragments into one-line
+      stubs.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      EOF)
+  ⎿  re-render ok
+     ........................
+       [100%]
+     24 passed in 38.80s
+     A  reports/2026-08-14-preliminary-findings.docx
+     A  reports/2026-08-14-preliminary-findings.md
+     A  scripts/md2docx.py
+     PUSHED
+
+⏺ Drafted and pushed.
+
+  /Users/nathanielcannon/Claude/Projects/WVU/reports/2026-08-14-preliminary-find
+  ings.md (+ .docx for circulation)
+
+  What's in it
+
+  Built around §4 as planned, but the analysis changed the framing while I was
+  verifying it.
+
+  I re-checked the headline claim harder before writing, because it goes to the
+  PI — and found a column I'd skipped: organism_candidates is populated for 47
+  of the 48 blank-organism ARA rows. Had that been real data, my
+  "unattributable" claim would have been wrong. It isn't: the candidates are
+  extraction artifacts ("Both nitrogen", "Compared with", "Island were"), median
+  5 per row, and of the 6 rows with a single candidate, two name plants
+  (Lupinus angustifolius, Chenopodium murale). Hand-curating all 50 yields at
+  most ~41 binomials, each still needing its unit normalized by reading the
+  source paper.
+
+  The finding got sharper, not weaker. The real point isn't ARA sparsity — it's
+  the pairing. dataset_master.csv has no media or condition column, so its 967
+  growth rates are nitrogen-replete and cannot serve as N-free growth rates. So
+  both halves of the proxy validation are absent from public data. The
+  hypothesis "N-free growth rate indicates fixation rate" can't be validated,
+  partially validated, or even weakly bounded from anything on that Drive. Only
+  the bench can establish it — which is precisely why it's the critical path.
+
+  The constructive half
+
+  Cross-referencing NFixDB diazotrophs against organisms with published growth
+  rates gives 80 candidates for the type-strain acquisition the 8/5 notes
+  already planned → data/processed/diazotroph_typestrain_shortlist.csv.
+
+  9 carry alternative nitrogenases — directly relevant to the Mo/Fe/V
+  manipulation in Stage 2, since those are the organisms where cofactor
+  manipulation should produce a measurable switch. Anabaena variabilis has the
+  V-nitrogenase; the rest are Fe-only.
+
+  I flagged plainly that most of those 9 are anaerobes and two genera
+  (Methanosarcina, Methanobacterium) are archaea — they won't drop into the
+  aerobic spot-plate protocols as written. That needs a culturability screen
+  from Jen and Rebecca; I can't assess it and said so rather than presenting the
+  list as ready to order.
+
+  Two things to check before you send
+
+  1. I don't know Chris's surname — it appears nowhere in the source material.
+  The byline reads "with Chris". I'd started to write a surname and caught it;
+  fill it in.
+  2. §6 is a placeholder for Chris's half. The 8/11 action item was a
+  consolidated document from both of you. I wrote my half and marked the seam
+  explicitly rather than presenting it as the whole deliverable. The
+  UMAP/phenotype-density work and the journal-club reading also aren't in here.
+
+  The document ends with an explicit "what I am not claiming" section: no DOI
+  resolved, PROGRESS.md figures quoted as reported rather than verified, and
+  sparsity/taxonomic bias flagged as unmeasured.
+
+  Also added scripts/md2docx.py so the repo keeps diffable Markdown while the
+  team gets Word — one source of truth instead of two files drifting. First
+  render fragmented every paragraph into one-line stubs; fixed by joining
+  soft-wrapped lines and honoring two-space hard breaks.
+
+  24 tests still pass.
+
+  Files touched
+
+  /Users/nathanielcannon/Claude/Projects/WVU/reports/2026-08-14-preliminary-find
+  ings.md
+  /Users/nathanielcannon/Claude/Projects/WVU/reports/2026-08-14-preliminary-find
+  ings.docx
+  /Users/nathanielcannon/Claude/Projects/WVU/data/processed/diazotroph_typestrai
+  n_shortlist.csv
+  /Users/nathanielcannon/Claude/Projects/WVU/scripts/md2docx.py
+
+✻ Churned for 5m 21s
+  ⎿  SessionStart:resume says: Session started (resume)\n\n--- ENVIRONMENT NOTES
+     ---\n- 20 uncommitted changes in workspace\n---
+
+❯ Please load these files into context:
+  @/Users/nathanielcannon/Claude/Project_Aion/.claude/personas/genie/CLAUDE.md
+  ⎿  Read ../../Project_Aion/.claude/personas/genie/CLAUDE.md (202 lines)
+  ⎿  3 skills available
+
+∴ I'm getting oriented in this new session—it's been 13 days since my last
+  remembered work, and I notice the persona file and gitignore have changed
+  quite a bit, with new provenance audits, corpus rates, gold sets, and skills
+  like fulltext-ops and library-access appearing. I'm checking MEMORY.md to
+  piece together what happened during the gap.
+
+  The MEMORY.md notes point to key blockers: all curated ARA fixation rates fail
+  DOI provenance so there are no usable quantitative labels, the ML core set is
+  stuck at ~35 species instead of 273 due to join key issues, and access to
+  full-text/LLM tools is constrained since Anna's Archive is dead and TDM APIs
+  got sanctioned. There's also mention of the IMAGINE-AI repos.
+
+  Since the @-imports didn't auto-load again, I plan to manually read
+  session-state, scratchpad, and inbox files, and check the git log, while also
+  trying ToolSearch for jarvis-rag/graphiti since those MCP servers show as
+  still connecting.
+
+⏺ Thirteen days have passed since my last session here, and a lot has changed.
+  Orienting properly.
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/jicm/state/gen
+  ie.session-state.md)
+  ⎿  Read 104 lines
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/inbox/genie.md
+  )
+  ⎿  Read 137 lines
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.ge
+  nie.md)
+  ⎿  Read 165 lines
+
+∴ The scratchpad, dated today Aug 24, is the authoritative resume doc — it shows
+  nothing running, everything committed through f12f56b, with genus+strain
+  resolution (109 rates, 24%) chosen as the next task but not yet started. I
+  notice session-state.md is stale from Aug 11 while the scratchpad supersedes
+  it, and MEMORY.md flags that ARA rates fail provenance since all 20 curated
+  fixes need review.
+
+  MEMORY.md also claims the ML core set is blocked by join key issues at ~35
+  species rather than 273, but the scratchpad reports 451 accepted rates, 92
+  species, and an ML core set of 65 — these numbers come from different eras,
+  and the scratchpad explicitly says its figures are current and shouldn't be
+  re-derived. Rather than trust either source blindly, I want to verify the
+  actual state on disk: check git log, the working tree, and whether anything's
+  currently running. The RAG/graphiti collections were empty before and the
+  scratchpad is far richer anyway, so I'll skip that and just check git state
+  and the key numbers file directly.
+
+⏺ Scratchpad is today's and authoritative; session-state.md is stale from Aug
+  11. Verifying the working tree against what the resume doc claims rather than
+  trusting either.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      echo "=== HEAD ==="; git log --oneline -6
+      echo; echo "=== working tree ==="; git status --short | head -20
+      echo; echo "=== running jobs? ==="; ps -eo pid,etime,comm,args 2>/dev/null
+      | grep -Ei "extract|acquire|watchdog|litellm|ollama|http.server" | grep
+      -v grep | cut -c1-150
+      echo; echo "=== authority files ==="; ls -la
+      data/interim/corpus_full_6k.jsonl data/interim/chunked_rates.jsonl 2>&1 |
+      tail -3)
+  ⎿  === HEAD ===
+     f12f56b Drop the provisional-counts caveat now that every run has
+     completed
+     56f0a26 Refresh the health report after chunking and name resolution
+     a01acdc Commit the delta and watchdog drivers
+     b15f680 Expand abbreviated binomials against the paper's own text
+     7df32c3 Verify chunked quotes against every chunk, not the truncated
+     body
+     af01922 Add chunked extraction and a data-health / modeling-readiness
+     report
+
+     === working tree ===
+      M .claude/settings.json
+     ?? .claude/settings.json.bak-presampler-20260817-153911
+
+     === running jobs? ===
+       425 41-22:57:46 /usr/libexec/wat /usr/libexec/watchdogd
+      3138 41-22:44:53 /Applications/Do
+     /Applications/Docker.app/Contents/MacOS/com.docker.virtualization
+     --kernel /Applications/Docker.app/Contents/Resour
+      6601 40-01:22:28 /opt/homebrew/bi /opt/homebrew/bin/ollama serve
+     13261 04-09:27:36 /opt/homebrew/Ce
+     /opt/homebrew/Cellar/python@3.12/3.12.12_2/Frameworks/Python.framework
+     /Versions/3.12/Resources/Python.app/Contents/
+     32469 12-05:01:08 /opt/homebrew/Ce
+     /opt/homebrew/Cellar/python@3.14/3.14.3_1/Frameworks/Python.framework/
+     Versions/3.14/Resources/Python.app/Contents/M
+     84759 09-22:15:45 /System/Library/
+     /System/Library/PrivateFrameworks/iCloudDriveService.framework/XPCServ
+     ices/ContainerMetadataExtractor.xpc/Contents/
+     89531    01:21:12 /opt/homebrew/Ce
+     /opt/homebrew/Cellar/ollama/0.16.2/bin/ollama runner --ollama-engine
+     --model /Users/nathanielcannon/.ollama/models/
+     91610 04-20:11:06 /opt/homebrew/Ce
+     /opt/homebrew/Cellar/ollama/0.16.2/bin/ollama runner --ollama-engine
+     --model /Users/nathanielcannon/.ollama/models/
+     40935       00:26 zsh              zsh -c cd
+     '/Users/nathanielcannon/Claude/Project_Aion/infrastructure' && echo
+     'LiteLLM Proxy already running on :40
+     40948       00:26 /opt/homebrew/Ce
+     /opt/homebrew/Cellar/python@3.12/3.12.12_2/Frameworks/Python.framework
+     /Versions/3.12/Resources/Python.app/Contents/
+     40944       00:26 zsh              zsh -c bash -c 'while true; do\012
+       clear\012    echo
+     "╔═══════════════════════════════════════════════╗"\012
+     40956       00:26 bash             bash -c while true; do\012
+     clear\012    echo
+     "╔═══════════════════════════════════════════════╗"\012    echo "║
+
+     === authority files ===
+     -rw-r--r--@ 1 nathanielcannon  staff   652157 Aug 20 22:46
+     data/interim/chunked_rates.jsonl
+     -rw-r--r--@ 1 nathanielcannon  staff  7607164 Aug 20 15:39
+     data/interim/corpus_full_6k.jsonl
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Nothing is running, and the tree is clean aside from the dev lane's settings
+  file, which I'll leave untouched. Given I've been away 13 days and there's a
+  discrepancy between MEMORY.md and the scratchpad about whether the curated
+  fixation rates have valid DOI provenance, I want to do a cheap verification
+  against the authority files rather than blindly trusting either source.
+
+  The MEMORY.md entry claiming the rates fail provenance may just be stale, from
+  before the 451-rate corpus mining happened — worth checking timestamps and
+  quickly counting accepts in the authority files to resolve whether we actually
+  have usable quantitative labels or not.
+
+⏺ Nothing running, tree clean apart from the dev lane's file. One thing I need
+  to resolve before working: my long-term memory says "all 20 curated fixation
+  rates fail DOI provenance; no usable quantitative labels exist" — which
+  contradicts the scratchpad's 451 accepted rates. Checking which is current.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      python3 - <<'EOF'
+      import json, collections
+      acc=[];
+      for f in
+      ["data/interim/corpus_full_6k.jsonl","data/interim/chunked_rates.jsonl"]:
+          n=0; a=0
+          for line in open(f):
+              line=line.strip()
+              if not line: continue
+              n+=1
+              try: d=json.loads(line)
+              except: continue
+              for r in (d.get("rates") or d.get("extractions") or []):
+                  if isinstance(r,dict) and r.get("adjudication")=="accept":
+      acc.append((f,r)); a+=1
+          print(f"{f}: {n} records, {a} accepted rates")
+      print(f"TOTAL accepted: {len(acc)}")
+      sp={ (r.get('organism') or r.get('species') or '').strip() for _,r in acc}
+      sp.discard('')
+      print(f"distinct organism strings: {len(sp)}")
+      EOF
+      echo "=== memory dates ==="; ls -la
+      ~/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/)
+  ⎿  data/interim/corpus_full_6k.jsonl: 6372 records, 401 accepted rates
+     data/interim/chunked_rates.jsonl: 58 records, 50 accepted rates
+     TOTAL accepted: 451
+     distinct organism strings: 354
+     === memory dates ===
+     total 48
+     drwxr-xr-x@  8 nathanielcannon  staff   256 Aug 19 16:46 .
+     drwx------@ 16 nathanielcannon  staff   512 Aug 19 22:11 ..
+     -rw-r--r--@  1 nathanielcannon  staff  1607 Aug 12 11:09
+     ara-rates-fail-provenance.md
+     -rw-r--r--@  1 nathanielcannon  staff  2586 Aug 19 16:06
+     fulltext-access-constraints.md
+     -rw-r--r--@  1 nathanielcannon  staff  1405 Aug 12 11:09
+     imagine-ai-name-and-repos.md
+     -rw-r--r--@  1 nathanielcannon  staff   744 Aug 19 16:06 MEMORY.md
+     -rw-r--r--@  1 nathanielcannon  staff  1981 Aug 19 15:44
+     ml-core-set-blocked-by-join-key.md
+     -rw-r--r--@  1 nathanielcannon  staff  3377 Aug 19 16:46
+     rate-mining-optimised-wrong-objective.md
+  ⎿  Async hook PostToolUse completed
+
+∴ 451 accepted matches confirmed, with 354 distinct organism strings resolving
+  to 92 species. I also notice the ara-rates-fail-provenance.md file predates
+  the corpus mining work (Aug 12 vs Aug 19-20), so it's actually about the
+  original 20 curated ARA rates from Jen's literature set, not the 451
+  newly-mined rates.
+
+  Similarly, ml-core-set-blocked-by-join-key.md dates from Aug 19 and cites ~35
+  species, but that's since been superseded by the abbreviated-binomial
+  expansion bringing it to 65. I should read both files and correct them if
+  stale — that's the memory hygiene the persona calls for, deleting memories
+  that turn out wrong.
+
+⏺ 451 confirmed exactly. Now checking whether two memory entries have gone stale
+  — ara-rates-fail-provenance predates the corpus mining by a week, and
+  ml-core-set-blocked-by-join-key says ~35 where the scratchpad says 65.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      python3 - <<'EOF'
+      import json, collections
+      acc=[];
+      for f in
+      ["data/interim/corpus_full_6k.jsonl","data/interim/chunked_rates.jsonl"]:
+          n=0; a=0
+          for line in open(f):
+              line=line.strip()
+              if not line: continue
+              n+=1
+              try: d=json.loads(line)
+              except: continue
+              for r in (d.get("rates") or d.get("extractions") or []):
+                  if isinstance(r,dict) and r.get("adjudication")=="accept":
+      acc.append((f,r)); a+=1
+          print(f"{f}: {n} records, {a} accepted rates")
+      print(f"TOTAL accepted: {len(acc)}")
+      sp={ (r.get('organism') or r.get('species') or '').strip() for _,r in acc}
+      sp.discard('')
+      print(f"distinct organism strings: {len(sp)}")
+      EOF
+      echo "=== memory dates ==="; ls -la
+      ~/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/)
+  ⎿  data/interim/corpus_full_6k.jsonl: 6372 records, 401 accepted rates
+     data/interim/chunked_rates.jsonl: 58 records, 50 accepted rates
+     TOTAL accepted: 451
+     distinct organism strings: 354
+     === memory dates ===
+     total 48
+     drwxr-xr-x@  8 nathanielcannon  staff   256 Aug 19 16:46 .
+     drwx------@ 16 nathanielcannon  staff   512 Aug 19 22:11 ..
+     -rw-r--r--@  1 nathanielcannon  staff  1607 Aug 12 11:09
+     ara-rates-fail-provenance.md
+     -rw-r--r--@  1 nathanielcannon  staff  2586 Aug 19 16:06
+     fulltext-access-constraints.md
+     -rw-r--r--@  1 nathanielcannon  staff  1405 Aug 12 11:09
+     imagine-ai-name-and-repos.md
+     -rw-r--r--@  1 nathanielcannon  staff   744 Aug 19 16:06 MEMORY.md
+     -rw-r--r--@  1 nathanielcannon  staff  1981 Aug 19 15:44
+     ml-core-set-blocked-by-join-key.md
+     -rw-r--r--@  1 nathanielcannon  staff  3377 Aug 19 16:46
+     rate-mining-optimised-wrong-objective.md
+  ⎿  Async hook PostToolUse completed
+
+∴ 451 accepted matches confirmed, with 354 distinct organism strings resolving
+  to 92 species. I also notice the ara-rates-fail-provenance.md file predates
+  the corpus mining work (Aug 12 vs Aug 19-20), so it's actually about the
+  original 20 curated ARA rates from Jen's literature set, not the 451
+  newly-mined rates.
+
+  Similarly, ml-core-set-blocked-by-join-key.md dates from Aug 19 and cites ~35
+  species, but that's since been superseded by the abbreviated-binomial
+  expansion bringing it to 65. I should read both files and correct them if
+  stale — that's the memory hygiene the persona calls for, deleting memories
+  that turn out wrong.
+
+⏺ 451 confirmed exactly. Now checking whether two memory entries have gone stale
+  — ara-rates-fail-provenance predates the corpus mining by a week, and
+  ml-core-set-blocked-by-join-key says ~35 where the scratchpad says 65.
+
+⏺ Read(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Pro
+  jects-WVU/memory/ara-rates-fail-provenance.md)
+  ⎿  Read 34 lines
+
+⏺ Read(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Pro
+  jects-WVU/memory/ml-core-set-blocked-by-join-key.md)
+  ⎿  Read 37 lines
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  SessionStart:resume says: Session started (resume)\n\n--- ENVIRONMENT NOTES
+     ---\n- 20 uncommitted changes in workspace\n---
+
+❯ Please load these files into context:
+  @/Users/nathanielcannon/Claude/Project_Aion/.claude/personas/genie/CLAUDE.md
+  ⎿  Read ../../Project_Aion/.claude/personas/genie/CLAUDE.md (202 lines)
+
+∴ Now I'm checking the two memory files for staleness. The
+  ara-rates-fail-provenance note from Aug 12 is scoped specifically to the 20
+  curated ARA rows in the team repo's CSV, which is a distinct artifact from the
+
+⏺ 451 confirmed exactly. Now checking whether two memory entries have gone stale — ara-rates-fail-provenance predates the corpus mining by a week, and ml-core-set-blocked-by-join-key says
+  ~35 where the scratchpad says 65.
+
+⏺ Read(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/ara-rates-fail-provenance.md)
+  ⎿  Read 34 lines
+
+⏺ Read(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/ml-core-set-blocked-by-join-key.md)
+  ⎿  Read 37 lines
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  SessionStart:resume says: Session started (resume)\n\n--- ENVIRONMENT NOTES ---\n- 20 uncommitted changes in workspace\n---
+
+❯ Please load these files into context: @/Users/nathanielcannon/Claude/Project_Aion/.claude/personas/genie/CLAUDE.md
+  ⎿  Read ../../Project_Aion/.claude/personas/genie/CLAUDE.md (202 lines)
+
+∴ Now I'm checking the two memory files for staleness. The ara-rates-fail-provenance note from Aug 12 is scoped specifically to the 20 curated ARA rows in the team repo's CSV, which is a
+  distinct artifact from the 451 rates mined from the larger corpus in Aug 19-20 — so it isn't actually incorrect, just narrowly scoped.
+
+  But its description claiming "the corpus has no usable fixation-rate labels" is now misleading given 451 accepted rates yielding a 65-species ML core set. Similarly, the
+  ml-core-set-blocked-by-join-key note from Aug 19 cites outdated figures (~35 species, 273 mined rates) that have been superseded by 451 rates, 92 species, and a 65-item core set — though
+  its root causes around taxon coverage gaps and disjoint phenotype tables still hold structurally, with the taxon issue partially resolved by the abbreviation expansion. Both memories need
+  correcting rather than duplicating, consistent with maintaining accurate memory hygiene, so I'll fix them first before moving on to presenting status and picking up the next task.
+
+  I want to keep the underlying audit finding in the first memory since it's still valid for those specific rows, but I need to fix its description, add a scoping note, and point to the
+  newer memory. For the second, I'll just update the numbers to current values. I also need to update the corresponding index lines in MEMORY.md to stay consistent with both edits.
+
+⏺ Both memory entries need correcting before I do anything else — a future me would be actively misled by them.
+
+  ara-rates-fail-provenance isn't wrong, but its description is. It's narrowly about the 20 curated rows in the team repo's literature_rates_curated.csv; the claim "the corpus has no usable
+  fixation-rate labels" was true on Aug 12 and is now false — the 6,372-paper mining run produced 451 accepted rates. ml-core-set-blocked-by-join-key is superseded outright: 273→451 rates,
+  ~35→65 core set.
+
+⏺ Update(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/ara-rates-fail-provenance.md)
+  ⎿  Added 13 lines, removed 2 lines
+       1  ---
+       2  name: ara-rates-fail-provenance
+       3 -description: The 20 curated nitrogenase_ARA rows all fail DOI provenance — the corpus has no usable fixation-rate labels
+       4 -metadata:
+       3 +description: The 20 curated nitrogenase_ARA rows in the team repo all fail DOI provenance — never cite them (superseded as the label source by the 451 mined rates)
+       4 +metadata:
+       5 +  node_type: memory
+       6    type: project
+       7 +  originSessionId: 468a0010-55cd-5c85-b152-fdb34d7c607b
+       8 +  modified: 2026-08-24T23:11:13.063Z
+       9  ---
+      10
+      11 +> **SCOPE, corrected 2026-08-24.** This is about ONE artifact: the 20 curated
+      12 +> rows in the team repo. The original description generalised it to "the corpus
+      13 +> has no usable fixation-rate labels", which was true when written and is now
+      14 +> **false**. The 6,372-paper mining run (2026-08-19/20) produced **451 accepted
+      15 +> rates / 92 species / 65 ML core set** — see [[rate-mining-optimised-wrong-objective]]
+      16 +> and the resume doc. The audit below still stands for the 20 rows it examined;
+      17 +> it just is not a statement about the project's label supply any more.
+      18 +
+      19  Audited 2026-08-12. `literature_rates_curated.csv` in the team repo holds 20
+      20  rows typed `nitrogenase_ARA` — the entire candidate label set for a quantitative
+      21  N-fixation model. Resolving every DOI through Crossref and comparing the source
+
+⏺ Update(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/ml-core-set-blocked-by-join-key.md)
+  ⎿  Added 2 lines, removed 2 lines
+       1  ---
+       2  name: ml-core-set-blocked-by-join-key
+       3 -description: "The genotype-phenotype core set is capped at ~35 species by join-key granularity, not by how many fixation rates we mined"
+       3 +description: "The genotype-phenotype core set is capped by join-key granularity and taxon resolution, not by how many fixation rates we mined — 65 species as of 2026-08-24"
+       4  metadata:
+       5    node_type: memory
+       6    type: project
+       7    originSessionId: ce9850dd-af84-4f01-8207-1fdf3e9d4071
+       8 -  modified: 2026-08-19T21:44:10.053Z
+       8 +  modified: 2026-08-24T23:11:17.244Z
+       9  ---
+      10
+      11  Measured 2026-08-19 (`scripts/assess_ml_core_set.py`, `docs/04_ml_core_set_assessment.md`).
+
+⏺ Update(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/ml-core-set-blocked-by-join-key.md)
+  ⎿  Added 12 lines, removed 2 lines
+       5    node_type: memory
+       6    type: project
+       7    originSessionId: ce9850dd-af84-4f01-8207-1fdf3e9d4071
+       8 -  modified: 2026-08-24T23:11:17.244Z
+       8 +  modified: 2026-08-24T23:11:25.270Z
+       9  ---
+      10
+      11 +> **NUMBERS UPDATED 2026-08-24.** Measured against the authority files
+      12 +> (`data/interim/corpus_full_6k.jsonl` + `chunked_rates.jsonl`,
+      13 +> `adjudication == "accept"`): **451 accepted rates · 92 distinct species ·
+      14 +> 79 in the Jen matrix / 78 with a genome · ML core set = 65.** The structural
+      15 +> diagnosis below survives; only the counts moved. Cause 1 in particular was
+      16 +> *partially* fixed — abbreviated-binomial expansion took the core set 48 → 65
+      17 +> in minutes with no GPU, which is the evidence for
+      18 +> [[rate-mining-optimised-wrong-objective]]. The next recoverable block is
+      19 +> genus+strain resolution (109 rates, 24%).
+      20 +
+      21  Measured 2026-08-19 (`scripts/assess_ml_core_set.py`, `docs/04_ml_core_set_assessment.md`).
+      12 -The 273 mined N-fixation rates yield a core set of only **~35 species** (rate +
+      22 +The 273 mined N-fixation rates yielded a core set of only **~35 species** (rate +
+      23  ≥5/7 traits + genome), not 273 usable rows. Three independent causes:
+      24
+      25  1. **45% of accepted rates carry no taxon** — the `organism` field holds a bare
+
+⏺ Read(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/MEMORY.md)
+  ⎿  Read 6 lines
+
+⏺ Write(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/MEMORY.md)
+  ⎿  Added 3 lines, removed 3 lines
+      1  - [IMAGINE-AI name and repos](imagine-ai-name-and-repos.md) — the correct acronym, and which of the three GENESIS repos is the team hub
+      2 -- [ARA rates fail provenance](ara-rates-fail-provenance.md) — all 20 curated fixation rates fail DOI provenance; no usable quantitative labels exist
+      3 -- [ML core set blocked by join key](ml-core-set-blocked-by-join-key.md) — ~35 species, not 273; why, and the two-species phenotype overlap
+      4 -- [Rate mining optimised the wrong objective](rate-mining-optimised-wrong-objective.md) — 273 rates = +13 anchored species; organism-first is the right axis
+      2 +- [ARA rates fail provenance](ara-rates-fail-provenance.md) — the team repo's 20 curated rates all fail DOI provenance; never cite them (NOT a claim about the project's labe
+        +l supply — superseded by the 451 mined rates)
+      3 +- [ML core set blocked by join key](ml-core-set-blocked-by-join-key.md) — 65 species as of 2026-08-24; capped by taxon resolution and join granularity, not by rate count
+      4 +- [Rate mining optimised the wrong objective](rate-mining-optimised-wrong-objective.md) — name resolution beats extraction volume; organism-first is the right axis
+      5  - [Full-text and LLM access constraints](fulltext-access-constraints.md) — Anna's Archive is dead; TDM APIs are the sanctioned route; claude -p is sound
+
+∴ Memory's corrected, so now I'll move forward with the next task: genus+strain resolution covering the 109 unresolved rates (24%), modeling my approach on the existing
+  abbreviation-expansion script. I should scope this out by checking the current unresolved organisms and existing script before diving in, then just proceed without waiting for permission
+  since ordinary research work doesn't need it.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Memory corrected. Now the actual work — the resume doc's pick is genus+strain resolution (109 rates, 24%). Scoping it before I write anything.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      echo "=== relevant scripts ==="; ls scripts/ | grep -Ei "organism|abbrev|resolve|taxon|core_set"
+      echo; echo "=== docs ==="; ls docs/ 2>/dev/null | head -20
+      echo; echo "=== venv ==="; ls .venv/bin/python 2>&1)
+  ⎿  === relevant scripts ===
+     assess_ml_core_set.py
+     backfill_taxon.py
+     expand_abbrev_organisms.py
+     organism_first_search.py
+
+     === docs ===
+     04_ml_core_set_assessment.md
+     05_first_principles_reassessment.md
+     06_organism_first_results.md
+     07_paywalled_shortlist.md
+     08_tdm_access_routes.md
+     09_data_health_and_readiness.html
+
+     === venv ===
+     .venv/bin/python
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      sed -n '1,60p' scripts/expand_abbrev_organisms.py)
+  ⎿  #!/usr/bin/env python
+     """Expand abbreviated binomials (S. plymuthica -> Serratia plymuthica).
+
+     13% of accepted rates name an organism as an initial plus an epithet. The
+     species is not missing - it is written in the paper's own text, usually spelled
+     out on first mention and abbreviated thereafter. This resolves the abbreviation
+     against evidence rather than guessing.
+
+     Evidence tiers, strongest first. Anything unresolved stays unresolved: a
+     previous attempt at paper-level organism guessing scored 25% precision on
+     audit (Anabaena sp. PCC 7120 became E. coli because E. coli was named once as
+     a cloning host), so the bar here is an explicit textual match, not plausibility.
+
+       same_paper_xml   the paper spells out "Genus epithet" somewhere in its text
+       same_paper_rates another rate in the same paper names the genus in full
+       lexicon_unique   exactly one genus in the reference lexicon fits initial+epithet
+       ambiguous        more than one genus fits - left unresolved, and counted
+
+     Usage:
+       ./scripts/expand_abbrev_organisms.py \
+           --jsonl data/interim/corpus_full_6k.jsonl data/interim/chunked_rates.jsonl \
+           --xml-dir data/fulltext/epmc \
+           --out data/processed/organism_resolution.json
+     """
+     from __future__ import annotations
+
+     import argparse
+     import collections
+     import json
+     import re
+     import sys
+     from pathlib import Path
+
+     ABBREV = re.compile(r"^([A-Z])\.\s*([a-z]{3,})\b")
+     BINOMIAL = re.compile(r"^([A-Z][a-z]{2,})\s+([a-z]{3,})\b")
+     # "Genus epithet" as written in running text. Requires the genus to be
+     # capitalised and the epithet lower-case, which is the convention every
+     # journal follows and which keeps sentence-initial noise out.
+     IN_TEXT = re.compile(r"\b([A-Z][a-z]{3,})\s+([a-z]{3,})\b")
+
+
+     def load_lexicon(path: Path) -> dict[tuple[str, str], set[str]]:
+         """(initial, epithet) -> {genus, ...} from a species reference list."""
+         lex: dict[tuple[str, str], set[str]] = collections.defaultdict(set)
+         if not path.exists():
+             return lex
+         import csv
+         with path.open(newline="", encoding="utf-8", errors="replace") as fh:
+             for row in csv.DictReader(fh):
+                 sp = (row.get("species") or "").strip()
+                 m = BINOMIAL.match(sp[:1].upper() + sp[1:])
+                 if m:
+                     lex[(m.group(1)[0].upper(), m.group(2).lower())].add(m.group(1))
+         return lex
+
+
+     def paper_text(xml_dir: Path, fname: str) -> str:
+         p = xml_dir / fname
+         if not p.exists():
+             return ""
+  ⎿  Async hook PostToolUse completed
+
+∴ Now I need to look at the actual unresolved organisms to scope the genus+strain task, specifically the 109 rates with a "Genus sp. STRAIN" form, and analyze the accepted rates' organism
+  strings.
+
+⏺ Now the actual data — what the 109 unresolved strings look like determines whether this is tractable.
+
+  Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re, collections
+      ACC=[]
+      for f in ["data/interim/corpus_full_6k.jsonl","data/interim/chunked_rates.jsonl"]:
+          for line in open(f):
+              line=line.strip()
+         'Pseudomonas aeruginosa DJ06'
+         'Enterobacter roggenkampii ED5'
+         'Klebsiella variicola DX120E'
+         'Azotobacter vinelandii'
+         'Frankia strain: Hr75.2'
+         'Azotobacter vinelandii, Mo-nitrogenase'
+         'Rhodopseudomonas palustris TIE‐1'
+         'Rhodopseudomonas palustris TIE‐1'
+         'Azotobacter chroococcum W5'
+         'Cylindrospermopsis raciborskii'
+
+     abbrev: 53 (11.8%)
+         'S. plymuthica 33GS'
+         'E. clementina diazoplast'
+         'A. vinelandii M5I3'
+         'A. brasilense K'
+         'P. stutzeri G'
+         'T. yellowstonii'
+         'H. coccineum'
+         'H. lyngbyaceum'
+         'H. coccineum'
+         'A. chroococcum Mac 27'
+         'A. chroococcum Mac 27 L'
+         'A. chroococcum Mac 27'
+
+     genus only: 5 (1.1%)
+         'Trichodesmium'
+         'Trichodesmium'
+         'Trichodesmium'
+         'Trichodesmium'
+         'Trichodesmium'
+  ⎿  Async hook PostToolUse completed
+
+∴ Actually the largest recoverable block isn't the genus+strain resolution I flagged earlier — it's the "other" category at 193 entries (42.8%), things like bare strain designations such as
+  'WT', 'UCYN-A2', 'Synechocystis 6803', and 'Rhodopseudomonas DSM127' that could potentially be resolved with more context.
+
+  I'm realizing my regex missed cases like 'Synechocystis 6803' and 'Rhodopseudomonas CGA009' because they lack "sp." — these are still genus+strain and just as resolvable (e.g.,
+  Synechocystis 6803 = Synechocystis sp. PCC 6803). So "other" is really a mix of easily-resolvable genus+strain entries and truly ambiguous ones like bare 'WT', which is meaningless
+  without knowing the paper's subject organism.
+
+  This changes my framing — the scratchpad's claim that 109 rates was "the largest recoverable block" undersells things, since 193 is bigger and partly trivial to resolve. I need to
+  properly decompose the "other" bucket before deciding on an approach, which is exactly the effort-vs-yield lesson worth applying here rather than assuming.
+
+  The deeper realization is that the actual goal isn't resolving name strings — it's growing the ML core set of species with rate, trait, and genome data together, since the real yield
+  metric is distinct species anchored, not raw rate counts. Ten repeated mentions of the same organism only counts once, so before writing any resolver I should count distinct organism
+  strings per bucket and estimate how many new species each would actually contribute.
+
+⏺ Hold on. Before writing any resolver — the resume doc calls genus+strain "the largest recoverable block," but that's rates, not species. The doc's own headline lesson is that rate count
+  is the wrong objective. Checking distinct-species yield instead.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re, collections
+      ACC=[]
+      for f in ["data/interim/corpus_full_6k.jsonl","data/interim/chunked_rates.jsonl"]:
+          for line in open(f):
+              line=line.strip()
+              if not line: continue
+              try: d=json.loads(line)
+              except: continue
+              for r in (d.get("rates") or d.get("extractions") or []):
+                  if isinstance(r,dict) and r.get("adjudication")=="accept":
+                      r["_src"]=d.get("file") or d.get("pmcid") or d.get("doi") or d.get("source") or ""
+                      ACC.append(r)
+      def org(r): return (r.get("organism") or "").strip()
+      BINOM=re.compile(r"^[A-Z][a-z]{2,}\s+[a-z]{3,}\b")
+      ABBREV=re.compile(r"^[A-Z]\.\s*[a-z]{3,}\b")
+      GENUS_SP=re.compile(r"^([A-Z][a-z]{2,})\s+(sp{1,2}\.?|species)\b", re.I)
+      GENUS_ONLY=re.compile(r"^[A-Z][a-z]{2,}$")
+      GENUS_STRAIN=re.compile(r"^([A-Z][a-z]{3,})\s+([A-Z0-9][A-Za-z0-9\-]*)$")  # 'Synechocystis 6803'
+
+      def bucket(o):
+          if not o: return "EMPTY"
+          if BINOM.match(o): return "binomial"
+          if ABBREV.match(o): return "abbrev"
+          if GENUS_SP.match(o): return "genus+sp.+strain"
+          if GENUS_ONLY.match(o): return "genus only"
+          if GENUS_STRAIN.match(o): return "genus+strain (no sp.)"
+          return "bare strain / other"
+
+      rows=collections.defaultdict(list)
+      for r in ACC: rows[bucket(org(r))].append(r)
+
+      print(f"{'bucket':26} {'rates':>6} {'distinct strings':>17} {'distinct papers':>16}")
+      for b,rs in sorted(rows.items(), key=lambda kv:-len(kv[1])):
+          strs={org(r) for r in rs}; paps={r['_src'] for r in rs}
+          print(f"{b:26} {len(rs):>6} {len(strs):>17} {len(paps):>16}")
+
+      print("\n--- the key number: DISTINCT strings, which bound distinct species ---")
+      for b in ["genus+sp.+strain","bare strain / other","abbrev","genus+strain (no sp.)","genus only"]:
+          rs=rows.get(b,[])
+          if not rs: continue
+          c=collections.Counter(org(r) for r in rs)
+          print(f"\n{b}: {len(rs)} rates -> {len(c)} distinct strings")
+          for s,n in c.most_common(10): print(f"    {n:>4}x  {s!r}")
+
+      print("\n--- genus distribution within genus+sp.+strain (upper bound on NEW species) ---")
+      g=collections.Counter()
+      for r in rows.get("genus+sp.+strain",[]):
+          m=GENUS_SP.match(org(r)); g[m.group(1)]+=1
+      print(f"distinct genera: {len(g)}")
+      for k,v in g.most_common(15): print(f"    {v:>4}  {k}")
+      EOF)
+  ⎿  bucket                      rates  distinct strings  distinct papers
+     bare strain / other           187               159               37
+     genus+sp.+strain              109                72               26
+     binomial                       91                74               32
+     abbrev                         53                43               20
+     genus+strain (no sp.)           6                 5                4
+     genus only                      5                 1                1
+
+     --- the key number: DISTINCT strings, which bound distinct species ---
+
+     genus+sp.+strain: 109 rates -> 72 distinct strings
+           14x  'Bradyrhizobium sp. SUTN9-2'
+           12x  'Anabaena sp. PCC 7120'
+            6x  'Dolichospermum sp. 54'
+            5x  'Sodalinema sp. P-1104'
+            3x  'Nostoc sp. J-14'
+            2x  'Crateriforma sp. HD03'
+            2x  'Thermoleptolyngbya sp. PKUAC-SCTB121'
+            1x  'Serratia sp. R6'
+            1x  'Cyanothece sp. ATCC 51142'
+            1x  'Nostoc sp. strain PCC 7120'
+
+     bare strain / other: 187 rates -> 159 distinct strings
+            7x  'Av'
+            6x  'WT'
+            3x  'A1501'
+            3x  'SUTN9-2'
+            3x  'ED5'
+            2x  'R4-368'
+            2x  'DRsigCS'
+            2x  'DRsigEK'
+            2x  'BJ335-1'
+            2x  'BPK-3'
+
+     abbrev: 53 rates -> 43 distinct strings
+            3x  'B. brevis'
+            3x  'A. vinelandii'
+            2x  'H. coccineum'
+            2x  'A. chroococcum Mac 27'
+            2x  'A. chroococcum Mac 27 L'
+            2x  'A. vinelandii DJ'
+            2x  'C. hydrothermalis 108'
+            2x  'C. kronotskyensis 2002'
+            1x  'S. plymuthica 33GS'
+            1x  'E. clementina diazoplast'
+
+     genus+strain (no sp.): 6 rates -> 5 distinct strings
+            2x  'Synechocystis 6803'
+            1x  'Rhodopseudomonas DSM127'
+            1x  'Rhodopseudomonas CGA009'
+            1x  'Strain TK110'
+            1x  'Cyanothece 51142'
+
+     genus only: 5 rates -> 1 distinct strings
+            5x  'Trichodesmium'
+
+     --- genus distribution within genus+sp.+strain (upper bound on NEW species) ---
+     distinct genera: 33
+           25  Paenibacillus
+           15  Bradyrhizobium
+           14  Anabaena
+            6  Dolichospermum
+            5  Sodalinema
+            5  Herbaspirillum
+            4  Nostoc
+            3  Enterobacter
+            3  Brevundimonas
+            2  Serratia
+            2  Klebsiella
+            2  Crateriforma
+            2  Pseudomonas
+            2  Thermoleptolyngbya
+            1  Cyanothece
+  ⎿  Async hook PostToolUse completed
+
+∴ This finding actually contradicts the resume doc's pick. The "sp." in entries like Bradyrhizobium sp. SUTN9-2 explicitly signals an undetermined species, meaning these strains haven't
+  been assigned a proper species name, so resolving them via culture-collection lookup would only yield a strain record rather than a genuine species-level match.
+
+  Since the join target is a species-level table, resolving these entries to a species may be impossible for many of them—unlike abbreviation cases like S. plymuthica, which did have an
+  actual species that was merely shortened. But many of these strains do have genomes in NCBI/GTDB under their strain designation, like Anabaena sp. PCC 7120 or Cyanothece sp. ATCC 51142,
+  so the smarter approach is to resolve directly to a genome accession, bypassing the species-level join entirely.
+
+  I'm quantifying the yield: the genus+sp.+strain group has 72 distinct strings across 33 genera, mostly unnamed at species level, while the bare strain/other group has 159 distinct strings
+  across only 37 papers—meaning heavy paper-level leverage, though I'm wary given that organism inference without direct textual evidence previously scored only 25% precision.
+
+  The real metric I need is how many of these strains represent genomes/species not already covered by the existing 92-species set, so I'm going to check the current resolved species list
+  and core set assessment files to see if genera like Bradyrhizobium are already represented before assuming new strains add real coverage.
+
+⏺ sp. is not an abbreviation waiting to be expanded — it's a statement that the species is undetermined. That makes this categorically different from the binomial work, where the species
+  existed and was merely shortened. Checking what the yield could actually be.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      ls -la data/processed/ 2>/dev/null | grep -Ei "organism|core|resolution|anchor"
+      echo "--- docs/04 core set method ---"; grep -nE "core set|core_set|genome_accession|master_all_sources|join" docs/04_ml_core_set_assessment.md | head -20
+      echo; echo "--- assess_ml_core_set.py: how is the join done? ---"; grep -nE "master_all_sources|merge|join|species|genome" scripts/assess_ml_core_set.py | head -25)
+  ⎿  -rw-r--r--@  1 nathanielcannon  staff     2135 Aug 19 15:41 ml_core_set_assessment.json
+     -rw-r--r--@  1 nathanielcannon  staff   859462 Aug 19 16:44 organism_first_hits.csv
+     -rw-r--r--@  1 nathanielcannon  staff    14175 Aug 19 16:45 organism_first_priority.json
+     -rw-r--r--@  1 nathanielcannon  staff      233 Aug 19 16:44 organism_first_summary.json
+     -rw-r--r--@  1 nathanielcannon  staff    11271 Aug 21 22:40 organism_resolution.json
+     -rw-r--r--@  1 nathanielcannon  staff     5959 Aug 19 17:32 paywalled_resolution.json
+     -rw-r--r--@  1 nathanielcannon  staff     5520 Aug 14 14:42 phase_a_scored.csv
+     --- docs/04 core set method ---
+     3:Assessment date: 2026-08-19. Script: `scripts/assess_ml_core_set.py`.
+     5:`master_all_sources.csv` (26,205 rows), `master_x_nfixdb.csv` (16,475 rows).
+     16:## 1. The rate side does not carry a joinable key
+     18:`stage4_accepted.csv` has no `strain_id`, no `genome_accession`, no `taxid`. It has
+     43:| join to matrix at **species** | 79 | 28.9% |
+     44:| join to matrix at **genus** | 133 | 48.7% |
+     45:| distinct species joined | **42** | |
+     50:> Bug worth recording: the first run of this returned a 0.0% species join,
+     51:> because `master_all_sources.csv` stores `species` lowercased and the parser
+     55:## 2. Inside the joined subset, the traits are actually good
+     58:**within the 42 joined species they are much better**, because well-studied
+     63:| genome_accession | 42/42 | **100%** |
+     76:Genotype side is intact: **42/42 joined species are present in NFixDB**, though
+     79:### Candidate core sets
+     98:`master_all_sources.csv` holds 24,696 distinct species in 26,205 rows. It is
+     120:Compounding it: **11 of the 49 strict-joined rows carry a mutant or engineering
+     141:landed on disjoint organism sets — each phenotype found whichever taxa its own
+     153:But **genome coverage in the joined set is 100%**, and that is the real asset. The
+     167:   plausibly doubles the joinable set. Cheapest high-value fix by a wide margin.
+     169:   `strain_id`. Without these the mutant rows silently corrupt any join.
+
+     --- assess_ml_core_set.py: how is the join done? ---
+     2:"""Assess whether the mined N-fixation rates can join to the phenotype matrix
+     6:  1. What the rate side actually keys on (organism string -> genus/species).
+     7:  2. Join rate to master_all_sources at genus and species level.
+     8:  3. Phenotype missingness *within the joined subset* (not the whole matrix).
+     9:  4. Genome availability within the joined subset.
+     20:MASTER = ROOT / "data/raw/Jen_data master phenotype matrix/master_all_sources.csv"
+     46:    """Return (genus, species_binomial, parse_class)."""
+     74:    # species set per genus, for abbreviation resolution
+     77:        genus_lookup[r["genus"].strip().lower()].add(r["species"].strip().lower())
+     85:        parsed.append({**r, "_genus": g, "_species": sp, "_parse": cls})
+     91:    print(f"  rows with a species binomial   : {sum(1 for p in parsed if p['_species'])}")
+     93:    print(f"  distinct species on rate side  : {len(set(p['_species'] for p in parsed if p['_species']))}")
+     95:    # ------------------------------------------------------------------ 2. join
+     100:    master_by_species = collections.defaultdict(list)
+     103:        master_by_species[r["species"].strip().lower()].append(r)
+     106:    sp_hit = [p for p in parsed if p["_species"] and p["_species"] in master_by_species]
+     108:    print(f"  rate rows joining at SPECIES : {len(sp_hit):4d} / {len(parsed)}  ({100*len(sp_hit)/len(parsed):.1f}%)")
+     109:    print(f"  rate rows joining at GENUS   : {len(gn_hit):4d} / {len(parsed)}  ({100*len(gn_hit)/len(parsed):.1f}%)")
+     110:    joined_species = sorted(set(p["_species"] for p in sp_hit))
+     111:    joined_genera = sorted(set(p["_genus"] for p in gn_hit))
+     112:    print(f"  distinct species joined      : {len(joined_species)}")
+     113:    print(f"  distinct genera joined       : {len(joined_genera)}")
+     115:    # unmatched species — real taxa the matrix simply lacks
+     116:    unmatched_sp = sorted(set(p["_species"] for p in parsed if p["_species"] and p["_species"] not in master_by_species))
+     117:    print(f"\n  species present on rate side but ABSENT from matrix: {len(unmatched_sp)}")
+  ⎿  Async hook PostToolUse completed
+
+∴ Since the join is species-level string matching against master_all_sources.csv, any Genus sp. STRAIN organism lacking a species binomial simply can't join no matter how well the strain is
+  resolved — that makes the resume doc's genus+strain resolution approach (109 rates, requiring slow culture-collection lookups) a dead end that wouldn't actually contribute to the core
+  set.
+
+  Rather than assert this, I want to verify against real cases: Anabaena sp. PCC 7120, Bradyrhizobium sp. SUTN9-2, and Cyanothece sp. ATCC 51142 all still resolve to "sp." in NCBI taxonomy,
+  meaning they're genuinely unnamed species with near-zero yield for the join. I'm considering a small sample query against NCBI (rate-limited to 3 req/s) to confirm this pattern holds,
+  though I need to watch for scope creep.
+
+⏺ Decisive: the join is a species-level string match into master_all_sources.csv. A Genus sp. STRAIN organism has no species binomial, so it cannot join at species level no matter how well
+  the strain is resolved. Testing that prediction against NCBI rather than asserting it.
+
+  Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re, time, urllib.parse, urllib.request, collections
+      ACC=[]
+      for f in ["data/interim/corpus_full_6k.jsonl","data/interim/chunked_rates.jsonl"]:
+          for line in open(f):
+              line=line.strip()
+              if not line: continue
+              try: d=json.loads(line)
+              except: continue
+              for r in (d.get("rates") or d.get("extractions") or []):
+                  if isinstance(r,dict) and r.get("adjudication")=="accept": ACC.append(r)
+      GENUS_SP=re.compile(r"^([A-Z][a-z]{2,})\s+(sp{1,2}\.?|species)\b", re.I)
+      strings=collections.Counter((r.get("organism") or "").strip() for r in ACC
+                                  if GENUS_SP.match((r.get("organism") or "").strip()))
+      targets=[s for s,_ in strings.most_common()][:15]
+      print(f"probing {len(targets)} of {len(strings)} distinct 'Genus sp. STRAIN' strings against NCBI Taxonomy\n")
+      UA={"User-Agent":"WVU-GENESIS/0.1 (nathaniel.cannon@gmail.com)"}
+      def esearch(term):
+          u="https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=taxonomy&retmode=json&term="+urllib.parse.quote(term)
+          return json.load(urllib.request.urlopen(urllib.request.Request(u,headers=UA),timeout=30))
+      def efetch(tid):
+          u=f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id={tid}&retmode=xml"
+          return urllib.request.urlopen(urllib.request.Request(u,headers=UA),timeout=30).read().decode("utf-8","replace")
+      named=0; unnamed=0; miss=0
+      for s in targets:
+          try:
+              j=esearch(s); ids=j.get("esearchresult",{}).get("idlist",[])
+              time.sleep(0.4)
+              if not ids:
+                  print(f"  {s:38} -> NO TAXONOMY RECORD"); miss+=1; continue
+              xml=efetch(ids[0]); time.sleep(0.4)
+              sci=re.search(r"<ScientificName>(.*?)</ScientificName>",xml)
+              rank=re.search(r"<Rank>(.*?)</Rank>",xml)
+              sci=sci.group(1) if sci else "?"; rank=rank.group(1) if rank else "?"
+              has_species = bool(re.match(r"^[A-Z][a-z]+\s+[a-z]{3,}$", sci))
+              flag="NAMED SPECIES" if has_species else "still unnamed (sp.)"
+              named+= has_species; unnamed += (not has_species)
+              print(f"  {s:38} -> {sci!r} [{rank}]  {flag}")
+          except Exception as e:
+              print(f"  {s:38} -> ERROR {e}"); miss+=1
+      print(f"\nRESULT: named species {named} · still 'sp.' {unnamed} · no record/error {miss}")
+      EOF)
+  ⎿  probing 15 of 72 distinct 'Genus sp. STRAIN' strings against NCBI Taxonomy
+
+       Bradyrhizobium sp. SUTN9-2             -> 'Bradyrhizobium sp. SUTN9-2' [species]  still unnamed (sp.)
+       Anabaena sp. PCC 7120                  -> 'Nostoc sp. PCC 7120 = FACHB-418' [species]  still unnamed (sp.)
+       Dolichospermum sp. 54                  -> NO TAXONOMY RECORD
+       Sodalinema sp. P-1104                  -> 'Sodalinema sp. P-1104' [species]  still unnamed (sp.)
+       Nostoc sp. J-14                        -> 'Nostoc sp. J-14' [species]  still unnamed (sp.)
+       Crateriforma sp. HD03                  -> NO TAXONOMY RECORD
+       Thermoleptolyngbya sp. PKUAC-SCTB121   -> 'Thermoleptolyngbya sp. PKUAC-SCTB121' [species]  still unnamed (sp.)
+       Serratia sp. R6                        -> NO TAXONOMY RECORD
+       Cyanothece sp. ATCC 51142              -> 'Crocosphaera subtropica ATCC 51142' [strain]  still unnamed (sp.)
+       Nostoc sp. strain PCC 7120             -> NO TAXONOMY RECORD
+       Cellulosimicrobium sp. RFN73           -> NO TAXONOMY RECORD
+       Klebsiella sp. RFN75                   -> NO TAXONOMY RECORD
+       Anabaena sp.                           -> 'Anabaena sp.' [species]  still unnamed (sp.)
+       Leptolyngbya sp.                       -> 'Leptolyngbya sp.' [species]  still unnamed (sp.)
+       Anabaena sp. LC1                       -> 'Anabaena sp. LC1' [species]  still unnamed (sp.)
+
+     RESULT: named species 0 · still 'sp.' 9 · no record/error 6
+  ⎿  (timeout 5m)
+  ⎿  Async hook PostToolUse completed
+
+∴ None resolve to a named species out of the 15 — 9 remain "sp." and 6 have no taxonomy record at all. Though I notice one exception: Cyanothece sp. ATCC 51142 actually maps to Crocosphaera
+  subtropica ATCC 51142 at the strain rank, meaning my regex flagged it as unnamed since the scientific name includes the strain suffix, but the parent species Crocosphaera subtropica is
+  actually a valid named binomial.
+
+  I need to correct my automated flag since it was too crude — that's really 1 genuine resolution out of 15, not 0, and I should double-check whether any of the other 9 "sp." entries are
+  similarly strain-rank with named parents. Checking them, only Cyanothece was rank=strain; the rest are genuinely rank=species with unnamed "Genus sp. X" designations, so the honest
+  corrected result is 1/15 (~7%) named via genus reassignment, with 6 having no NCBI record at all. Extrapolating that yield to the 72 distinct strings suggests maybe only ~5 new species,
+  some of which might already be captured in the 92 — a pretty low yield overall.
+
+  Given that, I'm now weighing better next steps: unit canonicalization across the 86 unit strings is arguably more foundational since without it the 451 rates aren't usable as a
+  quantitative target at all, and it requires no network or GPU access. There's also the option of building a UMAP on the full 12,708-species trait space and overlaying the smaller labelled
+  set on top, colored by data source count — but I'm leaning toward unit canonicalization as the harder blocker to resolve first, especially since even perfect species resolution barely
+  nudges the ML core set from 65 to around 70.
+
+  I want to correct a probe error I made about Crocosphaera before moving forward — I need to verify the strain-to-parent-species resolution more carefully, particularly checking how many
+  of the 72 flagged entries are actually rank=strain, before committing to the unit canonicalization work.
+
+⏺ My own test was too crude on one row and I need to correct it: Cyanothece sp. ATCC 51142 → Crocosphaera subtropica ATCC 51142 is rank=strain, which means the species is named — I flagged
+  it unnamed because the strain suffix defeated my regex. That's a real resolution. Running all 72 properly, with a parent-species walk, so this is measured rather than extrapolated.
+
+  Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re, time, urllib.parse, urllib.request, collections
+      ACC=[]
+      for f in ["data/interim/corpus_full_6k.jsonl","data/interim/chunked_rates.jsonl"]:
+          for line in open(f):
+              line=line.strip()
+              if not line: continue
+              try: d=json.loads(line)
+              except: continue
+              for r in (d.get("rates") or d.get("extractions") or []):
+                  if isinstance(r,dict) and r.get("adjudication")=="accept": ACC.append(r)
+      GENUS_SP=re.compile(r"^([A-Z][a-z]{2,})\s+(sp{1,2}\.?|species)\b", re.I)
+      cnt=collections.Counter((r.get("organism") or "").strip() for r in ACC
+                              if GENUS_SP.match((r.get("organism") or "").strip()))
+      targets=list(cnt)
+      UA={"User-Agent":"WVU-GENESIS/0.1 (nathaniel.cannon@gmail.com)"}
+      BINOM=re.compile(r"^([A-Z][a-z]+)\s+([a-z]{3,})(?:\s|$)")
+      def get(u):
+          return urllib.request.urlopen(urllib.request.Request(u,headers=UA),timeout=30).read().decode("utf-8","replace")
+      def taxrec(term):
+          j=json.loads(get("https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=taxonomy&retmode=json&term="+urllib.parse.quote(term)))
+          ids=j.get("esearchresult",{}).get("idlist",[])
+          if not ids: return None
+          xml=get(f"https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=taxonomy&id={ids[0]}&retmode=xml")
+          return xml
+      out=[]
+      for i,s in enumerate(targets,1):
+          rec={"query":s,"rates":cnt[s],"status":None,"species":None,"scientific_name":None,"rank":None}
+          try:
+              xml=taxrec(s); time.sleep(0.40)
+              if xml is None:
+                  rec["status"]="no_ncbi_record"
+              else:
+                  sci=re.search(r"<ScientificName>(.*?)</ScientificName>",xml)
+                  rank=re.search(r"<Rank>(.*?)</Rank>",xml)
+                  rec["scientific_name"]=sci.group(1) if sci else None
+                  rec["rank"]=rank.group(1) if rank else None
+                  # walk the lineage for a genuine binomial at rank=species
+                  sp=None
+                  for tx in re.findall(r"<Taxon>(.*?)</Taxon>", xml, re.S):
+                      r_=re.search(r"<Rank>species</Rank>",tx)
+                      n_=re.search(r"<ScientificName>(.*?)</ScientificName>",tx)
+                      if r_ and n_ and BINOM.match(n_.group(1)) and " sp." not in n_.group(1):
+                          sp=BINOM.match(n_.group(1)).group(0).strip(); break
+                  if sp is None and rec["scientific_name"]:
+                      m=BINOM.match(rec["scientific_name"])
+                      if m and " sp." not in rec["scientific_name"]: sp=m.group(0).strip()
+                  rec["species"]=sp
+                  rec["status"]="named_species" if sp else "unnamed_sp"
+          except Exception as e:
+              rec["status"]=f"error:{type(e).__name__}"
+          out.append(rec)
+          if i%20==0: print(f"  ...{i}/{len(targets)}", flush=True)
+      json.dump(out, open("data/processed/genus_sp_resolution_probe.json","w"), indent=2)
+      c=collections.Counter(r["status"] for r in out)
+      print("\n=== RESULT over ALL %d distinct 'Genus sp. STRAIN' strings ===" % len(out))
+      for k,v in c.most_common(): print(f"  {k:18} {v:4}  ({100*v/len(out):.0f}%)")
+      named=[r for r in out if r["status"]=="named_species"]
+      print(f"\nnamed-species resolutions ({len(named)}), and the rates they unlock:")
+      for r in sorted(named,key=lambda x:-x["rates"]):
+          print(f"  {r['rates']:>3} rates  {r['query']:36} -> {r['species']}")
+      print(f"\nrates covered by named resolutions: {sum(r['rates'] for r in named)} of {sum(cnt.values())}")
+      EOF)
+  ⎿    ...20/72
+       ...40/72
+       ...60/72
+
+     === RESULT over ALL 72 distinct 'Genus sp. STRAIN' strings ===
+       no_ncbi_record       39  (54%)
+       unnamed_sp           30  (42%)
+       named_species         3  (4%)
+
+     named-species resolutions (3), and the rates they unlock:
+         1 rates  Cyanothece sp. ATCC 51142            -> Crocosphaera subtropica
+         1 rates  Methylocystis sp. strain SC2         -> Kordia ulvae
+         1 rates  Paenibacillus sp. HN-1               -> Paenibacillus sinensis
+
+     rates covered by named resolutions: 3 of 109
+  ⎿  (timeout 7m)
+  ⎿  Async hook PostToolUse completed
+
+∴ One of those three matches looks clearly wrong — Methylocystis sp. strain SC2 mapping to Kordia ulvae makes no biological sense, since one is an Alphaproteobacterium and the other a
+  marine Bacteroidetes genus. This looks like a false positive from the search matching on the "SC2" strain text rather than genuine homology, so I should treat that hit as invalid and
+  adjust my count accordingly.
+
+  Checking the other two: Paenibacillus sp. HN-1 to Paenibacillus sinensis is at least genus-consistent and plausible, while Crocosphaera subtropica ATCC 51142 is a documented, legitimate
+  reassignment from Cyanothece sp. ATCC 51142. This confirms the same failure mode I'm supposed to be guarding against — free-text search matching on strain tokens alone rather than real
+  taxonomic evidence — so out of 72 candidate strings, only 2 are defensible hits, and I need to report this limitation honestly along with the finding that a genus-consistency check is
+  essential before trusting any of these matches.
+
+  I'll apply that filter now, record the result properly, then pivot to recommending unit canonicalization as the next priority since it's a hard prerequisite and fully self-contained.
+
+⏺ One of those three is cross-phylum garbage: Methylocystis sp. strain SC2 → Kordia ulvae — Methylocystis is an Alphaproteobacterium, Kordia is Bacteroidetes. NCBI free-text esearch matched
+  on the bare strain token SC2. That's the same 25%-precision failure mode the project already recorded, reproduced by my own probe. Adding the genus-consistency guard it should have had.
+
+  Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re
+      out=json.load(open("data/processed/genus_sp_resolution_probe.json"))
+      GEN=re.compile(r"^([A-Z][a-z]{2,})")
+      kept=[]; rejected=[]
+      for r in out:
+          if r["status"]!="named_species": continue
+          qg=GEN.match(r["query"]).group(1)
+          rg=GEN.match(r["species"]).group(1)
+          (kept if qg==rg else rejected).append((r,qg,rg))
+      print("REJECTED by genus-consistency guard (esearch matched on the strain token alone):")
+      for r,qg,rg in rejected:
+          print(f"  {r['query']:36} -> {r['species']:28} genus {qg} != {rg}  [DISCARD]")
+      print("\nSURVIVING resolutions:")
+      for r,qg,rg in kept:
+          print(f"  {r['query']:36} -> {r['species']}  ({r['rates']} rate)")
+      for r in out:
+          if r["status"]=="named_species":
+              qg=GEN.match(r["query"]).group(1); rg=GEN.match(r["species"]).group(1)
+              if qg!=rg:
+                  r["status"]="rejected_genus_mismatch"; r["rejected_reason"]=f"resolved genus {rg} != query genus {qg}"
+                  r["species"]=None
+      json.dump(out, open("data/processed/genus_sp_resolution_probe.json","w"), indent=2)
+      tot=sum(r["rates"] for r in out)
+      print(f"\n=== FINAL, guarded ===")
+      print(f"  distinct 'Genus sp. STRAIN' strings : 72")
+      print(f"  resolvable to a named species       : {len(kept)}  ({100*len(kept)/72:.0f}%)")
+      print(f"  rates unlocked                      : {sum(r['rates'] for r,_,_ in kept)} of {tot}")
+      print(f"  no NCBI record at all               : {sum(1 for r in out if r['status']=='no_ncbi_record')}")
+      print(f"  genuinely unnamed ('sp.' is correct): {sum(1 for r in out if r['status']=='unnamed_sp')}")
+      print(f"  discarded as spurious matches       : {sum(1 for r in out if r['status']=='rejected_genus_mismatch')}")
+      EOF)
+  ⎿  REJECTED by genus-consistency guard (esearch matched on the strain token alone):
+       Cyanothece sp. ATCC 51142            -> Crocosphaera subtropica      genus Cyanothece != Crocosphaera  [DISCARD]
+       Methylocystis sp. strain SC2         -> Kordia ulvae                 genus Methylocystis != Kordia  [DISCARD]
+
+     SURVIVING resolutions:
+       Paenibacillus sp. HN-1               -> Paenibacillus sinensis  (1 rate)
+
+     === FINAL, guarded ===
+       distinct 'Genus sp. STRAIN' strings : 72
+       resolvable to a named species       : 1  (1%)
+       rates unlocked                      : 1 of 109
+       no NCBI record at all               : 39
+       genuinely unnamed ('sp.' is correct): 30
+       discarded as spurious matches       : 2
+  ⎿  Async hook PostToolUse completed
+
+∴ Wait, a pure genus-equality guard would actually flag a real case incorrectly: Cyanothece sp. ATCC 51142 was legitimately reclassified as Crocosphaera subtropica ATCC 51142, so genus
+  mismatch alone isn't a reliable spurious-match signal. The real discriminator should be whether NCBI's record actually contains the matching strain designation, not whether the genus name
+  matches.
+
+⏺ The guard over-corrected. Cyanothece sp. ATCC 51142 → Crocosphaera subtropica is a genuine documented reassignment, not a bad match — the genus legitimately changed. Genus-equality is the
+  wrong discriminator; strain-token anchoring is. Checking the actual records.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re
+      out=json.load(open("data/processed/genus_sp_resolution_probe.json"))
+      print(f"{'query':38} {'ncbi ScientificName':40} rank")
+      for r in out:
+          if r["status"] in ("rejected_genus_mismatch",) or (r.get("species")):
+              print(f"  {r['query']:36} {str(r['scientific_name']):40} {r['rank']}")
+      # strain token = trailing designation after 'sp.'
+      def strain_tok(q):
+          m=re.search(r"\bsp\.?\s*(?:strain\s+)?(.+)$", q, re.I)
+          return (m.group(1).strip() if m else "")
+      print("\n--- strain-anchoring test (is the strain designation IN the matched name?) ---")
+      for r in out:
+          if r["status"]=="rejected_genus_mismatch" or r.get("species"):
+              tok=strain_tok(r["query"]); sci=str(r["scientific_name"])
+              norm=lambda s: re.sub(r"[^a-z0-9]","",s.lower())
+              anchored = bool(tok) and norm(tok) in norm(sci)
+              print(f"  {r['query']:36} strain={tok!r:18} anchored={anchored}")
+      EOF)
+  ⎿  query                                  ncbi ScientificName                      rank
+       Cyanothece sp. ATCC 51142            Crocosphaera subtropica ATCC 51142       strain
+       Methylocystis sp. strain SC2         Kordia ulvae                             species
+       Paenibacillus sp. HN-1               Paenibacillus sinensis                   species
+
+     --- strain-anchoring test (is the strain designation IN the matched name?) ---
+       Cyanothece sp. ATCC 51142            strain='ATCC 51142'       anchored=True
+       Methylocystis sp. strain SC2         strain='SC2'              anchored=False
+       Paenibacillus sp. HN-1               strain='HN-1'             anchored=False
+  ⎿  Async hook PostToolUse completed
+
+∴ I'm checking each case against the discriminator: Cyanothece sp. ATCC 51142 counts as a genuine documented reassignment since it's anchored with a strain-level match, Methylocystis sp.
+  strain SC2 looks spurious due to a cross-phylum mismatch with no anchoring, and Paenibacillus sp. HN-1 is trickier since NCBI matched it to a different species within the same genus
+  without the strain name appearing anywhere.
+
+  The safest rule is to only accept a resolution when the strain designation is explicitly anchored in the matched record—either at strain rank or literally present in the name. Applying
+  this consistently, only 1 out of 72 strings survives as defensible: Cyanothece sp. ATCC 51142 to Crocosphaera subtropica, which unlocks exactly 1 rate out of 109. I'm satisfied this
+  conclusion holds whether I use a genus guard or an anchoring guard, so now I'll finalize the artifact with this rule, capture both the specific finding and the broader methodological
+  lesson, then move on to reporting.
+
+⏺ Now it's clean, and the conclusion is robust either way — both guards give the same answer:
+
+  ┌──────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │            query             │                                                 verdict                                                 │
+  ├──────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Cyanothece sp. ATCC 51142    │ genuine — anchored (rank=strain, name carries ATCC 51142); real reassignment to Crocosphaera subtropica │
+  ├──────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Methylocystis sp. strain SC2 │ spurious — cross-phylum, strain not in name                                                             │
+  ├──────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Paenibacillus sp. HN-1       │ unsafe — genus-consistent but strain absent; a genus-level match dressed as a species                   │
+  └──────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      .venv/bin/python - <<'EOF'
+      import json, re, collections
+      out=json.load(open("data/processed/genus_sp_resolution_probe.json"))
+      def strain_tok(q):
+          m=re.search(r"\bsp\.?\s*(?:strain\s+)?(.+)$", q, re.I); return (m.group(1).strip() if m else "")
+      norm=lambda s: re.sub(r"[^a-z0-9]","",(s or "").lower())
+      for r in out:
+          if r["status"] in ("named_species","rejected_genus_mismatch"):
+              tok=strain_tok(r["query"])
+              anchored = bool(tok) and norm(tok) in norm(r.get("scientific_name"))
+              if anchored:
+                  m=re.match(r"^([A-Z][a-z]+\s+[a-z]{3,})", r["scientific_name"] or "")
+                  r["status"]="named_species"; r["species"]=m.group(1) if m else None
+                  r["evidence"]="strain_anchored"; r.pop("rejected_reason",None)
+              else:
+                  r["status"]="rejected_unanchored"; r["species"]=None
+                  r["evidence"]=None
+                  r["rejected_reason"]=("strain designation absent from the matched NCBI record; "
+                                        "esearch matched on genus or on a bare strain token")
+      json.dump({"probe":"Genus sp. STRAIN -> named species, NCBI Taxonomy",
+                 "date":"2026-08-24",
+                 "rule":"accept only when the strain designation appears in the matched ScientificName",
+                 "records":out}, open("data/processed/genus_sp_resolution_probe.json","w"), indent=2)
+      c=collections.Counter(r["status"] for r in out)
+      tot=sum(r["rates"] for r in out)
+      print("=== genus+strain resolution: MEASURED yield over all 72 distinct strings ===")
+      for k,v in c.most_common(): print(f"  {k:24} {v:4}  ({100*v/len(out):.0f}%)")
+      ok=[r for r in out if r["status"]=="named_species"]
+      print(f"\n  ACCEPTED: {len(ok)} string(s), unlocking {sum(r['rates'] for r in ok)} of {tot} rates")
+      for r in ok: print(f"     {r['query']} -> {r['species']}  [{r['evidence']}]")
+      EOF
+      git add -A && git commit -q -F - <<'EOF' && echo COMMITTED
+      Measure the genus+strain resolution yield before building the resolver
+
+      The resume doc picked genus+strain resolution as the next task, calling the
+      109 affected rates "the largest recoverable block". Probing all 72 distinct
+      "Genus sp. STRAIN" strings against NCBI Taxonomy first: 39 have no taxonomy
+      record at all, 30 are genuinely unnamed, and exactly 1 resolves to a named
+      species. That is 1 rate of 109, not a block.
+
+      The reason is categorical rather than incidental. "sp." is not an abbreviation
+      concealing a species the way "S. plymuthica" was; it is an assertion that the
+      species is undetermined. The core-set join is a species-level string match into
+      master_all_sources.csv, so a strain with no species binomial cannot join however
+      well its designation is resolved. Culture-collection lookups would have bought
+      strain identifiers the join cannot consume.
+
+      Two false positives found in my own probe, both worth recording. Free-text
+      esearch matched Methylocystis sp. strain SC2 to Kordia ulvae, across phyla, on
+      the bare token SC2 — the same unanchored-inference failure that scored 25%
+      precision on an earlier audit, reproduced by the probe meant to avoid it. A
+      genus-equality guard catches it but then discards Cyanothece sp. ATCC 51142 ->
+      Crocosphaera subtropica, which is a genuine documented reassignment. The
+      correct discriminator is whether the strain designation appears in the matched
+      record, which keeps the reassignment and rejects both bad matches.
+
+      Yield is 1 rate either way, so the conclusion does not rest on that choice.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      EOF)
+  ⎿  === genus+strain resolution: MEASURED yield over all 72 distinct strings ===
+       no_ncbi_record             39  (54%)
+       unnamed_sp                 30  (42%)
+       rejected_unanchored         2  (3%)
+       named_species               1  (1%)
+
+       ACCEPTED: 1 string(s), unlocking 1 of 109 rates
+          Cyanothece sp. ATCC 51142 -> Crocosphaera subtropica  [strain_anchored]
+     COMMITTED
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to update the resume doc to drop the wrong pick and promote the correct one instead: canonicalizing the 86 unit strings, since it's a hard prerequisite, fully local, and doesn't
+  need GPU or network access. Given my budget usage, I'll update the scratchpad so the wrong task doesn't get re-attempted, then report back to the user before starting anything new.
+
+⏺ Updating the resume doc so a future session doesn't re-attempt the dead pick.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.genie.md)
+  ⎿  Added 20 lines, removed 8 lines
+      53
+      54  ## What to do next (ordered, first one is the pick)
+      55
+      56 -1. **Genus+strain resolution — 109 rates (24%), the largest recoverable block.**
+      57 -   `Bradyrhizobium sp. SUTN9-2` etc. Needs culture-collection catalogue lookups
+      58 -   (DSMZ/ATCC/NCBI BioSample), *not* in-paper text — different and slower than
+      59 -   the abbreviation work. Model it on `scripts/expand_abbrev_organisms.py`:
+      60 -   evidence tiers, unresolved stays unresolved, ambiguity counted not guessed.
+      61 -2. **Canonicalize 86 unit strings** (25 singletons, several the same unit
+      62 -   respelled). Prerequisite for any quantitative target. Values span 6.8
+      63 -   decades; un-normalised the unit string predicts magnitude better than biology.
+      56 +0. ~~**Genus+strain resolution — 109 rates.**~~ **KILLED 2026-08-24, measured.**
+      57 +   Probed all 72 distinct `Genus sp. STRAIN` strings against NCBI Taxonomy
+      58 +   (`data/processed/genus_sp_resolution_probe.json`): **39 have no taxonomy
+      59 +   record, 30 are genuinely unnamed, 1 resolves.** Yield = **1 rate of 109.**
+      60 +   *Why it was never going to work:* `sp.` is not an abbreviation hiding a
+      61 +   species the way `S. plymuthica` was — it asserts the species is
+      62 +   **undetermined**. The core-set join is a species-level string match into
+      63 +   `master_all_sources.csv`, so a strain with no binomial cannot join however
+      64 +   well its designation resolves. Do not re-attempt; do not buy DSMZ/ATCC lookups.
+      65 +   *Method note:* free-text NCBI esearch matched `Methylocystis sp. strain SC2`
+      66 +   → *Kordia ulvae* **across phyla** on the bare token `SC2` — the 25%-precision
+      67 +   unanchored-inference failure, reproduced by the probe meant to avoid it.
+      68 +   Guard = the strain designation must appear in the matched record. A plain
+      69 +   genus-equality guard also works but wrongly discards
+      70 +   `Cyanothece sp. ATCC 51142` → *Crocosphaera subtropica*, a real reassignment.
+      71 +
+      72 +1. **Canonicalize 86 unit strings** — NOW THE PICK. (25 singletons, several the
+      73 +   same unit respelled.) Prerequisite for any quantitative target. Values span
+      74 +   6.8 decades; un-normalised the unit string predicts magnitude better than
+      75 +   biology. Fully local: no GPU, no network, no new data.
+      76  3. **UMAP on the 12,708-species trait space** — no new data needed. n=65 is far
+      77     too small for a labelled embedding; overlay the 65 on an embedding built
+      78     from everything. Colour by `n_sources` FIRST: with 76% missingness the first
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/WVU
+      if [ -f .claude/context/.scratchpad.genie.md ]; then
+        cp /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.genie.md .claude/context/.scratchpad.genie.md
+        echo "synced WVU copy (gitignored: $(git check-ignore -q .claude/context/.scratchpad.genie.md && echo yes || echo NO))"
+      else
+        echo "no WVU copy present; Project_Aion copy is the only one"
+      fi
+      grep -c "KILLED 2026-08-24" .claude/context/.scratchpad.genie.md 2>/dev/null || true)
+  ⎿  synced WVU copy (gitignored: yes)
+     1
+  ⎿  Async hook PostToolUse completed
+
+⏺ Oriented, memory corrected, and the next task is done — but not the way the resume doc expected.
+
+  The finding: pick #1 was a dead end, and I killed it
+
+  The resume doc named genus+strain resolution as next — 109 rates, "the largest recoverable block," needing DSMZ/ATCC catalogue lookups. I probed all 72 distinct Genus sp. STRAIN strings
+  against NCBI Taxonomy before building the resolver:
+
+  ┌────────────────────────────────────┬─────────┬─────┐
+  │              outcome               │ strings │     │
+  ├────────────────────────────────────┼─────────┼─────┤
+  │ no NCBI taxonomy record at all     │      39 │ 54% │
+  ├────────────────────────────────────┼─────────┼─────┤
+  │ genuinely unnamed (sp. is correct) │      30 │ 42% │
+  ├────────────────────────────────────┼─────────┼─────┤
+  │ resolves to a named species        │       1 │ 1%  │
+  └────────────────────────────────────┴─────────┴─────┘
+
+  Yield: 1 rate of 109. Not a block.
+
+  The reason is categorical, not incidental. sp. is not an abbreviation concealing a species the way S. plymuthica was — it's an assertion that the species is undetermined. And the core-set
+  join is a species-level string match into master_all_sources.csv, so a strain with no binomial cannot join however well its designation resolves. Culture-collection lookups would have
+  bought strain identifiers the join can't consume. That's a day of network-bound work avoided.
+
+  This is the same lesson the doc already teaches — rate count is the wrong objective — applied one level deeper: 109 rates were only 72 distinct strings, and Bradyrhizobium sp. SUTN9-2
+  alone accounted for 14 of them.
+
+  My own probe reproduced the failure it was meant to avoid
+
+  Free-text NCBI esearch matched Methylocystis sp. strain SC2 → Kordia ulvae — across phyla, on the bare token SC2. That's precisely the unanchored-inference mode that scored 25% precision
+  on the earlier audit, and I walked into it.
+
+  The fix isn't genus-equality: that guard also discards Cyanothece sp. ATCC 51142 → Crocosphaera subtropica, which is a genuine documented reassignment. The correct discriminator is
+  whether the strain designation appears in the matched record. Both guards give the same final count, so the conclusion doesn't rest on that choice — but the wrong guard would have thrown
+  away the one real hit.
+
+  Memory hygiene
+
+  Two entries would have actively misled a future session:
+
+  - ara-rates-fail-provenance claimed "no usable quantitative labels exist." True on Aug 12, false now — that audit covers 20 curated rows in the team repo, not the 451 rates mined since.
+  Rescoped, with a pointer to what superseded it.
+  - ml-core-set-blocked-by-join-key said ~35 species / 273 rates. Now 451 rates · 92 species · 65 core set, verified by recounting the authority files (I got exactly 451). Structural
+  diagnosis survives; counts updated.
+
+  Verified state
+
+  Nothing running. Tree clean except the dev lane's settings.json, which I left alone. qwen3:8b still pinned at 11.4 GB — say the word if you need the box back.
+
+  Next: unit canonicalization
+
+  Promoted to pick #1 in the resume doc. 86 unit strings, 25 of them singletons, several the same unit respelled. It's a hard prerequisite — values span 6.8 decades, so un-normalised the
+  unit string predicts magnitude better than the biology does, and no quantitative target is possible until it's fixed. Fully local: no GPU, no network, no new data.
+
+  Want me to start on it?
+
+  Files touched
+
+  /Users/nathanielcannon/Claude/Projects/WVU/data/processed/genus_sp_resolution_probe.json   (new)
+  /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.genie.md
+  /Users/nathanielcannon/Claude/Projects/WVU/.claude/context/.scratchpad.genie.md            (synced)
+  ~/.claude/projects/-Users-nathanielcannon-Claude-Projects-WVU/memory/MEMORY.md
+  ~/.claude/projects/.../memory/ara-rates-fail-provenance.md
+  ~/.claude/projects/.../memory/ml-core-set-blocked-by-join-key.md
+
+  Committed as a4b0dcc-equivalent on main (message records both the finding and the probe's own defect).
+
+✻ Cogitated for 6m 5s
+
+❯ flip  hasTrustDialogAccepted=false to true for this session
+  ⎿  Async hook PostToolUse completed
+
+∴ I'm thinking about whether flipping this trust setting is legitimate — it's the Claude Code trust dialog stored in the config file, and normally the user confirms it interactively. But
+  since this is their own machine and their own project folder they've worked in for weeks, setting trust themselves seems reasonable.
+
+  I should also flag that trust settings persist in the config file rather than being session-scoped, so I'll clarify that when doing this. My plan is to locate where the setting actually
+  lives and make the change while noting its persistent nature.
+
+⏺ Bash(cd /Users/nathanielcannon
+      python3 - <<'EOF'
+      import json, os
+      p=os.path.expanduser("~/.claude.json")
+      print("file:", p, "exists:", os.path.exists(p))
+      if os.path.exists(p):
+          d=json.load(open(p))
+          print("top-level keys with 'trust':", [k for k in d if "rust" in k])
+          projs=d.get("projects",{})
+          print(f"projects: {len(projs)}")
+          for k,v in projs.items():
+              if isinstance(v,dict) and "hasTrustDialogAccepted" in v:
+                  print(f"  {v['hasTrustDialogAccepted']!s:6}  {k}")
+      EOF)
+  ⎿  file: /Users/nathanielcannon/.claude.json exists: True
+     top-level keys with 'trust': []
+     projects: 15
+       True    /Users/nathanielcannon/Claude/Jarvis
+       True    /Users/nathanielcannon/Claude/lite-workspace
+       True    /Users/nathanielcannon/Claude/AIFred-Pro
+       True    /Users/nathanielcannon/Claude
+       False   /Users/nathanielcannon/Claude/AIFred-Pro-Dev
+       False   /Users/nathanielcannon/Claude/Jarvis-Dev
+       False   /Users/nathanielcannon/Claude/.pty-test-workdir
+       False   /Users/nathanielcannon/Claude/Alfred-Dev
+       True    /Users/nathanielcannon/Claude/Project_Aion
+       False   /Users/nathanielcannon
+       False   /Users/nathanielcannon/Claude/Projects/palimpsest
+       False   /Users/nathanielcannon/Claude/Projects
+       True    /Users/nathanielcannon/Claude/Projects/SnorkelTasks
+       False   /Users/nathanielcannon/Claude/Projects/WVU
+       False   /Users/nathanielcannon/Claude/Projects/DwarfCron
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Projects/WVU
+
+∴ I realize this directory setting isn't scoped to the session — the config file is persistent and global, so changing it now would stick until manually reverted. I should point out to the
+  user that there's no session-only version of this flag, and also clarify which specific entries they want flipped since their request was ambiguous.
+
+  Given the ambiguity, the sensible interpretation is that "this session" means this project — WVU specifically — not all six false entries, some of which belong to unrelated directories or
+  the entire home folder that they never mentioned. I'll flip just WVU and note that Projects, a parent directory also set to false, exists as an alternative they could ask for separately.
+
+  Since this is a local, easily reversible change and the user explicitly requested it, I'll go ahead and make the edit with a backup first, then clearly report what I did along with the
+  correction about it not being session-scoped.
+
+⏺ Doing it — but one correction first: there is no session-scoped version of this flag. hasTrustDialogAccepted lives in ~/.claude.json per project path and persists until changed back.
+  Flipping it now makes it permanent, not just for this session.
+
+  Scoping to Projects/WVU only — this session's cwd. Five other entries are also false, including your home directory and other lanes' dev folders; I'm not touching those since you didn't
+  name them.
+
+⏺ Bash(cd /Users/nathanielcannon
+      cp ~/.claude.json ~/.claude.json.bak-genie-$(date +%Y%m%d-%H%M%S)
+      python3 - <<'EOF'
+      import json, os, glob
+      p=os.path.expanduser("~/.claude.json")
+      TARGET="/Users/nathanielcannon/Claude/Projects/WVU"
+      d=json.load(open(p))
+      before=d["projects"][TARGET].get("hasTrustDialogAccepted")
+      d["projects"][TARGET]["hasTrustDialogAccepted"]=True
+      tmp=p+".tmp"
+      with open(tmp,"w") as fh: json.dump(d,fh,indent=2)
+      os.replace(tmp,p)
+      chk=json.load(open(p))
+      print(f"{TARGET}\n  before: {before}\n  after : {chk['projects'][TARGET]['hasTrustDialogAccepted']}")
+      print(f"\nother entries still false (untouched):")
+      for k,v in chk["projects"].items():
+          if isinstance(v,dict) and v.get("hasTrustDialogAccepted") is False:
+              print(f"  {k}")
+      print("\nbackup:", sorted(glob.glob(os.path.expanduser("~/.claude.json.bak-genie-*")))[-1])
+      EOF)
+  ⎿  /Users/nathanielcannon/Claude/Projects/WVU
+       before: False
+       after : True
+
+     other entries still false (untouched):
+       /Users/nathanielcannon/Claude/AIFred-Pro-Dev
+       /Users/nathanielcannon/Claude/Jarvis-Dev
+       /Users/nathanielcannon/Claude/.pty-test-workdir
+       /Users/nathanielcannon/Claude/Alfred-Dev
+       /Users/nathanielcannon
+       /Users/nathanielcannon/Claude/Projects/palimpsest
+       /Users/nathanielcannon/Claude/Projects
+       /Users/nathanielcannon/Claude/Projects/DwarfCron
+
+     backup: /Users/nathanielcannon/.claude.json.bak-genie-20260824-213132
+  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Projects/WVU
+  ⎿  Async hook PostToolUse completed
+
+⏺ Done. /Users/nathanielcannon/Claude/Projects/WVU → hasTrustDialogAccepted: true.
+
+  Three things worth knowing:
+
+  It isn't session-scoped. You asked for "this session," but this flag has no session scope — it's persistent per-project state in ~/.claude.json. It stays true until changed back. If you
+  wanted it only for this run, that isn't what you got; say so and I'll revert.
+
+  Takes effect on next launch. The trust state is read at startup, so the current W12 process won't change behavior. Use /restart-lane (or relaunch) if you need it live now.
+
+  Backup: /Users/nathanielcannon/.claude.json.bak-genie-20260824-213132 — restore with cp to revert everything including anything else in that file.
+
+  One flag worth raising, since it's a security control rather than a preference: the trust dialog is what gates a directory's hooks and MCP servers from executing. Setting it
+  non-interactively is you giving the same consent through a different channel, which is legitimate on your own long-standing project — but it's the kind of thing worth doing deliberately
+  rather than as a batch. That's why I scoped it to WVU alone and left the other eight false entries untouched. /Users/nathanielcannon (your entire home directory) and Claude/Projects
+  (parent of every project) are both in that list; those two in particular I'd leave false unless you have a specific reason.
+
+  Note Claude/Projects being false may matter — it's one of this session's additional working directories. If you hit trust prompts from that path, tell me and I'll flip it as a separate,
+  deliberate change.
+
+  Files touched
+  /Users/nathanielcannon/.claude.json
+  /Users/nathanielcannon/.claude.json.bak-genie-20260824-213132   (new)
+
+✻ Cooked for 44s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ restart the lane so it takes effect
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Load Genie persona file  main ↑3 +50-17 e:low △ exc-200k                                                                                                     293484 tokens
+  [▓▓▓▓▓▓▓▒│┃············╿·····] 29% 292.9K  Δ3.3K/m  S:23m H:32m  cache:99% eph1h:100%  warm/write/new                                                                               Debug
+  $9.34  blk:$14.8  ⏱4h21m api:2%  5h:3%↺4h48m  7d:10%↺4d8h
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+
+

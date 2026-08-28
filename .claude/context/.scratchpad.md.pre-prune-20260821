@@ -1,0 +1,191 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+⚠️ **118 lines, over the 80 guideline, DELIBERATELY**: 2026-08-20 ran 7 candidates over 6 chain links
+and 1 adoption, and the instrument-failure block is the transferable part. **Prune target when next
+touched**: the 4 instrument failures → L2 memory, then this drops to ~90. Pruned 2026-08-19 (216 → 77). Prior `.scratchpad.md.pre-prune-20260819`. Dropped as
+**grep-verified durable**: R2.2b/c · R2.2d-of-08-18 · R11.2c · R2.1k · Sir's rulings 1/2/3/5
+(`OCR-ROADMAP.md`) · CENTRAL ARGUMENT (`OCR-MASTERPLAN.md`) · file inventory (`git status`) ·
+gold-addressing + standing-corrections (→ L2 memory). Repo `Projects/palimpsest` branch main; OCR
+`projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+
+## 🔴 RESUME HERE — 2026-08-20. R2.2e is a chain of **SIX** links. 7 candidates run, **1 ADOPTED**
+### ✅ R2.2j ADOPTED — `score_head_regions.ROW_ADDRESS = "ink2d"`, the day's ONLY adoption
+The gold bound entries by ROW ORDINAL; R2.2i changes the row clusterer ⇒ would have renumbered every
+key. **M1 is the finding**: under a PURE RENAMING of rows (no glyph/token/coordinate moves) the old
+address collapses to **acc 0.4667, RH 0.0000, MN 0.0000, 90 of 121 orphaned**; `ink2d` bit-for-bit
+unmoved. ⚠️ **Every region number this project ever recorded rested on that convention** — untested
+because the clusterer had never changed. Progression: R2.1i token ordinal ✗ → row ordinal ✗ → **a ROW
+is not an address; the address is the INK's position, BOTH axes.** `ink2d` over `yband` is a DECISION
+(R2.2i splits a line across two rows; `yband` must pick one). ⚠️ L2/K3 was **MIS-SPECIFIED** — see
+instrument-failure #4 below. Tokens now carry `y0`/`y1`; `CR.ROW_TOL_P` hoisted (was a `0.30*p` literal).
+### 🔴 R2.2i CANDIDATE 1 REFUTED 2026-08-20 (`BASELINE_MODEL`, OFF) — and the STEP'S OWN NUMBERS were wrong
+Flag + `CR.leaf_slope` are IN the tree, default **False**, **N1 verified bit-identical** (1242 rows,
+22 pairs). Logs `.scratch/r2/{r22i-stage1,r22i-sweep}.log`, probes `probe_r22i{,_curve,_criterion,
+_strips,_truth,_bridge,_zoom}.py`, image `r22i-zoom.png`. Roadmap has the full result + tables.
+⚠️ **`deskew.py` CANNOT fix this** — `apply_theta` moves ONLY x, and its docstring SAYS so ("leaving
+y alone keeps every row-grouping … bit-identical"). The register's lead implying otherwise is wrong.
+⚠️ **`line_split.leaf_skew` is CIRCULAR here** — it takes `rows`, the list R2.2i corrupts.
+### 🔴 THE FOUR THINGS THAT COST THE MOST TIME TODAY — all the same shape
+1. **PERIOD ALIAS.** `deskew._score` transposed to y is WRONG STRUCTURALLY: x-structure is aperiodic
+   (margins/columns), **baselines are PERIODIC**, and sum-of-squares rewards concentration without
+   caring how many baselines got concentrated ⇒ its global max is always the shear folding the page
+   onto itself (409: argmax +0.0325 ≈ 0.92 period, **134 occupied bins vs 358 at s=0**, 82 rows).
+2. **FIVE INSTRUMENTS, FOUR ANSWERS.** census −0.037 (magnitude ok, **SIGN WRONG**) · profile/cluster/
+   strip **+0.032** (sign ok, **2× too big**) · LSQ-on-"whole"-rows +0.030 (**CIRCULAR**: at +0.030 a
+   line drops 28px ≫ 11.4px tol, so a whole line could NOT have survived at s=0 — those "whole rows"
+   are DIAGONAL CHAINS; greedy running-median walks up the tilt onto the next baseline) · 🔴 **ruled
+   on the SCAN and LOOKED: ≈ +0.014**. ⚠️ Agreement ≠ corroboration when instruments share an input;
+   4 of 5 read the s=0 row list. **A tight IQR (+0.0262..+0.0322) on a circular fit** — precision ≠
+   independence. **Only rendering the page settled it.** ⚠️ The ladder-on-scan was NOT pre-registered.
+3. 🔴 **MY OWN BAR WAS MIS-SPECIFIED (3rd in 2 days, cf. L2/K3).** N7 demanded **1220 = 1242 − 22**.
+   But **ink-height ÷ pitch gives the line count directly**: 409 ~**48** lines vs **82** rows (+34);
+   419 44 vs 78; 403 48 vs 76; 401 51 vs 83. The census sees 8 of 409's 34 because it requires two
+   complementary halves. ⇒ **1111 is plausibly CLOSER than 1220**; at +0.014, 409 → **46 rows vs ~48
+   expected**. What I logged as "109 lines destroyed" was largely THE FIX WORKING.
+4. 🔴 **N2 IS NEARLY UNFALSIFIABLE and I made it PRIMARY.** Split pairs hit **0** across almost the
+   whole slope range (403: 0 pairs at −0.045 AND at +0.045) — any big shear smears baselines, greedy
+   chaining merges them, and merged rows contain no PAIR because they contain no pair.
+### ➡️ FIRST ACTION: **R2.2l** — the suite is RED on a GUARD, in ADOPTED code. Find the unreported drop
+in `score_head_regions` `contain`/`ink_bind` under `ink2d` (1 token, R2.1h-quantile splitter) and report
+it as a collision or an orphan. THEN R2.2i/R2.2k together (below).
+### 🔴 R2.2i CANDIDATE 3 ALSO REFUTED — and candidate 1's refutation was RESCORED
+**Cand 3** (line-count constraint to break the alias): **premise FALSE.** At a one-pitch shear the
+residual levels are STILL a pitch apart and STILL ~48 — **the alias preserves the COUNT and changes
+only the MEMBERSHIP** ⇒ constraint INERT (same s on **18/20** leaves). ⚠️ Its Q7(b) "passed" and the
+pass was WORTHLESS — it compared the mechanism to itself. The real falsifier (constrained ≠
+unconstrained) was the line I did NOT make a bar.
+🔴 **AND MY "LOOK AT THE PAGE" READING WAS WRONG.** The ladder image crowded 5 rules within a few px
+at the right edge; "≈+0.014" was a judgement about a picture, recorded as a measurement. **The row
+count settles it: at s=+0.0315 leaf 409 gives 44 body rows vs a strip count of 43.** The estimators'
++0.03 was RIGHT; the census magnitude was the artifact. Occupancy said so all along and I read it
+backwards (134 bins ≈ 48 baselines × 3 = SHARP, vs 358 smeared at s=0). ⚠️ **Rendering the page is
+decisive only when the render RESOLVES the question.**
+**Cand 1 RESCORED vs the strip bar** (`r22i-cand1-rescored.log`): body-block rows **1214 → 1073** vs
+**827** printed lines, total error **+387 → +246 (−36%)**; within ±2 on only **3/20** (bar ≥18), ±3 on
+8 (409 +1, 415 +0, 413 +1). ⚠️ Residual sits where s≈0: **407 +31, 401 +29, 405 +24, 412 +23** ⇒
+**R2.2i and R2.2k are NOT separable and must be scored TOGETHER** (same cycle as R2.2f/R2.2g).
+Verdict unchanged (`BASELINE_MODEL` False) but the REASON is now right: not "destroys 109 lines" (that
+came from the census bar) but **"removes a third of the over-segmentation, cannot reach the bar while
+R2.2k stands."**
+### ➡️ THEN: re-pre-register R2.2i **candidate 4** against the line count measured FROM THE PAGE
+(ink-height ÷ pitch, per leaf), NOT from the census. ⚠️ **Candidate 2 is WITHDRAWN UNRUN** — its P2
+promotes the bad 1220 bar and its "body-block-only" support is refuted in advance by
+`probe_r22i_bridge.py` (in-block-only still gives 409 → 44). Estimator must beat the alias: strip
+cross-correlation is the only row-free one that CANNOT alias by construction (maxlag = 0.5 pitch).
+### 🔴 THE CHAIN, and the number each link is worth (all 4 flags OFF, nothing adopted)
+tokenise 0/43 → `in_block` edge **23/43** (`BLOCK_SPAN_QUALIFIES`) → R3 flush **+14 → 37/43**
+(`FLUSH_MODE="reach"`) → R4 row inheritance, 1 MN entry (`R4_PER_SEGMENT`) → modal-edge estimator
+(`EDGE_FIXED_POINT`, **J1 unmoved**) → **R2.2i, the 6 survivors**.
+### ✅ THE FULL CHAIN ALREADY BEATS SHIPPING ON EVERY GOLD NUMBER — and is NOT adopted
+`reach_right`+span+R4+edge: **acc 0.9174 · RH 1.0000 · MN 0.8947 · MT 0.9000 · D1 57/81** (shipped
+0.8760/1.0000/0.8947/0.8375, D1 52). Consumer **33/43** (`reach` = 37/43, acc only 0.9091 — **J2
+outranks J1**). ⚠️ **J1's bar is all 43. OPEN.** ⚠️ **Scoring links ONE AT A TIME hid a CYCLE**; only
+the all-flags-on criterion (H4/J7) showed the three together are a REPAIR.
+### ⚠️ FOUR INSTRUMENT FAILURES IN MY OWN WORK TODAY — the transferable part
+0. **A CRITERION THAT NO CANDIDATE COULD EVER PASS, pre-registered TWICE (L2/K3).** I demanded the
+   gold's four numbers be invariant under a **row-clusterer perturbation** — but the clusterer feeds
+   `tokens()`, so it changes the OBJECTS being labelled, not their names. ⚠️ **`score_head_regions`'
+   own docstring already says this for splitters and records it as "twice wrongly pre-registered".
+   I made it a third time.** The tell: two unrelated addressing schemes gave IDENTICAL numbers ⇒
+   the mechanism under test was not what moved the result. Right test = a **pure RENAMING** (M1–M3).
+1. **A bar no run can pass**: live floats vs **4-dp literals transcribed from the ROADMAP** at `1e-9`
+   ⇒ the BASELINE config reported "MOVED". Compare at the precision a bar is RECORDED at, and always
+   **print a known-immovable configuration** — a scorer whose every row may move has no control.
+2. **A negative result from an instrument DOWNSTREAM of the defect**: my skew probe correlated over
+   the row list R2.2i had already corrupted (alternating left/right halves) ⇒ skew "refuted". ⚠️ **A
+   null is only as good as the instrument's INDEPENDENCE from the thing under test.**
+3. **A fix that moved a number without touching its target**: `EDGE_FIXED_POINT` repaired 4 rows and
+   D1 52→54, and left all 6 survivors exactly where they were. The E3 lesson, inverted.
+⚠️ **The links are NOT ordered the way the register says** — R2.2f measured its own prerequisite to
+be R2.2g. Do not trust a stated dependency direction that has not been RUN.
+### 🔴 THE ONE THING NOT TO RE-DERIVE (full §§ in ROADMAP; **41 of 43 pure OVERSHOOT, 0 merges**)
+**Only E3/G1/M1 asked whether the instrument COULD FAIL** — every other criterion asked whether MY
+MECHANISM did what I said, and passed while the step stayed broken. ⚠️ **Every criterion set needs one
+link that can fail for a reason outside the rule under test**; 3 days running, that link decided the
+verdict. 5 flags OFF: `REGION_GAP_TOKENS` · `BLOCK_SPAN_QUALIFIES` · `R4_PER_SEGMENT` · `FLUSH_MODE` ·
+`EDGE_FIXED_POINT`. R11.2d (`STEP_RE` digit-only suffix folds `R2.2e-c` into `R2.2e` SILENTLY)
+registered; register **64 → 71**, audit claim **1/71** (re-run + claim updated 2026-08-20 after
+**R2.2k** was registered: the clusterer CHAINS on a RUNNING MEDIAN and walks up the tilt onto the next
+baseline — the OPPOSITE failure to R2.2i, coexisting on the same leaf, and the cause of the circular
++0.030 fit). ⚠️ Run **e** checked `audit_prereq_ceilings` at 1/70 BEFORE this edit — that one command's
+green is SUPERSEDED; re-verified standalone at **1/71, exit 1** (`.scratch/r2/audit-71.log`).
+🔴 **INDEPENDENT LINE COUNT NOW EXISTS** (`probe_r22i_linecount.py`, strip ink-profile peaks, 150px
+strips, independence-checked against a fixed 0.20W..0.80W range: identical on 17/20). **827 body-block
+printed lines vs 1242 rows = +415 excess, of which the census sees 22.** Per-leaf 39–43, tight.
+Excess tracks tilt: 401 +40 / 409 +39 / 403 +35 / 419 +35 vs 413 +3 / 408 +5. ⚠️ **401 has +40 excess
+and ZERO census pairs** ⇒ the census is retired as a measure of R2.2i (still valid for its own shape).
+### ➡️ AFTER THE CHAIN: R2.2d step (2) CONTIGUITY (short segment between two italic = italic; **NOT**
+a lower floor, it re-admits the marginal FPs) → re-run D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+assumption as R2.2g, from two sides — resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM.
+⚠️ **R2.1f fired on the CATCHWORD CANDIDATE, not R2** ⇒ R2 at ALERT, not exhausted. ⚠️ **R2.2c still
+BLOCKS every region number reaching the reader.**
+## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED. `git status` = inventory
+* ⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+* Golds REWRITTEN in place; backups = the only unrecoverable state:
+  `.scratch/r2/gold-{argument_rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Safe/gitignored:
+  `.scratch/r2/{probe_*.py,plates/,*.log}`. **NEW tracked**: `witness/{build_region_gap_gold,
+  score_region_gap_tokens,score_block_span,score_r4_segment,score_flush_reach,score_edge_chain,
+  score_row_address}.py` + `gold/region_gap_rows_*.json`. **MODIFIED tracked**: `region_head.py`
+  (5 flags + token `y0`/`y1`), `collation_read.py` (`ROW_TOL_P`), `score_head_regions.py` (R2.2j).
+
+## 🔴 SUITE STATE — run **e** COMPLETE: **1 FAIL**, and the FAIL IS REAL AND CORRECT
+🔴 **R2.2l — REGRESSION IN THE ONLY THING ADOPTED YESTERDAY.** `test_region_gold_addressing.py` is a
+**GUARD (must exit 0)** and exits **1** under the adopted `ROW_ADDRESS="ink2d"`. Invariant `lost <=
+coll + orph` breaks under the **R2.1h-quantile SPLITTER**: lost 27, accounted 26 → **1 token dropped
+SILENTLY**. Verified in one process across all three settings: **ordinal exit 0, ink2d exit 1**;
+`coarse x1.6` and `fine x0.4` balance exactly ⇒ ONE entry on ONE axis, not a broken scheme.
+⚠️ **R2.2j's criteria perturbed the ROW CLUSTERER; this guard perturbs the SPLITTER** — an axis none
+of L1–L4/M1–M3 touched, caught by a PRE-EXISTING R2.1i guard. It breaks R2.2j's OWN deliverable
+("report addressing failure SEPARATELY"). ⚠️ **`match` is NOT the leak** (its 3 outcomes are
+exhaustive ⇒ bound+coll+orph == len(entries)); the drop is in `contain`/`ink_bind`.
+⚠️ **DO NOT "fix" by reverting to `ordinal`** — M1: ordinal collapses under a pure renaming (acc
+0.4667, 90/121 orphaned). Suite stays RED until the real leak is found; that is the CORRECT state.
+✅ Everything else GREEN, incl. all 4 heavy scorers. Register now **72**, audit claim **1/72**.
+## ⏳ (superseded) run **e** was IN FLIGHT (PID 1066, started 22:29), 0 FAIL through 81 lines
+⚠️ **TWO runs were racing** (d @22:07 + e @22:29) — d was pre-`1/70` and FAILed `audit_prereq_ceilings`
+on the stale denominator; **d killed by exact PID**, e survives (reparented to init, PPID 1). e has
+since printed `audit_prereq_ceilings 1/70 ok`, so that FAIL is resolved. Still owes the heavy scorers
+(`score_flush_reach`/`edge_chain`/`row_address`, ~20-25 min each) → `.scratch/r2/suite-20260820e.log`.
+Prior state: last full run CUT OFF by the context refresh at **67 ok, 0 FAIL**. ⚠️ **Do not report the suite green until it is re-run**;
+it now takes ~1h (score_flush_reach/edge_chain/row_address are ~20-25 min each). Prior clean run was
+35 cmds (`suite-20260820b.log`) — the 3 commands added since are NOT yet suite-verified.
+⚠️ It is a **SCRIPT, not pytest** — `python witness/test_verification_standard.py`; under `-m pytest`
+it collects NOTHING and says `no tests ran`, a GREEN-LOOKING NULL. `score_row_address` is a **GUARD**
+(exit 0, R2.2j adopted); the other new scorers are AUDITS (exit 1 = healthy/open).
+* ⚠️ **A first run FAILED and the standard was right**: my `score_region_gap_tokens` claim led with
+  `142/142`, which the scorer never prints — **the R11.2c trap, in my own new claim.** A claim runs
+  **only if its line has `->`**, and its **FIRST fraction must be one the command actually prints**.
+* ⚠️ **Block membership, not claim text, decides whether exit 1 is healthy** — a guard filed in the
+  AUDITS fence reads as a failure. **Editing the OPEN register ⇒ ALWAYS re-run `audit_prereq_ceilings`**
+  and update its claim (now **1/70**), or the standard fails on a stale denominator.
+* ⚠️ Heavy scorers exceed 2 min ⇒ BACKGROUND **with `-u`** (redirected stdout is buffered).
+* ⚠️ **A claim with NO `N/M` is fine; a claim with a DECIMAL PAIR is not** — `acc 0.8760 / 1.0000`
+  parses as the fraction `8760/1`, which nothing prints. Checker takes the FIRST match.
+* ⚠️ **`pgrep -f <script>` MATCHES ITS OWN WAITER** ⇒ `until ! pgrep -f x; do sleep; done` never
+  exits. Poll the LOG CONTENT instead; kill by exact PID.
+
+## 📜 Artifact — living doc, republish SAME path to keep the URL
+`scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+9 plates of REAL leaf scans by tracked `witness/render_pipeline.py`; archetypes A–H still hand-drawn.
+⚠️ **Source lives in the SESSION scratchpad, not the repo — re-extract via WebFetch before editing.**
+
+## 🔴 THIRTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+**#13** my L2/K3 criterion (the rule against it is in the docstring of the file I was editing) ·
+**#12 R2.2h** (edge ESTIMATOR 13px vs edge TEST 27px — *two tolerances for one edge*, which
+`region_head`'s header records ALREADY paying for; the R2.1 fix unified them inside `classify` and
+never touched the estimator FEEDING it) · **#11 R11.2d** · **#10** splitter/label handoff · **#9**
+argument-gold scorer · Gate 0f · Gate 0d · §7.7 ladder · `audit_prereq_ceilings` · **R9.8** ·
+register strikethrough ≠ removal · **R2.2c**.
+**Most were found by BUILDING THE CONSUMER — by RENDERING THE PAGE.** ⚠️ A test that doesn't move is
+not evidence until you confirm it COULD have moved — **and its converse: criteria moving exactly as
+predicted prove only that the MECHANISM worked, not that it touched the defect.**
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+* 🔴 **Repo declares pre-commit hooks that are NOT installed** (`.pre-commit-config.yaml`, ruff over
+  `^core/`; `.git/hooks/` = samples). Manual run: **24 unfixable ruff errors + a 429-line reformat**
+  (reverted). **Finding for Sir — not mine to silently fix.**
+* `.archive-consensus-full.pre-r9.4b/` **263 MB** untracked, deliberately NOT gitignored so its fragility
+  stays visible. `OriginalDRnotes` 192 KB untracked, believed Sir's — leave both.
+* **R11.2b**: the standard parses only `witness/`-prefixed commands ⇒ the two repo-root R11 entries sit
+  **uncovered**, run manually with the repo `.venv`.
+* §0.5 ceilings rise on PLANNING and fall on COMPLETION — coverage of the plan, never a progress number.
+* ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never
+  edit, R7.5d).

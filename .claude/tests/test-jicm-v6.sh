@@ -1127,7 +1127,7 @@ echo ""
 
 echo "Group 18: v6.1 State File & Launcher"
 
-LAUNCHER="$SCRIPT_DIR/scripts/launch-jarvis-tmux.sh"
+LAUNCHER="$SCRIPT_DIR/scripts/launch-aion.sh"
 
 # Test 18.1: .jicm-state includes context_pct
 if grep -q 'context_pct' "$WATCHER"; then
@@ -1159,7 +1159,7 @@ fi
 
 # Test 18.5: Launch script detects v6 watcher
 if bash -n "$LAUNCHER" 2>/dev/null; then
-    pass "launch-jarvis-tmux.sh syntax check"
+    pass "launch-aion.sh syntax check"
 else
     fail "Launcher syntax" "Syntax error"
 fi
@@ -2043,7 +2043,7 @@ else
 fi
 
 # Test 27.10: Launcher includes command handler window
-LAUNCHER="$SCRIPT_DIR/scripts/launch-jarvis-tmux.sh"
+LAUNCHER="$SCRIPT_DIR/scripts/launch-aion.sh"
 if [[ -f "$LAUNCHER" ]]; then
     if grep -q 'command-handler.sh' "$LAUNCHER"; then
         pass "Launcher references command-handler.sh"
@@ -2161,11 +2161,11 @@ else
     fail "/dev-test command exists"
 fi
 
-# 28.12: launch-jarvis-tmux.sh has --dev flag
-if grep -q '\-\-dev' "$REAL_PROJECT/.claude/scripts/launch-jarvis-tmux.sh" 2>/dev/null; then
-    pass "launch-jarvis-tmux.sh has --dev flag"
+# 28.12: launch-aion.sh has --dev flag
+if grep -q '\-\-dev' "$REAL_PROJECT/.claude/scripts/launch-aion.sh" 2>/dev/null; then
+    pass "launch-aion.sh has --dev flag"
 else
-    fail "launch-jarvis-tmux.sh --dev flag"
+    fail "launch-aion.sh --dev flag"
 fi
 
 echo ""

@@ -1,37 +1,33 @@
 # JICM v7 Context Checkpoint
-Generated: 2026-08-17T15:47:24Z
+Generated: 2026-08-27T19:35:51Z
 Method: LLM-enriched (qwen3:8b)
 
 ## Current Task
-Resolve the anthropic url issue by allowing Jacques W13 to set an endpoint and key for stb to work for running model testing prior to harbor task submission. The keys conflict, and the port forwarding must not break.
+Implementing LLM-powered applications with Claude, focusing on detecting project language, identifying non-Anthropic provider markers, and ensuring code calls Claude through the official Anthropic SDK or raw HTTP as appropriate.
 
 ## Progress
-1. [DONE] Verify the baseline context token usage is ~98k tokens.
-2. [DONE] Relaunch protos and verify it derives the protos key.
-3. [DONE] Send a few messages and verify the baseline and climb rate of context window token usage.
-4. [DONE] Check for duplicate MCP server processes.
-5. [DONE] Restart the duplicate MCP servers under the remaining spares.
-6. [TODO] Investigate why MLX has a huge footprint, especially for embeddings models, and determine if repeated model calls for storing memories in RAG cause accumulation and bloat.
-7. [TODO] Read the urgent message from W12:Genie about the annas-archive.li domain receiving the paid member key using `.claude/scripts/aion-inbox.sh read dev`.
+1. [DONE] Identified the need to detect project language and identify non-Anthropic provider markers in the target file or prompt.
+2. [DONE] Clarified the rules for using the official Anthropic SDK or raw HTTP based on project language and explicit user instructions.
+3. [TODO] Implement code that calls Claude through the official Anthropic SDK or raw HTTP, depending on the project's requirements.
+4. [TODO] Ensure that function names, class names, namespaces, method signatures, and import paths are derived from explicit documentation or SDK repositories.
 
 ## Critical Context
-- The anthropic url issue requires setting an endpoint and key for stb to work for model testing prior to harbor task submission. The keys conflict, and the port forwarding must not break.
-- The baseline context token usage is ~98k tokens.
-- The `_embedding_cache` is capped at 1000 entries ≈ 10 MB.
-- The `.claude/scripts/aion-inbox.sh read dev` command is used to read the urgent message from W12:Genie about the annas-archive.li domain.
+- The project language must be detected to determine the appropriate SDK or HTTP method.
+- Non-Anthropic provider markers include `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names like `agent-openai.py` or `*-generic.py`, or any explicit instruction to keep the code provider-neutral.
+- The code must use the official Anthropic SDK for the project's language if available, or raw HTTP if the user explicitly requests it, the project is a shell/cURL project, or the language has no official SDK.
+- Never mix the two methods — always use the appropriate one based on the project's requirements.
+- Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation or SDK repositories.
 
 ## Key Paths
-- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.pre-clear-scrollback.md`
-- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.pre-clear-scrollback-summary.md`
-- `/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/aion-inbox.sh`
-- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.jsonl-compression-stats.json`
-- `/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.memory-health.json`
+- /Users/nathanielcannon/Claude/Project_Aion
+- /Users/nathanielcannon/Claude/Project_Aion/shared/live-sources.md
+- /Users/nathanielcannon/Claude/Project_Aion/.claude/context/
 
 ## Next Step
-Read the urgent message from W12:Genie about the annas-archive.li domain receiving the paid member key using the command `.claude/scripts/aion-inbox.sh read dev`.
+Implement the code that calls Claude through the official Anthropic SDK or raw HTTP, based on the detected project language and non-Anthropic provider markers.
 
 ## Resume Instructions
-Continue resolving the anthropic url issue by allowing Jacques W13 to set an endpoint and key for stb to work for running model testing prior to harbor task submission. Investigate why MLX has a huge footprint and determine if repeated model calls for storing memories in RAG cause accumulation and bloat.
+Continue implementing the code that calls Claude through the official Anthropic SDK or raw HTTP, ensuring that function names, class names, namespaces, method signatures, and import paths are derived from explicit documentation or SDK repositories. Focus on detecting the project language and identifying non-Anthropic provider markers in the target file or prompt.
 
 ---
 
@@ -45,85 +41,120 @@ Branch: main
 ### Uncommitted Changes
 ```
  M .claude/context/.current-dev-uuid
+ M .claude/context/.current-genie-uuid
+ M .claude/context/.current-jaques-uuid
  M .claude/context/.current-w0-uuid
  M .claude/context/.graphiti-last-ingest.json
- D .claude/context/.graphiti-reindex-queue
  M .claude/context/.jsonl-compression-stats.json
+ M .claude/context/.last-sample.w0
  M .claude/context/.memory-health.json
  M .claude/context/.pre-clear-scrollback-summary.md
  M .claude/context/.pre-clear-scrollback.md
+ M .claude/context/.retrieval-state.json
+ M .claude/context/.scratchpad.dev.md
  M .claude/context/.scratchpad.genie.md
  M .claude/context/.scratchpad.jaques.md
  M .claude/context/.scratchpad.md
- M .claude/context/insights/.captured-hashes.json
- M .claude/context/insights/insights-log.md
- M .claude/context/jicm/chain/protos.jsonl
- M .claude/context/jicm/checkpoints/protos.compressed.md
 ```
 ### Recent Commits
 ```
- .claude/context/.scratchpad.dev.md | 81 +++++++++++++++++++++++++++++++++++++-
- .claude/context/inbox/dev.md       | 42 ++++++++++++++++++++
- .claude/context/inbox/genie.md     | 47 ++++++++++++++++++++++
- 3 files changed, 169 insertions(+), 1 deletion(-)
+ .claude/scripts/CLAUDE.md                          |  15 +
+ .../scripts/{ => archived}/jarvis-statusline-v8.sh |   0
+ .claude/scripts/signal-helper.sh                   |   2 +-
+ alfred/.claude/settings.json                       |   4 +
+ alfred/scripts/profile-loader.js                   |   8 +
+ .../plans/loom-semantic-mesh-design.html           | 541 +++++++++++++++++++++
+ .../plans/loom-semantic-mesh-design.md             | 367 ++++++++++++++
+ 7 files changed, 936 insertions(+), 1 deletion(-)
 ```
 
 ## Recent Conversation (last 10 messages)
 
 ### User Messages
-1. MLX-embed should always be restarted if it gets big, unless it is in active use. How small is the initial footprint after restart? Can we set a restart trigger for something like 3x of the fresh footprint?
-2. protos is supposed to have a modified context management system.  It operates as the seed for launched tasks from the Alfred Pulse-Nexus manager. It is also used as a one-off Claude Code interactive session.  The priority use is as a seed though, so it should have a lower context usage trigger, and when it resets it shouldn't be preserving the current session work, it should reset to the default context of having all of the MCP servers available, having task management awareness, and all of the permissions and other tool call options made available to it.
-The top priority right now is to resolve the anthropic url issue. 13:Jacques W13 needs to be able to set an endpoint and key to make stb work for running model testing prior to harbor task submission. But the keys conflict. Find a way to resolve this so that the port forwarding doesn't break, and also so that Jacques can launch stb and make calls to the snorkelai harbor endpoint with the portkey.
-The baseline context token usage is going to probably start at ~98k tokens. Doublecheck that for me. Relaunch protos and verify it derives the protos key. Send a few messages and verify the baseline and climb rate of context widow token usage.
-Now check the duplicate MCP server processes
-Inbox: you have a new message from W12:Genie — "URGENT: annas-archive.li is a lookalike domain receiving the paid member key". Read it with: .claude/scripts/aion-inbox.sh read dev   (it is also @-imported at session start, so it cannot be lost).
-- restart the duplicate MCP servers under the remaining spares
-- why on earth is MLX such a huge footprint? It's just for embeddings models. Is there something about the repeated model calls for storing memories in RAG that causes accumulation and bloat?
+whoa there cowboy, let's not be in a rush to russle all these cattle just yet.  I'm reading through https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461?via=auto_preview which is fantastic by the way, but I have some follow up questions:
+1) This could become a big build.  What can we do to quarantine off a staging project space to build this in a way that lets us develop and test with a minimal blast radius, but still get the full Project Aion Archon feel?
+2) Say more about Watcher/
+whoa there cowboy, let's not be in a rush to russle all these cattle just yet.  I'm reading through https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461?via=auto_preview which is fantastic by the way, but I have some follow up questions:
+1) This could become a big build.  What can we do to quarantine off a staging project space to build this in a way that lets us develop and test with a minimal blast radius, but still get the full Project Aion Archon feel?
+2) Say more about Watcher/JICM and how this larger scope of Loom would interact, conflict or enhance it.
+3) Talk to me about proxy 9800 and 4444. Do we merge these? Is the question irrelevant at this stage?
+Whoa there cowboy, let's not be in a rush to russle all these cattle just yet.  I'm reading through https://claude.ai/code/artifact/a365b4f5-1ce9-46f1-8b90-3eea5602d461?via=auto_preview which is fantastic by the way, but I have some follow up questions.  There are 25 follow up questions, plus a broader allegorical exploration. Please think through each one of these. Use todo lists, task lists, subagents, and whatever else you'd like to maintain careful orchestration and supervision of your work in answering each and every one of the following:
+1) This could become a big build.  What can we do to quarantine off a staging project space to build this in a way that lets us develop and test with a minimal blast radius, but still get the full Project Aion Archon feel?
+2) Say more about Watcher/JICM and how this larger scope of Loom would interact, conflict or enhance it.
+3) Talk to me about proxy 9800 and 4444. Do we merge these? Is the question irrelevant at this stage?
+4) What are the anticipated latency pain points and how to we mitigate them?
+5) What are the anticipatd fail points and how do we catch them and prevent them?
+6) Say more about content block lookback pressure.  I am unfamiliar with this facet of message structure or handling. How does this relate to session history, current contents of the context window, server-side cached context and other layers of the infrastructure?
+7) Does the block lookback pressure problem presume that the Loom system is trying to 'look back' at the contents of recent session turns and pull relevant context from there? I don't understand why sequences of tool use and other traffic could "push out of range"  the novel semantically enriched prompt/context.  What even is a "breakpoint"? What am I not understanding about the architecture here?
+8) Say more about your comment on Tier A "Shrink toward invariants only." Is there some physics that happens with the static memory files?
+9) At present I am partway into the process of buildin
+Base directory for this skill: /private/tmp/claude-501/bundled-skills/2.1.220/691dd91f6e712871b116d9fbca47d0ae/claude-api
+
+# Building LLM-Powered Applications with Claude
+
+This skill helps you build LLM-powered applications with Claude. Choose the right surface based on your needs, detect the project language, then read the relevant language-specific documentation.
+
+## Before You Start
+
+Scan the target file (or, if no target file, the prompt and project) for non-Anthropic provider markers — `import openai`, `from openai`, `langchain_openai`, `OpenAI(`, `gpt-4`, `gpt-5`, file names like `agent-openai.py` or `*-generic.py`, or any explicit instruction to keep the code provider-neutral. If you find any, stop and tell the user that this skill produces Claude/Anthropic SDK code; ask whether they want to switch the file to Claude or want a non-Claude implementation. Do not edit a non-Anthropic file with Anthropic SDK calls.
+
+## Output Requirement
+
+When the user asks you to add, modify, or implement a Claude feature, your code must call Claude through one of:
+
+1. **The official Anthropic SDK** for the project's language (`anthropic`, `@anthropic-ai/sdk`, `com.anthropic.*`, etc.). This is the default whenever a supported SDK exists for the project.
+2. **Raw HTTP** (`curl`, `requests`, `fetch`, `httpx`, etc.) — only when the user explicitly asks for cURL/REST/raw HTTP, the project is a shell/cURL project, or the language has no official SDK.
+
+Never mix the two — don't reach for `requests`/`fetch` in a Python or TypeScript project just because it feels lighter. Never fall back to OpenAI-compatible shims.
+
+**Never guess SDK usage.** Function names, class names, namespaces, method signatures, and import paths must come from explicit documentation — either the `{lang}/` files in this skill or the official SDK repositories or documentation links listed in `shared/live-sources.md`. If the binding you need is not explicitly documented in the skill files, WebFetch the relevant SDK r
 
 ### Assistant Responses
-Now the decisive test — restart with the fix and re-run **Arm B**, the exact workload that produced 10 GB:
-`can't find window: 5` — the window layout changed. Checking:
-MLX is **down** and its window is gone — it went away during the Arm B stress (which drove it to 10 GB). I need to bring it back properly. Finding the launcher's canonical definition rather than improvising:
-The launcher uses `respawn-window` (window-level), which is why my earlier `respawn-pane` worked but left the window fragile. Recreating the window at its canonical index:
-MLX is back up (2633 MB, matching the known baseline). Now the decisive re-test — **the identical Arm B workload that produced 10 GB**:
-**Definitive.** Same workload, same machine:
+Resuming. Nothing mid-flight; the only loose thread is the two untracked Loom design deliverables. Committing them — but this is a **public** repo, so the credential-store sweep comes first.
+All three hits are benign non-secret values (`jarvis` as a username/group-id, `none` as a config literal) — no password-, token-, or key-typed value matched. Committing.
+`★ Insight ─────────────────────────────────────`
+**The checkpoint's "Next Step" was a hallucinated action item.** `dev.compressed.md` says to *implement* the `messages[]` cache-append mechanism. But `.scratchpad.dev.md` §0.-38 records that Sir explicitly said *"no implementation as of yet"* — the cache mechanics were **evidence in a design argument**, not a build task. The qwen3:8b summarizer read a technical fact and promoted it to a TODO. This is the documented reason the scratchpad outranks the checkpoint (§0.-36 flagged the same failure mode).
 
-| | before | after 60 distinct-length requests |
-|---|---|---|
-| **without fix** | 2514 MB | **10 GB** (+7.5 GB) |
-| **with fix** | 2451 MB | **2680 MB** (+229 MB) |
+**The `/clear` that just ran did real work beyond freeing context.** `prompt-overflow-guard.js` was committed in `082998e` but registration is launch-time — it sat inert. Hook registration is the middle of the three reload tiers: script *body* is live immediately, *registration* needs a `/clear`, MCP/permission-mode needs a full restart. That guard is now actually on the `UserPromptSubmit` path.
+`─────────────────────────────────────────────────`
 
-Shape diversity now costs essentially nothing — +229 MB matches the identical-length arm's +221 MB. Verifying it holds under a harder run, and that numerics are untouched:
-150 requests spanning 150 distinct lengths: **2633 → 2698 MB (+65 MB)**. Without the fix that would have been roughly 18 GB. Embeddings verified unchanged — dim 2560, deterministic, L2 norm 1.0000. Committing:
-It's a **separate vendored repo** (gitignored from the monorepo). Checking its state and remote before I commit there:
-The remote is **`jakedahn/qwen3-embeddings-mlx`** — a third party's upstream, not our fork. So I'll commit locally and **not push**; pushing would send our changes to someone else's repository. Committing only my file, leaving the pre-existing `CLAUDE.md`/`README.md` changes alone:
-## 1. The MCP servers — there's nothing to restart, and my original claim was wrong
+## State
 
-I ran the full parent audit. **Every** MCP process traces to a live *lane head* (w0, Protos, dev, Genie, Jacques). The two remaining spares, `6571` and `46686`, have **zero children**. The MCP servers I originally saw under a spare belonged to the 21-day-old `bg-spare` you already had me kill.
+**Nothing was mid-flight.** The one genuine loose thread was the two untracked Loom deliverables, now committed as `c928894`.
 
-My "three duplicate sets" came from grepping the basename `mcp_server.py` — which **three different servers share**: `rag-service/`, `ScholarGateway/`, `AnnasTools/`. Matching on a name instead of on identity, the same family of error as the `pgrep -f` self-match trap. There were never any duplicates. Sorry for sending you after a phantom.
+**Held deliberately:** I have **not pushed**. `Project_Aion` is public, and pushes there are your call. `HEAD` is 1 ahead of `origin/main`.
 
-If you do want a lane's MCP servers refreshed, that means restarting the lane — they're stdio children of the head, so they can't be cycled independently.
+Before committing I ran the credential-store sweep against all **84** values in `credentials.yaml` (loaded with `safe_load_all` — it's multi-document; `safe_load` raises). Three hits, all benign: `jarvis` and `none` appearing as ordinary prose. Zero password-, token-, or key-typed matches.
 
-## 2. MLX — yes, and it's exactly the RAG calls, though not for the reason you'd expect
+## The open items, in severity order
 
-**It was never a leak, and it isn't embeddings accumulating.** MLX's allocator caches freed GPU buffers **keyed by size** and never returns them to the OS. The hot path is:
+**🔴 Urist and Jacques run `bypassPermissions` with zero guard hooks.** No `secret-scanner`, no `credential-guard`, no `bash-safety-guard`. Each of those already exists and is wired on another lane. This is a findings-only item from last session — nothing implemented.
 
-```python
-tokens = tokenizer.encode(text)   # variable length, NO padding
-input_ids = mx.array([tokens])    # a NEW SHAPE for every distinct token count
-```
+**🔑 Porting runs both ways.** Protos carries a security layer Jarvis lacks entirely: `credential-guard.js`, `secret
+Twenty-five questions plus an allegory, and several of them turn on mechanics I must not answer from memory. Let me set up the orchestration first, then ground the factual claims before writing a word of the report.
+Loaded the authoritative caching mechanics — several of my prior answers need updating, and there's a new API feature that directly changes the Q6/Q7 answer. Now let me ground the infrastructure claims before writing.
+Four grounding agents are running. Let me set up the task structure while they work — the 25 questions cluster into eight themes, which will also become the report's spine.
+While those run, let me answer **Q6 and Q7** — they depend only on the caching reference I just loaded, and Q7 contains a misconception worth clearing immediately.
 
-Every distinct token count mints a fresh set of buffer sizes, retained for the life of the process. I tested it with a controlled contrast — same request count, varying **only** whether the lengths differed:
+## Q7 first: no, lookback has nothing to do with Loom looking backward
 
-| 60 requests | footprint |
-|---|---|
-| identical token length (one shape) | 2474 → 2695 MB, settled back to 2514 |
-| **60 distinct lengths** | 2514 MB → **10 GB** |
+Your instinct that something didn't add up is right. **"Lookback" is not Loom searching recent turns for relevant context.** It is a purely internal mechanic of Anthropic's cache lookup, and it would exist identically if Loom never did any retrieval at all. I used the term in v1 without unpacking it, which is my error.
 
-**~125 MB per novel sequence length.** Growth scales with *shape diversity*, not request volume — which is precisely why ingestion drove 22 GB in 49 minutes while idle periods cost nothing. Chunked documents have thousands of distinct lengths. (The `_embedding_cache` is capped at 1000 entries ≈ 10 MB — a red herring.)
+Here's the ground truth that makes it click:
 
-**
+`★ Insight ─────────────────────────────────────`
+**The API is stateless. There is no session on the server.** Claude Code re-uploads the *entire* conversation on every single turn — all 300K tokens of it, every time. What feels like "the model remembering our conversation" is actually the client replaying the whole transcript on each request.
+
+**Prompt caching is therefore not memory — it is a receipt.** The server keeps precomputed attention state for byte-sequences it has processed before. When your re-uploaded prefix matches one, it skips the recomputation and charges you 0.1× instead of 1.0×. Nothing is *stored* for you; you're just not billed twice for the same work.
+
+This reframes "invalidation" entirely. **Invalidating a cache loses no data and breaks no functionality** — the conversation continues perfectly. You just silently pay 10× for that turn. That's precisely what makes it dangerous: it is a pure cost failure with no visible symptom.
+`─────────────────────────────────────────────────`
+
+## What a breakpoint actually is
+
+A `cache_control` breakpoint is a marker you attach to one content block. It means: **"cache everything from the very start of this request up to and including this block."**
+
+The request is assembled in a fixed render order — `tools` → `system` → `messages` — and caching is a **strict prefix match**. A single changed byte at position N invali
 
 ## Resume Instructions
 You are Jarvis. Context was cleared via JICM v7 stop-and-wait cycle.
@@ -136,3 +167,52 @@ Foundation docs (CLAUDE.md, capability-map.yaml, identity) are auto-loaded.
 4. Query jarvis-graphiti for facts related to current task.
 5. If conversation above is sparse, read session-state.md for full priorities.
 6. Resume work immediately. Do NOT greet. Do NOT ask what to work on.
+
+---
+
+## Session History Digest (previous session 37c4fcfa)
+
+*What actually happened in the session before this one — distilled from its full
+transcript. The checkpoint above is curated working state; this is the record.*
+
+# Forensic Record of Session Progression
+
+## Credential Sweep and Commitment
+
+The credential sweep was executed against the `credentials.yaml` file, which contains **84** values. This file was loaded using `safe_load_all` to handle its multi-document structure. The sweep identified three hits: `jarvis` and `none` as non-secret values. No password-, token-, or key-typed values were found. The two untracked Loom design deliverables were committed under the commit hash `c928894`. This commit was not pushed to the remote repository, as `Project_Aion` is public and requires explicit authorization for pushes. The local `HEAD` is now 1 commit ahead of `origin/main`.
+
+## Proxy 9800 Architecture and Telemetry
+
+The Alfred usage proxy operates on port `9800`, as defined in `proxy.py` at line 35 (`PROXY_PORT = int(os.getenv("PROXY_PORT", "9800"))`). The proxy is bound to `0.0.0.0:9800` at line 469 of `proxy.py`. The upstream default is `https://api.anthropic.com` (line 29 of `proxy.py`). The proxy modifies request headers by stripping `host` and `content-length` (lines 105-106 of `proxy.py`) and rewrites `accept-encoding` to only include decodable codecs (line 124 of `proxy.py`). Response headers are filtered to forward only specific headers like `anthropic-*`, `request-id`, and `retry-after` (lines 418-434 of `proxy.py`). 
+
+The proxy handles streaming and non-streaming requests differently. Non-streaming requests are fully buffered, and telemetry is fired as an `asyncio.create_task` (line 151 of `proxy.py`). Streaming requests use `httpx.stream()` and yield unbuffered chunks (lines 173-225 of `proxy.py`). Telemetry fields captured include `request_id`, `organization_id`, `model`, `is_streaming`, `session_id`, `project`, `agent_name`, `task_id`, `input/output tokens`, `cache read/write tokens`, `speed`, `cost_usd`, and various rate-limit metrics. The `cost_usd` field is always `NULL` due to intentional omission on subscription plans.
+
+The proxy stores telemetry data in a PostgreSQL database via `asyncpg` pool, inserting into the `api_requests` table with `ON CONFLICT (request_id) DO NOTHING` (lines 286-313 of `proxy.py`). The schema is defined in `schema.sql` at lines 9-66. The `cache_read_tokens` and `cache_write_tokens` fields are captured, but the ephemeral 1h/5m breakdown is not. The Pulse dashboard visualizes message sizes using `input_tokens` and `output_tokens` from the `api_requests` table, excluding `cache_read_tokens` and `cache_write_tokens`.
+
+## Port 4444 Status
+
+Port `4444` is not currently in use, as confirmed by `lsof -nP -iTCP:4444 -sTCP:LISTEN`. The only active listener is on port `9800`, managed by Docker's `aifred-dev-usage-proxy` container. The port `4444` is mentioned in the Loom design document (`loom-semantic-mesh-design.md` at line 335) as a planned deployment port for an inert Loom instance with SQLite. However, no Aion service configuration, Docker Compose file, or launcher binds to port `4444`. All other `4444` references in the repository are hex color codes.
+
+## Loom Integration and Proxy Routing
+
+The Alfred usage proxy is integrated into several lanes of the Project Aion setup, as defined in `launch-aion.sh`. Each lane exports `ANTHROPIC_BASE_URL` to `http://localhost:9800` if the proxy is online. The preflight check at lines 940-947 of `launch-aion.sh` ensures the proxy is running before setting the environment variable. Lanes such as W0 Jarvis, W1 Protos/Alfred seed, W11 Jarvis-dev, W12 Genie, W13 Jacques, and W2 Urist are routed through the proxy. However, lanes like Watcher, Ennoia, Virgil, Commands, Styx, MLX-Embed, LiteLLM, Ollama, and HUD do not use the proxy. The Styx bridge, which spawns pipeline Claude sessions, does not inject proxy routing into forked sessions unless explicitly configured in `host-executor-bridge.sh` or `chain-executor.sh`.
+
+## Credential Sweep and Commitment
+
+The credential sweep was executed against the `credentials.yaml` file, which contains **84** values. This file was loaded using `safe_load_all` to handle its multi-document structure. The sweep identified three hits: `jarvis` and `none` as non-secret values. No password-, token-, or key-typed values were found. The two untracked Loom design deliverables were committed under the commit hash `c928894`. This commit was not pushed to the remote repository, as `Project_Aion` is public and requires explicit authorization for pushes. The local `HEAD` is now 1 commit ahead of `origin/main`.
+
+## Proxy 9800 Architecture and Telemetry
+
+The Alfred usage proxy operates on port `9800`, as defined in `proxy.py` at line 35 (`PROXY_PORT = int(os.getenv("PROXY_PORT", "9800"))`). The proxy is bound to `0.0.0.0:9800` at line 469 of `proxy.py`. The upstream default is `https://api.anthropic.com` (line 29 of `proxy.py`). The proxy modifies request headers by stripping `host` and `content-length` (lines 105-106 of `proxy.py`) and rewrites `accept-encoding` to only include decodable codecs (line 124 of `proxy.py`). Response headers are filtered to forward only specific headers like `anthropic-*`, `request-id`, and `retry-after` (lines 418-434 of `proxy.py`). 
+
+The proxy handles streaming and non-streaming requests differently. Non-streaming requests are fully buffered, and telemetry is fired as an `asyncio.create_task` (line 151 of `proxy.py`). Streaming requests use `httpx.stream()` and yield unbuffered chunks (lines 173-225 of `proxy.py`). Telemetry fields captured include `request_id`, `organization_id`, `model`, `is_streaming`, `session_id`, `project`, `agent_name`, `task_id`, `input/output tokens`, `cache read/write tokens`, `speed`, `cost_usd`, and various rate-limit metrics. The `cost_usd` field is always `NULL` due to intentional omission on subscription plans.
+
+The proxy stores telemetry data in a PostgreSQL database via `asyncpg` pool, inserting into the `api_requests` table with `ON CONFLICT (request_id) DO NOTHING` (lines 286-313 of `proxy.py`). The schema is defined in `schema.sql` at lines 9-66. The `cache_read_tokens` and `cache_write_tokens` fields are captured, but the ephemeral 1h/5m breakdown is not. The Pulse dashboard visualizes message sizes using `input_tokens` and `output_tokens` from the `api_requests` table, excluding `cache_read_tokens` and `cache_write_tokens`.
+
+## Port 4444 Status
+
+Port `4444` is not currently in use, as confirmed by `lsof -nP -iTCP:4444 -sTCP:LISTEN`. The only active listener is on port `9800`, managed by Docker's `aifred-dev-usage-proxy` container. The port `4444` is mentioned in the Loom design document (`loom-semantic-mesh-design.md` at line 335) as a planned deployment port for an inert Loom instance with SQLite. However, no Aion service configuration, Docker Compose file, or launcher binds to port `4444`. All other `4444` references in the repository are hex color codes.
+
+## Loom Integration and Proxy Routing
+
+The Alfred usage proxy is integrated into several lanes of the Project Aion setup, as defined in `launch-aion.sh`. Each lane exports `ANTHROPIC_BASE_URL` to `http://localhost:9800` if the proxy is online. The preflight check at lines 940-947 of `launch-aion.sh` ensures the proxy is running before setting the environment variable. Lanes such as W0 Jarvis, W1 Protos/Alfred seed, W11 Jarvis-dev, W12 Genie, W13 Jacques, and W2 Urist are routed through the proxy. However, lanes like Watcher, Ennoia, Virgil, Commands, Styx, MLX-Embed, LiteLLM, Ollama, and HUD do not use the proxy. The Styx bridge, which spawns pipeline Claude sessions, does not inject proxy routing into forked sessions unless explicitly configured in `host-executor-bridge.sh` or `chain-executor.sh`.

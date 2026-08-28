@@ -1,0 +1,13 @@
+## FORENSIC RECORD
+
+### 1. **Isolated Calibration Trials and Task Hardening**
+The isolated calibration trials (i01–i08) were launched to evaluate the performance of the task under the `run` subcommand. i01 initially failed due to a harness defect where the agent ran in plan mode and exited without writing output. This was resolved by explicitly setting the permission mode to bypass permissions and ensuring the script exited non-zero for empty output. i01 was re-run successfully, and the remaining trials (i02–i08) were launched. The task was hardened by implementing three new checks: `test_the_tie_structure_is_characterised`, `test_the_undetermined_cells_are_identified`, and `test_the_rate_choice_is_costed_not_just_justified`. These checks were designed to increase the difficulty of the task by requiring more detailed analysis and reasoning.
+
+### 2. **Hardened Task Evaluation**
+The hardened task was evaluated using the j-series trials (j01–j08). The pass rate for the hardened task was 37.5% (3/8), which was lower than the pre-hardening rate of 50% (4/8). However, the new checks were found to be real and passable, but they did not significantly increase the difficulty of the task. The failures were found to be divergent, indicating genuine difficulty rather than a systematic bug. The redesign of the task included the addition of an unpublished rate (2%) and an absent-evidence stage to classify claims as contradicted, not_evidenced, or supported. The absent-evidence stage was designed to catch agents that upgrade "no evidence" to "refuted," a known failure mode.
+
+### 3. **Session Limit and Calibration Trials**
+The calibration trials (m01–m04) were launched to evaluate the redesigned task. However, all four trials hit the session limit and were unable to complete. The session limit was reset, and a single trial (m01) was launched to probe the new window. m01 completed successfully and failed only the monotonicity diligence check. The absent-evidence stage did not bite, and the 2% rate did not increase the difficulty of the task. The redesign was found to be mixed, with the new checks not significantly increasing the difficulty of the task.
+
+### 4. **Conclusion and Next Steps**
+The task remains in the `advanced` band, and no amount of additional checks will make it `frontier`. The honest conclusion is that the task is genuinely `advanced`-band work for a frontier model. The next steps include accepting the `advanced` band and setting the difficulty, or changing what the task asks for rather than what it grades. The current state of the task is clean at `a382e62`, with the redesigned task built and gated. The calibration trials are pending, and the session limit has been reset.

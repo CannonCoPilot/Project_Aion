@@ -1,43 +1,43 @@
-  │ D1 recall        │ 16/24             │ 🔴 52/81                                                                           │
-  ├──────────────────┼───────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
-  │ D2 precision     │ 2 FPs / 4 leaves  │ 🔴 13 FPs, whole window                                                            │
-  ├──────────────────┼───────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
-  │ D4 consumer      │ 2/89              │ 🔴 3/327 (46 rule-off)                                                             │
-  ├──────────────────┼───────────────────┼────────────────────────────────────────────────────────────────────────────────────┤
-  │ unadjudicated    │ 46                │ 0                                                                                  │
-  └──────────────────┴───────────────────┴────────────────────────────────────────────────────────────────────────────────────┘
+      47 +children (~0:00.04 CPU over 10 min). **Check descendants (`pgrep -P`) before killing anything.**
+      48  ⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      49  ⚠️ Claims parse ONLY in ``` fences, only if the line has `->`, and the **FIRST fraction must be one
+      50  the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000` → `8760/1`). **Block membership, not
+  ⎿  Async hook PostToolUse completed
 
-  D2 got worse, and that is the step working. The old figure was a subset that flattered the rule; no bar moved to absorb the new one. test_verification_standard.py is exit 0 over 31
-  commands and now actually executes the argument scorer (prints 52/81) plus the new build_argument_gold.py --check guard.
+⏺ Bash(wc -l .scratchpad.md && sed -i '' 's/(80 → 64)/(80 → 72)/' .scratchpad.md && head -2 .scratchpad.md && echo "---" && grep -c "" .scratchpad.md)
+  ⎿        72 .scratchpad.md
+     # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-23 (80 → 72); prior `.scratchpad.md.pre-prune-20260823`. Earlier prunes 08-22, 08-21.
+     ---
+     72
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
 
-  Three findings, in order of how much they change what comes next:
+⏺ Done.
 
-  1. 🔴 R2.2e, new and it outranks step (2). Diagnosing D1's full-row misses showed the tokeniser sometimes emits one token covering a whole printed line (leaf 412 r33: 63 glyphs, 90% of
-  the row). in_block tests l < L or r > R, so a token spanning the measure necessarily fails it and is labelled MarginNote. 49 rows over the 20 leaves — 44 are ordinary scripture, typed as
-  marginalia by the shipping pipeline with the argument rule off. region_segments splits r33 correctly into side-note + argument, so two splitters disagree about one row and the coarser one
-  decides the label — the signature defect's 10th instance, first in the splitter/label handoff. The 121-token gold sits in the head band and cannot see any of it, so 0.8760 is not
-  evidence against it.
-  2. Fount is region-dependent, and no threshold can fix it. In the body italic marks the argument; inside leaf 417's ANNOTATIONS it inverts — roman is commentary, italic is quoted
-  scripture. Those 3 rows are 3 of the 13 false positives, so D2 now has a floor of 3 that contiguity cannot touch: ANNOTATIONS is a missing region, exactly as ARGUMENT was.
-  3. The scorer was addressing the gold by exact float equality, and it broke on the first run at the larger size. Leaf 417 r51 sits at 0.66504975 — round(…,4) gives 0.6650, but rounding
-  through the gold's 6 dp gives 0.6651. One row in 81, and it would have been reported as a recall miss: the rule blamed for arithmetic. The gold's own address note already said "match by
-  overlap, never by an equality" — the rule was right and the thing reading it was not. Now best-overlap (not any overlap — 39/140 row-pairs overlap >50%), with addressing failures and
-  collisions reported separately from D1; both are 0.
+  Scratchpad 80 → 72 lines, backup at .scratchpad.md.pre-prune-20260823. Eight lines of headroom rather than zero.
 
-  Two method notes worth keeping: a hand-rolled copy of the segment test returned 25 bogus candidates because it dropped in_block, so the enumerator is now the rule itself at a widened net
-  — its output equals what the rule can emit by construction. And the verification standard caught me filing a new guard inside the audits fence, where exit 1 would have been read as
-  healthy.
+  What went, and where it went instead:
 
-  Next on this thread: R2.2e first (it explains 6 of D1's 29 misses and is a live scripture-typing defect), then step (2) — contiguity for the 20 sub-floor fragment rows, which cannot be a
-  lower component floor without re-admitting the marginal-italic false positives now measured.
+  - The far-chaining diagnosis and the S6-bar rationale — both are now verified, shipped, and suite-green, so the reasoning lives in the code it governs: the comment inside
+  collation_read._rows_and_lines and the block at the top of score_head_regions. The scratchpad keeps only the one-line result and the state flag.
+  - Candidate 4's pre-chain arm (RH 0.9231 over 13 entries) — that arm no longer exists in the code, so the table drops to control vs cand4+chain on equal denominators, with one
+  parenthetical preserving why the old number was never comparable.
+  - Suite f's separate entry — subsumed, since g is byte-identical to f which is byte-identical to c.
+  - One new durable rule to L2 reference_instrument_independence_and_bars.md, now 9: an enumerative guard cannot catch a quantitative loss — "all losses are reported" and "no losses" are
+  different criteria, which is exactly how candidate 4 shed 5 of 121 entries with the accounting balancing perfectly.
 
-✻ Sautéed for 25m 21s
+  What stayed is live state: the failing MN question that's next, the open descender risk in the far set, the circularity that blocks "seed per block," S2's blindness outside the body
+  block, and the suite gotchas that keep costing time.
+
+✻ Cogitated for 2m 4s · 1 shell still running
 
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-❯ fix R2.2e
+❯ now fix the MN gap
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  🟢 opus-5·1M  @Resume work from refreshed context  main +932-88📖 e:low △ exc-200k                                                                                          228973 tokens
-  [▓▓▓▓▓▒··│┃············╿·····] 23% 227.5K  Δ1.5K/m  S:50m H:1h11m  cache:99% eph1h:100%  warm/write/new                                                                             Debug
-  $13.59  ⏱41m api:51%  5h:24%↺3h10m  7d:18%↺3d6h
-  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+  🟢 opus-5·1M  @Resume work from compressed context  main +657-790📖 e:low △ exc-200k                                                                                        217577 tokens
+  [▓▓▓▓▓▒··│┃············╿·····] 22% 217.1K  Δ9.5K/m  S:9m H:12m  cache:99% eph1h:100%  warm/write/new                                               new task? /clear to save 217.6k tokens
+  $17.53  ⏱25h1m api:1%  5h:2%↺4h57m  7d:1%↺6d5h                                                                                                                                      Debug
+  ⏵⏵ bypass permissions on · 1 shell · ← 1 agent
 

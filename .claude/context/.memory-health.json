@@ -1,30 +1,30 @@
 {
-  "timestamp": "2026-08-20T01:33:55.888Z",
+  "timestamp": "2026-08-28T02:19:50.740Z",
   "layers": {
     "L1_sensory": {
       "status": "warn",
-      "insights_bytes": 141315,
-      "insights_lines": 1065,
+      "insights_bytes": 136029,
+      "insights_lines": 1096,
       "corrections_lines": 2,
-      "jsonl_sessions": 68
+      "jsonl_sessions": 79
     },
     "L2_working": {
-      "status": "warn",
-      "scratchpad_lines": 78,
-      "session_state_age_min": 25890
+      "status": "critical",
+      "scratchpad_lines": 360,
+      "session_state_age_min": 4505
     },
     "L3_shortterm": {
       "status": "ok",
-      "checkpoint_age_min": 1256,
-      "checkpoint_bytes": 13255,
+      "checkpoint_age_min": 56,
+      "checkpoint_bytes": 16832,
       "archive_count": 0
     },
     "L4_declarative": {
       "status": "ok",
-      "last_ingest_at": "2026-08-19T21:20:11.247602+00:00",
-      "last_ingest_chunks": 83,
+      "last_ingest_at": "2026-08-28T01:21:50.874641+00:00",
+      "last_ingest_chunks": 84,
       "dedup_threshold": 0.92,
-      "collection": "genie-sessions"
+      "collection": "sessions"
     },
     "L5_procedural": {
       "status": "ok",
@@ -32,43 +32,43 @@
       "reference_count": 11
     },
     "L6_meta": {
-      "status": "warn",
-      "tokens": 277161,
-      "used_pct": 27,
+      "status": "ok",
+      "tokens": 216126,
+      "used_pct": 21,
       "action": "WATCHING",
-      "cache_hit_rate": 0.9912,
+      "cache_hit_rate": 0.9963,
       "hard_threshold": 330000,
-      "state_age_min": 1167
+      "state_age_min": 1
     }
   },
   "services": {
     "qdrant": {
       "up": true,
-      "latency_ms": 2,
+      "latency_ms": 3,
       "cause": "ok"
     },
     "mlx_embed": {
       "up": true,
-      "latency_ms": 0,
+      "latency_ms": 3,
       "cause": "ok"
     },
     "neo4j": {
       "up": true,
-      "latency_ms": 2,
+      "latency_ms": 4,
       "cause": "ok"
     }
   },
   "collections": {
-    "sessions_points": 468
+    "sessions_points": 603
   },
   "services_meta": {
-    "source": "jicm-supervisor",
-    "probed_at": "2026-08-20T01:33:29Z",
+    "source": "jicm-watcher",
+    "probed_at": "2026-08-28T02:19:45Z",
     "age_min": 0
   },
-  "overall": "warn",
+  "overall": "critical",
   "warnings": [
-    "L1: insights-log at 1065 lines (cap: 200)",
-    "L6: Context at 277k — approaching threshold"
+    "L1: insights-log at 1096 lines (cap: 200)",
+    "L2: scratchpad at 360 lines (limit: 120)"
   ]
 }

@@ -1,0 +1,2043 @@
+
+  ok    witness/score_surya_layout.py    prints 20/20
+
+  The suite log is the artifact people read for status, and this line headlines the single most flattering number in the run. A reader scanning it sees "Surya: 20/20". The claim's first
+  fraction is what the checker binds to, so it should be the representative one:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      ../ocr-venv/bin/python - <<'PY'
+      import pathlib
+      p=pathlib.Path("OCR-ROADMAP.md"); t=p.read_text()
+      old="page-fraction addressed, 121 bound and 0 orphans: RunningHead 20/20 and MainText 80/80 both exact, MarginNote 0/19, overall 100/121."
+      new=("page-fraction addressed, 121 bound and 0 orphans: overall 100/121, of which MarginNote is 0 of 19 -- the class this edition is built around. "
+           "RunningHead is exact at 20 of 20 and MainText at 80 of 80.")
+      assert old in t, "anchor"
+      t=t.replace(old,new,1); p.write_text(t); print("claim re-headlined")
+      PY
+      echo "=== does the command print the new FIRST fraction? ==="
+      grep -c "100/121" .scratch/r2/surya-r14-0.log && grep -o "accuracy 100/121 = 0.8264" .scratch/r2/surya-r14-0.log | head -1)
+  ⎿  claim re-headlined
+     === does the command print the new FIRST fraction? ===
+     2
+     accuracy 100/121 = 0.8264
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      nohup ../ocr-venv/bin/python -u witness/test_verification_standard.py > .scratch/r2/suite-20260825n.log 2>&1 &
+      echo "suite n pid $! started $(date +%H:%M:%S)")
+  ⎿  suite n pid 75918 started 15:12:04
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      until ! ps -p 75918 > /dev/null 2>&1; do sleep 30; done; echo "=== suite n EXITED $(date +%H:%M:%S) ==="; wc -l < .scratch/r2/suite-20260825n.log; grep -nE '^ *FAIL|^FAILED'
+      .scratch/r2/suite-20260825n.log || echo "(no anchored FAILs = clean)"; grep -n "score_surya_layout.py *prints" .scratch/r2/suite-20260825n.log; tail -2
+      .scratch/r2/suite-20260825n.log)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 32 lines, removed 1 line
+       5  (denominator, stale-comment, enumerative-vs-quantitative) → **L2** `reference_instrument_
+       6  independence_and_bars.md` (9 rules).
+       7  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       8 -## 🔴 RESUME HERE — 2026-08-25. MN gap NOT closed (R2.2n OPEN, blocked by R2.2o). ⏳ SUITE h IN
+       8 +## ✅✅ 2026-08-25 LATE — TWO COMMITS LANDED. `db013a0` (§3.0 agent + R2.2o ALERT + docs recalibrated)
+       9 +and **`884e9c0`** (R14.0 scored + R15 gate-register fix). Suites k and m both GREEN. NOT PUSHED.
+      10 +### 🟢 **R14.0 DONE — FIRST LAYOUT SCORE EVER ON THIS CORPUS.** `witness/score_surya_layout.py`.
+      11 +Surya FastLayoutPredictor vs the 121-entry head-band gold, leaves 400-419, PAGE-FRACTION addressed,
+      12 +2 DECLARED label maps, **121 bound / 0 orphans**. **RH 20/20 · MT 80/80 · MN 0/19 · overall 100/121**.
+      13 +🔴 **MN 0/19 IS A *LABELLING* FAILURE ON A *WORKING DETECTOR*** — MN entries bind to TIGHT boxes
+      14 +(median **0.0039** of page area, NOT the half-page Text block) ⇒ surya FINDS the notes, has no NAME
+      15 +for them (vocabulary is modern-doc; **zero Footnote boxes emitted**, so charitable map ≡ strict map).
+      16 +⇒ **R14.1 REDIRECTED: class-inventory FINE-TUNE of the existing detector, not a new detector.**
+      17 +⚠️ **MT 80/80 IS CONTAINMENT, NEVER QUOTE AS A WIN** — bound boxes median **0.5555 of the PAGE**.
+      18 +Gate 10b (boundary err) is NOT measured here. ⚠️ Coverage: gold = TOP 3 ROWS ⇒ only HEAD-BAND notes;
+      19 +outer-margin notes NOT shown (same limit as R2.2o.1; R2.2o.1b lifts BOTH).
+      20 +📌 vs incumbent `region_head`: surya WINS MT (80/80 vs 67/80), TIES RH, LOSES MN (0/19 vs **17/19**).
+      21 +⇒ the hand-built geometric part is THE ONLY THING THAT CAN NAME A MARGINAL NOTE = the §3.2 item 5
+      22 +clamp role, now EVIDENCED. ⚠️ `LayoutPredictor` needs `llama-server` (NOT installed; `brew install
+      23 +llama.cpp`); `FastLayoutPredictor` does not — recorded, not routed around.
+      24 +### 🔴 R15 — **THE GATE REGISTER WAS TWO REGISTERS.** §3.2 "Gate 9.1-9.8" vs §7.8 rows "10a-10f" =
+      25 +SAME CHECKS. Doc already self-contradicted (§2 cites "Gate 10c" for what §3.2b calls 9.5). 9.6/9.7/9.8
+      26 +had NO §7.8 row ⇒ by §7.8's OWN invariant they had not entered the build order. **Roadmap cited §7.8
+      27 +ZERO times** ⇒ **Gate 11 (G1 recognition — THE RECOGNISER'S GATE) had NO roadmap step at all** ⇒ new
+      28 +**R13.3**. §7.8 now CANONICAL + crosswalk; rows 10d/10e/10f added; **R15.1-3** make it EXECUTABLE.
+      29 +⚠️ Register lessons: **"strikethrough is NOT removal"** (delete the id) · **CEILING_RE needs a literal
+      30 +C-token ON the `**Complexity` line** · `root_of("R13.3")`→**R13**, so a sub-step inherits its ROOT
+      31 +section (filing R13.3 revealed R13.1/R13.2 uncovered since 08-17). **81→84, claim 8/81→11/84,
+      32 +uncovered DOWN 38→36.** Also corrected 3 now-FALSE absolutes ("no layout score of any kind exists").
+      33 +⏳ **SUITE n pid 75918 → `.scratch/r2/suite-20260825n.log`** — re-verifying ONE change: the surya claim
+      34 +was re-headlined because the green log read `prints 20/20` (the most FLATTERING number) instead of
+      35 +`100/121`. **1 file uncommitted (`OCR-ROADMAP.md`); commit after n is GREEN.**
+      36 +### ➡️ NEXT: (1) **R15.1** build the gate-register audit (C2; would have caught all 3 defects from the
+      37 +docs alone) (2) **R14.1 as redirected** (fine-tune, now cheap) (3) **R2.2o.1b** (one gold lifts the
+      38 +head-band limit on TWO findings) (4) **R13.1** wiring (open since 08-17).
+      39 +## 🔴 SUPERSEDED CONTEXT BELOW — 2026-08-25 earlier. MN gap NOT closed (R2.2n OPEN, blocked by R2.2o). ⏳ SUITE h IN
+      40  FLIGHT + 5 files UNCOMMITTED — both detailed below. Production verified unchanged (MN 17/19, MT 67/80).
+      41  ### ✅ DONE 08-22, COMMITTED `ac34ebf`, suite g GREEN (a/b/c/f/g, 38 cmds). Full § in DEVLOG + roadmap.
+      42  far-chaining in `_rows_and_lines` (760 far glyphs → 0 rows, by construction) + the S6 DENOMINATOR BAR
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Two commits landed and verified; suite n is confirming one last correction.
+
+  Where things stand
+
+  db013a0 — the adaptive visual agent becomes the stated aim; §3.0 governing, R2.2o's ALERT fired, all five documents recalibrated. Suite k green.
+
+  884e9c0 — R14.0 scored, R15's gate-register defects fixed. Suite m green, 133 lines, 40 commands.
+
+  Uncommitted: one line in OCR-ROADMAP.md. Suite m's own green log read score_surya_layout.py prints 20/20 — the verification standard binds to a claim's first fraction, and I had led with
+  the best number in the run. A reader scanning the status artifact would take away "Surya: 20/20". Re-headlined to 100/121, of which MarginNote is 0 of 19. Suite n is re-verifying that
+  single change.
+
+  ★ Insight ─────────────────────────────────────
+  That last catch is worth naming because it is the session's pattern in miniature. Nothing was false — 20/20 is a real number the command really prints, and the suite was genuinely green.
+  But the headline was the flattering fraction, and a status line is read by people who will not open the scorer. This project keeps finding the same disease in new organs: a correct
+  register nobody reads, a correct rule nothing consumes, a correct number placed where it misleads. The register caught two of my own instances today ("strikethrough is not removal", and a
+  ceiling line invisible without a literal C-token) — the instruments are now good enough to catch their author.
+  ─────────────────────────────────────────────────
+
+  Answering your Primary Question plainly
+
+  Geometric boxing model: re-scoped, not stalled. It is now the clamp, and today it earned that role empirically — it is the only component in the project that can name a marginal note
+  (17/19 against Surya's 0/19).
+
+  Character recognition model: built at 0.9396, still unwired, and until today its gate had never been planned. Gate 11 appeared zero times in the Roadmap. R13.3 now exists, blocked on
+  GOLD-TEXT freezing and on R13.1's wiring.
+
+  And the boxing model now has its first number ever — with the honest caveats attached in the documents themselves, so no future reader can quote MainText 80/80 without meeting the word
+  "containment" in the same sentence.
+
+  Next, in order
+
+  1. R15.1 — build the gate-register audit. C2, and it would have caught all three of today's register defects from the documents alone.
+  2. R14.1 as redirected — class-inventory fine-tune of a working detector. R14.0 turned this from expensive into cheap.
+  3. R2.2o.1b — one body-block gold lifts the head-band coverage limit on both R2.2o.1 and R14.0.
+  4. R13.1 — wiring, open since 08-17.
+
+  I'll report suite n and commit that final line when it lands. Nothing is pushed.
+
+✻ Crunched for 1m 47s · 1 shell still running
+
+⏺ Background command "Wait for suite n after the claim re-headline" was stopped
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ It's the watcher that was killed, not necessarily the suite itself — that could've been a timeout or external kill. I should check whether suite n (pid 75918) is still alive and what the
+  log shows.
+
+⏺ The watcher was stopped — that says nothing about the suite itself. Checking whether suite n is still alive:
+      echo "log: $(wc -l < .scratch/r2/suite-20260825n.log) lines, last write $(stat -f '%Sm' -t '%H:%M:%S' .scratch/r2/suite-20260825n.log)"
+      grep -nE '^ *FAIL|^FAILED' .scratch/r2/suite-20260825n.log || echo "(no anchored FAILs so far)"
+      tail -3 .scratch/r2/suite-20260825n.log)
+  ⎿  15:21:15
+     suite n ALIVE
+     09:11   0:00.05
+     child: 64170
+     log:       83 lines, last write 15:19:02
+     (no anchored FAILs so far)
+       ok    witness/gold_rekey_pagefrac.py           prints 125/125
+       ok    witness/test_verification_standard.py    (self -- not re-run)
+       ok    witness/audit_prereq_ceilings.py         prints 11/84
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Suite n looks healthy overall—83 lines, 9 minutes elapsed, a live child process, no failures, and the audit_prereq_ceilings check already passing at 11/84 from my earlier edit. Only the
+  watcher process itself died, so I just need to re-arm it, following the documented healthy pattern of a low-CPU parent with a live child, this time with a longer-lived approach.
+
+⏺ Suite n is fine — 83 lines, 9 minutes in, live child 64170, zero FAILs, and audit_prereq_ceilings prints 11/84 has already passed. Only my watcher died. Re-arming it:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      until ! ps -p 75918 > /dev/null 2>&1; do sleep 30; done; echo "=== suite n EXITED $(date +%H:%M:%S) ==="; wc -l < .scratch/r2/suite-20260825n.log; grep -nE '^ *FAIL|^FAILED'
+      .scratch/r2/suite-20260825n.log || echo "(no anchored FAILs = clean)"; grep -n "score_surya_layout.py *prints" .scratch/r2/suite-20260825n.log; tail -2
+      .scratch/r2/suite-20260825n.log)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Watcher re-armed; nothing was lost.
+
+  Worth noting what that near-miss demonstrates, since it's the same lesson the scratchpad already records in another form: the watcher's death is not the job's death. Had I read the
+  notification as "suite n was killed," I would have relaunched a 45-minute run that was already 9 minutes from finishing, or worse, ended up with two suites racing — which the operational
+  rules explicitly forbid after d and e collided that way. The check that settled it was the process itself plus the log's own progress, not the status word in the notification.
+
+  Suite n is past the two claims my edit touched:
+  - audit_prereq_ceilings prints 11/84 ✅
+  - score_region_gap_pops prints 986/12592 (earlier in the run) ✅
+
+  The one it hasn't reached yet is the re-headlined score_surya_layout claim, which now leads with 100/121 rather than 20/20. That's the whole reason for this run.
+
+  I'll report when it lands and commit the single remaining line. Both substantive commits — db013a0 and 884e9c0 — are already in and verified green.
+
+✻ Churned for 22s · 1 shell still running
+
+⏺ Background command "Re-armed watcher for suite n" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+
+⏺ Read agent output betjrqbiw
+  ⎿  Read 7 lines
+
+∴ Tests pass with 100/121 now shown in the status log, so I'll commit this single-line fix.
+  ⎿  Async hook UserPromptSubmit completed
+      MarginNote 0/19. So suite m's green log read
+
+          ok  witness/score_surya_layout.py   prints 20/20
+
+      and the status artefact that people read without opening the scorer said "Surya:
+      20/20". Nothing was false and the suite was genuinely green; the headline was simply
+      the wrong number in the one place a reader stops.
+
+      Re-headlined to lead with the overall 100/121 and to name MarginNote 0 of 19 in the
+      same breath, with RunningHead and MainText following. The log now reads
+      `prints 100/121`.
+
+      Same disease as the two register defects fixed in 884e9c0, in a third organ: a
+      correct number placed where it misleads, rather than a wrong number.
+
+      Suite n GREEN, 133 lines, zero anchored FAILs, 40 commands.
+
+      Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>
+      MSG
+      git log --format='%h %s' -3; echo "--- working tree ---"; git status --short | grep -v '^??' || echo "clean (only the deliberate untracked archive/notes remain)")
+  ⎿  [main 1c87a64] R14.0: the suite's own status line headlined the most flattering fraction in the run
+      1 file changed, 1 insertion(+), 1 deletion(-)
+     1c87a64 R14.0: the suite's own status line headlined the most flattering fraction in the run
+     884e9c0 R14.0 + R15: the first layout score on this corpus, and the gate register was two registers
+     db013a0 R2.2o + R14: no gap constant exists, so the span rules stop and the adaptive visual agent becomes the stated aim
+     --- working tree ---
+     clean (only the deliberate untracked archive/notes remain)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 9 lines, removed 3 lines
+      30  C-token ON the `**Complexity` line** · `root_of("R13.3")`→**R13**, so a sub-step inherits its ROOT
+      31  section (filing R13.3 revealed R13.1/R13.2 uncovered since 08-17). **81→84, claim 8/81→11/84,
+      32  uncovered DOWN 38→36.** Also corrected 3 now-FALSE absolutes ("no layout score of any kind exists").
+      33 -⏳ **SUITE n pid 75918 → `.scratch/r2/suite-20260825n.log`** — re-verifying ONE change: the surya claim
+      34 -was re-headlined because the green log read `prints 20/20` (the most FLATTERING number) instead of
+      35 -`100/121`. **1 file uncommitted (`OCR-ROADMAP.md`); commit after n is GREEN.**
+      33 +✅ **SUITE n GREEN (133 lines, 0 FAILs, 40 cmds) → COMMITTED `1c87a64`. WORKING TREE CLEAN.**
+      34 +Three commits today: `db013a0` · `884e9c0` · `1c87a64`. **NONE PUSHED** (origin is behind by 3).
+      35 +⚠️  **CLAIM-HEADLINE RULE, learned the hard way**: the standard binds to a claim's **FIRST fraction**,
+      36 +so that fraction becomes the suite log's status line. Leading with `20/20` (the best number in a run
+      37 +whose FINDING was `0/19`) made a green log read "Surya: 20/20". **Lead with the REPRESENTATIVE
+      38 +fraction, never the flattering one** — a status line is read by people who never open the scorer.
+      39 +⚠️ **A KILLED WATCHER IS NOT A KILLED SUITE.** A task-notification said "killed"; the suite (pid
+      40 +75918) was ALIVE at 83 lines with a live child. Relaunching would have raced two suites (the d/e
+      41 +failure). **Check `ps` + log progress, never the notification's status word.**
+      42  ### ➡️ NEXT: (1) **R15.1** build the gate-register audit (C2; would have caught all 3 defects from the
+      43  docs alone) (2) **R14.1 as redirected** (fine-tune, now cheap) (3) **R2.2o.1b** (one gold lifts the
+      44  head-band limit on TWO findings) (4) **R13.1** wiring (open since 08-17).
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ All work is committed and the tree is clean.
+
+  Session close
+
+  Three commits, each verified green before landing:
+
+  ┌─────────┬────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │ commit  │                                                          what                                                          │
+  ├─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ db013a0 │ R2.2o's ALERT fired; the adaptive visual agent becomes the stated aim; §3.0 governing; all five documents recalibrated │
+  ├─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 884e9c0 │ R14.0 scored — the first layout measurement on this corpus; R15's gate-register defects fixed                          │
+  ├─────────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1c87a64 │ the suite's status line re-headlined off its most flattering fraction                                                  │
+  └─────────┴────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Suites k, m and n all green. Nothing is pushed — origin is three behind, whenever you want that.
+
+  What actually changed today
+
+  Your six steps became eight, and the two additions were earned rather than invented: S5 RELATE, because this edition's value is a relation and reading order had been named in three
+  documents while owned by none; S8 RE-EXAMINE, because you asked for an agent and the residue signal that would let it notice its own errors was being spent only as training data.
+
+  The geometric line stopped at four refuted rules rather than five, on a measurement rather than a preference — the gap populations overlap, so no constant exists to find. And region_head
+  did not get discarded; it got re-scoped and then vindicated in its new role, since R14.0 showed it is currently the only component in the project that can name a marginal note.
+
+  ★ Insight ─────────────────────────────────────
+  The most useful thing R14.0 found was not a score but a distinction: MarginNote 0/19 looked like blindness and turned out to be a labelling failure on a working detector — the notes bind
+  to tight boxes, so Surya sees them and has no name for them. That flipped R14.1 from "train a detector" to "fine-tune a class inventory," which is a different order of cost. It only
+  surfaced because the scorer reported bound-box size alongside recall — a column added during the architect pass, specifically to expose whether MainText 80/80 was real. The check written
+  to catch my own flattering number is what produced the session's best finding.
+  ─────────────────────────────────────────────────
+
+  Standing next steps
+
+  1. R15.1 — the gate-register audit. C2, and it would have caught all three of today's register defects from the documents alone.
+  2. R14.1 as redirected — class-inventory fine-tune.
+  3. R2.2o.1b — one body-block gold lifts the head-band coverage limit on both R2.2o.1 and R14.0.
+  4. R13.1 — recogniser wiring, open since 08-17, and R13.3 now waits behind it.
+
+  Production never moved: BASELINE_MODEL False, MN 17/19, MT 67/80. The MN gap remains open and still blocks Gate 0b/0c — a redesigned method, not an accepted gap.
+
+✻ Worked for 42s
+
+❯ what is the MN gap, and what is Gate 0b/0c?
+  what does this mean: "The geometric line stopped at four refuted rules rather than five, on a measurement rather than a preference"?
+  how does anything in next steps 1-4 work towards the adaptive geometric bounding model?
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ I'm working through three questions and need to verify facts rather than rely on memory. For the first, I'm checking the MN gap—MarginNote recall in production is 17/19, which equals
+  0.8947, and I'm confirming whether that matches the gold standard figure.
+     24:| R2 | Structural inventory — Gate 0b stage 2 | 🚨 **OPEN — R2.1f FIRED 2026-08-14, ALERT: THE APPROACH NEEDS REDESIGN.** R2.1c DONE (instrument promoted to TRACKED
+     `witness/collation_read.py`, with signature/catchword as separate fields and stated abstain reasons). R2.1d'(A) measured **three** times: **0.222 → 0.312 → 0.312**, Wilson95 lower
+     bound **0.142** against a 0.95 bar. **The ACCEPTANCE RULE fired, not a budget.** The catchword half reads at 0.87–1.00 and is correct; **every failure is on the head side**. 🔴
+     **The third run corrected the scorer defect and the rate DID NOT MOVE — which is the finding**: 3 of the 5 AGREEs are whole-line blobs passing the ≥4-char prefix rule, so the head
+     reader fails in **both** directions and **0.312 is not a conservative floor but two opposing biases of unknown relative size** (R2.1f, 2026-08-15). 🟢 **REDESIGN DECIDED: option
+     (1)**, first baseline via the running-head leading gap, built as a reusable region-typing primitive — see R2.1g. **R2.2 is promoted to the pivot** (R2.2a): it is the same
+     head-band instrument and it also supplies a signature-independent component of R3.1's key, so **R2 and R3 interleave rather than sequence**. R2 continues to BLOCK Gate 0b/0c and
+     all transcription. Prior state: R2.0 instrument built in `.scratch/r2/` (probe v18; design settled, dead ends measured), never scored on R2.1's original metric. Steps R2.1a–f
+     written 2026-08-11; **R2.1g · R2.2a · R2.5 added 2026-08-17**; **R12 (layout typology) raised**. 🚨 **2026-08-25 — R2.2's APPROACH-LEVEL ALERT FIRED, R2.2 RE-SCOPED**: after four
+     refuted span rules, R2.2o.1 measured that the gap populations OVERLAP (0.875 vs 1.525 pitches), so **no constant exists**, and `region_head`/`region_segments` are re-scoped from
+     *the region model* to *the initialisation and plausibility clamp* of Masterplan §3.2 item 5 — characterised and willing to abstain, never maximised. Region typing moves to **R14,
+     the adaptive visual agent (§3.0)**. ⚠️ The MN gap stays OPEN and R2 still BLOCKS Gate 0b/0c: a method redesign, never an accepted gap |
+     873:ever got wrong. Only **2** are **MN|MT**, the boundary the MN gap is actually about:
+
+     === why does R2 block Gate 0b/0c? ===
+     **Gate 0b — completeness and collation.** Per copy: a leaf inventory against the expected signature
+     collation, listing **wanting leaves, duplicated leaves, misbound leaves, and made-up leaves with the
+     supplying copy named.** §1.4 establishes that this cannot be skipped: **three of the five NT files deviate
+     from a native complete sequence at the same two leaves — two by supply (made-up copies in the
+     bibliographical sense) and one by outright absence** (count corrected 2026-08-17, §1.4),
+     and the defect was invisible until the leaves were read. **A copy is not admitted as a witness for a given
+     leaf until that leaf is known to be native to it.**
+
+     **Gate 0c — cross-source leaf mapping.** A per-leaf correspondence table across the copies of each volume,
+     keyed to printed page number and signature, so that any leaf can be addressed in every witness at once.
+     Without it, "the same page" cannot be stated across copies — and §1.4 shows that leaf indices do **not**
+     correspond between files even within one volume.
+
+     **Gate 0d — derivative contamination.** No leaf entering the recognition chain may be a derivative of
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I'm pinning down the exact MN numbers: the incumbent gets 17 of 19 marginal notes right (0.8947), while candidates pushed that to 18/19 but at the cost of MainText accuracy. There seem to
+  be two separate arms being compared here, control and something else I need to check.
+
+  The candidate arm's MN score is actually 0.7895, which is 15 of 19 - so the gap I'm framing involves the entries the reader still mislabels, particularly the one tied to entry 419.0.0
+  that never got fixed. I want to verify this by grepping the R2.2n section for the exact definition and cross-referencing the 0.8947 figure to make sure I have the control-vs-candidate
+  framing right before I commit to it.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      awk '/^## R2\.2n/,/^## R2\.2o/' OCR-ROADMAP.md | grep -nE "S-A|S-B|S-D|419|arm|CONTROL|CANDIDATE" | head -12)
+  ⎿  9:**419.0.0** (gold MN → got RH). Neither token moved: 410.0.2's x-centre is `+0.929` under both arms.
+     12:| arm | tokens in row 0 | x-extent | labels |
+     28:⚠️  **419.0.0 IS A DIFFERENT CAUSE AND WAS INITIALLY CONFLATED WITH 410.** Leaf 419 drops 24 → 21
+     40:| **S-A** | CONTROL DO-NO-HARM at `BASELINE_MODEL=False`: RH ≥ 1.0000, MN ≥ 0.8947, MT ≥ 0.8375, CH ≥ 1.0000. A fix for the candidate may not be bought with production's
+     numbers. |
+     41:| **S-B** | THE TARGET: candidate MN ≥ 0.8947 — it must stop being worse than the control on the region this is meant to fix. |
+     43:| **S-D** | THE NAMED ENTRIES: 410.0.2 **and** 419.0.0 both come out MN under the candidate. A rate that improves without fixing the two cases the change was written for is
+     fixing something else. |
+     44:| **S-E** | NO SILENT TRADE: RH and CH must not fall under either arm. |
+     51:| `SPAN_MODE="segment"` | 1.0000 | 0.9474 | 0.7000 (56/80) | 0.8947 | 🔴 S-A, S-D |
+     53:| `R4_DEMOTE_UNQUALIFIED=True` | 1.0000 | 0.9474 | 0.6875 (55/80) | 0.8947 | 🔴 S-A, S-D |
+     54:| `SPAN_MODE="flush"` (R2.2n-b) | 1.0000 | 0.9474 | 0.7750 (62/80) | 0.7895 | 🔴 S-A, S-B, S-D |
+     57:and sinks **not at all**, on both arms. `_in_body_seg` returns `True` whenever the row is absent from
+     64:⚠️ **S-B PASSED FOR TWO CANDIDATES THAT S-D FAILED**, which is exactly why S-D was pre-registered:
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Now I see the gap clearly: the control arm hits 0.8947 MN accuracy (17/19) while the candidate row-clustering model drops to 0.7895 (15/19), meaning the proposed model is actually worse
+  at marginalia detection than production. I'm identifying the specific gold entries where the candidate fails, starting with entry 410.
+
+  0.2 and 419.0.0 (where gold says MarginNote but the reader outputs RunningHead) — these are the concrete failures the fix has to correct, since S-D requires those exact entries to be
+  right, not just the aggregate rate to improve.
+
+  Next I'm working through why Gate 0b/0c depend on R2 (Structural inventory), which requires reading each leaf's signature, catchword, and running head to check against the expected
+  collation. Since R2.1's head-side reader is failing well below its bar (0.312 vs 0.95) and needs a redesign into a region-typing primitive, that failure cascades — blocking leaf
+  inventory, which in turn blocks Gate 0b.
+
+  For question three, I need to be honest about which pending items actually move the boxing model forward: R15.1 (gate-register audit) is infrastructure hygiene and doesn't advance it;
+  R14.1 (fine-tune) does; R2.2o.1b (body gold) does indirectly since it's the evaluation substrate; R13.1 (wiring) is really about recognition, not boxing. So only two of the four genuinely
+  advance the model, and I need to re-rank accordingly.
+
+  I'm also realizing I left out R14.6, the label generator — it's what makes R14.1's fine-tune actually affordable since fine-tuning needs labelled training data. That's a real gap in my
+  original ordering that I should flag and correct, treating R14.6 and R14.1 as one combined workstream.
+
+  Revising the priority order: the label generator paired with the fine-tune comes first, then the body-block gold data since both R2.2o.1 and R14.0 are head-band-only and the outer-margin
+  issue is the real bottleneck, then confidence/abstention work, then relations — with the gate-register audit and wiring task sitting off the critical path. I do want to note that the
+  audit, while not moving the model itself, is cheap insurance against the exact kind of oversight that caused today's mess, even if it doesn't count as real progress. I'll lay this out as
+  a table to keep it organized, then move on to explaining the second question's phrasing.
+
+⏺ Good questions, and the third one lands.
+
+  1. The MN gap, and Gate 0b/0c
+
+  MN = MarginNote. The region scorer runs on two arms: the control (BASELINE_MODEL=False, what production ships) and the candidate (the proposed new row-clusterer). On the 19 MarginNote
+  entries in the gold:
+
+  - control: 0.8947 = 17/19
+  - candidate: 0.7895 = 15/19
+
+  So the candidate model is worse at marginalia than production — on the very region it was written to fix. That deficit is the MN gap, and it is not abstract: it is two named gold entries,
+  410.0.2 and 419.0.0, the latter being a marginal note the reader calls a RunningHead. Bar S-B states the target as "candidate MN ≥ 0.8947 — it must stop being worse than the control on
+  the region this is meant to fix." Bar S-D additionally requires those two specific entries to come out right, because a rate that improves without fixing the cases the change was written
+  for is fixing something else. Two candidates passed S-B and failed S-D, which is exactly why S-D was pre-registered.
+
+  Gate 0b — completeness and collation. A leaf inventory per copy against the expected signature collation, naming wanting, duplicated, misbound and made-up leaves with the supplying copy
+  identified. It cannot be skipped: three of the five NT files deviate from a native sequence at the same two leaves, and "the defect was invisible until the leaves were read."
+
+  Gate 0c — cross-source leaf mapping. A per-leaf correspondence table across copies, keyed to printed page and signature, so a leaf can be addressed in every witness at once. Leaf indices
+  do not correspond between files even within one volume.
+
+  Why region typing blocks them: you inventory a leaf by reading it — its signature, catchword and running head. R2's head-side reader scored 0.312 against a 0.95 bar, the redesign made it
+  a region-typing primitive, and so marginalia-versus-running-head confusion propagates straight into "which leaf is this, and is it native to this copy." Gate 0b and 0c gate all
+  transcription.
+
+  2. "Four refuted rules rather than five, on a measurement rather than a preference"
+
+  That was compressed to the point of being cryptic. Plainly:
+
+  The Roadmap had already specified a fifth rule (R2.2o.2: cut where the gap exceeds the pitch and the ink beyond it forms a narrow, column-like run). The normal move is to build it and
+  test it. We didn't.
+
+  Stopping could have been two different things. A preference would be fatigue — "four failed, this feels hopeless." A measurement is R2.2o.1: the two gap populations overlap, a genuine
+  region gap of 0.875 pitches against a genuine word space of 1.525 on the same page. Any rule that decides by gap width must misclassify, so the fifth was refutable in advance. The
+  distinction matters because this project's rule is that a below-threshold result stays open and the method gets redesigned — and "we measured that no constant exists" licenses redesigning
+  the method, whereas "we're tired of this" would just be an accepted gap wearing a better coat.
+
+  3. Your challenge is correct — two of my four don't advance the boxing model
+
+  ┌────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │          my step           │                                                          advances the adaptive bounding model?                                                          │
+  ├────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 1. R15.1 gate-register     │ No. Infrastructure hygiene — insurance against gates going unread again. Cheap, but not progress on the model.                                          │
+  │ audit                      │                                                                                                                                                         │
+  ├────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 2. R14.1 fine-tune         │ Yes, directly. This is the model.                                                                                                                       │
+  ├────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 3. R2.2o.1b body gold      │ Yes, necessarily. Both R2.2o.1 and R14.0 are head-band-only; the outer-margin note beside the measure is the actual problem and neither measurement can │
+  │                            │  currently see it.                                                                                                                                      │
+  ├────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ 4. R13.1 wiring            │ No. That's S6, recognition — a different step of the pipeline.                                                                                          │
+  └────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  I ranked by cheapness and by what had been open longest, not by your stated aim. Worse, I omitted R14.6 entirely — the distant-supervision label generator — and a class-inventory
+  fine-tune needs labelled training data, so R14.6 is R14.1's actual precondition. The Roadmap says so in its own row: "the label generator — what makes R14.1–R14.4 affordable." My list put
+  the fine-tune first with nothing to train it on.
+
+  Re-ranked against the boxing model:
+
+  1. R14.6 + R14.1 as one workstream — generate labels by distant supervision (MainText from archaic-reference alignment, Marginalia from the 1,334 apparatus blocks), then fine-tune Surya's
+  detector onto this book's class inventory. R14.0 showed the detector already localises; it needs names and data.
+  2. R2.2o.1b / body-block gold — the evaluation substrate. Without it we keep measuring the head band and calling it the page.
+  3. R14.2 — confidence and abstention, which retires the fail-safe toward body branch.
+     178:BASELINE_MODEL = False
+     306:    s = leaf_slope(boxes, p) if BASELINE_MODEL else 0.0
+     314:    if BASELINE_MODEL:
+     344:            # -1 RH and -2 MN for +5 MT. `BASELINE_MODEL` therefore stays False. This is fixed here
+
+     === its definition + comment ===
+     178:BASELINE_MODEL = False
+     179-
+     180-# Histogram bin for the residual profile, in pitches. Baselines sit ~1.0p apart; 0.10p resolves one
+     181-# baseline from the next without splitting a single baseline's own descender scatter across bins.
+     182-SLOPE_BIN_P = 0.10
+     183-# Below this a projection profile is shot noise, not structure. `deskew.py` requires 120 words for
+     184-# the same reason; these are glyphs, so the floor is correspondingly higher.
+     185-MIN_SLOPE_GLYPHS = 200
+     186-# R2.2i candidate 4. Strips for the cross-correlation estimator. 8 strips over a ~1200px leaf is
+     187-# ~150px each; across that the baselines shift ~4px at the measured tilts, against the half-pitch
+     188-# (~19px) bound below -- so each pair's lag is UNIQUE and no alias can enter.
+     189-NSTRIP = 8
+     190-MIN_STRIP_GLYPHS = 40
+     --
+     306:    s = leaf_slope(boxes, p) if BASELINE_MODEL else 0.0
+     307-    xc = float(np.mean([(b[2] + b[3]) / 2.0 for b in boxes])) if (s and boxes) else 0.0
+     308-    # (residual baseline, box). The residual travels WITH the box for the rest of this function --
+     309-    # `on_baseline` below tests the same quantity the clustering used. Testing the RAW bottom there
+     310-    # would reject every row this step repairs: a correctly merged tilted line spans 13-22px of raw
+     311-    # bottom against that test's 0.15p = 5.7px window, so the filter would undo the fix one line later.
+     312-    pairs = [(b[1] - s * ((b[2] + b[3]) / 2.0 - xc), b) for b in boxes]
+     313-
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ So BASELINE_MODEL is actually a row-clustering flag in collation_read._rows_and_lines, estimating a leaf slope and clustering glyph boxes into rows against a tilt-corrected baseline —
+  it's about grouping glyphs into lines on a skewed scan, not a visual model at all. That answers Q1: the candidate model is a row clusterer, and its MN score attaches only indirectly,
+  since regrouping glyphs into rows changes what the region labeller sees downstream.
+
+  This is exactly the pattern the project's own acceptance criteria warn against — R2.1g and R2.2a both explicitly state that a component measured only through a downstream metric can't be
+  debugged when that metric moves. That rule was written for the region primitive, but it applies just as much to this row clusterer being scored solely via MarginNote recall.
+
+  The row clusterer does have a direct metric — the scratchpad shows row count holding at 20/20 — but that metric is flagged as blind outside the body block, since it read 20/20 while 13
+  running heads were orphaned. So the decision fell back on the forbidden downstream signal, which is exactly why the trade-off gets framed as "1 MN for 11 MT" rather than as a direct
+  judgment on row correctness.
+
+  For the second question, on component versus end-run: this was designed as a component — R2.2a says it's consumed by later stages, and §3.2 explicitly frames the prior as initialization
+  plus a clamp, not a vote, because "as a vote it means the incumbent always carries." But it drifted into acting as an end-run: it got scheduled ahead of the archetype programme, scored as
+  if it were the model itself, and §3.2's own instructions warned not to start the agent until this was fixed. The sharpest observation is that §3.2 predicted this exact failure mode and
+  the project walked into it anyway — not through voting, but through scheduling.
+
+  The other direct question is whether it's the sole handler of visual classification. Right now, effectively yes — layout.py's type_lines and region_head are the only things classifying
+  leaf contents, and neither one sees the actual page. That's the real problem, and it means the honest answer is: a component by design, but the sole handler by default.
+
+  I want to structure the write-up around four points: what the candidate model actually is (a row clusterer), why it got an MN number attached despite being a known defect, the
+  component-vs-end-run distinction with the §3.2 prediction as the tell, and finally what role it should retain going forward. I should double check the exact R2.2a quote before citing it.
+
+  I've confirmed it verbatim — it warns that a primitive scored only through its consumers can't be debugged once a consumer changes. Now I'll write out the full answer.
+
+⏺ No — and the confusion is worth clearing up precisely, because the naming is misleading.
+
+  BASELINE_MODEL is not a visual model. It is a row clusterer.
+
+  From collation_read.py:
+
+  s = leaf_slope(boxes, p) if BASELINE_MODEL else 0.0
+  pairs = [(b[1] - s * ((b[2] + b[3]) / 2.0 - xc), b) for b in boxes]
+
+  It estimates a per-leaf tilt and groups glyph bounding boxes into text rows against a slope-corrected baseline. It consumes boxes and emits rows. It has no notion of region class, no
+  notion of a page, and it never looks at an image. "Model" here means a model of where the baselines are on a skewed scan — nothing to do with seeing or boxing marginalia.
+
+  So why does a row clusterer have a MarginNote score?
+
+  Because changing how glyphs group into rows changes what the region labeller receives, and MarginNote recall moves as a consequence. MN is being used as a proxy metric to judge a
+  row-clustering change.
+
+  ★ Insight ─────────────────────────────────────
+  That is the defect this project already named — one level higher up. R2.2a's acceptance criterion reads: "scored directly on RunningHead/MainText assignment, and separately from any
+  downstream continuity or page-number rate. ⚠️ A primitive measured only through its consumers cannot be debugged when a consumer moves." The rule was written for the region primitive and
+  then broken for the row clusterer beneath it. The row clusterer does have a direct metric — row count, S2, reading 20/20 — but the scratchpad records that S2 is blind outside the body
+  block (it read 20/20 while 13 running heads were orphaned), so the decision fell back to the downstream number. That is why the result reads as "buys 1 MarginNote for 11 MainText" instead
+  of "the rows are right or the rows are wrong."
+  ─────────────────────────────────────────────────
+
+  Component, or end-run?
+
+  By design, a component. By scheduling, it had become the end-run. That is exactly what your ruling stopped.
+
+  The design was never ambiguous. R2.2a specifies the head-band primitive as "one module … consumed by R2.1g, R2.2, R12.2 and, later, the Gate 9 region model." §3.2 item 5 fixes its rank:
+  "The geometric prior is an initialisation and plausibility clamp, not a vote."
+
+  But three things had made it the de-facto sole handler:
+
+  1. It was scored as though it were the model — MN/MT recall against a 121-entry gold, four candidate rules, five pre-registered bars.
+  2. It was ordered ahead of the model — §3.2 instructed that the archetype programme not begin until the primitive was fixed.
+  3. Nothing else classifies leaf contents at all. Today the entire project's answer to "what kind of text is this?" is layout.py:type_lines plus region_head — four roles, geometry only,
+  and neither sees.
+
+  And here is the part I find genuinely striking. §3.2 item 5 does not merely rank the prior, it predicts the failure: "As a vote it means the incumbent always carries, and it overrides
+  precisely on the leaves where it is wrong." The project foresaw the geometric prior swallowing the model — and then walked into it not through voting, but through scheduling. The prior
+  never outvoted anything. It simply became the only thing being worked on.
+
+  What it keeps
+
+  A real role, and R14.0 gave it evidence for the first time. On the same gold: Surya wins MainText, ties RunningHead, and scores 0/19 on MarginNote against region_head's 17/19. The
+  hand-built geometric component is currently the only thing in the project that can name a marginal note.
+
+  That is a clamp doing its job — the floor that catches what the learned model gets wrong — not a substitute for it. The correct end state is Surya's detector, fine-tuned onto this book's
+  class inventory, with the geometric prior initialising it and flagging implausible output. Neither alone is adequate, and today is the first time we can say that with numbers instead of
+  assertion.
+
+✻ Brewed for 59s
+
+❯ start R14.6 and R14.1 — the label generator and fine-tune
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ Before building anything, I need to actually read the roadmap step for R14.6 and R14.1 carefully, since jumping straight into implementation was the recorded failure mode last time. Let
+  me review what R14.6 requires from Masterplan §3.2 items 2, 3, and 7 — distant supervision combining MainText from archaic-reference alignment and Marginalia from the transcribed
+  apparatus blocks.
+
+  The plan is to first locate and verify the data sources actually exist (the 1,334 apparatus blocks, the archaic reference alignment) rather than assume anything about their schema. Once
+     cks NAMES for them, so this is a **class-inventory fine-tune of an existing detector**, not a detector built from scratch | R12.1's census then R12.2'
+     s classifier, taking **the leaf image**, not kraken's lines | Gate 9.1 — per-archetype accuracy, **forbidden-class emission = 0**. ⚠️ **Input constrain
+     t from (c) above**: a classifier reading line objects inherits a boundary that was already destroyed. **C3 — model** |
+     4000:| R14.6 | **The label generator — what makes R14.1–R14.4 affordable** | distant supervision per §3.2 items 2, 3, 7: MainText from archaic-referen
+     ce alignment, Marginalia from the **1,334** transcribed apparatus blocks, RunningHead/Catchword/Signature from self-verifying tests, VerseNumber from
+     numeral-matches-adjacent-verse | training labels generated at corpus scale **without** a hand-labelling campaign, with §3.2 item 8's quota for books t
+     hat generate none. ⚠️ **GOLD-LAYOUT is the SCORER, not the trainer** — conflating them is what makes this programme look like it needs 125 hand-labelle
+     d pages before it can start. **C3 — assembly** |
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to find where the label sources actually live before assuming anything — specifically the 1,334 transcribed apparatus blocks and the archaic reference alignment. Let me search for
+  these.
+
+⏺ Now locating the label sources — introspect before assuming they exist in the form the plan describes:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      echo "=== the 1,334 apparatus blocks: where? ==="; grep -rn "1,334\|1334" OCR-MASTERPLAN.md | head -4
+      echo; echo "=== apparatus artefacts on disk ==="; ls -la apparatus-*.json 2>/dev/null | head; ls .scratch/original-douay-rheims 2>/dev/null | head -5)
+  ⎿  === the 1,334 apparatus blocks: where? ===
+     OCR-MASTERPLAN.md:1491:value is in a relation: **an annotation belongs to a verse.** §8's apparatus and the 1,334 transcribed
+     OCR-MASTERPLAN.md:1783:   Marginalia from the 1,334 transcribed apparatus blocks; RunningHead / Catchword / Signature from
+
+     === apparatus artefacts on disk ===
+     -rw-r--r--@ 1 nathanielcannon  staff  1496164 Jul  7 10:12 apparatus-cross-map.json
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to verify the .scratch/original-douay-rheims directory actually exists as R13's note claimed, and take a closer look at the structure of apparatus-cross-map.json. I also want to
+  trace back where that "1,334" figure originally came from, checking other docs or JSON files that might reference it.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      echo "=== SRC clone present? ==="; ls -d .scratch/original-douay-rheims 2>&1 | head -2; ls .scratch/original-douay-rheims 2>/dev/null | head -8
+      echo; echo "=== apparatus-cross-map.json shape ==="; ../ocr-venv/bin/python -c "
+      import json;d=json.load(open('apparatus-cross-map.json'))
+      print(type(d), (list(d)[:8] if isinstance(d,dict) else len(d)))
+      ")
+  ⎿  === SRC clone present? ===
+     ls: .scratch/original-douay-rheims: No such file or directory
+
+     === apparatus-cross-map.json shape ===
+     <class 'dict'> ['schema', 'note', 'totals', 'book_arguments', 'frontmatter_reference_docs', 'chapters']
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I realize the .scratch/original-douay-rheims clone doesn't actually exist on this machine — R13's note flagged this as an unpinned reference that R11.3a needs to address, meaning the
+  apparatus source is currently unreproducible since it only lived on one disk.  This is exactly the kind of blocker I need to surface rather than quietly work around, and worth verifying
+  since the roadmap said it "still resolves" as of some date but apparently doesn't now.  Let me check apparatus-cross-map.json — it's 1.5MB with chapters and totals, so maybe the 1,334
+  figure is documented there.
+
+⏺ .scratch/original-douay-rheims — the apparatus source clone — is not on this disk. The Roadmap records it as "a real read… reproducible only from an unpinned clone on one disk." Checking
+  what survives in the tracked artefact:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      ../ocr-venv/bin/python -c "
+      import json;d=json.load(open('apparatus-cross-map.json'))
+      print('note:', str(d['note'])[:300]); print('totals:', json.dumps(d['totals'])[:400])
+      ch=d['chapters']; print('chapters:', type(ch), len(ch))
+      k=list(ch)[0] if isinstance(ch,dict) else 0
+      c=ch[k] if isinstance(ch,dict) else ch[0]
+      print('one chapter key:', k); print('fields:', list(c) if isinstance(c,dict) else type(c))
+      print(json.dumps(c)[:700])
+      ")
+  ⎿  note: apparatus units keyed book/chapter/kind. transcribed=madueke_b (1334 blocks); scan_marginal=region-typed capture via tome-map chapter_pages. odr_com apparatus = raw scrape
+     follow-up (not in odr_com.json). frontmatter carriers region-level.
+     totals: {"chapters_with_apparatus": 1350, "chapters_cross_attested": 1333, "transcribed_blocks": 1334, "scan_marginal_words": 214453}
+     chapters: <class 'dict'> 76
+     one chapter key: 1-corinthians
+     fields: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16']
+     {"1": {"transcribed_madueke_b": [{"kind": "argument", "chars": 500, "text_head": "After salutation, 4. having acknowledged the graces of their Church, 10. he dehorteth them from
+     their Schismatical boasting against one another in their Baptizers (telling them tha"}], "n_transcribed": 1, "kinds": ["argument"], "scan_marginal": {"eebo-nt": {"n_words": 23,
+     "sample": "liter t t Nen hatred L F THE THE preacheri in C A I F \u017fca Chri\u017fti mrd ur iu\u017ftice thor o\u017f thi"}, "pdf-S06": {"n_words": 33, "sample": "T H E The I
+     part baptire ts preacher C A I A t r E Ier Chri\u017ftis made our iu\u017ftice be cauie he"}, "pdf-S09nt": {"n_words": 35, "sample": "U U T H E The part baptizers preac
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I realize apparatus-cross-map.json only stores preview text and character counts keyed by book/chapter, not full text or coordinates, and scan_marginal similarly lacks positional data. So
+  the 1,334 apparatus blocks are chapter-keyed text snippets, not spatially located regions, meaning I'd need something else to map them onto the actual page layout.
+      grep -rn "_MAD_CANDIDATES" --include=*.py . 2>/dev/null | head -3
+      echo; echo "=== archaic reference (the MainText label source) ==="
+      ls -la ../*.json 2>/dev/null | head -3; ls .scratch/ 2>/dev/null | head -12)
+  ⎿  === is the full apparatus text anywhere, or only text_head previews? ===
+     block fields: ['kind', 'chars', 'text_head']
+     chars claimed: 500 text_head len: 180
+     => FULL TEXT present? False
+
+     === Madueke source on disk? (R13 measured both candidates absent 08-14) ===
+     (eval):10: no matches found: --include=*.py
+
+     === archaic reference (the MainText label source) ===
+     -rw-r--r--@ 1 nathanielcannon  staff  15750 Jul  3 20:32 ../coverage-inventory.json
+     -rw-r--r--@ 1 nathanielcannon  staff  15452 Jul  4 00:19 ../madueke_sabates_diff.json
+     -rw-r--r--@ 1 nathanielcannon  staff   3433 Jul  4 00:55 ../ocr_validation_result.json
+     ample-table
+     build_matter_audit_artifact.py
+     build_matter_nt_table_of_certaine_places.py
+     build_matter_nt_table_of_epistles.py
+     build_matter_ot2_particular_table.py
+     build_reocr_ladder_report.py
+     build_rung_redesign_report.py
+     cal_train_list.txt
+     cal_val_list.txt
+     calamari-install.log
+     calamari-smoke.log
+     commit-msg-r92c.txt
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      echo "=== where do the archaic references live, per the plan? ==="; grep -rn "archaic reference" OCR-MASTERPLAN.md | head -3
+      echo; echo "=== reference artefacts actually on disk ==="; for p in ../ . .scratch; do find $p -maxdepth 1 -iname "*madueke*" -o -maxdepth 1 -iname "*sabates*" -o -maxdepth 1 -iname
+      "*odr_com*" 2>/dev/null; done | head -8
+      echo; echo "=== _MAD_CANDIDATES definition ==="; /usr/bin/grep -rn "_MAD_CANDIDATES" --include="*.py" . 2>/dev/null | head -3)
+  ⎿  === where do the archaic references live, per the plan? ===
+     OCR-MASTERPLAN.md:1155:carry apparatus in place of the verse tail. **A provenance audit runs before either archaic reference is
+     OCR-MASTERPLAN.md:1159:**8,383 loci have no archaic reference.** This is a **QC-coverage figure, not a transcript gap** — the
+     OCR-MASTERPLAN.md:1732:ground truth to carry an explicit quota for books with no archaic reference. The same argument applies
+
+     === reference artefacts actually on disk ===
+     ../compare_madueke_sabates.py
+     ../madueke_sabates_diff.json
+     ../ingest_madueke_b.py
+
+     === _MAD_CANDIDATES definition ===
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr
+      echo "=== ingest_madueke_b.py — where does it read FROM? ==="; /usr/bin/grep -nE "Path\(|SRC|/Users|glob|dir" ingest_madueke_b.py 2>/dev/null | head -12
+      echo; echo "=== does that source exist now? ==="; /usr/bin/grep -oE "\"[^\"]*original-douay[^\"]*\"|'[^']*original-douay[^']*'" ingest_madueke_b.py 2>/dev/null | head -3)
+  ⎿  === ingest_madueke_b.py — where does it read FROM? ===
+     34:HERE = Path(__file__).resolve().parent
+     58:    BBOX.parent.mkdir(parents=True, exist_ok=True)
+
+     === does that source exist now? ===
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr
+      sed -n '1,60p' ingest_madueke_b.py)
+  ⎿  #!/usr/bin/env python
+     """Ingest the Madueke_B witness (whole-Bible Douay-Rheims PDF WITH apparatus) into a
+     transcribed-witness reads file aligned to the OriginalDR canonical verse skeleton.
+
+     Source : sources/madueke-b/Original-DouayRheims-Bible.pdf  (1318pp, two-column, scripture
+              + per-chapter ARGUMENTS + inline ANNOTATION anchors).
+     Output : reconstruction/reads/madueke_b.json  (schema mirrors sibling madueke_a.json).
+
+     The pages are two-column. `pdftotext -bbox-layout` gives every word's x/y box but
+     interleaves the two columns within each physical text line. We de-interleave per page by
+     splitting on the page gutter (x-midpoint), then read the LEFT column fully (top-to-bottom)
+     before the RIGHT column. That reconstructs correct reading order. Chapters are marked
+     "Chapter N"; verse 1 opens with a drop-cap (split first letter, no leading number); later
+     verses open with a bare inline integer. A per-chapter ARGUMENT precedes verse 1.
+
+     Book identity is driven by the ordered stream of chapters: a new canonical book begins each
+     time the chapter number resets (drops to a value <= the running max within the current book).
+     The resulting book segments are mapped in order onto the skeleton's canonical book list
+     (chapter counts used to validate). This is deterministic and needs no OCR.
+
+     Run:  .venv/bin/python ingest_madueke_b.py
+     """
+     from __future__ import annotations
+
+     import json
+     import re
+     import subprocess
+     import unicodedata
+     from pathlib import Path
+     from typing import Any, Optional
+
+     MAD_A = HERE / "reconstruction/reads/madueke_a.json"
+     OUT = HERE / "reconstruction/reads/madueke_b.json"
+
+     XHTML_NS = {"x": "http://www.w3.org/1999/xhtml"}
+     GUTTER = 300.0  # page x-midpoint separating the two columns (page width 612pt)
+     HEADER_Y = 46.0  # words above this y are running headers (page number + book name)
+     FOOTER_Y = 748.0  # words below this y are running footers, if any
+     NORMAL_H = 15.5  # normal body-text glyph box height (pts)
+     DROPCAP_H = 30.0  # a verse-1 drop cap renders ~64pt tall — anything > this is a drop cap
+
+     # ---------------------------------------------------------------------------
+     # 1. bbox extraction (cached)
+     # ---------------------------------------------------------------------------
+
+
+     def ensure_bbox() -> Path:
+         """Produce (once) the bbox-layout XHTML for the whole PDF."""
+         if BBOX.exists() and BBOX.stat().st_size > 1_000_000:
+             return BBOX
+         BBOX.parent.mkdir(parents=True, exist_ok=True)
+         subprocess.run(
+             ["pdftotext", "-bbox-layout", str(PDF), str(BBOX)],
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr
+      for p in sources/madueke-b/Original-DouayRheims-Bible.pdf reconstruction/reads/madueke_b.json reconstruction/reads/madueke_a.json; do
+        if [ -f "$p" ]; then echo "✅ $p  ($(du -h "$p" | cut -f1))"; else echo "❌ MISSING: $p"; fi
+      done
+      echo "=== reads dir ==="; ls reconstruction/reads/ 2>/dev/null | head -12 || echo "(no reconstruction/reads)")
+  ⎿  ❌ MISSING: sources/madueke-b/Original-DouayRheims-Bible.pdf
+     ✅ reconstruction/reads/madueke_b.json  ( 14M)
+     ✅ reconstruction/reads/madueke_a.json  ( 12M)
+     === reads dir ===
+     madueke_a.json
+     madueke_b.json
+     odr_com.json
+     odr_com.json.pre-annotations2-fix
+     s_dismas.json
+     s_dismas.json.pre-dropcap-rewrite
+     s_dismas.json.pre-genesis-reparse
+     s_dismas.json.pre-parsefix-2026-07-10
+     s_dismas.json.regen-2026-07-10
+     sabates_a.json
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The ingested reads for madueke_b.json actually survived even though the source PDF is gone, so the apparatus text is still accessible there — a better position than the cross-map previews
+  suggested. The source PDF itself is missing, which blocks regeneration and keeps the pinning concern from R11.3a alive, but the derived reads are present and usable now.
+
+  I want to check whether madueke_b.json carries arguments or annotations with actual text, and separately confirm that the MainText labels derive from aligning recognized words against the
+  archaic verse sources like sabates_a, s_dismas, and odr_com. Both arms seem to have usable data, so let me dig into madueke_b.json's structure directly.
+
+⏺ The source PDF is gone but the ingested reads survive — madueke_b.json at 14 MB. That's a much better position than the cross-map previews suggested:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr
+      ../../../palimpsest/projects/originaldr/ocr-venv/bin/python -c "
+      import json
+      d=json.load(open('reconstruction/reads/madueke_b.json'))
+      print('top keys:', list(d)[:10] if isinstance(d,dict) else len(d))
+      " 2>/dev/null || ocr-venv/bin/python -c "
+      import json
+      d=json.load(open('reconstruction/reads/madueke_b.json'))
+      print('top:', list(d)[:10] if isinstance(d,dict) else ('list',len(d)))
+      for k in list(d)[:6]:
+          v=d[k]; print(' ',k,'->',type(v).__name__, (list(v)[:6] if isinstance(v,dict) else (len(v) if isinstance(v,list) else str(v)[:60])))
+      ")
+  ⎿  top keys: ['source', 'lineage', 'independent', 'spelling', 'count', 'coverage', 'reads', 'apparatus_blocks']
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+      print('--- reads sample ---')
+      r=d['reads']; print('reads:', type(r).__name__, len(r)); k=list(r)[0] if isinstance(r,dict) else 0
+      print(k, '->', json.dumps(r[k] if isinstance(r,dict) else r[0])[:220])
+      ")
+  ⎿  apparatus_blocks: list 1334
+     fields: ['book', 'chapter', 'kind', 'text']
+     {
+       "book": "genesis",
+       "chapter": 1,
+       "kind": "argument",
+       "text": "God created heaven and earth, and all things therein; distinguishing and beautifying the same. Last of all, the sixth day he createth man; to whom he subjecteth all
+     corporal things of this inferior world."
+     }
+     Counter({'argument': 1334})
+     --- reads sample ---
+     reads: list 35809
+     0 -> {"skeleton_id": "scripture/genesis/1/1", "present": true, "surface": "In the beginning God created heaven and earth.", "spelling": "modern", "locus": "madueke-b/pdf (Genesis
+     1)", "method": "pdf-bbox-two-column", "local_c
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Actually, checking the kind counter shows all 1,334 blocks are labeled "argument" not marginal notes at all — arguments are the italic prose summaries preceding chapters, distinct from
+  printed side-notes in the outer margin. This means the Roadmap's R14.6 row claiming "Marginalia from the 1,334 transcribed apparatus blocks" is factually wrong, since these blocks are
+  actually Arguments, not marginalia.
+
+  If there's no separate transcription source for actual marginal notes, then the entire Marginalia distant-supervision plan in R14.6 has no real text source to draw from — a serious
+  blocker, especially since Marginalia is the class Surya can't identify and the whole point of the MN gap discussion. I need to check odr_com.json to see if annotations exist there before
+  concluding this is a genuine misidentification in the plan.
+
+⏺ A significant finding — and it contradicts the plan. All 1,334 blocks are kind: "argument", not marginal notes. An Argument is the italic prose summary before a chapter; a MarginNote is
+  the printed side-note in the outer margin. Different region classes. Checking whether a marginal-note transcription exists anywhere:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr
+      for f in odr_com s_dismas sabates_a madueke_a; do
+        ocr-venv/bin/python -c "
+      import json,sys
+      from collections import Counter
+      d=json.load(open('reconstruction/reads/$f.json'))
+      ks=[k for k in d if 'appar' in k or 'annot' in k or 'note' in k or 'margin' in k]
+      ab=None
+      for k in ks:
+          v=d[k]
+          n=len(v) if isinstance(v,(list,dict)) else 0
+          kinds=Counter(b.get('kind') for b in v) if isinstance(v,list) and v and isinstance(v[0],dict) else ''
+          print(f'$f  {k}: n={n} {dict(kinds) if kinds else \"\"}')
+      if not ks: print('$f  (no apparatus/annotation key) top=', list(d)[:8])
+      " 2>&1 | head -4
+      done)
+  ⎿  odr_com  (no apparatus/annotation key) top= ['source', 'lineage', 'independent', 'spelling', 'count', 'coverage', 'reads']
+     s_dismas  (no apparatus/annotation key) top= ['source', 'lineage', 'independent', 'spelling', 'count', 'coverage', 'reads']
+     sabates_a  (no apparatus/annotation key) top= ['source', 'lineage', 'independent', 'spelling', 'count', 'coverage', 'reads']
+     madueke_a  (no apparatus/annotation key) top= ['source', 'lineage', 'independent', 'spelling', 'count', 'coverage', 'reads']
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I've confirmed none of the five reference reads contain transcribed marginal notes — only madueke_b has apparatus_blocks, and all 1,334 of those are Arguments, not marginalia. So R14.6's
+  Marginalia arm has no actual text source in the project; the plan mislabeled Argument content as marginal notes, meaning only Argument labels can genuinely be generated from that corpus.
+
+  The other classes are more tractable: MainText comes from the archaic-reference verse text across witnesses via alignment, RunningHead/Catchword/Signature from positional-and-text
+  self-verification, VerseNumber from numeral matching — but Marginalia has no source at all. This is significant because Marginalia is precisely the class the whole programme is stuck on,
+  the one Surya can't identify and the MN gap centers on, meaning distant supervision can't solve the exact problem it's meant to address.
+
+  I'm considering whether negative-space inference could work instead — labeling ink as Marginalia if it's confirmed not MainText, RunningHead, Catchword, VerseNumber, or Argument by
+  process of elimination on the leaf.
+
+  That confirms the odr_com apparatus scrape is the missing Marginalia source — never executed, but explicitly identified. So R14.6 splits: the four arms that can generate directly
+  (MainText, Argument, RunningHead/Catchword/Signature, VerseNumber) get built now, while Marginalia stays flagged as sourceless — residue inference is only a fallback that needs validation
+  against the 19-entry gold before it's trusted as a positive label. What I should actually build this session is a reproducible label-source audit instrument, not prose, to lock this
+     148:            "scan_marginal_words": n_scan_words,
+     164:    print(f"scan marginal words   : {t['scan_marginal_words']}")
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      sed -n '60,80p' apparatus_crossmap.py)
+  ⎿  def scan_marginalia(tome: dict, streams: dict) -> dict[tuple[str, int], dict]:
+         """(book, chapter) -> {source: {n_words, sample}} from each source's region-typed margin
+         capture, using the tome map's chapter_pages to know which pages carry the chapter."""
+         out: dict[tuple[str, int], dict] = defaultdict(dict)
+         for src, s in tome["sources"].items():
+             st = streams.get(src)
+             if st is None:
+                 continue
+             for book, r in s.get("books", {}).items():
+                 for ch_str, pages in r.get("chapter_pages", {}).items():
+                     words: list[str] = []
+                     for pg in pages:
+                         words.extend(st.margin_by_page.get(pg, []))
+                     if words:
+                         out[(book, int(ch_str))][src] = {
+                             "n_words": len(words),
+                             "sample": " ".join(words[:24]),
+                         }
+         return out
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ So margin_by_page traces back to the incumbent region typing itself, confirming that scan_marginal is literally the incumbent's own output being used as a training label—a circular setup
+  that just teaches the model to mimic the incumbent's decisions, errors and all. This is a strong enough finding to act on, so I'll build an audit script, witness/audit_label_sources.py,
+  designing it to check each region class from §3.2 item 2.
+
+  For each declared class, I trace the named source, count instances, and classify it as admissible (independent, text-derived), inadmissible (circular, derived from incumbent typing), or
+  absent—exiting with an error if any required class lacks an admissible source. Going through the classes: MainText and Argument both have independent sources (reads and apparatus blocks
+  respectively), but Marginalia has nothing admissible since scan_marginal is circular and the 1,334 blocks are actually Arguments, not marginalia. RunningHead/Catchword/Signature and
+  VerseNumber seem checkable against self-verifying tests and numeral-matching logic, so I need to verify those functions actually exist in collation_read before finalizing the audit's
+  honesty and reproducibility.
+
+  I'm now working out the correct relative path from witness/ back to the reads directory so the audit script references the right location.
+
+⏺ margin_by_page is the incumbent region typer's own output. So the one artefact that looks like a marginalia label source is circular — training on it would teach a model to reproduce
+  type_lines' decisions, errors included.
+
+  I have enough to build the audit. This is R14.6's real first step: you cannot generate labels before knowing which sources exist and which are contaminated.
+
+⏺ Write(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/audit_label_sources.py)
+  ⎿  Wrote 150 lines to /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/audit_label_sources.py
+        1 """R14.6a -- can distant supervision actually label each region class? Audit the SOURCES first.
+        2
+        3 Masterplan §3.2 item 2 names a text source per region class, and R14.6 is built on the claim that
+        4 those sources make the agent's training labels affordable without a hand-labelling campaign. **That
+        5 claim had never been checked against the disk.** This checks it, per class, and reports three states:
+        6
+        7   ADMISSIBLE  -- the source is present AND independent of our own geometry.
+        8   CIRCULAR    -- the source exists but was PRODUCED BY the incumbent region typing. Training on it
+        9                  teaches the model to reproduce `layout.type_lines`' decisions, errors included. The
+       10                  gold's own `labelling_basis` forbids exactly this shape: labels must come from what
+       11                  the text SAYS, never from where the incumbent put it.
+       12   ABSENT      -- no source on this disk.
+       13
+       14 ⚠️ EXIT 1 WHILE ANY CLASS LACKS AN ADMISSIBLE SOURCE. That is the healthy state while R14.6 is open;
+       15 an audit that exits 0 before its remedy is done would mean it stopped looking.
+       16
+       17 ⚠️ WHY THIS IS NOT BOOKKEEPING. R14.1 is a class-inventory fine-tune, and a fine-tune can only teach
+       18 the classes its labels cover. A class with no admissible source is a class the fine-tuned model will
+       19 not be able to emit -- which is precisely the defect R14.0 measured in Surya off the shelf. Discovering
+       20 that after training is discovering it expensively.
+       21
+       22     ../ocr-venv/bin/python witness/audit_label_sources.py
+       23 """
+       24
+       25 import json
+       26 import sys
+       27 from pathlib import Path
+       28
+       29 _HERE = Path(__file__).resolve().parent
+       30 sys.path.insert(0, str(_HERE))
+       31 sys.path.insert(0, str(_HERE.parent))
+       32
+       33 ODR = _HERE.parents[1]                 # .../projects/originaldr
+       34 READS = ODR / "reconstruction/reads"
+       35 SPIKE = _HERE.parent
+       36 CROSSMAP = SPIKE / "apparatus-cross-map.json"
+       37
+       38 ADMISSIBLE, CIRCULAR, ABSENT = "ADMISSIBLE", "🟡 CIRCULAR", "🔴 ABSENT"
+       39
+       40
+       41 def _reads_count():
+       42     """-> (n_witness_files, total verse reads). The MainText label source."""
+       43     n_files, n_reads = 0, 0
+       44     for p in sorted(READS.glob("*.json")):
+       45         if p.name.count(".") > 1:        # .pre-* backups are not sources
+       46             continue
+       47         try:
+       48             d = json.loads(p.read_text())
+       49         except Exception:
+       50             continue
+       51         if isinstance(d, dict) and isinstance(d.get("reads"), list):
+       52             n_files += 1
+       53             n_reads += len(d["reads"])
+       54     return n_files, n_reads
+       55
+       56
+       57 def _apparatus_kinds():
+       58     """-> Counter of `kind` over every transcribed apparatus block on disk."""
+       59     from collections import Counter
+       60     c = Counter()
+       61     for p in sorted(READS.glob("*.json")):
+       62         if p.name.count(".") > 1:
+       63             continue
+       64         try:
+       65             d = json.loads(p.read_text())
+       66         except Exception:
+       67             continue
+       68         for b in (d.get("apparatus_blocks") or []) if isinstance(d, dict) else []:
+       69             c[b.get("kind")] += 1
+       70     return c
+       71
+       72
+       73 def main() -> int:
+       74     print("R14.6a -- LABEL SOURCE AUDIT, per region class (Masterplan §3.2 item 2)\n")
+       75
+       76     n_files, n_reads = _reads_count()
+       77     kinds = _apparatus_kinds()
+       78     n_arg = kinds.get("argument", 0)
+       79     n_note = sum(v for k, v in kinds.items() if k in ("annotation", "note", "marginalia", "margin"))
+       80
+       81     crossmap_ok = CROSSMAP.exists()
+       82     scan_words = 0
+       83     if crossmap_ok:
+       84         try:
+       85             scan_words = json.loads(CROSSMAP.read_text())["totals"]["scan_marginal_words"]
+       86         except Exception:
+       87             pass
+       88
+       89     rows = [
+       90         # (class, named source, state, evidence)
+       91         ("MainText", "archaic-reference verse text, by alignment", ADMISSIBLE if n_reads else ABSENT,
+       92          f"{n_reads} verse reads across {n_files} witness read-files in reconstruction/reads/"),
+       93         ("Argument", "transcribed apparatus blocks", ADMISSIBLE if n_arg else ABSENT,
+       94          f"{n_arg} blocks, every one kind='argument'"),
+       95         ("Marginalia", "§3.2 item 2 names 'the 1,334 transcribed apparatus blocks'", ABSENT,
+       96          "🔴 THOSE 1,334 BLOCKS ARE ARGUMENTS, NOT MARGINAL NOTES -- "
+       97          f"{n_arg} argument / {n_note} note. No transcribed side-note corpus is on this disk"),
+       98         ("Marginalia (alt)", "apparatus-cross-map `scan_marginal`", CIRCULAR if scan_words else ABSENT,
+       99          f"{scan_words} words, but produced by `margin_by_page` -- the INCUMBENT region typer's own "
+      100          "output (apparatus_crossmap.scan_marginalia). Training on it reproduces its errors"),
+      101         ("RunningHead", "self-verifying positional-and-text test", ADMISSIBLE,
+      102          "collation_read reads the head; R2.1g scores it directly, RunningHead recall 20/20"),
+      103         ("Catchword / Signature", "self-verifying positional-and-text test", ADMISSIBLE,
+      104          "collation_read carries them as separate fields with stated abstain reasons (R2.1c); "
+      105          "the catchword half reads 0.87-1.00"),
+      106         ("VerseNumber", "numeral matches the adjacent verse", ADMISSIBLE if n_reads else ABSENT,
+      107          "derivable from the same verse reads as MainText"),
+      108     ]
+      109
+      110     w = max(len(r[0]) for r in rows)
+      111     for cls, src, state, ev in rows:
+      112         print(f"  {cls:<{w}}  {state:<12}  {src}")
+      113         print(f"  {'':<{w}}  {'':<12}  └─ {ev}")
+      114
+      115     blocked = [r[0] for r in rows if r[2] is ABSENT and not r[0].endswith("(alt)")]
+      116     circ = [r[0] for r in rows if r[2] is CIRCULAR]
+      117
+      118     print("\n" + "=" * 100)
+      119     print("🔴 THE ONE CLASS THAT CANNOT BE LABELLED IS THE ONE THE WHOLE PROGRAMME IS BLOCKED ON.")
+      120     print("   Marginalia is the class Surya scores 0/19 on (R14.0), the class the MN gap is about,")
+      121     print("   and the class R2.2's four refuted span rules were chasing. Distant supervision cannot")
+      122     print("   label it, because no transcribed side-note text exists to align against.")
+      123     print("\n   ⚠️ AND THE PLAN SAYS OTHERWISE. Masterplan §3.2 item 2 and Roadmap R14.6 both read")
+      124     print("   'Marginalia from the 1,334 transcribed apparatus blocks'. Measured here: all 1,334 are")
+      125     print("   ARGUMENTS -- the italic prose summary before a chapter, which is a DIFFERENT region")
+      126     print("   class (§3.2a archetype C REQUIRES Argument; MarginNote is archetype B's class).")
+      127     print("\n   ⚠️ THE NAMED REMEDY ALREADY EXISTS IN THE PROJECT'S OWN NOTE, UNEXECUTED.")
+      128     print("   apparatus-cross-map records: 'odr_com apparatus = raw scrape follow-up (not in")
+      129     print("   odr_com.json)'. The marginal-note transcription was identified as a follow-up scrape")
+      130     print("   and never run. That is R14.6b.")
+      131     print("=" * 100)
+      132
+      133     print(f"\nADMISSIBLE classes : {len([r for r in rows if r[2] is ADMISSIBLE])}")
+      134     print(f"CIRCULAR sources   : {len(circ)}  {circ}")
+      135     print(f"BLOCKED classes    : {len(blocked)}  {blocked}")
+      136
+      137     if not blocked and not circ:
+      138         print("\n✅ every region class has an admissible, independent label source.")
+      139         return 0
+      140     print("\n🔴 R14.6a: distant supervision covers MainText, Argument, RunningHead, Catchword,")
+      141     print("   Signature and VerseNumber -- and CANNOT cover Marginalia. R14.1's fine-tune may")
+      142     print("   therefore teach every class EXCEPT the one it was redirected to fix.")
+      143     print("   ⚠️ Do NOT substitute `scan_marginal`: a circular label is worse than a missing one,")
+      144     print("      because it trains a model to agree with the instrument it was meant to replace,")
+      145     print("      and the agreement then reads as validation.")
+      146     return 1
+      147
+      148
+      149 if __name__ == "__main__":
+      150     raise SystemExit(main())
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      ../ocr-venv/bin/python witness/audit_label_sources.py; echo "EXIT=$?")
+  ⎿  R14.6a -- LABEL SOURCE AUDIT, per region class (Masterplan §3.2 item 2)
+
+       MainText               ADMISSIBLE    archaic-reference verse text, by alignment
+                                            └─ 150834 verse reads across 5 witness read-files in reconstruction/reads/
+       Argument               ADMISSIBLE    transcribed apparatus blocks
+                                            └─ 1334 blocks, every one kind='argument'
+       Marginalia             🔴 ABSENT      §3.2 item 2 names 'the 1,334 transcribed apparatus blocks'
+                                            └─ 🔴 THOSE 1,334 BLOCKS ARE ARGUMENTS, NOT MARGINAL NOTES -- 1334 argument / 0 note. No transcribed side-note corpus is on this disk
+       Marginalia (alt)       🟡 CIRCULAR    apparatus-cross-map `scan_marginal`
+                                            └─ 214453 words, but produced by `margin_by_page` -- the INCUMBENT region typer's own output (apparatus_crossmap.scan_marginalia). Training
+     on it reproduces its errors
+       RunningHead            ADMISSIBLE    self-verifying positional-and-text test
+                                            └─ collation_read reads the head; R2.1g scores it directly, RunningHead recall 20/20
+       Catchword / Signature  ADMISSIBLE    self-verifying positional-and-text test
+                                            └─ collation_read carries them as separate fields with stated abstain reasons (R2.1c); the catchword half reads 0.87-1.00
+       VerseNumber            ADMISSIBLE    numeral matches the adjacent verse
+                                            └─ derivable from the same verse reads as MainText
+
+     ====================================================================================================
+     🔴 THE ONE CLASS THAT CANNOT BE LABELLED IS THE ONE THE WHOLE PROGRAMME IS BLOCKED ON.
+        Marginalia is the class Surya scores 0/19 on (R14.0), the class the MN gap is about,
+        and the class R2.2's four refuted span rules were chasing. Distant supervision cannot
+        label it, because no transcribed side-note text exists to align against.
+
+        ⚠️ AND THE PLAN SAYS OTHERWISE. Masterplan §3.2 item 2 and Roadmap R14.6 both read
+        'Marginalia from the 1,334 transcribed apparatus blocks'. Measured here: all 1,334 are
+        ARGUMENTS -- the italic prose summary before a chapter, which is a DIFFERENT region
+        class (§3.2a archetype C REQUIRES Argument; MarginNote is archetype B's class).
+
+        ⚠️ THE NAMED REMEDY ALREADY EXISTS IN THE PROJECT'S OWN NOTE, UNEXECUTED.
+        apparatus-cross-map records: 'odr_com apparatus = raw scrape follow-up (not in
+        odr_com.json)'. The marginal-note transcription was identified as a follow-up scrape
+        and never run. That is R14.6b.
+     ====================================================================================================
+
+     ADMISSIBLE classes : 5
+     CIRCULAR sources   : 1  ['Marginalia (alt)']
+     BLOCKED classes    : 1  ['Marginalia']
+
+     🔴 R14.6a: distant supervision covers MainText, Argument, RunningHead, Catchword,
+        Signature and VerseNumber -- and CANNOT cover Marginalia. R14.1's fine-tune may
+        therefore teach every class EXCEPT the one it was redirected to fix.
+        ⚠️ Do NOT substitute `scan_marginal`: a circular label is worse than a missing one,
+           because it trains a model to agree with the instrument it was meant to replace,
+           and the agreement then reads as validation.
+     EXIT=1
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  user since this changes the scope of R14.1 significantly. Given they asked me to start R14.6 and R14.1, and I've hit a blocker that reshapes R14.1's scope, this is exactly the point where
+  I should surface it rather than keep building further.
+
+  I'll make the doc corrections quickly first since that's part of the revision work, then report — but I'll hold off on the odr_com scrape since that's an outward-facing action against a
+  third-party site that really needs the user's explicit go-ahead first.
+
+⏺ Reproducible, and it changes the plan. Correcting the error in both documents:
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike
+      ../ocr-venv/bin/python - <<'PY'
+      import pathlib
+      # 1. MASTERPLAN §3.2 item 2 -- the misattribution
+      p=pathlib.Path("OCR-MASTERPLAN.md"); t=p.read_text()
+      old="Marginalia from the 1,334 transcribed apparatus blocks;"
+      new=("🔴 **Marginalia from — NOTHING. CORRECTED 2026-08-25 (R14.6a).** This clause read *\"Marginalia\n   from the 1,334 transcribed apparatus blocks\"* and it was **wrong**: measured
+      on disk, **all 1,334\n   blocks are `kind='argument'`** — the italic prose summary before a chapter, which is a DIFFERENT\n   region class (archetype C REQUIRES Argument; MarginNote
+      is archetype B's). **No transcribed\n   side-note corpus exists in this project.** The 1,334 blocks are a real and admissible source **for\n   the Argument class**. ⚠️
+      `apparatus-cross-map`'s `scan_marginal` is NOT a substitute: it is\n   `margin_by_page`, the INCUMBENT region typer's own output, so training on it would teach a model to\n
+      reproduce `layout.type_lines` and the agreement would then read as validation. See R14.6b;")
+      assert old in t; p.write_text(t.replace(old,new,1)); print("masterplan fixed")
+      # 2. ROADMAP R14.6 row
+      p=pathlib.Path("OCR-ROADMAP.md"); t=p.read_text()
+      old2="Marginalia from the **1,334** transcribed apparatus blocks,"
+      new2=("**Argument** from the **1,334** transcribed apparatus blocks (⚠️ **CORRECTED 2026-08-25 by R14.6a — "
+       "this row said *Marginalia*, and all 1,334 blocks are in fact `kind='argument'`; MARGINALIA HAS NO SOURCE, see R14.6b**),")
+      assert old2 in t; p.write_text(t.replace(old2,new2,1)); print("roadmap row fixed")
+      PY)
+  ⎿  masterplan fixed
+     roadmap row fixed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 36 lines
+      4049  currently **the only thing in the project that can name a marginal note**, which is precisely the
+      4050  "initialisation and plausibility clamp" role §3.2 item 5 assigns it — now evidenced rather than asserted.
+      4051
+      4052 +### R14.6a RESULT — ✅ DONE 2026-08-25. Distant supervision cannot label the one class that matters
+      4053 +
+      4054 +**`witness/audit_label_sources.py`.** R14.6 rests on the claim that §3.2 item 2's text sources make
+      4055 +the agent's labels affordable without hand-labelling. **That claim had never been checked against the
+      4056 +disk.** Checked:
+      4057 +
+      4058 +| class | state | evidence |
+      4059 +|---|---|---|
+      4060 +| MainText | ✅ ADMISSIBLE | **150,834** verse reads across **5** witness read-files |
+      4061 +| Argument | ✅ ADMISSIBLE | **1,334** blocks, every one `kind='argument'` |
+      4062 +| **Marginalia** | 🔴 **ABSENT** | **the 1,334 blocks are ARGUMENTS, not side-notes** — 1,334 argument / **0** note. No transcribed side-note corpus exists in this projec
+           +t |
+      4063 +| Marginalia (alt) | 🟡 **CIRCULAR** | `scan_marginal`, 214,453 words — but it is `margin_by_page`, **the incumbent region typer's own output** |
+      4064 +| RunningHead · Catchword · Signature | ✅ ADMISSIBLE | self-verifying positional-and-text tests in `collation_read` |
+      4065 +| VerseNumber | ✅ ADMISSIBLE | numeral-matches-adjacent-verse, from the same reads |
+      4066 +
+      4067 +🔴 **THE ONE CLASS THAT CANNOT BE LABELLED IS THE ONE THE PROGRAMME IS BLOCKED ON.** Marginalia is the
+      4068 +class Surya scores **0/19** on (R14.0), the class the **MN gap** is about, and the class R2.2's four
+      4069 +refuted span rules were chasing. ⇒ **R14.1's fine-tune would teach every class EXCEPT the one it was
+      4070 +redirected to fix.** Discovering that after training is discovering it expensively, which is why the
+      4071 +source audit precedes the generator.
+      4072 +
+      4073 +⚠️ **`scan_marginal` MAY NOT BE SUBSTITUTED.** A circular label is **worse than a missing one**: it
+      4074 +trains the model to agree with the instrument it was built to replace, and the agreement then reads as
+      4075 +validation. Same anti-circularity ruling as the gold's `labelling_basis` — labels come from what the
+      4076 +text SAYS, never from where the incumbent put it.
+      4077 +
+      4078 +⚠️ **PLAN ERROR CORRECTED IN BOTH DOCUMENTS.** §3.2 item 2 and R14.6's own row both read *"Marginalia
+      4079 +from the 1,334 transcribed apparatus blocks."* An Argument is the italic prose summary before a
+      4080 +chapter; a MarginNote is the printed side-note in the outer margin. **Different classes**, and the
+      4081 +error would have been invisible until the fine-tuned model failed on exactly the class it was built for.
+      4082 +
+      4083 +| # | step | deliverable | acceptance |
+      4084 +|---|---|---|---|
+      4085 +| R14.6b | **The marginal-note transcription that was identified and never acquired** | the project's own note records it: `apparatus-cross-map` says *"odr_com apparatus
+           += raw scrape follow-up (not in `odr_com.json`)"*. Acquire it, pin it under R11.3a, and ingest it as `apparatus_blocks` with `kind='annotation'` | Marginalia reaches ADMIS
+           +SIBLE in `audit_label_sources`, and the ingested notes align to leaves by TEXT, never by position. ⚠️ **OUTWARD-FACING — needs Sir's authorisation before any scrape**, an
+           +d R11.3a pinning is part of the deliverable, not a follow-up: the Madueke source PDF is **already missing from this disk** and only its derived reads survive. **C2 — acqu
+           +isition** |
+      4086 +| R14.6c | **Generate and VALIDATE the five admissible classes** | labels for MainText · Argument · RunningHead · Catchword/Signature · VerseNumber, generated over leaves
+           + 400–419 first | the generated labels are scored **against the 121-entry hand gold on that window** before any corpus-scale run. ⚠️ **The hand gold is the SCORER of the g
+           +enerator, not its trainer** — a generator trusted at scale without this check is a hand-labelling campaign's cost avoided by guessing. **C3 — assembly** |
+      4087 +
+      4088  ⚠️ **ORDERING.** R14.0 first, because it is nearly free and may change every estimate below it. R14.6
+      4089  runs alongside R14.1 because it is the input to everything after. **R14.5 is last and is the only C4**:
+      4090  a re-examination loop built before its stages can be measured would be a loop with no way to tell a
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ This is a significant finding that changes R14.1's scope, and R14.6b's remedy requires an outward-facing scrape needing the user's authorization, so I should pause and report rather than
+  keep building. Meanwhile, R14.6c—generating and validating the five admissible classes against gold—is something I can do without needing that authorization, so that's real progress I can
+  make now.
+
+  I'll offer to move forward with R14.6c while the Marginalia scraping question gets decided, and report concisely: the audit still needs registering, and there are uncommitted doc changes
+  to flag. Keeping the report tight and decision-focused.
+
+⏺ Stopping here to report, because what I found changes R14.1's scope and the remedy needs your say-so.
+
+  R14.6 started, and it hit a wall worth knowing about before any training runs
+
+  I audited the label sources before building the generator. The result:
+
+  ┌─────────────────────────────────────┬───────────────┬──────────────────────────────────────────────────────────────┐
+  │                class                │     state     │                           evidence                           │
+  ├─────────────────────────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+  │ MainText                            │ ✅ admissible │ 150,834 verse reads across 5 witness files                   │
+  ├─────────────────────────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+  │ Argument                            │ ✅ admissible │ 1,334 blocks                                                 │
+  ├─────────────────────────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+  │ Marginalia                          │ 🔴 absent     │ —                                                            │
+  ├─────────────────────────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+  │ Marginalia (alt)                    │ 🟡 circular   │ 214,453 words, but they are the incumbent typer's own output │
+  ├─────────────────────────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+  │ RunningHead · Catchword · Signature │ ✅ admissible │ self-verifying tests in collation_read                       │
+  ├─────────────────────────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+  │ VerseNumber                         │ ✅ admissible │ from the same reads                                          │
+  └─────────────────────────────────────┴───────────────┴──────────────────────────────────────────────────────────────┘
+
+  The plan was wrong about the most important source. §3.2 item 2 and R14.6's own row both read "Marginalia from the 1,334 transcribed apparatus blocks." Measured on disk: all 1,334 blocks
+  are kind: "argument" — the italic prose summary that precedes a chapter. That is a different region class. An Argument is archetype C's; a MarginNote is archetype B's. There is no
+  transcribed side-note corpus in this project at all.
+
+  ★ Insight ─────────────────────────────────────
+  The consequence is sharp: the one class distant supervision cannot label is the one the entire programme is blocked on. Marginalia is what Surya scores 0/19 on, what the MN gap is about,
+  and what R2.2's four refuted span rules were chasing. Had I gone straight to R14.1, the fine-tune would have taught the model every class except the one it was redirected to fix — and
+  that would have surfaced only after training, as a mysteriously unimproved marginalia score.
+  ─────────────────────────────────────────────────
+
+  And the tempting substitute is poison. apparatus-cross-map's scan_marginal holds 214,453 marginal words and looks like exactly the source we need. It is margin_by_page — produced by
+  layout.type_lines, the incumbent geometric typer. Training a replacement on its predecessor's output teaches the new model to agree with the old one, errors included, and that agreement
+  then reads as validation. A circular label is worse than a missing one, because a missing one is visible.
+
+  The remedy is already named in the project's own notes, unexecuted
+
+  apparatus-cross-map.json records: "odr_com apparatus = raw scrape follow-up (not in odr_com.json)". The marginal-note transcription was identified as a follow-up and never run. That is
+  now R14.6b.
+
+  This needs your authorisation — it is an outward-facing scrape of a third-party site, so I have not touched it. Two things worth noting alongside it: pinning under R11.3a should be part
+  of that step rather than a follow-up, because the Madueke source PDF is already missing from this disk (only its derived reads survive), and this is the second time an unpinned source has
+  bitten.
+
+  What I can do now without waiting
+
+  R14.6c — generate labels for the five admissible classes over leaves 400–419 and score them against the 121-entry hand gold before any corpus-scale run. That validation matters: the gold
+  is the scorer of the generator, not its trainer, and a generator trusted at scale without it is just a hand-labelling campaign's cost avoided by guessing.
+
+  That's real progress on four of your eight steps, and it leaves Marginalia cleanly blocked and visible rather than quietly filled with circular data.
+
+  Uncommitted: the audit witness/audit_label_sources.py, plus the corrections to both documents. Not yet registered in the verification standard and no suite run since — I'll batch that
+  with whatever you decide.
+
+  Your call: authorise the odr_com scrape for R14.6b, and shall I proceed with R14.6c meanwhile?
+
+✻ Baked for 4m 10s
+
+❯ Watcher here. Context is heavy and a refresh is imminent — please save any in-progress working details to .claude/context/.scratchpad.md (update it, don't append blindly; it is your
+  resume doc), then stop. No need to reply at length.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 35 lines, removed 3 lines
+      39  ⚠️  **A KILLED WATCHER IS NOT A KILLED SUITE.** A task-notification said "killed"; the suite (pid
+      40  75918) was ALIVE at 83 lines with a live child. Relaunching would have raced two suites (the d/e
+      41  failure). **Check `ps` + log progress, never the notification's status word.**
+      42 -### ➡️  NEXT: (1) **R15.1** build the gate-register audit (C2; would have caught all 3 defects from the
+      43 -docs alone) (2) **R14.1 as redirected** (fine-tune, now cheap) (3) **R2.2o.1b** (one gold lifts the
+      44 -head-band limit on TWO findings) (4) **R13.1** wiring (open since 08-17).
+      42 +### 🔴🔴 RESUME HERE — **R14.6a DONE, AND IT BLOCKS R14.1. AWAITING SIR'S DECISION (asked, unanswered).**
+      43 +⚠️  **UNCOMMITTED (3 files, NO suite run since, audit NOT yet registered in the standard):**
+      44 +`witness/audit_label_sources.py` (NEW) · `OCR-MASTERPLAN.md` (§3.2 item 2 corrected) ·
+      45 +`OCR-ROADMAP.md` (R14.6 row corrected + R14.6a RESULT block + new R14.6b/R14.6c rows).
+      46 +**BEFORE COMMIT: register `audit_label_sources.py` in the standard's AUDIT block (40→41 cmds; claim's
+      47 +FIRST fraction must be one it PRINTS — it currently prints NO N/M fraction, so add one), then run the
+      48 +suite (~45 min) and only commit green.** ⚠️ New steps R14.6b/R14.6c are NOT in the OPEN register yet ⇒
+      49 +**file them (84→86) and re-measure `audit_prereq_ceilings` (claim now 11/84) BEFORE the suite.**
+      59 +🟡 **`scan_marginal` (214,453 words) IS CIRCULAR — DO NOT USE.** It is `margin_by_page` =
+      60 +`layout.type_lines`' OWN output (`apparatus_crossmap.scan_marginalia`). Training the replacement on
+      61 +its predecessor teaches agreement with the instrument being replaced, and that agreement then READS AS
+      62 +VALIDATION. **A circular label is WORSE than a missing one** (a missing one is visible).
+      63 +⇒ **R14.1's fine-tune would teach every class EXCEPT the one it was redirected to fix** (Surya 0/19).
+      64 +### ⏸️ ASKED SIR, NOT ANSWERED — two questions:
+      65 +1. **Authorise the odr_com scrape (R14.6b)?** OUTWARD-FACING, so untouched. The project's OWN note
+      66 +   names it: `apparatus-cross-map` → *"odr_com apparatus = raw scrape follow-up (not in odr_com.json)"*.
+      67 +   ⚠️ **R11.3a pinning must be PART of R14.6b**: the Madueke source PDF
+      68 +   (`originaldr/sources/madueke-b/Original-DouayRheims-Bible.pdf`) is **ALREADY MISSING** from disk —
+      69 +   only derived `reconstruction/reads/madueke_b.json` (14MB) survives. Second unpinned-source bite.
+      70 +   Also GONE: `.scratch/original-douay-rheims` (SRC).
+      71 +2. **Proceed with R14.6c meanwhile?** = generate the 5 admissible classes over leaves 400–419 and
+      72 +   **SCORE them against the 121-entry hand gold BEFORE any corpus-scale run**. ⚠️ The gold is the
+      73 +   generator's **SCORER, never its trainer**.
+      74 +### ➡️ THEN: **R14.1** (blocked on Marginalia labels) · **R2.2o.1b** (lifts the head-band coverage limit
+      75 +on BOTH R2.2o.1 and R14.0) · **R15.1** gate-register audit (off the critical path for the model —
+ ▐▛███▜▌   Claude Code v2.1.220
+▝▜█████▛▘  Opus 5 (1M context) with low effort · Claude Max
+  ▘▘ ▝▝    ~/Claude/Project_Aion
+
+ ▎ Debug mode enabled · logging to /Users/nathanielcannon/Claude/Project_Aion/.claude/logs/debug.log
+  ⎿  SessionStart:clear says: JICM v7: Context compressed and cleared.
+
+❯ /clear
+
+❯ Watcher here. Refresh complete — read .claude/context/.compressed-context-ready.md for current state and .claude/context/.scratchpad.md for transient working details, then resume work
+  immediately. No greeting needed.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ I need to check the context files, so let me look at the scratchpad and the compressed context file since the persisted output is quite large.
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Read 201 lines
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.compressed-context-ready.md)
+  ⎿  Read 174 lines
+
+∴ With R14.6a complete but two of Sir's decisions still pending, I know I can't proceed on the outward-facing scrape question without explicit authorisation first. Before committing
+  anything, I need to register audit_label_sources.py in the standard, log R14.6b/R14.6c in the OPEN register, re-measure the prereq ceilings, and only run the full suite and commit if
+  everything comes back green.
+
+  Recalling the standing guidance to decide rather than ask mid-sprint, I'll proceed with R14.6c since it's non-outward-facing and useful regardless, while still re-raising Q1 for
+  authorisation. Starting with the mechanical registration work first, since it's required before any commit — checking the current state on disk now.
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+
+⏺ Resuming R14.6. The blocked item (odr_com scrape) is outward-facing and stays untouched; everything else is unblocked. Starting with the pre-commit work the scratchpad names as mandatory.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest && git status --short && echo "--- ls ---" && ls projects/originaldr/ocr-spike/witness/ | head -60)
+  ⎿   M projects/originaldr/ocr-spike/OCR-MASTERPLAN.md
+      M projects/originaldr/ocr-spike/OCR-ROADMAP.md
+     ?? projects/originaldr/.archive-consensus-full.pre-r9.4b/
+     ?? projects/originaldr/OriginalDRnotes
+     ?? projects/originaldr/ocr-spike/witness/audit_label_sources.py
+     --- ls ---
+     __pycache__
+     audit_gt_rasters.py
+     audit_label_sources.py
+     audit_prefix_rule.py
+     audit_prereq_ceilings.py
+     audit_s06_keys.py
+     audit_setting_points.py
+     build_argument_gold.py
+     build_first_body_gold.py
+     build_raster_manifest.py
+     build_region_gap_gold.py
+     collation_read.py
+     estc_probe.py
+     extract_pdf_leaves.py
+     gold
+     gold_rekey_pagefrac.py
+     inventory_leaves.py
+     make_witness_tree.py
+     prelims-M
+     prelims-OT-M
+     r2_1d_continuity.py
+     raster_gate.py
+     raster-manifest.json
+     reconcile_counts.py
+     region_head.py
+     rekey_s06.py
+     relabel.py
+     render_pipeline.py
+     score_argument_region.py
+     score_band_anchor.py
+     score_block_span.py
+     score_edge_chain.py
+     score_flush_reach.py
+     score_head_regions.py
+     score_head_tokens.py
+     score_r4_segment.py
+     score_region_gap_pops.py
+     score_region_gap_tokens.py
+     score_row_address.py
+     score_surya_layout.py
+     setting-readings.json
+     test_band_agreement.py
+     test_consensus_sources.py
+     test_counts_vs_doc.py
+     test_drop_rule_enforced.py
+     test_open_register_consistency.py
+     test_primacy_guard.py
+     test_project_root.py
+     test_raster_admissible.py
+     test_raster_routing.py
+     test_region_gold_addressing.py
+     test_setting_guard.py
+     test_setting_verified.py
+     test_verification_standard.py
+     test_verse_scope_bypass.py
+     test_verse_scope.py
+     verify_setting.py
+     witnesses.py
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I should check audit_label_sources.py, the standard's AUDIT block, and the OPEN register to cross-reference sources.
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/audit_label_sources.py)
+  ⎿  Read 151 lines
+
+∴ I need to add a printed fraction like N/M so the standard's claim can reference something it actually prints. Counting the row categories, I have seven total (MainText, Argument,
+  Marginalia, Marginalia-alt, RunningHead, Catchword/Signature, VerseNumber), and I'm working out which ones count as ADMISSIBLE to get the right numerator.
+
+  The key insight is per the CLAIM-HEADLINE RULE, I should lead with the representative fraction rather than a flattering one — and the real finding here is that marginalia is unlabellable.
+  So I should print "MARGINALIA admissible label sources: 0/2" as the leading representative fraction, followed by "region classes with an admissible source: 5/7" as a secondary line. But
+  I need to check how the audit block claim parses the first fraction on a line before finalizing this structure.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike && grep -n "audit_prereq_ceilings\|audit_setting_points\|AUDIT"
+      witness/test_verification_standard.py | head -40)
+  ⎿  44:# Which scripts are AUDITS is now read from the roadmap rather than restated here.
+     52:AUDIT_HEADING = re.compile(r"\*\*The audits\*\*", re.I)
+     84:        is_audit = bool(AUDIT_HEADING.search(head))
+     117:    AUDIT_SCRIPTS = {s for s, _, a in named if a}
+     121:        a for a in AUDIT_SCRIPTS if (HERE / a).is_file()}
+     141:        if not (script.startswith("test_") or script in AUDIT_SCRIPTS or claim):
+     158:        if script in AUDIT_SCRIPTS:
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_verification_standard.py · lines 1-200)
+  ⎿  Read 178 lines
+
+∴ I need to check the roadmap's verification standard audits block. The claim matching uses regex search anywhere in the output rather than requiring the first fraction specifically — so a
+  claim like "0/2 marginalia sources admissible" just needs that fraction to appear somewhere in the command's printed output, which should be fine here.
+
+⏺ Bash(grep -n "## Verification standard for this roadmap" OCR-ROADMAP.md)
+  ⎿  4164:## Verification standard for this roadmap
+
+∴ Good, the working directory already carried over from the earlier cd into ocr-spike, so I don't need to navigate there again.
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md · lines 4164-4293)
+  ⎿  Read 97 lines
+
+∴ I need to add printed fractions to audit_label_sources.py starting with the representative one, register it in the audits block, and file R14.6b/R14.6c into the OPEN register moving from
+  84 to 86. I also want to check whether per-row complexity classes push the numerator up, so I should look at the OPEN register and R14 section in the roadmap.
+
+⏺ Bash(grep -n "R14\.6\|R14\.1\b\|\*\*OPEN\*\* —" OCR-ROADMAP.md | head -40)
+  ⎿  100:**OPEN** — R2.1 (R2.1a · R2.1b · R2.1c · R2.1d · R2.1e · R2.1f · **R2.1h** · **R2.1k**) · **R2.2** · **R2.2a** · **R2.2b** · **R2.2c** (BLOCKING) · **R2.2d** · **R2.2e** ·
+     **R2.2f** (NEW) · **R2.2g** (NEW) · **R2.2h** (NEW) · **R2.2i** (NEW) · **R2.2j** (NEW) · **R2.2k** (NEW) · **R2.2m** (NEW) · **R11.2d** (NEW) · R2.3 · R2.4 · **R2.5** · R3.1 · R3.2 ·
+     R3.3 · R3.4 · R3.5b · R3.5c · **R3.6** · **R3.7** · R4.1e · R4.2a · R4.5 ·
+     107:**R14.1 · R14.2 · R14.3 · R14.4 · R14.5 · R14.6** (THE ADAPTIVE VISUAL AGENT, NEW — Masterplan §3.0) ·
+     3095:| R6.3b | Sir to adjudicate `aliiíque` | a minim call that revises a correction Sir applied on the 138 ppi substitute | **OPEN** — flagged in the file, not silently changed |
+     3096:| R6.3c | Sir to note the **mixed `w`/`vv` prelims face** | the NT prelims prose face sets BOTH a real `w` and `vv` | **OPEN** — a blanket `vv`→`w` pass over the NT prelims would
+     be wrong in both directions |
+     3987:downstream boxer of any kind can undo. **(c) is a hard constraint on R14.1: the agent must see the
+     3995:| R14.1 | **S1→S2: the archetype classifier, on the PAGE.** ⚠️ **REDIRECTED by R14.0**: Surya's detector already localises the regions and only lacks NAMES for them, so this is a
+     **class-inventory fine-tune of an existing detector**, not a detector built from scratch | R12.1's census then R12.2's classifier, taking **the leaf image**, not kraken's lines | Gate
+     9.1 — per-archetype accuracy, **forbidden-class emission = 0**. ⚠️ **Input constraint from (c) above**: a classifier reading line objects inherits a boundary that was already
+     destroyed. **C3 — model** |
+     4000:| R14.6 | **The label generator — what makes R14.1–R14.4 affordable** | distant supervision per §3.2 items 2, 3, 7: MainText from archaic-reference alignment, **Argument** from
+     the **1,334** transcribed apparatus blocks (⚠️  **CORRECTED 2026-08-25 by R14.6a — this row said *Marginalia*, and all 1,334 blocks are in fact `kind='argument'`; MARGINALIA HAS NO
+     SOURCE, see R14.6b**), RunningHead/Catchword/Signature from self-verifying tests, VerseNumber from numeral-matches-adjacent-verse | training labels generated at corpus scale
+     **without** a hand-labelling campaign, with §3.2 item 8's quota for books that generate none. ⚠️ **GOLD-LAYOUT is the SCORER, not the trainer** — conflating them is what makes this
+     programme look like it needs 125 hand-labelled pages before it can start. **C3 — assembly** |
+     4026:it this book's classes — not a detector trained from scratch.** That is materially cheaper than R14.1
+     4052:### R14.6a RESULT — ✅ DONE 2026-08-25. Distant supervision cannot label the one class that matters
+     4054:**`witness/audit_label_sources.py`.** R14.6 rests on the claim that §3.2 item 2's text sources make
+     4069:refuted span rules were chasing. ⇒ **R14.1's fine-tune would teach every class EXCEPT the one it was
+     4078:⚠️ **PLAN ERROR CORRECTED IN BOTH DOCUMENTS.** §3.2 item 2 and R14.6's own row both read *"Marginalia
+     4085:| R14.6b | **The marginal-note transcription that was identified and never acquired** | the project's own note records it: `apparatus-cross-map` says *"odr_com apparatus = raw
+     scrape follow-up (not in `odr_com.json`)"*. Acquire it, pin it under R11.3a, and ingest it as `apparatus_blocks` with `kind='annotation'` | Marginalia reaches ADMISSIBLE in
+     `audit_label_sources`, and the ingested notes align to leaves by TEXT, never by position. ⚠️ **OUTWARD-FACING — needs Sir's authorisation before any scrape**, and R11.3a pinning is
+     part of the deliverable, not a follow-up: the Madueke source PDF is **already missing from this disk** and only its derived reads survive. **C2 — acquisition** |
+     4086:| R14.6c | **Generate and VALIDATE the five admissible classes** | labels for MainText · Argument · RunningHead · Catchword/Signature · VerseNumber, generated over leaves 400–419
+     first | the generated labels are scored **against the 121-entry hand gold on that window** before any corpus-scale run. ⚠️ **The hand gold is the SCORER of the generator, not its
+     trainer** — a generator trusted at scale without this check is a hand-labelling campaign's cost avoided by guessing. **C3 — assembly** |
+     4088:⚠️ **ORDERING.** R14.0 first, because it is nearly free and may change every estimate below it. R14.6
+     4089:runs alongside R14.1 because it is the input to everything after. **R14.5 is last and is the only C4**:
+
+∴ The R14.6b and R14.6c rows already exist in the table with complexity classes assigned. Now I need to check whether the OPEN register also lists them, so I'm going to look at lines
+  95-115.
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md · lines 92-121)
+  ⎿  Read 30 lines
+
+∴ Since R14.6a is closed, it shouldn't appear in the OPEN list, but I need to add R14.6b and R14.6c to line 107, then re-run the prereq ceilings audit to get the updated fraction. I'll
+  start with editing the roadmap register, then update the audit script fractions and the audits block registration.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 1 line
+      105  **R12.1 · R12.2 · R12.3** (layout typology, NEW) · **R13.1 · R13.2** (the recogniser is not in the path, NEW) ·
+      106  **R2.2n · R2.2o · R2.2o.1b · R2.2o.2 · R2.2o.3 · R2.2o.4** (filed 2026-08-25, see the register note below) ·
+      107  **R14.1 · R14.2 · R14.3 · R14.4 · R14.5 · R14.6** (THE ADAPTIVE VISUAL AGENT, NEW — Masterplan §3.0) ·
+      108 +**R14.6b · R14.6c** (filed 2026-08-25 by R14.6a's finding: Marginalia has NO admissible label source) ·
+      109  **R13.3** (Gate 11 has never had a step, NEW) · **R15.1 · R15.2 · R15.3** (ONE GATE REGISTER, NEW)
+      110
+      111  🔴 **NEW OPEN STEPS RAISED 2026-08-17, each from a finding rather than from a plan review.** **R2.1g**
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I want to add printed fraction counts to the audit script, starting with marginalia sources showing 0/2 admissible. I'm weighing where to place these before the
+  ADMISSIBLE/CIRCULAR/BLOCKED lines, and worrying that a fraction like "0/2" could accidentally match other numbers already in the output, so I need to pick something more distinctive.
+
+  I'm making the fractions more specific: one line for marginalia label sources admissible (0/2) and another for region classes with an admissible source (5/7), since the claim-headline
+  rule ties the suite log status to the first fraction that appears. I'm verifying the 5/7 figure lines up with the code's ADMISSIBLE row count.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/audit_label_sources.py)
+  ⎿  Added 11 lines, removed 3 lines
+      130      print("   and never run. That is R14.6b.")
+      131      print("=" * 100)
+      132
+      133 -    print(f"\nADMISSIBLE classes : {len([r for r in rows if r[2] is ADMISSIBLE])}")
+      134 -    print(f"CIRCULAR sources   : {len(circ)}  {circ}")
+      135 -    print(f"BLOCKED classes    : {len(blocked)}  {blocked}")
+      133 +    # ⚠️  THE REPRESENTATIVE FRACTION LEADS, and it is the unflattering one. Both of the two sources
+      134 +    # this project holds for Marginalia fail -- one is absent, one is circular -- and that 0 is the
+      135 +    # audit's finding. Leading with `5/7` would put the best number in the run on the status line of
+      136 +    # a run whose result is that the class the programme is blocked on cannot be labelled at all.
+      137 +    n_marg = len([r for r in rows if r[0].startswith("Marginalia")])
+      138 +    n_marg_ok = len([r for r in rows if r[0].startswith("Marginalia") and r[2] is ADMISSIBLE])
+      139 +    n_ok = len([r for r in rows if r[2] is ADMISSIBLE])
+      140 +    print(f"\nMARGINALIA label sources ADMISSIBLE : {n_marg_ok}/{n_marg}   <- the finding")
+      141 +    print(f"region classes with a source        : {n_ok}/{len(rows)}")
+      142 +    print(f"CIRCULAR sources                    : {len(circ)}  {circ}")
+      143 +    print(f"BLOCKED classes                     : {len(blocked)}  {blocked}")
+      144
+      145      if not blocked and not circ:
+      146          print("\n✅ every region class has an admissible, independent label source.")
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python witness/audit_label_sources.py 2>&1 | tail -20; echo "EXIT=${PIPESTATUS[0]}")
+  ⎿     ARGUMENTS -- the italic prose summary before a chapter, which is a DIFFERENT region
+        class (§3.2a archetype C REQUIRES Argument; MarginNote is archetype B's class).
+
+        ⚠️ THE NAMED REMEDY ALREADY EXISTS IN THE PROJECT'S OWN NOTE, UNEXECUTED.
+        apparatus-cross-map records: 'odr_com apparatus = raw scrape follow-up (not in
+        odr_com.json)'. The marginal-note transcription was identified as a follow-up scrape
+        and never run. That is R14.6b.
+     ====================================================================================================
+
+     MARGINALIA label sources ADMISSIBLE : 0/2   <- the finding
+     region classes with a source        : 5/7
+     CIRCULAR sources                    : 1  ['Marginalia (alt)']
+     BLOCKED classes                     : 1  ['Marginalia']
+
+     🔴 R14.6a: distant supervision covers MainText, Argument, RunningHead, Catchword,
+        Signature and VerseNumber -- and CANNOT cover Marginalia. R14.1's fine-tune may
+        therefore teach every class EXCEPT the one it was redirected to fix.
+        ⚠️ Do NOT substitute `scan_marginal`: a circular label is worse than a missing one,
+           because it trains a model to agree with the instrument it was meant to replace,
+           and the agreement then reads as validation.
+     EXIT=
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I remember zsh uses lowercase pipestatus and it's 1-indexed unlike bash, so I need to check the exit code separately rather than relying on PIPESTATUS. Now I'll register this in the
+  audits block.
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 1 line
+      4251  ../ocr-venv/bin/python witness/test_band_agreement.py   # R2.2c: exits 1 -> the reader's band contains 0/20 RunningHead and 2/19 MarginNote gold entries, and BOTH scorers
+             cut a different band; the guard's own control passes 121/121
+      4252  ../ocr-venv/bin/python witness/score_surya_layout.py # R14.0: exits 1 -> the first layout score ever computed on this corpus. Surya FastLayoutPredictor against the 121-en
+            try head-band gold over leaves 400-419, page-fraction addressed, 121 bound and 0 orphans: overall 100/121, of which MarginNote is 0 of 19 -- the class this edition is bui
+            lt around. RunningHead is exact at 20 of 20 and MainText at 80 of 80. It emitted no Footnote box at all, so the charitable label map was identical to the strict one and t
+            he marginalia ceiling is not a mapping artefact. The MarginNote entries bind to TIGHT boxes (median 0.0039 of page area), so the detector LOCALISES the notes and only lac
+            ks a NAME for them -- a labelling failure on a working detector, repairable by class-inventory fine-tune. The MainText figure is CONTAINMENT in a half-page block (median
+            bound box 0.5555 of the page), not a boundary result, and Gate 10b is not measured here. Exit 1 is the rung-0 admissibility verdict, not a crash
+      4253  ../ocr-venv/bin/python witness/score_region_gap_pops.py # R2.2o.1: exits 1 -> 986/12592 intra-row gaps are labelled from the GOLD (top 3 rows only), and the two populatio
+            ns OVERLAP on 0.875 to 1.525 pitches -- the narrowest true region gap is NARROWER than the widest true word space, so the best possible single threshold still misclassifi
+            es and threshold-retuning is REFUTED as the repair. Both MN-against-MT boundaries are on leaf 412, the leaf region_head already records as the one where the marginal colu
+            mn abuts the measure, and the narrower of them sits BELOW the cut so it is never cut at all. Exit 1 is the FINDING, not a failure: it is the measurement that fired R2.2o'
+            s approach-level ALERT and re-scoped R2.2 to a clamp
+      4254 +../ocr-venv/bin/python witness/audit_label_sources.py # R14.6a: exits 1 -> 0/2 of this project's Marginalia label sources are admissible -- the named one (the 1,334 trans
+           +cribed apparatus blocks) is ABSENT because all 1,334 are in fact kind='argument', and the only substitute (apparatus-cross-map `scan_marginal`, 214,453 words) is CIRCULAR
+           + because it IS the incumbent region typer's own output. 5 of the 7 region classes do have an admissible, independent source, but the missing one is MarginNote -- the clas
+           +s Surya scores 0 of 19 on, the class the MN gap is about, and the class R2.2's four refuted span rules were chasing. Exit 1 is the healthy state while R14.6b is open; an
+           +exit 0 here before the transcription is acquired would mean the audit stopped looking, and it BLOCKS R14.1 from being scored as a marginalia fix
+      4255  ../ocr-venv/bin/python witness/audit_prefix_rule.py     # R2.1h: exits 1 -> reader still returns 2 whole-line tokens of 20 leaves (17 words, 1 abstain); the >=4-char rule
+            's length-dependence is real and STAYS
+      4256  ../ocr-venv/bin/python witness/audit_setting_points.py  # R8.4b: exits 1 -> foot criteria proved at 1 separated point of the 3 §0.3 requires
+      4257  ./.venv/bin/python core/tests/fixtures/gold/audit_scratch_data_paths.py  # R11.2a: exits 1 -> 33 gitignored DATA refs across 23 tracked files (was 71/38); the number must
+             FALL
+  ⎿  Async hook PostToolUse completed
+
+∴ I should rerun audit_prereq_ceilings to get the updated numerator and denominator, expecting 84 to become 86, then update its claim accordingly.
+
+⏺ Bash(../ocr-venv/bin/python witness/audit_prereq_ceilings.py 2>&1 | grep -iE "STRICT|uncovered|[0-9]+/[0-9]+" | tail -20)
+  ⎿  §0.5 coverage over the OPEN register — STRICT: 13/87 step(s) declare a complexity class in their OWN row, in a section carrying a pre-registered decision rule.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The denominator jumped by 3 instead of the 2 steps I actually added, so something else is being picked up — maybe my prose mentioning "R14.6a" is getting matched by the step-id extraction
+  regex even though it's just a reference, not a new register line.  Since R14.6a is CLOSED, having it appear as open would break the consistency check, so I need to reword that
+  parenthetical to avoid naming it inside the register block.
+
+⏺ Denominator rose by 3, not 2 — my parenthetical named R14.6a inside the register block, and the audit harvests step ids from that whole block. R14.6a is CLOSED, so that would also trip
+  test_open_register_consistency. Rewording:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 1 line, removed 1 line
+      105  **R12.1 · R12.2 · R12.3** (layout typology, NEW) · **R13.1 · R13.2** (the recogniser is not in the path, NEW) ·
+      106  **R2.2n · R2.2o · R2.2o.1b · R2.2o.2 · R2.2o.3 · R2.2o.4** (filed 2026-08-25, see the register note below) ·
+      107  **R14.1 · R14.2 · R14.3 · R14.4 · R14.5 · R14.6** (THE ADAPTIVE VISUAL AGENT, NEW — Masterplan §3.0) ·
+      108 -**R14.6b · R14.6c** (filed 2026-08-25 by R14.6a's finding: Marginalia has NO admissible label source) ·
+      108 +**R14.6b · R14.6c** (filed 2026-08-25 by the label-source audit: Marginalia has NO admissible source) ·
+      109  **R13.3** (Gate 11 has never had a step, NEW) · **R15.1 · R15.2 · R15.3** (ONE GATE REGISTER, NEW)
+      110
+      111  🔴 **NEW OPEN STEPS RAISED 2026-08-17, each from a finding rather than from a plan review.** **R2.1g**
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(../ocr-venv/bin/python witness/audit_prereq_ceilings.py 2>&1 | grep -iE "STRICT|uncovered" | tail -5; echo "---consistency---"; ../ocr-venv/bin/python
+      witness/test_open_register_consistency.py 2>&1 | tail -5)
+  ⎿  §0.5 coverage over the OPEN register — STRICT: 13/86 step(s) declare a complexity class in their OWN row, in a section carrying a pre-registered decision rule.
+     ---consistency---
+     register consistency -- a step marked done must not remain OPEN
+
+       OPEN register holds 86 step(s)
+
+     ✅ no step is both closed in its row and open in the register
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The numbers shift from 84 to 86 with the numerator moving from 11 to 13, but since both R14.6b and R14.6c already carry C-classes and R14 has a decision rule in place, this doesn't create
+  new ceiling debt. I should still verify the uncovered count.
+
+⏺ Bash(../ocr-venv/bin/python witness/audit_prereq_ceilings.py 2>&1 | tail -25)
+  ⎿      --    R7.2       no complexity class and no decision rule
+         --    R7.3       no complexity class and no decision rule
+         --    R7.4       no complexity class and no decision rule
+         --    R7.5a-2    no complexity class and no decision rule
+         --    R8.3       no complexity class and no decision rule
+         --    R8.4b      no complexity class and no decision rule
+         --    R8.6       no complexity class and no decision rule
+         --    R8.7       no complexity class and no decision rule
+         --    R9.5a      no complexity class
+         --    R9.6       no complexity class
+         --    R9.6b      no complexity class
+         --    R9.7       no complexity class
+         --    R9.8       no complexity class
+         --    R10.1      no complexity class
+         --    R10.2      no complexity class
+         --    R10.3      no complexity class
+         --    R11.2a     no complexity class
+         --    R11.2b     no complexity class
+         --    R11.2c     no complexity class
+         --    R11.5      no complexity class
+         --    R12.1      no complexity class and no decision rule
+         --    R12.2      no complexity class and no decision rule
+         --    R12.3      no complexity class and no decision rule
+
+     OPEN (R10.1) — 36 of 86 OPEN steps carry no ceiling. **Exit 1 is the healthy state**: §0.5 has had no consumer since it was written, and the remedy is to add ceilings section by
+     section as each is next touched, NOT to invent 36 of them now. The number above must RISE; it is not a pass/fail.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Uncovered stays at 36, so the filing didn't add any debt. Now I need to update the audit_prereq_ceilings claim line in the standard, changing it from 11/84 to 13/86 before adding the
+  insight note.
+
+⏺ Uncovered held at 36 — the two new steps were filed with complexity classes, so they added no ceiling debt. Updating the claim:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 1 line, removed 1 line
+      4239  ```
+      4240  ../ocr-venv/bin/python witness/audit_gt_rasters.py      # R7: exits 1 -> 48 of 51 GT files inadmissible, 9 WRONG SETTING
+      4241  ../ocr-venv/bin/python witness/audit_s06_keys.py        # R7.5a-2: exits 1 -> 261 derived artefacts still keyed `jp2-S06`
+      4242 -../ocr-venv/bin/python witness/audit_prereq_ceilings.py # R10.1: exits 1 -> STRICT: 11/84 step(s) declare a complexity class in their OWN row; the fraction must RISE (den
+           -ominator 59 -> 63 on 2026-08-18: R2.1k, R2.2c, R11.2c and R2.2d were added to the register; 63 -> 64 on 2026-08-19: R2.2e; 64 -> 67 on 2026-08-20: R2.2f, R2.2g and R11.2d
+           -; 67 -> 68 later the same day: R2.2h, the modal-edge estimator tolerance; 68 -> 69: R2.2i, tilted lines cut into two rows; 69 -> 70: R2.2j, the gold's row-ordinal address
+           -ing; 70 -> 71: R2.2k, the row clusterer chaining against a running median and walking up the tilt onto the next baseline; 71 -> 72: R2.2l, the adopted ink2d addressing lo
+           -sing a token without reporting it; R2.2l CLOSED on 2026-08-21 and R2.2m opened the same day for the same uncounted idiom in the containment path, so the denominator is un
+           -changed at 72; **72 -> 81 on 2026-08-25** — the register was found STALE, having stopped at R2.2m while the project worked on steps it could not see, so R2.2n, R2.2o and
+           -its four sub-steps were filed along with the seven R14 steps of the adaptive visual agent, and the numerator rose 1 -> 8 because R14 was filed WITH a section-level pre-re
+           -gistered decision rule and per-row complexity classes rather than added bare; the uncovered count held at 38, so the filing added no debt; **81 -> 84 later the same day**
+           - as R13.3 and R15.1-R15.3 were filed and R14.0 CLOSED, numerator 8 -> 11 -- and the filing exposed that the R13 SECTION carried neither a ceiling line nor a decision rule
+           -, so R13.1 and R13.2 had been uncovered since 2026-08-17 and are now inherited; note also that the R15 ceiling line was invisible until a literal C-token was added to it,
+           - since CEILING_RE requires the class on the same line as the Complexity heading)
+      4242 +../ocr-venv/bin/python witness/audit_prereq_ceilings.py # R10.1: exits 1 -> STRICT: 13/86 step(s) declare a complexity class in their OWN row; the fraction must RISE (den
+           +ominator 59 -> 63 on 2026-08-18: R2.1k, R2.2c, R11.2c and R2.2d were added to the register; 63 -> 64 on 2026-08-19: R2.2e; 64 -> 67 on 2026-08-20: R2.2f, R2.2g and R11.2d
+           +; 67 -> 68 later the same day: R2.2h, the modal-edge estimator tolerance; 68 -> 69: R2.2i, tilted lines cut into two rows; 69 -> 70: R2.2j, the gold's row-ordinal address
+           +ing; 70 -> 71: R2.2k, the row clusterer chaining against a running median and walking up the tilt onto the next baseline; 71 -> 72: R2.2l, the adopted ink2d addressing lo
+           +sing a token without reporting it; R2.2l CLOSED on 2026-08-21 and R2.2m opened the same day for the same uncounted idiom in the containment path, so the denominator is un
+           +changed at 72; **72 -> 81 on 2026-08-25** — the register was found STALE, having stopped at R2.2m while the project worked on steps it could not see, so R2.2n, R2.2o and
+           +its four sub-steps were filed along with the seven R14 steps of the adaptive visual agent, and the numerator rose 1 -> 8 because R14 was filed WITH a section-level pre-re
+           +gistered decision rule and per-row complexity classes rather than added bare; the uncovered count held at 38, so the filing added no debt; **81 -> 84 later the same day**
+           + as R13.3 and R15.1-R15.3 were filed and R14.0 CLOSED, numerator 8 -> 11 -- and the filing exposed that the R13 SECTION carried neither a ceiling line nor a decision rule
+           +, so R13.1 and R13.2 had been uncovered since 2026-08-17 and are now inherited; note also that the R15 ceiling line was invisible until a literal C-token was added to it,
+           + since CEILING_RE requires the class on the same line as the Complexity heading)
+      4243  ../ocr-venv/bin/python witness/r2_1d_continuity.py          # R2.1d'(A): exits 1 -> catchword continuity 0.312, Wilson95 lower 0.142 vs bar 0.95; R2.1f has FIRED
+      4244  ../ocr-venv/bin/python witness/score_argument_region.py # R2.2d: exits 1 -> on the gold extended to ALL 10 chapter openings D1 recall is 52/81 rows and D2 has 13 false po
+            sitives over the WHOLE window with 0 unadjudicated, while D3 still costs NOTHING (exact) and argument tokens still typed MainText are 3/327 against 46 with the rule off;
+            NOT adopted
+      4245  ../ocr-venv/bin/python witness/score_region_gap_tokens.py # R2.2e: exits 1 -> E3 is 0/43 -- the swallowed rows are OVERSHOOT, not merges, so the region-gap cut is REFUTED
+             and NOT adopted, though it takes every merged token to zero at no cost on the region gold (E2 exact) and GOLD-ARGUMENT D1 holds at 52/81
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/OCR-ROADMAP.md)
+  ⎿  Added 1 line, removed 1 line
+      4239  ```
+      4240  ../ocr-venv/bin/python witness/audit_gt_rasters.py      # R7: exits 1 -> 48 of 51 GT files inadmissible, 9 WRONG SETTING
+      4241  ../ocr-venv/bin/python witness/audit_s06_keys.py        # R7.5a-2: exits 1 -> 261 derived artefacts still keyed `jp2-S06`
+      4242 -../ocr-venv/bin/python witness/audit_prereq_ceilings.py # R10.1: exits 1 -> STRICT: 13/86 step(s) declare a complexity class in their OWN row; the fraction must RISE (den
+           -ominator 59 -> 63 on 2026-08-18: R2.1k, R2.2c, R11.2c and R2.2d were added to the register; 63 -> 64 on 2026-08-19: R2.2e; 64 -> 67 on 2026-08-20: R2.2f, R2.2g and R11.2d
+           -; 67 -> 68 later the same day: R2.2h, the modal-edge estimator tolerance; 68 -> 69: R2.2i, tilted lines cut into two rows; 69 -> 70: R2.2j, the gold's row-ordinal address
+           -ing; 70 -> 71: R2.2k, the row clusterer chaining against a running median and walking up the tilt onto the next baseline; 71 -> 72: R2.2l, the adopted ink2d addressing lo
+           -sing a token without reporting it; R2.2l CLOSED on 2026-08-21 and R2.2m opened the same day for the same uncounted idiom in the containment path, so the denominator is un
+           -changed at 72; **72 -> 81 on 2026-08-25** — the register was found STALE, having stopped at R2.2m while the project worked on steps it could not see, so R2.2n, R2.2o and
+           -its four sub-steps were filed along with the seven R14 steps of the adaptive visual agent, and the numerator rose 1 -> 8 because R14 was filed WITH a section-level pre-re
+           -gistered decision rule and per-row complexity classes rather than added bare; the uncovered count held at 38, so the filing added no debt; **81 -> 84 later the same day**
+           - as R13.3 and R15.1-R15.3 were filed and R14.0 CLOSED, numerator 8 -> 11 -- and the filing exposed that the R13 SECTION carried neither a ceiling line nor a decision rule
+           -, so R13.1 and R13.2 had been uncovered since 2026-08-17 and are now inherited; note also that the R15 ceiling line was invisible until a literal C-token was added to it,
+           - since CEILING_RE requires the class on the same line as the Complexity heading)
+      4242 +../ocr-venv/bin/python witness/audit_prereq_ceilings.py # R10.1: exits 1 -> STRICT: 13/86 step(s) declare a complexity class in their OWN row; the fraction must RISE (den
+           +ominator 59 -> 63 on 2026-08-18: R2.1k, R2.2c, R11.2c and R2.2d were added to the register; 63 -> 64 on 2026-08-19: R2.2e; 64 -> 67 on 2026-08-20: R2.2f, R2.2g and R11.2d
+           +; 67 -> 68 later the same day: R2.2h, the modal-edge estimator tolerance; 68 -> 69: R2.2i, tilted lines cut into two rows; 69 -> 70: R2.2j, the gold's row-ordinal address
+           +ing; 70 -> 71: R2.2k, the row clusterer chaining against a running median and walking up the tilt onto the next baseline; 71 -> 72: R2.2l, the adopted ink2d addressing lo
+           +sing a token without reporting it; R2.2l CLOSED on 2026-08-21 and R2.2m opened the same day for the same uncounted idiom in the containment path, so the denominator is un
+           +changed at 72; **72 -> 81 on 2026-08-25** — the register was found STALE, having stopped at R2.2m while the project worked on steps it could not see, so R2.2n, R2.2o and
+           +its four sub-steps were filed along with the seven R14 steps of the adaptive visual agent, and the numerator rose 1 -> 8 because R14 was filed WITH a section-level pre-re
+           +gistered decision rule and per-row complexity classes rather than added bare; the uncovered count held at 38, so the filing added no debt; **81 -> 84 later the same day**
+           + as R13.3 and R15.1-R15.3 were filed and R14.0 CLOSED, numerator 8 -> 11 -- and the filing exposed that the R13 SECTION carried neither a ceiling line nor a decision rule
+           +, so R13.1 and R13.2 had been uncovered since 2026-08-17 and are now inherited; note also that the R15 ceiling line was invisible until a literal C-token was added to it,
+           + since CEILING_RE requires the class on the same line as the Complexity heading; **84 -> 86 on 2026-08-25** as R14.6b and R14.6c were filed from the label-source audit's
+           +finding, numerator 11 -> 13 because both rows carry their own complexity class under R14's existing decision rule, so the uncovered count HELD at 36 and the filing added
+           +no debt. ⚠️ A caution learned in that same edit: the register block is parsed for step ids, so naming a CLOSED step in the register's own prose — even parenthetically, as
+           +attribution — enrols it as OPEN. The denominator read 87 until the attribution was reworded)
+      4243  ../ocr-venv/bin/python witness/r2_1d_continuity.py          # R2.1d'(A): exits 1 -> catchword continuity 0.312, Wilson95 lower 0.142 vs bar 0.95; R2.1f has FIRED
+      4244  ../ocr-venv/bin/python witness/score_argument_region.py # R2.2d: exits 1 -> on the gold extended to ALL 10 chapter openings D1 recall is 52/81 rows and D2 has 13 false po
+            sitives over the WHOLE window with 0 unadjudicated, while D3 still costs NOTHING (exact) and argument tokens still typed MainText are 3/327 against 46 with the rule off;
+            NOT adopted
+      4245  ../ocr-venv/bin/python witness/score_region_gap_tokens.py # R2.2e: exits 1 -> E3 is 0/43 -- the swallowed rows are OVERSHOOT, not merges, so the region-gap cut is REFUTED
+             and NOT adopted, though it takes every merged token to zero at no cost on the region gold (E2 exact) and GOLD-ARGUMENT D1 holds at 52/81
+  ⎿  Async hook PostToolUse completed
+
+∴ Before running the full ~45 minute suite, I should do a cheap sanity check to confirm the parser correctly picks up the new command, bumping the count from 40 to 41, without executing
+  anything yet.
+
+⏺ Bash(../ocr-venv/bin/python -c "
+      import sys; sys.path.insert(0,'witness')
+      import test_verification_standard as T
+      s=T.block_text(); n=T.commands(s)
+      print('commands named:', len({x[0] for x in n}))
+      print('audits:', sorted({a for a,_,is_a in n if is_a}))
+      print('label_sources present:', [x for x in n if 'label_sources' in x[0]][:1])
+      ")
+  ⎿  commands named: 41
+     audits: ['audit_gt_rasters.py', 'audit_label_sources.py', 'audit_prefix_rule.py', 'audit_prereq_ceilings.py', 'audit_s06_keys.py', 'audit_setting_points.py',
+     'r2_1d_continuity.py', 'score_argument_region.py', 'score_band_anchor.py', 'score_block_span.py', 'score_edge_chain.py', 'score_flush_reach.py', 'score_r4_segment.py',
+     'score_region_gap_pops.py', 'score_region_gap_tokens.py', 'score_surya_layout.py', 'test_band_agreement.py']
+     label_sources present: [('audit_label_sources.py', "0/2 of this project's Marginalia label sources are admissible -- the named one (the 1,334 transcribed apparatus blocks) is
+     ABSENT because all 1,334 are in fact kind='argument', and the only substitute (apparatus-cross-map `scan_marginal`, 214,453 words) is CIRCULAR because it IS the incumbent region
+     typer's own output. 5 of the 7 region classes do have an admissible, independent source, but the missing one is MarginNote -- the class Surya scores 0 of 19 on, the class the MN
+     gap is about, and the class R2.2's four refuted span rules were chasing. Exit 1 is the healthy state while R14.6b is open; an exit 0 here before the transcription is acquired
+     would mean the audit stopped looking, and it BLOCKS R14.1 from being scored as a marginalia fix", True)]
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ 41 commands with the audit correctly classified matches the claim's stated first fraction of 0/2. Before launching the suite in background with the -u flag, I should verify no instance is
+  already running.
+
+⏺ 41 commands, correctly classified as an audit, first fraction 0/2 — which the script prints. Launching the suite (one instance only):
+
+⏺ Bash(pgrep -fl "test_verification_standard" | grep -v "pgrep" || echo "none running")
+  ⎿  none running
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(mkdir -p .scratch/r2 && nohup ../ocr-venv/bin/python -u witness/test_verification_standard.py > .scratch/r2/suite-20260825o.log 2>&1 &
+      echo "pid=$!")
+  ⎿  pid=14952
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ While the suite runs I should avoid editing tracked witness files mid-scoring, since that risks the scorer capturing a half-edited state. Better to wait it out, update the scratchpad, and
+  revisit the outstanding question to Sir in light of the "decide don't ask in sprints" guidance.
+
+  The scrape question genuinely needs authorization since it's outward-facing, but R14.6c I can just decide on myself — proceed, but hold the actual file write until the suite finishes
+  since a new build script wouldn't trip the documentation check anyway. I'll use the wait productively by reading (not writing) what R14.6c needs: how the 121-entry gold set is structured
+  and what generator interface to match.
+
+  Plan: update the scratchpad first, then report the standing question to Sir, then start reading into R14.6c's requirements.
+
+⏺ Suite o in flight (pid 14952, ~45 min). Updating the resume doc while it runs:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 14 lines, removed 7 lines
+      39  ⚠️  **A KILLED WATCHER IS NOT A KILLED SUITE.** A task-notification said "killed"; the suite (pid
+      40  75918) was ALIVE at 83 lines with a live child. Relaunching would have raced two suites (the d/e
+      41  failure). **Check `ps` + log progress, never the notification's status word.**
+      42 -### 🔴🔴 RESUME HERE — **R14.6a DONE, AND IT BLOCKS R14.1. AWAITING SIR'S DECISION (asked, unanswered).**
+      43 -⚠️  **UNCOMMITTED (3 files, NO suite run since, audit NOT yet registered in the standard):**
+      42 +### 🔴🔴 RESUME HERE — **PRE-COMMIT WORK DONE; ⏳ SUITE o pid 14952 → `.scratch/r2/suite-20260825o.log`.**
+      43 +✅ Registration done this session: `audit_label_sources.py` now prints `MARGINALIA label sources
+      44 +ADMISSIBLE : 0/2` (the REPRESENTATIVE fraction, per the claim-headline rule — `5/7` classes-with-a-source
+      45 +prints SECOND) and is registered in the standard's AUDIT block, **40→41 cmds**. Register **84→86**
+      46 +(R14.6b/R14.6c filed), claim **11/84 → 13/86**, uncovered HELD at 36 (both rows carry a C-class under
+      47 +R14's existing decision rule ⇒ no new debt). `test_open_register_consistency` green, 86 steps.
+      48 +⚠️ **NEW REGISTER TRAP, learned here**: the OPEN block is PARSED FOR STEP IDS, so naming a **closed**
+      49 +step in the register's own prose — even parenthetically, as attribution — **enrols it as OPEN.**
+      50 +Denominator read **87** until "filed by R14.6a's finding" was reworded to "filed by the label-source
+      51 +audit". Recorded in the audit's claim text.
+      52 +⚠️ **UNCOMMITTED (4 files, commit ONLY after suite o is green; scope by path, never `git add -A`):**
+      53  `witness/audit_label_sources.py` (NEW) · `OCR-MASTERPLAN.md` (§3.2 item 2 corrected) ·
+      45 -`OCR-ROADMAP.md` (R14.6 row corrected + R14.6a RESULT block + new R14.6b/R14.6c rows).
+      46 -**BEFORE COMMIT: register `audit_label_sources.py` in the standard's AUDIT block (40→41 cmds; claim's
+      47 -FIRST fraction must be one it PRINTS — it currently prints NO N/M fraction, so add one), then run the
+      48 -suite (~45 min) and only commit green.** ⚠️ New steps R14.6b/R14.6c are NOT in the OPEN register yet ⇒
+      49 -**file them (84→86) and re-measure `audit_prereq_ceilings` (claim now 11/84) BEFORE the suite.**
+      54 +`OCR-ROADMAP.md` (R14.6 row corrected + R14.6a RESULT block + R14.6b/R14.6c rows + register 86 +
+      55 +ceilings claim 13/86 + audit registered).
+      56 +⚠️ **Do NOT edit tracked `witness/` code while o runs** — the scorers are read at run time.
+      57  ### 🔴 THE FINDING — **DISTANT SUPERVISION CANNOT LABEL MARGINALIA, THE ONE CLASS THAT MATTERS.**
+      58  `witness/audit_label_sources.py`, exit 1. ADMISSIBLE: **MainText** (150,834 verse reads / 5 witness
+      59  files in `originaldr/reconstruction/reads/`) · **Argument** (1,334 blocks) · RunningHead · Catchword ·
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I'll report to Sir now, keeping it concise with the insight block and the one genuine authorisation question, then move on to R14.6c since it's the unblocked half. While the suite runs,
+  I'll do a quick read-only scan of the gold file and how score_surya_layout addresses what R14.6c needs.
+
+⏺ Bash(ls witness/gold/ && echo "--- surya scorer head ---" && sed -n '1,60p' witness/score_surya_layout.py)
+  ⎿  argument_rows_OT1-1609-B_400-419.json
+     first_body_line_OT1-1609-B_400-419.json
+     head_regions_OT1-1609-B_400-419.json
+     head_wordcounts_OT1-1609-B_400-419.json
+     region_gap_rows_OT1-1609-B_400-419.json
+     --- surya scorer head ---
+     """R14.0 -- run the learned layout model that was already in the repo, and SCORE it.
+
+     `surya_layout_probe.py` has sat in `ocr-spike/` for weeks: a rung-0 gate for Surya, asking whether it
+     types early-modern scripture pages. It appears in NONE of the five governing documents (Masterplan,
+     Roadmap, Walkthrough, Overview, Executive Summary), was never scored, and its result was recorded
+     nowhere. That is §3.2b's pattern exactly -- WORKING CODE THAT NO RULE GOVERNS -- landing on the one
+     capability Masterplan §3.0 S3/S4 is about. R14.0 closes it.
+
+     ⚠️ WHAT THIS IS AND IS NOT.
+       * It IS the first layout measurement of any kind on this corpus. Masterplan §7.8 states that rows
+         10a/10b/10c and 11 have never been evaluated and that "no layout score of any kind exists on this
+         corpus". This does not discharge any of those rows -- it is scored on the 121-entry R2.1g gold
+         over 20 leaves of ONE witness, not on GOLD-LAYOUT (>=125 pages, per-archetype quota), and Gate
+         10a/10b are explicitly reserved for GOLD-LAYOUT with the recogniser frozen.
+       * It is a ROUNG-0 ADMISSIBILITY question: is this model worth building on at all?
+
+     ⚠️ THE LABEL MAP IS AN ADJUDICATION, AND IT IS DECLARED RATHER THAN TUNED. Surya's vocabulary is a
+     MODERN-DOCUMENT one -- Caption, Footnote, PageHeader, PageFooter, SectionHeader, Text, Table, Code,
+     Form, ChemicalBlock, Bibliography. It contains NO marginalia / side-note class. Two maps are scored
+     and BOTH are reported, because a single map chosen after seeing the numbers would be the map that
+     flatters:
+       * MAP_STRICT   -- by meaning. No Surya class denotes a printed side-note, so MN has NO source.
+       * MAP_CHARITABLE -- additionally Footnote -> MN, the most generous reading available (a footnote and
+         a side-note are both subsidiary apparatus, though this edition sets its notes in the OUTER MARGIN
+         beside the measure, not at the foot).
+     If MN recall is ~0 under BOTH, the ceiling is a property of the model's inventory, not of the mapping.
+
+     ⚠️ ADDRESSING IS NOT ADJUDICATION (R2.1i). Gold entries carry `xlf/xrf/y0f/y1f` -- PAGE fractions, the
+     band-independent address added at R2.2c -- so a gold entry is bound to the Surya box it overlaps most,
+     in page-fraction space, with no band crop involved. An entry overlapping no box is an ORPHAN and is
+     reported separately, never folded into accuracy (the discipline `score_argument_region` follows).
+
+         ../ocr-venv/bin/python witness/score_surya_layout.py
+
+     Exit 1 while the model is inadmissible for this corpus, which is the finding, not a crash.
+     """
+
+     import json
+     import sys
+     import warnings
+
+     warnings.filterwarnings("ignore")
+
+     from pathlib import Path
+
+     _HERE = Path(__file__).resolve().parent
+     sys.path.insert(0, str(_HERE))
+     sys.path.insert(0, str(_HERE.parent))
+
+     import witnesses as W
+     from score_head_regions import GOLD
+
+     WITNESS = "OT1-1609-B"
+     LEAF_LO, LEAF_HI = 400, 420
+
+     # Declared BEFORE the run. Surya label -> this project's region taxonomy.
+     MAP_STRICT = {
+         "PageHeader": "RH",        # the book name set across the head of the page
+         "Text": "MT",              # the text block
+         "SectionHeader": "CH",     # CHAP. + numeral
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I have enough now to write up R14.6c: generating labels for the five admissible classes over leaves 400-419, scoring against the 121-entry head_regions gold set, tracking page-fraction
+  coverage, and handling orphans separately. I'll draft this after the suite finishes, then report back.
+
+⏺ Pre-commit work is done and the suite is running. Report:
+
+  R14.6 — the audit is now an instrument, not a note
+
+  Since the refresh I closed out everything R14.6a needed before it could be committed.
+
+  The audit now prints a fraction, and it's the unflattering one. audit_label_sources.py leads with MARGINALIA label sources ADMISSIBLE : 0/2 and prints region classes with a source : 5/7
+  second. That ordering is deliberate: the verification standard binds a claim to its first fraction, and that fraction becomes the suite log's status line. Leading with 5/7 would have put
+  the best number in the run on the status line of a run whose finding is that the one class the programme is blocked on cannot be labelled at all.
+
+  Registered. The audits block now carries it — 40 → 41 commands, classified as an audit (exit 1 is its healthy state while R14.6b is open).
+
+  Register moved 84 → 86, claim 11/84 → 13/86, uncovered held at 36. R14.6b and R14.6c each carry their own complexity class under R14's existing decision rule, so filing them added no
+  ceiling debt.
+
+  ★ Insight ─────────────────────────────────────
+  A trap worth recording: the OPEN register block is parsed for step ids, so naming a closed step inside it — even parenthetically, as attribution — enrols it as open. My first wording read
+  "filed by R14.6a's finding" and the denominator came back 87, not 86. Two instruments disagreed usefully: audit_prereq_ceilings counted the extra step silently, but
+  test_open_register_consistency exists precisely to refuse "closed in its row, open in the register." Reworded to "filed by the label-source audit" and both settle at 86. This is the
+  signature-defect pattern inverted — here the second reader did fire.
+  ─────────────────────────────────────────────────
+
+  ⏳ Suite o (pid 14952) → .scratch/r2/suite-20260825o.log, ~45 min, 41 commands. Four files stay uncommitted until it's green.
+
+  The one question that is genuinely yours
+
+  R14.6b — the odr_com marginal-note scrape. Outward-facing, so untouched, and it is the only path to an admissible Marginalia source. The project's own note names it: apparatus-cross-map
+  records "odr_com apparatus = raw scrape follow-up (not in odr_com.json)" — identified once, never run. Without it, R14.1's fine-tune teaches every class except the one it was redirected
+  to fix.
+
+  R11.3a pinning has to be part of that deliverable, not a follow-up. The Madueke source PDF is already gone from this disk; only its derived reads survive. That's the second
+  unpinned-source bite.
+
+  On your second question I'm deciding rather than waiting: R14.6c proceeds. Generating and scoring the five admissible classes over leaves 400–419 against the 121-entry hand gold is
+  unblocked, is the input to everything after, and validates the generator before any corpus-scale run. The gold is the generator's scorer, never its trainer. I'll build it once the suite
+  clears — editing tracked witness/ code mid-run would have the scorers read a half-written state.
+
+✻ Worked for 2m 49s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ yes, authorize the odr_com scrape — proceed with R14.6b
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from compressed context  main +30-13📖 e:low                                                                                                      97943 tokens
+  [▓░······│┃············╿·····] 10% 96.8K  Δ3.4K/m  S:1h0m H:1h9m  cache:99% eph1h:100%  warm/write/new                                                                              Debug
+  $2.04  blk:$61.6  ⏱2m api:98%  5h:42%↺2h33m  7d:26%↺3d8h
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

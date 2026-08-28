@@ -25,6 +25,21 @@
   is the v7.9 W0-only singleton that used to be called "the watcher"; it is not launched by
   anything. Do not revive it: cycling, MAINTAIN and REST all moved to the daemon above.
 
+### Launchers
+
+- `launch-aion.sh` — **THE launcher.** 14 tmux windows, six Claude lanes. Owns the service
+  pre-flight, which auto-starts what we control and now treats a dead usage proxy as a CRITICAL
+  failure rather than a yellow line (a launcher that quietly drops `ANTHROPIC_BASE_URL` costs you
+  every lane's telemetry while every lane keeps working — see `aebf9b0`).
+- `retired/launch-jarvis-tmux-retired-2026-08-27.sh` — the pre-monorepo launcher, **RETIRED**.
+  It built the old "Aion Quartet" layout and still points at `$HOME/Claude/Alfred-Dev` in 14
+  places, including all of its `--restart` modes. Nothing invoked it at retirement. It refuses to
+  run unless `AION_RUN_RETIRED_LAUNCHER=1`. **Do not revive it.**
+  The reason it was retired rather than repaired is worth keeping: it carried the *same* silent
+  telemetry-loss defect as `launch-aion.sh` and had to be fixed twice, once per launcher, on the
+  same afternoon. **Two launchers kept in step by hand is how they diverged.** If a second
+  launcher is ever genuinely needed, factor the shared pre-flight out rather than copying it.
+
 ### Status Line
 - `jarvis-statusline-v9.sh` — **THE shared status line for every Archon lane.** One layout for
   all six Claude lanes (Jarvis, Protos, Urist, Jarvis-dev, Genie, Jacques); it contains no

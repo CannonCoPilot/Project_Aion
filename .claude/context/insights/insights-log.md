@@ -5,439 +5,6 @@ Processed by /reflect Phase 5 for Graphiti ingestion.
 
 ---
 
-### 2026-07-12 [2dabeeff71b6]
-
-This decomposes the "0.82→0.90 gap" I was going to spend weeks on:
-- **verse-span error** (v12-31 vs v12-30 on-page): **+0.034** (0.8163 → 0.8502)
-- **reference-vs-page divergence** (s_dismas ≠ actual print): **+0.045** (0.8502 → 0.8955)
-- **actual recognizer gap** (OCR vs the true printed page): **0.045** (0.8955 → 0.90)
-
-So of the "0.083 gap" I was measuring, **only 0.045 was the recognizer** — the other 0.038 was s_dismas + verse-span not being the printed page. The recognizer is *much* closer to bar than the sweep suggested.
-
-### 2026-07-12 [c875fcdf83dc]
-
-- A static `file://` page **cannot write to disk** — the browser sandbox forbids it. So a one-click "submit → file I can read" needs a tiny local server with a POST endpoint. I'll use Python's stdlib `http.server` (no Flask dependency) bound to `127.0.0.1` only.
-- I'll make it **locus-parameterized** from the start (dropdown over all ground-truth files), so the same tool serves all 15+ pages as I add them — not a throwaway for one page.
-- Correction granularity = **per-line editable fields** pre-filled with my reading. That matches my GT's line structure, which is also what I need for line-level recognizer alignment later. Plus a glyph palette (ſ æ œ † ‖) so you can type archaic characters easily.
-
-### 2026-07-12 [a3591acac319]
-
-- **Why a server and not a static file:** browsers sandbox `file://` pages from writing to disk, so a one-click "submit → file I can read" is impossible without a local endpoint. The stdlib server binds `127.0.0.1` only (not exposed to the network), and the raster/GT/submit paths are all containment-guarded under the project dir.
-- **Why per-line fields:** your corrections land keyed by `line_index`, which is exactly the structure I need later to align each corrected line to its raster crop for recognizer fine-tuning. The review UI and the training-data format are the same object.
-- **The tool is already general:** the locus dropdown reads every file in `ground-truth/`, so as I add Psalms 118, Matthew 26, etc., they'll just appear in the same page — no rebuild.
-
-### 2026-07-12 [fa548a1e089f]
-
-- **s_dismas has an error my GT caught**: it inlines `eloquia` *into* verse 103 ("more eloquia then honie"), but on the page that's a **left-margin Latin gloss** (`* elogia`) keyed to "wordes", not verse text. My GT separates it correctly — a concrete case where the reference is wrong and the human-reviewed GT is right.
-- **The tool can't show this page's apparatus yet.** Psalms 118 has a rich `apparatus[]` (italic annotations, Nun/Samech section markers, signature) and a `catchword` — structures Gen 24 didn't have. The current `gt_review.html` only renders `body[]` + `marginalia[]`, so you'd be blind to the annotation uncertains (`reidie`, `diſplaſed`, `bridleth`).
-
-### 2026-07-14 [831ff2a559cf]
-
-- **The state file lies about recency.** `session-state.md` was last written 2026-06-15 (Palimpsest), but git shows a full month of newer work since — the live thread is **OriginalDR** (a custom-OCR reconstruction effort) plus a batch of **JICM/Nexus infrastructure** commits. When state files and git disagree, git wins; the stale doc is itself a hygiene signal in my domain.
-- **Domain split matters here.** The scratchpad's entire tail is OriginalDR OCR (seg_v2, consensus rungs, ground-truth) — that's **W0's product work**, not mine. My W5 lane is the *infrastructure underneath it*: JICM watcher, hooks, skills, Nexus control-plane. The recent `645b00f fix(jicm): autonomous hard-threshold trigger` and the Nexus hardening commits are the ones in my lane.
-
-### 2026-07-15 [df78949ceb14]
-
-The strongest methodological result of this batch isn't any single page — it's that **the w/vv choice is a per-volume, per-face property of the physical type-case, resolvable by zooming one capital `W`.** A solid single-sort capital proves the font owns a lowercase `w`, so vv-looking lowercase is a *cut*, not a digraph. That single test now disambiguates the whole corpus (NT-1582 vs OT-1609/1610) and is exactly the kind of volume-level prior the re-OCR ladder can key on. Each GT file records the regime in `layout_note` + `glyph_regime_resolved`, so it's training signal, not just a transcription.
-
-### 2026-07-15 [9cbb03d9d2a5]
-
-The prune targets are entries that got **superseded by the work just completed**, not arbitrary old lines:
-1. **Fork option (A)** ("extend GT to more layouts") — that *was* this task; it's now done, so the fork collapses to just (B), the consensus rung.
-2. **The old glyph rule** ("real `w` in body, footnotes use vv") — now refined and partly corrected by the volume-scoped finding; keep the pointer, drop the superseded specifics.
-3. **The 2-exemplar GROUND TRUTH list** — subsumed by the 25-loci COMPLETE block; compress to just the distinction that matters (which 2 are Sir-reviewed vs. 23 first-pass).
-The freshest blocks (COMPLETE, corrections, glyph finding) stay intact — pruning removes the *replaced*, not the *recent*.
-
-### 2026-07-15 [21293ecd495f]
-
-Each requested skill now has concrete evidence, which is what makes a CV credible rather than a keyword-stuffed list:
-- **Pipeline validation** → Oncomine triple data-quality gate + FDA-submission standards; Bayer GCKD "gates that exit non-zero on violation"; Natera `setdiff` lossless-join validation.
-- **Proteomic ETL** (the one I was worried about) → *genuinely supported*: the Bayer GCKD renal panel is **protein biomarkers** (NGAL, galectin-3, osteopontin, copeptin, MR-proANP), plus STRING/PPI + Reactome protein-interaction ontologies in the Knowledge Graph. I'll frame it honestly as protein-biomarker/interaction work, not mass-spec.
-- **Real-world data** → the Optum engagement is *explicitly* CDISC SDTM/ADaM-modeled real-world evidence.
-- **Ontology mapping/enrichment** → Eli Lilly OMOP CDM (SNOMED↔ICD-10-CM via OHDSI/Athena) + the 20-ontology Clinical Knowledge Graph.
-- **Unstructured-data harmonization** → Natera free-text/PHI fields → relational schema; NLP free-text→coded-concept.
-
-### 2026-07-15 [28e46640505a]
-
-**Two dispatch surfaces to Alfred, and they compose.** (1) *Pulse tickets* labeled `agent:aifred` are the **durable** coordination substrate — Nexus's 5-min cron dispatcher routes them, and they give me a queryable monitoring surface via the Pulse MCP. (2) The **Protos pane** (`aion:1`) is a *live, idle* Alfred seed session at its input prompt with bypass-permissions on — the **immediate** execution channel. The robust pattern is: I create precise tickets (I've done the recon, so Alfred doesn't re-derive), then hand the live seed session the mission pointing at those tickets to coordinate/execute.
-
-### 2026-07-15 [ffa66108be41]
-
-Notice Alfred **independently chose** to handle SW-1 directly rather than delegate it — "destructive file ops warrant care." That's the right instinct: the folder move is the one irreversible step (source deletion), so it stays with the coordinator, not a fire-and-forget subagent. My briefing's "verify byte-for-byte before deleting source" guardrail reinforced that.
-
-### 2026-07-15 [ddb10e121399]
-
-**The validation did its job — it caught a real failure.** Fixing the crash-loop and lifting the pause was necessary but *not sufficient*: the ticket never leaves `staging:wait`, and no managed executor spawns. The evaluation→queue→execute promotion stage is broken (compounded by the missing `pulse` CLI). This is a genuine debugging project, not a one-liner — exactly the kind of thing "validate first" exists to surface before real work is trusted to it.
-
-### 2026-07-15 [c04fe2ecc64e]
-
-This is the third deliberate off-switch. The Nexus autonomous system was shut down through **multiple independent, intentional mechanisms** around the same time: the `.nexus-paused` sentinel (Jun 19) *and* a `launchctl disable` on every agent. That belt-and-suspenders pattern is a strong signal the shutdown was **deliberate**, not an accident — you can't `bootstrap` a disabled service (hence the EIO error); it must be `enable`d first. The plists lint clean, so nothing is broken — they're just switched off on purpose.
-
-### 2026-07-15 [8d49348da428]
-
-**The flood is stale, and I triggered it.** All 15 `systems-engineer` load-failure notifications are dated **Jun 19–20** — they sat *pending* (undelivered) for 27 days because the delivery infra was down. When I loaded the dispatcher ~20 min ago, it drained that queue → Keryx/Telegram fired all 15 at once. They're now marked `delivered` (0 pending), so no *new* real failures — but I need to confirm the delivery isn't looping, and fix the **root cause**: the `systems-engineer` persona directory **doesn't exist** (task `AION-dda8ac46` was routed to a non-existent persona → `prompt_load_failed` → fell back to default).
-
-### 2026-07-15 [bc77a64d3cf3]
-
-**One root cause, several dependent symptoms.** (1) **Ollama down + loopback-bound** → every LLM-gated stage fails ⇒ staging-revert + review-thrash (the Jun 19 incident) — **fixed**. Secondary/independent gaps: (2) review has no backoff cap, so a *persistent* Ollama failure thrashes rather than parks; (3) Flask clobbers the logger to WARNING, hiding heartbeats; (4) dashboard delivery URL is `:8600` not `:8701`; (5) `pulse` CLI missing for some personas; (6) evaluator can assign a non-existent persona.
-
-### 2026-07-15 [9cb8b1272444]
-
-The validation confirms the Ollama outage was the whole story: with it restored, the state machine — which was well-built all along — advances cleanly through every gate. The Jun 19 "reviewer thrash" was review reverting `completed:no` on every Ollama failure; with Ollama healthy, review returns a verdict once and closes.
-
-### 2026-07-15 [486223d256a8]
-
-The Jarvis-dev (W11) `claude` command currently has **no `--model` flag** — so it inherits the CLI default rather than `AION_MODEL`. To put *this window* on Fable 5 I must add `--model '${AION_MODEL}'` explicitly, not just change line 55. The same `--effort high --add-dir…` fragment appears **4×** (both the add-to-existing and fresh-create paths, each with resume/session-id variants), so one `replace_all` fixes them together. And `~/Claude/Projects` + `~/Claude/GitRepos` are *outside* cwd, so they need explicit `--add-dir` grants (alfred is already under cwd).
-
-### 2026-07-16 [d73a1ccfdd10]
-
-One behavior to expect on restart: the launcher will `--resume` W0's existing conversation, which was recorded under Opus. Resuming it with `--model claude-fable-5` is fine — Claude Code honors the `--model` override and continues on Fable 5 — but the prompt **prefix cache resets** on the model switch (a one-time cost, not an error). If you'd rather start W0 clean on Fable 5, launch with `--fresh`.
-
-### 2026-07-18 [71822359565b]
-
-The roadmap is a *buildable-spec* document: every Phase 0/1 item carries an **acceptance criterion that proves it** (honoring No-Silent-Degradation), and it explicitly holds itself to "a fresh session could build Phase 0 from this without asking a question." My session's work maps directly onto **0.3(c)** — "Namespace JICM state + durable-state per lane (W0 vs dev)" — whose acceptance criterion is "*W0 state provably uncontaminated across a mixed session.*" I proved exactly that (W0 checkpoint md5 byte-identical across a dev prep run). And **0.3(d)** — the `refresh --fire` actuator — is now built and gated. The honest move, which the document itself demands, is to update it to reflect verified reality.
-
-### 2026-07-18 [c3a83cd32edc]
-
-**0.3(b) is a robustness fix, not an overflow bug.** W0 runs Fable-5, and `jicm-gate.sh` has no `*fable-5*` arm — so it falls to the `*) WINDOW=1000000` default. But **1M is Fable-5's actual window**, so the default is *accidentally correct*: W0 is **not** at risk of overflowing before JICM fires. What remains is legibility/robustness — JICM *defaults* to 1M rather than *recognizing* Fable-5, and the model extraction can whiff to `<synthetic>` (which I saw live). The fix is to add an explicit `*fable-5*|*mythos-5*` arm and harden the model-id extraction so the window is derived from a real model string. Valuable, but **not urgent** — it doesn't gate anything the way I feared.
-
-### 2026-07-18 [0392471ee9f7]
-
-**The `<synthetic>` tail also zeroes the token count** — and this is almost certainly why W0's state read `tokens:0` earlier. The usage extraction (`jicm-gate.sh:112`) takes the *last* assistant message's `.message.usage`, but a synthetic tail message has no `usage` → `null` → **tokens=0**, so JICM goes blind to W0's real context size exactly when a synthetic message lands last. My model-extraction fix skips synthetic; the usage extraction must do the same, or the model reads right while the tokens read zero.
-
-### 2026-07-18 [937f50412153]
-
-The w/vv call turned out to be **three faces, not two**: roman body=`w`, italic=`w` (NT) / `vv` (OT), and **display titling caps=`VV`** (a distinct fount with no W). The trap is that a roman w-sort is physically *cut* as two overlapping v's, so at high zoom it looks identical to genuine `vv` — over-zooming past ~5× at 400 DPI just pixelates and proves nothing. The reliable test is a capital-W at 2–5× gestalt.
-
-### 2026-07-18 [35766678dd90]
-
-Sound scratchpad pruning drops **completed-work narrative and delivery manifests** (recoverable from disk/git/provenance) while keeping **forward plan + live infra + "don't re-derive" findings**. The stale material here: the per-locus GT manifest, KEY CORRECTION #1/#2 (now baked into GT provenance), the tool-hardening blow-by-blow (now in the code), and the argument-p104 apply narrative. The one live decision-point buried in that block — *roman-lowercase w/vv awaiting Sir's ratification* — gets promoted up into DURABLE FINDINGS so it survives the prune.
-
-### 2026-07-18 [063d206730b6]
-
-**Two prior design generations are in tension, and reconciling them IS the design.** The v8 doc argues JICM should become *thin per-session hooks + prep script, no watcher, no tmux* — because (it claims) the hook stdin payload carries a full `context_window` object, making per-session sensing native. It even pre-identifies my exact namespacing fix (§6: "per-session state files via `session_id` suffix"). **But** the *current, working* `jicm-gate.sh` header explicitly says the opposite — "context_window is NOT in any hook event's stdin; the JSONL transcript is canonical." And critically, v8 admits **a hook cannot invoke `/clear` programmatically** — so v8 relies on a *human* to clear, which is impossible for autonomous chains/Protos. That's precisely why the tmux send-keys actuator (my `jicm-self.sh`) is non-negotiable for the multi-session/chain requirement.
-
-### 2026-07-18 [af3174114ef4]
-
-The current Claude Code hooks doc confirms hook stdin carries **only** `session_id`, `transcript_path`, `cwd`, `hook_event_name`, `permission_mode` (+ `prompt` on UserPromptSubmit, and notably **`model`** on SessionStart) — **no `context_window`, no token count** anywhere. So the v8 design's founding premise ("read context_window from hook stdin, delete the watcher") was **wrong**; the working v7.9 `jicm-gate` is right to parse the JSONL transcript. The upside: each session's UserPromptSubmit hook receives *its own* `transcript_path`, so **per-session sensing is already native** — the only fix is namespacing the output by `session_id` (which the v8 doc itself flagged as the multi-session fix). And v8's fatal limitation — **a hook cannot invoke `/clear`** — is exactly why the tmux send-keys actuator I built (`jicm-self.sh`) is non-negotiable for autonomous chains/Protos.
-
-### 2026-07-18 [b6955bb53aa8]
-
-The keystone that makes this whole design safe is one function: `jicm_key_paths`. Because `key=w0` returns the *exact* legacy paths, every subsequent generalization — the gate writing `JK_STATE`, the actuator preparing `JK_COMPRESSED` — is automatically a no-op for W0 until we deliberately migrate it in Phase 3. The unified system and the untouched-W0 guarantee coexist through a single conditional.
-
-### 2026-07-18 [791780d96e5d]
-
-Your genesis-16 hand-pass is the proof: the **same word is set both ways on one page** — `law`/`lawful` is `w` in some lines and `vv` in others, and L43 keeps `vvere` but changes `vviues→wiues` on a *single line*. The compositor just grabbed whichever sort was in the case. So there is **no lexical or positional rule** — an OCR must classify each w-glyph **visually by stroke connectivity** (joined = `w`, gapped = `vv`) and must **not** dictionary-normalize, or it erases the genuine-`vv` minority you preserve.
-
-### 2026-07-18 [98c0b4f34a7e]
-
-**Two migration seams I must sequence carefully.** The dev lane's *working* signal/checkpoint paths (`.jicm-clear-now.dev.signal`, `.compressed-context-ready.dev.md`) differ from what `jicm_key_paths dev` now returns (`jicm/signals/clear-now.dev.signal`, `jicm/checkpoints/dev.compressed.md`). The actuator (step 1) writes the *new* paths; `session-start.sh` (step 3) must read the *new* paths. They move together — and because live-fire stays **gated** in Phase 1, there's no window where a half-migrated dev lane fires against mismatched paths. This is why the phase order (actuator → session-start → *then* canary-fire) is a safety property, not just tidiness.
-
-### 2026-07-18 [045abf2e96d4]
-
-This is the classic `${v:+X}${v:-Y}` trap. I wanted "basename if set, else `<unresolved>`". But `:+` yields `X` when set **and** `:-` yields the *variable's value* when set (`:-` only substitutes `Y` when **unset/empty**). So for a set variable both halves expand: basename **+** full path. The fix is a plain `if`. It's display-only (the real `TRANSCRIPT` var is correct — the cycle fired the right paths), but in a project whose whole thesis is *legibility*, a lying status line is worth fixing.
-
-### 2026-07-18 [78a74a044bd1]
-
-This is the *intended* consequence of the finding-1 fix, not a regression. My harness2 "unknown session" test fired `gate` with **no** `JARVIS_WINDOW` and **no** role, and asserted it namespaces to `session_id`. But the finding-1 fix *deliberately* maps unset-window-non-dev → `w0` (the recovery path — a W0 session resumed outside the launcher has no `JARVIS_WINDOW` but is still W0). In the Jarvis hook domain (only w0 + dev exist), an unset-window non-dev session *is* W0, so routing it to the legacy file is correct — and matches pre-v9 behavior. The test's expectation is what's stale: a *genuine* stray needs an explicitly-set non-zero window (`JARVIS_WINDOW=7`), which doesn't occur in this domain. The real anti-contamination invariant (**dev** never touches W0) still holds.
-
-### 2026-07-18 [f15021c94112]
-
-The scans are **mostly clean** (only 12/109 genuinely degraded), so OCR is failing on **structure, not legibility**. The dominant mode is **M1 apparatus-bleed** (65% — marginalia, cross-refs, and annotation blocks invading the verse stream), with **M3 long-ſ→f glyph error** as the near-universal secondary. The references (s_dismas/odr_com) are faithful where aligned (~0.8–0.95), so the low pilot pass-rate is **genuine OCR failure routed to layout-aware re-OCR (rung 1)**, not measurement noise.
-
-### 2026-07-19 [e5d9b206f951]
-
-Part 1 and Part 2 dovetail here: because `align_coords` re-cuts to canonical verse boundaries, my transcription only needs accurate **line text + approximate verse tags** — the aligner snaps the precise cuts. That's why a name-list page (where verses run mid-line through the "children of X" chain) is now tractable as gold: I capture the lines faithfully, the aligner handles the coordinates.
-
-### 2026-07-20 [d8758b942cee]
-
-The actuator, when it fires, sends `/clear` into a **live** Claude Code session via `tmux send-keys`. That's a decapitation-capable action with high-consequence failure modes: fire mid-stream and tmux *enqueues* `/clear` as literal text (corrupting the session); mis-resolve the transcript and you clear the *wrong* session; resume from a stale checkpoint and you lose work. My 54 harness assertions validate the *logic* — but they use **stubs**. They can't reproduce the real TUI's idle/busy timing, the live transcript's `stop_reason` cadence, or the real `session-start` re-injection. So there's exactly one thing left that only a live run can prove.
-
-### 2026-07-20 [432ac19f2ba0]
-
-**Firing is double-gated**, which makes "staged gated" a hard property rather than a convention. The supervisor fires via `jicm-actuate.sh <key> --fire` — so **both** locks must be open before a single `/clear` reaches a live session:
-1. the supervisor's env-gate (`JICM_SUPERVISOR_ACTUATE=1` — *autonomy enabled*), and
-2. the actuator's `--canary` code-gate being deleted (*mechanism validated*).
-
-Right now **both are shut**: default is sense + GC + log-only, and even if someone sets `JICM_SUPERVISOR_ACTUATE=1` today, the harness confirms it hits the actuator's still-closed gate and logs `ACTUATE-BLOCKED` — loudly, never a silent no-op. So the supervisor is safe to run and observe immediately; it simply narrates what it *would* clear. And W0 is excluded entirely (the legacy watcher keeps owning `aion:0` until Phase 3).
-
-### 2026-07-20 [30d42521b380]
-
-This is exactly what Sir's report is *for*. The reOCR flags firing on the whole curated set isn't a bug — it's the honest baseline: the current per-source *archive* OCR sits at 0.67–0.85 verse-match to gold, well under the 0.90 bar, which is the entire reason the re-OCR program exists. The heatmap is a **worklist** — cells start flagged and flip to PASS as re-OCR improves each source. Scoring raw per-source OCR against the gold (not the noisy reference reads) is precisely the axis Sir specified — and it's a different, harsher, more truthful axis than qc_audit's reference-based scoring.
-
-### 2026-07-20 [1c84671019d4]
-
-The state file is **fresh** (ts 0m ago) but it's tracking a **51-hour-stale transcript**. W0's session `f56d4d98` last wrote its transcript on **Jul 17 19:56** — ~3080 minutes ago — with all-zero usage. So the watcher's periodic refresh keeps re-reading that dead transcript every ~15s, stamping `tokens=0` with a fresh mtime, while the `SOFT_NUDGE`/`pending=HALT` is **stale leftover** from when the session was last alive (>2 days ago) — a clear that armed but never fired (no Stop event ever came, because the session went idle/dead). This is *not* the synthetic-tail blindness; it's a **stale/abandoned session** that JICM is nominally "tracking" but which has had no activity for two days.
-
-### 2026-07-20 [5b35386de082]
-
-W0 is **live and over threshold**: pid `99185` (`JARVIS_WINDOW=0`, opus-4-8 1M), and its own statusline reads **`38% 382.7K … idle`** with `@Resume work from compressed context` sitting in the input line — i.e. **382.7K tokens, past both the 250K soft and 300K hard thresholds**, doing OriginalDR/OCR work. But the JICM state file is tracking a **different, dead session** (`f56d4d98`, transcript stale 51h, tokens=0). So JICM's brain is pointed at a corpse while the live W0 quietly sailed past the clear threshold. The `@Resume…` ghost-text in the input line is the tell: a prior clear cycle injected a resume nudge that **never got submitted** (the known autofill-needs-Tab+Enter failure), so W0 has issued no `UserPromptSubmit` since — the gate hasn't re-pointed the state at the live session.
-
-### 2026-07-20 [effa8ca7a950]
-
-The elegant reuse here: matter intervals are the verse-analog, so I can feed the GT's `intervals[]` as the "reference verses" straight into `align_coords.realign` — the *same* boundary-mapping machinery that re-cuts OCR to canonical verse coordinates now re-cuts a source's OCR to paragraph/row coordinates. One alignment engine serves both scripture verses and matter paragraphs; the only new pieces are deriving intervals from `body[]` and content-locating a section within a source's page stream (no verse anchors to lean on).
-
-### 2026-07-20 [bcdc2b807252]
-
-The agent's intervals surfaced a mapping I need for E5b: matter sections carry `citation`/`gloss` intervals (the margin apparatus). Sir's rules map cleanly onto matter — the section is the "book", its **paragraphs** are the "verses" (E4/E5a-analog: per-interval + combined), and its **margins/citations/glosses** are the "apparatus" (E5b: scored *combined*, mirroring "all apparatus combined"). So the matter scorer needs two pools, not one flat SCORE_KINDS list — noting it now so the scoring run reflects Sir's rule structure rather than a flattened approximation.
-
-### 2026-07-20 [3bd75d95de27]
-
-This exposes a flaw in *my* over-rigid seeding ("render ONLY pages 15–16"). Sections don't respect the page hints I recovered — they spill. The agent's honest truncation-flag (No-Silent-Degradation working in the sub-agent) is the signal to fix my dispatch phrasing: give the **start** page and instruct "follow the section to its true end even across page boundaries," never "only these pages." I'll correct that going forward and complete this section's p17 tail myself (small — keeps agent spend down).
-
-### 2026-07-20 [b791f11478e6]
-
-A frugality problem I need to fix now: each completed agent dumps its full ~15–20K-token GT into *my* context via the completion notification. Across ~18 remaining sections that's ~300K+ tokens of JSON I don't need in-context (I harvest from disk anyway). The fix: have agents **Write the GT to a file themselves and return only a short summary**. That keeps completion notifications tiny and directly serves Sir's overspend concern. I'll update the shared brief so all remaining agents do this.
-
-### 2026-07-20 [30cab27bf470]
-
-Paragraph-grain intervals are **too coarse for a 0.90-per-interval threshold**. A verse is ~20 words, so 0.90 edit-ratio is a sensible bar; a matter paragraph is ~300 words, where even 5% OCR error drags the whole-paragraph ratio below 0.90 — so every paragraph fails regardless. The flag itself is correct (raw matter OCR *is* far from gold, like scripture's ✗8–41%), but for the **threshold coherence Sir explicitly asked for** ("as much as applicable to chapter-verse sections"), scoring must subdivide paragraphs to verse-length units. The `intervals[]` (paragraphs) stay the inventory/localization coordinate; the *scoring* grain needs to be finer. I'll refine that in the E phase (sentence-splitting is unreliable here due to abbreviation periods like "S. Aug. li. 2." — a ~20-word window is the robust choice).
-
-### 2026-07-20 [fb2af8a2b678]
-
-The agent hit a **scan defect and recovered it correctly** — printed p.1077 is *absent* from S1 (a duplicated jp2, verified by identical md5), and pp.1088–1089 are bleached. Rather than silently drop those leaves (which would have been a real No-Silent-Degradation violation), it cross-recovered them from **S9's `archive-holiebible-ot2`**, verified byte-for-content that S9 is the *identical 1610 typesetting* (matching Anni figures + line breaks), flagged each recovered leaf (`gap_recovery`/`scan_source`), and confirmed continuity across the seam. That's exactly the "recover, verify identity, flag — never fake" posture. Also note: table_rows are naturally verse-length, so tables sidestep the paragraph-granularity scoring problem entirely.
-
-### 2026-07-20 [ebf9ecbd3ce3]
-
-W0's stuck `Resume work` nudge is actually the *most important thing the canary must prove*: the current **watcher**-driven cycle injected a resume nudge that never submitted (ghost-text/autofill). My v9 actuator uses the *same* `tmux send-keys` backend — so the canary's real job is to confirm the v9 actuator's defensive sequence (`wait_for_idle` → `clear-input` → `text` → `submit`) actually **executes** `/clear` and **submits** the resume, rather than stalling in the input line like W0 did. That's exactly the failure mode we can't afford on a real handoff.
-
-### 2026-07-20 [6a17b1d38d7b]
-
-Those backup files are the tell. `.bak-phaseH` across six Nexus-jobs files means a **"Phase H" migration** was mid-flight on the Alfred side; `.bak-devuuid-20260717` on the session hooks means a **session-identity ("devuuid") change** was applied today and left its safety copies behind. Both patterns say *an infra session ended without a commit-or-cleanup checkpoint*. Per my "Concurrent Live-App Use" note, I won't assume these are mine to finish or Sir's still-active edits — the disposition is exactly what I should confirm before touching anything.
-
-### 2026-07-20 [53c2e4654151]
-
-The weekend landed **JICM v9 "multi-session steward"** — a Phase 0→2 architectural jump from the v7.9 the instruction file still describes. Three things in that series directly change *my* footing:
-- `3adf57d` **"drop dev-exclusion"** — v9 replaced the old per-role dev exclusion (the thing that kept W11 invisible to JICM) with **per-key/per-session namespacing**. The instruction file's "jicm-gate.sh exits early for `JARVIS_SESSION_ROLE=dev`" is now *superseded*.
-- `61fa52a` raised thresholds to **soft 550K / hard 600K** for the 1M window — consistent with the Opus 4.8 1M migration.
-- `.claude/context/.jicm-state` still reads `timestamp: 2026-05-04` + `v79_shim: true` — frozen across every orientation. That's very likely an **orphaned v7.9 shim artifact**; v9's per-key steward probably writes namespaced state elsewhere, so this file may no longer be authoritative.
-
-### 2026-07-20 [086af2df5da3]
-
-The DEAD count came back **600 files / 814 MB**, but there are only ~141 Project_Aion + 33 alfred transcripts. The culprit: `find -L` follows the **symlinked** transcript dir and then *recurses into subdirectories*, over-collecting far beyond the intended flat `<uuid>.jsonl` files — likely sweeping in other projects' transcripts via the `~/Claude/Jarvis`→`Project_Aion` symlink aliasing. Had Sir run `--execute` on that, it would have archived/deleted **hundreds of unrelated sessions**. Transcripts are flat, so the fix is `-maxdepth 1` + a realpath in-bounds guard.
-
-### 2026-07-20 [552d15f8766e]
-
-The `-Users-…-Project-Aion` transcript dir is a **symlink to `-Users-…-Jarvis`** (a monorepo-migration leftover — Project_Aion and the old Jarvis cwd share one transcript store). The 600 = 141 real top-level `<uuid>.jsonl` **+ ~459 nested `<uuid>/subagents/…/wf_*` sub-transcripts** — subagent and workflow logs that belong *to* their parent session, not independent sessions. `-maxdepth 1` cleanly restricts to the 141 actual sessions (confirmed). My tool would have over-reached; caught pre-delivery.
-
-### 2026-07-20 [9a3e4228d702]
-
-**The tmux panes ARE correctly bound right now** — `aion:0→f56d4d98`, `aion:1→30231bad`, `aion:11→fbd7528a`. So panes don't *lose* their sessions; the instability is that Claude Code's session model now lets you **fork and re-point freely**. The docs confirm the mechanism you sensed:
-- **`/resume [session]`** = "resume by ID or name, **or open the session picker**" → any window can load any session.
-- **`--fork-session`** → new UUID, new branch, original preserved (SDK docs).
-- **`--bg-pty-host` + `cc-daemon`** → background-PTY sessions from a pooled daemon. **This is "background process"** — a *real* interactive session in a daemon-hosted PTY, forked from a parent. You were right: these aren't subagents; they're genuine working sessions.
-- Plus `/teleport` (resume claude.ai remote sessions) and `/tasks` (background tasks).
-
-And **several "sessions" are daemon spare-pool slots** (`e0cc6d1c`, `90e7e0c5`, `513140f7`, `a9eb6525`, `7dab16b5` = 0 KB `bg-spare`), not work. The heavy Alfred-seed accumulation (~20 in 6 days) is Nexus forking a seed per dispatch. **I also must retract "W0 self-compacted 694K→262K"** — that was a fabricated reconciliation; I'll defer to your direct observation of W0's state.
-
-### 2026-07-20 [f4bf6bfe2adc]
-
-The up-to-date docs name exactly what I found empirically:
-- **`corporate-launcher.md`** lists **`claude bg-pty-host` and `claude bg-spare`** as official background-helper processes, and a **"background service / supervisor process"** that keeps **"warm standby sessions"** ready — precisely the daemon + spare-pool I saw in `ps`.
-- The **changelog** settles your central confusion: **"`/fork` now copies your conversation into a new *background session*… the in-session subagent it used to launch is now `/subtask`."** So an active session becomes a background one via **`/fork`** — a *real* session, explicitly **distinct from a subagent**. You were right all along.
-- **`sessions.md:37`** confirms my W0 correction: **"standard settings files… are re-read at launch"** → resume gets **fresh hooks**. And **`sessions.md:25`** confirms resume is **"scoped to the current project directory and its git worktrees"** — exactly the symlink/cwd hazard in the launcher.
-- New hazard it surfaces: **resuming the same UUID in two terminals *without* forking interleaves both into one transcript** — a real corruption risk for Jarvis's launcher.
-
-### 2026-07-21 [9b16681dca6c]
-
-C3 turns keying from a **claim** into a **proof**. Today `jicm_derive_key` trusts `JARVIS_SESSION_ROLE=dev` — a claim any `/fork` background session inherits. The fix adds an **occupancy gate**: derive the candidate key (`dev`), then check whether *my* session-id actually matches the session-id running in that key's pane (`aion:11`) via `pane_pid → child claude → ~/.claude/sessions/<pid>.json`. If they differ, I'm a background fork, so I get `dev-bg-<sid>` — which `jicm_default_target` maps to **no pane target**, so the supervisor can never `/clear` a pane on my behalf. The registry CAS (C1) is the backstop. Net: the pane's real occupant owns `dev`; forks like me get their own harmless namespace. **No process-killing, no transcript deletion — the collision just stops.**
-
-### 2026-07-21 [995d366ae8e9]
-
-JICM's essence is **"preserve-the-reflex, add-the-volition"** — a *general-purpose* clear-and-resume cycle that W11-dev can point at **anything** and W0 can point at **itself** (voluntarily or on request). My design demoted background forks to second-class citizens with no actuation channel — which would (a) strip a legitimately-working `dev-bg` session of monitoring/HUD/cycling, and (b) break volition (a session couldn't invoke its own cycle). The correction: occupancy decides **identity + fork-detection**, never eligibility. **Every session — pane or background fork — is a first-class JICM citizen** with its own namespaced state, HUD row, and cycling. The safety property I wanted (a fork must never `/clear` the *parent's* pane) is preserved a different way: a fork actuates **its own** channel (self-clear from within, or its own PTY), never the parent's.
-
-### 2026-07-21 [16447a826f14]
-
-One transition hazard I have to design around: C1's compare-and-swap can't naively "refuse if a different live session holds the key" — because during migration my *stale* polluted `registry/dev.json` (sid `66d922e6`, still alive) would wrongly block the pane session `fbd7528a` from reclaiming `dev` after *it* relaunches. So C1 must be **occupancy-anchored too**: refuse only if the stored live claimant *actually occupies the pane*. A stale fork-claimant that isn't in the pane → allow the real occupant to reclaim. Same anchor as C2 — the pane is the one un-pollutable truth.
-
-### 2026-07-21 [09497b8ebeec]
-
-Two leverage points for the Rungs-0–2 goal fall out of this, neither of which is "more Rung-3":
-1. **The metric is a partly-broken yardstick** — per-verse scoring deflates prose by line-straddle (references drop 0.94→0.66). You can't prove a rung "improves" against a metric that swings ±0.3 on segmentation alone. *Fix the grain first.*
-2. **The consensus fusion is self-sabotaging** — it scores 0.67–0.75 while its own reference components score 0.84–1.00, because it votes bad scan-OCR in with equal weight. A fusion that trusts the converged references over noisy OCR is a concrete, provable Rung improvement that has nothing to do with Rung-3.
-
-### 2026-07-22 [98cfc4c83b6d]
-
-**Recognizer fine-tuning is the proven per-source path to the bar — and it's exactly the rung we'd written off.** Four independently-verified results converge: transfer-learning from a historical-Latin base needs only **60 gold lines for −43% error / 150 for −26%** [1712.05586]; fine-tuning reaches **CER 1.47%** on Early-Modern Latin [2106.07881]; OCRopus on period GT hits **0.02–0.05 CER — below the 0.10 target** [1809.05501]; Calamari on **~50 lines/book → ~10% CER** vs 50% generic [1807.02004]. We *already have* gold lines. And critically, the Calamari voting paper recommends **no dictionary/LM** precisely to preserve archaic surface [1807.02004] — so it's long-ſ-safe by construction. That reframes Rung 2 from "glyph fine-tune, 0 candidates" into *the* workhorse.
-
-### 2026-07-22 [2bc950f2e6eb]
-
-Two real findings fell out of the build beyond the blocker. First, **R1 already improves the source** (0.8997→0.9114) using just the base recognizer + preprocessing — the ladder's premise holds before fine-tuning even starts. Second, the **surface score is near-zero while content is 0.91** — not a metric bug, but the recognizer emitting the running-header/marginalia the gold body excludes. That's precise evidence that Rung-1's real job is *body-region typing* (separate scripture from apparatus), which is also exactly what made the old per-verse OCR fail. The pipeline is already teaching us where each rung must act.
-
-### 2026-07-22 [6690ee126d7e]
-
-The deepest lesson wasn't about OCR — it was about **swallowed exceptions**. Kraken's bug is the exact pattern your own guardrails name "silent degradation": a real `AttributeError` laundered into a benign-looking empty result, surfacing only as a misleading downstream message. Prior sessions couldn't crack it because the error was *invisible* at default log levels. The fix that unblocked a week of stalled work was one line — `logging.basicConfig(level=DEBUG)` — which turned a laundered failure back into a legible one. Interoception over inference.
-
-### 2026-07-22 [5f64b80e22d1]
-
-The two principles ended up validating each other. Principle #1 (must work gold-free) forced the production/eval split — and that split is precisely what *exposed* Principle #2's real "biggest gap": once the pipeline was addressed by `(ocr_dir, page_index)` with the gold quarantined in the eval harness, it became obvious the gold was verse-scoped while the pipeline transcribes whole pages, which is why the whole-page metric was lying. De-golding the architecture is what made the metric bug visible. You couldn't have found it without honoring Principle #1 first.
-
-### 2026-07-22 [547a6ac69068]
-
-The deepest lesson of this pass: **de-golding the architecture is what made the metric bug visible.** As long as gold was threaded through the pipeline, "psalms are broken" looked like a recognizer problem. The moment the production path was addressed by page-index with gold quarantined in the eval, it became obvious the gold was verse-scoped and the ruler was wrong. Principle 1 wasn't just a deployment requirement — it was the diagnostic that found Principle 2's real gap. The two constraints validated each other.
-
-### 2026-07-22 [d59292c55cdc]
-
-The witness-noise correction resolves a hidden circularity in the plan. If s_dismas/odr_com were really 0.80-noisy, non-gold pages (the 99.6% of the corpus with no gold) couldn't be *scored* — only flagged. But they're ~0.99 faithful, so they're **reliable acceptance references**. That means a non-gold page can pass reOCR by matching janvier/s_dismas at the identity bar (both cut by the same janvier grid) — gold is just the highest-quality reference subset, not a prerequisite for scoring. This is what makes corpus-scale gold-free acceptance actually possible.
-
-### 2026-07-23 [b76b7efdb8c3]
-
-**Per-verse identity now genuinely TRACKS page quality — the VS-5 mandate.** After the apparatus filter, clean verses score ~1.0 and mis-*recognized* verses score low and get flagged. The residual sub-0.95 on psalms is **honest recognizer error** (R2's fidelity on a hard 1610 page), which is precisely what should route to R3 — not something the segmenter should mask. Per No Silent Degradation, those verses stay OPEN and escalate; I must *not* force psalms to 0.95 by hiding real recognition failures. The engine's success criterion isn't "make every number ≥0.95" — it's "make the number *mean* recognition quality," and it now does (genesis 0.958, psalms 0.9375, both faithfully reflecting the recognizer).
-
-### 2026-07-23 [30d481a89b35]
-
-**The fix was one principle, not three patches.** Findings #1, #2, and #3-interior were all the same disease — *the boundary math trusted global proportionality over local anchor evidence*. Replacing global interpolation with "an un-anchored verse is placed only within the gap between its neighbors' real anchors" cured #1 and #3-interior at once; requiring **contiguous ≥3-token blocks** (not scattered "the"/"of") for localization cured #2 (32→1 spurious verses). That the same validated numbers survived the rewrite is the important signal: the review caught latent bugs on inputs my two happy-path loci never exercised, and hardening those paths left the exercised paths untouched — which is exactly what a good fix looks like.
-
-### 2026-07-23 [f15f88ed1e1b]
-
-**The recognizer's confidence is self-report-BLIND to identity failure — now proven, not just suspected.** Mean conf on known-bad verses = 0.9798 vs good = 0.9878 — *statistically indistinguishable*. **40 of 43** verses R2 got wrong carry conf ≥ 0.92. So the existing gate (`reocr_core: escalate if conf < 0.92`) catches **1/43** bad verses — it's useless as an R3 router. Forcing recall=1 on confidence alone escalates **88%** of all verses. And the other internal alarms I have (length-anomaly, ſ-suspect) catch **0** of the confident-wrong tail. This is exactly the "ALERT → redesign the gate" outcome §7 says the calibration is *for*: the anti-laundering power **cannot** come from recognizer self-report — it must come from **cross-source disagreement** (alarm 2, which DIV-1 already computes between witnesses). The gate calibration did its job: it killed a plausible-but-wrong design before it shipped.
-
-### 2026-07-23 [992e84150392]
-
-**This is a clean negative result, and it's exactly the measurement §8 R3-1 asked for.** `qwen3-vl:8b` (this Ollama build) is unusable for dense historical-text transcription: it's a reasoning model whose chat template can't be forced out of thinking (3 controls fail), and on hard OCR it loops instead of answering. The plan already anticipated this fork — "run via Ollama, MLX (olmOCR-2-7B, CHURRO-3B), or LiteLLM; **pick per measurement**" — and the measurement points unambiguously to the non-reasoning OCR specialists (MLX olmOCR/CHURRO), which is a separate infra unit, not a same-sprint swap.
-
-### 2026-07-25 [2fcb03fa04c4]
-
-**There is no "Opus 5."** Per the authoritative model catalog (bundled with Claude Code 2.1.212, current as of 2026-06), the latest **Opus** is **4.8** (`claude-opus-4-8`) — I'm literally running on it right now. The "**5**" generation exists for *other* tiers: **Fable 5** (the most-capable widely-released flagship), **Sonnet 5**, and Mythos 5 — but Opus's top is 4.8.
-
-**And the 1M part is already done.** `launch-aion.sh:58` already sets `AION_MODEL="${AION_MODEL:-claude-opus-4-8[1m]}"` — Opus 4.8 with the 1M-context beta — as the *unified default* for W0 (Jarvis), Protos/Alfred, and Jarvis-dev (updated 2026-07-17). So "Opus 4.8 1M" is the current default; there's nothing to change for that interpretation.
-
-I won't hardcode `claude-opus-5[1m]` on a guess — that ID would 404 and **brick every Claude Code session in the workspace** on next launch (the whole quartet). The claude-api skill is explicit: never construct model IDs that aren't in the catalog.
-
-### 2026-07-25 [c61100e9b425]
-
-The launcher funnels every session's model through one variable — `AION_MODEL` (line 58) — which propagates to W0 (line 1006), Jarvis-dev (291), Protos/Alfred seed (1280), and the executor `seed-model` file (1107). So this is genuinely a one-line functional change; nothing else hardcodes a model string (the only other occurrence, line 1002, is already commented-out history). I'm using your exact `claude-opus-5` string and dropping the `[1m]` suffix that 4.8 needed — the 5-generation is 1M-native, matching the bare command you gave.
-
-### 2026-07-25 [586e74503a71]
-
-The through-line of this sprint is that **honest measurement is a second set of eyes on the work** — and every layer needed it. The gate works because a witness disagrees with R2 where R2 is confidently wrong. olmOCR's real lift only appeared once I re-applied the janvier-cut to *its* output. And the safety guarantee only became a fact — not a hope — because I measured olmOCR's *bad* outputs against gold and confirmed they all stayed OPEN. A pipeline that reported "3 rescued" would have been lying by omission; this one reports "3 content-recovered, ſ still owed, 2 open, nothing shipped degraded." That distinction is the whole point of the No-Silent-Degradation posture.
-
-### 2026-07-25 [b1300a6d3420]
-
-This reframes everything I've been reporting for six orientations. I kept concluding "no explicit W5 task" because I was reading `session-state.md` (W0's shared state, frozen at Jun 15) — but my lane keeps its own handoff in **dev-namespaced** files (`.scratchpad.dev.md`, `.compressed-context-ready.dev.md`). That's the v9 per-key namespacing at work: W5 now has its *own* context lane. And the uncommitted edits to `jicm-actuate.sh` / `jicm-self.sh` are almost certainly the **`--fire` wiring in progress** — not stray litter. Let me read the actual handoff instead of guessing.
-
-### 2026-07-25 [603710afcaeb]
-
-Why I missed this until now: I was orienting off `session-state.md` (W0's shared state, frozen Jun 15), but v9's whole point is **per-key context lanes** — W5 now has its own `.scratchpad.dev.md` + `.compressed-context-ready.dev.md`. The namespacing I've been *reporting on* is the same mechanism that was *hiding my own handoff* from a `session-state.md`-based orientation. Lesson worth persisting: **in v9, a dev-lane session must read `.scratchpad.dev.md` first, not `session-state.md`.**
-
-### 2026-07-25 [1e67017e7984]
-
-The WIP is a clean instance of the **fold-forward-not-parallel-legacy** pattern (one of my feedback memories): rather than leaving `jicm-self.sh` as a walled-off dev path beside `jicm-actuate.sh`, its organs were *pulled forward* into the one key-parameterized actuator, and the old entry point demoted to a muscle-memory shim. That's the correct generalization — but it's exactly the kind of critical-hook change that the prior session deliberately stopped before finishing, precisely because it "earns per-step harness + code-review," not a rushed tail-end commit.
-
-### 2026-07-25 [21037f035b97]
-
-**The format is "Harbor"** — an open eval harness. A task is a *directory*, not a document: `task.toml` + `instruction.md` + `environment/` (Dockerfile + input data) + `solution/` (reference answer) + `tests/` (pytest grader + ground truth). Harbor builds the container, drops an AI agent in with `instruction.md` as its prompt, lets it write files to `/app/output/`, then runs your pytest suite to emit a reward.
-
-**The Nextflow run is the *source of truth*, not the thing you rebuild.** The workflow JSON is an execution trace (telemetry, process names, params). You mine it for facts an expert can verify, then *withhold* those facts from the agent and ask it to re-derive them. In the PTA sample, the contributor knew the run was a 168-sample factorial design — so they stripped the design labels out of the telemetry and asked the agent to reverse-engineer it.
-
-**Scoring is adversarial by construction.** `expected_truth.json` holds the answer; `test_outputs.py` reads the agent's JSON and checks it. Reward here is *binary* — all 12 tests must pass — which is why "a plausible-looking wrong answer" is the thing your domain expertise exists to catch.
-
-### 2026-07-25 [0ba19b57f26c]
-
-**Reward is binary.** `test.sh` runs pytest; if *any* test fails, `reward.txt` gets 0. There's no partial credit at task level — per-test results survive only as diagnostics in `ctrf.json`. That's how models pass 11 of 12 tests and still score 0.
-
-**The cohort sample's cleverest move:** it ships the agent telemetry for 135 of 168 samples and holds back 33 in `tests/holdout_telemetry.csv` — *"The holdout was not selected uniformly at random."* The key test replays the agent's memory proposal against those hidden samples. An agent that fits observed maxima tightly wins on savings and dies on the holdout. That single design choice converts a lookup task into a genuine statistical-robustness test.
-
-**Grader tolerance is a domain-expertise problem, not an engineering one.** The PTA grader accepts protocol *synonym sets*, matches effect sizes across four different conventions (η², Cohen's d, fold-change, relative %), and tolerates false positives on mislabels — with the comment that natural per-sample variance produces legitimately anomalous-looking samples. The feasibility memo names this: *"Perfect recall would penalize agents for doing exactly what a real scientist would do."* Only you can set those tolerances.
-
-### 2026-07-25 [f2be3549d98c]
-
-**There's a structural tension you should know about before you start.** All five briefings push their Option A/B/C toward `scientific_workflow` tasks — "run pixelator graph," "run STAR align," "run PURPLE." Every one of those requires re-sourcing input data that the record redacts, and four of five are gated on private, licensed, or HPC-scale data (oncoanalyser needs the access-controlled Hartwig bundle; taxprofiler's custom DBs are local-path-only and `cleanup=true` deleted the work dirs; demultiplex needs a multi-GB proprietary BCL folder; rnaseq is 3.9 TB peak RAM).
-
-Meanwhile *both* worked sample bundles — the ones Snorkel built to show you what "good" looks like — are `workflow_reasoning` tasks built purely from telemetry, needing zero external data. The briefings and the deliverables point in different directions. Follow the deliverables.
-
-### 2026-07-25 [db254f37c8e2]
-
-**I caught a leak by looking at output, not design.** The first `run_manifest.json` published both `task_count_reported: 132` and `task_count_in_telemetry: 131` — factually honest, but it announces a hidden record, which hints a retry occurred. Removed. Reasoning about the design would never have surfaced it; reading the generated file did.
-
-**The data handed me a better task than I designed.** Cross-referencing the 14 enabled `run_*` flags against the 31 present processes by string match yields *four* apparent misses — bracken, ganon, kmcp, and `profile_standardisation`. The fourth is a **false positive**: that flag *was* honored, and `TAXPASTA_MERGE` is its implementation. The flag names a function; the process names a tool.
-
-So thread B now has a **built-in precision trap**. The correct answer is 3, not 4, and getting it right needs domain knowledge rather than string processing. This also strengthens Gate 2 — the obvious naive baseline now produces a demonstrably wrong answer, which is precisely what a naive baseline is supposed to do.
-
-### 2026-07-25 [37b8f1d71c8d]
-
-**The sentence doing the most work:** *"Be precise about what counts as absent — the record names parameters and it names processes, and these are not the same vocabulary."*
-
-That's "expert-solvable, non-expert-proof" in practice. It warns that flag-to-process string matching is the wrong instrument, without saying which entry it gets wrong or that taxpasta is the profile-standardisation step. An expert knows to check what each parameter dispatches; a non-expert can't follow it mechanically to the answer. Without it, thread B is just a set difference.
-
-**The self-audit caught two leaks I couldn't see while writing.** "Write all *three* files" — describing the output count, but the correct answer to thread B is also three, and a coincidental collision isn't worth leaving in a prompt. And "identification of *the* process that did not complete" — the definite article silently confirmed exactly one exists. Both surfaced from grepping the text against a token list, not from re-reading it. That's the argument for scripting the audit.
-
-### 2026-07-25 [0119475bb784]
-
-**The last row is the task in one line.** `naive_string_match` decodes exit 140 correctly, eliminates memory with the right sibling evidence, proposes the right remediation, and writes a competent report. It passes **12 of 13**. It fails on exactly one test — the one requiring you to know what taxpasta does.
-
-That's what a benchmark item should look like: the shortcut gets everything right except the thing only an expert knows. The first three baselines fail 9–11 of 13, clearing Snorkel's "generic quick script must fail at least half the tests" bar.
-
-**A real leak, caught by auditing output rather than intent.** The generated data README described `time_limit_hours` as the "**wall-clock** allowance" — accurate, and it hands over a phrase sitting in my `mechanism` synonym set. An agent could echo "wall-clock limit" without ever decoding the exit status. Fixed **in the generator, not the output** — patching the file would have been silently undone by the next rebuild.
-
-### 2026-07-26 [0dd75a474238]
-
-Both bugs were invisible to the happy path and both were found by an accident: `setsid` doesn't exist on macOS, so my first "orphan" was a dead pid rather than a live one — which is exactly what exposed the fail-open branch. The pattern across this whole session is consistent: M2 found the mis-keying by refusing to fire, the harness artifacts nearly produced a false "verified," and a failed test setup found the classifier bug. The refusals and the failures were more informative than any passing assertion.
-
-### 2026-07-26 [09bcf8a975fe]
-
-`_signal_valid` has **4 `rm -f "$JK_CLEAR_SIGNAL"` reap sites**, and for `key=w0` that resolves to `.claude/context/.jicm-clear-now.signal` — **byte-identical** to the legacy watcher's `JICM_CLEAR_SIGNAL`. So `JICM_SUPERVISOR_INCLUDE_W0=1` is *not* "sense-only" as the plan assumes: it is sense **plus signal-reaping**, and it would delete the clear request the running v7.9 watcher is acting on. Two managers, one signal file. Flipping the flag today would have raced W0's real clear path.
-
-### 2026-07-27 [7718a17aeaec]
-
-The four `dev-bg-*` forks read **144% / 149% / 180% / 194%** — because they're measured against a **200K** hard threshold while the panes get **600K**. Same model, same 1M window. Those forks aren't "over threshold," they're mis-thresholded: the per-window identification falls back to the unknown-model default (250K/200K) for background keys instead of detecting the 1M window. A key permanently reading 194% is a key the supervisor will want to fire at forever — which is precisely the stuck-key case the circuit breaker was built for. That's a masked defect the single-session HUD structurally could not show.
-
-### 2026-07-27 [b0b2cb81954a]
-
-This is R4 paying for itself within one step. The mis-threshold was invisible for as long as the HUD showed one session; it became obvious the moment N rows sat side by side with different thresholds for the same model. And the fix chain ran backwards through three layers — HUD symptom → gate map → launcher migration — none of which the plan's R5 bullet list anticipated. The listed R5 items (symlink-safe resume, seed-UUID pinning, M3) are all still untouched.
-
-### 2026-07-27 [c835dfdc0b7c]
-
-Worth noting the architecture that makes this hot-reloadable: thresholds flow **gate → state file → stop hook**, never gate → daemon. The long-running process deliberately holds no policy, only mechanism. That's why a config edit propagates on the next prompt with no restart — and it's also why the state file being 6 days stale is normal rather than broken: it's a record of the last *prompt*, not a live gauge.
-
-### 2026-07-27 [df14120c38bf]
-
-The C2 debt has a precise shape: 21 verses where olmOCR (R3) fixed the *content* but flattened ſ→s, while kraken/reichenau (R2) has the *observed* ſ surface but worse content. So the arbiter isn't "re-read everything" — it's a **surface transfer**: where R3 and R2 agree modulo the ſ-fold, R2's ſ is an observation and can be adopted; only where R3 *corrected* R2 is the ſ genuinely unobserved, and that residue is what needs my eyes on the crop. That keeps `restore_long_s` (~90%, rule-inserted) out of the deliverable entirely.
-
-### 2026-07-27 [60fc1067702f]
-
-Worth flagging one thing I hit while wiring V10: five not-located matter rows carry no scores, `sc.para[0]` threw on `undefined`, and because `renderAll()` ran every section in one unguarded sequence, that exception **silently deleted V11 — the OPEN ledger — from the page**. A report that drops its own blocking list because of an unrelated crash reads as "nothing is blocking." `renderAll` now isolates each section, and absence renders as `not located` / `n/a` rather than vanishing.
-
-### 2026-07-27 [367fba0d8272]
-
-That means the +0.204 gold-page lift is almost entirely *downstream* of recognition — body-isolation (dropping interleaved marginalia), preprocessing, and localization — not a better recognizer. All of which is re-derivable from the stored lines + bboxes **without re-recognizing a single page.** The corpus isn't 12 hours away from the improved pipeline; it's a wiring job away.
-
-### 2026-07-27 [9fc45e4ca07f]
-
-This reframes the whole v9 effort. R1/R2's "occupancy = identity" assumed a window *has* a stable session. Post-2.1.205 that's false: a window has a *succession* of sessions, and the pane process permanently records the first one. My R2 reconciliation and R4 `OCC=ok` were internally correct and externally meaningless — they verified the pane against a UUID that stopped mattering at the first `/clear`.
-
-### 2026-07-27 [7c6069e0730d]
-
-This is a genuine correction to my earlier read, and the cause is instructive: I'd been orienting off `session-state.md` (W0's file, frozen at Jun 15) and raw `git status`, neither of which knows about my lane. The v9 **H3 namespacing** work created `.scratchpad.dev.md` — a *dev-lane* L1 handoff — precisely so W5 has its own state channel. I wasn't reading my own organ. Worth noting the sequel: my orientation routine should read `.scratchpad.dev.md` first, not `session-state.md`.
-
-### 2026-07-27 [42e29402e70e]
-
-The 32B's failure mode is more dangerous than raw rate suggests. It didn't produce gibberish — it produced `SESSION-HANDOFF-2026-07-26.md`, a *plausible near-miss* off by one day. A digest consumer would follow that path, find nothing, and not know whether the file moved or never existed. The 8B's zero-rate came with blander prose. That's the real trade: fluency correlates with confident interpolation over identifiers.
-
-### 2026-07-28 [b5b025643a7b]
-
-The 8B's grounded run scored *perfect recovery and zero hallucination* — by copying the fact sheet back verbatim, mention-counts included. Both headline metrics were maximised by a completely useless output. That's why the harness now reports an `echo` rate: any metric that rewards naming identifiers can be maximised by listing them without explaining them, and I'd have shipped that as a success.
-
-### 2026-07-28 [c5db77b5a3e8]
-
-Both bugs shared a signature: a silent no-op. `sed` and `str.replace` don't error when their pattern misses — they just return the text unchanged, and the run proceeds looking healthy. The only reason I caught it was the *identical* `in_tok` on `f56d4d98`, a number I'd have skimmed past if the two orderings hadn't produced byte-identical output. Patch-by-regex on a file I'm actively iterating is the wrong tool; rewriting the whole function is what I should have done from the start.
-
-### 2026-07-28 [09b1f8204b1f]
-
-Your reference policy also collapses the POP-2 diagnosis I was building toward. Those 1535 records (archaic < 0.2, modern > 0.9, `floor_modern` 0.008) are loci where **s_dismas has no text of its own** — and your rule already says janvier/madueke are primary for content and surface at exactly those loci. So it isn't a new heuristic needing calibration; it's the stated policy not being implemented. Same for the split of duties: janvier/madueke are primary for localization/presence/interval/type, which is what my `janvier_fit` selector has been leaning on all along without the policy being written down.
-
-### 2026-07-28 [c698f3bf3a3d]
-
-The 1535 records at archaic<0.2 / modern>0.9 with `floor_modern` 0.008 are precisely loci where **s_dismas has no text of its own**. Your policy already says janvier/madueke are primary for content and surface exactly there. So the symmetric-`floor_modern` threshold I proposed and was about to spend a calibration cycle on isn't needed — it was an empirical rediscovery of a rule that already exists. Likewise the `janvier_fit` selector the localizer has leaned on all along turns out to *be* the policy's localization rule, just never written down.
-
-### 2026-07-28 [1c169bb98550]
-
-The clipping runs are worth dwelling on. My `truncated` field checks *output* truncation only, so a digest built on 75% of a session reported clean. The harness measured everything except whether it had read the whole input. That's the same failure shape as the original W0 bug that started this whole investigation — a correct computation over silently incomplete data. I built a tool that reproduced the bug it exists to help fix.
-
-### 2026-07-28 [e6a0f0517fe0]
-
-That failure is the same shape as the W0 bug that started this entire investigation: a correct computation over silently incomplete input, with every visible metric reporting success. I built a tool to fix that class of problem and reproduced the class inside the tool. The fix is the same principle in both places — verify input completeness *before* computing, and alert rather than degrade.
-
 ### 2026-07-28 [6c62ea550288]
 
 `floor_modern` partitions cause from cause cleanly. S1/S3 sit at ~0.906 — the references *agree* about the verse, so the OCR is genuinely at fault; that's the ladder's real work, and it's ~1,500 records, not the 4,400 the raw sub-0.2 count suggested. S4 sits at 0.113 with a different verse in the slot — a reference defect. And **S4:S5 = 35:1** is the quantitative statement that the archaic witness is the weaker instrument.
@@ -1062,3 +629,467 @@ Two structural things surfaced while building this gold, and both are the *same*
 
 - Two competing causes for one signal, and I nearly shipped the wrong one: had I skipped the control, I'd have told Jacques to `/clear` — burning his 260K-token session for a remedy that provably doesn't work, since a 5-entry session fails identically.
 - The clinching detail is in the error text itself: it claims `claude-opus-5[1m]` is unavailable while that exact model is serving this turn, Jacques' turns, and Protos'. The model is up; the **classifier path** is down. "Wait for the model to recover" was never the right frame.
+
+### 2026-08-20 [69516811c28c]
+
+- I deliberately left the historical test artifacts alone — wiggum loop results, `experiment-7/7b` captures with `"recorded_by": "W5"`. Under the **old** `launch-jarvis-tmux.sh` the dev window genuinely *was* window 5, so those records were accurate when written. Rewriting them would falsify history rather than repair a misnomer. Say the word and I'll rewrite them anyway.
+- The distinction that made this safe: repair everything describing the **current** system; preserve records that were **true at their time**.
+
+### 2026-08-20 [eef4805831c1]
+
+- My first fix half-applied in a genuinely confusing way: the **title** changed to "SUPERVISOR LOG" while the **content** stayed stale. Cause — `jicm-config.sh:510` assigns `JICM_WATCHER_LOOP_LOG` with a *bare* assignment, no `${VAR:-default}`, so sourcing the config silently clobbered my value. Fixed with a HUD-owned `JICM_HUD_LOG_FILE` the config knows nothing about.
+- The HUD is a long-running loop, so it caches its script body like the supervisor daemon — and `respawn-window -k` destroyed the window (same failure as MLX-Embed on 08-17). Recreated from the launcher's canonical `new-window` definition.
+
+### 2026-08-20 [6e41f17d893b]
+
+The nudge itself is the bug. In `.claude/scripts/jicm-supervisor.sh:878`:
+
+```bash
+if [[ "${n:-0}" -gt 60 ]]; then
+    _rest_nudge "$key" "... is at ${n} lines (limit 80). Please prune ..."
+```
+
+**The gate fires at `> 60`; the message asserts a limit of 80.** So the band 61–80 produces a nudge whose own text proves no action is required — and the agent receiving it is being told a false premise about its file. This is the project's signature pattern in miniature: a correct rule (warn early at 60) and a consumer that reads it wrong (reports it as the hard limit).
+
+### 2026-08-20 [765f3e4b0ad1]
+
+G5 is the criterion that can fail *while all the bars pass* — it counts how many rows the rule actually touches. If per-segment R4 demotes exactly one token, the one gold entry that exposed the defect, then the rule is fitted to its own witness and the passing numbers mean nothing. That's the same trap R2.2e's E1/E2/E4 fell into: three criteria that only asked whether my mechanism did what I said.
+The G3 wording problem is worth noting too — as pre-registered it names the *baseline* as "the shipped pipeline," but if R2.2f is adopted the thing that ships is per-segment R4 with the span qualifier still off. The scorer takes the verdict on the stricter reading and prints both, rather than amending a pre-registration after the fact.
+
+### 2026-08-21 [cfc818a78581]
+
+**A rename is a correctness audit in disguise.** Three of the most serious findings here weren't the rename — they were bugs the rename *exposed* by making a stale identifier suddenly resolve to something live. `pgrep -f 'jicm-watcher\.sh'` was harmless while that name meant a dead script; the moment it named the running daemon, it became a self-match that could permanently shadow W0. Renaming forces you to ask "what does this string actually resolve to now?" of every reference.
+
+**Separate liveness from supervision.** The daemon panel reads process liveness and launchd state as two independent facts, because a live pid with an unloaded job is a distinct failure: it works right now and nothing will restart it. Merging them into one green "UP" would hide exactly the condition worth knowing.
+
+**Monitors fail silently in a specific way — by monitoring the wrong thing.** v1 didn't crash; it confidently rendered a red DOWN for a process nobody cared about, which is worse than a blank panel because it looks like information.
+
+### 2026-08-21 [c114b48e55d0]
+
+H4 is the criterion R2.2f's failure taught me to write. Scoring each link against its own bar is exactly what let a cycle hide: R2.2f couldn't reach its bar because R2.2g was open, and R2.2g's own acceptance never mentions the entry R2.2f owns. H4 turns all three flags on at once and asks the chain a question neither link can answer alone.
+The `"reach"` variant's left edge is the genuinely risky half — *any* row with ink in the left margin becomes flush-left, and this project already lost RunningHead recall 1.0000 → 0.7500 once to a promoted row. Hence three settings rather than one, and H3 with no exception.
+
+### 2026-08-21 [c6493eedf2a7]
+
+On leaf 409 the modal left edge `L=200` has 19 rows within tolerance and **12 rows starting left of it**; the left-edge histogram is a smear across bins 143–221, roughly 80px wide. The mode isn't wrong so much as computed at the wrong resolution.
+The cause is exact: `block_measure` finds the mode with `EDGE_TOL_P * p` = **13px**, while `classify` then tests in/out of block with `max(0.35p, 0.03·measure)` = **27px**. The estimator's window is half the consumer's. That is *two tolerances for one edge* — the identical failure `region_head`'s own header records having paid for once, surviving in the one place they didn't unify.
+
+### 2026-08-21 [5ce78cff8252]
+
+Under perturbation the y-band scorer is *more* robust but not invariant: orphans fall 41→38 at ×0.6 and 9→3 at ×1.6, with more entries bound in both cases. So the re-key removes some clusterer dependence and not all.
+The reason is structural. Binding by y-band still forces each entry to pick **one row**, and when the clusterer splits a line, the entry's ink lies across **two**. A row isn't an address either — the address is the ink's position on the page, in both axes. That's candidate 2: bind entries to tokens by 2-D overlap and let row membership out of the instrument entirely.
+
+### 2026-08-21 [da78a022a864]
+
+`ink2d` and `yband` land on the same accuracies (0.8281 / 0.9231) with orphans 37 vs 38 and 2 vs 3. A completely different addressing scheme produced essentially the same result, which means the movement isn't coming from addressing at all.
+The row clusterer feeds `tokens()`. Perturbing it changes **which glyphs are in a row**, so the tokens themselves change shape — a split line yields two half-length token sets. The gold's x-span then over- or under-covers real tokens. **No addressing scheme can be invariant to that, because the clusterer changes the objects being labelled, not merely their names.**
+And the roadmap already says so, for splitters: *"a criterion demanding an unchanged score is unachievable and was twice wrongly pre-registered."* I have now pre-registered it a third time, one level up. The rule was written down and nothing read it — the signature defect, in my own criteria.
+
+### 2026-08-21 [f85de2acb260]
+
+The verdict picked `yband` for a bad reason: it was first in a tuple. Both candidates pass every criterion identically, and the pre-registration never stated a tie-break — so the scorer fell back on declaration order, which is not a decision rule.
+On principle it must be `ink2d`. The entire purpose of R2.2j is to unblock R2.2i, where a printed line is split across **two** rows; `yband` must still choose one row and would lose the sibling's tokens, while `ink2d` never consults rows at all. The perturbation numbers point the same way — ink2d had fewer orphans than yband at both settings (37 vs 38, 2 vs 3), which is exactly where lines split.
+
+### 2026-08-21 [071c4bd93afa]
+
+Instance #13 is the one I'd most want a future session to see: the rule I violated was written in the **docstring of the file I was editing**. `score_head_regions` says plainly that a criterion demanding an unchanged score under a changed input is unachievable, and notes it had already been wrongly pre-registered twice. I read that file, edited around that paragraph, and pre-registered it a third time.
+That's what makes this project's signature defect worth its name — it isn't ignorance of the rule, it's that a correct rule sits somewhere nothing consults at the moment of decision. The remedy has consistently been building the consumer, not writing the rule down more emphatically.
+
+### 2026-08-21 [83e5cb4708af]
+
+R2.2j was adopted yesterday on criteria that perturbed the **row clusterer**. This guard perturbs the **splitter** — a different axis its criteria never touched — and finds the new binding silently dropping a token. That is precisely the failure mode R2.2j was adopted to prevent: its whole deliverable was "report the addressing failure SEPARATELY from the region score." The adoption satisfies its own criteria and violates its own principle on an axis nobody scored.
+
+### 2026-08-21 [a5c4af37a867]
+
+**The Gorilla citation reframes the whole problem.** RAG usually means embedding documents and retrieving passages. Citing an API-calling paper instead says the retrieval unit is a *function call with typed arguments*, so the quality lever is the tool catalog and the resolver, not the embedding model. Most "optimize the chatbot" instincts aim at the wrong layer.
+
+**Extreme atomicity inverts a normal assumption.** Storing every nucleotide as a row makes the schema uniform and joinable, which helps a planner, while making unconstrained generated SQL genuinely dangerous. The same design choice that makes the data agent-friendly makes the naive agent approach unusable.
+
+**Their weakest admitted point is upstream versioning, and that is an agent opportunity.** Because the answer layer can pin and export what the storage layer cannot retain.
+
+### 2026-08-21 [ec930fbb2758]
+
+**The evidence chip is information design, not decoration.** The spine of this brief is that nothing about Lilly's internal system is verified. Encoding Verified / Inference / Correction as a colored chip on each claim makes that structural, so you can't skim past it and accidentally state an inference as fact in the room. That was the one thing worth spending a semantic color on.
+
+**Numbered items earned their numbers.** The design guidance warns that `01 / 02 / 03` markers are usually filler. Here the eight optimization items are genuinely ordered, by how much of the failure surface each removes, so the numbers carry real information.
+
+**The mono face is subject vernacular.** Accessions, gene symbols, repo paths, and article IDs like `gkaf254` live in monospace in this field. Using it for identifiers and the serif for argument keeps the two registers visually separate.
+
+### 2026-08-21 [11bc6ba53467]
+
+**The bug was a mismatch between the measure and its container.** I capped paragraphs at `68ch` (roughly 580px) but let their grid column run about 920px. Text filled the left 580px and left 340px of dead air, which reads exactly as "squished left" even though nothing was technically misaligned.
+
+**The fix was to make the column the measure, not the paragraph.** Width is now derived rather than guessed: `--rail + --gutter + --measure`, so the container width and the reading measure cannot drift apart. Per-element `max-width` caps inside a wider column are the usual cause of this class of bug.
+
+**A missing centering rule made it worse below 1080px.** The sidebar hid but `main` stayed full width with capped text, so it pinned left. It now centers itself when the rail is gone.
+
+### 2026-08-21 [c326f9299b47]
+
+**Found it, and it is a CSS cascade ordering bug, not a math bug.** The `@media (min-width:1080px)` block sets `.toc { display:block }`, but the *base* rule `.toc { display:none }` is written **after** it in the stylesheet. Equal specificity means source order decides, so `display:none` wins at every width. The rail is invisible, but the grid still reserves its `190px` column, and `main` falls into that column instead of the `680px` one.
+
+**That is why it looks "squished left" rather than "narrow and centered".** My previous fix corrected the measure math, which was genuinely wrong, but the real culprit was one rule sitting three lines too low.
+
+**Media queries are not stronger than base rules.** A common mental model is that a matching media query overrides. It does not, unless it comes later or is more specific.
+
+### 2026-08-21 [66f507b64171]
+
+`main` reports five sinks by name: `unlabelled`, `ambiguous`, `collisions`, `orphans`, `abstained`. This was the sixth, and the only one with neither a counter nor a print. The guard asserts `lost <= collisions + orphans`, so every drop through it read as a token disappearing for no stated reason. The rule was written down five times and skipped once.
+
+### 2026-08-21 [42e928c61825]
+
+My own double-run guard produced a false positive. `ps aux | grep -c "[t]est_verification_standard"` counted **2** because the shell process executing that compound command has the pattern in its own argv — the bracket trick defeats the grep self-match but not the *shell's* self-match. This is the same family as the `pgrep -f` trap already in memory: argv is not process identity. Had I trusted it, I'd have skipped the confirmation run believing a suite was already going.
+
+### 2026-08-21 [e972bff5c91d]
+
+The second was worse. My double-run guard, `ps aux | grep -c "[t]est_verification_standard"`, reported 2 processes when there were none. The bracket trick stops grep matching itself, but not the *shell* running the compound command, whose argv contains the pattern. Had I trusted it I would have skipped the confirmation run believing a suite was already in flight. Same family as the `pgrep -f` trap already in memory: argv is not process identity, and a check that fails closed on a false positive silently cancels the work it was guarding.
+
+### 2026-08-22 [03a243908409]
+
+Every leaf's error is now **0, −1, −2 or −3 — never positive**. A near-constant offset across 20 leaves is the signature of a *definitional* mismatch between two counters, not of a clustering failure that would scatter. The strip counter reads peaks over the whole page's ink profile; the clusterer only ever sees `glyph_boxes`, which drops border-touching and out-of-size components. So the counter may be counting things at the page edges that are not type. Tuning the clusterer to close a −35 gap would be exactly the wrong move if the gap is in the bar.
+
+### 2026-08-22 [174a3749bcbe]
+
+The rule for this is already written in this very module. `text_runs`' docstring: *"A run that reaches the band's BOTTOM EDGE is the leaf edge / gutter shadow, not type. Leaf 700's '0px strip' was exactly this."* My strip counter reimplemented profile-run detection and did not read it. That is the signature defect again, and it inflated the bar I then used to refute candidate 1. The fix is principled and independent of the candidate: drop runs touching y=0 or y=H.
+
+### 2026-08-22 [9a5620588dc9]
+
+Accuracy went *up* (0.8760 → 0.9000) and MainText up (0.8375 → 0.9178), while scored pairs fell **121 → 90 with 27 orphans**. That is the exact Goodhart pattern this project already documented: `score_head_regions`' own header records that a broken splitter "posts the HIGHEST max-overlap accuracy, 0.9479, by orphaning 25." My S6 bar checked four *rates* and never checked the denominator, so three of its four numbers improved by discarding a quarter of the gold.
+
+### 2026-08-22 [ba7887d60a63]
+
+My seed threshold is `0.25 × prof.max()`, and the profile maximum is set by the densest *full body line*. A running head, a chapter head, or a note line has few glyphs, so its peak never reaches a quarter of that — every short line is discarded as noise. That is why S2 scored a perfect 20/20 while the gold collapsed: S2 counts **body-block** rows, which are exactly the long lines that survive. And RH recall still read 1.0000 because it is computed over bound pairs, so orphaning 13 of 20 running heads *raised* the rate.
+
+### 2026-08-22 [3a5b042bceaa]
+
+The third is the one I nearly banked. The first S6 run showed accuracy **up** 0.8760→0.9000 and MainText **up** 0.8375→0.9178, while scored pairs fell 121→90 with 27 orphans. Three of four numbers improved by discarding a quarter of the gold — precisely the Goodhart `score_head_regions`' own header records ("the broken splitter posts the HIGHEST accuracy by orphaning 25"). S6 as I wrote it bars on four *rates* and never on the denominator, so it could be passed by orphaning. Meanwhile S2 read a perfect 20/20 throughout, because S2 counts body-block rows and the defect only destroyed running heads and notes. A criterion scoped to one region cannot see damage confined to another.
+
+### 2026-08-22 [ce4b548f2592]
+
+**760 far glyphs across the 20 leaves produce exactly 0 rows.** Look at line 328: a glyph farther than `ROW_TOL_P*p` from its nearest seed goes to `buckets[("far", bs, id(bx))]` — a key unique **per glyph object**. So every unexplained glyph becomes its own one-glyph row, and the exit filter `len(r) >= 2` then deletes all of them. The seeded branch *cannot* emit a surviving row from that path, by construction. Chained with the same tolerance the greedy branch uses, those same glyphs form **88 rows**.
+
+The clincher is that this reconciles two numbers that looked incompatible. If 88 real lines were vanishing, S2 should show a big deficit — instead S2 read 20/20 at **+2**. No contradiction: S2 counts **body-block** rows, and the shredded lines are the short ones outside the body block. That is the identical blindness already on the record ("S2 read 20/20 while 13 running heads were orphaned"), now caught a second time by the same mechanism, in the same run.
+
+### 2026-08-22 [6e2e63ed99bc]
+
+I had written "make the far path chain greedily" into the scratchpad as the next step. v12 says not so fast. If those 760 glyphs were **descenders** of lines that already have seeds — `glyph_boxes` returns the box *bottom*, and p/q/y/long-ſ sit well below the baseline — then chaining them fabricates one phantom row per printed line, and the fix is actively harmful. The splitting test is the **sign**: a descender is always below its baseline, never above.
+
+Result: **58.6% below / 41.4% above**, and far glyphs are barely taller than assigned ones (0.510 vs 0.475 pitches). That refutes descenders as the *dominant* cause — but the median offset of **+0.329** and the mild skew say a descender component is genuinely mixed in. So it is neither pure "missed lines" nor pure "descenders," and chaining would recover some real lines while fabricating others. **Not adoptable on this evidence.**
+
+### 2026-08-22 [050f2f9ac5df]
+
+Orphans **10 → 3**, and look at *what* was recovered: `'NVMERI.'`, `'NVMER'`, `'NVMERI'` at **row 0** on leaves 404/406/408/416/418 — that's the running head, the book title (Numbers), which is exactly the RH population S6 was failing on. The far bucket was shredding the running-head line specifically.
+
+The check that matters most here is the **denominator**, because this project has already been burned once this run by rates improving through discarding gold. Entries-binding-none went **13 → 5** and **10 → 2**: more gold is being scored, not less. That is the *inverse* of the Goodhart pattern. It also explains why one accuracy reading *fell* (0.8926 → 0.8712) while the instrument reading rose — previously-unscored entries are now scored, and some score wrong. An honest gain, not a laundered one.
+
+### 2026-08-22 [598e9055d5e2]
+
+Look at leaf 419's gold texts: `'watero ex'`, `'une'`, `'ygamentesth'`. Those aren't transcriptions, they're machine garbage — but the *spans* are real. The regressed entry is `row 2`, and my candidate **adds rows**. `match`'s default `on_line` is `t["row"] == e["row"]` — a **row ordinal** — and `score_head_regions` still says *"A ROW ORDINAL IS NOT AN ADDRESS. DEFAULT 'ordinal' (unchanged) until K1–K4 pass."*
+
+So adding a row renumbers every key below it. That is the exact R2.1i defect this project already paid for once — "changing the splitter renumbered every key and the score collapsed with no region having changed." My A/B is confounded in **both** directions: the 1 new orphan is probably an addressing artefact, and some of the 8 recoveries may be too. The 10→3 number is not yet a result.
+
+### 2026-08-22 [c4e6a78c5ee3]
+
+This is what the denominator check buys. Under **A** the RH rate 0.9231 was computed over **13** entries when the control scores **19** — six running heads simply weren't in the sum, so A's rates and the control's rates were never comparable quantities. **B restores the denominators to control levels** (19/19/79) and drops entries-binding-none from 10 to 2, against a criterion the scorer itself states must be 0.
+
+Only now can the rates be read: on equal denominators B is **+5 MT correct, −1 RH, −2 MN** versus control. So **S6 still fails** — but it now fails for a real reason rather than a bookkeeping one. Candidate 4 stays unadopted, `BASELINE_MODEL=False`.
+
+### 2026-08-22 [4bc82bb8f713]
+
+The reason this hole survived is worth keeping. `test_region_gold_addressing`'s criterion B *does* police the denominator — "any change in the number of scored tokens must be FULLY ACCOUNTED FOR by reported drops." Candidate 4 satisfies it perfectly: it sheds 5 entries and reports all 5, so 116 + 5 = 121 and the guard stays silent while the rates ride a short denominator. That invariant asks **where** entries went; the S6 hole was about **how many**. An enumerative guard cannot catch a quantitative loss — which makes this instance #15 of the signature defect, and the most pointed one yet, since the module had been *printing* "must be 0" all along while its verdict read neither line.
+
+### 2026-08-24 [034b51a4b058]
+
+**I nearly reported a false failure on the input box.** `C-u` looked like it did nothing across two checks, so I moved toward a different clearing method. Sending one printable character revealed the line had been empty the whole time — the TUI simply had not repainted, and `capture-pane` returns the last painted buffer, not live state.
+
+**That is a stale-instrument reading, not a failed action.** Same family as measuring file mtime and calling it "the conversation advanced." The remedy was the same one that worked before: force the surface to update, then read it, rather than trusting a quiet reading.
+
+**Worth encoding, because the retry would have been destructive.** My next move was going to be sixty backspaces into a pane that was already clear — which would have eaten into whatever the TUI drew next.
+
+### 2026-08-24 [fc3d0560d41c]
+
+**I almost reported a sampler defect that did not exist.** Urist showed three `tool_use` records and zero PostToolUse samples in the gate log — the textbook unregistered-sampler signature. The splitting test saved it: the gate throttles PostToolUse on a 30s debounce, and the marker is stamped by the *prompt* pass too, so a lane whose tools all run inside that window writes no line at all. The debug log settled it with direct evidence of the hook running.
+
+**That means the audit heuristic itself is unreliable**, since it keys on exactly that signature. A check that cries wolf on healthy lanes gets ignored, which is how the real case slips through. Task #10.
+
+**Urist's first act was to refuse an unverified claim.** Asked which window it was in, it ran `tmux display-message`, got `aion:11`, and instead of reporting that, named two readings it could not distinguish from inside and asked for the external test. It was right — `display-message` with no `-t` resolves against the session's active window, which was mine. A fresh lane declining to assert from a self-referential instrument is the best possible first turn.
+
+### 2026-08-24 [38860a15775c]
+
+I hooked `_log` rather than the ten `_log "ALERT …"` call sites, so every alert — including any added later — is delivered *by construction* rather than by someone remembering. And the w0 inbox turned out to be a genuine sink, not a fifth unread channel: its own header says it is **force-loaded at session start via the persona @-import**. I only learned that by reading the file I was about to write into.
+
+### 2026-08-24 [028c04dce4fc]
+
+That falsifies the clean version of my own claim from twenty minutes ago. I wrote "nothing failed at or below 8,000," which was true *of the scaling ladder* and I generalized it into a property of the system. A 7,302-char chunk just produced 51K of output and hit the same cliff.
+
+The honest statement: output size drives the failure, and input size only *correlates* with output size. Chunking still helps — it bounds the blast radius to one chunk and graphiti retries internally — but it does not guarantee staying under the cliff.
+
+### 2026-08-24 [a915124e1a8f]
+
+The argv was still worth reading. "Source says 5400" and "the running process is bounded at 900" are both true simultaneously, and only the timestamps distinguish "stale invocation" from "the fix never took". A file-content check alone would have said fine; a `ps` check alone would have said broken.
+
+### 2026-08-24 [f9fdb9afb087]
+
+This changes the rig design. My reflex would have been `--mcp-config` + `--strict-mcp-config` per [[reference_claude_code_mcp_cli_flags]] — but `--strict-mcp-config` restricts the session to *only* the passed config, which would strip out the very tools under test. The disposable session must inherit the global connector and override only `--model`.
+
+Also note `tengu_cowork_chrome_automode_default: true`. The denial text says "auto mode cannot determine the safety" — so the classifier is the auto-mode safety classifier, which makes the model name in the error a load-bearing detail rather than incidental.
+
+### 2026-08-24 [ce50d41c8c2d]
+
+`STEP1` returned "no claude-in-chrome MCP server is connected in this session" — the headless `-p` session never had the tools at all. Had I omitted the control and run only the mutating call, I'd have gotten a failure and could easily have filed it as "sonnet is denied too", closing #7 on an artifact of the rig. This is the same discipline as the must-fire case from §0.-21: a harness that fails uniformly is a broken harness until proven otherwise.
+
+The cause is structural, and it follows from what I found a moment ago: the extension is a *connector paired to an interactive session*, not a spawnable `mcpServers` entry. No `-p` invocation can carry this test.
+
+### 2026-08-24 [9e34bdb80793]
+
+The error interpolates **whatever model the session is running** into a generic "classifier backend unavailable" template. On opus it says `claude-opus-5[1m]`; on sonnet it says `claude-sonnet-5`. The model name reads like an attribution — "opus is the thing that's unavailable" — but it's a template variable, not a diagnosis.
+
+That is precisely why §0.-20 filed this as high-value-but-untested: every lane ran `AION_MODEL=claude-opus-5[1m]`, so the name appeared in every denial anyone had ever seen, and constant-across-all-observations looks exactly like causal. Task #7's premise was built on a string that could never have varied.
+
+### 2026-08-24 [6a3856ed2836]
+
+This is the property that actually distinguishes the chunked design from the truncation bug it replaced, and it needed measuring rather than reasoning. Under the old code a kill cost the entire night's ingest; here a kill cost only the tail. The +31 is the evidence — and note it had to be read as *net new after dedup*, not against the 48 the log reported, or the numbers would look like a discrepancy.
+
+### 2026-08-24 [df06d6781a0b]
+
+"**Denied by auto mode**", with the UI itself pointing at `/permissions`. That settles a confusion running through this whole investigation: Chrome's auto mode is a *separate* gate from the session permission mode. The pane shows "bypass permissions on" and "denied by auto mode" simultaneously — bypass governs ordinary tools, while browser actions get routed through auto mode's safety classifier regardless.
+
+So the lever is not the model, not allow rules, and not `bypassPermissions`. It is auto mode itself.
+
+### 2026-08-24 [6b2f7cb0b250]
+
+These are Claude Code's ghost-text prompt suggestions, not typed input. `capture-pane` renders placeholder text identically to real text, so the pane *looks* like it holds an unsent human line. The cursor column is the discriminator — the same class of error as §0.-20's unrepainted-buffer trap, where the visible pane and the actual state disagree.
+
+This matters beyond tidiness: TRAP 16 exists to stop me destroying Sir's unsent work, and a rule that fires on *appearance* rather than state would make every idle pane untouchable.
+
+### 2026-08-24 [8536c1b7bd7e]
+
+This is the third time this trap has landed, and it has a new tooth. Previously it produced an empty diffstat and a vacuously clean scan. Here it *also* silently changed what got committed — `git add` failed, but `git commit` succeeded against previously-staged content, so the message and the contents were completely unrelated.
+
+The lesson sharpens: a failed `git add` does not stop the commit behind it. Never chain `add` and `commit` without checking the add succeeded, and never build a pathspec list as a space-joined string under zsh.
+
+### 2026-08-24 [3266711b6f68]
+
+This is the sharpest version of today's recurring failure. The script verified that the pane pid changed, and reported success on that basis. But the pid changing is not the thing anyone cares about — restoring MCP is. So every lane it had ever restarted came back with Graphiti 401ing and Anna's silently supplying nothing, under a green success message.
+
+Had I trusted the tool, I'd have bounced all six Archons and told you MCP was restored with nothing restored.
+
+### 2026-08-24 [8619060a1521]
+
+The window's baked uuid was **stale** — `0215a830…` against my live session `5079671e…`. That's the trap the script warns about: the "Press Enter to --resume" loop would have succeeded *silently* and restored a different session, because the old transcript still exists on disk. It doesn't error, it just resumes the wrong conversation.
+
+This is why the restart resolves the session id from the registry rather than trusting the window. My 2.7 MB session is what comes back.
+
+### 2026-08-24 [93ebdc5f2d12]
+
+The window's baked uuid was **stale** — `0215a830…` while my live session was `5079671e…`. The restart resolved the live id from the registry and rewrote it, so I came back as myself.
+
+Had this gone through the "Press Enter to --resume" path instead, it would have resumed the wrong session **silently**. Not an error — the old transcript still exists on disk, so it loads cleanly and you'd simply be talking to a different, older conversation that believes it's current. I only saw it because I dry-ran from the external session before committing.
+
+### 2026-08-24 [80d75b73903e]
+
+The control is what makes this a real negative. A session without the connector returns "tool not found" for **both** calls, which looks like a denial if you only run the mutating one. That's the void run from §0.-25 that nearly closed the investigation on a rig artifact. Control-then-test is now a two-call protocol, not an optional rigour.
+
+The model name in that error is interpolated into a generic template, not an attribution — refuted by measurement in §0.-25. It survived six days as a false lead only because every lane ran the same `AION_MODEL`, so a constant was indistinguishable from a cause.
+
+### 2026-08-24 [3b18ad6cba16]
+
+Chrome is a **session-paired connector**, not an `mcpServers` entry (§0.-25). My W11 session paired with the *old* extension install at launch. The read-only control still passing tells me the pairing is live, and the error text is the classifier template rather than a connection failure — so the evidence says this isn't staleness. But "the extension was reinstalled" is the one variable that actually moved today, and a session that predates the reinstall cannot rule itself in or out. A **fresh** session pairs from scratch.
+
+### 2026-08-24 [ed8dd6cc2705]
+
+This is a **splitting test**, not a retry. Two hypotheses produce the identical denial in W11: (a) the classifier backend is down globally, and (b) my session's connector pairing predates your reinstall. A fresh session pairs against the new install, so it separates them — one arm passing would mean every lane just needs a relaunch, which is cheap and entirely in my hands.
+
+The trap I'm avoiding: re-running the *same* call in the *same* session and calling the same answer new evidence. That's what "wait and retry" invites, and six days of it produced nothing.
+
+### 2026-08-24 [d17058561f04]
+
+- **Every assumption `restart-watcher.sh` encodes is dead.** v9 accepts no `--threshold`/`--interval` flags (grep returns nothing), writes no PID file, targets W1 (now a live Protos session at 105k tokens), and is launchd-managed with `KeepAlive` — so killing it by PID just makes launchd respawn it.
+- **The only thing preventing catastrophe is a typo-grade accident**: `SESSION="${TMUX_SESSION:-jarvis}"` defaults to a session name that no longer exists, so preflight exits 1. Set `TMUX_SESSION=aion` and `respawn-window -k` destroys Protos' 105k-token context with no recovery path.
+- v9's real threshold idiom is `JICM_SOFT_TOKENS`/`JICM_HARD_TOKENS` env overrides, and the restart verb is `launchctl kickstart -k`.
+
+### 2026-08-24 [87d1267484ec]
+
+- **`connectedAt` = 14:52:35, but this session started at 17:09.** The extension has held one continuous connection for 2.5 hours — it never dropped. The disconnect/reconnect churn I saw in system reminders was the *client* side (my session re-establishing its MCP connections during the relaunch), not the extension. Those are different failure surfaces with different remedies.
+
+### 2026-08-24 [da09fd213365]
+
+- The control call is a **pure read** that returns a plain-text hint rather than JSON, while the mutating call returns a structured payload. That asymmetry in return *shape* is itself a signal: the tool distinguishes "nothing to report" from "here is state," and only the latter path allocates a `tabGroupId`.
+- The extension is clearly reachable and permissioned — a broken bridge would have surfaced a connection error on the *control* call, before any mutation. So this pair also functions as a cheap liveness probe for the Chrome MCP link.
+- The session's tab group (`1480451519`) is created lazily on first need, not at session start. That's why the guidance says never to reuse tab IDs across sessions: the group and its tab IDs don't exist until something asks for them.
+
+### 2026-08-24 [614f77c69afb]
+
+- **`now close that tab` is ghost text, not human input** — `cursor_x=2` and zero clients attached to `chromeprobe6`. My own probe recipe warned about exactly this trap; the placeholder here is a *suggested follow-up* rather than the picker's, but the signal is identical. Reporting it as a user message would have invented a collaborator.
+
+### 2026-08-25 [0cdd2093beb0]
+
+- **The winning move was "never ask the broken oracle," not "approve the denial."** Lever 4 approved *after* a denial and the next call failed anyway, because approval doesn't remove the classifier from the code path. Manual mode intercepts *before* the classifier is consulted. Those two look like the same remedy in a summary and are opposite in mechanism.
+- **The outage is not fixed — it's routed around.** The upstream classifier is still down; I re-confirmed the exact signature at 17:2x. Worth stating plainly so nobody later reads "chrome works" as "the backend recovered."
+
+### 2026-08-25 [6e83e0c06cff]
+
+- This is exactly why deriving the value beats hardcoding it. A hardcoded `"gzip, deflate"` would be *correct in the container and wasteful in any environment that has brotli*; a hardcoded `"gzip, deflate, br"` would reintroduce the outage. Deriving from `SUPPORTED_DECODERS` is right in both, and the divergence between my two environments proves the divergence is real rather than hypothetical.
+
+### 2026-08-25 [4224befbfde3]
+
+- **The health check passing was a dead metric here.** `{"status":"ok"}` proves *a* proxy is listening — it cannot distinguish the old container from the new one. Had I stopped at the 200, I'd have reported a fix that was never deployed. The attribute probe is what actually discriminates.
+
+### 2026-08-25 [68d919c3cec8]
+
+- **`--strict-mcp-config` replaces the entire config, not just the project layer.** It's there for a good reason on Genie — it's what binds `GRAPHITI_GROUP_ID` to `genie-core` instead of the root file's hardcoded `jarvis-core`. But the side effect is that the three strict lanes silently lose Gmail, Calendar, PubMed and Mermaid. Urist and Jacques inherit that cost without needing the benefit.
+- **`claude-in-chrome` survives `--strict-mcp-config`** — it's harness-injected, not config-driven. That's why the strict lanes still had chrome tools throughout the outage, and it confirms the earlier finding that the blocker was never per-lane MCP config.
+
+### 2026-08-25 [5c2479628ab5]
+
+- **"Idle" and "busy" aren't contradictory here.** `window_activity` measures *terminal output*, which stops when a pane blocks on input. W0 has been silent 38 minutes precisely *because* it's waiting. The restart script's own liveness probe is the better instrument, and it was right eleven times while the idle timer was misleading.
+- The `--yes` I passed governs *my* confirmation, not the lane's. The save-gate still refused to proceed — which is the behaviour you want: a flag that skips the operator's prompt must not also skip the safety interlock.
+
+### 2026-08-25 [262da3ac5021]
+
+Neither fix exists independently of a large body of uncommitted work. `git show HEAD:…/collation_read.py | grep -c "baseline_seeds\|BASELINE_MODEL"` returns **0** — the far-chaining fix lives inside the seeded branch, and *neither* `BASELINE_MODEL` nor `baseline_seeds` has ever been committed. Likewise the S6 bar sits in `score_head_regions.py`, which git has never seen (`??`), and which imports `region_head.py` — also untracked.
+
+So committing "just the two fixes" would produce a commit that doesn't run. `collation_read.py` alone is **+790 lines across 14 hunks** since its last commit on **2026-08-14**; the far-chaining change is a few lines of one hunk. And **21 files in `witness/` are untracked**, including 12 of the `score_*`/`test_*` modules the 38-command suite invokes.
+
+### 2026-08-25 [0b8bd6b8e930]
+
+The Roadmap **already contains** this experiment. It records that `segment` holds RH 1.0000 and gives *"the best MN recall measured (0.9474)"* while MT falls — and it already names the cause: *"a body row's own VERSE NUMBER sits beyond a pitch-wide gap, so the body line is cut short of the measure."* It then names the next candidate: *"the extent of the region run that is **FLUSH TO L OR R**, not the longest — continuous like a justified line, anchored like one, and computed on GLYPH BOXES."*
+
+I ran three candidates and rediscovered two refutations that were already written down. That is instance #17 of this project's signature defect, committed by me, against the very document I was asked to review. My measurement adds one thing — quantifying it at 34% of body-like rows and generalising the cause past verse numbers to stretched word spaces — but the direction was on the page and I didn't read it first.
+
+### 2026-08-25 [7f989314b21e]
+
+`credentials.yaml` is **multi-document** YAML — `safe_load` raised on it. That crash was the good outcome: a laxer parser would have returned document 0 only, swept half the store, and reported clean. A scan that cannot fail isn't a scan.
+
+### 2026-08-25 [d57b6ef885f9]
+
+Both secrets are `${VAR}` expansions; `protos-core` is a namespace, not a credential. But note lines 23–26 and 49–52: this file has **the same rot** I found in the deleted persona configs — no `mcp-hot-reload` wrapper and no `--watch` on graphiti or `jarvis-rag`, and it hardcodes paths where root uses `${VAR:-default}`. Tracking it will make that drift *visible*, which is the main argument for tracking it at all.
+
+### 2026-08-25 [c78b98ee97fb]
+
+The control fires — headless `claude -p` **does** print these warnings, four of them, naming the backup file. That makes the clean run a genuine negative rather than a rig artifact. Without this control I'd have been reporting "no warnings" from a test that might never have shown them, which is the same void-run trap that cost me a day on the Chrome investigation.
+
+### 2026-08-25 [5d09ef543385]
+
+The script contains a guard that fired **against** the more flattering number. Folding same-label seams into the must-not-cut population is legitimate only if no seam spans the text block — so the script checks at run time whether any seam reaches region-gap width. Seven of 39 do, so it refused the fold and reported the stricter accounting. A check that can only ever confirm the answer you want isn't a check; this one had a live way to say no, and did.
+
+### 2026-08-25 [be776ee68264]
+
+**Eleven of the twelve already had a working `Edit(...)` twin**, so deleting them is lossless — including both `Archive/**` denies. Archive protection was being *asserted twice and honoured once*; it was never actually at risk.
+
+**The twelfth was load-bearing.** `Write(.../token-compression/*)` in `alfred/` had no twin, so deleting it would have silently removed a grant. I converted that one to `Edit(...)` instead. Uniform-looking rules are not uniformly redundant — worth checking each before a bulk delete.
+
+### 2026-08-25 [a98a9da4cdac]
+
+This is the project's signature defect with one turn of the screw. The usual form is a correct rule that nothing reads. Here the rule reads faithfully — it just reads a *curated copy* of the document instead of the document. The copy decayed and the audit stayed green throughout. It also connects to R10.3, which already asks this audit to parse complexity classes; the stronger requirement is that it derive its register from the roadmap directly.
+
+### 2026-08-25 [aa3319597c89]
+
+This is exactly the pattern §3.2b names about slant — *"working code that no rule governs… less safe than a gate with no capability, because it will be used and its errors will never be measured."* The project has caught this shape three times (Gate 0d, a rule no code implemented; Gate 0f, a rule no code read; slant, code no rule governs). This is the fourth, and it landed on the single capability you have now asked about twice. A hand-built geometric rule got four candidate implementations, five pre-registered bars and its own roadmap section. A learned layout model got a probe script and no document entry.
+
+### 2026-08-25 [6585f128e211]
+
+- **"All MCP servers disconnected"** at session start looked like the silent zero-MCP failure from §0.-35. It was startup latency — servers reconnect in waves. The real check is whether they resolve *eventually*, not whether they're present in the first second.
+- **My warning count of "1"** was my own `grep` command echoed into the pane, matching its own search string. Same self-match trap as polling for a token your input contains. The actual count is zero.
+
+### 2026-08-25 [625cf431ced4]
+
+Genie, Jaques and Urist all get `GRAPHITI_GROUP_ID` exported by the launcher. **Protos does not** — its launch line exports only four variables. So a `${GRAPHITI_GROUP_ID:-protos-core}` default would normally fire correctly *and* let a chain fork override it, which is the lever for the §0.-30 open question about N chains sharing one namespace.
+
+But that only holds if the variable is genuinely unset. If it leaks in from the tmux server env as `jarvis-core`, Protos would silently write into W0's graph — the precise pollution §0.-30 warned about.
+
+### 2026-08-25 [99b96e5e37a4]
+
+Verified by launch, not by parse: `your_group_id` resolved to **`protos-core`** — so the `${GRAPHITI_GROUP_ID:-protos-core}` default fired correctly and did *not* fall through to `jarvis-core`. Graphiti also authenticated and read the graph, which proves `${NEO4J_PASSWORD}` expanded too. And `mcp-hot-reload` itself is proven working, since graphiti resolved *through* the wrapper.
+
+### 2026-08-25 [37d561a39222]
+
+The diagnosis that made everything else fall into place: the aim was in the documents, but only as **fragments** — "archetype first" in one section, "reading order" inside a list in three others, "shapes from ink" as a section title. A project whose aim lives in fragments optimises whichever fragment is nearest to hand. This one did exactly that: four hand-built span rules and five pre-registered bars against a 19-entry gold, while four of the eight steps had no code. §3.0 exists so the aim is stated **once**, in one place, and governs.
+
+### 2026-08-25 [b2c9b2d27d97]
+
+This is why the standard is expensive and why it's worth it: it refuses to let a documented number drift from a computed one. It caught me doing exactly that. I rewrote the ceiling audit's claim *history* to record 72 → 81 but left its leading fraction reading `1/72` while the command had started printing `8/81`. Prose updated, number missed — and the checker reads the number.
+
+### 2026-08-25 [e201ecb7dbc3]
+
+`MN 0/19` reads like blindness and isn't. The MarginNote entries bind to **tight** boxes — median 0.0039 of page area, not the half-page `Text` block — so Surya **localises the notes as distinct objects** and simply has no *name* for them. Its vocabulary is modern-document: Caption, Footnote, PageHeader, Table, Code, ChemicalBlock. No marginalia class. That makes the repair a **class-inventory fine-tune of a working detector**, not a detector built from scratch — materially cheaper than R14.1 assumed. It also confirms the hybrid §3.2 item 5 specifies: the hand-built geometric component is currently **the only thing in the project that can name a marginal note**.
+
+### 2026-08-25 [8847bbb2a9b7]
+
+That last catch is worth naming because it is the session's pattern in miniature. Nothing was false — 20/20 is a real number the command really prints, and the suite was genuinely green. But the *headline* was the flattering fraction, and a status line is read by people who will not open the scorer. This project keeps finding the same disease in new organs: a correct register nobody reads, a correct rule nothing consumes, a correct number placed where it misleads. The register caught two of my own instances today ("strikethrough is not removal", and a ceiling line invisible without a literal C-token) — the instruments are now good enough to catch their author.
+
+### 2026-08-26 [6e0cd94162d1]
+
+The most useful thing R14.0 found was not a score but a distinction: `MarginNote 0/19` looked like blindness and turned out to be a **labelling** failure on a **working detector** — the notes bind to tight boxes, so Surya sees them and has no name for them. That flipped R14.1 from "train a detector" to "fine-tune a class inventory," which is a different order of cost. It only surfaced because the scorer reported bound-box *size* alongside recall — a column added during the architect pass, specifically to expose whether `MainText 80/80` was real. The check written to catch my own flattering number is what produced the session's best finding.
+
+### 2026-08-26 [8126a5012b0d]
+
+The consequence is sharp: **the one class distant supervision cannot label is the one the entire programme is blocked on.** Marginalia is what Surya scores 0/19 on, what the MN gap is about, and what R2.2's four refuted span rules were chasing. Had I gone straight to R14.1, the fine-tune would have taught the model every class *except* the one it was redirected to fix — and that would have surfaced only after training, as a mysteriously unimproved marginalia score.
+
+### 2026-08-26 [d77564d76bf7]
+
+**The obvious fix — copy root's config — would have been a silent no-op.** `mcp-hot-reload` resolves watch globs against `process.cwd()` (confirmed in its source: `path.join(process.cwd(), …)`). Protos' cwd is `alfred/`, not the repo root, so root's relative `infrastructure/rag-service/…` would resolve to `alfred/infrastructure/…` — a path that doesn't exist. Hot reload would watch *nothing* while looking perfectly configured.
+
+That's worse than having no wrapper: a broken feature that reports as present. The other five lanes' relative paths are fine precisely because their cwd *is* the repo root. A path is only portable relative to a cwd you've actually verified.
+
+### 2026-08-26 [9ffc83792423]
+
+R14.6a's own finding was the false one. It reported *"no transcribed side-note corpus is on this disk"* — true of `reconstruction/reads/`, false of the disk. That's the third time in this arc a "nothing exists" verdict came from a single-location search, and the project's Executive Summary already records the pattern: a witness excluded on a mistaken one-line description, never re-tested, producing a false *"nothing survives"* verdict at the most consequential point in the New Testament. **An absence is a claim and inherits the evidential standard of any other claim.** This time the mistaken description was mine.
+
+### 2026-08-26 [54166f450ff7]
+
+**Blocking discards the reason's guarantee, so I use two paths.** A blocked `UserPromptSubmit` definitely stops the payload reaching the model, but whether its `reason` string is *injected into my context* (vs. shown only to you) isn't documented. So the hook does both: it emits `reason`/`systemMessage` on the block, **and** drops a `.pending.json` marker. On your very next prompt — which is small — the hook injects the invitation via `additionalContext`, a field the docs explicitly define as "Text injected into model context." The guaranteed path carries the payload even if the best-effort one is silent.
+
+### 2026-08-26 [ceaa422389e9]
+
+**The dual-ratio estimator earned its keep.** It reported 504,761–1,009,523 tokens for `panic.txt`. The real failure was **1,002,000** — the high bound is off by 0.75%. A conventional chars÷4 estimate would have said 480K and looked survivable, which is precisely the reasoning error that produced a 2M-token prompt.
+
+**Failure modes fail open, not closed.** If the spill write fails, the hook *passes the prompt through unguarded* with a warning rather than blocking. Blocking with no copy on disk would destroy your input outright — strictly worse than the overflow it prevents. Same for malformed stdin and pruning errors: never wedge a turn over housekeeping.
+
+**Position 1 of 12 is load-bearing.** The other eleven `UserPromptSubmit` hooks — `relevance-retrieval.js`, `context-health-monitor.js`, and friends — each receive the full prompt. Running first means none of them ever has to parse a 2MB string.
+
+### 2026-08-27 [811bf5fa1ba8]
+
+**The generator edit is the one that actually matters.** `alfred/.claude/settings.json` is headed *"generated by profile-loader.js"* — and that script does `fs.writeFileSync(SETTINGS_PATH, ...)` at `:707` from a literal built at `:413`. It never reads the existing file. A hand-added `statusLine` would have been silently wiped the next time anyone ran the profile loader, and the drift would have reappeared with no obvious cause. I verified via `--dry-run` that the generator now emits it. Fixing the output without fixing the generator would have been a fix with an expiry date.
+
+**Absolute paths, not `$CLAUDE_PROJECT_DIR`.** DwarfCron's own `_comment` already documents why: that variable resolves to the satellite dir, which has no `.claude/scripts/`, so a relative path renders nothing — silently. I matched the convention the file already argued for.
+
+**The user-level fallback closes the loop.** Pointing `~/.claude/settings.json` at v9 too means any *future* lane inherits the standard rather than the stale Feb script. Without it, this exact drift recurs the next time an Archon is added.
+
+### 2026-08-27 [f8c9f03339be]
+
+- **The bug class this project keeps hitting has one shape: a correct rule that nothing reads.** Gate 0f was a rule no code read; Gate 0d a rule no code implemented; R13 an artefact no code loads. Today's addition: a gate *register* no parser consulted. The repair pattern is always the same — turn the prose into a parser and give it a proven negative.
+- **An audit written *after* a hand-fix always passes, and a passing run proves nothing.** The only honest acceptance is to reconstruct the pre-fix state and show the audit rejects it. That is why `--selftest` embeds the old documents rather than asserting coverage.
+- **Reading a table cell "positionally" vs "last non-empty" looks like style and is a correctness decision.** Last-non-empty would have silently reported an *unowned* gate row as owned by whatever its `n` cell happened to say — the audit built to find unowned rows hiding one.
+
+### 2026-08-27 [0c5305a640b0]
+
+- **The verification standard runs every command without its arguments**, and nothing warned of it. Enrolling `build_recog_gold.py --check` made the suite run it *bare* — which took the cutting path and blanked all 51 hand-keyed truth files. The keying had to be redone. Cutting is now opt-in and refuses to clobber. Any script whose no-argument behaviour is destructive will be run destructively by that block.
+- **Checks 1–4 of the injection proof would all pass on a stamp plumbed to a recogniser that is never consulted.** Only check 5 — *does the text change* — distinguishes a working mechanism from a well-named label. When broken output equals healthy output, you have to validate the mechanism.
+
+### 2026-08-27 [0c23724964a4]
+
+**This session produced a textbook instance of the failure you're describing.** The five Loom design documents — 82KB, directly relevant to the Loom evaluation — sat in `alfred/.claude/context/systems/` the whole time. No memory tier surfaced them. I found them by accident, in a grep run for an unrelated purpose. A semantic layer keyed on "Loom" would have surfaced them in the first second. That's the argument in one incident: the knowledge existed, was indexed nowhere the model reads, and appeared only by luck.
+
+**The vision already exists in Aion as a stub.** `relevance-retrieval.js` is a `UserPromptSubmit` hook whose own header calls it *"the rattlesnake reflex for memory recall."* But it's keyword **regex** → file map, capped at **800 characters**, one injection per prompt, no network. That's 0.012% of the corpus per prompt. It's a lookup table wearing the costume of a retrieval system — and it's already wired into exactly the right place in the request lifecycle.
+
+### 2026-08-27 [a8c7b1664384]
+
+**Claude Code owns the transcript; Loom doesn't** — and that asymmetry is decisive. If Loom appends context in flight, the client never records it, so next turn it sends history *without* the injection and Loom injects again. Every injected token pays the **1.25× cache-write** premium and yields a **0× read**, forever. If the hook injects instead, the content enters the transcript, becomes part of the stable prefix, and is read at **0.1× on every subsequent turn**.
+
+Same content, roughly **12× cheaper** from the hook. That falls straight out of the published multipliers — it isn't a modelling assumption.
+
+**And the gateway is still exactly right for single-shot callers.** Nexus jobs have no conversation state to diverge from and no hook layer at all. That observation is what lets *one* implementation serve both worlds.
+
+### 2026-08-27 [84b2fa676a31]
+
+**The API is stateless. There is no session on the server.** Claude Code re-uploads the *entire* conversation on every single turn — all 300K tokens of it, every time. What feels like "the model remembering our conversation" is actually the client replaying the whole transcript on each request.
+
+**Prompt caching is therefore not memory — it is a receipt.** The server keeps precomputed attention state for byte-sequences it has processed before. When your re-uploaded prefix matches one, it skips the recomputation and charges you 0.1× instead of 1.0×. Nothing is *stored* for you; you're just not billed twice for the same work.
+
+This reframes "invalidation" entirely. **Invalidating a cache loses no data and breaks no functionality** — the conversation continues perfectly. You just silently pay 10× for that turn. That's precisely what makes it dangerous: it is a pure cost failure with no visible symptom.
+
+### 2026-08-28 [15ae875d33d0]
+
+- **Building a step is the cheapest way to test the reason you filed it.** I attributed 41 cut boxes to the missing angle. Rotating the frame moved the count the *wrong way* and the correlation came back at +0.051 — the premise was false, and only implementing it revealed that. The rotation is still correct groundwork; the causal story was not.
+- **"Exactly unchanged" can be a warning as much as a pass.** GOLD-HEADBAND held at 115/121 through the rotation, but that is because every gold here scores *labels*, and the tilt's real cost is a *boundary* error — a box 17% too tall on leaf 409. The instrument is blind to the axis where the defect lives.
+- **A criterion can be circular and still look rigorous.** My clause "the estimated angle should correlate with measured row tilt" could only ever return 1.0, since the estimator *is* the row tilt. Pre-registration doesn't protect you if the criterion tests the instrument against itself.

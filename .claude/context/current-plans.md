@@ -16,8 +16,8 @@
 - **Host**: `localhost:5432`
 - **Database**: `chronicler`
 - **User**: `jarvis`
-- **Password**: `OSDbeydP6TOBGoJUym6rTBfULKJYqqPE`
-- **DSN**: `postgresql://jarvis:OSDbeydP6TOBGoJUym6rTBfULKJYqqPE@localhost:5432/chronicler`
+- **Password**: `${POSTGRES_PASSWORD}` — value in `.claude/secrets/credentials.yaml` (`database.postgres.password`), never in a tracked file
+- **DSN**: `postgresql://jarvis:${POSTGRES_PASSWORD}@localhost:5432/chronicler`
 - **Config**: `/Users/nathanielcannon/Claude/Projects/DwarfCron/chronicler/config.py`
 
 ---
@@ -46,7 +46,7 @@ Single source of truth. Consult in this order:
 | 1 | Data Foundation | **COMPLETE** (64/64, 2026-02-25) | M1 |
 | 2 | Explorer Core | **COMPLETE** (50/50 DoD, 2026-03-03) | M2 |
 | **3** | **Live Integration** | **COMPLETE** (27/27 DoD, 2026-03-23) | **M3** |
-| 4 | Narrative Engine | Pending (~60% pre-built) | M4 |
+| 4 | Narrative Engine | **CODE COMPLETE, NOT SIGNED OFF** (4.1-4.8 landed; 44/44 phase-4 tests green 2026-08-25; blocked on 43 stale repo tests + no packaged executable) | M4 |
 | 5 | Visualization | Pending (+LVN: 22 enhancements) | M5 |
 | 6 | Advanced Components | Pending (+LVN: achievements, prediction, bot) | M6 |
 | 7 | Polish & Production | Pending | M7 |

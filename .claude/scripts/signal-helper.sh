@@ -393,7 +393,7 @@ watcher_status() {
         fi
     fi
     echo "Watcher is NOT RUNNING"
-    echo "Start with: .claude/scripts/jicm-watcher.sh (v6) or launch-jarvis-tmux.sh"
+    echo "Start with: .claude/scripts/launch-aion.sh (the JICM watcher runs under launchd as com.aion.jicm-watcher)"
     return 1
 }
 

@@ -1,0 +1,124 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+Pruned 2026-08-21 (191 → 80, held at 80); prior `.scratchpad.md.pre-prune-20260821`. Pruned 2026-08-19 (216 → 77).
+Dropped as **grep-verified durable in `OCR-ROADMAP.md`**: R2.2j adoption §§ · R2.2i cand 1/3 results
++ every slope table · the 6-link chain numbers · period-alias / diagonal-chain diagnosis · R2.2k and
+R2.2l rows · R2.2b/c · R11.2c · R2.1k · Sir's rulings. → **L2 memory**: the instrument-failure block,
+now `reference_instrument_independence_and_bars.md` (6 rules).
+Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+
+## 🔴 RESUME HERE — 2026-08-21. R2.2l CLOSED. R2.2i+R2.2k cand 4 refuted on S6. Next: per-BLOCK seeds.
+### ✅ R2.2l CLOSED 2026-08-21 — **THE SIXTH SINK** (full § in roadmap). Suite GREEN, 38 cmds.
+`score_head_regions.main`'s `pairs` loop silently dropped an entry whose token an **AMBIGUOUS** entry
+also binds; `main` reported five sinks and not this one. Counted as `ambcoll` + added to the guard's
+`accounted` (ENUMERATION fix, measured first: 1 in the one failing cell, 0 in the other five).
+**R2.2l → DONE, `R2.2m` OPENED** (same uncounted idiom filtering containment obs by `cexcl`; its
+accounting is per-OBSERVATION not per-entry). Register **72**, claim **1/72**, audit re-run.
+### 🔴 R2.2i + R2.2k CANDIDATE 4 — S1-S4/S7/S8 PASS, **S6 FAILS, NOT ADOPTED**. `BASELINE_MODEL`=False.
+Two mechanisms, one candidate: **strip cross-correlation slope** (alias-free, sub-pixel lag) +
+**seeded assignment** (fixed seeds, no running median). Logs `cand4c`, `cand4-s8b`.
+✅ **ROW COUNT SOLVED**: body rows ±2 on **20/20** (13 exact), total **793 vs 790**, vs cand 1's 3/20
+and +246. **407 went +31 → +2** — never tilt, it was the chaining ⇒ **R2.2i/R2.2k inseparable and
+jointly sufficient for the count.** S8: recovery 16/16 (±0.0004), rows stable 16/16, potency 10/16.
+🔴 **S6 FAILS**: RH 1.0000→0.9231, MN 0.8947→0.8235, **10 orphans** (RH 6·MN 2·MT 2; 418×3, 406×2) —
+short lines. **Stopped tuning the seed finder: more work against the gold is fitting to the score.**
+🔴 **"SEED PER BLOCK" IS NOT IMPLEMENTABLE AS WRITTEN — CIRCULAR.** `region_head` imports
+`collation_read` (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so
+RH/MN/CH/MT **do not exist** until after clustering returns. `_rows_and_lines(boxes, p)` gets no
+band, no measure, no labels — only raw box geometry. Do NOT invent a geometric splitter there.
+🔴 **REAL CAUSE FOUND (probe_v10, 2026-08-21) — THE `far` BUCKET SHREDS EVERY SHORT LINE.**
+`_rows_and_lines` L328 keys an unexplained glyph `("far", bs, id(bx))` — **unique PER GLYPH** — so
+each becomes its OWN row and `len(r) >= 2` then deletes it. The seeded branch **cannot ever emit a
+surviving row from that path, by construction.** Measured: **760 far glyphs → 0 rows today; 88 rows
+if chained** at the same `ROW_TOL_P`. ⚠️ Consistency check that makes this solid: 88 lost lines
+should have crashed S2, but S2 read 20/20 at **+2** — because S2 counts **BODY-BLOCK** rows and the
+shredded lines are the SHORT ones outside it. **Same blindness as the 13-orphaned-running-heads
+case, twice in one run.** Nothing to do with blocks.
+✅ **FIXED IN `collation_read._rows_and_lines` 2026-08-21, far glyphs now CHAIN** (folded forward
+from the greedy branch, not a parallel rule). VERIFIED probe_v16: **inert 20/20** vs greedy at
+`BASELINE_MODEL=False`, and at True the SHIPPED code reproduces arm B's gold exactly. ⏳ **suite f
+pid 14373 → `suite-20260821f.log` IN FLIGHT, verify before reporting.**
+🔴 **BUT IT DOES NOT RESCUE THE CANDIDATE — S6 STILL FAILS. `BASELINE_MODEL` STAYS False.**
+Three-way, ink_bind (probe_v13/14/15). ⚠️ Read the DENOMINATORS, not the rates:
+| arm | RH | MN | MT | bind-none | ACC |
+|control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+|A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|**10**|0.8919|
+|B=A+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0.8992|
+**A's rates were never comparable to control** — RH summed over 13 entries where control sums 19.
+B restores the denominators AND takes bind-none 10→2 (a criterion the scorer says must be 0), so
+only now do the rates mean anything: on equal denominators B is **+5 MT, −1 RH, −2 MN** vs control.
+A REAL failure, not a bookkeeping one. Recovered orphans were the RUNNING HEAD ('NVMERI' row 0,
+5 leaves) — the far bucket was shredding it while S2 read 20/20 (body-block blindness, AGAIN).
+⚠️ **I nearly discounted all of this on a STALE COMMENT**: `score_head_regions` L58 says ROW_ADDRESS
+defaults to `"ordinal"`; the live constant L69 is **`"ink2d"`, adopted 2026-08-20**. Ordinal keying
+would have confounded any row-count change. **Assert the constant at runtime, don't read the header.**
+⚠️ **BUT "just chain the far bucket" WAS NOT JUSTIFIED ON AGGREGATES — probe_v11/v12.** The 760 are a MIXED
+population, not missed lines: dist to nearest seed piles at **0.30-0.50p (59.7%)**, median 0.46,
+only 7.5% beyond 1p. Sign test for descenders (box BOTTOM ≠ baseline for p/q/y/ſ, always BELOW):
+**58.6% below / 41.4% above**, heights far 0.510 vs assigned 0.475 ⇒ descenders **REFUTED as the
+dominant cause** but median offset **+0.329** says a descender component IS mixed in. Chaining would
+recover some real lines AND fabricate phantom descender-rows. **Do not adopt on aggregates.**
+➡️ Next (BLOCKED on suite c): decide it **AGAINST THE GOLD, not a proxy** — do the chained far groups
+overlap the S6 gold entries that are currently ORPHANED? ⚠️ **USE `score_head_regions`' own binding
+(`match`/MIN_BIND_FRAC), do NOT reimplement it** — that is the signature defect, 14 instances.
+Then any adopted change re-runs S6 with a bar on **`pairs`** as well as the four rates.
+### 🔴 THREE BARS OF MINE WERE WRONG IN ONE RUN — the transferable part (full § in roadmap)
+1. **827 was inflated by ~39** — the strip counter took profile runs at y=0 and y=H (**page-edge
+   shadow**); `CR.text_runs` ALREADY states the rule. Corrected **790**. ⚠️ This bar refuted cand 1.
+2. **S8(a)'s ±0.003 was below my estimator's own resolution** (integer lag / ~150px ⇒ quantum 0.0067,
+   never computed). **Fixed the INSTRUMENT** (parabolic sub-pixel peak), not the bar.
+3. **S6 bars four RATES, never the DENOMINATOR.** First run: acc **UP** 0.8760→0.9000, MT UP, pairs
+   **121→90, 27 orphans** — the Goodhart the module's own header records. **Successors must bar `pairs`.**
+⚠️ **S2 read 20/20 while 13 of 20 running heads were ORPHANED** — S2 counts BODY-BLOCK rows, so a
+criterion scoped to one region is blind to damage in another. Cause: seeding at `0.25 × profile MAX`
+(set by the densest body line) dropped every SHORT line; now **prominence** peaks, floor tied to the
+module's own ">=2 glyphs" rule (27→10 orphans).
+### ➡️ AFTER THE CHAIN: R2.2d step (2) CONTIGUITY (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME
+modal-edge assumption as R2.2g, two sides — resolve together) · CONTINUITY · R2.1j-b · R2.2b band
+BOTTOM. ⚠️ **R2.2c still BLOCKS every region number.**
+
+## ✅ SUITE — a/b/**c** ALL GREEN 2026-08-21 (**all 38 cmds**, 4 heavy scorers). c VERIFIED, DONE.
+Register **72**, claim **1/72**. `suite-20260821c.log` **COMPLETE 125 lines, 0 anchored FAILs, and
+BYTE-IDENTICAL to GREEN baseline `b`** once timings are stripped (`diff <(sed 's/[0-9]*\.[0-9]*s//g'
+b.log) <(… c.log)`) ⇒ the cand-4 edits are provably INERT at `BASELINE_MODEL=False`. **Free to edit
+`collation_read` again.** ⚠️ Lesson from this run: the PARENT `test_verification_standard.py` reads
+~0:00.04 CPU over 10 min because it `wait()`s on shelled-out children — **CPU≪elapsed does NOT mean
+hung for a process that spawns children; check descendants (`pgrep -P`) first.** It was the
+regression run for the cand-4 edits to `collation_read` (`leaf_slope` rewritten to
+strip cross-correlation + sub-pixel lag, `baseline_seeds` added, seeded branch in `_rows_and_lines`).
+All inert with `BASELINE_MODEL=False` and S1 verified bit-identical (1242 rows/22 pairs) against a
+re-implemented original, so GREEN is expected — **but it was still running at the refresh. Check it
+before reporting any suite state.** At 75 lines it had 0 real FAILs.
+⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — line 89 is a HEADING containing 'FAIL'; anchor it
+(`grep -nE '^ *FAIL|^FAILED'`). ⚠️ **`ps aux | grep -c "[t]est_..."` ALSO false-positives** — the
+SHELL running the compound command carries the pattern in its own argv. Bracket ≠ self-match proof.
+⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). ~1h, heavy scorers
+~20-25 min each ⇒ BACKGROUND **with `-u`** (redirected stdout is buffered).
+⚠️ Claims parse ONLY in triple-backtick fences, only if the line has `->`, and the **FIRST fraction
+must be one the command PRINTS** (a decimal pair is a trap: `acc 0.8760 / 1.0000` → `8760/1`).
+**Block membership, not claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS
+re-run `audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+
+## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED.
+* ⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+* Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+## 🔴 FOURTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+**#14 R2.2l** (R2.2j's OWN deliverable says "report addressing failure SEPARATELY"; the adopted code
+does not, on the one axis its criteria never perturbed) · **#13** L2/K3 (the rule against it was in
+the docstring of the file I was editing) · #12 R2.2h · #11 R11.2d · #10 splitter/label handoff · #9
+argument-gold scorer · Gate 0f/0d · §7.7 ladder · `audit_prereq_ceilings` · R9.8 · R2.2c.
+⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test** — four
+days running, that link decided the verdict (E3 · G1 · M1 · the strip line count).
+## 📜 Artifact — living doc, republish SAME path to keep the URL
+`scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+⚠️ **Source lives in the SESSION scratchpad, not the repo — re-extract via WebFetch before editing.**
+
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+* 🔴 **Repo declares pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`;
+  `.git/hooks/`=samples). Manual: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+* `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDRnotes` 192 KB untracked — deliberately
+  NOT gitignored so the fragility stays visible; believed Sir's. **Leave both.**
+* **R11.2b**: the standard parses only `witness/`-prefixed commands ⇒ 2 repo-root R11 entries sit
+  **uncovered** (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+* ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never edit, R7.5d).

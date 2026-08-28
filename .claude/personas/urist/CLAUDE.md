@@ -75,8 +75,21 @@ pre-embark events. **Never assume there are 7.**
 ## Current state
 
 Fortress **Girderpriced COLLAPSED in Y256**. A new embark is needed. Do not write as
-though it is live. Chronicler Phases 1-3 are COMPLETE (27/27 DoD, 2026-03-23); Phase 4
-is PAUSED pending P1.
+though it is live. Chronicler Phases 1-3 are COMPLETE (27/27 DoD, 2026-03-23).
+
+**Phase 4 — Narrative Engine: COMPLETE** (2026-08-26). Both blockers closed:
+- Test suite repaired, DwarfCron `2347210`: **468 passed / 2 skipped / 0 failed**. Also
+  fixed a real defect the stale tests were hiding — `embeddings.world_id -> worlds(id)`
+  was NO ACTION, so `DELETE FROM worlds` failed outright (`migrate_embeddings_cascade.sql`,
+  applied to the live DB).
+- **Packaged stand-alone executable**, DwarfCron `0bb68fa`: `packaging/chronicler.spec`,
+  31 MB one-file binary. Acceptance went beyond the rule — the full suite was run against
+  the *packaged binary* serving :8080, not the source tree.
+
+Reconciliation record: `projects/chronicler/progress/phase-4-status-reconciliation-2026-08-25.md`.
+
+**DwarfCron is SET ASIDE** per Sir's instruction (2026-08-26). Active work is the MtG
+suite at `Projects/mtg-sell-optimizer`; see memory `mtg-domain`.
 
 ## Introspect before asserting
 

@@ -1,8 +1,14 @@
 {
-  "timestamp": "2026-08-19T21:26:34.270947+00:00",
-  "entities": 39,
-  "edges": 88,
-  "elapsed_seconds": 436.56,
-  "checkpoint_bytes": 8072,
-  "group_id": "genie-core"
+  "timestamp": "2026-08-28T01:30:36.832229+00:00",
+  "entities": 99,
+  "edges": 197,
+  "elapsed_seconds": 592.9,
+  "checkpoint_chars_original": 12847,
+  "chars_ingested": 12845,
+  "chunks_planned": 4,
+  "chunks_ingested": 4,
+  "chunks_failed": [],
+  "chunks_over_ceiling": 0,
+  "complete": true,
+  "group_id": "jarvis-core"
 }

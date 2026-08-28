@@ -1,0 +1,20 @@
+{
+  "input_bytes": 2649939,
+  "output_bytes": 1745421,
+  "input_lines": 1426,
+  "output_lines": 886,
+  "compression_ratio": 0.6587,
+  "reduction_pct": 34.1,
+  "filtered_by_type": {
+    "file-history-snapshot": 9,
+    "attachment": 381,
+    "last-prompt": 69,
+    "ai-title": 69,
+    "queue-operation": 12
+  },
+  "tool_results_total": 292,
+  "tool_results_deduped": 42,
+  "tool_results_truncated": 31,
+  "sysrem_stripped": 0,
+  "assistant_compacted": 292
+}

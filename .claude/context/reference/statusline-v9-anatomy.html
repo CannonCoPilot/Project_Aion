@@ -1,0 +1,332 @@
+<title>Aion Status Line — Field Anatomy</title>
+<style>
+  :root{
+    --ground:#f6f8fb; --raised:#ffffff; --sunken:#eef2f7;
+    --ink:#0e141b; --ink-2:#3f4c5a; --ink-3:#6b7a8b;
+    --rule:#dbe3ec; --rule-2:#c6d2df;
+    --accent:#2c6fb8; --accent-soft:#e6eef8;
+    --term-bg:#0b0f14; --term-rule:#1e2733; --term-ink:#c8d3e0; --term-dim:#5d6b7d;
+    --ok:#2e9e63; --warn:#b47a10; --bad:#c0392b;
+    --measure:64ch;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --ground:#080b0f; --raised:#10161d; --sunken:#0c1116;
+      --ink:#e3eaf3; --ink-2:#a7b4c4; --ink-3:#758394;
+      --rule:#1d2731; --rule-2:#2a3644;
+      --accent:#5aa6ea; --accent-soft:#12202e;
+      --ok:#4cc98a; --warn:#e0aa3e; --bad:#e8695c;
+    }
+  }
+  :root[data-theme="light"]{
+    --ground:#f6f8fb; --raised:#ffffff; --sunken:#eef2f7;
+    --ink:#0e141b; --ink-2:#3f4c5a; --ink-3:#6b7a8b;
+    --rule:#dbe3ec; --rule-2:#c6d2df;
+    --accent:#2c6fb8; --accent-soft:#e6eef8;
+    --ok:#2e9e63; --warn:#b47a10; --bad:#c0392b;
+  }
+  :root[data-theme="dark"]{
+    --ground:#080b0f; --raised:#10161d; --sunken:#0c1116;
+    --ink:#e3eaf3; --ink-2:#a7b4c4; --ink-3:#758394;
+    --rule:#1d2731; --rule-2:#2a3644;
+    --accent:#5aa6ea; --accent-soft:#12202e;
+    --ok:#4cc98a; --warn:#e0aa3e; --bad:#e8695c;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font-size:16px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:56px 28px 96px; display:flex; flex-direction:column; gap:56px}
+  code,.mono,.term{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
+
+  /* ---- masthead ---- */
+  header{display:flex; flex-direction:column; gap:14px; border-bottom:2px solid var(--ink); padding-bottom:22px}
+  .eyebrow{
+    font-size:11px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--accent); font-weight:700;
+  }
+  h1{
+    margin:0; font-size:clamp(30px,5vw,46px); line-height:1.04;
+    letter-spacing:-.028em; font-weight:800; text-wrap:balance;
+  }
+  .standfirst{margin:0; max-width:var(--measure); color:var(--ink-2); font-size:17px}
+  .meta{display:flex; flex-wrap:wrap; gap:8px; margin-top:4px}
+  .tag{
+    font-size:11.5px; padding:4px 9px; border:1px solid var(--rule-2); border-radius:2px;
+    color:var(--ink-2); background:var(--raised);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+
+  /* ---- section ---- */
+  section{display:flex; flex-direction:column; gap:20px}
+  .sec-head{display:flex; align-items:baseline; gap:14px; border-bottom:1px solid var(--rule); padding-bottom:10px}
+  .rownum{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:12px; font-weight:700; color:var(--raised); background:var(--ink);
+    padding:3px 8px; border-radius:2px; letter-spacing:.04em; flex:none;
+  }
+  h2{margin:0; font-size:22px; letter-spacing:-.018em; font-weight:750}
+  .sec-note{margin:0; color:var(--ink-3); font-size:14px; margin-left:auto; text-align:right}
+  .lede{margin:0; max-width:var(--measure); color:var(--ink-2); font-size:15px}
+
+  /* ---- terminal strip ---- */
+  .term-outer{
+    background:var(--term-bg); border:1px solid var(--term-rule); border-radius:5px;
+    overflow-x:auto; padding:0;
+  }
+  .term-lbl{
+    display:flex; gap:8px; align-items:center;
+    padding:9px 16px; border-bottom:1px solid var(--term-rule);
+    font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--term-dim);
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .dot{width:8px;height:8px;border-radius:50%;background:#2c3947;flex:none}
+  .term{
+    display:block; padding:20px 16px 24px; white-space:pre; color:var(--term-ink);
+    font-size:13.5px; line-height:2.5; min-width:max-content;
+  }
+  /* ANSI-derived semantic inks, fixed in both themes — this is a terminal */
+  .c-lime{color:#3ddc84} .c-blue{color:#4ea1ff} .c-teal{color:#38b9b0}
+  .c-cyan{color:#57d9e8} .c-pink{color:#ff79c6} .c-violet{color:#b98cff}
+  .c-gold{color:#e8c44a} .c-orange{color:#ff9d4d} .c-red{color:#ff6b5e}
+  .c-dim{color:#5d6b7d} .c-mag{color:#e86bd6}
+
+  .idx{
+    font-size:9.5px; vertical-align:super; line-height:0;
+    color:#0b0f14; background:#7f8fa3; border-radius:2px;
+    padding:1px 3px; margin-left:2px; font-weight:700;
+  }
+
+  /* ---- legend grid ---- */
+  .legend{display:grid; grid-template-columns:repeat(auto-fill,minmax(268px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); border-radius:4px; overflow:hidden}
+  .f{background:var(--raised); padding:14px 16px; display:flex; flex-direction:column; gap:5px}
+  .f-top{display:flex; align-items:center; gap:8px}
+  .f-idx{
+    font-size:10px; font-weight:700; color:var(--raised); background:var(--ink-3);
+    border-radius:2px; padding:1px 5px; flex:none;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  .f-tok{font-size:13px; font-weight:600; color:var(--accent); font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+  .f-name{font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--ink-3); font-weight:700}
+  .f-desc{font-size:13.5px; color:var(--ink-2); line-height:1.5}
+  .f-desc b{color:var(--ink); font-weight:650}
+
+  /* ---- tables ---- */
+  .tbl-wrap{overflow-x:auto; border:1px solid var(--rule); border-radius:4px}
+  table{border-collapse:collapse; width:100%; font-size:14px; min-width:520px}
+  th{
+    text-align:left; padding:10px 14px; background:var(--sunken);
+    font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; color:var(--ink-3);
+    border-bottom:1px solid var(--rule); font-weight:700; white-space:nowrap;
+  }
+  td{padding:10px 14px; border-bottom:1px solid var(--rule); color:var(--ink-2); vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.g{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:16px; white-space:nowrap; color:var(--ink)}
+  td.n{font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:12.5px; white-space:nowrap; color:var(--ink)}
+  .tnum{font-variant-numeric:tabular-nums}
+
+  /* ---- callouts ---- */
+  .note{
+    border-left:3px solid var(--accent); background:var(--accent-soft);
+    padding:14px 18px; border-radius:0 3px 3px 0; display:flex; flex-direction:column; gap:6px;
+  }
+  .note.warn{border-left-color:var(--warn); background:color-mix(in srgb,var(--warn) 9%,transparent)}
+  .note h3{margin:0; font-size:13px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink)}
+  .note p{margin:0; font-size:14px; color:var(--ink-2); max-width:var(--measure)}
+  .note code{background:var(--raised); padding:1px 5px; border-radius:2px; font-size:12.5px; border:1px solid var(--rule)}
+
+  footer{border-top:1px solid var(--rule); padding-top:20px; color:var(--ink-3); font-size:13px; display:flex; flex-direction:column; gap:5px}
+  footer code{font-size:12.5px}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+  @media (max-width:620px){
+    .wrap{padding:36px 16px 64px; gap:44px}
+    .sec-note{margin-left:0; text-align:left; width:100%}
+    .sec-head{flex-wrap:wrap}
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Project Aion · Shared Archon Instrumentation</div>
+    <h1>Status Line Anatomy</h1>
+    <p class="standfirst">Every field rendered by <code>jarvis-statusline-v9.sh</code> — the single status line shared by all six Archon lanes. Three rows, emitted in fixed order, with no per-persona branching.</p>
+    <div class="meta">
+      <span class="tag">jarvis-statusline-v9.sh</span>
+      <span class="tag">v9.1 · 2026-08-01</span>
+      <span class="tag">6 lanes</span>
+      <span class="tag">~125 ms / render</span>
+    </div>
+  </header>
+
+  <section>
+    <p class="lede">The line adapts to terminal width: below 100 columns it <b>drops Row 3 entirely</b> and shortens the context bar to 20 characters. Everything documented here is the full-width form.</p>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Lane</th><th>tmux window</th><th>Working directory</th><th>statusLine source</th></tr></thead>
+        <tbody>
+          <tr><td class="n">Jarvis</td><td class="n">aion:0</td><td class="n">Project_Aion/</td><td>project settings</td></tr>
+          <tr><td class="n">Protos</td><td class="n">aion:1</td><td class="n">Project_Aion/alfred/</td><td>emitted by <code>profile-loader.js</code></td></tr>
+          <tr><td class="n">Urist</td><td class="n">aion:2</td><td class="n">Projects/DwarfCron/</td><td>project settings</td></tr>
+          <tr><td class="n">Jarvis-dev</td><td class="n">aion:11</td><td class="n">Project_Aion/</td><td>project settings</td></tr>
+          <tr><td class="n">Genie</td><td class="n">aion:12</td><td class="n">Projects/WVU/</td><td>project settings</td></tr>
+          <tr><td class="n">Jacques</td><td class="n">aion:13</td><td class="n">Projects/SnorkelTasks/</td><td>project settings</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════ ROW 1 ══════════ -->
+  <section>
+    <div class="sec-head">
+      <span class="rownum">ROW 1</span>
+      <h2>Identity &amp; posture</h2>
+      <p class="sec-note">Who you are, where you are, how hard you're thinking</p>
+    </div>
+
+    <div class="term-outer">
+      <div class="term-lbl"><span class="dot"></span>rendered · aion:11 Jarvis-dev</div>
+<span class="term"><span class="c-lime">🟢</span><span class="idx">1</span> <span class="c-lime">opus-5·1M</span><span class="idx">2</span>  <span class="c-pink">@Diagnose context window limit errors</span><span class="idx">3</span>  <span class="c-teal">main</span><span class="idx">4</span> <span class="c-cyan">↑2</span><span class="idx">5</span> <span class="c-lime">+327</span><span class="c-red">-0</span><span class="idx">6</span> <span class="c-dim">📖</span><span class="idx">7</span> <span class="c-dim">e:low</span><span class="idx">8</span> <span class="c-orange">△ exc-200k</span><span class="idx">9</span>          <span class="c-dim">139313 tokens</span><span class="idx">10</span></span>
+    </div>
+
+    <div class="legend">
+      <div class="f"><div class="f-top"><span class="f-idx">1</span><span class="f-tok">🟢</span></div><div class="f-name">JICM action</div><div class="f-desc">Context-manager state. Drives a <b>colour cascade across all three rows</b> — a halt bleeds red downward.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">2</span><span class="f-tok">opus-5·1M</span></div><div class="f-name">Model · window</div><div class="f-desc">Active model and context-window variant.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">3</span><span class="f-tok">@name</span></div><div class="f-name">Project or agent</div><div class="f-desc">Project directory, or a pink <b>@</b>-prefixed session/agent title when one is set.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">4</span><span class="f-tok">main</span></div><div class="f-name">Git branch</div><div class="f-desc">Cached for 5 s to keep the render cheap.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">5</span><span class="f-tok">↑2</span></div><div class="f-name">Ahead / behind</div><div class="f-desc">Unpushed commits relative to the tracking remote.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">6</span><span class="f-tok">+327-0</span></div><div class="f-name">Working diff</div><div class="f-desc">Lines added and removed but not yet committed.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">7</span><span class="f-tok">📖</span></div><div class="f-name">Output style</div><div class="f-desc"><b>📖</b> Explanatory · <b>🎓</b> Learning. Absent when the default style is active.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">8</span><span class="f-tok">e:low</span></div><div class="f-name">Reasoning effort</div><div class="f-desc">The <b>single largest lever on burn rate</b>, which is why it sits on row 1. Orange at <code>max</code>/<code>xhigh</code>, gold at <code>high</code>, dim below.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">9</span><span class="f-tok">△ exc-200k</span></div><div class="f-name">Pre-warning</div><div class="f-desc">The <code>exceeds_200k_tokens</code> flag. Fires <b>before</b> SOFT_NUDGE — the earliest capacity signal available.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">10</span><span class="f-tok">139313 tokens</span></div><div class="f-name">Raw count</div><div class="f-desc">Right-aligned exact total, unrounded.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">—</span><span class="f-tok">⚡</span></div><div class="f-name">Fast mode</div><div class="f-desc">Appended to the effort field when fast mode is on.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">—</span><span class="f-tok">nothink</span></div><div class="f-name">Thinking off</div><div class="f-desc">Shown only when extended thinking is disabled.</div></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Icon</th><th>State</th><th>Meaning</th></tr></thead>
+        <tbody>
+          <tr><td class="g">🟢</td><td class="n">WATCHING</td><td>Normal. JICM is sampling the lane.</td></tr>
+          <tr><td class="g">⚠️</td><td class="n">SOFT_NUDGE</td><td>Soft threshold crossed (~31%). Compression advised.</td></tr>
+          <tr><td class="g">⛔</td><td class="n">HARD_HALT</td><td>Hard threshold crossed (~67%). Row colours turn red.</td></tr>
+          <tr><td class="g">🌀</td><td class="n">CLEARING</td><td>A <code>/clear</code> cycle is running.</td></tr>
+          <tr><td class="g">♻️</td><td class="n">RESTORING</td><td>Checkpoint context is being restored.</td></tr>
+          <tr><td class="g">·</td><td class="n">unknown</td><td>No action reported — JICM has not sampled this lane.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════ ROW 2 ══════════ -->
+  <section>
+    <div class="sec-head">
+      <span class="rownum">ROW 2</span>
+      <h2>Context budget</h2>
+      <p class="sec-note">How full the window is and how fast it's filling</p>
+    </div>
+
+    <div class="term-outer">
+      <div class="term-lbl"><span class="dot"></span>rendered · aion:12 Genie</div>
+<span class="term">[<span class="c-blue">▓▓▓▓▓</span><span class="c-cyan">▒</span><span class="c-dim">··</span><span class="c-lime">│</span><span class="c-gold">┃</span><span class="c-dim">············</span><span class="c-mag">╿</span><span class="c-dim">·····</span>]<span class="idx">1</span><span class="c-lime">[C]</span><span class="idx">2</span> <span class="c-gold">23%</span><span class="idx">3</span> <span class="c-dim">231.7K</span><span class="idx">4</span>  Δ<span class="c-orange">7.8K</span>/m<span class="idx">5</span>  S:<span class="c-dim">13m</span><span class="idx">6</span> H:<span class="c-dim">15m</span><span class="idx">7</span>  cache:<span class="c-lime">99%</span><span class="idx">8</span> eph1h:<span class="c-lime">100%</span><span class="idx">9</span>  <span class="c-dim">warm/write/new</span><span class="idx">10</span></span>
+    </div>
+
+    <div class="legend">
+      <div class="f"><div class="f-top"><span class="f-idx">1</span><span class="f-tok">[▓▒░·]</span></div><div class="f-name">Categorical bar</div><div class="f-desc">Proportional fill. Free space is <code>·</code>, deliberately a glyph no segment uses so the bar stays readable in <b>ANSI-stripped captures</b>.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">2</span><span class="f-tok">[C]</span></div><div class="f-name">Measured marker</div><div class="f-desc">Bar drawn from real <code>/context</code> categories. <b>Its absence means the live cache decomposition</b> — never a constant dressed as a measurement.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">3</span><span class="f-tok">23%</span></div><div class="f-name">Window used</div><div class="f-desc">Percentage of the context window consumed.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">4</span><span class="f-tok">231.7K</span></div><div class="f-name">Tokens</div><div class="f-desc">Abbreviated count matching the bar.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">5</span><span class="f-tok">Δ7.8K/m</span></div><div class="f-name">Burn rate</div><div class="f-desc">Tokens per minute. Renders <code>idle</code> when nothing is moving.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">6</span><span class="f-tok">S:13m</span></div><div class="f-name">Soft ETA</div><div class="f-desc">Projected time until SOFT_NUDGE at current burn. <code>—</code> when idle.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">7</span><span class="f-tok">H:15m</span></div><div class="f-name">Hard ETA</div><div class="f-desc">Projected time until HARD_HALT.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">8</span><span class="f-tok">cache:99%</span></div><div class="f-name">Cache hit rate</div><div class="f-desc">Share of input served from cache. Low values are expensive.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">9</span><span class="f-tok">eph1h:100%</span></div><div class="f-name">1-hour cache</div><div class="f-desc">Adoption of the ephemeral 1-hour cache tier — an Aion-specific panel.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">10</span><span class="f-tok">warm/write/new</span></div><div class="f-name">Legend</div><div class="f-desc">Names the three bar segments in cache-decomposition mode.</div></div>
+    </div>
+
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Glyph</th><th>Role</th><th>Measured mode <code>[C]</code></th><th>Derived mode</th></tr></thead>
+        <tbody>
+          <tr><td class="g">▓</td><td class="n">segment A</td><td>tools</td><td>warm cache-read</td></tr>
+          <tr><td class="g">▒</td><td class="n">segment B</td><td>other overhead</td><td>cache-write this turn</td></tr>
+          <tr><td class="g">░</td><td class="n">remainder</td><td>messages</td><td>uncached input</td></tr>
+          <tr><td class="g">·</td><td class="n">free</td><td colspan="2">Unused window</td></tr>
+          <tr><td class="g">│</td><td class="n">tick</td><td colspan="2">SOFT_NUDGE threshold (~31%)</td></tr>
+          <tr><td class="g">┃</td><td class="n">tick</td><td colspan="2">HARD_HALT threshold (~67%)</td></tr>
+          <tr><td class="g">╿</td><td class="n">tick</td><td colspan="2">Native autocompact point</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note warn">
+      <h3>Row 2 is a parsed contract</h3>
+      <p><code>jicm-actuate.sh</code> <code>_bar_row()</code> greps the rendered pane for <code>\] +[0-9]+%</code>. Row 2 must keep the literal sequence <code>"] "</code> + spaces + integer + <code>"%"</code>. Reformatting it silently breaks context actuation.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ ROW 3 ══════════ -->
+  <section>
+    <div class="sec-head">
+      <span class="rownum">ROW 3</span>
+      <h2>Cost &amp; capacity</h2>
+      <p class="sec-note">Dropped entirely below 100 columns</p>
+    </div>
+
+    <div class="term-outer">
+      <div class="term-lbl"><span class="dot"></span>rendered · aion:13 Jacques</div>
+<span class="term"><span class="c-lime">$24.13</span><span class="idx">1</span>  <span class="c-dim">blk:</span><span class="c-gold">$129.4</span><span class="idx">2</span>  ⏱<span class="c-dim">1h27m</span><span class="idx">3</span> api:<span class="c-orange">23%</span><span class="idx">4</span>  <span class="c-dim">5h:</span><span class="c-red">101%</span><span class="c-dim">↺2h2m</span><span class="idx">5</span>  <span class="c-dim">7d:</span><span class="c-gold">37%</span><span class="c-dim">~↺2d14h</span><span class="idx">6</span>  <span class="c-orange">OVG:12%</span><span class="idx">7</span>  <span class="c-dim">NLP:</span><span class="c-gold">1.4</span><span class="idx">8</span>  <span class="c-violet">◆</span> <span class="c-dim">port statusline to Urist</span><span class="idx">9</span></span>
+    </div>
+
+    <div class="legend">
+      <div class="f"><div class="f-top"><span class="f-idx">1</span><span class="f-tok">$24.13</span></div><div class="f-name">Session cost</div><div class="f-desc">Spend for this session only.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">2</span><span class="f-tok">blk:$129.4</span></div><div class="f-name">Billing block</div><div class="f-desc">Rolling <code>ccusage</code> block total, shared across all lanes.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">3</span><span class="f-tok">⏱1h27m</span></div><div class="f-name">Wall clock</div><div class="f-desc">Elapsed session time.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">4</span><span class="f-tok">api:23%</span></div><div class="f-name">API share</div><div class="f-desc">Portion of elapsed time spent awaiting the API.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">5</span><span class="f-tok">5h:101%↺2h2m</span></div><div class="f-name">5-hour limit</div><div class="f-desc">Utilisation plus a countdown to reset. Can exceed 100% under overage.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">6</span><span class="f-tok">7d:37%~</span></div><div class="f-name">7-day limit</div><div class="f-desc">A trailing <b><code>~</code></b> means the value came from the proxy-DB cache, not from stdin.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">7</span><span class="f-tok">OVG:12%</span></div><div class="f-name">Overage badge</div><div class="f-desc">Appears only while overage billing is in use.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">8</span><span class="f-tok">NLP:1.4</span></div><div class="f-name">NLP ratio</div><div class="f-desc">Diagnostic ratio panel.</div></div>
+      <div class="f"><div class="f-top"><span class="f-idx">9</span><span class="f-tok">◆ task</span></div><div class="f-name">Pulse task</div><div class="f-desc">Active shared task, truncated at 42 characters. Polled on a 15-second TTL cache.</div></div>
+    </div>
+
+    <div class="note">
+      <h3>Rate limits never go blank</h3>
+      <p>Claude Code emits <code>rate_limits</code> only while its state holds a five-hour or seven-day claim. Under overage the key disappears entirely, and v9.0 rendered an empty string — <b>a missing capacity signal that looked like a healthy one.</b> v9.1 falls back stdin → proxy-DB cache (marked <code>~</code>) → an explicit <code>5h:—</code>.</p>
+    </div>
+  </section>
+
+  <!-- ══════════ CONTRACTS ══════════ -->
+  <section>
+    <div class="sec-head">
+      <span class="rownum">CONFIG</span>
+      <h2>Why a lane might look different</h2>
+      <p class="sec-note">Two non-obvious constraints</p>
+    </div>
+    <p class="lede">The script contains <b>no persona or role branching</b>. It builds the same three rows for every lane. A lane rendering a different layout is drift to fix in config — never a reason to edit the script.</p>
+
+    <div class="note warn">
+      <h3>The path must be absolute</h3>
+      <p><code>$CLAUDE_PROJECT_DIR</code> resolves to the <em>satellite</em> directory for any lane rooted outside <code>Project_Aion/</code> — <code>alfred/</code>, <code>DwarfCron/</code>, <code>WVU/</code>, <code>SnorkelTasks/</code>. None of them have a <code>.claude/scripts/</code>, so a relative path renders <b>nothing, silently</b>.</p>
+    </div>
+
+    <div class="note warn">
+      <h3>Alfred's key lives in the generator</h3>
+      <p><code>alfred/scripts/profile-loader.js</code> overwrites <code>alfred/.claude/settings.json</code> wholesale and never reads the existing file. A hand-added <code>statusLine</code> there is wiped on the next profile load. The key must be emitted from the generator.</p>
+    </div>
+  </section>
+
+  <footer>
+    <div>Source of truth: <code>.claude/scripts/jarvis-statusline-v9.sh</code> — layout header at lines 39–46.</div>
+    <div>Superseded: <code>archived/jarvis-statusline-v8.sh</code> and the retired user-level script. Do not revive.</div>
+    <div>Field semantics transcribed from the script itself, not from observation.</div>
+  </footer>
+
+</div>

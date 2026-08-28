@@ -1,0 +1,1198 @@
+Permission allow rule (../../.claude/settings.json): Write(/Users/nathanielcannon/Claude/Project_Aion/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Use
+rs/nathanielcannon/Claude/Project_Aion/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../../.claude/settings.json): Write(/Users/nathanielcannon/Claude/Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/n
+athanielcannon/Claude/Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (../../.claude/settings.json): Write(/Users/nathanielcannon/.claude/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/nathaniel
+cannon/.claude/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (.claude/settings.json): Write(/Users/nathanielcannon/Claude/Project_Aion/alfred/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Us
+ers/nathanielcannon/Claude/Project_Aion/alfred/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (.claude/settings.json): Write(/Users/nathanielcannon/Claude/Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/nathani
+elcannon/Claude/Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Project_Aion/alfred/**) is not matched by file permission checks — only Edit(path) rules are. Use Ed
+it(/Users/nathanielcannon/Claude/Project_Aion/alfred/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/n
+athanielcannon/Claude/Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Shared_Projects/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/
+Users/nathanielcannon/Claude/Shared_Projects/**) instead (Edit rules cover all file-editing tools).
+Permission allow rule (.claude/settings.local.json): Write(/Users/nathanielcannon/Claude/Jarvis-Dev/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users
+/nathanielcannon/Claude/Jarvis-Dev/**) instead (Edit rules cover all file-editing tools).
+Permission deny rule (../../.claude/settings.json): Write(/Users/nathanielcannon/Claude/Archive/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/nat
+hanielcannon/Claude/Archive/**) instead (Edit rules cover all file-editing tools).
+Permission deny rule (.claude/settings.json): Write(/Users/nathanielcannon/Claude/Archive/AIfred/**) is not matched by file permission checks — only Edit(path) rules are. Use Edit(/Users/na
+thanielcannon/Claude/Archive/AIfred/**) instead (Edit rules cover all file-editing tools).
+ ▐▛███▜▌   Claude Code v2.1.220
+▝▜█████▛▘  Opus 5 (1M context) with low effort · Claude Max
+  ▘▘ ▝▝    ~/Claude/Project_Aion
+
+ ▎ Debug mode enabled · logging to
+ ▎ /Users/nathanielcannon/Claude/Project_Aion/.claude/logs/debug.log
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 3 lines, removed 3 lines
+      24  denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL fa
+          ilure, not a bookkeeping one.
+      25  ✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2
+           ⇒ R2.2i/R2.2k inseparable).
+      26  ### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `regio
+          n_head` imports `collation_read`
+      27 -(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines
+         -(...)`, so RH/MN/CH/MT **do not exist**
+      28 -until after clustering returns. `_rows_and_lines(boxes, p)` get
+         -s no band, no measure, no labels.
+      29 -**Do NOT invent a geometric splitter there.**
+      27 +(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines
+         +(...)` ⇒ RH/MN/CH/MT **do not exist**
+      28 +until after clustering returns; `_rows_and_lines(boxes,p)` gets
+         + no band/measure/labels. **Do NOT
+      29 +invent a geometric splitter there.**
+      30  ### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_region
+          s` (rationale § at top of the module):
+      31  `FULL_ACCOUNTING` (pairs must == len(entries)=121; control hits
+           it exactly, cand4 = 116 + 5 sinks) +
+      32  `BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ide
+          al 0 stays OPEN**). Verified **control
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 3 lines, removed 3 lines
+      37  (2) AFTER: R2.2d step (2) CONTIGUITY
+      38  (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+          assumption as R2.2g, two sides —
+      39  resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️
+           **R2.2c BLOCKS every region number.**
+      40 -⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — it read 20/20 while
+         - 13 running heads were orphaned, AND
+      41 -again while the far bucket shredded short lines. **Twice in one
+         - run.** Any row-clustering criterion
+      42 -needs a companion that sees the head and note grids.
+      40 +⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — read 20/20 while 13
+         + running heads were orphaned, AND again
+      41 +while the far bucket shredded short lines. **Twice in one run.*
+         +* Any row-clustering criterion needs a
+      42 +companion that sees the head and note grids.
+      43  ### 🟡 R2.2m OPEN (R2.2l CLOSED 08-21, § in roadmap) — same unc
+          ounted idiom, filtering containment obs
+      44  by `cexcl`; accounting is per-OBSERVATION not per-entry. Regist
+          er **72**, claim **1/72**.
+      45
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l
+      /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md;
+      (kill -0 95374 2>/dev/null && echo "suite g ALIVE" || echo "suite g
+      EXITED"); wc -l .scratch/r2/suite-20260822g.log)
+  ⎿        82 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.s
+     cratchpad.md
+     suite g ALIVE
+           75 .scratch/r2/suite-20260822g.log
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Since my line-level edits aren't actually cutting the count, I need to delete
+  lower-value content instead—trimming a line from the "fourteen instances"
+  list.  I also want to add #15, the score_head_regions "must be 0" check that
+  never gets read, compressing the whole block from six lines to four while
+  keeping the key point: every criterion set needs a link that can fail for
+  reasons outside the rule under test, and that's been the deciding factor five
+  days running.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 6 lines, removed 6 lines
+      62  ⚠️ **NEVER `git add -A`** at the palimpsest root — staging is a
+          lways a deliberate, scoped act.
+      63  Golds REWRITTEN in place; backups = **the only unrecoverable st
+          ate**: `.scratch/r2/gold-{argument_
+      64  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored:
+           `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      65 -## 🔴 FOURTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct ru
+         -le nothing reads
+      66 -#14 R2.2l · #13 L2/K3 (rule was in the docstring of the file I
+         -was editing) · #12 R2.2h · #11 R11.2d
+      67 -· #10 splitter/label handoff · #9 argument-gold scorer · Gate 0
+         -f/0d · §7.7 ladder ·
+      68 -`audit_prereq_ceilings` · R9.8 · R2.2c.
+      69 -⚠️ **Every criterion set needs one link that can fail for a reas
+         -on OUTSIDE the rule under test** —
+      70 -that link has decided the verdict five days running (E3 · G1 ·
+         -M1 · strip line count · bind-none).
+      65 +## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rul
+         +e nothing reads
+      66 +**#15 = the S6 bar above** (`score_head_regions` printed "must
+         +be 0" / "must be len(entries) under
+      67 +EVERY splitter" for months and the verdict read neither) · #14
+         +R2.2l · #13 L2/K3 · #12 R2.2h ·
+      68 +#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scor
+         +er · Gate 0f/0d · §7.7 ladder ·
+      69 +`audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️ **Every criterion se
+         +t needs one link that can fail for a
+      70 +reason OUTSIDE the rule under test** — five days running (E3·G1
+         +·M1·strip line count·bind-none).
+      71  ## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source
+          lives in the SESSION scratchpad, not
+      72  the repo — **re-extract via WebFetch before editing.** `scratch
+          pad/originaldr-architecture.html` →
+      73  https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a09
+          04f62
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 3 lines, removed 3 lines
+      53  `test_verification_standard.py` reads ~0:00.04 CPU over 10 min
+          because it `wait()`s on children.
+      54  **Check descendants (`pgrep -P`) before killing anything.** Nea
+          r-miss on a healthy heavy scorer.
+      55  ⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced
+          ; d was killed by exact PID.
+      56 -⚠️ Claims parse ONLY in triple-backtick fences, only if the lin
+         -e has `->`, and the **FIRST fraction
+      57 -must be one the command PRINTS** (a decimal pair is a trap: `ac
+         -c 0.8760 / 1.0000` → `8760/1`). **Block
+      58 -membership, not claim text, decides if exit 1 is healthy. Editi
+         -ng the OPEN register ⇒ ALWAYS re-run
+      56 +⚠️ Claims parse ONLY in ``` fences, only if the line has `->`,
+         +and the **FIRST fraction must be one
+      57 +the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000
+         +` → `8760/1`). **Block membership, not
+      58 +claim text, decides if exit 1 is healthy. Editing the OPEN regi
+         +ster ⇒ ALWAYS re-run
+      59  `audit_prereq_ceilings` + update its claim**, else it fails on
+          a stale denominator.
+      60
+      61  ## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch m
+          ain). NOTHING STAGED.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l
+      /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md;
+      (kill -0 95374 2>/dev/null && echo "suite g ALIVE" || echo "suite g
+      EXITED"); wc -l .scratch/r2/suite-20260822g.log; grep -nE '^
+      *FAIL|^FAILED' .scratch/r2/suite-20260822g.log; echo "(no FAILs above)")
+  ⎿        82 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.s
+     cratchpad.md
+     suite g ALIVE
+           75 .scratch/r2/suite-20260822g.log
+     (no FAILs above)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Still stuck at 82 lines despite rewrapping, so I need to cut more decisively —
+  trimming the "Dropped as durable elsewhere" header down from three lines to
+  one seems like the least costly cut.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 3 lines, removed 3 lines
+      1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+      2  Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20
+         260822`. Earlier prunes 08-21, 08-19.
+      3 -Dropped as **durable elsewhere**: cand-4 S1–S8 tables / R2.2l cl
+        -osure / three-wrong-bars § →
+      4 -`OCR-ROADMAP.md` · `far`-bucket diagnosis → comment IN `collatio
+        -n_read._rows_and_lines` ·
+      5 -moving-denominator + stale-comment rules → **L2** `reference_ins
+        -trument_independence_and_bars.md`.
+      3 +Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wrong
+        +-bars → `OCR-ROADMAP.md` · far-bucket
+      4 +§ → comment IN `collation_read._rows_and_lines` · denominator+st
+        +ale-comment rules → **L2**
+      5 +`reference_instrument_independence_and_bars.md` · S6-bar rationa
+        +le → top of `score_head_regions`.
+      6  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr
+         /ocr-spike/`, venv `../ocr-venv/bin/python`.
+      7  ## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite
+         -GREEN. Cand 4 still refuted.
+      8  ### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`
+         ** ⇒ far-chaining edit is
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 2 lines, removed 1 line
+      77    Manual: **24 unfixable ruff errors + 429-line reformat** (rev
+          erted). For Sir.
+      78  * `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDR
+          notes` 192 KB untracked — deliberately
+      79    NOT gitignored so the fragility stays visible; believed Sir's
+          . **Leave both.**
+      80 -* **R11.2b**: standard parses only `witness/`-prefixed commands
+         - ⇒ 2 repo-root R11 entries **uncovered**
+      80 +* **R11.2b**: standard parses only `witness/`-prefixed cmds ⇒ 2
+         + repo-root R11 entries **uncovered**
+      81    (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING,
+           fall on COMPLETION.
+      82 +
+      83  * ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators;
+          survey producers, then regenerate (never edit, R7.5d).
+  ⎿  Async hook PostToolUse completed
+
+∴ That added a blank line by mistake instead of fixing it. I'll use sed to
+  delete the trailing blank line and check the file's end to get the count
+  right.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/.claude/context && python3
+      - <<'PY'
+      p='.scratchpad.md'
+      ls=open(p).read().split('\n')
+      # drop trailing empties
+      while ls and ls[-1].strip()=='': ls.pop()
+      open(p,'w').write('\n'.join(ls)+'\n')
+      print(len(ls))
+      PY)
+  ⎿  83
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n "^$" .scratchpad.md)
+  ⎿  45:
+     60:
+     74:
+     82:
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 - <<'PY'
+      p='.scratchpad.md'
+      ls=open(p).read().split('\n')
+      while ls and ls[-1].strip()=='': ls.pop()
+      ls=[l for i,l in enumerate(ls,1) if i not in (45,60,74,82)]   # blank
+      separators; headers still delimit
+      open(p,'w').write('\n'.join(ls)+'\n')
+      print(len(ls))
+      PY
+      wc -l .scratchpad.md)
+  ⎿  79
+           79 .scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(sed -i '' 's/^Pruned 2026-08-22 (125 → 80)/Pruned 2026-08-22 (125 → 79)/'
+      .scratchpad.md; head -3 .scratchpad.md; echo "..."; wc -l .scratchpad.md;
+      echo "=== suite g ==="; (kill -0 95374 2>/dev/null && echo ALIVE || echo
+      EXITED); wc -l /Users/nathanielcannon/Claude/Projects/palimpsest/projects/
+      originaldr/ocr-spike/.scratch/r2/suite-20260822g.log)
+  ⎿  # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-22 (125 → 79); prior
+     `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+     Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wrong-bars
+     → `OCR-ROADMAP.md` · far-bucket
+     ...
+           79 .scratchpad.md
+     === suite g ===
+     ALIVE
+           76 /Users/nathanielcannon/Claude/Projects/palimpsest/projects/or
+     iginaldr/ocr-spike/.scratch/r2/suite-20260822g.log
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Scratchpad back to 79. Suite g still running; I'll report when it lands.
+
+  The bar is in, in two constants and one block in score_head_regions.py.
+
+  What it enforces. FULL_ACCOUNTING requires pairs == len(entries) — every one
+  of the 121 gold entries must reach the sum the rates are computed over.
+  BAR_MAX_INK_ORPHANS = 1 stops the ink-binding gap widening. The verdict became
+  ok and beats and full and ink_ok.
+
+  Why those values aren't arbitrary. The control scores 121 of 121 with zero
+  sinks — 0 collisions, 0 orphans, 0 ambiguous-collisions. So the bar is one the
+  instrument is demonstrably able to clear, not an aspiration. And both numbers
+  come from the control and from lines this module already prints — "must be
+  0", "must be {len(entries)} under EVERY splitter" — never from the candidate.
+
+  Verified both directions, which is the part that matters: control PASS / exit
+  0, candidate 4 FAIL / exit 1 on 116 + 5 sinks. A bar only the failing arm
+  trips is worthless; this one is tripped by the arm that sheds gold and cleared
+  by the arm that doesn't.
+
+  Two things I want on the record rather than buried in the diff.
+
+  These constants are not pre-registered, unlike BAR_RH_RECALL and BAR_MN_RECALL
+  above them, and the comment says so explicitly. I wrote them after seeing the
+  numbers. What keeps that honest is their provenance, and the code states it.
+
+  And BAR_MAX_INK_ORPHANS = 1 is a non-regression bar, not an endorsement. The
+  stated ideal is 0; the control sits at 1. Barring at 0 would fail the control,
+  and barring at 1 accepts a known gap — so the comment records that the gap
+  stays OPEN rather than letting the constant quietly become the new target.
+
+  ★ Insight ─────────────────────────────────────
+  The reason this hole survived is worth keeping. test_region_gold_addressing's
+  criterion B does police the denominator — "any change in the number of scored
+  tokens must be FULLY ACCOUNTED FOR by reported drops." Candidate 4 satisfies
+  it perfectly: it sheds 5 entries and reports all 5, so 116 + 5 = 121 and the
+  guard stays silent while the rates ride a short denominator. That invariant
+  asks where entries went; the S6 hole was about how many. An enumerative guard
+  cannot catch a quantitative loss — which makes this instance #15 of the
+  signature defect, and the most pointed one yet, since the module had been
+  printing "must be 0" all along while its verdict read neither line.
+  ─────────────────────────────────────────────────
+
+✻ Churned for 6m 30s
+
+⏺ Background command "Wait for suite g and verify" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+⏺ Bash(cat /private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion/2e
+  d8743e-d00b-4b8b-aeda-81d8a746ae85/tasks/bp469o1td.output)
+  ⎿  === suite g EXITED ===
+          125 .scratch/r2/suite-20260822g.log
+     --- anchored FAILs ---
+     (none above = clean)
+     --- score_head_regions claim + exit ---
+     19:  ok    witness/score_head_regions.py            exists
+     76:  ok    witness/score_head_regions.py            prints 20/20
+     105:  ok    witness/score_head_regions.py            exits 0
+     --- vs GREEN baseline f ---
+     IDENTICAL to f
+       ok    witness/test_verse_scope_bypass.py       exits 0
+
+     all checks passed — the roadmap's verification standard names 38 command(s)
+     and describes what they actually do
+
+∴ Suite g comes back green, byte-identical to f — score_head_regions.py still
+  prints 20/20 and exits 0, so the production path is unaffected. I'm updating
+  the scratchpad to mark suite g verified, replacing the in-flight note, keeping
+  it under 80 characters.
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Suite g: GREEN, 125 lines, 0 anchored FAILs, byte-identical to f. The two
+  risks I flagged are both explicitly clear in the log — score_head_regions.py
+  still prints 20/20 (the claim parser wasn't disturbed by the new output lines)
+  and still exits 0 on the production path.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 2 lines, removed 1 line
+      32  `BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ide
+          al 0 stays OPEN**). Verified **control
+      33  PASS/exit 0, cand4 FAIL/exit 1**; `quiet=True` returns BEFORE t
+          he bar so the coarse/fine perturbation
+      34  tests are unaffected. ⚠️ **NOT pre-registered** — values from t
+          he CONTROL and the module's own
+      35 -"must be 0" lines, never the candidate. ⏳ **suite g pid 95374
+         -IN FLIGHT — verify before reporting.**
+      35 +"must be 0" lines, never the candidate. ✅ **SUITE g GREEN, byt
+         +e-identical to f; the scorer still
+      36 +`prints 20/20` and `exits 0`** (both were real risks: new outpu
+         +t lines can break claim parsing).
+      37  ### ➡️ NEXT (1) MN is the live question: B is −2 MN vs control o
+          n equal denominators.
+      38  (2) AFTER: R2.2d step (2) CONTIGUITY
+      39  (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+          assumption as R2.2g, two sides —
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md && sed -n '1,2p;8,20p' .scratchpad.md)
+  ⎿        80 .scratchpad.md
+     # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-22 (125 → 79); prior
+     `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+     ### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒
+     far-chaining edit is
+     regression-free. a/b/c/f all GREEN, 38 cmds.
+     ### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now
+     CHAIN. Old key `("far",bs,id(bx))`
+     was **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by
+     construction**, shredding the RUNNING HEAD.
+     Full § = the comment in the function. probe_v16: inert 20/20 at False;
+     at True == arm B.
+     ⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above,
+     median +0.329) ⇒ a **descender
+     component** is mixed into the far set (box BOTTOM ≠ baseline for
+     p/q/y/ſ) ⇒ chaining fabricates
+     *some* phantom rows. Refuted as dominant; NOT refuted as present.
+     ### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS.
+     `BASELINE_MODEL` STAYS False.
+     Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATORS, not
+     the rates:**
+     | arm | RH | MN | MT | bind-none | ACC |
+     |control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+     |A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987
+     (71/79)|**10**|0.8919|
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I notice the file is actually 80 lines but the header says 79, so I need to
+  correct that discrepancy. Let me verify the suite line is present and the file
+  is otherwise coherent before fixing the header count.
+
+⏺ Bash(sed -i '' 's/(125 → 79)/(125 → 80)/' .scratchpad.md && wc -l
+      .scratchpad.md && grep -n "SUITE g GREEN" .scratchpad.md)
+  ⎿        80 .scratchpad.md
+     35:"must be 0" lines, never the candidate. ✅ **SUITE g GREEN,
+     byte-identical to f; the scorer still
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ The pairs bar is in and verified end to end.
+
+  What was added — two constants and one block in score_head_regions.py.
+  FULL_ACCOUNTING requires pairs == len(entries): all 121 gold entries must
+  reach the sum the rates are computed over. BAR_MAX_INK_ORPHANS = 1 stops the
+  ink-binding gap widening. The verdict is now ok and beats and full and ink_ok,
+  and the report prints the denominator beside the rates with an enumeration
+  check that shouts if pairs + sinks != entries (an entry leaving the sum
+  unreported would make every number above it unsafe).
+
+  Verified in both directions, which is what makes it a bar rather than a
+  decoration:
+
+  - control → PASS, exit 0 (121 of 121, zero sinks)
+  - candidate 4 → FAIL, exit 1 (116 + 5 sinks: 2 collisions, 3 orphans)
+
+  Suite g GREEN — 125 lines, 0 anchored FAILs, byte-identical to f. The two
+  things that could plausibly have broken are called out explicitly in the log:
+  the scorer still prints 20/20, so the new output lines didn't disturb claim
+  parsing, and it still exits 0 on the production path. quiet=True returns
+  before the bar, so test_region_gold_addressing's deliberately coarse and fine
+  splitter perturbations are untouched.
+
+  Two caveats written into the code rather than left implicit. These constants
+  are not pre-registered — unlike the two bars directly above them — and their
+  honesty rests entirely on provenance: both come from the control and from
+  lines the module already printed, never from the candidate. And
+  BAR_MAX_INK_ORPHANS = 1 is a non-regression bar, not an endorsement; the ideal
+  is 0, the control sits at 1, and the comment records that the gap stays OPEN
+  so the constant doesn't quietly become the target.
+
+  Candidate 4 remains unadopted with BASELINE_MODEL = False. The live question
+  is now MN, where B is −2 against control on equal denominators.
+
+✻ Sautéed for 33s
+
+❯ Watcher here. Scratchpad .claude/context/.scratchpad.md is at 80 lines (limit
+  80). Please prune stale entries, then reply Done.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ The scratchpad's hit its 80-line limit and I need to find headroom. I'm going
+  through the file, spotting that suite f's GREEN result is redundant now that
+  suite g duplicates it exactly, so I can collapse those two lines into one and
+  save space, and then checking the CAND 4 comparison table for anything else
+  safe to trim.
+
+  Looking closer, the CAND 4 "A" row (cand4-without-chain) can go too — its
+  lesson is already preserved durably in the L2 memory as rule 7 with the exact
+  denominator figures, so dropping the row here just removes duplicated context,
+  not the actual record. Same logic applies to the S6 bar block, which is now
+  shipped and its rationale already lives at the top of score_head_regions, so I
+  can shrink that from seven lines to three. The seed-per-block circular
+  guidance is still actively useful though, so I'll just tighten it rather than
+  cut it, and I'm now checking the shipped section for further trims.
+
+  I want to get the whole scratchpad down to around 65 lines to leave real
+  breathing room. Before I do the pruning pass, I should capture the
+  enumerative-vs-quantitative distinction as a new durable lesson in L2 — it's
+  sharp and generalizes well, distinct enough from the existing denominator rule
+  to warrant its own entry. I'll append that memory rule first, then go back
+  and do the compact rewrite of the scratchpad.
+
+⏺ Suite g is verified green, so several blocks are now history rather than
+  working state. One durable lesson to L2 first, then the prune:
+
+⏺ Update(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-P
+  roject-Aion/memory/reference_instrument_independence_and_bars.md)
+  ⎿  Added 8 lines, removed 1 line
+       5    node_type: memory
+       6    type: reference
+       7    originSessionId: aec1c127-b2ff-4782-9adc-ec11068dd531
+       8 -  modified: 2026-08-22T06:07:21.068Z
+       8 +  modified: 2026-08-23T06:00:29.250Z
+       9  ---
+      10
+      11  Distilled from OriginalDR R2.2i (2026-08-20), where five instru
+          ments gave four answers for one
+     ...
+      49     comment nearly invalidated a sound result. **`assert` / prin
+          t the value the process actually
+      50     holds** — the comment is documentation of an intention, not
+          of the running state.
+      51
+      52 +9. **An enumerative guard cannot catch a quantitative loss.** A
+         + pre-registered accounting clause
+      53 +   required every change in scored items to be *fully accounted
+         + for by reported drops* — it policed
+      54 +   WHERE items went, not HOW MANY. The candidate shed 5 of 121
+         +gold entries and reported all five,
+      55 +   so the accounting balanced exactly and the guard stayed sile
+         +nt while every rate rode a short
+      56 +   denominator. **"All losses are reported" and "no losses" are
+         + different criteria; a suite that
+      57 +   states the first does not enforce the second.** Reported los
+         +s is still loss.
+      58 +
+      59  Related: [[reference_dead_metric_and_blind_gold]] (a null is no
+          t a verdict until the metric is shown
+      60  to move) · [[reference_test_contrasts_and_label_blindness]] · [
+          [reference_two_cause_signal_suppression]]
+      61  · [[feedback_empirical_before_claim]] · [[reference_gold_addres
+          sing_and_enumeration]].
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+
+⏺ Bash(cp .scratchpad.md .scratchpad.md.pre-prune-20260823 && echo backed up)
+  ⎿  backed up
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.m
+       d)
+  ⎿  Added 31 lines, removed 34 lines
+       1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+       2 -Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-2
+         -0260822`. Earlier prunes 08-21, 08-19.
+       3 -Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wron
+         -g-bars → `OCR-ROADMAP.md` · far-bucket
+       4 -§ → comment IN `collation_read._rows_and_lines` · denominator+s
+         -tale-comment rules → **L2**
+       5 -`reference_instrument_independence_and_bars.md` · S6-bar ration
+         -ale → top of `score_head_regions`.
+       2 +Pruned 2026-08-23 (80 → 64); prior `.scratchpad.md.pre-prune-20
+         +260823`. Earlier prunes 08-22, 08-21.
+       3 +Durable elsewhere, not here: far-chaining § → the comment IN `c
+         +ollation_read._rows_and_lines` ·
+       4 +S6-bar rationale § → top of `score_head_regions` · cand-4 S1–S8
+         + / R2.2l / three-wrong-bars →
+       5 +`OCR-ROADMAP.md` · denominator, stale-comment and enumerative-v
+         +s-quantitative rules → **L2**
+       6 +`reference_instrument_independence_and_bars.md` (9 rules).
+       7  Repo `Projects/palimpsest` branch main; OCR `projects/originald
+          r/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       7 -## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suit
+         -e-GREEN. Cand 4 still refuted.
+       8 -### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c
+         -`** ⇒ far-chaining edit is
+       9 -regression-free. a/b/c/f all GREEN, 38 cmds.
+      10 -### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs n
+         -ow CHAIN. Old key `("far",bs,id(bx))`
+      11 -was **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by constr
+         -uction**, shredding the RUNNING HEAD.
+      12 -Full § = the comment in the function. probe_v16: inert 20/20 at
+         - False; at True == arm B.
+      13 -⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% a
+         -bove, median +0.329) ⇒ a **descender
+      14 -component** is mixed into the far set (box BOTTOM ≠ baseline fo
+         -r p/q/y/ſ) ⇒ chaining fabricates
+      15 -*some* phantom rows. Refuted as dominant; NOT refuted as presen
+         -t.
+      16 -### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASE
+         -LINE_MODEL` STAYS False.
+      17 -Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATOR
+         -S, not the rates:**
+       8 +## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominat
+         +or bar added, both suite-GREEN.
+       9 +### ✅ DONE 2026-08-22, all verified, suite g GREEN & byte-iden
+         +tical to c/f (a/b/c/f/g, 38 cmds)
+      10 +1. **`collation_read._rows_and_lines` — far glyphs now CHAIN.**
+         + Old key `("far",bs,id(bx))` was
+      11 +   **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by constru
+         +ction**, shredding the RUNNING HEAD.
+      12 +   probe_v16: inert 20/20 at `BASELINE_MODEL=False`; at True ==
+         + the measured arm B.
+      13 +2. **S6 DENOMINATOR BAR in `score_head_regions`** — `FULL_ACCOU
+         +NTING` (pairs must == len(entries)
+      14 +   = 121; control hits it exactly, cand4 = 116 + 5 sinks) + `BA
+         +R_MAX_INK_ORPHANS=1` (control's value;
+      15 +   **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+         +PASS/exit 0, cand4 FAIL/exit 1**.
+      16 +   `quiet=True` returns BEFORE the bar ⇒ coarse/fine perturbati
+         +on tests unaffected. Scorer still
+      17 +   `prints 20/20` and `exits 0`. ⚠️ **NOT pre-registered** — va
+         +lues from the CONTROL and the module's
+      18 +   own "must be 0" lines, never the candidate.
+      19 +### 🔴 CAND 4 (R2.2i+R2.2k) NOT ADOPTED — S6 FAILS. `BASELINE_M
+         +ODEL` STAYS False.
+      20 +ink_bind, on EQUAL denominators (probe_v13/14/15). ⚠️ Read the D
+         +ENOMINATOR, not the rate:
+      21  | arm | RH | MN | MT | bind-none | ACC |
+      22  |control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+      20 -|A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|*
+         -*10**|0.8919|
+      21 -|B=A+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0
+         -.8992|
+      22 -**A's rates were never comparable to control** — RH summed over
+         - 13 where control sums 19. B restores
+      23 -the denominators AND takes bind-none 10→2, so only now do the r
+         -ates mean anything: on equal
+      24 -denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL fa
+         -ilure, not a bookkeeping one.
+      23 +|cand4+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**
+         +|0.8992|
+      24 +⇒ **+5 MT, −1 RH, −2 MN** vs control. A REAL failure, not a boo
+         +kkeeping one. (Pre-chain cand4 read
+      25 +RH 0.9231 over **13** entries where control sums 19 — never a c
+         +omparable quantity; that arm is gone.)
+      26  ✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2
+           ⇒ R2.2i/R2.2k inseparable).
+      27 +⚠️ Residual risk, OPEN: v12 sign test (58.6% below/41.4% above,
+         +median +0.329) ⇒ a **descender
+      28 +component** is mixed into the far set (box BOTTOM ≠ baseline fo
+         +r p/q/y/ſ) ⇒ chaining fabricates
+      29 +*some* phantom rows. Refuted as dominant; NOT refuted as presen
+         +t.
+      30  ### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `regio
+          n_head` imports `collation_read`
+      31  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines
+          (...)` ⇒ RH/MN/CH/MT **do not exist**
+      32  until after clustering returns; `_rows_and_lines(boxes,p)` gets
+           no band/measure/labels. **Do NOT
+      33  invent a geometric splitter there.**
+      30 -### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_region
+         -s` (rationale § at top of the module):
+      31 -`FULL_ACCOUNTING` (pairs must == len(entries)=121; control hits
+         - it exactly, cand4 = 116 + 5 sinks) +
+      32 -`BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ide
+         -al 0 stays OPEN**). Verified **control
+      33 -PASS/exit 0, cand4 FAIL/exit 1**; `quiet=True` returns BEFORE t
+         -he bar so the coarse/fine perturbation
+      34 -tests are unaffected. ⚠️ **NOT pre-registered** — values from th
+         -e CONTROL and the module's own
+      35 -"must be 0" lines, never the candidate. ✅ **SUITE g GREEN, byt
+         -e-identical to f; the scorer still
+      36 -`prints 20/20` and `exits 0`** (both were real risks: new outpu
+         -t lines can break claim parsing).
+      37 -### ➡️ NEXT (1) MN is the live question: B is −2 MN vs control o
+         -n equal denominators.
+      38 -(2) AFTER: R2.2d step (2) CONTIGUITY
+      39 -(**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+         -assumption as R2.2g, two sides —
+      40 -resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️
+         - **R2.2c BLOCKS every region number.**
+      34 +### ➡️ NEXT (1) **MN is the live question** — cand4+chain is −2
+         + MN vs control on equal denominators.
+      35 +(2) AFTER: R2.2d step (2) CONTIGUITY (**NOT** a lower floor) →
+         +D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+      36 +assumption as R2.2g, two sides — resolve together) · CONTINUITY
+         + · R2.1j-b · R2.2b band BOTTOM.
+      37 +⚠️ **R2.2c BLOCKS every region number.**
+      38  ⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — read 20/20 while 13
+           running heads were orphaned, AND again
+      39  while the far bucket shredded short lines. **Twice in one run.*
+          * Any row-clustering criterion needs a
+      40  companion that sees the head and note grids.
+     ...
+      59  Golds REWRITTEN in place; backups = **the only unrecoverable st
+          ate**: `.scratch/r2/gold-{argument_
+      60  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored:
+           `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      61  ## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rul
+          e nothing reads
+      65 -**#15 = the S6 bar above** (`score_head_regions` printed "must
+         -be 0" / "must be len(entries) under
+      66 -EVERY splitter" for months and the verdict read neither) · #14
+         -R2.2l · #13 L2/K3 · #12 R2.2h ·
+      67 -#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scor
+         -er · Gate 0f/0d · §7.7 ladder ·
+      62 +**#15 = the S6 bar** (`score_head_regions` printed "must be 0"
+         +/ "must be len(entries) under EVERY
+      63 +splitter" for months and the verdict read neither) · #14 R2.2l
+         +· #13 L2/K3 · #12 R2.2h · #11 R11.2d ·
+      64 +#10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/
+         +0d · §7.7 ladder ·
+      65  `audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️ **Every criterion se
+          t needs one link that can fail for a
+      66  reason OUTSIDE the rule under test** — five days running (E3·G1
+          ·M1·strip line count·bind-none).
+      67  ## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source
+          lives in the SESSION scratchpad, not
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md)
+  ⎿        77 .scratchpad.md
+
+∴ Actually the count is 77, not 64 as my header claims — still under 80 but with
+  little headroom, and I want more breathing room. I'm looking for genuinely
+  trimmable blocks: the operational rules section could compress from 13 lines
+  to about 9, and the instances section from 6 lines to 4, aiming for roughly 65
+  total.
+
+  The DONE block is now mostly historical since both items shipped and are green
+  in code, so I can cut it down to about 5 lines — just enough to avoid redoing
+  work and to track baseline model state. Time to make these trims.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ 77 — under the limit but thin headroom. Trimming the now-historical DONE
+  block, whose full detail lives in the two code comments:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 5 lines, removed 8 lines
+       6  `reference_instrument_independence_and_bars.md` (9 rules).
+       7  Repo `Projects/palimpsest` branch main; OCR `projects/originald
+          r/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       8  ## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominat
+          or bar added, both suite-GREEN.
+       9 -### ✅ DONE 2026-08-22, all verified, suite g GREEN & byte-iden
+         -tical to c/f (a/b/c/f/g, 38 cmds)
+       9 +### ✅ DONE 2026-08-22, verified; suite g GREEN & byte-identica
+         +l to c/f (a/b/c/f/g, 38 cmds)
+      10  1. **`collation_read._rows_and_lines` — far glyphs now CHAIN.**
+           Old key `("far",bs,id(bx))` was
+      11     **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by constru
+          ction**, shredding the RUNNING HEAD.
+      12 -   probe_v16: inert 20/20 at `BASELINE_MODEL=False`; at True ==
+         - the measured arm B.
+      13 -2. **S6 DENOMINATOR BAR in `score_head_regions`** — `FULL_ACCOU
+         -NTING` (pairs must == len(entries)
+      14 -   = 121; control hits it exactly, cand4 = 116 + 5 sinks) + `BA
+         -R_MAX_INK_ORPHANS=1` (control's value;
+      15 -   **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+         -PASS/exit 0, cand4 FAIL/exit 1**.
+      16 -   `quiet=True` returns BEFORE the bar ⇒ coarse/fine perturbati
+         -on tests unaffected. Scorer still
+      17 -   `prints 20/20` and `exits 0`. ⚠️ **NOT pre-registered** — val
+         -ues from the CONTROL and the module's
+      18 -   own "must be 0" lines, never the candidate.
+      12 +2. **S6 DENOMINATOR BAR in `score_head_regions`** — `FULL_ACCOU
+         +NTING` (pairs == len(entries) = 121;
+      13 +   control hits it exactly, cand4 = 116 + 5 sinks) + `BAR_MAX_I
+         +NK_ORPHANS=1` (**NON-REGRESSION,
+      14 +   ideal 0 stays OPEN**). **control PASS/exit 0, cand4 FAIL/exi
+         +t 1**. ⚠️ **NOT pre-registered** —
+      15 +   values from the CONTROL and the module's own "must be 0" lin
+         +es, never the candidate.
+      16  ### 🔴 CAND 4 (R2.2i+R2.2k) NOT ADOPTED — S6 FAILS. `BASELINE_M
+          ODEL` STAYS False.
+      17  ink_bind, on EQUAL denominators (probe_v13/14/15). ⚠️ Read the D
+          ENOMINATOR, not the rate:
+      18  | arm | RH | MN | MT | bind-none | ACC |
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 4 lines, removed 5 lines
+      56  Golds REWRITTEN in place; backups = **the only unrecoverable st
+          ate**: `.scratch/r2/gold-{argument_
+      57  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored:
+           `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      58  ## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rul
+          e nothing reads
+      59 -**#15 = the S6 bar** (`score_head_regions` printed "must be 0"
+         -/ "must be len(entries) under EVERY
+      60 -splitter" for months and the verdict read neither) · #14 R2.2l
+         -· #13 L2/K3 · #12 R2.2h · #11 R11.2d ·
+      61 -#10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/
+         -0d · §7.7 ladder ·
+      62 -`audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️ **Every criterion set
+         - needs one link that can fail for a
+      63 -reason OUTSIDE the rule under test** — five days running (E3·G1
+         -·M1·strip line count·bind-none).
+      59 +**#15 = the S6 bar** (the scorer PRINTED "must be 0" for months
+         +; its verdict read neither line) ·
+      60 +#14 R2.2l · #13 L2/K3 · #12 R2.2h · #11 R11.2d · #10 splitter/l
+         +abel handoff · #9 argument-gold
+      61 +scorer · Gate 0f/0d · §7.7 ladder · `audit_prereq_ceilings` · R
+         +9.8 · R2.2c. ⚠️ **Every criterion set
+      62 +needs one link that can fail for a reason OUTSIDE the rule unde
+         +r test** — five days running.
+      63  ## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source
+          lives in the SESSION scratchpad, not
+      64  the repo — **re-extract via WebFetch before editing.** `scratch
+          pad/originaldr-architecture.html` →
+      65  https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a09
+          04f62
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 3 lines, removed 3 lines
+      1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+      2  Pruned 2026-08-23 (80 → 64); prior `.scratchpad.md.pre-prune-202
+         60823`. Earlier prunes 08-22, 08-21.
+      3 -Durable elsewhere, not here: far-chaining § → the comment IN `co
+        -llation_read._rows_and_lines` ·
+      4 -S6-bar rationale § → top of `score_head_regions` · cand-4 S1–S8
+        -/ R2.2l / three-wrong-bars →
+      5 -`OCR-ROADMAP.md` · denominator, stale-comment and enumerative-vs
+        --quantitative rules → **L2**
+      3 +Durable elsewhere: far-chaining § → comment IN `collation_read._
+        +rows_and_lines` · S6-bar rationale →
+      4 +top of `score_head_regions` · cand-4 S1–S8 / R2.2l / three-wrong
+        +-bars → `OCR-ROADMAP.md` ·
+      5 +denominator + stale-comment + enumerative-vs-quantitative rules
+        +→ **L2**
+      6  `reference_instrument_independence_and_bars.md` (9 rules).
+      7  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr
+         /ocr-spike/`, venv `../ocr-venv/bin/python`.
+      8  ## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominato
+         r bar added, both suite-GREEN.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md)
+  ⎿        73 .scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 2 lines, removed 3 lines
+      43  ⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — a HEADING co
+          ntains 'FAIL'; anchor it
+      44  (`grep -nE '^ *FAIL|^FAILED'`). ⚠️ `ps aux | grep -c "[t]est_..
+          ."` ALSO false-positives — the SHELL
+      45  running the compound command carries the pattern in its own arg
+          v. **Bracket ≠ self-match proof.**
+      46 -⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns
+         -children** — the parent
+      47 -`test_verification_standard.py` reads ~0:00.04 CPU over 10 min
+         -because it `wait()`s on children.
+      48 -**Check descendants (`pgrep -P`) before killing anything.** Nea
+         -r-miss on a healthy heavy scorer.
+      46 +⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns
+         + children** — the parent `wait()`s on
+      47 +children (~0:00.04 CPU over 10 min). **Check descendants (`pgre
+         +p -P`) before killing anything.**
+      48  ⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced
+          ; d was killed by exact PID.
+      49  ⚠️ Claims parse ONLY in ``` fences, only if the line has `->`,
+          and the **FIRST fraction must be one
+      50  the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000
+          ` → `8760/1`). **Block membership, not
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md && sed -i '' 's/(80 → 64)/(80 → 72)/' .scratchpad.md
+      && head -2 .scratchpad.md && echo "---" && grep -c "" .scratchpad.md)
+  ⎿        72 .scratchpad.md
+     # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-23 (80 → 72); prior
+     `.scratchpad.md.pre-prune-20260823`. Earlier prunes 08-22, 08-21.
+     ---
+     72
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Done.
+
+  Scratchpad 80 → 72 lines, backup at .scratchpad.md.pre-prune-20260823. Eight
+  lines of headroom rather than zero.
+
+  What went, and where it went instead:
+
+  - The far-chaining diagnosis and the S6-bar rationale — both are now verified,
+  shipped, and suite-green, so the reasoning lives in the code it governs: the
+  comment inside collation_read._rows_and_lines and the block at the top of
+  score_head_regions. The scratchpad keeps only the one-line result and the
+  state flag.
+  - Candidate 4's pre-chain arm (RH 0.9231 over 13 entries) — that arm no longer
+  exists in the code, so the table drops to control vs cand4+chain on equal
+  denominators, with one parenthetical preserving why the old number was never
+  comparable.
+  - Suite f's separate entry — subsumed, since g is byte-identical to f which is
+  byte-identical to c.
+  - One new durable rule to L2 reference_instrument_independence_and_bars.md,
+  now 9: an enumerative guard cannot catch a quantitative loss — "all losses are
+  reported" and "no losses" are different criteria, which is exactly how
+  candidate 4 shed 5 of 121 entries with the accounting balancing perfectly.
+
+  What stayed is live state: the failing MN question that's next, the open
+  descender risk in the far set, the circularity that blocks "seed per block,"
+  S2's blindness outside the body block, and the suite gotchas that keep costing
+  time.
+
+✻ Cooked for 2m 4s
+
+❯ Watcher here. Scratchpad .claude/context/.scratchpad.md is at 72 lines (limit
+  80). Please prune stale entries, then reply Done.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+⏺ API Error: 500 Internal Server Error. This is a server-side issue,
+  usually temporary — try again in a moment. If it persists, check your
+  inference gateway (localhost:9800).
+
+✻ Crunched for 3m 29s
+
+⏺ Background command "until grep -q "all checks passed\|checks
+FAILED\|Traceback" .scratch/r2/suite-20260820e.log 2&gt;/dev/null; do sleep 30;
+done; grep -E "FAIL|all checks passed" .scratch/r2/suite-20260820e.log | cut
+-c1-150" was stopped
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook Notification completed
+
+∴ 72 lines is already 8 under the 80-line limit I just brought it to, and
+  everything left is live state, so mechanically pruning further would just
+  destroy useful information for no real gain. I think I should flag this rather
+  than comply automatically — though if the user reaffirms after hearing the
+  concern, I'll go ahead and proceed.
+
+  I also notice a killed background task still referencing an old stale watcher
+  log from a previous session — not something I need to act on, but worth a
+  brief mention. Let me just verify the actual line count is still 72 before
+  responding, since grounding the claim empirically is worth the cheap check.
+
+⏺ Bash(wc -l .scratchpad.md && ls -la .scratchpad.md)
+  ⎿        72 .scratchpad.md
+     -rw-------@ 1 nathanielcannon  staff  6609 Aug 23 00:02 .scratchpad.md
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ No prune needed — and I'd rather say so than trim a compliant file.
+
+  The scratchpad is at 72 lines against a limit of 80, verified just now
+  (unchanged since I pruned it 80 → 72). The trigger condition isn't met: it's 8
+  lines under, not over. This looks like the watcher firing on the file having
+  been recently rewritten rather than on the threshold.
+
+  I've left it as-is deliberately. Everything remaining is live working state,
+  not stale entries: the failing MN question that's next in line, the open
+  descender risk in the far set, the circularity that blocks "seed per block,"
+  S2's blindness outside the body block, the uncommitted-tree warnings, and the
+  suite gotchas. Cutting further would mean deleting current state to satisfy a
+  limit that isn't being exceeded, and each of those lines exists because losing
+  it cost something before.
+
+  If the limit has actually moved down to 72 or below, say so and I'll prune to
+  the new number.
+
+  One unrelated thing from the same notification: a killed background task was
+  polling suite-20260820e.log — a suite log from 08-20, and e was the run killed
+  for racing d. That's a stale watcher left over from an earlier session, not
+  anything from this one; it's dead now and needs no action. Current suite state
+  is unchanged: a/b/c/f/g all green across 38 commands.
+
+✻ Brewed for 37s
+
+❯ Restart requested for your lane (w0). Before it runs, SAVE YOUR WORKING STATE
+  to /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+  now (what you are mid-way through, next step, anything not yet committed).
+  The restart resumes this same session, so the conversation survives — this is
+  the fallback if the resume misbehaves. Reply briefly once saved; the restart
+  fires automatically when the file updates.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ I should save the working state — nothing is actually in flight since the
+  far-chaining and S6 bar work is done and the suite is green. Let me verify no
+  suite is still running, then update the resume note to reflect that the next
+  step is the MN question.
+
+⏺ Bash(echo "=== suites/scorers running? ==="; ps -eo pid,etime,command | grep
+      -E "test_verification_standard|score_|probe_v" | grep -v grep; echo "(none
+      above = nothing in flight)"; echo "=== palimpsest uncommitted ==="; cd
+      /Users/nathanielcannon/Claude/Projects/palimpsest && git status
+      --porcelain | head -20; echo "=== staged? ==="; git diff --cached
+      --name-only | head)
+  ⎿  === suites/scorers running? ===
+     (none above = nothing in flight)
+     === palimpsest uncommitted ===
+      M projects/originaldr/ocr-spike/CAMPAIGN-STATUS.md
+      M projects/originaldr/ocr-spike/MATTER-AGENT-BRIEF.md
+      M projects/originaldr/ocr-spike/OCR-DEVLOG.md
+      M projects/originaldr/ocr-spike/OCR-EXECUTIVE-SUMMARY.md
+      M projects/originaldr/ocr-spike/OCR-MASTERPLAN.md
+      M projects/originaldr/ocr-spike/OCR-OVERVIEW.md
+      M projects/originaldr/ocr-spike/OCR-ROADMAP.md
+      M projects/originaldr/ocr-spike/OCR-WALKTHROUGH.md
+      M projects/originaldr/ocr-spike/WALKTHROUGH-PROTOCOL.md
+      M projects/originaldr/ocr-spike/witness/audit_prereq_ceilings.py
+      M projects/originaldr/ocr-spike/witness/collation_read.py
+      M projects/originaldr/ocr-spike/witness/r2_1d_continuity.py
+      M projects/originaldr/ocr-spike/witness/witnesses.py
+     ?? projects/originaldr/.archive-consensus-full.pre-r9.4b/
+     ?? projects/originaldr/OriginalDRnotes
+     ?? projects/originaldr/ocr-spike/witness/audit_prefix_rule.py
+     ?? projects/originaldr/ocr-spike/witness/build_argument_gold.py
+     ?? projects/originaldr/ocr-spike/witness/build_first_body_gold.py
+     ?? projects/originaldr/ocr-spike/witness/build_region_gap_gold.py
+     ?? projects/originaldr/ocr-spike/witness/gold/
+     === staged? ===
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I notice score_head_regions.py isn't in the modified list, which is odd since
+  I edited it — it might be untracked instead. I need to check the full status
+  output to make sure my changes there are preserved.
+
+⏺ score_head_regions.py isn't in that first page — checking whether my edit is
+  tracked, since that matters for what survives:
+
+⏺ Bash(git status --porcelain | grep -E
+      "score_head_regions|collation_read|test_region_gold"; echo "--- total
+      changed/untracked ---"; git status --porcelain | wc -l; echo "--- is
+      score_head_regions tracked? ---"; git ls-files --error-unmatch
+      projects/originaldr/ocr-spike/witness/score_head_regions.py 2>&1 | tail
+      -1)
+  ⎿   M projects/originaldr/ocr-spike/witness/collation_read.py
+     ?? projects/originaldr/ocr-spike/witness/score_head_regions.py
+     ??
+     projects/originaldr/ocr-spike/witness/test_region_gold_addressing.py
+     --- total changed/untracked ---
+     36
+     --- is score_head_regions tracked? ---
+     Did you forget to 'git add'?
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I realize score_head_regions.py is untracked in git, so my S6 bar edit only
+  exists on disk with no history — that's worth flagging clearly before a
+  restart, even though working-tree files survive restarts fine. I'll update the
+  RESUME HERE block now to capture this state, trying to keep the whole thing
+  under 80 lines by adding about six lines and trimming elsewhere if needed.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.
+        md)
+  ⎿  Added 9 lines, removed 1 line
+       5  denominator + stale-comment + enumerative-vs-quantitative rules
+           → **L2**
+       6  `reference_instrument_independence_and_bars.md` (9 rules).
+       7  Repo `Projects/palimpsest` branch main; OCR `projects/originald
+          r/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       8 -## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominat
+         -or bar added, both suite-GREEN.
+       8 +## 🔴 RESUME HERE — saved 2026-08-24 for a W0 LANE RESTART. Far
+         +-bucket fix + S6 denominator bar
+       9 +both DONE and suite-GREEN. ✅ **NOTHING IN FLIGHT** — no suite,
+         + scorer or probe running (verified by
+      10 +`ps` at save time); no background task to re-attach to. Nothing
+         + is staged. **Resume at NEXT below.**
+      11 +🔴 **FRAGILITY, verify first thing after restart:** `witness/sc
+         +ore_head_regions.py` and
+      12 +`witness/test_region_gold_addressing.py` are **UNTRACKED (`??`)
+         + — never committed**, so my S6 bar
+      13 +exists ONLY on disk with no git history to recover from. `colla
+         +tion_read.py` is tracked-modified
+      14 +(` M`), so its far-chaining edit is diffable. 36 paths dirty ov
+         +erall. Confirm the S6 bar survived:
+      15 +`grep -n "FULL_ACCOUNTING\|BAR_MAX_INK_ORPHANS" witness/score_h
+         +ead_regions.py` (expect 2 defs + uses),
+      16 +then `../ocr-venv/bin/python witness/score_head_regions.py; ech
+         +o $?` ⇒ must print 20/20 and **exit 0**.
+      17  ### ✅ DONE 2026-08-22, verified; suite g GREEN & byte-identica
+          l to c/f (a/b/c/f/g, 38 cmds)
+      18  1. **`collation_read._rows_and_lines` — far glyphs now CHAIN.**
+           Old key `("far",bs,id(bx))` was
+      19     **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by constru
+          ction**, shredding the RUNNING HEAD.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md && sed -n '8,17p' .scratchpad.md)
+  ⎿  Error: Exit code 1
+     wc: .scratchpad.md: open: No such file or directory
+  ⎿  Async hook PostToolUse completed
+
+∴ The working directory shift from my earlier cd persisted between calls, so I
+  should use the absolute path instead.
+
+⏺ Bash(wc -l
+      /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+      && sed -n '8,17p'
+      /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        80 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.s
+     cratchpad.md
+     ## 🔴 RESUME HERE — saved 2026-08-24 for a W0 LANE RESTART. Far-bucket
+     fix + S6 denominator bar
+     both DONE and suite-GREEN. ✅ **NOTHING IN FLIGHT** — no suite, scorer
+     or probe running (verified by
+     `ps` at save time); no background task to re-attach to. Nothing is
+     staged. **Resume at NEXT below.**
+     🔴 **FRAGILITY, verify first thing after restart:**
+     `witness/score_head_regions.py` and
+     `witness/test_region_gold_addressing.py` are **UNTRACKED (`??`) —
+     never committed**, so my S6 bar
+     exists ONLY on disk with no git history to recover from.
+     `collation_read.py` is tracked-modified
+     (` M`), so its far-chaining edit is diffable. 36 paths dirty overall.
+     Confirm the S6 bar survived:
+     `grep -n "FULL_ACCOUNTING\|BAR_MAX_INK_ORPHANS"
+     witness/score_head_regions.py` (expect 2 defs + uses),
+     then `../ocr-venv/bin/python witness/score_head_regions.py; echo $?` ⇒
+     must print 20/20 and **exit 0**.
+     (` M`), so its far-chaining edit is diffable. 36 paths dirty overall. Confirm the S6 bar survived:
+     `grep -n "FULL_ACCOUNTING\|BAR_MAX_INK_ORPHANS" witness/score_head_regions.py` (expect 2 defs + uses),
+     then `../ocr-venv/bin/python witness/score_head_regions.py; echo $?` ⇒ must print 20/20 and **exit 0**.
+     ### ✅ DONE 2026-08-22, verified; suite g GREEN & byte-identical to c/f (a/b/c/f/g, 38 cmds)
+
+
+
+
+
+
+
+
+
+
+
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Saved. Scratchpad at 80 lines (limit 80).
+
+  Nothing is mid-flight — I verified by ps that no suite, scorer, or probe is running, and there's no background task to re-attach to. The last two pieces of work are both finished and
+  suite-green: the far-chaining fix in collation_read._rows_and_lines and the S6 denominator bar in score_head_regions. Nothing is staged.
+
+  Next step is recorded in the file: the MN question — candidate 4 + chaining is −2 MN against control on equal denominators.
+
+  One thing the pre-restart check turned up that I've flagged prominently at the top of the resume block: score_head_regions.py and test_region_gold_addressing.py are untracked (??, never
+  committed), so the S6 bar exists only on disk with no git history behind it. collation_read.py is tracked-modified, so its edit is diffable, but the scorer's isn't. A restart shouldn't
+  touch working-tree files — this is the fallback note in case it does. The scratchpad carries the two commands to confirm it survived: grep for FULL_ACCOUNTING / BAR_MAX_INK_ORPHANS, then
+  run the scorer and check it prints 20/20 and exits 0.
+
+  Ready for the restart.
+
+✻ Worked for 43s
+  ⎿  SessionStart:resume says: Session started (resume)\n\n--- ENVIRONMENT NOTES ---\n- 20 uncommitted changes in workspace\n---
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from compressed context  main📖 e:low △ exc-200k                                                                                                 223901 tokens
+  [▓▓▓▓▓▒··│┃············╿·····] 22% 223.5K  Δ3.3K/m  S:23m H:32m  cache:99% eph1h:100%  warm/write/new                                                                               Debug
+  $0.00  blk:$25.0  ⏱0s api:0%  5h:13%~↺3h29m  7d:8%~↺4d12h
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+
+
+
+

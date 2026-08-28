@@ -208,15 +208,21 @@ if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "clear" ]]; then
 fi
 
 # ============================================================================
-# WATCHER LAUNCH DISABLED — Handled by launch-jarvis-tmux.sh (2026-02-05)
+# WATCHER LAUNCH DISABLED — the launcher owns it, not this hook (2026-02-05)
 # ============================================================================
 # Previously launched legacy watcher here, but this caused duplicate watchers:
-# 1. launch-jarvis-tmux.sh creates legacy watcher window (primary)
+# 1. the tmux launcher creates the watcher window (primary)
 # 2. session-start.sh hook fires ~simultaneously (race condition)
 # 3. Both pass duplicate checks before either fully registers → 2 watchers
 #
-# Fix: Legacy watcher is now ONLY launched by launch-jarvis-tmux.sh
-# This hook focuses on context injection; tmux launcher handles process management
+# Fix: the watcher is launched ONLY by the launcher. This hook focuses on
+# context injection; process management belongs to the launcher.
+#
+# 2026-08-27: this block used to name launch-jarvis-tmux.sh, which is now
+# RETIRED (see .claude/scripts/retired/). The current launcher is
+# .claude/scripts/launch-aion.sh, and the JICM watcher it refers to now runs
+# under launchd as com.aion.jicm-watcher rather than from any launcher at all.
+# The reasoning above still holds; only the names moved.
 # ============================================================================
 if [[ "$SOURCE" == "startup" ]] || [[ "$SOURCE" == "resume" ]]; then
     # Legacy watcher launch removed - see comment above

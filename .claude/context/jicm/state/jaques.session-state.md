@@ -4,57 +4,100 @@
 **Purpose:** Compact status for this lane only. W0's `session-state.md` is another lane's memory and
 is neither read nor written from here.
 
+*Last rewritten 2026-08-25 from Sir's direction. The previous version was dated 2026-08-12 and
+described a single-project repo with "no Snorkel work started" — wrong in every particular.*
+
 ---
 
-## ACTIVE (2026-08-12) — Establishing Jacques
+## ACTIVE (2026-08-25) — ec-starfish, full bore
 
-Plan: `/Users/nathanielcannon/Claude/Project_Aion/.claude/plans/eager-plotting-umbrella.md`
+**This is the whole focus. Everything else is paused, closed, or waiting on someone else.**
 
-Phase 1 (Archon install) in progress. No Snorkel work started.
+Two aims, and the ordering matters — the tasks serve the toolset, not the other way round:
 
-## Project states — they are not comparable
+- **MAJOR AIM — the toolset.** Build and refine a complete set of Skills, tools, scaffolds and
+  written direction that carries a Starfish task **end to end**: scoping → authoring → data
+  generation → verifier → gates → packaging → portal intake → AutoEval survival → submission.
+  This is the deliverable that outlives any individual task.
+- **MINOR AIM — the tasks.** Author enough real tasks to design, exercise and *test* that workflow.
+  A tool that has never been run against a real bundle is a hypothesis.
+- **Workload target: three tasks today (2026-08-25).**
 
-| Project | Drive | State |
-|---|---|---|
-| **ec-beech** | 204 files · 8.4 MB, already mirrored to `source-materials/` | `taxprofiler-execution-audit-001` revised 2026-08-06 after 10 review findings; **staged to resubmit**. Gate 1 21/21, Gate 2 6/6 baselines fail |
-| **ecs-otter** | 4 files · **321 MB**, unread | Guide + Reviewer Quick Guide (docx), Example Task + Task Skeleton (zips). Public task board at `snorkel-ai.github.io/otter-harbor-task-claims/` |
-| **ec-starfish** | 8 files · **2 KB** | Bare Harbor skeleton, no data. Unstarted |
+### Sir's currently active Starfish task
 
-## Next
+```
+https://experts.snorkel-ai.com/projects/cb869485-67bf-4aba-85aa-fc63a7d82e19/submission-eb08410b-66c4-49c1-857d-3ceb844b2651/review
+```
 
-1. **Reorganize** SnorkelTasks for three projects (`git mv`, history preserved). The repo currently
-   knows only Beech — zero references to starfish or otter anywhere in the tree.
-   **Constraint:** `submissions/taxprofiler-execution-audit-001.tar.gz` must stay byte-identical and
-   uploadable; re-verify both gates from the moved tree.
-2. **Driveline** → shared package; three rclone remotes; mirror + manifest all three folders.
-3. **Monitors** — Otter task board first (public, pollable, needs nothing); then the authenticated
-   surfaces via the Chrome bridge.
+project `cb869485-67bf-4aba-85aa-fc63a7d82e19` · submission `eb08410b-66c4-49c1-857d-3ceb844b2651`
 
-## Verified facts (2026-08-12)
+Prefer `stb submissions fetch-task` over the rendered DOM — the `form_schema` carries
+dependent-option maps the page does not expose, and it does not depend on the browser path.
 
-- All three Drive folders are reachable from the **existing** `wvu` rclone token — same Google
-  account, no new consent needed.
-- `experts.snorkel-ai.com` and both `expertdocs.snorkel-ai.com` GitBooks return **403** unauthenticated.
-  `snorkel-ai.github.io/otter-harbor-task-claims/` returns **200** — public.
-- Chrome extension bridge is live (1 local browser).
+### What already exists to build on — do not start from zero
+
+- `projects/ec-starfish/docs/` — 16-page GitBook mirror; **`04-testing-and-submission-requirements.md`**
+  is the hard-requirements doc, **`17-autoeval-failure-atlas.md`** is the nine rejection modes
+- `.claude/skills/` — `task-authoring`, `bundle-preflight`, `gate-discipline`,
+  `submission-packaging`, `run-record-grounding`, `guideline-authority`, `autoeval-triage`
+- `scripts/` — `preflight.sh`, `package_task.sh`, `run_gates.sh`, `portal_replay.sh`
+- `phosphosite-flr-reconstruction-001` — **ACCEPTED** after five rejected builds. The worked example.
+
+The gap the major aim addresses: these are good parts with no spine. Nothing yet takes an author
+from "I have a domain idea" to "the ZIP is uploadable" without a human holding the sequence in
+their head.
+
+---
+
+## Project states — 2026-08-25. They are not comparable.
+
+| Project | State |
+|---|---|
+| **ec-starfish** | **ACTIVE, full bore.** One task ACCEPTED (`phosphosite-flr-reconstruction-001`). One live task under review (above). Three-task target today. |
+| **asimov** | **Cleared to submit; Sir is holding until later today (2026-08-25).** His call, his action. Guidelines still unread — see the settled blocker below. |
+| **ec-beech** | **PAUSED, awaiting client feedback.** `demultiplex-read-fate-audit-001` has been **RESUBMITTED**. Nothing for me to do until Snorkel responds. |
+| **ecs-otter** | **CLOSED.** The engagement has come to an end. Retain the materials and the LLM-policy record; expect no new work. |
+
+---
 
 ## Standing constraints
 
-- **Submission is the User's action.** Jacques packages, verifies and drafts; the User submits.
-- The domain law is `SnorkelTasks/CLAUDE.md`, auto-discovered from cwd. It is authoritative and was
-  written from real review findings — do not restate it from memory.
+- **SUBMITTING IS SIR'S ACTION, NEVER MINE.** All projects, no exceptions.
+- The domain law is `SnorkelTasks/CLAUDE.md`, auto-discovered from cwd. Authoritative, written from
+  real review findings — read it, never restate it from memory.
+- **ec-starfish assistance policy: fully inclusive, settled 2026-08-14.** Affirm and proceed; do not
+  re-litigate on LLM-policy grounds. The artifact Sir submits is still his own work.
+- Verify assistance policy **per project**; never carry a ruling across. Asimov's is UNKNOWN.
+- Never state a telemetry fact not read out of the JSON.
+- Check `ANTHROPIC_BASE_URL` before every Snorkel model call — Aion's `:9800` proxy answers
+  silently instead of Portkey. Prefer `stb harbor` / `stb claude`.
 
-## Open — needs the User
+## Starfish gate shape — the one that catches people
 
-- Can an app be installed in Snorkel's Slack workspace, or does it need admin approval?
-- Which Slack channels to watch.
-- Per-site Chrome permission for `experts.snorkel-ai.com` and `expertdocs.snorkel-ai.com`.
+Verdict is **`/logs/verifier/reward.txt`, not the exit code**; `test.sh` always exits 0. Required
+local gate is `harbor run -a oracle` = mean 1.000 and `-a nop` = mean 0.000. `nop` is a no-op agent,
+so it is weaker than a written naive baseline — `scripts/run_gates.sh` stays as the stricter
+internal check. The **ZIP root is flat** (`<task-name>/` holding `task.toml`); the nested
+`tasks/<domain>/<subdomain>/` path is the REPO layout only, and confusing them costs a build.
+
+## Settled, do not re-litigate
+
+- **The Asimov browser blocker is upstream.** `expertdocs.snorkel-ai.com/asimov-guideline` 307s to
+  an authenticated redirect; the auto-mode classifier 500s and fails closed. Not config, not
+  permission mode, not a restart, not a `/clear`. Full trail in `eea8a1a`. Re-probe opportunistically
+  only, never on deadline time.
+- **`duration_hours` README change is staged, not repackaged** — repackaging invalidates a
+  calibrated submission's SHA for a prose improvement. Ships on the next build for another reason.
+- **`Long-horizon` skill-taxonomy conflict** — the form's `form_schema` lists it while static checks
+  warn. A warning, not an error. Coordinator item; deliberately not silently changed.
+- The persona file still says "three projects" and omits Asimov. **Protected path** — Sir's call or
+  W11's, not mine to edit.
 
 ## Known risk
 
 `rclone`'s shared Google `client_id` is being retired during 2026. When it goes, both Jacques' and
-Genie's Drive pipelines stop. Minting an own OAuth client id is small and overdue.
+Genie's Drive pipelines stop. Minting our own OAuth client id is small and overdue.
 
 ---
 
-*Jacques lane established 2026-08-12.*
+*Lane established 2026-08-12. Rewritten 2026-08-25 for the Starfish push.*

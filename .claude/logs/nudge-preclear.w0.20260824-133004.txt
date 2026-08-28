@@ -1,0 +1,2043 @@
+      for name, chain in (("A production (far isolated)", False), ("B candidate (far chained)", True)):
+          P13.CHAIN_FAR = chain
+          CR._rows_and_lines = P13._cand_rows_and_lines
+          buf = io.StringIO()
+          with contextlib.redirect_stdout(buf):
+              rc = S.main()
+          CR._rows_and_lines = P13._PROD
+          print(f"════════ {name}  (exit {rc}) ════════")
+          for l in buf.getvalue().splitlines():
+              if any(k in l for k in ("recall", "RH", "MN", "CH", "MT", "pairs", "binding none",
+                                      "ACCURACY", "unlabelled", "FAIL", "PASS", "🔴", "✅")):
+                  print("  " + l)
+          print()
+      PY
+      ../ocr-venv/bin/python -u .scratch/r2/probe_v14.py 2>&1 | tail -60)
+  ⎿        407.1.5      gold=MT got=MN  x=+1.042 n=3
+           410.0.1      gold=RH got=MT  x=+0.508 n=7
+           410.0.2      gold=MN got=MT  x=+0.929 n=8
+           412.1.0      gold=MN got=MT  x=+0.067 n=8
+           412.2.1      gold=MT got=MN  x=+0.620 n=45
+           413.2.0      gold=MT got=MN  x=+0.483 n=46
+           419.0.0      gold=MN got=RH  x=+0.281 n=10
+           419.1.2      gold=MT got=MN  x=+1.084 n=5
+           419.2.0      gold=MT got=MN  x=+0.480 n=33
+           entries binding none 13   -- ACCOUNTING criterion: must be 0
+           ACCURACY             0.8926
+             RH  0.9167  (11/12)
+             MN  0.8750  (14/16)
+             MT  0.8901  (81/91)
+             CH  1.0000  (2/2)
+           🔴 CONTAINMENT FAILED ITS PRE-REGISTERED ACCOUNTING on coarser splitters (33 orphans at
+           entries binding none 10   -- ACCOUNTING criterion: must be 0
+           ACCURACY             0.8919
+             RH  0.9231  (12/13)
+             MN  0.8235  (14/17)
+             MT  0.8987  (71/79)
+             CH  1.0000  (2/2)
+         verdict: PASS
+
+     ════════ B candidate (far chained)  (exit 0) ════════
+         unlabelled (skipped)   134   -- <3 glyphs or unread; counted, not dropped
+         ACCURACY  instrument  0.9052
+                   ALL-MT ctl   0.6552   (majority-class floor)
+                   ROW0-RH ctl  0.8103   (the rule a reader would write unaided)
+         per-region recall:
+           RH  0.9474  (18/19)  ok
+           MN  0.7895  (15/19)  ok
+           MT  0.9211  (70/76)
+           CH  1.0000  (2/2)
+           405.1.5      gold=MN got=MT  x=+0.936 n=7
+           406.1.0      gold=MT got=CH  x=+0.269 n=27
+           406.1.1      gold=MT got=MN  x=+0.821 n=19
+           407.2.5      gold=MT got=MN  x=+1.040 n=3
+           410.0.1      gold=RH got=MT  x=+0.508 n=7
+           410.0.2      gold=MN got=MT  x=+0.929 n=8
+           412.1.0      gold=MN got=MT  x=+0.067 n=8
+           412.2.1      gold=MT got=MN  x=+0.621 n=45
+           413.2.0      gold=MT got=MN  x=+0.483 n=46
+           419.0.0      gold=MN got=RH  x=+0.281 n=10
+           419.2.2      gold=MT got=MN  x=+1.084 n=5
+           entries binding none 5   -- ACCOUNTING criterion: must be 0
+           ACCURACY             0.8712
+             RH  0.9444  (17/18)
+             MN  0.8421  (16/19)
+             MT  0.8602  (80/93)
+             CH  1.0000  (2/2)
+           🔴 CONTAINMENT FAILED ITS PRE-REGISTERED ACCOUNTING on coarser splitters (33 orphans at
+           entries binding none 2   -- ACCOUNTING criterion: must be 0
+           ACCURACY             0.8992
+             RH  0.9474  (18/19)
+             MN  0.7895  (15/19)
+             MT  0.9114  (72/79)
+             CH  1.0000  (2/2)
+         verdict: PASS
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The runtime assertion confirms ink2d is correct. Now I'm comparing the ink_bind figures for each arm — arm A shows RH at 0.9231, MN at 0.8235, MT at 0.8987, and CH at 1.0000, with 10
+  entries binding none, while arm B starts with RH at 0.9474.
+
+  These A numbers match exactly the cand-4 S6 failure figures from the scratchpad, confirming arm A is candidate 4 as-is. Comparing against the control baseline (RH 1.0000, MN 0.8947), arm
+  B improves RH to 0.9474 but still falls short of control, and MN actually drops to 0.7895, worse than both A and control — so S6 still fails overall.
+
+  But the denominators shifted dramatically: RH went from 13 to 19 entries scored, MN from 17 to 19, and entries binding none dropped from 10 to 2, meaning B is scoring far more of the gold
+  data. Looking at raw correct counts rather than rates, B gets 18 RH correct versus A's 12, and 15 MN correct versus A's 14 — so B is actually getting more right in absolute terms even
+  though its MN rate looks worse due to the larger denominator.
+
+  This is exactly the trap the scratchpad already flagged — comparing rates across different denominators is misleading, and S6 as written only bars rates, never the denominator itself. The
+          rc = S.main()
+      print(f"════════ CONTROL (BASELINE_MODEL=False)  exit {rc} ════════")
+      for l in buf.getvalue().splitlines():
+          if any(k in l for k in ("recall", "  RH ", "  MN ", "  MT ", "  CH ", "binding none", "ACCURACY")):
+              print("  " + l)
+      PY
+      ../ocr-venv/bin/python -u .scratch/r2/probe_v15.py 2>&1 | tail -25)
+  ⎿  ════════ CONTROL (BASELINE_MODEL=False)  exit 0 ════════
+         ACCURACY  instrument  0.8760
+         per-region recall:
+           RH  1.0000  (20/20)  ok
+           MN  0.8947  (17/19)  ok
+           MT  0.8375  (67/80)
+           CH  1.0000  (2/2)
+           entries binding none 0   -- ACCOUNTING criterion: must be 0
+           ACCURACY             0.8468
+             RH  0.9500  (19/20)
+             MN  0.8947  (17/19)
+             MT  0.8072  (67/83)
+             CH  1.0000  (2/2)
+           entries binding none 1   -- ACCOUNTING criterion: must be 0
+           ACCURACY             0.8750
+             RH  1.0000  (19/19)
+             MN  0.8947  (17/19)
+             MT  0.8375  (67/80)
+             CH  1.0000  (2/2)
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Now I'm comparing accuracy across the control, candidate 4, and chained binding conditions across the RH, MN, MT, and CH categories, checking how each performs against the surviving rule.
+
+  With B restoring denominators to near-control levels, I can now compare rates cleanly: B loses 1 on RH, loses 2 on MN, but gains 5 on MT, netting +2 correct overall. Since S6 requires all
+  four metrics to meet or exceed control, B still fails on RH and MN — but this is now a clean, denominator-matched failure rather than one contaminated by unscored entries like candidate
+  A's. That makes B's result far more trustworthy, and it points toward far-chaining being a strict tradeoff rather than a clear win.
+
+  I'm leaning toward folding the far-chaining fix into collation_read even though the candidate isn't adopted, since it's inert while BASELINE_MODEL=False and strictly improves the seeded
+  branch's accounting — but I'm weighing whether leaving the far bucket broken risks a future run re-hitting the same defect.
+
+  Given the edit is small and provably inert, I'll make it and verify cheaply with the S1 control rather than triggering a full suite re-run, since the gated branch change doesn't touch the
+  OPEN register.
+
+⏺ Three-way table now reads cleanly (ink_bind, the surviving rule):
+
+  ┌────────────────────────────────┬────────────────┬────────────────┬────────────────┬──────────────┬────────┐
+  │              arm               │       RH       │       MN       │       MT       │ binding none │  ACC   │
+  ├────────────────────────────────┼────────────────┼────────────────┼────────────────┼──────────────┼────────┤
+  │ control (BASELINE_MODEL=False) │ 1.0000 (19/19) │ 0.8947 (17/19) │ 0.8375 (67/80) │ 1            │ 0.8750 │
+  ├────────────────────────────────┼────────────────┼────────────────┼────────────────┼──────────────┼────────┤
+  │ A = candidate 4 as it stands   │ 0.9231 (12/13) │ 0.8235 (14/17) │ 0.8987 (71/79) │ 10           │ 0.8919 │
+  ├────────────────────────────────┼────────────────┼────────────────┼────────────────┼──────────────┼────────┤
+  │ B = A + far-chaining           │ 0.9474 (18/19) │ 0.7895 (15/19) │ 0.9114 (72/79) │ 2            │ 0.8992 │
+  └────────────────────────────────┴────────────────┴────────────────┴────────────────┴──────────────┴────────┘
+
+  ★ Insight ─────────────────────────────────────
+  This is what the denominator check buys. Under A the RH rate 0.9231 was computed over 13 entries when the control scores 19 — six running heads simply weren't in the sum, so A's rates and
+  the control's rates were never comparable quantities. B restores the denominators to control levels (19/19/79) and drops entries-binding-none from 10 to 2, against a criterion the scorer
+  itself states must be 0.
+
+  Only now can the rates be read: on equal denominators B is +5 MT correct, −1 RH, −2 MN versus control. So S6 still fails — but it now fails for a real reason rather than a bookkeeping
+  one. Candidate 4 stays unadopted, BASELINE_MODEL=False.
+  ─────────────────────────────────────────────────
+
+  The far-bucket defect is independent of adoption — that path can never emit a row — so I'll fix it in the gated branch and verify inertness:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/collation_read.py)
+  ⎿  Added 27 lines, removed 3 lines
+      320              else np.empty(0)
+      321          if len(seeds):
+      322              buckets = {}
+      323 +            far_items = []
+      324              for bs, bx in pairs:
+      325                  j = int(np.argmin(np.abs(seeds - bs)))
+      326                  if abs(seeds[j] - bs) <= ROW_TOL_P * p:
+      327                      buckets.setdefault(j, []).append((bs, bx))
+      328                  else:
+      328 -                    buckets.setdefault(("far", bs, id(bx)), []).append((bs, bx))
+      329 -            rows = [buckets[k] for k in sorted(buckets, key=lambda k:
+      330 -                                               seeds[k] if isinstance(k, int) else k[1])]
+      329 +                    far_items.append((bs, bx))
+      330 +            # 🔴 A GLYPH NO SEED EXPLAINS IS STILL TYPE. The former key was `("far", bs, id(bx))` --
+      331 +            # unique PER GLYPH -- so every unexplained glyph became a row of ONE and the `len(r) >= 2`
+      332 +            # exit filter below then deleted all of them. That path could not emit a surviving row AT
+      333 +            # ALL, by construction: measured over leaves 400-419, 760 far glyphs produced 0 rows.
+      334 +            # What it deleted was the RUNNING HEAD -- `score_head_regions` reported 'NVMERI' orphaned
+      335 +            # at row 0 on five leaves -- and S2 stayed at 20/20 throughout because S2 counts
+      336 +            # BODY-BLOCK rows and every shredded line was a short one outside the body block.
+      337 +            # The remedy is the rule the greedy branch below already states, applied here rather than
+      338 +            # restated: chain an unexplained glyph to its neighbours at the SAME `ROW_TOL_P`. Folded
+      339 +            # forward from that branch on purpose -- a second, parallel notion of "which glyphs share
+      340 +            # a line" is how the splitter under test and the splitter in production drift apart.
+      341 +            # ⚠️ MEASURED, NOT ASSUMED, and it does NOT rescue the candidate: on the R2.1g gold this
+      342 +            # takes entries-binding-none 10 -> 2 and restores the RH/MN denominators to the control's
+      343 +            # (13 -> 19, 17 -> 19), but S6 still FAILS against control on equal denominators at
+      344 +            # -1 RH and -2 MN for +5 MT. `BASELINE_MODEL` therefore stays False. This is fixed here
+      345 +            # because the defect is in the branch regardless of whether the branch is ever switched on.
+      346 +            for bs, bx in sorted(far_items, key=lambda pr: pr[0]):
+      347 +                prev = buckets.get(("far", len(buckets) - 1))
+      348 +                if prev and abs(bs - float(np.median([g[0] for g in prev]))) <= ROW_TOL_P * p:
+      349 +                    prev.append((bs, bx))
+      350 +                else:
+      351 +                    buckets[("far", len(buckets))] = [(bs, bx)]
+      352 +            rows = [buckets[k] for k in sorted(
+      353 +                buckets, key=lambda k: seeds[k] if isinstance(k, int)
+      354 +                else float(np.median([g[0] for g in buckets[k]])))]
+      355          else:
+      356              rows = [[pr] for pr in sorted(pairs, key=lambda pr: pr[0])]
+      357      else:
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(cat > .scratch/r2/probe_v16.py <<'PY'
+      """v16 -- INERTNESS + EQUIVALENCE for the far-chaining edit to `_rows_and_lines`.
+
+      (1) INERT at BASELINE_MODEL=False: the production path must be bit-identical to the pre-edit
+          behaviour. The pre-edit behaviour on that path is the GREEDY branch, which the edit did not
+          touch, so this is asserted against a re-implementation of the greedy rule -- the same S1-style
+          control candidate 4 used.
+      (2) EQUIVALENT to probe_v13's controlled candidate at BASELINE_MODEL=True, so the gold verdict
+          already measured (binding-none 10 -> 2) is the verdict for the code now shipped.
+      """
+      import sys, warnings; warnings.filterwarnings("ignore")
+      sys.path.insert(0, 'witness'); sys.path.insert(0, '.')
+      import numpy as np, witnesses as W
+      import collation_read as CR
+      from score_head_regions import top_band
+      sys.path.insert(0, '.scratch/r2')
+      import probe_v13 as P13
+
+      vol, sig = [k for k in W.WITNESSES if W.wid(*k) == "OT1-1609-B"][0]
+      leaves = W.leaves(vol, sig)
+
+      def greedy(boxes, p):
+          pairs = [(b[1], b) for b in boxes]
+          rows = []
+          for bs, bx in sorted(pairs, key=lambda pr: pr[0]):
+              if rows and abs(bs - float(np.median([g[0] for g in rows[-1]]))) <= CR.ROW_TOL_P * p:
+                  rows[-1].append((bs, bx))
+              else:
+                  rows.append([(bs, bx)])
+          def ob(r):
+              b = np.array([x for x, _ in r], dtype=float)
+              return int((np.abs(b - np.median(b)) <= 0.15 * p).sum()) >= 2
+          return [[bx for _, bx in r] for r in rows if len(r) >= 2 and ob(r)]
+
+      inert = equiv = n = 0
+      for i in range(400, 420):
+          band = top_band(leaves[i]); p, _ = CR.scale(band)
+          if p is None: continue
+          bx = CR.glyph_boxes(band, 0, p)
+          if not bx: continue
+          n += 1
+          CR.BASELINE_MODEL = False
+          inert += (CR._rows_and_lines(bx, p) == greedy(bx, p))
+          CR.BASELINE_MODEL = True; P13.CHAIN_FAR = True
+          equiv += (CR._rows_and_lines(bx, p) == P13._cand_rows_and_lines(bx, p))
+      CR.BASELINE_MODEL = False
+      print(f"INERT at BASELINE_MODEL=False (== greedy)          : {inert}/{n}")
+      print(f"EQUIVALENT to the measured candidate (MODEL=True)  : {equiv}/{n}")
+      print("both must read {}/{}".format(n, n))
+      PY
+      ../ocr-venv/bin/python -u .scratch/r2/probe_v16.py 2>&1 | tail -6)
+  ⎿    🔴 leaf 416: COPY DIVERGES from production with CHAIN_FAR off
+       🔴 leaf 417: COPY DIVERGES from production with CHAIN_FAR off
+       🔴 leaf 418: COPY DIVERGES from production with CHAIN_FAR off
+       🔴 leaf 419: COPY DIVERGES from production with CHAIN_FAR off
+     CONTROL: copy vs production, CHAIN_FAR off -- 2/20 bit-identical
+     🔴 the copy has drifted; no verdict below would mean anything. STOP.
+  ⎿  (timeout 10m)
+  ⎿  witness/collation_read.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/collation_read.py):
+  ⎿    ✘ [Line 26:6] Import "scipy" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 27:6] Import "kraken" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 28:6] Import "kraken.containers" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 29:6] Import "kraken.lib" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 1203:12] Import "region_head" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 584:16] Expression with type "tuple[Unknown, Unknown, Unknown, Unknown]" cannot be assigned to target tuple
+       Type "tuple[Unknown, Unknown, Unknown, Unknown]" is incompatible with target tuple
+         Tuple size mismatch; expected 2 but received 4 [reportAssignmentType] (Pyright)
+  ⎿    ✘ [Line 1010:87] "LANCZOS" is not a known attribute of module "PIL.Image" [reportAttributeAccessIssue] (Pyright)
+  ⎿    ★ [Line 97:5] "h" is not accessed (Pyright)
+  ⎿    ★ [Line 449:10] "n" is not accessed (Pyright)
+  ⎿    ★ [Line 908:30] "_cov" is not accessed (Pyright)
+  ⎿  witness/score_head_regions.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/score_head_regions.py):
+  ⎿    ✘ [Line 34:8] Import "region_head" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 54:75] "LANCZOS" is not a known attribute of module "PIL.Image" [reportAttributeAccessIssue] (Pyright)
+  ⎿    ✘ [Line 154:8] Cannot assign to attribute "row_of" for class "FunctionType"
+       Attribute "row_of" is unknown [reportFunctionMemberAccess] (Pyright)
+  ⎿    ✘ [Line 361:24] Cannot access attribute "row_of" for class "FunctionType"
+       Attribute "row_of" is unknown [reportFunctionMemberAccess] (Pyright)
+  ⎿    ✘ [Line 429:16] Type "dict[str, float | int | dict[Unknown, Unknown] | list[Unknown] | None]" is not assignable to return type "int" [reportReturnType] (Pyright)
+  ⎿    ★ [Line 385:42] "_e" is not accessed (Pyright)
+  ⎿    ★ [Line 389:42] "_pu" is not accessed (Pyright)
+  ⎿    ★ [Line 389:47] "_e" is not accessed (Pyright)
+  ⎿    ★ [Line 390:30] "_g" is not accessed (Pyright)
+  ⎿    ★ [Line 390:34] "_p" is not accessed (Pyright)
+  ⎿  witness/audit_prefix_rule.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/audit_prefix_rule.py):
+  ⎿    ✘ [Line 110:10] Import "kraken.lib" could not be resolved [reportMissingImports] (Pyright)
+  ⎿  witness/test_region_gold_addressing.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_region_gold_addressing.py):
+  ⎿    ✘ [Line 52:8] Import "score_head_regions" could not be resolved [reportMissingImports] (Pyright)
+  ⎿  witness/render_pipeline.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/render_pipeline.py):
+  ⎿    ✘ [Line 42:8] Import "region_head" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 230:14] Import "kraken.lib" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 79:79] "LANCZOS" is not a known attribute of module "PIL.Image" [reportAttributeAccessIssue] (Pyright)
+  ⎿    ✘ [Line 246:54] "splitlines" is not a known attribute of "None" [reportOptionalMemberAccess] (Pyright)
+  ⎿    ✘ [Line 279:38] "LANCZOS" is not a known attribute of module "PIL.Image" [reportAttributeAccessIssue] (Pyright)
+  ⎿    ★ [Line 114:21] "ctx" is not accessed (Pyright)
+  ⎿    ★ [Line 150:13] "k" is not accessed (Pyright)
+  ⎿    ★ [Line 233:13] "_w" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ That's probe_v13's import-time control firing again, and now it diverges because production has actually changed to chain while v13's frozen copy still isolates — which is expected, but
+  it means v13's control is obsolete and exits with an error, killing v16 before its own checks even run. I need to fix this so v13 doesn't block v16's execution.
+
+  Instead of importing v13, I'll verify equivalence directly against the measured gold outcome — rerunning score_head_regions with the baseline flag and confirming binding-none matches arm
+  B's value of 2. That's actually a stronger check since it confirms the shipped code reproduces arm B's real numbers, and it also cross-validates that production changed as intended: 2 of
+  20 leaves stayed identical, consistent with those two leaves having zero far groups. Let me rewrite v16 without the v13 dependency.
+
+⏺ That failure is the control working correctly, not a bug: importing probe_v13 re-runs its control, which asserts the copy equals production as it was — and production has now changed. It
+  diverges on exactly 18 of 20 leaves, and the 2 that match are leaves 410 and 415, the only two v10 measured as having no chainable far groups. Consistent. Rewriting the check to stand
+  alone and verify against the measured gold numbers instead:
+
+  Bash(cat > .scratch/r2/probe_v16.py <<'PY'
+      """v16 -- INERTNESS + GOLD EQUIVALENCE for the far-chaining edit now in `_rows_and_lines`.
+
+      ⚠️ Does NOT import probe_v13: v13's control asserts its copy equals production AS IT WAS, so it
+      correctly diverges now that production has changed, and its sys.exit would pre-empt these checks.
+      (It diverged on 18/20 -- the 2 that matched are leaves 410 and 415, the only two v10 measured as
+      having no chainable far group. That agreement is itself a check on both probes.)
+
+      (1) INERT at BASELINE_MODEL=False -- the shipped production path must equal the greedy rule, which
+          the edit did not touch. S1-style control.
+      (2) GOLD EQUIVALENCE at BASELINE_MODEL=True -- the shipped code must reproduce arm B's measured
+          numbers (entries binding none = 2, RH 18/19, MN 15/19), or the thing measured is not the thing
+          shipped.
+      """
+      import sys, io, warnings, contextlib; warnings.filterwarnings("ignore")
+      sys.path.insert(0, 'witness'); sys.path.insert(0, '.')
+      import numpy as np, witnesses as W
+      import collation_read as CR
+      import score_head_regions as S
+
+      vol, sig = [k for k in W.WITNESSES if W.wid(*k) == "OT1-1609-B"][0]
+      leaves = W.leaves(vol, sig)
+
+      def greedy(boxes, p):
+          rows = []
+          for bs, bx in sorted(((b[1], b) for b in boxes), key=lambda pr: pr[0]):
+              if rows and abs(bs - float(np.median([g[0] for g in rows[-1]]))) <= CR.ROW_TOL_P * p:
+                  rows[-1].append((bs, bx))
+          n += 1
+          inert += (CR._rows_and_lines(bx, p) == greedy(bx, p))
+      print(f"(1) INERT at BASELINE_MODEL=False (== greedy) : {inert}/{n}   [must be {n}/{n}]")
+
+      CR.BASELINE_MODEL = True
+      buf = io.StringIO()
+      with contextlib.redirect_stdout(buf): S.main()
+      CR.BASELINE_MODEL = False
+      tail = [l.strip() for l in buf.getvalue().splitlines()]
+      hits = [l for l in tail if "binding none" in l or l.startswith(("RH ", "MN ", "MT ", "CH "))]
+      print("(2) SHIPPED code at BASELINE_MODEL=True, gold readout:")
+      for l in hits[-8:]:
+          print("     " + l)
+      print("     [arm B was: binding none 2, RH 0.9474 (18/19), MN 0.7895 (15/19)]")
+      PY
+      ../ocr-venv/bin/python -u .scratch/r2/probe_v16.py 2>&1 | tail -14)
+  ⎿  (1) INERT at BASELINE_MODEL=False (== greedy) : 20/20   [must be 20/20]
+     (2) SHIPPED code at BASELINE_MODEL=True, gold readout:
+          MN  0.8421  (16/19)
+          MT  0.8602  (80/93)
+          CH  1.0000  (2/2)
+          entries binding none 2   -- ACCOUNTING criterion: must be 0
+          RH  0.9474  (18/19)
+          MN  0.7895  (15/19)
+          MT  0.9114  (72/79)
+          CH  1.0000  (2/2)
+          [arm B was: binding none 2, RH 0.9474 (18/19), MN 0.7895 (15/19)]
+  ⎿  (timeout 10m)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Both checks pass exactly — the shipped code is inert at baseline (20/20 bit-identical to greedy) and reproduces arm B exactly when the flag is true. I should update the scratchpad with
+  this consolidated state and flag that a full regression suite still needs to run, though given the edit is provably inert at baseline, it should come back green.
+
+  I'll use a fresh suite letter since d and e raced before — letter f this time, run with -u in the background using the verification standard script rather than pytest directly. Let me
+  launch that now, then update the scratchpad and report back.
+
+⏺ Both checks pass exactly: inert 20/20 at BASELINE_MODEL=False, and at True the shipped code reproduces arm B's gold numbers precisely (binding none 2, RH 18/19, MN 15/19, MT 72/79). What
+  was measured is what ships.
+
+  Kicking off the regression run for the edit, and recording state:
+
+⏺ Bash(nohup ../ocr-venv/bin/python -u witness/test_verification_standard.py > .scratch/r2/suite-20260821f.log 2>&1 &
+      echo "suite f pid $!")
+  ⎿  suite f pid 14373
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 19 lines, removed 1 line
+      33  should have crashed S2, but S2 read 20/20 at **+2** — because S2 counts **BODY-BLOCK** rows and the
+      34  shredded lines are the SHORT ones outside it. **Same blindness as the 13-orphaned-running-heads
+      35  case, twice in one run.** Nothing to do with blocks.
+      36 -⚠️  **BUT "just chain the far bucket" IS NOT YET JUSTIFIED — probe_v11/v12.** The 760 are a MIXED
+
+⏺ Bash(while kill -0 14373 2>/dev/null; do sleep 30; done; echo "=== suite f EXITED ==="; wc -l .scratch/r2/suite-20260821f.log; echo "--- anchored FAILs ---"; grep -nE '^ *FAIL|^FAILED'
+      .scratch/r2/suite-20260821f.log; echo "(none above = clean)"; echo "--- vs GREEN baseline c ---"; diff <(sed 's/[0-9]\+\.[0-9]\+s//g' .scratch/r2/suite-20260821c.log) <(sed
+      's/[0-9]\+\.[0-9]\+s//g' .scratch/r2/suite-20260821f.log) && echo "IDENTICAL to c"; tail -3 .scratch/r2/suite-20260821f.log)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Where this landed.
+
+  Suite c: verified GREEN — 125 lines, 0 anchored FAILs, byte-identical to baseline b once timings are stripped. Candidate 4's edits are provably inert at BASELINE_MODEL=False.
+
+  The planned next step was wrong. "Seed per block" is circular — region_head imports collation_read one-way and RH.tokens opens by calling _rows_and_lines, so RH/MN/CH/MT don't exist until
+  after clustering returns. No block rule is available at the seeding site.
+
+  A real defect turned up in its place. The seeded branch keyed unexplained glyphs ("far", bs, id(bx)) — unique per glyph — so each became a row of one and len(r) >= 2 deleted it. That path
+  could not emit a surviving row at all: 760 glyphs, 0 rows. What it was deleting was the running head; 'NVMERI' at row 0 on five leaves. S2 stayed at 20/20 throughout because S2 counts
+  body-block rows, which is the same regional blindness that already cost this project once — now twice in one run.
+
+  Fixed and shipped, chaining folded forward from the greedy branch rather than restated. Verified inert 20/20 at BASELINE_MODEL=False, and the shipped code reproduces the measured arm-B
+  gold numbers exactly, so the thing measured is the thing running.
+
+  It does not rescue the candidate. BASELINE_MODEL stays False. The fix takes entries-binding-none 10 → 2 and restores the RH/MN denominators to the control's, but on equal denominators the
+  candidate is −1 RH and −2 MN for +5 MT against control. S6 fails — now for a real reason rather than a bookkeeping one.
+
+  Two things worth flagging. Candidate 4's original RH rate of 0.9231 was summed over 13 entries where the control sums 19; it was never a comparable quantity, which is the denominator trap
+  this run has now sprung twice. And I nearly discarded the whole comparison over a stale comment: score_head_regions line 58 still says ROW_ADDRESS defaults to "ordinal", while the live
+  constant on line 69 is "ink2d", adopted 2026-08-20. Asserting it at runtime is what settled it.
+
+  Suite f is running against the edit; I'll report when it clears.
+
+✻ Cooked for 9m 3s · 2 shells still running
+
+❯ Watcher here. Scratchpad .claude/context/.scratchpad.md is at 124 lines (limit 80). Please prune stale entries, then reply Done.
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to trim the scratchpad from 124 down to 80 lines, dropping anything already grep-verified durable in OCR-ROADMAP.md and pushing durable lessons to L2 memory. Let me read through
+  the current scratchpad first to do the prune properly.
+
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Read 125 lines
+
+∴ I should check suite f's state first since it determines the resume line, then move to pruning. For the R2.2l closure, since the full details are already durable in the roadmap, I can
+  compress that to a single line while keeping R2.2m OPENED intact; similarly for the cand 4 details, much of that content overlaps with the roadmap and can be trimmed.
+
+  The S6 numbers are superseded by the newer three-way table, so I'll compress those heavily. The far bucket cause is now fixed and documented in the code comment within collation_read.py,
+  so I just need a couple lines pointing there instead of restating it. For the v11/v12 aggregates, I'll drop most content since the gold verdict supersedes it, keeping only the one-line
+  descender caution as an open risk.
+
+  For the three-bars section, since the roadmap already has the full write-up and the instrument-independence memory holds six rules, I'll compress bars 1 and 2 (now historical) down to two
+  lines, keeping the S2/denominator lesson since it's still live. The suite section can be compressed to just the repeat-use operational gotchas, dropping the c-specific narrative, and the
+  signature defect stays brief. I also want to push a durable lesson to L2 memory about the denominator trap across moving denominators, and the principle of asserting constants at runtime
+  rather than trusting header comments.
+
+  I'm deciding where this belongs — rather than creating a new file, I should add it to reference_instrument_independence_and_bars.md since it's fundamentally about the bars work. Since the
+  task is to prune then confirm done, I'll do the prune and also make this memory write since it preserves content I'm otherwise dropping. Before finalizing, let me check suite f first.
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+
+⏺ Checking suite f first, since the resume line depends on it:
+
+⏺ Bash((kill -0 14373 2>/dev/null && echo "suite f ALIVE" || echo "suite f EXITED"); wc -l .scratch/r2/suite-20260821f.log 2>/dev/null; grep -nE '^ *FAIL|^FAILED'
+      .scratch/r2/suite-20260821f.log 2>/dev/null; echo "(no FAIL lines above = clean)"; pgrep -P 14373 2>/dev/null | while read p; do ps -o pid,etime,time,command -p $p|tail -1; done)
+  ⎿  suite f ALIVE
+           84 .scratch/r2/suite-20260821f.log
+     (no FAIL lines above = clean)
+     82934   04:48   4:47.81 /opt/homebrew/Cellar/python@3.12/3.12.12_2/Frameworks/Python.framework/Versions/3.12/Resources/Python.app/Contents/MacOS/Python witness/score_edge_chain.py
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ The suite passes cleanly, 84 lines with no failures on score_edge_chain. Before pruning this, I want to save the durable lesson to L2 memory by appending a rule to the instrument
+  independence reference file, so let me read it first.
+
+⏺ Preserving the durable lessons to L2 before dropping them from L1:
+
+⏺ Read(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/memory/reference_instrument_independence_and_bars.md)
+  ⎿  Read 40 lines
+
+⏺ Update(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/memory/reference_instrument_independence_and_bars.md)
+  ⎿  Added 16 lines, removed 1 line
+       5    node_type: memory
+       6    type: reference
+       7    originSessionId: aec1c127-b2ff-4782-9adc-ec11068dd531
+       8 -  modified: 2026-08-21T06:01:07.218Z
+       8 +  modified: 2026-08-22T06:07:21.068Z
+       9  ---
+      10
+      11  Distilled from OriginalDR R2.2i (2026-08-20), where five instruments gave four answers for one
+     ...
+      34     the right-hand edge. A judgement about a crowded picture got recorded as a measurement and stood
+      35     for several steps. **Zoom until the candidates are separated, or use a count instead.**
+      36
+      37 +Added 2026-08-22 from R2.2i/R2.2k candidate 4, two more paid for the same way:
+      38 +
+      39 +7. **A rate compared across a moving denominator is not a comparison.** Candidate 4's RH recall
+      40 +   0.9231 was summed over **13** gold entries where the control sums **19** — six entries were not
+      41 +   in the sum at all, so the two numbers were never the same quantity, and the candidate looked
+      42 +   merely-worse when it was differently-scoped. **Read the denominator beside every rate, and make
+      43 +   the count of scored items its own bar.** The inverse of the Goodhart case (rates rising by
+      44 +   discarding gold) is this one: a fix that *restores* the denominator makes some rates fall while
+      45 +   being strictly better. Both are invisible to a criterion that bars only rates.
+      46 +8. **Assert the constant at runtime; never read the header comment.** A module's line-58 comment
+      47 +   said `ROW_ADDRESS` defaults to `"ordinal"` (which would have confounded any row-count change via
+      48 +   ordinal re-keying); the live constant on line 69 was `"ink2d"`, adopted the day before. A stale
+      49 +   comment nearly invalidated a sound result. **`assert` / print the value the process actually
+      50 +   holds** — the comment is documentation of an intention, not of the running state.
+      51 +
+      52  Related: [[reference_dead_metric_and_blind_gold]] (a null is not a verdict until the metric is shown
+      53  to move) · [[reference_test_contrasts_and_label_blindness]] · [[reference_two_cause_signal_suppression]]
+      54  · [[feedback_empirical_before_claim]] · [[reference_gold_addressing_and_enumeration]].
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now the prune — 125 → 80, dropping what is durable in the roadmap, in the code comment I wrote, or now in L2:
+
+⏺ Bash(cp /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md.pre-prune-20260822 && echo
+      "backup written")
+  ⎿  backup written
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 56 lines, removed 91 lines
+       1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+       2 -Pruned 2026-08-21 (191 → 80, held at 80); prior `.scratchpad.md.pre-prune-20260821`. Pruned 2026-08-19 (216 → 77).
+       3 -Dropped as **grep-verified durable in `OCR-ROADMAP.md`**: R2.2j adoption §§ · R2.2i cand 1/3 results
+       4 -+ every slope table · the 6-link chain numbers · period-alias / diagonal-chain diagnosis · R2.2k and
+       5 -R2.2l rows · R2.2b/c · R11.2c · R2.1k · Sir's rulings. → **L2 memory**: the instrument-failure block,
+       6 -now `reference_instrument_independence_and_bars.md` (6 rules).
+       2 +Pruned 2026-08-22 (125 → 79); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+       3 +Dropped as **durable elsewhere**: cand-4 S1–S8 tables + R2.2l closure §§ + the three-wrong-bars § →
+       4 +`OCR-ROADMAP.md` · the `far`-bucket diagnosis → the 15-line comment I wrote IN
+       5 +`collation_read._rows_and_lines` (read it there) · probe_v11/v12 aggregate stats → superseded by the
+       6 +gold verdict below · the moving-denominator + stale-comment rules → **L2**
+       7 +`reference_instrument_independence_and_bars.md` (now 8 rules).
+       8  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       9
+       9 -## 🔴 RESUME HERE — 2026-08-21. R2.2l CLOSED. R2.2i+R2.2k cand 4 refuted on S6. Next: per-BLOCK seeds.
+      10 -### ✅ R2.2l CLOSED 2026-08-21 — **THE SIXTH SINK** (full § in roadmap). Suite GREEN, 38 cmds.
+      11 -`score_head_regions.main`'s `pairs` loop silently dropped an entry whose token an **AMBIGUOUS** entry
+      12 -also binds; `main` reported five sinks and not this one. Counted as `ambcoll` + added to the guard's
+      13 -`accounted` (ENUMERATION fix, measured first: 1 in the one failing cell, 0 in the other five).
+      14 -**R2.2l → DONE, `R2.2m` OPENED** (same uncounted idiom filtering containment obs by `cexcl`; its
+      15 -accounting is per-OBSERVATION not per-entry). Register **72**, claim **1/72**, audit re-run.
+      16 -### 🔴 R2.2i + R2.2k CANDIDATE 4 — S1-S4/S7/S8 PASS, **S6 FAILS, NOT ADOPTED**. `BASELINE_MODEL`=False.
+      17 -Two mechanisms, one candidate: **strip cross-correlation slope** (alias-free, sub-pixel lag) +
+      18 -**seeded assignment** (fixed seeds, no running median). Logs `cand4c`, `cand4-s8b`.
+      19 -✅ **ROW COUNT SOLVED**: body rows ±2 on **20/20** (13 exact), total **793 vs 790**, vs cand 1's 3/20
+      20 -and +246. **407 went +31 → +2** — never tilt, it was the chaining ⇒ **R2.2i/R2.2k inseparable and
+      21 -jointly sufficient for the count.** S8: recovery 16/16 (±0.0004), rows stable 16/16, potency 10/16.
+      22 -🔴 **S6 FAILS**: RH 1.0000→0.9231, MN 0.8947→0.8235, **10 orphans** (RH 6·MN 2·MT 2; 418×3, 406×2) —
+      23 -short lines. **Stopped tuning the seed finder: more work against the gold is fitting to the score.**
+      24 -🔴 **"SEED PER BLOCK" IS NOT IMPLEMENTABLE AS WRITTEN — CIRCULAR.** `region_head` imports
+      25 -`collation_read` (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so
+      26 -RH/MN/CH/MT **do not exist** until after clustering returns. `_rows_and_lines(boxes, p)` gets no
+      27 -band, no measure, no labels — only raw box geometry. Do NOT invent a geometric splitter there.
+      28 -🔴 **REAL CAUSE FOUND (probe_v10, 2026-08-21) — THE `far` BUCKET SHREDS EVERY SHORT LINE.**
+      29 -`_rows_and_lines` L328 keys an unexplained glyph `("far", bs, id(bx))` — **unique PER GLYPH** — so
+      30 -each becomes its OWN row and `len(r) >= 2` then deletes it. The seeded branch **cannot ever emit a
+      31 -surviving row from that path, by construction.** Measured: **760 far glyphs → 0 rows today; 88 rows
+      32 -if chained** at the same `ROW_TOL_P`. ⚠️ Consistency check that makes this solid: 88 lost lines
+      33 -should have crashed S2, but S2 read 20/20 at **+2** — because S2 counts **BODY-BLOCK** rows and the
+      34 -shredded lines are the SHORT ones outside it. **Same blindness as the 13-orphaned-running-heads
+      35 -case, twice in one run.** Nothing to do with blocks.
+      36 -✅ **FIXED IN `collation_read._rows_and_lines` 2026-08-21, far glyphs now CHAIN** (folded forward
+      37 -from the greedy branch, not a parallel rule). VERIFIED probe_v16: **inert 20/20** vs greedy at
+      38 -`BASELINE_MODEL=False`, and at True the SHIPPED code reproduces arm B's gold exactly. ⏳ **suite f
+      39 -pid 14373 → `suite-20260821f.log` IN FLIGHT, verify before reporting.**
+      40 -🔴 **BUT IT DOES NOT RESCUE THE CANDIDATE — S6 STILL FAILS. `BASELINE_MODEL` STAYS False.**
+      41 -Three-way, ink_bind (probe_v13/14/15). ⚠️ Read the DENOMINATORS, not the rates:
+      10 +## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED & shipped. Cand 4 still refuted. Suite f IN FLIGHT.
+      11 +### ⏳ FIRST: VERIFY SUITE f BEFORE REPORTING ANY STATE
+      12 +`suite-20260821f.log`, pid 14373, launched 2026-08-21 ~23:5x for the far-chaining edit. At last look
+      13 +84/125 lines, 0 anchored FAILs, in `score_edge_chain`. **Expected GREEN and byte-identical to `c`**
+      14 +(the edit is inert at `BASELINE_MODEL=False`, proven 20/20 by probe_v16). Verify with:
+      15 +`diff <(sed 's/[0-9]*\.[0-9]*s//g' …c.log) <(sed 's/[0-9]*\.[0-9]*s//g' …f.log)`.
+      16 +### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN (folded forward from the
+      17 +greedy branch, not a parallel rule). The old key `("far", bs, id(bx))` was **unique PER GLYPH**, so
+      18 +every unexplained glyph became a row of one and `len(r) >= 2` deleted it: **760 far glyphs → 0 rows,
+      19 +by construction.** It was shredding the RUNNING HEAD ('NVMERI' row 0, 5 leaves). Full § is the
+      20 +comment in the function. probe_v16: **inert 20/20** at False; at True reproduces arm B exactly.
+      21 +⚠️ Residual risk, unresolved: v12 sign test (58.6% below / 41.4% above, median +0.329) says a
+      22 +**descender component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ), so chaining
+      23 +fabricates *some* phantom rows. Refuted as dominant; NOT refuted as present.
+      24 +### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+      25 +Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATORS, not the rates:**
+      26  | arm | RH | MN | MT | bind-none | ACC |
+      27  |control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+      28  |A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|**10**|0.8919|
+      29  |B=A+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0.8992|
+      46 -**A's rates were never comparable to control** — RH summed over 13 entries where control sums 19.
+      47 -B restores the denominators AND takes bind-none 10→2 (a criterion the scorer says must be 0), so
+      48 -only now do the rates mean anything: on equal denominators B is **+5 MT, −1 RH, −2 MN** vs control.
+      49 -A REAL failure, not a bookkeeping one. Recovered orphans were the RUNNING HEAD ('NVMERI' row 0,
+      50 -5 leaves) — the far bucket was shredding it while S2 read 20/20 (body-block blindness, AGAIN).
+      51 -⚠️ **I nearly discounted all of this on a STALE COMMENT**: `score_head_regions` L58 says ROW_ADDRESS
+      52 -defaults to `"ordinal"`; the live constant L69 is **`"ink2d"`, adopted 2026-08-20**. Ordinal keying
+      53 -would have confounded any row-count change. **Assert the constant at runtime, don't read the header.**
+      54 -⚠️ **BUT "just chain the far bucket" WAS NOT JUSTIFIED ON AGGREGATES — probe_v11/v12.** The 760 are a MIXED
+      55 -population, not missed lines: dist to nearest seed piles at **0.30-0.50p (59.7%)**, median 0.46,
+      56 -only 7.5% beyond 1p. Sign test for descenders (box BOTTOM ≠ baseline for p/q/y/ſ, always BELOW):
+      57 -**58.6% below / 41.4% above**, heights far 0.510 vs assigned 0.475 ⇒ descenders **REFUTED as the
+      58 -dominant cause** but median offset **+0.329** says a descender component IS mixed in. Chaining would
+      59 -recover some real lines AND fabricate phantom descender-rows. **Do not adopt on aggregates.**
+      60 -➡️ Next (BLOCKED on suite c): decide it **AGAINST THE GOLD, not a proxy** — do the chained far groups
+      61 -overlap the S6 gold entries that are currently ORPHANED? ⚠️ **USE `score_head_regions`' own binding
+      62 -(`match`/MIN_BIND_FRAC), do NOT reimplement it** — that is the signature defect, 14 instances.
+      63 -Then any adopted change re-runs S6 with a bar on **`pairs`** as well as the four rates.
+      64 -### 🔴 THREE BARS OF MINE WERE WRONG IN ONE RUN — the transferable part (full § in roadmap)
+      65 -1. **827 was inflated by ~39** — the strip counter took profile runs at y=0 and y=H (**page-edge
+      66 -   shadow**); `CR.text_runs` ALREADY states the rule. Corrected **790**. ⚠️ This bar refuted cand 1.
+      67 -2. **S8(a)'s ±0.003 was below my estimator's own resolution** (integer lag / ~150px ⇒ quantum 0.0067,
+      68 -   never computed). **Fixed the INSTRUMENT** (parabolic sub-pixel peak), not the bar.
+      69 -3. **S6 bars four RATES, never the DENOMINATOR.** First run: acc **UP** 0.8760→0.9000, MT UP, pairs
+      70 -   **121→90, 27 orphans** — the Goodhart the module's own header records. **Successors must bar `pairs`.**
+      71 -⚠️ **S2 read 20/20 while 13 of 20 running heads were ORPHANED** — S2 counts BODY-BLOCK rows, so a
+      72 -criterion scoped to one region is blind to damage in another. Cause: seeding at `0.25 × profile MAX`
+      73 -(set by the densest body line) dropped every SHORT line; now **prominence** peaks, floor tied to the
+      74 -module's own ">=2 glyphs" rule (27→10 orphans).
+      75 -### ➡️ AFTER THE CHAIN: R2.2d step (2) CONTIGUITY (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME
+      76 -modal-edge assumption as R2.2g, two sides — resolve together) · CONTINUITY · R2.1j-b · R2.2b band
+      77 -BOTTOM. ⚠️ **R2.2c still BLOCKS every region number.**
+      30 +**A's rates were never comparable to control** — RH summed over 13 where control sums 19. B restores
+      31 +the denominators AND takes bind-none 10→2 (the scorer's own "must be 0"), so only now do the rates
+      32 +mean anything: on equal denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL failure now,
+      33 +not a bookkeeping one. ✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2 ⇒ R2.2i/R2.2k
+      34 +inseparable). S8 16/16, 16/16, potent 10/16.
+      35 +### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `region_head` imports `collation_read`
+      36 +(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      37 +until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+      38 +**Do NOT invent a geometric splitter there.**
+      39 +### ➡️ NEXT, in order
+      40 +1. Verify suite f. 2. **S6 needs a `pairs`/denominator bar** before any successor is scored — it bars
+      41 +four RATES only, and that hole has now cost two wrong readings in one run. 3. Then MN is the live
+      42 +question: B is −2 MN vs control on equal denominators. 4. AFTER: R2.2d step (2) CONTIGUITY (**NOT** a
+      43 +lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides — resolve
+      44 +together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️ **R2.2c still BLOCKS every region number.**
+      45 +⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — it counts BODY-BLOCK rows, so it read 20/20 while 13
+      46 +running heads were orphaned, AND again while the far bucket shredded short lines. **Twice in one
+      47 +run.** Any row-clustering criterion needs a companion that sees the head and note grids.
+      48 +### 🟡 R2.2m OPEN (R2.2l CLOSED 2026-08-21, § in roadmap) — same uncounted idiom as R2.2l, filtering
+      49 +containment obs by `cexcl`; its accounting is per-OBSERVATION not per-entry. Register **72**, claim **1/72**.
+      50
+      79 -## ✅ SUITE — a/b/**c** ALL GREEN 2026-08-21 (**all 38 cmds**, 4 heavy scorers). c VERIFIED, DONE.
+      80 -Register **72**, claim **1/72**. `suite-20260821c.log` **COMPLETE 125 lines, 0 anchored FAILs, and
+      81 -BYTE-IDENTICAL to GREEN baseline `b`** once timings are stripped (`diff <(sed 's/[0-9]*\.[0-9]*s//g'
+      82 -b.log) <(… c.log)`) ⇒ the cand-4 edits are provably INERT at `BASELINE_MODEL=False`. **Free to edit
+      83 -`collation_read` again.** ⚠️ Lesson from this run: the PARENT `test_verification_standard.py` reads
+      84 -~0:00.04 CPU over 10 min because it `wait()`s on shelled-out children — **CPU≪elapsed does NOT mean
+      85 -hung for a process that spawns children; check descendants (`pgrep -P`) first.** It was the
+      86 -regression run for the cand-4 edits to `collation_read` (`leaf_slope` rewritten to
+      87 -strip cross-correlation + sub-pixel lag, `baseline_seeds` added, seeded branch in `_rows_and_lines`).
+      88 -All inert with `BASELINE_MODEL=False` and S1 verified bit-identical (1242 rows/22 pairs) against a
+      89 -re-implemented original, so GREEN is expected — **but it was still running at the refresh. Check it
+      90 -before reporting any suite state.** At 75 lines it had 0 real FAILs.
+      91 -⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — line 89 is a HEADING containing 'FAIL'; anchor it
+      92 -(`grep -nE '^ *FAIL|^FAILED'`). ⚠️ **`ps aux | grep -c "[t]est_..."` ALSO false-positives** — the
+      93 -SHELL running the compound command carries the pattern in its own argv. Bracket ≠ self-match proof.
+      94 -⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      51 +## ⚙️ SUITE — OPERATIONAL RULES (a/b/c ALL GREEN 2026-08-21, all 38 cmds, 4 heavy scorers)
+      52  ⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). ~1h, heavy scorers
+      53  ~20-25 min each ⇒ BACKGROUND **with `-u`** (redirected stdout is buffered).
+      54 +⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — a HEADING contains 'FAIL'; anchor it
+      55 +(`grep -nE '^ *FAIL|^FAILED'`). ⚠️ `ps aux | grep -c "[t]est_..."` ALSO false-positives — the SHELL
+      56 +running the compound command carries the pattern in its own argv. **Bracket ≠ self-match proof.**
+      57 +⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns children** — the parent
+      58 +`test_verification_standard.py` reads ~0:00.04 CPU over 10 min because it `wait()`s on shelled-out
+      59 +children. **Check descendants (`pgrep -P`) before killing anything.** Cost me a near-miss on a
+      60 +healthy heavy scorer 4 min into a 25-min run.
+      61 +⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      62  ⚠️ Claims parse ONLY in triple-backtick fences, only if the line has `->`, and the **FIRST fraction
+      63  must be one the command PRINTS** (a decimal pair is a trap: `acc 0.8760 / 1.0000` → `8760/1`).
+      64  **Block membership, not claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS
+     ...
+       70    rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+       71  ## 🔴 FOURTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+       72  **#14 R2.2l** (R2.2j's OWN deliverable says "report addressing failure SEPARATELY"; the adopted code
+      108 -does not, on the one axis its criteria never perturbed) · **#13** L2/K3 (the rule against it was in
+      109 -the docstring of the file I was editing) · #12 R2.2h · #11 R11.2d · #10 splitter/label handoff · #9
+      110 -argument-gold scorer · Gate 0f/0d · §7.7 ladder · `audit_prereq_ceilings` · R9.8 · R2.2c.
+      111 -⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test** — four
+      112 -days running, that link decided the verdict (E3 · G1 · M1 · the strip line count).
+       73 +does not) · **#13** L2/K3 (the rule was in the docstring of the file I was editing) · #12 R2.2h ·
+       74 +#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+       75 +`audit_prereq_ceilings` · R9.8 · R2.2c.
+       76 +⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test** —
+       77 +that link has decided the verdict five days running (E3 · G1 · M1 · strip line count · bind-none).
+       78  ## 📜 Artifact — living doc, republish SAME path to keep the URL
+       79  `scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+       80  ⚠️ **Source lives in the SESSION scratchpad, not the repo — re-extract via WebFetch before editing.**
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md.pre-prune-20260822)
+  ⎿        89 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+          124 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md.pre-prune-20260822
+          213 total
+
+∴ Still at 89, need to trim 9 more lines and fix my incorrect header count of 79. I'll compress the signature-defect instance list, tighten the suite operational rules, and shrink the
+  "dropped as durable elsewhere" block to save the needed lines.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ 89, not the 79 my header claimed. Trimming further:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 4 lines, removed 5 lines
+      1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+      2 -Pruned 2026-08-22 (125 → 79); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+      3 -Dropped as **durable elsewhere**: cand-4 S1–S8 tables + R2.2l closure §§ + the three-wrong-bars § →
+      4 -`OCR-ROADMAP.md` · the `far`-bucket diagnosis → the 15-line comment I wrote IN
+      5 -`collation_read._rows_and_lines` (read it there) · probe_v11/v12 aggregate stats → superseded by the
+      6 -gold verdict below · the moving-denominator + stale-comment rules → **L2**
+      2 +Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+      3 +Dropped as **durable elsewhere**: cand-4 S1–S8 tables, R2.2l closure, three-wrong-bars § →
+      4 +`OCR-ROADMAP.md` · `far`-bucket diagnosis → the comment IN `collation_read._rows_and_lines` ·
+      5 +probe_v11/v12 aggregates → superseded below · moving-denominator + stale-comment rules → **L2**
+      6  `reference_instrument_independence_and_bars.md` (now 8 rules).
+      7  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+      8
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 2 lines, removed 3 lines
+      68  * Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+      69    rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      70  ## 🔴 FOURTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+      71 -**#14 R2.2l** (R2.2j's OWN deliverable says "report addressing failure SEPARATELY"; the adopted code
+      72 -does not) · **#13** L2/K3 (the rule was in the docstring of the file I was editing) · #12 R2.2h ·
+      73 -#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      71 +#14 R2.2l · #13 L2/K3 (rule was in the docstring of the file I was editing) · #12 R2.2h · #11 R11.2d
+      72 +· #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      73  `audit_prereq_ceilings` · R9.8 · R2.2c.
+      74  ⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test** —
+      75  that link has decided the verdict five days running (E3 · G1 · M1 · strip line count · bind-none).
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 2 lines, removed 3 lines
+      54  (`grep -nE '^ *FAIL|^FAILED'`). ⚠️  `ps aux | grep -c "[t]est_..."` ALSO false-positives — the SHELL
+      55  running the compound command carries the pattern in its own argv. **Bracket ≠ self-match proof.**
+      58 +**Check descendants (`pgrep -P`) before killing anything.** Near-miss on a healthy heavy scorer.
+      59  ⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      60  ⚠️ Claims parse ONLY in triple-backtick fences, only if the line has `->`, and the **FIRST fraction
+      61  must be one the command PRINTS** (a decimal pair is a trap: `acc 0.8760 / 1.0000` → `8760/1`).
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 5 lines, removed 5 lines
+      13  (the edit is inert at `BASELINE_MODEL=False`, proven 20/20 by probe_v16). Verify with:
+      14  `diff <(sed 's/[0-9]*\.[0-9]*s//g' …c.log) <(sed 's/[0-9]*\.[0-9]*s//g' …f.log)`.
+      15  ### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN (folded forward from the
+      16 -greedy branch, not a parallel rule). The old key `("far", bs, id(bx))` was **unique PER GLYPH**, so
+      17 -every unexplained glyph became a row of one and `len(r) >= 2` deleted it: **760 far glyphs → 0 rows,
+      18 -by construction.** It was shredding the RUNNING HEAD ('NVMERI' row 0, 5 leaves). Full § is the
+      19 -comment in the function. probe_v16: **inert 20/20** at False; at True reproduces arm B exactly.
+      20 -⚠️ Residual risk, unresolved: v12 sign test (58.6% below / 41.4% above, median +0.329) says a
+      16 +greedy branch). Old key `("far", bs, id(bx))` was **unique PER GLYPH** ⇒ every unexplained glyph
+      17 +became a row of one and `len(r) >= 2` deleted it: **760 far glyphs → 0 rows, by construction**,
+      18 +shredding the RUNNING HEAD ('NVMERI' row 0, 5 leaves). Full § = the comment in the function.
+      19 +probe_v16: **inert 20/20** at False; at True reproduces arm B exactly.
+      20 +⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above, median +0.329) says a
+      21  **descender component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ), so chaining
+      22  fabricates *some* phantom rows. Refuted as dominant; NOT refuted as present.
+      23  ### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        86 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+
+∴ I still need to trim about 6 more words, so I'll tighten the "NEXT, in order" list and the R2.2m line further.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 10 lines, removed 11 lines
+      35  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      36  until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+      37  **Do NOT invent a geometric splitter there.**
+      38 -### ➡️  NEXT, in order
+      39 -1. Verify suite f. 2. **S6 needs a `pairs`/denominator bar** before any successor is scored — it bars
+      40 -four RATES only, and that hole has now cost two wrong readings in one run. 3. Then MN is the live
+      41 -question: B is −2 MN vs control on equal denominators. 4. AFTER: R2.2d step (2) CONTIGUITY (**NOT** a
+      42 -lower floor) → D1–D4 · **R2.1k** (⚠️  SAME modal-edge assumption as R2.2g, two sides — resolve
+      43 -together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️  **R2.2c still BLOCKS every region number.**
+      44 -⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — it counts BODY-BLOCK rows, so it read 20/20 while 13
+      45 -running heads were orphaned, AND again while the far bucket shredded short lines. **Twice in one
+      46 -run.** Any row-clustering criterion needs a companion that sees the head and note grids.
+      47 -### 🟡 R2.2m OPEN (R2.2l CLOSED 2026-08-21, § in roadmap) — same uncounted idiom as R2.2l, filtering
+      48 -containment obs by `cexcl`; its accounting is per-OBSERVATION not per-entry. Register **72**, claim **1/72**.
+      38 +### ➡️ NEXT (1) verify suite f. (2) **S6 needs a `pairs`/denominator bar** before any successor is
+      39 +scored — it bars four RATES only, and that hole cost two wrong readings in one run. (3) MN is the
+      40 +live question: B is −2 MN vs control on equal denominators. (4) AFTER: R2.2d step (2) CONTIGUITY
+      41 +(**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides —
+      42 +resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️ **R2.2c BLOCKS every region number.**
+      43 +⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — it read 20/20 while 13 running heads were orphaned, AND
+      44 +again while the far bucket shredded short lines. **Twice in one run.** Any row-clustering criterion
+      45 +needs a companion that sees the head and note grids.
+      46 +### 🟡 R2.2m OPEN (R2.2l CLOSED 08-21, § in roadmap) — same uncounted idiom, filtering containment obs
+      47 +by `cexcl`; accounting is per-OBSERVATION not per-entry. Register **72**, claim **1/72**.
+      48
+      49  ## ⚙️ SUITE — OPERATIONAL RULES (a/b/c ALL GREEN 2026-08-21, all 38 cmds, 4 heavy scorers)
+      50  ⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). ~1h, heavy scorers
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      57  **Check descendants (`pgrep -P`) before killing anything.** Near-miss on a healthy heavy scorer.
+      58  ⚠️  **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      59  ⚠️  Claims parse ONLY in triple-backtick fences, only if the line has `->`, and the **FIRST fraction
+      60 -must be one the command PRINTS** (a decimal pair is a trap: `acc 0.8760 / 1.0000` → `8760/1`).
+      61 -**Block membership, not claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS
+      62 -re-run `audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+      62 +`audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+      63
+      64  ## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED.
+      65  * ⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 4 lines, removed 4 lines
+      76  ⚠️ **Source lives in the SESSION scratchpad, not the repo — re-extract via WebFetch before editing.**
+      77
+      78  ## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+      79 -* 🔴 **Repo declares pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`;
+      80 -  `.git/hooks/`=samples). Manual: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+      79 +* 🔴 **Pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`; `.git/hooks/`=samples).
+      80 +  Manual: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+      81  * `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDRnotes` 192 KB untracked — deliberately
+      82    NOT gitignored so the fragility stays visible; believed Sir's. **Leave both.**
+      83 -* **R11.2b**: the standard parses only `witness/`-prefixed commands ⇒ 2 repo-root R11 entries sit
+      84 -  **uncovered** (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+      83 +* **R11.2b**: standard parses only `witness/`-prefixed commands ⇒ 2 repo-root R11 entries **uncovered**
+      84 +  (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+      85  * ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never edit, R7.5d).
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md; echo "--- suite f ---"; (kill -0 14373 2>/dev/null && echo ALIVE || echo EXITED); wc -l
+      .scratch/r2/suite-20260821f.log 2>/dev/null)
+  ⎿        85 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+     --- suite f ---
+     ALIVE
+           87 .scratch/r2/suite-20260821f.log
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Still at 85 lines since my edits didn't cut as much as expected due to wrapping, so I need 5 more lines gone. I'll trim the "Dropped as durable elsewhere" block down to 2 lines since it's
+  just meta-bookkeeping, and shrink the artifact block too.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 4 lines
+      1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+      2  Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+      3 -Dropped as **durable elsewhere**: cand-4 S1–S8 tables, R2.2l closure, three-wrong-bars § →
+      4 -`OCR-ROADMAP.md` · `far`-bucket diagnosis → the comment IN `collation_read._rows_and_lines` ·
+      5 -probe_v11/v12 aggregates → superseded below · moving-denominator + stale-comment rules → **L2**
+      6 -`reference_instrument_independence_and_bars.md` (now 8 rules).
+      3 +Dropped as **durable elsewhere**: cand-4 S1–S8 tables / R2.2l closure / three-wrong-bars § →
+      4 +`OCR-ROADMAP.md` · `far`-bucket diagnosis → comment IN `collation_read._rows_and_lines` ·
+      5 +moving-denominator + stale-comment rules → **L2** `reference_instrument_independence_and_bars.md`.
+      6  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+      7
+      8  ## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED & shipped. Cand 4 still refuted. Suite f IN FLIGHT.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+  ⎿  Added 3 lines, removed 3 lines
+      69  `audit_prereq_ceilings` · R9.8 · R2.2c.
+      70  ⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test** —
+      71  that link has decided the verdict five days running (E3 · G1 · M1 · strip line count · bind-none).
+      72 -## 📜 Artifact — living doc, republish SAME path to keep the URL
+      73 -`scratchpad/originaldr-architecture.html` → https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+      74 -⚠️ **Source lives in the SESSION scratchpad, not the repo — re-extract via WebFetch before editing.**
+      72 +## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source lives in the SESSION scratchpad, not
+      73 +the repo — **re-extract via WebFetch before editing.** `scratchpad/originaldr-architecture.html` →
+      74 +https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+      75
+      76  ## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+      77  * 🔴 **Pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`; `.git/hooks/`=samples).
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      60  `audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+      61
+      62  ## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED.
+      63 -* ⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+      64 -* Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+      65 -  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      63 +⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+      64 +Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+      65 +rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      66  ## 🔴 FOURTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+      67  #14 R2.2l · #13 L2/K3 (rule was in the docstring of the file I was editing) · #12 R2.2h · #11 R11.2d
+      68  · #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+
+⏺ Background command "Wait for suite f and diff against green baseline" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+
+∴ Suite f is done — now I'll pull the result together with the line count.
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md; echo "=== suite f result ==="; cat
+  /private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion/2ed8743e-d00b-4b8b-aeda-81d8a746ae85/tasks/bckfiau9e.output)
+  ⎿        83 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+     === suite f result ===
+     === suite f EXITED ===
+          125 .scratch/r2/suite-20260821f.log
+     --- anchored FAILs ---
+     (none above = clean)
+     --- vs GREEN baseline c ---
+     IDENTICAL to c
+       ok    witness/test_verse_scope_bypass.py       exits 0
+
+     all checks passed — the roadmap's verification standard names 38 command(s) and describes what they actually do
+
+∴ Suite f passes green, byte-identical to c, confirming the far-chaining edit is regression-free. Now I'm updating the scratchpad to mark suite f as done, replacing the verification block
+  with a shorter done statement to help trim toward the line count target.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Suite f came back GREEN, byte-identical to c — the far-chaining edit is verified regression-free. Folding that into the scratchpad, which also removes the pending-verification block:
+      13  became a row of one and `len(r) >= 2` deleted it: **760 far glyphs → 0 rows, by construction**,
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 1 line, removed 1 line
+       5  moving-denominator + stale-comment rules → **L2** `reference_instrument_independence_and_bars.md`.
+       6  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       7
+       8 -## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED & shipped. Cand 4 still refuted. Suite f IN FLIGHT.
+       8 +## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+       9  ### ✅ SUITE f GREEN — 125 lines, 0 anchored FAILs, **byte-identical to `c`**. The far-chaining edit
+      10  is regression-free. (a/b/c/f all GREEN, 38 cmds.)
+      11  ### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN (folded forward from the
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      31  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      32  until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+      33  **Do NOT invent a geometric splitter there.**
+      34 -### ➡️ NEXT (1) verify suite f. (2) **S6 needs a `pairs`/denominator bar** before any successor is
+      35 -scored — it bars four RATES only, and that hole cost two wrong readings in one run. (3) MN is the
+      36 -live question: B is −2 MN vs control on equal denominators. (4) AFTER: R2.2d step (2) CONTIGUITY
+      34 +### ➡️ NEXT (1) **S6 needs a `pairs`/denominator bar** before any successor is scored — it bars four
+      35 +RATES only, and that hole cost two wrong readings in one run. (2) MN is the live question: B is
+      36 +−2 MN vs control on equal denominators. (3) AFTER: R2.2d step (2) CONTIGUITY
+      37  (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides —
+      38  resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️ **R2.2c BLOCKS every region number.**
+      39  ⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — it read 20/20 while 13 running heads were orphaned, AND
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        81 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      42  ### 🟡 R2.2m OPEN (R2.2l CLOSED 08-21, § in roadmap) — same uncounted idiom, filtering containment obs
+      43  by `cexcl`; accounting is per-OBSERVATION not per-entry. Register **72**, claim **1/72**.
+      44
+      45 -## ⚙️  SUITE — OPERATIONAL RULES (a/b/c ALL GREEN 2026-08-21, all 38 cmds, 4 heavy scorers)
+      45 +## ⚙️ SUITE — OPERATIONAL RULES (4 heavy scorers; ~1h, each heavy one 20-25 min)
+      46 +⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). BACKGROUND **with
+      47 +`-u`** — redirected stdout is buffered.
+      48  ⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — a HEADING contains 'FAIL'; anchor it
+      49  (`grep -nE '^ *FAIL|^FAILED'`). ⚠️ `ps aux | grep -c "[t]est_..."` ALSO false-positives — the SHELL
+      50  running the compound command carries the pattern in its own argv. **Bracket ≠ self-match proof.**
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md && head -12 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        81 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+     # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+     Dropped as **durable elsewhere**: cand-4 S1–S8 tables / R2.2l closure / three-wrong-bars § →
+     `OCR-ROADMAP.md` · `far`-bucket diagnosis → comment IN `collation_read._rows_and_lines` ·
+     moving-denominator + stale-comment rules → **L2** `reference_instrument_independence_and_bars.md`.
+     Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+
+     ## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+     ### ✅ SUITE f GREEN — 125 lines, 0 anchored FAILs, **byte-identical to `c`**. The far-chaining edit
+     is regression-free. (a/b/c/f all GREEN, 38 cmds.)
+     ### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN (folded forward from the
+     greedy branch). Old key `("far", bs, id(bx))` was **unique PER GLYPH** ⇒ every unexplained glyph
+
+∴ I'm at 81 lines, one over the limit, so I need to trim one more line rather than just fixing the header number. I'll merge the two suite status lines into a single condensed
+  regression-free summary.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ One over. Trimming the last line and correcting the header count:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 2 lines, removed 2 lines
+       6  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       7
+       8  ## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+       9 -### ✅ SUITE f GREEN — 125 lines, 0 anchored FAILs, **byte-identical to `c`**. The far-chaining edit
+      10 -is regression-free. (a/b/c/f all GREEN, 38 cmds.)
+       9 +### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒ far-chaining edit is
+      10 +regression-free. a/b/c/f all GREEN, 38 cmds.
+      11  ### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN (folded forward from the
+      12  greedy branch). Old key `("far", bs, id(bx))` was **unique PER GLYPH** ⇒ every unexplained glyph
+      13  became a row of one and `len(r) >= 2` deleted it: **760 far glyphs → 0 rows, by construction**,
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Removed 1 line
+       4  `OCR-ROADMAP.md` · `far`-bucket diagnosis → comment IN `collation_read._rows_and_lines` ·
+       5  moving-denominator + stale-comment rules → **L2** `reference_instrument_independence_and_bars.md`.
+       6  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       7 -
+       7  ## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+       8  ### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒ far-chaining edit is
+       9  regression-free. a/b/c/f all GREEN, 38 cmds.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        80 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Done.
+
+  Scratchpad 124 → 80 lines, backup at .scratchpad.md.pre-prune-20260822.
+
+  Nothing was dropped without being durable somewhere first:
+  - Cand-4 S1–S8 tables, R2.2l closure, the three-wrong-bars section → already in OCR-ROADMAP.md
+  - The far-bucket diagnosis → written into the code comment in collation_read._rows_and_lines, where the next reader of that function will hit it
+  - probe_v11/v12 aggregate stats → superseded by the gold verdict, which is kept
+  - Two new transferable rules → appended to L2 reference_instrument_independence_and_bars.md (now 8): rates compared across a moving denominator aren't a comparison, and assert a constant
+  at runtime rather than trusting a header comment
+
+  What survives is the live state: the three-way control/A/B table, the circularity that kills "seed per block," the descender residual risk, S2's blindness outside the body block, and the
+  suite's operational gotchas.
+
+  One thing changed while pruning — suite f finished GREEN, 125 lines, 0 anchored FAILs, byte-identical to baseline c. The far-chaining fix is verified regression-free, so a/b/c/f are all
+  green across 38 commands. Candidate 4 remains unadopted with BASELINE_MODEL=False; next up is giving S6 a denominator bar before any successor is scored.
+
+✻ Sautéed for 4m 30s · 1 shell still running
+
+❯ add the pairs bar to S6
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ I need to add the pairs/denominator bar to S6, the gold criterion in score_head_regions.py. I'm locating where the four rates get their bar values assigned, around the loop over recall
+  bar labels for running head, margin note, and other regions, to figure out the correct spot to insert the pairs count.
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/score_head_regions.py · lines 420-519)
+  ⎿  Read 100 lines
+
+∴ I'm now understanding the verdict structure: ok and beats, where the stated requirements around scored entries matching under every splitter and the accounting criterion being zero are
+  both explicitly written but never actually enforced in the logic. This is the same signature defect as before—correct rules are documented but nothing checks them—so the pairs bar I add
+  needs to actually enforce that condition.
+
+  The design should build off criteria the module already states rather than inventing new ones: the denominator bar needs to account for the max-overlap scored-token count and cover the
+  existing sinks (collisions, orphans, ambiguous collisions, unlabelled). I recall the S6 failure required guarding against a candidate improving rates simply by shrinking the scored set,
+  and the scorer already has a full accounting where entries equal pairs plus these sinks. I want to find that accounting guard code to see how it currently closes off these sinks, since
+  the cleanest fix seems to be an absolute floor ensuring the number of gold entries actually scored can't drop below the control's count.
+
+  But checking this against the actual data complicates things — the control run had "entries binding none" equal to 1 for the ink-binding criterion, not 0, so a strict ==0 rule would fail
+  the control itself. I need to look more carefully at the containment versus ink-binding blocks separately, since they seem to report different accounting values (0 for containment, 1 for
+  ink) and I need to reconcile that before setting the bar.
+
+  Given that mismatch, the sensible move is a relative bar instead of an absolute one: require the scored denominator to be no worse than the control's own denominator, which directly
+  targets the Goodhart failure mode without falsely penalizing the control. Since the scorer's main function has no access to the control's numbers, I'd need to hardcode the control's
+  denominator as a pre-registered constant, similar to how the recall bar was handled.
+
+  I want the actual control counts—orphans, scored pairs, collisions—to set these constants precisely, so I need to rerun the control alongside candidates A and B to capture those
+  accounting numbers directly rather than relying on remembered figures.
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+
+⏺ S6's bars live in score_head_regions, and the module already states the denominator criteria it never enforces — line 496 says scored entries "must be {len(entries)} under EVERY
+  splitter", line 497 says binding-none "must be 0". Neither reaches the verdict, which is ok and beats over two recall bars only. That's the signature defect again, so the bar should
+  enforce what the module already asserts rather than invent something new.
+
+  First, the exact accounting for control vs the shipped candidate:
+
+⏺ Bash(cat > .scratch/r2/probe_v17.py <<'PY'
+      """v17 -- the exact ACCOUNTING numbers for control vs candidate, to pre-register the S6 pairs bar."""
+      import sys, warnings; warnings.filterwarnings("ignore")
+      sys.path.insert(0, 'witness'); sys.path.insert(0, '.')
+      import collation_read as CR, score_head_regions as S
+      for name, bm in (("CONTROL (BASELINE_MODEL=False)", False), ("CANDIDATE (=True, shipped)", True)):
+          CR.BASELINE_MODEL = bm
+          d = S.main(quiet=True)
+  improvements, recalling that the R2.1j accounting note flagged a similar containment failure before.
+
+  I'm working through why a hard 121-entry requirement might unfairly penalize legitimate splitter changes — since finer splitters can orphan entries not because of shoddy row handling but
+  simply due to granularity mismatches with the underlying tokens. That's the whole reason ink-binding exists as a check across every splitter variant. Still, since our candidate only
+  touches row clustering and not the splitter itself, I don't think that concern actually applies here, though I want the bar's logic to hold up regardless. The resolution seems to already
+  live in the module: ink binding is described as the rule that survived, with its own denominator tied to purity metrics.
+
+  Now I'm checking whether control itself satisfies this ideal — running the numbers, control scores 120 with 1 orphan against 121 total entries, meaning it doesn't hit a clean match
+  either. That's tricky, because if I set a strict equality bar and even control fails it, that undermines a fair comparison between candidate and control. I think the way through is a
+  two-part bar: one absolute accounting check based on the module's own standard, applied as a hard zero-sink requirement for the max-overlap case.
+
+  Then a relative check ensures a candidate can't game the metric simply by shrinking the scored set below what control achieves — pinning the minimum scored count and maximum orphan count
+  to control's own pre-registered values (120 and 1 respectively).
+
+  I should be honest that I'm deriving this bar after already seeing the results, which is a methodological weakness compared to the pre-registered bars like BAR_RH/MN that were written
+  before any run — I need to flag that difference explicitly rather than claim the same rigor. I also need to check whether adding this new bar actually flips the candidate's current
+  pass/fail verdict.
+
+  Checking further, the candidate currently passes score_head_regions' own bars (RH and MN both clear their thresholds), but fails the stricter manual four-number comparison against control
+  I applied separately — so the new pairs bar would correctly flip it to fail since it loses five entries. Critically, I need to verify this doesn't break the exit code behavior the suite
+  depends on: in production mode the control still passes all bars and exits 0, so the suite should stay green, and my new print statements shouldn't interfere with the existing "20/20"
+  output the suite parses for.
+
+  I don't know the exact source of 20/20, but it's low risk since it should still appear in the output regardless. I'm now sketching the edit: adding a denominator bar constant marking full
+  accounting requirements, then adjusting the verdict logic to check whether every gold entry gets accounted for via pairs, orphans, and collisions, verifying the counts stay
+  non-regressive against the control's values.
+
+  I want to fold this new full-accounting and ink-orphan check into the overall verdict alongside the existing beats/full conditions, but first I need to check whether an accounting-closure
+  assertion already exists from earlier work, so I'm going to search for prior mentions of "accounted" to avoid duplicating that guard.
+
+⏺ Control scores 121 of 121 gold entries with zero sinks; the candidate scores 116 with 2 collisions + 3 orphans (121 = 116+5, so the accounting closes). That makes the bar principled
+  rather than arbitrary — control already meets the module's stated ideal. Checking for an existing accounting guard so I extend it rather than duplicate it:
+
+⏺ Bash(grep -n "accounted\|sinks\|SINK\|len(entries)" witness/score_head_regions.py | head -20; echo "=== entries defined ==="; sed -n '313,320p' witness/score_head_regions.py)
+  ⎿  397:                # R2.2l. 🔴 THE SIXTH SINK, AND IT WAS THE ONLY SILENT ONE. A labelled entry bound a
+     481:    print(f"  than a token, which 43 of {len(entries)} entries (35.5%) are not.")
+     496:    print(f"    scored entries       {len(ipairs)}   (must be {len(entries)} under EVERY splitter)")
+             raise ValueError("pass gap_fn or split_of, not both")
+         g = json.loads(GOLD.read_text())
+         entries, ambig = g["labels"], g["ambiguous"]
+         if isinstance(entries, dict):
+             print("🔴 gold is still v1 (ordinal-keyed) -- run the R2.1i re-key first")
+             return 1
+         vol, sig = [k for k in W.WITNESSES if W.wid(*k) == "OT1-1609-B"][0]
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I don't see the guard from R2.2l in this file, so I should search across the witness directory for where "accounted" is referenced, since that's where it was supposedly tracked.
+
+⏺ Bash(grep -rn "accounted" witness/*.py | head)
+  ⎿  witness/inventory_leaves.py:5:accounted for rather than guessed at.  Writes one JSON per witness.
+     witness/inventory_leaves.py:109:    # unresolved leaf would come to look like an accounted-for one.
+     witness/test_region_gold_addressing.py:37:     reported drops. Unaccounted loss is the exact signature of silent misbinding, and it is what
+     witness/test_region_gold_addressing.py:94:        accounted = r["coll"] + r["orph"] + r["ambcoll"]
+     witness/test_region_gold_addressing.py:110:        if lost > accounted:
+     witness/test_region_gold_addressing.py:111:            flag.append(f"{lost - accounted} token(s) lost WITHOUT a reported collision, orphan "
+     witness/test_region_gold_addressing.py:120:              f"| weak {len(weak)}  lost {lost} accounted {accounted}"
+     witness/witnesses.py:388:# alone leave one leaf of 2,872 unaccounted for, and an arithmetic argument cannot say
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/test_region_gold_addressing.py · lines 28-77)
+  ⎿  Read 50 lines
+
+∴ I realize the existing accounting guard has a loophole: it only requires that dropped entries be reported, not that dropping them is disallowed. So candidate 4 can shed 5 entries and
+  pass, as long as it discloses each one.
+
+  The insight crystallizes: a gold set can lose a label to a genuine merge, but it should never lose one to bookkeeping. The current invariant only polices honesty about loss, not the
+  amount of loss — so I need a new bar that caps how much can be shed, not just whether it's reported.
+
+  I'm sketching new constants for score_head_regions.py that enforce full accounting and limit ink orphans to at most 1, plus verdict logic checking that all pairs are scored and orphan
+  counts stay under the threshold, placed near the existing recall bar and verdict block.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ test_region_gold_addressing.py already enforces accounting — and reading it shows exactly why S6 still had the hole:
+
+  ★ Insight ─────────────────────────────────────
+  Criterion B says "Any change in the number of scored tokens must be FULLY ACCOUNTED FOR by reported drops… A gold set may lose a label to a merge — it may not lose one to bookkeeping."
+  That polices where entries went, not how many. Candidate 4 sheds 5 entries and reports every one (2 collisions + 3 orphans, 116 + 5 = 121), so the accounting balances perfectly — and the
+  rates still rise on a denominator short by five. The existing invariant is enumerative; the S6 hole is quantitative. Reported loss is still loss.
+  ─────────────────────────────────────────────────
+
+  Adding the constants alongside the existing pre-registered bars:
+
+⏺ Read(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/score_head_regions.py · lines 36-47)
+  ⎿  Read 12 lines
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/score_head_regions.py)
+  ⎿  Added 38 lines
+      44  # or the binding is refused and reported as an orphan. See `match`.
+      45  MIN_BIND_FRAC = 0.50
+      46
+      47 +# ══════════════════════════════════════════════════════════════════════════════
+      48 +# THE DENOMINATOR BAR -- added 2026-08-22, and NOT pre-registered. Read that clause.
+      49 +# ══════════════════════════════════════════════════════════════════════════════
+      50 +# 🔴 WHY. Every bar above this line is a RATE, and a rate is a ratio whose denominator this scorer
+      51 +# lets a candidate change. That is not hypothetical here. Twice in one run:
+      52 +#
+      53 +#   * A seed finder that discarded every short line posted accuracy UP 0.8760 -> 0.9000 and MainText
+      54 +#     UP 0.8375 -> 0.9178 while scored pairs fell 121 -> 90 with 27 orphans. Three of four numbers
+      55 +#     improved BY DISCARDING A QUARTER OF THE GOLD. This module's own header already records the
+      56 +#     same shape -- a broken splitter posting the highest max-overlap accuracy, 0.9479, by orphaning
+      57 +#     25 -- so the trap was documented here and still caught the next candidate.
+      58 +#   * The inverse, which is subtler and cost a wrong reading in the other direction: candidate 4's
+      59 +#     RH recall 0.9231 was summed over 13 entries where the control sums 19. It was not a worse
+      60 +#     number than the control's 1.0000, it was a DIFFERENT QUANTITY, and comparing them at all was
+      61 +#     the error. A fix that RESTORES a denominator makes some rates fall while being strictly better.
+      62 +#
+      63 +# ⚠️ WHY `test_region_gold_addressing`'s CRITERION B DOES NOT COVER THIS, having been read first:
+      64 +# that clause requires any change in scored tokens to be FULLY ACCOUNTED FOR by reported drops --
+      65 +# it polices WHERE entries went, not HOW MANY. Candidate 4 sheds 5 entries and reports every one
+      66 +# (2 collisions + 3 orphans; 116 + 5 = 121), so its accounting balances exactly and the guard is
+      67 +# silent while the rates ride a short denominator. That invariant is ENUMERATIVE; this hole is
+      68 +# QUANTITATIVE. Reported loss is still loss.
+      69 +#
+      70 +# ⚠️ NOT PRE-REGISTERED, and it must not be dressed up as if it were. BAR_RH_RECALL and BAR_MN_RECALL
+      71 +# above were written before this scorer first ran; these two were written after seeing the numbers.
+      72 +# What keeps that honest is that BOTH ARE TAKEN FROM THE CONTROL AND FROM THIS MODULE'S OWN STATED
+      73 +# CRITERIA, never from the candidate: the control scores 121 of 121 entries with 0 collisions,
+      74 +# 0 orphans and 0 ambiguous-collisions, and lines further down already assert "must be 0" and "must
+      75 +# be {len(entries)} under EVERY splitter". So this bar enforces what the module always claimed and
+      76 +# never checked -- the signature defect of this project, a correct rule that nothing reads.
+      77 +FULL_ACCOUNTING = True   # every gold entry must reach the max-overlap sum: pairs == len(entries),
+      78 +                         # i.e. collisions + orphans + ambiguous-collisions == 0. The CONTROL meets
+      79 +                         # this exactly, so it is a bar the instrument is known to be able to clear.
+      80 +BAR_MAX_INK_ORPHANS = 1  # 🔴 NON-REGRESSION, NOT AN ENDORSEMENT. The stated ideal below is 0 and the
+      81 +                         # control sits at 1, so barring at 0 would fail the control and barring at 1
+      82 +                         # accepts a known gap. It is set to the control's value to stop the gap
+      83 +                         # WIDENING, and the gap itself stays OPEN -- see the ink-binding block.
+      84
+      85 +
+      86  def top_band(leaf_path):
+      87      im = Image.open(str(leaf_path))
+      88      im.draft("RGB", (2800, 3920))
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Now the enforcement in the verdict:
+
+⏺ Update(/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/score_head_regions.py)
+  ⎿  Added 30 lines, removed 2 lines
+      544          if r is not None:
+      545              print(f"      {lab}  {r:.4f}  ({hit}/{tot})")
+      546
+      547 +    # ── THE DENOMINATOR BAR. Every criterion above this point is a rate; this one bars what those
+      548 +    # rates are computed OVER, so a candidate cannot raise one by shrinking the other. See the block
+      549 +    # at the top of this module for why the accounting guard in `test_region_gold_addressing` does
+      550 +    # not already cover it: that clause requires losses to be REPORTED, not to be absent.
+      551 +    sinks = ncoll + norph + nambcoll
+      552 +    print(f"\n  DENOMINATOR -- what the rates above are computed over:")
+      553 +    print(f"    gold entries         {len(entries)}")
+      554 +    print(f"    scored (max-overlap) {len(pairs)}   + {sinks} in reported sinks "
+      555 +          f"(coll {ncoll}, orph {norph}, ambcoll {nambcoll})")
+      556 +    # An enumeration check, not a bar: if these do not sum, an entry left the denominator without
+      557 +    # passing through any reported sink, and every number in this report is then unsafe.
+      558 +    if len(pairs) + sinks != len(entries):
+      559 +        print(f"    🔴 ACCOUNTING DOES NOT CLOSE: {len(pairs)} + {sinks} != {len(entries)}. "
+      579 +    print(f"\n  verdict: {'PASS' if good else 'FAIL'}")
+      580 +    return 0 if good else 1
+      581
+      582
+      583  if __name__ == "__main__":
+  ⎿  Async hook PostToolUse completed
+
+∴ I should keep the denominator in the quiet dict since it already tracks pairs, so that's fine as-is. Now I need to verify that the control case passes while the candidate case fails, so
+  let me run both.
+
+⏺ Now the decisive check — control must still pass (or the bar is wrong), and the candidate must now fail:
+
+⏺ Bash(cat > .scratch/r2/probe_v18.py <<'PY'
+      """v18 -- does the new denominator bar do its job? Control must PASS, candidate must FAIL."""
+      import sys, io, warnings, contextlib; warnings.filterwarnings("ignore")
+      sys.path.insert(0, 'witness'); sys.path.insert(0, '.')
+      import collation_read as CR, score_head_regions as S
+      for name, bm in (("CONTROL  (BASELINE_MODEL=False)", False), ("CANDIDATE (BASELINE_MODEL=True)", True)):
+          CR.BASELINE_MODEL = bm
+          buf = io.StringIO()
+          with contextlib.redirect_stdout(buf): rc = S.main()
+          print(f"════ {name}  ->  exit {rc} ════")
+          lines = buf.getvalue().splitlines()
+          show = False
+          for l in lines:
+              if "DENOMINATOR" in l: show = True
+              if show: print("  " + l)
+          print()
+      CR.BASELINE_MODEL = False
+      PY
+      ../ocr-venv/bin/python -u .scratch/r2/probe_v18.py 2>&1 | tail -30)
+  ⎿  ════ CONTROL  (BASELINE_MODEL=False)  ->  exit 0 ════
+         DENOMINATOR -- what the rates above are computed over:
+           gold entries         121
+           scored (max-overlap) 121   + 0 in reported sinks (coll 0, orph 0, ambcoll 0)
+           ok -- all 121 entries scored; the rates are comparable to the control
+
+         verdict: PASS
+
+     ════ CANDIDATE (BASELINE_MODEL=True)  ->  exit 1 ════
+         DENOMINATOR -- what the rates above are computed over:
+           gold entries         121
+           scored (max-overlap) 116   + 5 in reported sinks (coll 2, orph 3, ambcoll 0)
+           🔴 BELOW BAR: 5 gold entries did not reach the sum. The control scores all 121, so the rates above are NOT comparable
+              to it -- they are computed over a different set. A rate that rose here may have risen BY the discarding.
+           🔴 BELOW BAR: ink binding left 2 entries unbound, above the control's 1. The ideal is 0 and stays OPEN.
+
+         verdict: FAIL
+  ⎿  (timeout 10m)
+  ⎿  witness/score_head_regions.py (/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/witness/score_head_regions.py):
+  ⎿    ✘ [Line 34:8] Import "region_head" could not be resolved [reportMissingImports] (Pyright)
+  ⎿    ✘ [Line 92:75] "LANCZOS" is not a known attribute of module "PIL.Image" [reportAttributeAccessIssue] (Pyright)
+  ⎿    ✘ [Line 192:8] Cannot assign to attribute "row_of" for class "FunctionType"
+       Attribute "row_of" is unknown [reportFunctionMemberAccess] (Pyright)
+  ⎿    ✘ [Line 399:24] Cannot access attribute "row_of" for class "FunctionType"
+       Attribute "row_of" is unknown [reportFunctionMemberAccess] (Pyright)
+  ⎿    ✘ [Line 467:16] Type "dict[str, float | int | dict[Unknown, Unknown] | list[Unknown] | None]" is not assignable to return type "int" [reportReturnType] (Pyright)
+  ⎿    ★ [Line 423:42] "_e" is not accessed (Pyright)
+  ⎿    ★ [Line 427:42] "_pu" is not accessed (Pyright)
+  ⎿    ★ [Line 427:47] "_e" is not accessed (Pyright)
+  ⎿    ★ [Line 428:30] "_g" is not accessed (Pyright)
+  ⎿  Async hook PostToolUse completed
+
+∴ This confirms things work as intended - control exits 0, candidate exits 1 as expected, and the pre-existing pyright warnings aren't from my edit. Since production runs with
+  BASELINE_MODEL=False, it should exit 0, but I want to check the subtlety around test_region_gold_addressing.py, which calls main with perturbed splitters that deliberately force
+  collisions and orphans.
+
+  Tracing through the code, I confirm the quiet=True path returns the dict before my bar-related changes kick in, since that return happens before the verdict section - so quiet consumers
+  are unaffected and only the non-quiet verdict/exit code path is touched, which is safe. Now I want to run the full suite to verify everything is green and confirm the "20/20" output still
+  parses correctly, so I'll launch that in the background while also updating the scratchpad, which is at its 80-line limit - I need to swap out the old "S6 needs a pairs bar" note for a
+  neutral DONE note to make room.
+
+⏺ Exactly the intended behaviour: control PASS / exit 0, candidate FAIL / exit 1. Two things I checked before trusting it — the quiet=True return happens before the verdict block, so
+  test_region_gold_addressing's deliberately-perturbed coarse/fine splitters are unaffected, and production runs at BASELINE_MODEL=False, so the suite still sees exit 0. Verifying that for
+  real:
+
+⏺ Bash(nohup ../ocr-venv/bin/python -u witness/test_verification_standard.py > .scratch/r2/suite-20260822g.log 2>&1 &
+      echo "suite g pid $!")
+  ⎿  suite g pid 95374
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(while kill -0 95374 2>/dev/null; do sleep 30; done; echo "=== suite g EXITED ==="; wc -l .scratch/r2/suite-20260822g.log; echo "--- anchored FAILs ---"; grep -nE '^ *FAIL|^FAILED'
+      .scratch/r2/suite-20260822g.log; echo "(none above = clean)"; echo "--- score_head_regions claim + exit ---"; grep -n "score_head_regions" .scratch/r2/suite-20260822g.log; echo "---
+      vs GREEN baseline f ---"; diff <(sed 's/[0-9]\+\.[0-9]\+s//g' .scratch/r2/suite-20260821f.log) <(sed 's/[0-9]\+\.[0-9]\+s//g' .scratch/r2/suite-20260822g.log) && echo "IDENTICAL to
+      f"; tail -3 .scratch/r2/suite-20260822g.log)
+  ⎿  Running in the background (↓ to manage)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ While that runs, recording it in the scratchpad without breaking the 80-line limit:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 11 lines, removed 3 lines
+      30  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      31  until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+      32  **Do NOT invent a geometric splitter there.**
+      33 -### ➡️  NEXT (1) **S6 needs a `pairs`/denominator bar** before any successor is scored — it bars four
+      34 -RATES only, and that hole cost two wrong readings in one run. (2) MN is the live question: B is
+      35 -−2 MN vs control on equal denominators. (3) AFTER: R2.2d step (2) CONTIGUITY
+      33 +### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_regions`: `FULL_ACCOUNTING` (pairs must ==
+      34 +len(entries)=121; control hits it exactly, cand4 = 116 + 5 sinks) + `BAR_MAX_INK_ORPHANS=1`
+      35 +(control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verdict now `ok and beats and full and
+      36 +ink_ok`. Verified: **control PASS/exit 0, cand4 FAIL/exit 1.** `quiet=True` returns BEFORE the bar,
+      37 +so `test_region_gold_addressing`'s coarse/fine perturbations are unaffected. ⚠️ **NOT pre-registered
+      38 +— both values taken from the CONTROL and the module's own "must be 0" lines, never from the
+      39 +candidate.** ⚠️ Criterion B in `test_region_gold_addressing` does NOT cover this: it requires losses
+      40 +be REPORTED, not absent (cand4's 116+5 balances perfectly). Enumerative vs quantitative.
+      41 +⏳ **suite g pid 95374 → `suite-20260822g.log` IN FLIGHT — verify before reporting.**
+      42 +### ➡️ NEXT (1) MN is the live question: B is −2 MN vs control on equal denominators.
+      43 +(2) AFTER: R2.2d step (2) CONTIGUITY
+      44  (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides —
+      45  resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️ **R2.2c BLOCKS every region number.**
+      46  ⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — it read 20/20 while 13 running heads were orphaned, AND
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        88 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+
+∴ I'm over the line count by 8, so I need to trim things down. Since the far-chaining work is done and the suite is green, I can shorten the SHIPPED section and the cand-4 block, since the
+  details are already preserved in the code comment.
+
+  I'll condense the explanation of how the old per-glyph key caused every unexplained far glyph to collapse into a singleton row that got deleted, wiping out 760 rows and the RUNNING HEAD,
+      14 -probe_v16: **inert 20/20** at False; at True reproduces arm B exactly.
+      15 -⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above, median +0.329) says a
+      16 -**descender component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ), so chaining
+      17 -fabricates *some* phantom rows. Refuted as dominant; NOT refuted as present.
+      10 +### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN. Old key `("far",bs,id(bx))`
+      11 +was **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by construction**, shredding the RUNNING HEAD.
+      12 +Full § = the comment in the function. probe_v16: inert 20/20 at False; at True == arm B.
+      13 +⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above, median +0.329) ⇒ a **descender
+      14 +component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ) ⇒ chaining fabricates
+      15 +*some* phantom rows. Refuted as dominant; NOT refuted as present.
+      16  ### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+      17  Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATORS, not the rates:**
+      18  | arm | RH | MN | MT | bind-none | ACC |
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 4 lines
+      20  |A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|**10**|0.8919|
+      21  |B=A+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0.8992|
+      22  **A's rates were never comparable to control** — RH summed over 13 where control sums 19. B restores
+      23 -the denominators AND takes bind-none 10→2 (the scorer's own "must be 0"), so only now do the rates
+      24 -mean anything: on equal denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL failure now,
+      25 -not a bookkeeping one. ✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2 ⇒ R2.2i/R2.2k
+      26 -inseparable). S8 16/16, 16/16, potent 10/16.
+      23 +the denominators AND takes bind-none 10→2, so only now do the rates mean anything: on equal
+      24 +denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL failure, not a bookkeeping one.
+      25 +✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2 ⇒ R2.2i/R2.2k inseparable).
+      26  ### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `region_head` imports `collation_read`
+      27  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      28  until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md; echo "--- suite g ---"; (kill -0 95374 2>/dev/null && echo ALIVE || echo EXITED); wc -l
+      .scratch/r2/suite-20260822g.log 2>/dev/null)
+  ⎿        85 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+     --- suite g ---
+     ALIVE
+           75 .scratch/r2/suite-20260822g.log
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I need to trim about 5 more lines, so I'm condensing the denominator bar section I just added down to a shorter form that still captures the accounting check and ink-max requirement.
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 6 lines, removed 9 lines
+      27  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      28  until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+      29  **Do NOT invent a geometric splitter there.**
+      30 -### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_regions`: `FULL_ACCOUNTING` (pairs must ==
+      31 -len(entries)=121; control hits it exactly, cand4 = 116 + 5 sinks) + `BAR_MAX_INK_ORPHANS=1`
+      32 -(control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verdict now `ok and beats and full and
+      33 -ink_ok`. Verified: **control PASS/exit 0, cand4 FAIL/exit 1.** `quiet=True` returns BEFORE the bar,
+      34 -so `test_region_gold_addressing`'s coarse/fine perturbations are unaffected. ⚠️ **NOT pre-registered
+      35 -— both values taken from the CONTROL and the module's own "must be 0" lines, never from the
+      36 -candidate.** ⚠️ Criterion B in `test_region_gold_addressing` does NOT cover this: it requires losses
+      37 -be REPORTED, not absent (cand4's 116+5 balances perfectly). Enumerative vs quantitative.
+      38 -⏳ **suite g pid 95374 → `suite-20260822g.log` IN FLIGHT — verify before reporting.**
+      30 +### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_regions` (rationale § at top of the module):
+      31 +`FULL_ACCOUNTING` (pairs must == len(entries)=121; control hits it exactly, cand4 = 116 + 5 sinks) +
+      32 +`BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+      33 +PASS/exit 0, cand4 FAIL/exit 1**; `quiet=True` returns BEFORE the bar so the coarse/fine perturbation
+      34 +tests are unaffected. ⚠️ **NOT pre-registered** — values from the CONTROL and the module's own
+      35 +"must be 0" lines, never the candidate. ⏳ **suite g pid 95374 IN FLIGHT — verify before reporting.**
+      36  ### ➡️ NEXT (1) MN is the live question: B is −2 MN vs control on equal denominators.
+      37  (2) AFTER: R2.2d step (2) CONTIGUITY
+      38  (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides —
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿        82 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      24  denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL failure, not a bookkeeping one.
+      25  ✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2 ⇒ R2.2i/R2.2k inseparable).
+      26  ### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `region_head` imports `collation_read`
+      27 -(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)`, so RH/MN/CH/MT **do not exist**
+      28 -until after clustering returns. `_rows_and_lines(boxes, p)` gets no band, no measure, no labels.
+      29 -**Do NOT invent a geometric splitter there.**
+      27 +(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)` ⇒ RH/MN/CH/MT **do not exist**
+      28 +until after clustering returns; `_rows_and_lines(boxes,p)` gets no band/measure/labels. **Do NOT
+      29 +invent a geometric splitter there.**
+      30  ### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_regions` (rationale § at top of the module):
+      31  `FULL_ACCOUNTING` (pairs must == len(entries)=121; control hits it exactly, cand4 = 116 + 5 sinks) +
+      32  `BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+  ⎿  Async hook PostToolUse completed
+  ⎿        82 /Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md
+     suite g ALIVE
+           75 .scratch/r2/suite-20260822g.log
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Since my line-level edits aren't actually cutting the count, I need to delete lower-value content instead—trimming a line from the "fourteen instances" list.  I also want to add #15, the
+  score_head_regions "must be 0" check that never gets read, compressing the whole block from six lines to four while keeping the key point: every criterion set needs a link that can fail
+  for reasons outside the rule under test, and that's been the deciding factor five days running.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 6 lines, removed 6 lines
+      62  ⚠️ **NEVER `git add -A`** at the palimpsest root — staging is always a deliberate, scoped act.
+      63  Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+      64  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      65 -## 🔴 FOURTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+      66 -#14 R2.2l · #13 L2/K3 (rule was in the docstring of the file I was editing) · #12 R2.2h · #11 R11.2d
+      67 -· #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      68 -`audit_prereq_ceilings` · R9.8 · R2.2c.
+      69 -⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test** —
+      70 -that link has decided the verdict five days running (E3 · G1 · M1 · strip line count · bind-none).
+      65 +## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+      66 +**#15 = the S6 bar above** (`score_head_regions` printed "must be 0" / "must be len(entries) under
+      67 +EVERY splitter" for months and the verdict read neither) · #14 R2.2l · #13 L2/K3 · #12 R2.2h ·
+      68 +#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      69 +`audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️ **Every criterion set needs one link that can fail for a
+      70 +reason OUTSIDE the rule under test** — five days running (E3·G1·M1·strip line count·bind-none).
+      71  ## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source lives in the SESSION scratchpad, not
+      72  the repo — **re-extract via WebFetch before editing.** `scratchpad/originaldr-architecture.html` →
+      73  https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      53  `test_verification_standard.py` reads ~0:00.04 CPU over 10 min because it `wait()`s on children.
+      54  **Check descendants (`pgrep -P`) before killing anything.** Near-miss on a healthy heavy scorer.
+      55  ⚠️  **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      56 -⚠️  Claims parse ONLY in triple-backtick fences, only if the line has `->`, and the **FIRST fraction
+      57 -must be one the command PRINTS** (a decimal pair is a trap: `acc 0.8760 / 1.0000` → `8760/1`). **Block
+      58 -membership, not claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS re-run
+      56 +⚠️  Claims parse ONLY in ``` fences, only if the line has `->`, and the **FIRST fraction must be one
+      57 +the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000` → `8760/1`). **Block membership, not
+      58 +claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS re-run
+      59  `audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+      60
+      61  ## ⚠️ ALL WORK IS UNCOMMITTED WORKING TREE (palimpsest, branch main). NOTHING STAGED.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ Still stuck at 82 lines despite rewrapping, so I need to cut more decisively — trimming the "Dropped as durable elsewhere" header down from three lines to one seems like the least costly
+  cut.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 3 lines, removed 3 lines
+      1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+      2  Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+      3 -Dropped as **durable elsewhere**: cand-4 S1–S8 tables / R2.2l closure / three-wrong-bars § →
+      4 -`OCR-ROADMAP.md` · `far`-bucket diagnosis → comment IN `collation_read._rows_and_lines` ·
+      5 -moving-denominator + stale-comment rules → **L2** `reference_instrument_independence_and_bars.md`.
+      3 +Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wrong-bars → `OCR-ROADMAP.md` · far-bucket
+      4 +§ → comment IN `collation_read._rows_and_lines` · denominator+stale-comment rules → **L2**
+      5 +`reference_instrument_independence_and_bars.md` · S6-bar rationale → top of `score_head_regions`.
+      6  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+      7  ## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+      8  ### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒ far-chaining edit is
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 2 lines, removed 1 line
+      77    Manual: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+      78  * `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDRnotes` 192 KB untracked — deliberately
+      79    NOT gitignored so the fragility stays visible; believed Sir's. **Leave both.**
+      80 -* **R11.2b**: standard parses only `witness/`-prefixed commands ⇒ 2 repo-root R11 entries **uncovered**
+      80 +* **R11.2b**: standard parses only `witness/`-prefixed cmds ⇒ 2 repo-root R11 entries **uncovered**
+      81    (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+      82 +
+      83  * ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never edit, R7.5d).
+  ⎿  Async hook PostToolUse completed
+
+∴ That added a blank line by mistake instead of fixing it. I'll use sed to delete the trailing blank line and check the file's end to get the count right.
+
+⏺ Bash(cd /Users/nathanielcannon/Claude/Project_Aion/.claude/context && python3 - <<'PY'
+      p='.scratchpad.md'
+      print(len(ls))
+      PY)
+  ⎿  83
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(grep -n "^$" .scratchpad.md)
+  ⎿  45:
+     60:
+     74:
+     82:
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(python3 - <<'PY'
+      p='.scratchpad.md'
+      ls=open(p).read().split('\n')
+      while ls and ls[-1].strip()=='': ls.pop()
+      ls=[l for i,l in enumerate(ls,1) if i not in (45,60,74,82)]   # blank separators; headers still delimit
+      open(p,'w').write('\n'.join(ls)+'\n')
+      print(len(ls))
+      PY
+      wc -l .scratchpad.md)
+  ⎿  79
+           79 .scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(sed -i '' 's/^Pruned 2026-08-22 (125 → 80)/Pruned 2026-08-22 (125 → 79)/' .scratchpad.md; head -3 .scratchpad.md; echo "..."; wc -l .scratchpad.md; echo "=== suite g ==="; (kill -0
+      95374 2>/dev/null && echo ALIVE || echo EXITED); wc -l /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/.scratch/r2/suite-20260822g.log)
+  ⎿  # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-22 (125 → 79); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+     Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wrong-bars → `OCR-ROADMAP.md` · far-bucket
+     ...
+           79 .scratchpad.md
+     === suite g ===
+     ALIVE
+           76 /Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/.scratch/r2/suite-20260822g.log
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Scratchpad back to 79. Suite g still running; I'll report when it lands.
+
+  The bar is in, in two constants and one block in score_head_regions.py.
+
+  What it enforces. FULL_ACCOUNTING requires pairs == len(entries) — every one of the 121 gold entries must reach the sum the rates are computed over. BAR_MAX_INK_ORPHANS = 1 stops the
+  ink-binding gap widening. The verdict became ok and beats and full and ink_ok.
+
+  Why those values aren't arbitrary. The control scores 121 of 121 with zero sinks — 0 collisions, 0 orphans, 0 ambiguous-collisions. So the bar is one the instrument is demonstrably able
+  That invariant asks where entries went; the S6 hole was about how many. An enumerative guard cannot catch a quantitative loss — which makes this instance #15 of the signature defect, and
+  the most pointed one yet, since the module had been printing "must be 0" all along while its verdict read neither line.
+  ─────────────────────────────────────────────────
+
+✻ Brewed for 6m 30s · 2 shells still running
+
+⏺ Background command "Wait for suite g and verify" completed (exit code 0)
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+⏺ Bash(cat /private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion/2ed8743e-d00b-4b8b-aeda-81d8a746ae85/tasks/bp469o1td.output)
+  ⎿  === suite g EXITED ===
+          125 .scratch/r2/suite-20260822g.log
+     --- anchored FAILs ---
+     (none above = clean)
+     --- score_head_regions claim + exit ---
+     19:  ok    witness/score_head_regions.py            exists
+     76:  ok    witness/score_head_regions.py            prints 20/20
+     105:  ok    witness/score_head_regions.py            exits 0
+     --- vs GREEN baseline f ---
+     IDENTICAL to f
+       ok    witness/test_verse_scope_bypass.py       exits 0
+
+     all checks passed — the roadmap's verification standard names 38 command(s) and describes what they actually do
+
+∴ Suite g comes back green, byte-identical to f — score_head_regions.py still prints 20/20 and exits 0, so the production path is unaffected. I'm updating the scratchpad to mark suite g
+  verified, replacing the in-flight note, keeping it under 80 characters.
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Suite g: GREEN, 125 lines, 0 anchored FAILs, byte-identical to f. The two risks I flagged are both explicitly clear in the log — score_head_regions.py still prints 20/20 (the claim parser
+  wasn't disturbed by the new output lines) and still exits 0 on the production path.
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 2 lines, removed 1 line
+      32  `BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+      33  PASS/exit 0, cand4 FAIL/exit 1**; `quiet=True` returns BEFORE the bar so the coarse/fine perturbation
+      34  tests are unaffected. ⚠️  **NOT pre-registered** — values from the CONTROL and the module's own
+      35 -"must be 0" lines, never the candidate. ⏳ **suite g pid 95374 IN FLIGHT — verify before reporting.**
+      35 +"must be 0" lines, never the candidate. ✅ **SUITE g GREEN, byte-identical to f; the scorer still
+      36 +`prints 20/20` and `exits 0`** (both were real risks: new output lines can break claim parsing).
+      37  ### ➡️  NEXT (1) MN is the live question: B is −2 MN vs control on equal denominators.
+⏺ Bash(wc -l .scratchpad.md && sed -n '1,2p;8,20p' .scratchpad.md)
+  ⎿        80 .scratchpad.md
+     # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-22 (125 → 79); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+     ### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒ far-chaining edit is
+     regression-free. a/b/c/f all GREEN, 38 cmds.
+     ### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN. Old key `("far",bs,id(bx))`
+     was **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by construction**, shredding the RUNNING HEAD.
+     Full § = the comment in the function. probe_v16: inert 20/20 at False; at True == arm B.
+     ⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above, median +0.329) ⇒ a **descender
+     component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ) ⇒ chaining fabricates
+     *some* phantom rows. Refuted as dominant; NOT refuted as present.
+     ### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+     Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATORS, not the rates:**
+     | arm | RH | MN | MT | bind-none | ACC |
+     |control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+     |A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|**10**|0.8919|
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+∴ I notice the file is actually 80 lines but the header says 79, so I need to correct that discrepancy. Let me verify the suite line is present and the file is otherwise coherent before
+  fixing the header count.
+
+⏺ Bash(sed -i '' 's/(125 → 79)/(125 → 80)/' .scratchpad.md && wc -l .scratchpad.md && grep -n "SUITE g GREEN" .scratchpad.md)
+  ⎿        80 .scratchpad.md
+     35:"must be 0" lines, never the candidate. ✅ **SUITE g GREEN, byte-identical to f; the scorer still
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ The pairs bar is in and verified end to end.
+
+  What was added — two constants and one block in score_head_regions.py. FULL_ACCOUNTING requires pairs == len(entries): all 121 gold entries must reach the sum the rates are computed over.
+  BAR_MAX_INK_ORPHANS = 1 stops the ink-binding gap widening. The verdict is now ok and beats and full and ink_ok, and the report prints the denominator beside the rates with an
+  enumeration check that shouts if pairs + sinks != entries (an entry leaving the sum unreported would make every number above it unsafe).
+
+  Verified in both directions, which is what makes it a bar rather than a decoration:
+
+  - control → PASS, exit 0 (121 of 121, zero sinks)
+  - candidate 4 → FAIL, exit 1 (116 + 5 sinks: 2 collisions, 3 orphans)
+
+  Suite g GREEN — 125 lines, 0 anchored FAILs, byte-identical to f. The two things that could plausibly have broken are called out explicitly in the log: the scorer still prints 20/20, so
+  the new output lines didn't disturb claim parsing, and it still exits 0 on the production path. quiet=True returns before the bar, so test_region_gold_addressing's deliberately coarse and
+  fine splitter perturbations are untouched.
+
+  Two caveats written into the code rather than left implicit. These constants are not pre-registered — unlike the two bars directly above them — and their honesty rests entirely on
+  provenance: both come from the control and from lines the module already printed, never from the candidate. And BAR_MAX_INK_ORPHANS = 1 is a non-regression bar, not an endorsement; the
+  ideal is 0, the control sits at 1, and the comment records that the gap stays OPEN so the constant doesn't quietly become the target.
+
+  Candidate 4 remains unadopted with BASELINE_MODEL = False. The live question is now MN, where B is −2 against control on equal denominators.
+
+✻ Cogitated for 33s · 1 shell still running
+
+❯ Watcher here. Scratchpad .claude/context/.scratchpad.md is at 80 lines (limit 80). Please prune stale entries, then reply Done.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+∴ The scratchpad's hit its 80-line limit and I need to find headroom. I'm going through the file, spotting that suite f's GREEN result is redundant now that suite g duplicates it exactly,
+  so I can collapse those two lines into one and save space, and then checking the CAND 4 comparison table for anything else safe to trim.
+
+  Looking closer, the CAND 4 "A" row (cand4-without-chain) can go too — its lesson is already preserved durably in the L2 memory as rule 7 with the exact denominator figures, so dropping
+  the row here just removes duplicated context, not the actual record. Same logic applies to the S6 bar block, which is now shipped and its rationale already lives at the top of
+  score_head_regions, so I can shrink that from seven lines to three. The seed-per-block circular guidance is still actively useful though, so I'll just tighten it rather than cut it, and
+  I'm now checking the shipped section for further trims.
+
+  I want to get the whole scratchpad down to around 65 lines to leave real breathing room. Before I do the pruning pass, I should capture the enumerative-vs-quantitative distinction as a
+  new durable lesson in L2 — it's sharp and generalizes well, distinct enough from the existing denominator rule to warrant its own entry. I'll append that memory rule first, then go back
+  and do the compact rewrite of the scratchpad.
+⏺ Update(/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Project-Aion/memory/reference_instrument_independence_and_bars.md)
+  ⎿  Added 8 lines, removed 1 line
+       5    node_type: memory
+       6    type: reference
+       7    originSessionId: aec1c127-b2ff-4782-9adc-ec11068dd531
+       8 -  modified: 2026-08-22T06:07:21.068Z
+       8 +  modified: 2026-08-23T06:00:29.250Z
+       9  ---
+      10
+      11  Distilled from OriginalDR R2.2i (2026-08-20), where five instruments gave four answers for one
+     ...
+      49     comment nearly invalidated a sound result. **`assert` / print the value the process actually
+      50     holds** — the comment is documentation of an intention, not of the running state.
+      51
+      52 +9. **An enumerative guard cannot catch a quantitative loss.** A pre-registered accounting clause
+      53 +   required every change in scored items to be *fully accounted for by reported drops* — it policed
+      54 +   WHERE items went, not HOW MANY. The candidate shed 5 of 121 gold entries and reported all five,
+      55 +   so the accounting balanced exactly and the guard stayed silent while every rate rode a short
+      56 +   denominator. **"All losses are reported" and "no losses" are different criteria; a suite that
+      57 +   states the first does not enforce the second.** Reported loss is still loss.
+      58 +
+      59  Related: [[reference_dead_metric_and_blind_gold]] (a null is not a verdict until the metric is shown
+      60  to move) · [[reference_test_contrasts_and_label_blindness]] · [[reference_two_cause_signal_suppression]]
+      61  · [[feedback_empirical_before_claim]] · [[reference_gold_addressing_and_enumeration]].
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+
+⏺ Bash(cp .scratchpad.md .scratchpad.md.pre-prune-20260823 && echo backed up)
+  ⎿  backed up
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Write(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 31 lines, removed 34 lines
+       1  # Jarvis Scratchpad (L1 session) — RESUME DOC
+       2 -Pruned 2026-08-22 (125 → 80); prior `.scratchpad.md.pre-prune-20260822`. Earlier prunes 08-21, 08-19.
+       3 -Dropped as durable elsewhere: cand-4 S1–S8 / R2.2l / three-wrong-bars → `OCR-ROADMAP.md` · far-bucket
+       4 -§ → comment IN `collation_read._rows_and_lines` · denominator+stale-comment rules → **L2**
+       5 -`reference_instrument_independence_and_bars.md` · S6-bar rationale → top of `score_head_regions`.
+       2 +Pruned 2026-08-23 (80 → 64); prior `.scratchpad.md.pre-prune-20260823`. Earlier prunes 08-22, 08-21.
+       3 +Durable elsewhere, not here: far-chaining § → the comment IN `collation_read._rows_and_lines` ·
+       4 +S6-bar rationale § → top of `score_head_regions` · cand-4 S1–S8 / R2.2l / three-wrong-bars →
+       5 +`OCR-ROADMAP.md` · denominator, stale-comment and enumerative-vs-quantitative rules → **L2**
+       6 +`reference_instrument_independence_and_bars.md` (9 rules).
+       7  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       7 -## 🔴 RESUME HERE — 2026-08-22. Far-bucket FIXED, shipped, suite-GREEN. Cand 4 still refuted.
+       8 -### ✅ SUITE f GREEN — 0 anchored FAILs, **byte-identical to `c`** ⇒ far-chaining edit is
+       9 -regression-free. a/b/c/f all GREEN, 38 cmds.
+      10 -### ✅ SHIPPED — `collation_read._rows_and_lines`, far glyphs now CHAIN. Old key `("far",bs,id(bx))`
+      11 -was **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by construction**, shredding the RUNNING HEAD.
+      12 -Full § = the comment in the function. probe_v16: inert 20/20 at False; at True == arm B.
+      13 -⚠️ Residual risk, unresolved: v12 sign test (58.6% below/41.4% above, median +0.329) ⇒ a **descender
+      14 -component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ) ⇒ chaining fabricates
+      15 -*some* phantom rows. Refuted as dominant; NOT refuted as present.
+      16 -### 🔴 CAND 4 (R2.2i+R2.2k) STILL NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+      17 -Three-way, ink_bind (probe_v13/14/15). ⚠️ **Read the DENOMINATORS, not the rates:**
+       8 +## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominator bar added, both suite-GREEN.
+       9 +### ✅ DONE 2026-08-22, all verified, suite g GREEN & byte-identical to c/f (a/b/c/f/g, 38 cmds)
+      10 +1. **`collation_read._rows_and_lines` — far glyphs now CHAIN.** Old key `("far",bs,id(bx))` was
+      11 +   **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by construction**, shredding the RUNNING HEAD.
+      12 +   probe_v16: inert 20/20 at `BASELINE_MODEL=False`; at True == the measured arm B.
+      13 +2. **S6 DENOMINATOR BAR in `score_head_regions`** — `FULL_ACCOUNTING` (pairs must == len(entries)
+      14 +   = 121; control hits it exactly, cand4 = 116 + 5 sinks) + `BAR_MAX_INK_ORPHANS=1` (control's value;
+      15 +   **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control PASS/exit 0, cand4 FAIL/exit 1**.
+      16 +   `quiet=True` returns BEFORE the bar ⇒ coarse/fine perturbation tests unaffected. Scorer still
+      17 +   `prints 20/20` and `exits 0`. ⚠️ **NOT pre-registered** — values from the CONTROL and the module's
+      18 +   own "must be 0" lines, never the candidate.
+      19 +### 🔴 CAND 4 (R2.2i+R2.2k) NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+      20 +ink_bind, on EQUAL denominators (probe_v13/14/15). ⚠️ Read the DENOMINATOR, not the rate:
+      21  | arm | RH | MN | MT | bind-none | ACC |
+      22  |control|1.0000 (19/19)|0.8947 (17/19)|0.8375 (67/80)|1|0.8750|
+      20 -|A=cand4|0.9231 (**12/13**)|0.8235 (**14/17**)|0.8987 (71/79)|**10**|0.8919|
+      21 -|B=A+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0.8992|
+      22 -**A's rates were never comparable to control** — RH summed over 13 where control sums 19. B restores
+      23 -the denominators AND takes bind-none 10→2, so only now do the rates mean anything: on equal
+      24 -denominators B is **+5 MT, −1 RH, −2 MN** vs control. A REAL failure, not a bookkeeping one.
+      23 +|cand4+chain|0.9474 (18/19)|0.7895 (15/19)|0.9114 (72/79)|**2**|0.8992|
+      24 +⇒ **+5 MT, −1 RH, −2 MN** vs control. A REAL failure, not a bookkeeping one. (Pre-chain cand4 read
+      25 +RH 0.9231 over **13** entries where control sums 19 — never a comparable quantity; that arm is gone.)
+      26  ✅ **ROW COUNT stays SOLVED** (20/20 ±2, 790 vs 793; 407 +31→+2 ⇒ R2.2i/R2.2k inseparable).
+      27 +⚠️ Residual risk, OPEN: v12 sign test (58.6% below/41.4% above, median +0.329) ⇒ a **descender
+      28 +component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ) ⇒ chaining fabricates
+      29 +*some* phantom rows. Refuted as dominant; NOT refuted as present.
+      30  ### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `region_head` imports `collation_read`
+      31  (one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)` ⇒ RH/MN/CH/MT **do not exist**
+      32  until after clustering returns; `_rows_and_lines(boxes,p)` gets no band/measure/labels. **Do NOT
+      33  invent a geometric splitter there.**
+      30 -### ✅ S6 DENOMINATOR BAR ADDED 2026-08-22 → `score_head_regions` (rationale § at top of the module):
+      31 -`FULL_ACCOUNTING` (pairs must == len(entries)=121; control hits it exactly, cand4 = 116 + 5 sinks) +
+      32 -`BAR_MAX_INK_ORPHANS=1` (control's value; **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control
+      33 -PASS/exit 0, cand4 FAIL/exit 1**; `quiet=True` returns BEFORE the bar so the coarse/fine perturbation
+      34 -tests are unaffected. ⚠️ **NOT pre-registered** — values from the CONTROL and the module's own
+      35 -"must be 0" lines, never the candidate. ✅ **SUITE g GREEN, byte-identical to f; the scorer still
+      36 -`prints 20/20` and `exits 0`** (both were real risks: new output lines can break claim parsing).
+      37 -### ➡️ NEXT (1) MN is the live question: B is −2 MN vs control on equal denominators.
+      38 -(2) AFTER: R2.2d step (2) CONTIGUITY
+      39 -(**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge assumption as R2.2g, two sides —
+      40 -resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM. ⚠️ **R2.2c BLOCKS every region number.**
+      34 +### ➡️ NEXT (1) **MN is the live question** — cand4+chain is −2 MN vs control on equal denominators.
+      35 +(2) AFTER: R2.2d step (2) CONTIGUITY (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+      36 +assumption as R2.2g, two sides — resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM.
+      37 +⚠️ **R2.2c BLOCKS every region number.**
+      38  ⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — read 20/20 while 13 running heads were orphaned, AND again
+      39  while the far bucket shredded short lines. **Twice in one run.** Any row-clustering criterion needs a
+      40  companion that sees the head and note grids.
+     ...
+      59  Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+      60  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      61  ## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+      65 -**#15 = the S6 bar above** (`score_head_regions` printed "must be 0" / "must be len(entries) under
+      66 -EVERY splitter" for months and the verdict read neither) · #14 R2.2l · #13 L2/K3 · #12 R2.2h ·
+      67 -#11 R11.2d · #10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      62 +**#15 = the S6 bar** (`score_head_regions` printed "must be 0" / "must be len(entries) under EVERY
+      63 +splitter" for months and the verdict read neither) · #14 R2.2l · #13 L2/K3 · #12 R2.2h · #11 R11.2d ·
+      64 +#10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      65  `audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️ **Every criterion set needs one link that can fail for a
+      66  reason OUTSIDE the rule under test** — five days running (E3·G1·M1·strip line count·bind-none).
+      67  ## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source lives in the SESSION scratchpad, not
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md)
+  ⎿        77 .scratchpad.md
+
+∴ Actually the count is 77, not 64 as my header claims — still under 80 but with little headroom, and I want more breathing room. I'm looking for genuinely trimmable blocks: the operational
+  rules section could compress from 13 lines to about 9, and the instances section from 6 lines to 4, aiming for roughly 65 total.
+
+  The DONE block is now mostly historical since both items shipped and are green in code, so I can cut it down to about 5 lines — just enough to avoid redoing work and to track baseline
+  model state. Time to make these trims.
+  ⎿  Async hook PostToolUse completed
+
+⏺ 77 — under the limit but thin headroom. Trimming the now-historical DONE block, whose full detail lives in the two code comments:
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 5 lines, removed 8 lines
+       6  `reference_instrument_independence_and_bars.md` (9 rules).
+       7  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+       8  ## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominator bar added, both suite-GREEN.
+       9 -### ✅ DONE 2026-08-22, all verified, suite g GREEN & byte-identical to c/f (a/b/c/f/g, 38 cmds)
+       9 +### ✅ DONE 2026-08-22, verified; suite g GREEN & byte-identical to c/f (a/b/c/f/g, 38 cmds)
+      10  1. **`collation_read._rows_and_lines` — far glyphs now CHAIN.** Old key `("far",bs,id(bx))` was
+      11     **unique PER GLYPH** ⇒ **760 far glyphs → 0 rows, by construction**, shredding the RUNNING HEAD.
+      12 -   probe_v16: inert 20/20 at `BASELINE_MODEL=False`; at True == the measured arm B.
+      13 -2. **S6 DENOMINATOR BAR in `score_head_regions`** — `FULL_ACCOUNTING` (pairs must == len(entries)
+      14 -   = 121; control hits it exactly, cand4 = 116 + 5 sinks) + `BAR_MAX_INK_ORPHANS=1` (control's value;
+      15 -   **NON-REGRESSION, ideal 0 stays OPEN**). Verified **control PASS/exit 0, cand4 FAIL/exit 1**.
+      16 -   `quiet=True` returns BEFORE the bar ⇒ coarse/fine perturbation tests unaffected. Scorer still
+      17 -   `prints 20/20` and `exits 0`. ⚠️ **NOT pre-registered** — values from the CONTROL and the module's
+      18 -   own "must be 0" lines, never the candidate.
+      12 +2. **S6 DENOMINATOR BAR in `score_head_regions`** — `FULL_ACCOUNTING` (pairs == len(entries) = 121;
+      13 +   control hits it exactly, cand4 = 116 + 5 sinks) + `BAR_MAX_INK_ORPHANS=1` (**NON-REGRESSION,
+      14 +   ideal 0 stays OPEN**). **control PASS/exit 0, cand4 FAIL/exit 1**. ⚠️ **NOT pre-registered** —
+      15 +   values from the CONTROL and the module's own "must be 0" lines, never the candidate.
+      16  ### 🔴 CAND 4 (R2.2i+R2.2k) NOT ADOPTED — S6 FAILS. `BASELINE_MODEL` STAYS False.
+      17  ink_bind, on EQUAL denominators (probe_v13/14/15). ⚠️ Read the DENOMINATOR, not the rate:
+      18  | arm | RH | MN | MT | bind-none | ACC |
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 4 lines, removed 5 lines
+      56  Golds REWRITTEN in place; backups = **the only unrecoverable state**: `.scratch/r2/gold-{argument_
+      57  rows.pre-extend,head_regions.pre-r22c-rekey}.json`. Gitignored: `.scratch/r2/{probe_*.py,*.log,*.png}`.
+      58  ## 🔴 FIFTEEN INSTANCES OF THE SIGNATURE DEFECT — a correct rule nothing reads
+      59 -**#15 = the S6 bar** (`score_head_regions` printed "must be 0" / "must be len(entries) under EVERY
+      60 -splitter" for months and the verdict read neither) · #14 R2.2l · #13 L2/K3 · #12 R2.2h · #11 R11.2d ·
+      61 -#10 splitter/label handoff · #9 argument-gold scorer · Gate 0f/0d · §7.7 ladder ·
+      62 -`audit_prereq_ceilings` · R9.8 · R2.2c. ⚠️  **Every criterion set needs one link that can fail for a
+      63 -reason OUTSIDE the rule under test** — five days running (E3·G1·M1·strip line count·bind-none).
+      3 -Durable elsewhere, not here: far-chaining § → the comment IN `collation_read._rows_and_lines` ·
+      4 -S6-bar rationale § → top of `score_head_regions` · cand-4 S1–S8 / R2.2l / three-wrong-bars →
+      5 -`OCR-ROADMAP.md` · denominator, stale-comment and enumerative-vs-quantitative rules → **L2**
+      3 +Durable elsewhere: far-chaining § → comment IN `collation_read._rows_and_lines` · S6-bar rationale →
+      4 +top of `score_head_regions` · cand-4 S1–S8 / R2.2l / three-wrong-bars → `OCR-ROADMAP.md` ·
+      5 +denominator + stale-comment + enumerative-vs-quantitative rules → **L2**
+      6  `reference_instrument_independence_and_bars.md` (9 rules).
+      7  Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+      8  ## 🔴 RESUME HERE — 2026-08-23. Far-bucket fixed + S6 denominator bar added, both suite-GREEN.
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md)
+  ⎿        73 .scratchpad.md
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.md)
+  ⎿  Added 2 lines, removed 3 lines
+      43  ⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — a HEADING contains 'FAIL'; anchor it
+      44  (`grep -nE '^ *FAIL|^FAILED'`). ⚠️ `ps aux | grep -c "[t]est_..."` ALSO false-positives — the SHELL
+      45  running the compound command carries the pattern in its own argv. **Bracket ≠ self-match proof.**
+      46 -⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns children** — the parent
+      47 -`test_verification_standard.py` reads ~0:00.04 CPU over 10 min because it `wait()`s on children.
+      48 -**Check descendants (`pgrep -P`) before killing anything.** Near-miss on a healthy heavy scorer.
+      46 +⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns children** — the parent `wait()`s on
+      47 +children (~0:00.04 CPU over 10 min). **Check descendants (`pgrep -P`) before killing anything.**
+      48  ⚠️ **NEVER run two suites at once** — d@22:07 and e@22:29 raced; d was killed by exact PID.
+      49  ⚠️ Claims parse ONLY in ``` fences, only if the line has `->`, and the **FIRST fraction must be one
+      50  the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000` → `8760/1`). **Block membership, not
+  ⎿  Async hook PostToolUse completed
+
+⏺ Bash(wc -l .scratchpad.md && sed -i '' 's/(80 → 64)/(80 → 72)/' .scratchpad.md && head -2 .scratchpad.md && echo "---" && grep -c "" .scratchpad.md)
+  ⎿        72 .scratchpad.md
+     # Jarvis Scratchpad (L1 session) — RESUME DOC
+     Pruned 2026-08-23 (80 → 72); prior `.scratchpad.md.pre-prune-20260823`. Earlier prunes 08-22, 08-21.
+     ---
+     72
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ Done.
+
+  Scratchpad 80 → 72 lines, backup at .scratchpad.md.pre-prune-20260823. Eight lines of headroom rather than zero.
+  - One new durable rule to L2 reference_instrument_independence_and_bars.md, now 9: an enumerative guard cannot catch a quantitative loss — "all losses are reported" and "no losses" are
+  different criteria, which is exactly how candidate 4 shed 5 of 121 entries with the accounting balancing perfectly.
+
+  What stayed is live state: the failing MN question that's next, the open descender risk in the far set, the circularity that blocks "seed per block," S2's blindness outside the body
+  block, and the suite gotchas that keep costing time.
+
+✻ Cogitated for 2m 4s · 1 shell still running
+
+❯ Watcher here. Scratchpad .claude/context/.scratchpad.md is at 72 lines (limit 80). Please prune stale entries, then reply Done.
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook SubagentStop completed
+  ⎿  Async hook Notification completed
+
+⏺ API Error: 500 Internal Server Error. This is a server-side issue, usually temporary — try again in a moment. If it persists, check your inference gateway (localhost:9800).
+
+✻ Baked for 3m 29s · 1 shell still running
+
+⏺ Background command "until grep -q "all checks passed\|checks FAILED\|Traceback" .scratch/r2/suite-20260820e.log 2&gt;/dev/null; do sleep 30; done; grep -E "FAIL|all checks passed"
+.scratch/r2/suite-20260820e.log | cut -c1-150" was stopped
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook Notification completed
+
+∴ 72 lines is already 8 under the 80-line limit I just brought it to, and everything left is live state, so mechanically pruning further would just destroy useful information for no real
+  gain. I think I should flag this rather than comply automatically — though if the user reaffirms after hearing the concern, I'll go ahead and proceed.
+
+  I also notice a killed background task still referencing an old stale watcher log from a previous session — not something I need to act on, but worth a brief mention. Let me just verify
+  the actual line count is still 72 before responding, since grounding the claim empirically is worth the cheap check.
+
+⏺ Bash(wc -l .scratchpad.md && ls -la .scratchpad.md)
+  ⎿        72 .scratchpad.md
+     -rw-------@ 1 nathanielcannon  staff  6609 Aug 23 00:02 .scratchpad.md
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook UserPromptSubmit completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+  ⎿  Async hook PostToolUse completed
+
+⏺ No prune needed — and I'd rather say so than trim a compliant file.
+
+  The scratchpad is at 72 lines against a limit of 80, verified just now (unchanged since I pruned it 80 → 72). The trigger condition isn't met: it's 8 lines under, not over. This looks
+  like the watcher firing on the file having been recently rewritten rather than on the threshold.
+
+  I've left it as-is deliberately. Everything remaining is live working state, not stale entries: the failing MN question that's next in line, the open descender risk in the far set, the
+  circularity that blocks "seed per block," S2's blindness outside the body block, the uncommitted-tree warnings, and the suite gotchas. Cutting further would mean deleting current state to
+  satisfy a limit that isn't being exceeded, and each of those lines exists because losing it cost something before.
+
+  If the limit has actually moved down to 72 or below, say so and I'll prune to the new number.
+
+  One unrelated thing from the same notification: a killed background task was polling suite-20260820e.log — a suite log from 08-20, and e was the run killed for racing d. That's a stale
+  watcher left over from an earlier session, not anything from this one; it's dead now and needs no action. Current suite state is unchanged: a/b/c/f/g all green across 38 commands.
+
+✻ Brewed for 37s
+
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ now work the MN question
+─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  🟢 opus-5·1M  @Resume work from compressed context  main ↑2 +657-790📖 e:low △ exc-200k                                                                                     219694 tokens
+  [▓▓▓▓▓▒··│┃············╿·····] 22% 219.3K  idle    S:— H:—  cache:0% eph1h:0%  warm/write/new                                                      new task? /clear to save 219.7k tokens
+  $19.77  ⏱61h11m api:0%  5h:38%↺1h57m  7d:4%↺4d17h                                                                                                                                   Debug
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+

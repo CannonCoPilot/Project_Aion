@@ -58,7 +58,7 @@ FILL_FILES=(
     ".claude/skills/ulfhedthnar/SKILL.md"
     ".claude/scripts/command-handler.sh"
     ".claude/scripts/housekeep.sh"
-    ".claude/scripts/launch-jarvis-tmux.sh"
+    ".claude/scripts/launch-aion.sh"
 )
 
 # ─── Usage ──────────────────────────────────────────────────────────────────

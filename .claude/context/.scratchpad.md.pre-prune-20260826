@@ -1,0 +1,207 @@
+# Jarvis Scratchpad (L1 session) — RESUME DOC
+Pruned 2026-08-25 (80 → 81); prior `.scratchpad.md.pre-prune-20260823`. Earlier prunes 08-23/22/21.
+Durable elsewhere: far-chaining § → comment IN `collation_read._rows_and_lines` · S6-bar rationale →
+top of `score_head_regions` · cand-4 S1–S8 / R2.2l / three-wrong-bars → `OCR-ROADMAP.md` · bar rules
+(denominator, stale-comment, enumerative-vs-quantitative) → **L2** `reference_instrument_
+independence_and_bars.md` (9 rules).
+Repo `Projects/palimpsest` branch main; OCR `projects/originaldr/ocr-spike/`, venv `../ocr-venv/bin/python`.
+## ✅✅ 2026-08-25 LATE — TWO COMMITS LANDED. `db013a0` (§3.0 agent + R2.2o ALERT + docs recalibrated)
+and **`884e9c0`** (R14.0 scored + R15 gate-register fix). Suites k and m both GREEN. NOT PUSHED.
+### 🟢 **R14.0 DONE — FIRST LAYOUT SCORE EVER ON THIS CORPUS.** `witness/score_surya_layout.py`.
+Surya FastLayoutPredictor vs the 121-entry head-band gold, leaves 400-419, PAGE-FRACTION addressed,
+2 DECLARED label maps, **121 bound / 0 orphans**. **RH 20/20 · MT 80/80 · MN 0/19 · overall 100/121**.
+🔴 **MN 0/19 IS A *LABELLING* FAILURE ON A *WORKING DETECTOR*** — MN entries bind to TIGHT boxes
+(median **0.0039** of page area, NOT the half-page Text block) ⇒ surya FINDS the notes, has no NAME
+for them (vocabulary is modern-doc; **zero Footnote boxes emitted**, so charitable map ≡ strict map).
+⇒ **R14.1 REDIRECTED: class-inventory FINE-TUNE of the existing detector, not a new detector.**
+⚠️ **MT 80/80 IS CONTAINMENT, NEVER QUOTE AS A WIN** — bound boxes median **0.5555 of the PAGE**.
+Gate 10b (boundary err) is NOT measured here. ⚠️ Coverage: gold = TOP 3 ROWS ⇒ only HEAD-BAND notes;
+outer-margin notes NOT shown (same limit as R2.2o.1; R2.2o.1b lifts BOTH).
+📌 vs incumbent `region_head`: surya WINS MT (80/80 vs 67/80), TIES RH, LOSES MN (0/19 vs **17/19**).
+⇒ the hand-built geometric part is THE ONLY THING THAT CAN NAME A MARGINAL NOTE = the §3.2 item 5
+clamp role, now EVIDENCED. ⚠️ `LayoutPredictor` needs `llama-server` (NOT installed; `brew install
+llama.cpp`); `FastLayoutPredictor` does not — recorded, not routed around.
+### 🔴 R15 — **THE GATE REGISTER WAS TWO REGISTERS.** §3.2 "Gate 9.1-9.8" vs §7.8 rows "10a-10f" =
+SAME CHECKS. Doc already self-contradicted (§2 cites "Gate 10c" for what §3.2b calls 9.5). 9.6/9.7/9.8
+had NO §7.8 row ⇒ by §7.8's OWN invariant they had not entered the build order. **Roadmap cited §7.8
+ZERO times** ⇒ **Gate 11 (G1 recognition — THE RECOGNISER'S GATE) had NO roadmap step at all** ⇒ new
+**R13.3**. §7.8 now CANONICAL + crosswalk; rows 10d/10e/10f added; **R15.1-3** make it EXECUTABLE.
+⚠️ Register lessons: **"strikethrough is NOT removal"** (delete the id) · **CEILING_RE needs a literal
+C-token ON the `**Complexity` line** · `root_of("R13.3")`→**R13**, so a sub-step inherits its ROOT
+section (filing R13.3 revealed R13.1/R13.2 uncovered since 08-17). **81→84, claim 8/81→11/84,
+uncovered DOWN 38→36.** Also corrected 3 now-FALSE absolutes ("no layout score of any kind exists").
+✅ **SUITE n GREEN (133 lines, 0 FAILs, 40 cmds) → COMMITTED `1c87a64`. WORKING TREE CLEAN.**
+Three commits today: `db013a0` · `884e9c0` · `1c87a64`. **NONE PUSHED** (origin is behind by 3).
+⚠️ **CLAIM-HEADLINE RULE, learned the hard way**: the standard binds to a claim's **FIRST fraction**,
+so that fraction becomes the suite log's status line. Leading with `20/20` (the best number in a run
+whose FINDING was `0/19`) made a green log read "Surya: 20/20". **Lead with the REPRESENTATIVE
+fraction, never the flattering one** — a status line is read by people who never open the scorer.
+⚠️ **A KILLED WATCHER IS NOT A KILLED SUITE.** A task-notification said "killed"; the suite (pid
+75918) was ALIVE at 83 lines with a live child. Relaunching would have raced two suites (the d/e
+failure). **Check `ps` + log progress, never the notification's status word.**
+### 🔴🔴 RESUME HERE — **PRE-COMMIT WORK DONE; ⏳ SUITE o pid 14952 → `.scratch/r2/suite-20260825o.log`.**
+✅ Registration done this session: `audit_label_sources.py` now prints `MARGINALIA label sources
+ADMISSIBLE : 0/2` (the REPRESENTATIVE fraction, per the claim-headline rule — `5/7` classes-with-a-source
+prints SECOND) and is registered in the standard's AUDIT block, **40→41 cmds**. Register **84→86**
+(R14.6b/R14.6c filed), claim **11/84 → 13/86**, uncovered HELD at 36 (both rows carry a C-class under
+R14's existing decision rule ⇒ no new debt). `test_open_register_consistency` green, 86 steps.
+⚠️ **NEW REGISTER TRAP, learned here**: the OPEN block is PARSED FOR STEP IDS, so naming a **closed**
+step in the register's own prose — even parenthetically, as attribution — **enrols it as OPEN.**
+Denominator read **87** until "filed by R14.6a's finding" was reworded to "filed by the label-source
+audit". Recorded in the audit's claim text.
+⚠️ **UNCOMMITTED (4 files, commit ONLY after suite o is green; scope by path, never `git add -A`):**
+`witness/audit_label_sources.py` (NEW) · `OCR-MASTERPLAN.md` (§3.2 item 2 corrected) ·
+`OCR-ROADMAP.md` (R14.6 row corrected + R14.6a RESULT block + R14.6b/R14.6c rows + register 86 +
+ceilings claim 13/86 + audit registered).
+⚠️ **Do NOT edit tracked `witness/` code while o runs** — the scorers are read at run time.
+### 🔴 THE FINDING — **DISTANT SUPERVISION CANNOT LABEL MARGINALIA, THE ONE CLASS THAT MATTERS.**
+`witness/audit_label_sources.py`, exit 1. ADMISSIBLE: **MainText** (150,834 verse reads / 5 witness
+files in `originaldr/reconstruction/reads/`) · **Argument** (1,334 blocks) · RunningHead · Catchword ·
+Signature · VerseNumber. 🔴 **Marginalia = ABSENT.**
+**PLAN ERROR, now CORRECTED in both docs**: §3.2 item 2 + R14.6 said *"Marginalia from the 1,334
+transcribed apparatus blocks"* — **ALL 1,334 ARE `kind='argument'`** (verified: 1334 argument / 0
+note). Argument ≠ MarginNote (archetype C vs B). **NO transcribed side-note corpus exists anywhere in
+the project** (checked all 5 reads files: madueke_a/b, odr_com, s_dismas, sabates_a — only madueke_b
+has `apparatus_blocks`, all arguments).
+🟡 **`scan_marginal` (214,453 words) IS CIRCULAR — DO NOT USE.** It is `margin_by_page` =
+`layout.type_lines`' OWN output (`apparatus_crossmap.scan_marginalia`). Training the replacement on
+its predecessor teaches agreement with the instrument being replaced, and that agreement then READS AS
+VALIDATION. **A circular label is WORSE than a missing one** (a missing one is visible).
+⇒ **R14.1's fine-tune would teach every class EXCEPT the one it was redirected to fix** (Surya 0/19).
+### ⏸️ ASKED SIR, NOT ANSWERED — two questions:
+1. **Authorise the odr_com scrape (R14.6b)?** OUTWARD-FACING, so untouched. The project's OWN note
+   names it: `apparatus-cross-map` → *"odr_com apparatus = raw scrape follow-up (not in odr_com.json)"*.
+   ⚠️ **R11.3a pinning must be PART of R14.6b**: the Madueke source PDF
+   (`originaldr/sources/madueke-b/Original-DouayRheims-Bible.pdf`) is **ALREADY MISSING** from disk —
+   only derived `reconstruction/reads/madueke_b.json` (14MB) survives. Second unpinned-source bite.
+   Also GONE: `.scratch/original-douay-rheims` (SRC).
+2. **Proceed with R14.6c meanwhile?** = generate the 5 admissible classes over leaves 400–419 and
+   **SCORE them against the 121-entry hand gold BEFORE any corpus-scale run**. ⚠️ The gold is the
+   generator's **SCORER, never its trainer**.
+### ➡️ THEN: **R14.1** (blocked on Marginalia labels) · **R2.2o.1b** (lifts the head-band coverage limit
+on BOTH R2.2o.1 and R14.0) · **R15.1** gate-register audit (off the critical path for the model —
+insurance, not progress) · **R13.1** wiring (S6, recognition, not boxing).
+## 🔴 SUPERSEDED CONTEXT BELOW — 2026-08-25 earlier. MN gap NOT closed (R2.2n OPEN, blocked by R2.2o). ⏳ SUITE h IN
+FLIGHT + 5 files UNCOMMITTED — both detailed below. Production verified unchanged (MN 17/19, MT 67/80).
+### ✅ DONE 08-22, COMMITTED `ac34ebf`, suite g GREEN (a/b/c/f/g, 38 cmds). Full § in DEVLOG + roadmap.
+far-chaining in `_rows_and_lines` (760 far glyphs → 0 rows, by construction) + the S6 DENOMINATOR BAR
+(`FULL_ACCOUNTING`, `BAR_MAX_INK_ORPHANS=1`; ⚠️ NOT pre-registered, values from the CONTROL).
+### 🔴 CAND 4 (R2.2i+R2.2k) NOT ADOPTED — `BASELINE_MODEL` STAYS False. Table = roadmap R2.2n.
+On EQUAL denominators vs control: **+5 MT, −1 RH, −2 MN**. ✅ ROW COUNT stays SOLVED (20/20 ±2).
+⚠️ Residual risk, OPEN: v12 sign test (58.6% below/41.4% above, median +0.329) ⇒ a **descender
+component** is mixed into the far set (box BOTTOM ≠ baseline for p/q/y/ſ) ⇒ chaining fabricates
+*some* phantom rows. Refuted as dominant; NOT refuted as present.
+### 🔴 "SEED PER BLOCK" IS NOT IMPLEMENTABLE — CIRCULAR. `region_head` imports `collation_read`
+(one-way) and `RH.tokens` OPENS with `rows = CR._rows_and_lines(...)` ⇒ RH/MN/CH/MT **do not exist**
+until after clustering returns; `_rows_and_lines(boxes,p)` gets no band/measure/labels. **Do NOT
+invent a geometric splitter there.**
+### 🔴 MN GAP **NOT CLOSED** 2026-08-25 — R2.2n OPEN, blocked by **R2.2o**. FOUR span rules built and
+refuted at pre-registered bars (`segment`, `R4_PER_SEGMENT`, `R4_DEMOTE_UNQUALIFIED`, `flush`), each
+buying ~1 MN for **11–12 MT**. `R4_PER_SEGMENT` is **INERT** (bit-identical both arms — `_in_body_seg`
+returns True for rows absent from `body_segs`, i.e. exactly the unqualified row it was built for).
+**ROOT CAUSE = `CR.region_segments`**: cuts at gap > 1 pitch; justified setting stretches word spaces
+⇒ of 301 body-like rows **102 (34%) have NO run reaching 0.75×measure**; 2.3% of gaps exceed a pitch.
+A fifth span rule inherits it. ⚠️ **MN 0.8947 itself "rests on two cancelling errors"** (`region_head`
+L169) ⇒ R2.2o.4 must re-audit the 19 MN gold entries before that bar adopts anything.
+🔴 **MY METHOD FAILURE**: the roadmap ALREADY refuted `segment`, ALREADY named the verse-number cause,
+ALREADY specified `flush` as next. I ran three candidates before reading it. **Read the roadmap step
+BEFORE building.** All flags DEFAULT OFF; production verified unchanged (MN 17/19, MT 67/80).
+⏳ **RESUME HERE FIRST: suite h pid 66423 → `.scratch/r2/suite-20260825h.log` WAS STILL ALIVE at the
+refresh** (76/125 lines, 0 anchored FAILs). Poll the LOG not the pid. Expect GREEN + byte-identical
+to `g`: `diff <(sed 's/[0-9]*\.[0-9]*s//g' …g.log) <(sed 's/[0-9]*\.[0-9]*s//g' …h.log)`. **I have NOT
+reported it green — do not claim it until verified.** If the pid died with the lane, re-run:
+`nohup ../ocr-venv/bin/python -u witness/test_verification_standard.py > .scratch/r2/suite-20260825i.log 2>&1 &`
+⚠️ **UNCOMMITTED since `ac34ebf`** (5 files, all this session's doc+code work — NOT yet staged):
+`witness/region_head.py` (SPAN_MODE="flush" + R4_DEMOTE_UNQUALIFIED, both DEFAULT OFF) ·
+`OCR-ROADMAP.md` (new R2.2n + R2.2o §§) · `OCR-MASTERPLAN.md` (§3.2 primitive-blocker note) ·
+`OCR-EXECUTIVE-SUMMARY.md` (new §8a two-model status) · `OCR-DEVLOG.md` (08-22→25 entry).
+**Commit only after suite h verifies.** Scope by path; never `git add -A`.
+### ✅ R2.2o.1 DONE 08-25 (this session) — `witness/score_region_gap_pops.py` NEW, UNCOMMITTED.
+Gap populations labelled from GOLD-HEADBAND (labels from TEXT; geometry only ADDRESSES — `ink2d` +
+centre containment). **THEY OVERLAP [0.875, 1.525] pitches** ⇒ ⚠️ **THRESHOLD RETUNING IS REFUTED**;
+R2.2o.2 MUST use a second signal. word n=970 max 1.525 · region n=16 median 7.127 · seam n=39.
+🔴 **MN|MT n=2 ONLY, both leaf 412; the 0.875 one is BELOW the cut ⇒ NEVER CUT** — independently
+corroborates R2.2e-b's leaf-412 contiguity note (`region_head` L164-170) from a different instrument.
+⚠️ COVERAGE 986/12592 gaps (7.8%), TOP 3 ROWS ONLY ⇒ **NEVER quote "99.5% correct"** — it is a
+head-band number. ⇒ **R2.2o.1b RAISED (body-block gap gold) and it BLOCKS R2.2o.2.**
+Seam fold ATTEMPTED + REFUSED by the script's own guard (7/39 seams reach region-gap width).
+✅ **SUITE h GREEN** (125 lines, 0 anchored FAILs, IDENTICAL to g). ✅ **DOC EDITS APPLIED** (roadmap
+R2.2o.1 RESULT block + R2.2o.1b row + R2.2o.4 addendum + stale-register warning · DEVLOG · masterplan
+§3.2a). Draft kept at `.scratch/r2/r2_2o_1-pending-docs.md`. `audit_prereq_ceilings` claim **1/72 is
+NOT stale** — see below. ⏳ **SUITE i pid 99379 → `.scratch/r2/suite-20260825i.log`, IN FLIGHT**,
+re-verifying the EDITED docs. **COMMIT 6 FILES ONLY AFTER i IS GREEN** (5 modified + NEW
+`witness/score_region_gap_pops.py`). Scope by path; never `git add -A`.
+### 🔴 NEW FINDING 08-25 — **THE OPEN REGISTER IS STALE AND THE CEILING AUDIT CANNOT SEE THIS MONTH.**
+`audit_prereq_ceilings` derives its ENTIRE denominator from the HAND-MAINTAINED `**OPEN** —` prose
+list in the roadmap (`OPEN_BLOCK` regex), and that list **stops at R2.2m**. R2.2n · R2.2o · R2.2o.1 ·
+R2.2o.1b · R2.2o.2 · R2.2o.3 · R2.2o.4 all return **0 hits**. The `1/72` claim is intact BECAUSE the
+register never grew — that IS the failure. ⚠️ Fixing it is a DELIBERATE denominator move (72 rises ⇒
+claim changes ⇒ suite re-run), so it is RAISED in the roadmap under the register and LEFT UNAPPLIED.
+Ties to **R10.3**: the audit should derive its register FROM the doc, not from a curated copy.
+### ✅✅ SIR RULED 08-25 — **THE ADAPTIVE VISUAL AGENT IS THE STATED AIM. ALL 5 DOCS RECALIBRATED.**
+Trigger: my line "today's pipeline uses fixed bands". ⚠️ SHARPENED, not repeated: `layout.py:type_lines`
+DOES derive the body column per page (median x of wide lines) — the real indictment is **geometry-only ·
+4 roles · runs on KRAKEN'S LINES (already merged margin into body ch3/ch6) · CANNOT ABSTAIN**
+(`return ["body"]*len(lines)  # fail-safe toward body` ⇒ unreadable leaf emitted as ALL SCRIPTURE).
+**6 STEPS → 8.** NEW **S5 RELATE** (reading order + note↔verse ATTACHMENT = the edition's payload; was
+named in all 3 summaries, owned by none) · NEW **S8 RE-EXAMINE** (model→AGENT; §3.2 item 3 residue read
+at RUN TIME not just as training data). SHARPENED **S4** (confidence + abstention) · **S6** (recognition
+CONDITIONED by class, not cropped to it).
+WRITTEN: MASTERPLAN **§3.0 GOVERNING** (8 steps + live-path-vs-aim table + FORBIDDEN list + honest
+status) · **§4.0** region-conditioned recognition · §3.2 subordinated · items 10/11 added · §3.2a "the
+incumbent bands already handle it" WITHDRAWN · **Gate 9.6/9.7/9.8** added, all NUMBERLESS by design ·
+build order 10. 🔴 **§3.2's ordering instruction WITHDRAWN + INVERTED** (it had become "don't build the
+perceiver until the perceiver is finished"). ROADMAP: **R2.2o ALERT FIRED**, R2.2 RE-SCOPED to
+clamp-not-model, R2.2o.2 DEMOTED, **NEW R14 (7 steps)**. R14.0 = run/score the ALREADY-EXISTING
+undocumented `surya_layout_probe.py`. ⚠️ MN gap STAYS OPEN; redesign ≠ accepted gap.
+✅ **STALE REGISTER FIXED**: 72→**81**, claim **1/72 → 8/81**, uncovered HELD at 38 (R14 filed WITH a
+section decision rule + per-row C-class, so 13 new steps added NO ceiling debt). Also registered
+`score_region_gap_pops.py` in the standard (38→39 cmds; needed its coverage line to print `986/12592`).
+⏳ **SUITE j pid 87887 → `.scratch/r2/suite-20260825j.log` IN FLIGHT.** COMMIT ONLY AFTER j IS GREEN.
+### 🔴 SUPERSEDED (kept for provenance) — **was R2.2o.2 the drift?** Sir asked (08-25) whether we still aim
+at an adaptive per-page VISION model vs fitting measures to pages. Answer given: the aim IS the plan
+of record (masterplan §3.2a 8 archetypes · R12.1/.2/.3 · Gate 9.1-9.5 box·label·slant · R13), but
+**R2.2o.2 as written hand-builds a column detector inside the scaffold**, validated on n=2. Proposed:
+(1) fire R2.2o.3's PRE-AUTHORISED approach-level ALERT now, (2) demote R2.2o.2 to signal
+characterisation, (3) promote **GOLD-LAYOUT + R12.1** ahead of it. ⚠️ **NO LAYOUT SCORE OF ANY KIND
+HAS EVER BEEN COMPUTED** on this corpus; Gate 9 is thresholds only. **R13 = step 5 of Sir's 6-step
+pipeline and it DOES NOT EXIST AS CODE.** ⏸️ AWAITING SIR'S RULING — do not reorder unilaterally.
+### ➡️ NEXT (1) **R2.2o.1b** (blocks .2), then **R2.2o.2/.3** in roadmap — fix the PRIMITIVE, then re-run the four candidates.
+(2) AFTER: R2.2d step (2) CONTIGUITY (**NOT** a lower floor) → D1–D4 · **R2.1k** (⚠️ SAME modal-edge
+assumption as R2.2g, two sides — resolve together) · CONTINUITY · R2.1j-b · R2.2b band BOTTOM.
+⚠️ **R2.2c BLOCKS every region number.**
+⚠️ **S2 IS BLIND OUTSIDE THE BODY BLOCK** — read 20/20 while 13 running heads were orphaned, AND again
+while the far bucket shredded short lines. **Twice in one run.** Any row-clustering criterion needs a
+companion that sees the head and note grids.
+### 🟡 R2.2m OPEN (R2.2l CLOSED 08-21, § in roadmap) — same uncounted idiom, filtering containment obs
+by `cexcl`; accounting is per-OBSERVATION not per-entry. Register **72**, claim **1/72**.
+## ⚙️ SUITE — OPERATIONAL RULES (4 heavy scorers; ~1h, each heavy one 20-25 min)
+⚠️ **SCRIPT, not pytest** (`-m pytest` collects NOTHING: a **GREEN-LOOKING NULL**). BACKGROUND **with
+`-u`** (stdout buffers). ⚠️ **NEVER two suites at once** — d/e raced; kill by exact PID.
+⚠️ **`grep -c FAIL` on the log FALSE-POSITIVES** — a HEADING contains 'FAIL'; anchor it
+(`grep -nE '^ *FAIL|^FAILED'`). ⚠️ `ps aux | grep -c "[t]est_..."` ALSO false-positives — the SHELL
+running the compound command carries the pattern in its own argv. **Bracket ≠ self-match proof.**
+⚠️ **CPU ≪ elapsed does NOT mean hung for a process that spawns children** — the parent `wait()`s on
+children (~0:00.04 CPU over 10 min). **Check descendants (`pgrep -P`) before killing anything.**
+⚠️ Claims parse ONLY in ``` fences, only if the line has `->`, and the **FIRST fraction must be one
+the command PRINTS** (decimal pair = trap: `acc 0.8760 / 1.0000` → `8760/1`). **Block membership, not
+claim text, decides if exit 1 is healthy. Editing the OPEN register ⇒ ALWAYS re-run
+`audit_prereq_ceilings` + update its claim**, else it fails on a stale denominator.
+## ✅ COMMITTED + PUSHED `ac34ebf` (`86000f8..ac34ebf`, origin in sync) — 38 files, +11,895/−201, all
+of `ocr-spike/witness/` + `gold/` + 9 `*.md`. Golds & S6 bar now IN GIT (the "only on disk" fragility
+is GONE); all **44** roadmap-named commands present ⇒ **HEAD runs its own suite.** Archive + notes
+left untracked deliberately. ⚠️ **NEVER `git add -A`** here — staging stays deliberate and scoped.
+## 🔴 SIGNATURE DEFECT — a correct rule nothing reads. **15 instances**, latest #15 = the S6 bar
+(the scorer PRINTED "must be 0" for months; its verdict read neither line). Full tally in the roadmap.
+⚠️ **Every criterion set needs one link that can fail for a reason OUTSIDE the rule under test.**
+## 📜 Artifact — republish SAME path to keep the URL. ⚠️ Source lives in the SESSION scratchpad, not
+the repo — **re-extract via WebFetch before editing.** `scratchpad/originaldr-architecture.html` →
+https://claude.ai/code/artifact/9b5a44c2-6efe-4a51-bd11-7ed0a0904f62
+## ⚠️ OPEN ENVIRONMENT ITEMS (scratchpad-only — recorded nowhere else)
+* 🔴 **Pre-commit hooks NOT installed** (`.pre-commit-config.yaml`, ruff `^core/`; `.git/hooks/`=samples).
+  Manual: **24 unfixable ruff errors + 429-line reformat** (reverted). For Sir.
+* `.archive-consensus-full.pre-r9.4b/` **263 MB** + `OriginalDRnotes` 192 KB untracked — deliberately
+  NOT gitignored so the fragility stays visible; believed Sir's. **Leave both.**
+* **R11.2b**: standard parses only `witness/`-prefixed cmds ⇒ 2 repo-root R11 entries **uncovered**
+  (run manually, repo `.venv`). §0.5 ceilings rise on PLANNING, fall on COMPLETION.
+* ⛔ **R7.5a-2 NOT STARTED** — 261 artefacts, many generators; survey producers, then regenerate (never edit, R7.5d).

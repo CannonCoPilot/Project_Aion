@@ -1,0 +1,12 @@
+{
+  "key": "urist",
+  "last_seen": "2026-08-28T02:20:32Z",
+  "registered_at": "2026-08-24T15:57:40Z",
+  "session_id": "d8334e03-c6f2-46c9-a524-18181db433dd",
+  "transcript_path": "/Users/nathanielcannon/.claude/projects/-Users-nathanielcannon-Claude-Projects-DwarfCron/d8334e03-c6f2-46c9-a524-18181db433dd.jsonl",
+  "tmux_target": "aion:2",
+  "actuation_mode": "pane",
+  "class": "interactive",
+  "reset_policy": "preserve-restore",
+  "owner": "jarvis"
+}

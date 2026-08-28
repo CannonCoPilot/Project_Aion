@@ -1,1048 +1,1046 @@
 # Pre-/clear Scrollback Capture
-# Captured: 2026-08-12T18:59:28Z | key: protos | session: 42e424d3-ef7e-48ec-80af-39faa8080ef1
+# Captured: 2026-08-26T03:31:11Z | key: protos | session: b331e708-53ff-4d58-9164-8f7152d97213
 
-       33 short- and long-read platforms, from raw-read QC through mapping, assembly, variant detection, and
-       34 clinical interpretation. At **Thermo Fisher** I hardened the production variant-discovery pipeline
-       35 behind the FDA-cleared **Oncomine Dx Target Test** (NSCLC companion diagnostic) — QC gating,
-       36 hotspot-variant detection, and VAF interpretation to **FDA-submission validation and audit
-       37 standards**. At **DNAnexus** I engineered cloud-scale germline and somatic workflows for clinical
-       38 partners (**Myriad** hereditary cancer, **Natera** Renasight, Emory Winship, **TCGA**), including
-       39 **~494,120-VCF joint-genotyping** with automated QC reconciliation. Earlier, at **Penn State** I
-       40 directed a chromosome-level de novo reference assembly and QTL/GWAS genotype→phenotype mapping.
-       41 **BS in Biostatistics**; MS in Genetics & Biotechnology; PhD-track (ABD) in Bioinformatics & Genomics.
-       42
-       43 ---
-       44
-       45 ## Work Experience
-       46
-       47 ### Bioinformatics Engineer, Thermo Fisher Scientific, Carlsbad, CA
-       48 *02/2025 – 12/2025*
-       49
-       50 - **Advanced the FDA-cleared Oncomine Dx Target Test** (NSCLC companion diagnostic, Ion Torrent
-       51   amplicon panel) — hardened the production variant-discovery pipeline for **hotspot-variant
-       52   detection and VAF/allele-fraction interpretation**, with a PASS/AF/hotspot-ID triple
-       53   **data-quality gate**, auditable control-sample filtering, and a 100-test pytest suite under
-       54   **GitHub Actions CI**, to FDA-submission validation and audit standards in a **CAP/CLIA**-governed
-       55   environment.
-       56 - **Built RESTful and RAG-based services for trusted variant and evidence retrieval** — an Oncomine
-       57   scientific-evidence concierge and a division-wide Confluence assistant over JSON/REST interfaces;
-       58   engineered multi-agent orchestration (adversarial review + test-driven assembly) for validated
-       59   autonomous analysis under guardrails.
-       60 - **Engineered a containerized internal LLM/AI-HPC platform** (**Docker** orchestration; persistent
-       61   shared + on-demand specialty models) for self-serve analysis across Japan, Korea, and US sites;
-       62   drove FDA submission readiness across global documentation, QE, and validation teams.
-       63
-       64 ### Bioinformatics Scientist & Data Engineer, DNAnexus, Mountain View, CA
-       65 *06/2021 – 06/2024 · Apollo cloud platform (Spark / Hive)*
-       66
-       67 - **Engineered clinical germline and somatic variant pipelines at scale** — for **Myriad Genetics**
-       68   hereditary cancer, joint-genotyped **~494,120 germline VCFs** (`bcftools norm → merge → GLnexus`)
-       69   with per-file reconciliation (zero silent drops) and automated `geno_db_stats` QC; delivered
-       70   **Natera Renasight** kidney-genetics and **Emory Winship** (NCI-designated) somatic/germline
-       71   cohorts as annotated, queryable allele/genotype tables.
-       72 - **Annotated variants for functional impact and disease association** — mapped SNVs/indels/CNAs to
-       73   consequence, transcript, and clinical significance via **VEP-style annotation against
-       74   ClinVar/COSMIC/gnomAD**; ran multi-tumor **TCGA** analyses (`maftools` oncoplots,
-       75   somatic-interaction testing, Ti/Tv, survival analysis) and DESeq2 differential expression with
-       76   tumor-type stratification; fluent across **cfDNA/ctDNA** multimodal signals and vendor assays
-       77   (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).
-       78 - **Harmonized unstructured clinical data into standardized models** — mapped free-text fields to
-       79   coded concepts (**OMOP CDM**; SNOMED-CT ↔ ICD-10-CM, LOINC, RxNorm; CDISC SDTM/ADaM); shipped the
-       80   **Clinical Knowledge Graph** (extending Harvard's PrimeKG), unifying **20+ biomedical ontologies**
-       81   via multi-tier entity resolution (exact → BioBERT cosine ≥ 0.98 → Levenshtein → human review) over
-       82   **NCBI, UniProt, and Ensembl REST** sources.
-       83 - **Scaled population sequencing and statistical genetics** — profiled and ingested **UK Biobank /
-       84   INTERVAL** (tens of thousands of whole genomes, 242-metabolite NMR panels, decades of longitudinal
-       85   phenotype); partitioned **GWAS** by (phenotype, chrom, bin) with **DeepWAS** deep-learning
-       86   association; reconciled **349,912 CMS/HHS beneficiaries** across federal and state sources via
-       87   bidirectional identity resolution.
-       88 - **Delivered reproducible analyses and interactive reporting** — **R Markdown** and **Jupyter**
-       89   deliverables with **ggplot2/tidyverse, Plotly, matplotlib, and seaborn** figures; built **R Shiny
-       90   and Dash/Plotly** interfaces for exploring high-dimensional genomic and clinical cohorts.
-       91
-       92 ### Lecturer in Genetics and Biology, Southern Utah University, Cedar City, UT
-       93 *06/2018 – 05/2021*
-       94
-       95 - Taught undergraduate genetics and biology integrating molecular and bioinformatic methods; mentored
-       96   undergraduate researchers in experimental design, statistical data analysis, scientific writing, and
-       97   presentation.
-       98
-       99 ### Research Scientist, Pennsylvania State University, University Park, PA
-      100 *08/2010 – 05/2018 · Schatz Center for Molecular Genetics; Weiss Lab*
-      101
-      102 - **Directed a chromosome-level de novo genome assembly** — the *Castanea mollissima* reference
-      103   genome (NCBI **JRKL00000000.1**) from multi-platform sequencing, applying **spectral clustering,
-      104   SVM/PCA, and multidimensional scaling** to mate-pair network analysis and pseudochromosome
-      105   reconstruction; established and optimized **HPC** infrastructure across multi-institutional teams.
-      106 - **Mapped genotype→phenotype in complex multidimensional traits** — **QTL/GWAS** association of
-      107   craniofacial morphology in mouse populations (Weiss Lab) with post-hoc autocorrelation correction,
-      108   resolving the developmental genetic architecture underlying co-varying phenotypes.
-      109
-      110 ---
-      111
-      112 ## Education
-      113
-      114 ### Pennsylvania State University · PhD (ABD/candidacy), Bioinformatics & Genomics
-      115 *08/2008 – 05/2018 · University Park, PA*
-      116 Dissertation: "Machine learning approaches for assembly and comparative analysis of the genomes of the
-      117 genus *Castanea*"
-      118
-      119 ### Brigham Young University · MS Genetics & Biotechnology (2008); BS Biostatistics (2006)
-      120 *08/2001 – 08/2008 · Provo, UT*
-      121 Master's Thesis: "Domain Duplication, Darwinian Selection and the Origins of Seed Storage Globulins" ·
-      122 Minors: Chemistry, Developmental Biology
-      123
-      124 ---
-      125
-      126 ## Selected Research Output
-      127
-      128 - Reference genome: *Castanea mollissima* (Chinese chestnut), NCBI accession **JRKL00000000.1** —
-      129   chromosome-level de novo assembly.
-      130 - Conference presentations: Plant & Animal Genome (PAG), SMBE, ASPB; American Chestnut Foundation
-      131   symposium workshops.
-      132
-      133 ---
-      134
-      135 ## Certifications — In Progress (2026)
-      136
-      137 - AWS Certified Machine Learning Engineer – Associate · Generative AI Developer – Advanced · Solutions Architect – Associate
-      138 - Microsoft Azure: AI Agent Builder Associate · Databricks Data Engineer Associate · SQL AI Developer Associate
-
-⏺ Write(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
-  ⎿  Wrote 433 lines to /Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html
-        1 <!DOCTYPE html>
-        2 <html lang="en">
-        3 <head>
-        4 <meta charset="utf-8">
-        5 <title>Nathaniel Cannon — Bioinformatics Engineer</title>
-        6 <style>
-        7   :root {
-        8     --sidebar-bg: #4E7A8A;
-        9     --sidebar-text: #FFFFFF;
-       10     --sidebar-text-soft: rgba(255,255,255,0.88);
-       11     --sidebar-divider: rgba(255,255,255,0.32);
-       12     --main-text: #2A2A2A;
-       13     --main-heading: #1A1A1A;
-       14     --muted: #787673;
-       15     --sidebar-width: 2.35in;
-       16   }
-       17
-       18   @page {
-       19     size: letter;
-       20     margin: 0;
-       21   }
-       22
-       23   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-       24
-       25   html { margin: 0; padding: 0; }
-       26   body {
-       27     margin: 0;
-       28     padding: 0;
-       29     font-family: "Open Sans", "Nunito", -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
-       30     color: var(--main-text);
-       31     font-size: 10pt;
-       32     line-height: 1.4;
-       33     background: #ffffff;
-       34     position: relative;
-       35   }
-       36
-       37   /* Fixed sidebar-background paints on every printed page. */
-       38   .sidebar-bg {
-       39     position: fixed;
-       40     top: 0;
-       41     left: 0;
-       42     width: var(--sidebar-width);
-       43     height: 100vh;
-       44     background: var(--sidebar-bg);
-       45     z-index: 0;
-       46   }
-       47
-       48   .page {
-       49     display: grid;
-       50     grid-template-columns: var(--sidebar-width) 1fr;
-       51     width: 8.5in;
-       52     position: relative;
-       53     z-index: 1;
-       54   }
-       55
-       56   aside {
-       57     color: var(--sidebar-text);
-       58     padding: 0.5in 0.26in 0.5in 0.38in;
-       59     font-size: 9.3pt;
-       60     position: relative;
-       61     z-index: 2;
-       62   }
-       63
-       64   aside .name {
-       65     font-size: 16.5pt;
-       66     font-weight: 300;
-       67     letter-spacing: 0.2px;
-       68     line-height: 1.08;
-       69     margin: 0 0 0.06in 0;
-       70     text-align: center;
-       71     white-space: nowrap;
-       72   }
-       73   aside .role {
-       74     font-size: 8pt;
-       75     font-weight: 400;
-       76     letter-spacing: 1.5px;
-       77     text-transform: uppercase;
-       78     color: var(--sidebar-text-soft);
-       79     margin: 0 0 0.18in 0;
-       80     line-height: 1.32;
-       81     text-align: center;
-       82   }
-       83
-       84   aside .divider {
-       85     height: 1px;
-       86     background: var(--sidebar-divider);
-       87     margin: 0.10in 0 0.13in 0;
-       88   }
-       89
-       90   aside .contact {
-       91     list-style: none;
-       92     padding: 0;
-       93     margin: 0 0 0.06in 0;
-       94     text-align: center;
-       95   }
-       96   aside .contact li {
-       97     display: flex;
-       98     align-items: flex-start;
-       99     justify-content: center;
-      100     gap: 8px;
-      101     margin: 0 0 0.06in 0;
-      102     line-height: 1.3;
-      103     font-size: 8.6pt;
-      104     word-break: break-word;
-      105   }
-      106   aside .contact .ico {
-      107     display: inline-flex;
-      108     align-items: center;
-      109     justify-content: center;
-      110     width: 12px; height: 12px;
-      111     flex-shrink: 0;
-      112     margin-top: 2px;
-      113   }
-      114   aside .contact .ico svg { width: 11px; height: 11px; fill: var(--sidebar-text); }
-      115   aside .contact a { color: var(--sidebar-text); text-decoration: underline; }
-      116
-      117   aside h2 {
-      118     font-size: 13.5pt;
-      119     font-weight: 400;
-      120     letter-spacing: 0.3px;
-      121     margin: 0.08in 0 0.09in 0;
-      122     color: var(--sidebar-text);
-      123   }
-      124   aside ul.skills {
-      125     list-style: disc;
-      126     padding-left: 13px;
-      127     margin: 0;
-      128   }
-      129   aside ul.skills li {
-      130     margin: 0 0 0.05in 0;
-      131     line-height: 1.28;
-      132     font-size: 8.7pt;
-      133   }
-      134   aside ul.skills li strong { font-weight: 700; color: var(--sidebar-text); }
-      135
-      136   main {
-      137     padding: 0.38in 0.42in 0.28in 0.33in;
-      138   }
-      139
-      140   main h2 {
-      141     font-size: 15pt;
-      142     font-weight: 400;
-      143     color: var(--main-heading);
-      144     margin: 0 0 0.05in 0;
-      145     letter-spacing: 0.1px;
-      146   }
-      147   main h2:first-child { margin-top: 0; }
-      148   main h2:not(:first-child) { margin-top: 0.13in; }
-      149
-      150   main .job {
-      151     margin-bottom: 0.11in;
-      152   }
-      153   main .job h3 + .dates + ul { break-inside: auto; }
-      154   main .job h3 { break-after: avoid; }
-      155   main .job .dates { break-after: avoid; }
-      156   main .job h3 {
-      157     font-size: 11pt;
-      158     font-weight: 700;
-      159     color: var(--main-heading);
-      160     margin: 0 0 0.03in 0;
-      161     line-height: 1.3;
-      162   }
-      163   main .job .dates {
-      164     font-size: 8.5pt;
-      165     color: var(--muted);
-      166     margin: 0 0 0.03in 0;
-      167     line-height: 1.2;
-      168   }
-      169   main .job ul {
-      170     margin: 0.02in 0 0 0.18in;
-      171     padding: 0;
-      172     list-style: disc;
-      173   }
-      174   main .job ul li {
-      175     margin-bottom: 0.042in;
-      176     line-height: 1.38;
-      177     padding-left: 3px;
-      178   }
-      179   main .job ul li strong { color: var(--main-text); font-weight: 400; }
-      180
-      181   main .summary p {
-      182     margin: 0.02in 0 0 0;
-      183     line-height: 1.48;
-      184   }
-      185   main .summary strong { color: var(--main-text); font-weight: 400; }
-      186
-      187   main .certs { margin-top: 0.02in; }
-      188   main .certs h4 {
-      189     font-size: 9.6pt;
-      190     font-weight: 700;
-      191     color: var(--main-heading);
-      192     margin: 0.05in 0 0.01in 0;
-      193   }
-      194   main .certs h4:first-child { margin-top: 0; }
-      195   main .certs ul {
-      196     margin: 0 0 0.02in 0.18in;
-      197     padding: 0;
-      198     list-style: disc;
-      199   }
-      200   main .certs ul li {
-      201     margin-bottom: 0.03in;
-      202     line-height: 1.35;
-      203     padding-left: 3px;
-      204   }
-      205
-      206   main .edu {
-      207     margin-bottom: 0.06in;
-      208   }
-      209   main .edu h3 {
-      210     font-size: 10.2pt;
-      211     font-weight: 700;
-      212     color: var(--main-heading);
-      213     margin: 0 0 0.02in 0;
-      214     line-height: 1.24;
-      215   }
-      216   main .edu .subline {
-      217     font-size: 8.5pt;
-      218     color: var(--muted);
-      219     margin: 0 0 0.02in 0;
-      220   }
-      221   main .edu p.detail {
-      222     margin: 0.03in 0 0 0;
-      223     font-size: 9.6pt;
-      224     line-height: 1.4;
-      225   }
-      226
-      227   code {
-      228     font-family: "SF Mono", "Menlo", Consolas, monospace;
-      229     font-size: 0.88em;
-      230   }
-      231 </style>
-      232 </head>
-      233 <body>
-      234
-      235 <div class="sidebar-bg"></div>
-      236
-      237 <div class="page">
-      238
-      239   <aside>
-      240     <div class="name">Nathaniel Cannon</div>
-      241     <div class="role">Bioinformatics Engineer</div>
-      242     <div class="divider"></div>
-      243     <ul class="contact">
-      244       <li>
-      245         <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 2C8 2 5 5 5 9c0 5 7 13 7 13s7-8 7-13c0-4-3-7-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z"/></svg></sp
-          an>
-      246         Salt Lake City, Utah,<br>84653, United States
-      247       </li>
-      248       <li>
-      249         <span class="ico"><svg viewBox="0 0 24 24"><path d="M20 15.5c-1.2 0-2.5-.2-3.6-.6a1 1 0 0 0-1 .2l-2.2 2.2a15.1 15.1 0 0 1-6.6-6.6l2.2-2.2c.3-.3.4-.7.2-1a11.5 11.5 0
-           0 1-.6-3.6 1 1 0 0 0-1-1H4a1 1 0 0 0-1 1c0 9.4 7.6 17 17 17 .5 0 1-.4 1-1v-3.4a1 1 0 0 0-1-1z"/></svg></span>
-      250         <a href="tel:8013698354">801-369-8354</a>
-      251       </li>
-      252       <li>
-      253         <span class="ico"><svg viewBox="0 0 24 24"><path d="M20 4H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5v2z"/></svg></span
+          in_ollama</code> elsewhere in the tree.</p>
+      476 </div></article>
+      477
+      478 <article class="card lead" id="pr5" data-k="apim gateway azure bedrock vertex gemini streaming sse mcp matrix rbac aigi">
+      479 <div class="card-hd"><div class="pid">05</div><div><h3>Multi-model gateway integration — Thermo Fisher</h3><p class="sub">The “I’ve shipped against exactly your stack” proj
+          ect</p></div><span class="tier t-lead">RBAC card</span></div>
+      480 <div class="card-bd">
+      481 <div class="tw"><table class="slot"><tbody>
+      482 <tr><td>Problem</td><td>Internal apps needed LLM access across providers without each app holding cloud credentials</td></tr>
+      483 <tr><td>Interface</td><td>Client code plus an architecture you authored — <code>multi_modal_manager_cannon.drawio</code>. <b>Have this open on screen.</b></td></tr>
+      484 <tr><td>Language</td><td>Python client against an <b>Azure API Management (APIM)</b> gateway at <code>api.geneai.thermofisher.com</code></td></tr>
+      485 <tr><td>Libraries</td><td><code>requests</code> — the vendor’s own sample code is <code>requests.post</code> against the gateway; OpenAI-compatible clients where the gatewa
+          y emulated that shape</td></tr>
+      486 <tr><td>External APIs</td><td>Four distinct gateway-fronted endpoints, verified from the OpenAPI specs you hold</td></tr>
+      487 <tr><td>Auth</td><td>Gateway-issued <b>subscription key</b> in an <code>api-key</code> request header (<code>apiKeyHeader</code> scheme; <code>subscription-key</code> query
+           param as the alternate). Behind it: Azure Managed Identity federated to Google Workload Identity Federation, with APIM performing the token exchange so no client held a cr
+          oss-cloud credential</td></tr>
+      488 <tr><td>Deploy &amp; test</td><td>Corporate gateway; <b>documented rate limit of 30 requests/minute</b> on the dev GPT-4o-mini endpoint; token budgets enforced at the gatew
+          ay</td></tr>
+      489 </tbody></table></div>
+      490
+      491 <h3>The endpoint table — you hold the OpenAPI specs, so these are quotable exactly</h3>
+      492 <div class="tw"><table>
+      493 <thead><tr><th>Provider</th><th>Gateway base URL</th><th>Notable</th></tr></thead>
+      494 <tbody>
+      495 <tr><td>Azure OpenAI</td><td><code>…/dev/gpt4omini/openai</code></td><td><code>/deployments/{deployment-id}/completions</code>, <code>api-version</code> query param, <span
+          class="num">30 req/min</span></td></tr>
+      496 <tr><td>AWS Bedrock</td><td><code>…/dev/aws</code></td><td><code>/chat/completions</code> — <b>OpenAI-shaped</b>, model <code>apac.anthropic.claude-3-5-sonnet-20241022-v2:0
+          </code></td></tr>
+      497 <tr><td>Vertex AI</td><td><code>…/dev/gemini-25-pro-vertex</code></td><td><code>:generateContent</code> and <code>:streamGenerateContent</code> — <b>native Gemini shape</b>
+          , not OpenAI-shaped</td></tr>
+      498 <tr><td>Gemini (experimental)</td><td><code>…/dev/gemini</code></td><td>OpenAI-SDK-compatible shim over Gemini</td></tr>
+      499 </tbody></table></div>
+      500
+      501 <div class="say" data-label="The streaming answer, concrete"><p>“Two shapes, depending on the provider. The OpenAI-compatible endpoints use <code>stream: true</code> and re
+          turn data-only SSE terminated by <code>data: [DONE]</code>. The native Vertex endpoint uses a separate operation — <code>:streamGenerateContent</code> — that returns an SSE
+           stream where you close the connection on <code>finishReason</code>. Same gateway, same key, different termination contract. That difference is exactly the kind of thing a
+          client library has to normalise.”</p></div>
+      502
+      503 <div class="fact" data-label="The error contract"><p><b>400</b> invalid payload · <b>401/403</b> invalid key or permission · <b>500</b> transient gateway error. Note that <
+          b>401 and 403 are documented as the same bucket</b> — precisely the distinction that cost you debugging time on the Confluence agent.</p></div>
+      504
+      505 <div class="say" data-label="Say this"><p>“The gateway documents 401 and 403 together. In practice you have to separate them yourself — an unset key, a revoked key, and a v
+          alid key with insufficient scope all present nearly the same, and they need three different fixes.”</p></div>
+      506
+      507 <p><b>The tool-calling detail:</b> the Bedrock endpoint’s request schema exposes <code>tools</code>, <code>tool_choice</code> and <code>parallel_tool_calls</code>; the Vert
+          ex endpoint exposes a <code>tools</code> array with built-in <code>googleSearch</code>. Function-calling was available at the gateway layer, not just in your own orchestrat
+          ion.</p>
+      508
+      509 <div class="say" data-label="Engineering takeaway"><p>“The gateway is the trust boundary. Clients hold one key with one scope; the gateway holds every cloud relationship an
+          d does the token exchange. That’s also how you get one place to enforce rate limits, token accounting and audit — instead of N apps each half-doing it.”</p></div>
+      510
+      511 <h3>The AIGI framework, with exact numbers</h3>
+      512 <p>AI-driven Code Generation. Seven named components with refinement loops between them: Orchestrator, Prompt Generator, Code Generator, Critic, Scorer, Reflection Engine,
+          Memory Manager. Implemented as <b class="num">16 role-scoped rule directories</b> (<code>.roo/rules-orchestrator</code>, <code>-critic</code>, <code>-scorer</code>, <code>-
+          reflection</code>, <code>-memory-manager</code>, <code>-prompt-generator</code>, <code>-architect</code>, <code>-tdd</code>, <code>-mcp</code>, <code>-final-assembly</code>
+          , …). The scorer applies weighted multi-dimensional quality scoring and determines when output crosses a threshold — you hold the <code>scores_LS2.json</code> and <code>pro
+          mpts_LS1–LS4.md</code> artifacts showing the iteration rounds.</p>
+      513
+      514 <h3>The MCP layer — exactly 18 servers, each with a per-tool allowlist</h3>
+      515 <div class="tw"><table>
+      516 <thead><tr><th>Server</th><th class="num">Tools</th><th>Server</th><th class="num">Tools</th></tr></thead>
+      517 <tbody>
+      518 <tr><td>playwright</td><td class="num">25</td><td>webresearch</td><td class="num">3</td></tr>
+      519 <tr><td>excel-stdio</td><td class="num">21</td><td>perplexity</td><td class="num">3</td></tr>
+      520 <tr><td>serper</td><td class="num">13</td><td>vibe-check</td><td class="num">3</td></tr>
+      521 <tr><td>memory</td><td class="num">9</td><td>context7</td><td class="num">2</td></tr>
+      522 <tr><td>memory-plus</td><td class="num">8</td><td>brave-search</td><td class="num">2</td></tr>
+      523 <tr><td>mcp-server-firecrawl</td><td class="num">8</td><td>duckduck-search</td><td class="num">2</td></tr>
+      524 <tr><td>puppeteer</td><td class="num">7</td><td>actor-critic-thinking</td><td class="num">1</td></tr>
+      525 <tr><td><b>human-in-the-loop</b></td><td class="num"><b>6</b></td><td>octagon-deep-research</td><td class="num">1</td></tr>
+      526 <tr><td>mcp-rag-local</td><td class="num">5</td><td>calculator</td><td class="num">1</td></tr>
+      527 </tbody></table></div>
+      528
+      529 <div class="fact" data-label="Your single best card for their authorization problem — do not bury it"><p>You also wrote an <b>MCP Assignment Matrix</b> — a document mapping
+           each agent role to the set of MCP servers it may use. <em>Memory Manager</em> gets <code>memory</code>, <code>memory-plus</code>, <code>mcp-rag-local</code> and nothing el
+          se. <em>Critic</em> gets <code>vibe-check</code>. <em>TDD</em> and <em>Scorer</em> get <b>none</b>. Only <em>Orchestrator</em> and <em>MCP Integration</em> get <code>*</cod
+          e>.</p>
+      530 <p><b>That is role-based access control for agent tooling, and you designed it before anyone asked you to.</b></p></div>
+      531
+      532 <div class="say" data-label="Say it in these words"><p>“I ran an agent system with eighteen tool servers, and the thing that made it tractable wasn’t the tools — it was a m
+          atrix deciding which agent role could reach which server, and within each server, which specific tools. Most roles got a handful. Two got everything. Several got nothing. S
+          ame principle as least-privilege for service accounts, applied to agent capability.”</p>
+      533 <p>Then the bridge: “That’s tool-level authorization. What I haven’t built is the row-level half — where the same tool returns different data depending on who’s asking. Tha
+          t’s the harder problem, and it’s the one you described.”</p></div>
+      534
+      535 <p><b>MCP conformance testing.</b> You wrote a per-tool diagnostic suite — roughly <span class="num">20 test files</span> covering individual filesystem and memory server t
+          ools (<code>test_filesystem_edit_file.py</code>, <code>test_memory_create_relations.py</code>, and so on), with phase specs for orchestration and dependency analysis. That
+          is <em>validating</em> an MCP surface tool-by-tool, which is unusual and directly relevant to shipping an API library agents depend on.</p>
+      536
+      537 <div class="stop-box" data-label="Honesty guard on MCP"><p>At Thermo you <b>configured, governed and tested</b> MCP servers; the servers themselves under <code>mcp_repos/</
+          code> are third-party clones (<code>reprompter-mcp</code> is authored by “Mnehmos”, not you). Where you have genuinely <em>authored</em> MCP servers is <b>Project Aion</b>
+          — three first-party FastMCP servers totalling 19 tools. Draw that line yourself before he does:</p>
+      538 <p><em>“At Thermo I configured and governed eighteen MCP servers and wrote a per-tool test suite against them, but I didn’t author the servers. The ones I’ve written from s
+          cratch are in my own infrastructure — three FastMCP servers, nineteen tools, over Postgres, Qdrant and Neo4j.”</em></p></div>
+      539
+      540 <p class="onlyhere"><b>Only here</b>API-key scoping and routing across model providers — the caller-identity problem at the inference layer — plus a two-tier role/server RB
+          AC matrix.</p>
+      541 </div></article>
+      542
+      543 <article class="card lead" id="pr6" data-k="project aion fastmcp fastapi qdrant neo4j docker postgres telegram">
+      544 <div class="card-hd"><div class="pid">06</div><div><h3>Project Aion — personal, ongoing</h3><p class="sub">The “I build agent infrastructure for real, unsupervised” project
+          </p></div><span class="tier t-lead">Proof you build</span></div>
+      545 <div class="card-bd">
+      546 <p>This is the one that proves you are not merely an integrator. Verified numbers, current repository:</p>
+      547 <div class="tw"><table class="slot"><tbody>
+      548 <tr><td>Problem</td><td>A persistent multi-agent operations harness — agents with durable memory, task state, tool governance and cost telemetry</td></tr>
+      549 <tr><td>Interface</td><td>CLI agents plus a React web dashboard, a REST API, and a Telegram notification bot</td></tr>
+      550 <tr><td>Language</td><td>Python 3.12 (uv-managed venv), Node/TypeScript, bash. <b class="num">~53.8k</b> lines Python, <b class="num">~28.9k</b> TS, <b class="num">~41.9k</
+          b> TSX, <b class="num">~48.5k</b> JS, <b class="num">~80k</b> bash across first-party source</td></tr>
+      551 <tr><td>Libraries</td><td><b>FastMCP 3.0</b> (MCP servers over stdio) · <b>FastAPI</b> (Pulse task API) · <b>Fastify</b> (dashboard server) · <b>React + Vite + TailwindCSS
+          + TanStack Query + Recharts + XYFlow</b> · <code>better-sqlite3</code> · asyncpg</td></tr>
+      552 <tr><td>Data stores</td><td><b>PostgreSQL/ParadeDB</b> (task + telemetry) · <b>Qdrant</b> (vector DB, 4 collections, 2560-dim cosine) · <b>Neo4j</b> (knowledge graph via Gr
+          aphiti) · <b>Redis</b> · <b>SQLite</b> (job state)</td></tr>
+      553 <tr><td>External APIs</td><td><b>6 MCP servers configured, 3 authored in-repo</b> with FastMCP — <code>mcp_server.py</code> (RAG over Qdrant, 6 tools, 491 lines), <code>gra
+          phiti_mcp_server.py</code> (Neo4j KG, 7 tools, 479 lines), <code>pulse_mcp_server.py</code> (task API, 6 tools, 226 lines) = <b class="num">19 first-party tools</b> · LiteL
+          LM proxy multiplexing model providers · local MLX embedding server on <code>:8000</code> · Telegram Bot API</td></tr>
+      554 <tr><td>Auth</td><td>Per-tool allowlists per agent persona; secrets in a gitignored vault file, never in source; a reverse proxy on <code>:9800</code> for usage and cost te
+          lemetry</td></tr>
+      555 <tr><td>Deploy &amp; test</td><td><b>Docker Compose</b>, two stacks (shared infra plus app tier) · cron-scheduled dispatcher on a 5-minute tick · <b class="num">42 lifecycl
+          e hooks</b> · <b class="num">20 packaged skills</b> · pytest</td></tr>
+      556 </tbody></table></div>
+      557
+      558 <div class="say" data-label="Engineering takeaway"><p>“I built MCP servers because I needed my agents to query my own systems safely — which meant deciding, per persona, wh
+          ich tools it may call. That’s an authorization problem, not a prompting problem, and it’s the part most agent frameworks hand-wave.”</p></div>
+      559
+      560 <div class="fact" data-label="Why this matters more than it looks"><p>The JD asks for MCP, agentic orchestration, containers, CI/CD, secrets management, vector retrieval an
+          d chat UX sensibility. You have <em>shipped</em> all of it here. <b>Unpaid does not mean unreal — it means unsupervised, which is harder.</b></p></div>
+      561
+      562 <p class="onlyhere"><b>Only here</b>Per-persona tool allowlists with human-in-the-loop gating on irreversible calls — authorization for <em>agents</em> specifically — and m
+          ulti-service orchestration you run yourself.</p>
+      563 </div></article>
+      564
+      565 <article class="card lead" id="pr7" data-k="entity.py dxdictionaries schema inference grubbs profile library">
+      566 <div class="card-hd"><div class="pid">07</div><div><h3><code>entity.py</code> + <code>dxdictionaries.py</code> — the ingestion library</h3><p class="sub">The most under-sol
+          d thing you have built</p></div><span class="tier t-lead">★ Lead technical</span></div>
+      567 <div class="card-bd">
+      568 <p>Every project directory in the DNAnexus archive — LillyOMOP, Emory, Myriad, TCGA, ACL, XVG_coding_central, DAO_main — contains the same three modules. That is not copy-p
+          aste sprawl; that is an <b>internal library with a stable API that eight ingestion projects were built on</b>.</p>
+      569 <div class="tw"><table class="slot"><tbody>
+      570 <tr><td>Problem</td><td>Every partner ingestion needed the same operations: infer a schema from raw data, detect types and date formats, find healthcare codes, build a cont
+          rolled vocabulary, emit a platform-compliant data dictionary</td></tr>
+      571 <tr><td>Interface</td><td>An <b>object-oriented Python library</b> — <code>class entity</code> (<span class="num">2,258</span> lines, ~40 public methods) plus <code>class d
+          xdictionaries</code> (<span class="num">574</span> lines) as the cross-entity dictionary registry</td></tr>
+      572 <tr><td>Language</td><td>Python 3, pandas/numpy</td></tr>
+      573 <tr><td>Libraries</td><td>pandas · numpy · <code>smirnov_grubbs</code> (Grubbs outlier test) · <code>anytree</code> · <code>guess_datetime_format</code> from pandas interna
+          ls</td></tr>
+      574 <tr><td>Scale handling</td><td>Constructor takes <code>large_data</code>, <code>csv_size_limit_gb=10</code>, <code>chunksize=1_000_000</code> — <b>chunked streaming above a
+           10 GB threshold</b>, plus a Parquet write path (<code>write_csv_as_parquet</code>)</td></tr>
+      575 <tr><td>Output contract</td><td>A <b class="num">16-column</b> data dictionary (<code>entity</code>, <code>name</code>, <code>type</code>, <code>primary_key_type</code>, <c
+          ode>coding_name</code>, <code>is_sparse_coding</code>, <code>is_multi_select</code>, <code>is_longitudinal_axis</code>, <code>referenced_entity_field</code>, <code>relation
+          ship</code>, …) and a <b class="num">45-column</b> extended profile per column</td></tr>
+      576 </tbody></table></div>
+      577
+      578 <h3>What the extended profile actually computes, per column</h3>
+      579 <p>This is the detail that will land. For every column in every incoming file it derives: row count, null count, unique count, percent-full, percent-unique, the <b>distribu
+          tion of inferred types</b> (percent string / int / float), a <code>multiple_types</code> flag, a <b>recommended type</b>, whether it parses as a date and in which format, <
+          code>multiple_date_formats</code>, date min/max and date warnings, five-number summary statistics, detected <b>healthcare code system</b>, matching codes, best-matching cod
+          e, percent-coded, <code>need_coding</code> / <code>need_sparse_coding</code> recommendations, and <b>outlier direction with counts and intervals at both tails</b> via a Gru
+          bbs test.</p>
+      580
+      581 <div class="say" data-label="Your best single paragraph"><p>“The reusable core wasn’t a pipeline, it was a library. An <code>entity</code> class that takes a raw file and d
+          erives a schema from it — type inference with a confidence distribution rather than a guess, date-format detection, statistical outlier bounds, and detection of which healt
+          hcare coding system a column is drawn from. Eight partner ingestions were built on it. The point was that a new partner dataset shouldn’t need new code — it should need new
+           configuration against a library whose behaviour is already understood.”</p></div>
+      582
+      583 <div class="say" data-label="Why it matters for this role"><p>“That’s the same shape as what you’re describing. An agent asking ‘what’s in this dataset’ needs a machine-rea
+          dable answer — types, cardinality, coded vocabularies, value ranges. I built that generator once and ran eight datasets through it. Schema inference is what makes a data so
+          urce agent-queryable instead of just agent-reachable.”</p></div>
+      584
+      585 <p><b>Named methods worth quoting if he pushes:</b> <code>infer_dictionary</code>, <code>get_column_data_type</code>, <code>get_column_healthcare_code_type</code>, <code>is
+          _date_column</code>, <code>codify</code> / <code>codify_multiselect</code> / <code>sparse_codify</code>, <code>pivot_column</code>, <code>extract_codes_from_coding_file</co
+          de>, <code>resurrect_entity</code> (rehydrating an entity from saved dictionaries — a serialisation round-trip).</p>
+      586
+      587 <p class="onlyhere"><b>Only here</b>Schema inferred from raw data, with a type-distribution confidence profile, date-format detection, Grubbs outlier bounds at both tails,
+          and healthcare-code-system detection — 45 columns of profile per column.</p>
+      588 </div></article>
+      589
+      590 <article class="card lead" id="pr8" data-k="cms acl medicare medicaid pii suppression pycaret governance dua">
+      591 <div class="card-hd"><div class="pid">08</div><div><h3>CMS / ACL federal claims work</h3><p class="sub">Your only true regulated-PII, controlled-access data story</p></div>
+          <span class="tier t-lead">★ Governance</span></div>
+      592 <div class="card-bd">
+      593 <p><code>PlatformProjectFiles/ACL/</code> — 38 files against <b>CMS Medicare and Medicaid claims</b>. ACL is the Administration for Community Living — the agency, not “acce
+          ss control list”.</p>
+      594 <div class="tw"><table class="slot"><tbody>
+      595 <tr><td>Problem</td><td>Ingest federal claims data — Medicare FFS, MedPAR, Part D events, TAF Medicaid claims, MBSF — under the access restrictions such data carries, then
+          link it to state adult-protective-services records</td></tr>
+      596 <tr><td>Interface</td><td>Notebook pipelines plus <code>dat_fts_parser.py</code>, <code>record_layout_parse.ipynb</code></td></tr>
+      597 <tr><td>Libraries</td><td>pandas · <b>PyCaret</b> (AutoML classification) · scikit-learn</td></tr>
+      598 <tr><td>Data sources</td><td>CCW codebooks (fixed-width federal extracts with published record layouts), CMS diagnosis coding dictionaries, SDOH indices at <b>ZIP-code and
+          county</b> granularity</td></tr>
+      599 <tr><td>Governance</td><td><code>ACL_PII.ipynb</code> — an explicit, <b>documented, per-file column-suppression pass</b>: one source file marked <em>“Do not use file at all
+          ”</em> because it carried SSNs; others had first/middle/last name, date of birth and street address dropped before anything downstream touched them</td></tr>
+      600 <tr><td>De-identification</td><td><code>salt_faster()</code> in the transformation core — appends a monotonic enumerator to ID values to guarantee uniqueness without exposi
+          ng the source identifier</td></tr>
+      601 <tr><td>Analytics</td><td>Per-state ML models (<code>ML_VA</code>, <code>ML_TX</code>, <code>ML_WA</code>), <code>04_tune_wa.ipynb</code> for hyperparameter tuning</td></tr
           >
-      254         <a href="mailto:nathaniel.cannon@gmail.com">nathaniel.cannon<br>@gmail.com</a>
-      255       </li>
-      256       <li>
-      257         <span class="ico"><svg viewBox="0 0 24 24"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9.5h4V21H3zM10 9.5h3.8v1.6h.06c.53-1 1.83-2.06 3.77-2.06 4.03 0
-           4.77 2.65 4.77 6.1V21H18.6v-5.15c0-1.23-.02-2.82-1.72-2.82-1.72 0-1.98 1.35-1.98 2.73V21H10z"/></svg></span>
-      258         <a href="https://www.linkedin.com/in/nathaniel-cannon-0450388/">LinkedIn</a>
-      259       </li>
-      260       <li>
-      261         <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 .5a11.5 11.5 0 0 0-3.63 22.42c.58.1.79-.26.79-.56v-2c-3.22.7-3.9-1.55-3.9-1.55-.53-1.35-1.29-1.7-1.29-1.7-1.
-          05-.72.08-.7.08-.7 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.72 1.27 3.38.97.1-.76.4-1.27.74-1.56-2.57-.3-5.28-1.28-5.28-5.7 0-1.26.45-2.28 1.19-3.08-.12-.29-.52-1.47.12-3.06 0
-           0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.21-1.5 3.18-1.18 3.18-1.18.64 1.59.24 2.77.12 3.06.74.8 1.19 1.82 1.19 3.08 0 4.43-2.71 5.4-5.29 5.68.42.36.79 1.06.79 2.14v3.17c0
-          .3.21.66.79.55A11.5 11.5 0 0 0 12 .5z"/></svg></span>
-      262         <a href="https://github.com/CannonCoPilot">GitHub</a>
-      263       </li>
-      264     </ul>
-      265     <div class="divider"></div>
-      266     <h2>Skills</h2>
-      267     <ul class="skills">
-      268       <li><strong>NGS Data QC</strong>: FastQC, MultiQC, samtools/Picard metrics, coverage &amp; contamination gates</li>
-      269       <li>Sequencing Platforms: <strong>Illumina/DRAGEN</strong>, Ion Torrent, <strong>PacBio &amp; Oxford Nanopore long-read</strong>, GWAS arrays</li>
-      270       <li>Read Mapping &amp; Assembly: <strong>bwa/bwa-mem2</strong>, minimap2, DRAGEN, de novo &amp; chromosome-level assembly</li>
-      271       <li>Variant Detection: <strong>GATK, DeepVariant, GLnexus joint-genotyping</strong>, bcftools; SNV/indel/CNV/SV</li>
-      272       <li>Functional Impact &amp; Disease Association: <strong>Ensembl VEP</strong>, ClinVar/COSMIC/gnomAD, HGVS, ACMG tiering, GWAS/QTL</li>
-      273       <li>Toolkits: <strong>samtools, bedtools, bcftools</strong>, pysam, cyvcf2</li>
-      274       <li>Workflows: <strong>Nextflow</strong> (preferred), Snakemake, WDL/Cromwell</li>
-      275       <li>Cloud: <strong>AWS</strong> (HealthOmics, S3, Batch, Lambda), <strong>AWS CDK</strong>, Azure, DNAnexus (Spark/Hive)</li>
-      276       <li>Containers &amp; CI/CD: <strong>Docker</strong>, Git, <strong>GitHub Actions</strong></li>
-      277       <li>RESTful APIs: <strong>GA4GH-aligned JSON/REST</strong> — Ensembl VEP, NCBI E-utilities, UniProt, AWS HealthOmics</li>
-      278       <li><strong>Python</strong> (pandas, NumPy, scikit-learn, Flask) &middot; <strong>R</strong> (tidyverse, Bioconductor, Shiny) &middot; SQL &middot; PySpark</li>
-      279       <li>Reporting &amp; Visualization: <strong>R Markdown, Jupyter, Dash/Plotly</strong>, ggplot2, matplotlib, seaborn</li>
-      280       <li>CAP/CLIA &amp; PHI compliance; FDA-submission validation and audit standards</li>
-      281     </ul>
-      282   </aside>
-      283
-      284   <main>
-      285     <section class="summary">
-      286       <h2>Summary</h2>
-      287       <p>Bioinformatics engineer with <strong>10+ years building and validating NGS analysis
-      288       pipelines</strong> across short- and long-read platforms, from raw-read QC through mapping,
-      289       assembly, variant detection, and clinical interpretation. At <strong>Thermo Fisher</strong> I
-      290       hardened the production variant-discovery pipeline behind the FDA-cleared <strong>Oncomine Dx
-      291       Target Test</strong> (NSCLC companion diagnostic) — QC gating, hotspot-variant detection, and
-      292       VAF interpretation to <strong>FDA-submission validation and audit standards</strong>. At
-      293       <strong>DNAnexus</strong> I engineered cloud-scale germline and somatic workflows for clinical
-      294       partners (<strong>Myriad</strong> hereditary cancer, <strong>Natera</strong> Renasight, Emory
-      295       Winship, <strong>TCGA</strong>), including <strong>~494,120-VCF joint-genotyping</strong> with
-      296       automated QC reconciliation. Earlier, at <strong>Penn State</strong> I directed a
-      297       chromosome-level de novo reference assembly and QTL/GWAS genotype→phenotype mapping.
-      298       <strong>BS in Biostatistics</strong>; MS in Genetics &amp; Biotechnology; PhD-track (ABD) in
-      299       Bioinformatics &amp; Genomics.</p>
-      300     </section>
-      301
-      302     <h2>Work Experience</h2>
-      303
-      304     <div class="job">
-      305       <h3>Bioinformatics Engineer, Thermo Fisher Scientific, Carlsbad, CA</h3>
-      306       <div class="dates">02/2025 – 12/2025</div>
-      307       <ul>
-      308         <li><strong>Advanced the FDA-cleared Oncomine Dx Target Test</strong> (NSCLC companion
-      309           diagnostic, Ion Torrent amplicon panel) — hardened the production variant-discovery
-      310           pipeline for <strong>hotspot-variant detection and VAF/allele-fraction
-      311           interpretation</strong>, with a PASS/AF/hotspot-ID triple <strong>data-quality gate</strong>,
-      312           auditable control-sample filtering, and a 100-test pytest suite under <strong>GitHub
-      313           Actions CI</strong>, to FDA-submission validation and audit standards in a
-      314           <strong>CAP/CLIA</strong>-governed environment.</li>
-      315         <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
-      316           retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
-      317           Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
-      318           (adversarial review + test-driven assembly) for validated autonomous analysis under
-      319           guardrails.</li>
-      320         <li><strong>Engineered a containerized internal LLM/AI-HPC platform</strong>
-      321           (<strong>Docker</strong> orchestration; persistent shared + on-demand specialty models) for
-      322           self-serve analysis across Japan, Korea, and US sites; drove FDA submission readiness
-      323           across global documentation, QE, and validation teams.</li>
-      324       </ul>
-      325     </div>
-      326
-      327     <div class="job">
-      328       <h3>Bioinformatics Scientist &amp; Data Engineer, DNAnexus, Mountain View, CA</h3>
-      329       <div class="dates">06/2021 – 06/2024 · Apollo cloud platform (Spark / Hive)</div>
-      330       <ul>
-      331         <li><strong>Engineered clinical germline and somatic variant pipelines at scale</strong> —
-      332           for <strong>Myriad Genetics</strong> hereditary cancer, joint-genotyped
-      333           <strong>~494,120 germline VCFs</strong> (<code>bcftools norm → merge → GLnexus</code>) with
-      334           per-file reconciliation (zero silent drops) and automated <code>geno_db_stats</code> QC;
-      335           delivered <strong>Natera Renasight</strong> kidney-genetics and <strong>Emory
-      336           Winship</strong> (NCI-designated) somatic/germline cohorts as annotated, queryable
-      337           allele/genotype tables.</li>
-      338         <li><strong>Annotated variants for functional impact and disease association</strong> —
-      339           mapped SNVs/indels/CNAs to consequence, transcript, and clinical significance via
-      340           <strong>VEP-style annotation against ClinVar/COSMIC/gnomAD</strong>; ran multi-tumor
-      341           <strong>TCGA</strong> analyses (<code>maftools</code> oncoplots, somatic-interaction
-      342           testing, Ti/Tv, survival analysis) and DESeq2 differential expression with tumor-type
-      343           stratification; fluent across <strong>cfDNA/ctDNA</strong> multimodal signals and vendor
-      344           assays (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).</li>
-      345         <li><strong>Harmonized unstructured clinical data into standardized models</strong> — mapped
-      346           free-text fields to coded concepts (<strong>OMOP CDM</strong>; SNOMED-CT ↔ ICD-10-CM,
-      347           LOINC, RxNorm; CDISC SDTM/ADaM); shipped the <strong>Clinical Knowledge Graph</strong>
-      348           (extending Harvard's PrimeKG), unifying <strong>20+ biomedical ontologies</strong> via
-      349           multi-tier entity resolution (exact → BioBERT cosine ≥ 0.98 → Levenshtein → human review)
-      350           over <strong>NCBI, UniProt, and Ensembl REST</strong> sources.</li>
-      351         <li><strong>Scaled population sequencing and statistical genetics</strong> — profiled and
-      352           ingested <strong>UK Biobank / INTERVAL</strong> (tens of thousands of whole genomes,
-      353           242-metabolite NMR panels, decades of longitudinal phenotype); partitioned <strong>GWAS</strong>
-      354           by (phenotype, chrom, bin) with <strong>DeepWAS</strong> deep-learning association;
-      355           reconciled <strong>349,912 CMS/HHS beneficiaries</strong> across federal and state sources
-      356           via bidirectional identity resolution.</li>
-      357         <li><strong>Delivered reproducible analyses and interactive reporting</strong> — <strong>R
-      358           Markdown</strong> and <strong>Jupyter</strong> deliverables with <strong>ggplot2/tidyverse,
-      359           Plotly, matplotlib, and seaborn</strong> figures; built <strong>R Shiny and
-      360           Dash/Plotly</strong> interfaces for exploring high-dimensional genomic and clinical
-      361           cohorts.</li>
-      362       </ul>
-      363     </div>
-      364
-      365     <div class="job">
-      366       <h3>Lecturer in Genetics and Biology, Southern Utah University, Cedar City, UT</h3>
-      367       <div class="dates">06/2018 – 05/2021</div>
-      368       <ul>
-      369         <li>Taught undergraduate genetics and biology integrating molecular and bioinformatic
-      370           methods; mentored undergraduate researchers in experimental design, statistical data
-      371           analysis, scientific writing, and presentation.</li>
-      372       </ul>
-      373     </div>
-      374
-      375     <div class="job">
-      376       <h3>Research Scientist, Pennsylvania State University, University Park, PA</h3>
-      377       <div class="dates">08/2010 – 05/2018 · Schatz Center for Molecular Genetics; Weiss Lab</div>
-      378       <ul>
-      379         <li><strong>Directed a chromosome-level de novo genome assembly</strong> — the
-      380           <em>Castanea mollissima</em> reference genome (NCBI <strong>JRKL00000000.1</strong>) from
-      381           multi-platform sequencing, applying <strong>spectral clustering, SVM/PCA, and
-      382           multidimensional scaling</strong> to mate-pair network analysis and pseudochromosome
-      383           reconstruction; established and optimized <strong>HPC</strong> infrastructure across
-      384           multi-institutional teams.</li>
-      385         <li><strong>Mapped genotype→phenotype in complex multidimensional traits</strong> —
-      386           <strong>QTL/GWAS</strong> association of craniofacial morphology in mouse populations
-      387           (Weiss Lab) with post-hoc autocorrelation correction, resolving the developmental genetic
-      388           architecture underlying co-varying phenotypes.</li>
-      389       </ul>
-      390     </div>
-      391
-      392     <h2>Education</h2>
-      393
-      394     <div class="edu">
-      395       <h3>Pennsylvania State University · PhD (ABD/candidacy), Bioinformatics &amp; Genomics</h3>
-      396       <div class="subline">08/2008 – 05/2018 · University Park, PA</div>
-      397       <p class="detail">Dissertation: "Machine learning approaches for assembly and comparative
-      398         analysis of the genomes of the genus <em>Castanea</em>"</p>
-      399     </div>
-      400
-      401     <div class="edu">
-      402       <h3>Brigham Young University · MS Genetics &amp; Biotechnology (2008); BS Biostatistics (2006)</h3>
-      403       <div class="subline">08/2001 – 08/2008 · Provo, UT</div>
-      404       <p class="detail">Master's Thesis: "Domain Duplication, Darwinian Selection and the Origins
-      405         of Seed Storage Globulins" · Minors: Chemistry, Developmental Biology</p>
-      406     </div>
-      407
-      408     <h2>Selected Research Output</h2>
-      409     <div class="certs">
-      410       <ul>
-      411         <li>Reference genome: <em>Castanea mollissima</em> (Chinese chestnut), NCBI accession
-      412           <strong>JRKL00000000.1</strong> — chromosome-level de novo assembly.</li>
-      413         <li>Conference presentations: Plant &amp; Animal Genome (PAG), SMBE, ASPB; American
-      414           Chestnut Foundation symposium workshops.</li>
-      415       </ul>
-      416     </div>
-      417
-      418     <h2>Certifications — In Progress (2026)</h2>
-      419     <div class="certs">
-      420       <ul>
-      421         <li>AWS Certified Machine Learning Engineer – Associate · Generative AI Developer – Advanced
-      422           · Solutions Architect – Associate</li>
-      423         <li>Microsoft Azure: AI Agent Builder Associate · Databricks Data Engineer Associate ·
-      424           SQL AI Developer Associate</li>
-      425       </ul>
-      426     </div>
-      427
-      428   </main>
-      429
-      430 </div>
-      431
-      432 </body>
-      433 </html>
+      602 <tr><td>Record linkage</td><td><code>CMStoAPSmatching_2014_2020.ipynb</code> — matching CMS beneficiaries against Adult Protective Services records across a seven-year span
+          </td></tr>
+      603 </tbody></table></div>
+      604
+      605 <div class="say" data-label="Engineering takeaway"><p>“I worked federal claims data — Medicare and Medicaid — where what you may retain is not a preference. The first pass
+          on every source file was a documented suppression step: this file is excluded entirely because it carries SSNs; from these, drop name, date of birth and street address befo
+          re anything downstream sees them. Then linkage happens on salted surrogate keys, not on identifiers. The decision and its rationale live in the notebook, so an auditor can
+          see not just what the pipeline did but what it deliberately refused to load.”</p></div>
+      606
+      607 <div class="say" data-label="The card to play on data federation"><p>“You asked about enforcing federation rules for agents. The instinct is to filter at the query. My expe
+          rience with restricted data is that the strongest control is upstream — the restricted field is never loaded into the queryable layer at all, so no query, agent-issued or o
+          therwise, can reach it. Query-time filtering is what you fall back to when you can’t afford separate stores. Both are legitimate; they’re different threat models, and it’s
+          worth being explicit about which one a given dataset gets.”</p></div>
+      608
+      609 <div class="fact" data-label="Why it lands"><p>That is a genuinely senior distinction, and it is grounded in work you actually did.</p></div>
+      610
+      611 <p class="onlyhere"><b>Only here</b>Controlled-access regulated PII under a federal data-use agreement. Real compliance weight, not a policy opinion.</p>
+      612 </div></article>
+      613
+      614 <article class="card" id="pr9" data-k="dao_main adapters general_transformation voila ipywidgets profiler anytree">
+      615 <div class="card-hd"><div class="pid">09</div><div><h3>Multi-source ingestion under a common transformation core</h3><p class="sub">The architectural-pattern card</p></div>
+          </div>
+      616 <div class="card-bd">
+      617 <p><code>DAO_main/</code> — 125 files. Per-partner transforms (<code>Bayer_transform/</code>, <code>HDRUK_UKB/</code>, <code>HDRUK_interval/</code>, <code>Natera/</code>, <
+          code>Myriad/</code>, <code>Lilly_UKB/</code>) that <b>all import the same <code>general_transformation.py</code></b> (<span class="num">671</span> lines) and <code>Core_fun
+          ctions.py</code> (<span class="num">687</span> lines).</p>
+      618
+      619 <div class="fact" data-label="The architecture in one sentence"><p>A shared transformation core plus a thin per-partner adapter (<code>bayer_gckd_transformation.py</code>,
+          <code>hdruk_derived_fields_transformation.py</code>) — so partner-specific logic is isolated to a named file and everything else is common code.</p></div>
+      620
+      621 <p><b>Named capabilities in the core worth citing:</b> <code>determine_type</code> (type resolution against the target dictionary), <code>add_long_codes</code> (expanding c
+          oded fields into platform coding tables), <code>expand_lab_ent</code> (lab-result normalisation), <code>folder_structure_from_json</code> plus <code>anytree</code> walkers
+          for <b>coding hierarchy traversal</b>, <code>write_csv_as_parquet</code> / <code>load_parquet</code> for columnar conversion, and <code>log_progress_event</code> / <code>lo
+          g_custom_event</code> for structured pipeline telemetry.</p>
+      622
+      623 <div class="say" data-label="The line to use"><p>“Per-partner adapters over a shared core, not one pipeline per partner. The adapter is the only file that knows the partner
+          ’s quirks. That’s the difference between an integration layer that scales and one that becomes seven codebases.”</p></div>
+      624
+      625 <p><b>Also here:</b> <code>MIMIC_profiler</code>, <code>OMOP_profiler</code>, <code>TCGA_profiler</code>, <code>xDS_profiler</code> — each a <b>Voilà + ipywidgets dashboard
+          </b> rendering the profiling output. So you have shipped a <em>web interface</em> over your own data-profiling library. Given the JD’s “UX sensibility” line and the “dashbo
+          ards / natural-language interfaces” bullet in the AI4D posting, say this out loud:</p>
+      626
+      627 <div class="say" data-label="Say this"><p>“The profiler output needed to be readable by data managers who weren’t going to open a notebook, so I rendered it as an interacti
+          ve dashboard — Voilà over ipywidgets, served off the platform. Same library underneath, three consumers: the pipeline, the notebook, and the dashboard.”</p></div>
+      628
+      629 <p><b>Three consumers over one library</b> is exactly the framing an API-library role wants to hear.</p>
+      630
+      631 <p class="onlyhere"><b>Only here</b>The architectural pattern itself — one transformation core, thin per-partner adapters, three consumers over one library.</p>
+      632 </div></article>
+      633
+      634 <article class="card" id="pr10" data-k="pyspark cohort dxdata sql gdc tcga oncotree icd10 ontology">
+      635 <div class="card-hd"><div class="pid">10</div><div><h3>Cohort querying at scale, and public-API retrieval</h3><p class="sub">The distributed-query and public-source card</p
+          ></div></div>
+      636 <div class="card-bd">
+      637 <p><b>PySpark / dxdata cohort work</b> appears across <code>TCGA_v3/</code>, <code>Emory/</code>, <code>Myriad/</code>, <code>DAO_main/nhill/</code>: <code>cohortquery.ipyn
+          b</code>, <code>Create_Cohort_with_dxdata.ipynb</code>, <code>retrieve_gene_expression_from_dataset.ipynb</code>, <code>pyspark_test_pivot_table.ipynb</code>, plus hand-wri
+          tten SQL for relationship validation (<code>one_to_one_rel_query.sql</code>, <code>many_to_one_rel_query.sql</code>).</p>
+      638
+      639 <div class="say" data-label="Say this"><p>“Cohort selection ran through the platform’s dataset layer on Spark, because the phenotype tables were past the point where pandas
+           is honest. I also wrote raw SQL to validate the entity relationships — checking that the one-to-one and many-to-one relationships the dictionary claimed actually held in t
+          he data.”</p></div>
+      640
+      641 <div class="fact" data-label="The genuinely good detail"><p><b>Validating that declared relationships hold in the data.</b> A schema that says one-to-one and data that says
+           otherwise is exactly what breaks a query API later.</p></div>
+      642
+      643 <p><b>Public data retrieval:</b> <code>download_tcga_data.sh</code> and <code>gdc_client.ipynb</code> — programmatic retrieval from the <b>NCI Genomic Data Commons</b>. Als
+          o <code>Oncotree_to_ICD_O.ipynb</code> and <code>ICD10_to_other_ontology.ipynb</code> — cross-ontology mapping, which is the “biomedical ontologies” preferred skill in two
+          of the four postings.</p>
+      644
+      645 <p><code>Emory/genomic_xml_data_transformation.py</code> plus <code>genomic_xml_fuzzy_matching.ipynb</code> — parsing genomic report XML and <b>fuzzy-matching</b> records t
+          hat do not join cleanly. Add it if he asks about entity resolution.</p>
+      646
+      647 <p class="onlyhere"><b>Only here</b>Distributed query at cohort scale, plus retrieval against the public GDC API.</p>
+      648 </div></article>
+      649
+      650 </main>
+      651 </div>
+      660   });
+      661
+      662   var rb=document.getElementById('recallBtn');
+      663   rb.addEventListener('click',function(){
+      664     var on=document.body.classList.toggle('recall');
+      665     rb.setAttribute('aria-pressed',on?'true':'false');
+      666     rb.textContent=on?'Recall mode — on':'Recall mode — titles only';
+      667   });
+      668
+      669   var find=document.getElementById('find');
+      670   find.addEventListener('input',function(){
+      671     var q=find.value.trim().toLowerCase();
+      672     document.querySelectorAll('.card').forEach(function(c){
+      673       if(!q){c.classList.remove('hidden');return;}
+      674       var hay=(c.getAttribute('data-k')||'')+' '+c.textContent.toLowerCase();
+      675       c.classList.toggle('hidden',hay.indexOf(q)===-1);
+      676     });
+      677   });
+      678 })();
+      679 </script>
+  ⎿  Async hook PostToolUse completed
 
-⏺ Now rendering to PDF via headless Chrome (the same path that produced the original).
+∴ I need to append the remaining sections—Parts 1C, 1D covering entries 11-17, the exclusions, 1E groups, the reach table, Parts 2/3/4, and the colophon—inserting them before the closing
+  main tag. Project 17 is now confirmed for ATC along with the polyglot card, so I'll proceed with the edit.
 
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
-      --print-to-pdf="Cannon_BioinfoGenomic_ML.pdf" "file://$PWD/Cannon_BioinfoGenomic_ML.html" 2>&1 | tail -3; python3 -c "
-      d=open('Cannon_BioinfoGenomic_ML.pdf','rb').read()
-      import re
-      print('page objects:', len(re.findall(rb'/Type\s*/Page[^s]', d)))")
-          d=open(f,'rb').read()
-          print(f, len(re.findall(rb'/Type\s*/Page[^s]', d)))")
-  ⎿  Cannon_CV_MLDiagnostics.pdf 2
-     Cannon_BioinfoGenomic_ML.pdf 3
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Brief.html)
+  ⎿  Added 371 lines
+       647  <p class="onlyhere"><b>Only here</b>Distributed query at cohort scale, plus retrieval against the public GDC API.</p>
+       648  </div></article>
+       649
+       650 +<article class="card lead" id="pr11" data-k="lilly omop adapter entityedit deprecation vendored drift md5">
+       651 +<div class="card-hd"><div class="pid">11</div><div><h3><code>entityEdit_Lilly_OMOP.py</code> — you already shipped Lilly’s adapter</h3><p class="sub">Not a claim about tr
+           +ansferable skill. The same customer.</p></div><span class="tier t-lead">★ Open with this</span></div>
+       652 +<div class="card-bd">
+       653 +<p><code>PlatformProjectFiles/LillyOMOP/</code> — 62 files. Alongside the shared core sits <code>more/entityEdit_Lilly_OMOP.py</code> (<span class="num">2,206</span> line
+           +s) and <code>more/dxdictionariesEdit_Lilly_OMOP.py</code> (<span class="num">577</span> lines): the general library, forked and extended for the Lilly OMOP ingestion spec
+           +ifically.</p>
+       654 +
+       655 +<h3>What the Lilly fork actually changed — read from the diff, not remembered</h3>
+       656 +<div class="tw"><table>
+       657 +<thead><tr><th>Change</th><th>What it means in engineering terms</th></tr></thead>
+       658 +<tbody>
+       659 +<tr><td>Constructor gained <code>data=None</code> alongside <code>csv_file=None</code></td><td><b>Widened the input contract.</b> The base class could only ingest a delim
+           +ited file from disk. The Lilly version accepts an in-memory <code>pandas.DataFrame</code>, so anything pandas can read — Parquet, Excel, SQL, JSON — becomes a valid input
+           + without touching the library</td></tr>
+       660 +<tr><td><code>data</code> mutually exclusive with <code>large_data</code></td><td>An explicit, documented constraint: the chunked-streaming path and the in-memory path ca
+           +nnot both apply. Stated in the docstring rather than left to fail at runtime</td></tr>
+       661 +<tr><td><code>is_grubby</code> deprecated for <code>outlier_direction</code></td><td><b>A deliberate API deprecation with a migration note left in the source</b> — the ol
+           +d field name is commented out with a pointer to its replacement, not silently deleted</td></tr>
+       662 +<tr><td>New docstring enumerating “two ways raw data can be passed”</td><td>Interface documentation written for a <em>consumer</em> of the class, not for the author</td><
+           +/tr>
+       663 +</tbody></table></div>
+       664 +
+       665 +<div class="say" data-label="Say this"><p>“I’ve already delivered against Lilly. The OMOP harmonisation ingestion is in my history — and the interesting part is what it d
+           +id to the library. Lilly’s data didn’t arrive as delimited files, so rather than write a one-off script I widened the ingestion contract: the class took a DataFrame as we
+           +ll as a file path, which meant every format pandas supports became a valid input. Same release deprecated an outlier flag in favour of a richer field, with the migration
+           +documented in place. That’s the ordinary work of owning a library other people build against.”</p></div>
+       666 +
+       667 +<h3>The honest weakness — and why volunteering it is the strong move</h3>
+       668 +<div class="fact" data-label="The drift map, measured"><p>Across the archive there are <b class="num">18 copies</b> of <code>entity.py</code>, in <b class="num">13 distin
+           +ct versions</b>, ranging from <span class="num">853</span> to <span class="num">2,317</span> lines. The canonical <span class="num">2,258</span>-line build is byte-identi
+           +cal — same MD5 — in exactly four places: <code>ACL/</code>, <code>DAO_main/HDPM_demo/</code>, <code>LillyOMOP/more/</code>, <code>XVG_coding_central/</code>. Everything e
+           +lse has drifted.</p></div>
+       669 +
+       670 +<p>That is <b>vendored-copy sprawl</b>, and it is precisely the failure mode the role he is hiring for must avoid. Own it before he finds it:</p>
+       671 +
+       672 +<div class="say" data-label="Your best credibility move in the entire interview"><p>“The library was never packaged — it was vendored into each project directory. Eightee
+           +n copies, thirteen versions, and the improvements I made for one partner didn’t reach the others. That’s the single thing I’d do differently, and it’s why I’d want the ag
+           +ent-facing library here to be a versioned, installable package with a declared public surface from day one. When callers are agents rather than people, a drifted copy doe
+           +sn’t produce a merge conflict — it produces answers that disagree with each other and nobody notices.”</p></div>
+       673 +
+       674 +<p class="onlyhere"><b>Only here</b>Widening a library’s input contract for a customer — file-path to DataFrame — instead of forking a script. Plus a documented deprecati
+           +on, and an audit of your own architecture with numbers attached.</p>
+       675 +</div></article>
+       676 +
+       677 +<article class="card lead" id="pr12" data-k="emory fuzzy thefuzz token_sort_ratio curation gate mapping federation">
+       678 +<div class="card-hd"><div class="pid">12</div><div><h3>Fuzzy schema mapping with a human curation gate — Emory</h3><p class="sub">The pattern their federation layer needs
+           +. Nothing else in your archive states it as cleanly.</p></div><span class="tier t-lead">★ Their problem</span></div>
+       679 +<div class="card-bd">
+       680 +<p><code>PlatformProjectFiles/Emory/genomic_xml_fuzzy_matching.ipynb</code>. The problem: two data dictionaries describing the same genomics data — one derived from the X
+           +ML payloads, one maintained by hand in Excel — with no shared field names.</p>
+       681 +
+       682 +<h3>The pipeline, exactly as built</h3>
+       683 +<div class="tw"><table>
+       684 +<thead><tr><th>Step</th><th>What happens</th></tr></thead>
+       685 +<tbody>
+       686 +<tr><td><b>Machine proposes</b></td><td><code>thefuzz</code> — <code>process.extractOne</code> with <code>fuzz.token_sort_ratio</code> — matches every derived field name
+           +against the curated dictionary’s <code>Field</code> column, after normalising the <code>dx_</code> prefix and underscores</td></tr>
+       687 +<tr><td><b>Proposal as data</b></td><td>Written to <code>genomics_xml_fuzzy_matching_map.csv</code> — a reviewable artifact, not an in-memory decision</td></tr>
+       688 +<tr><td><b>Human disposes</b></td><td>A curator edits the file; it returns as <code>…map - MANUAL CURATION - ….csv</code> with a <code>meta_dd_field_curated</code> column
+           +</td></tr>
+       689 +<tr><td><b>Rejections recorded</b></td><td>A <code>drop</code> flag marks bad mappings; the filter is <code>.loc[df["drop"] == "n"]</code>. The negative decisions persist
+           + in the artifact</td></tr>
+       690 +<tr><td><b>Publish</b></td><td><code>metadata_mapping.csv</code> and <code>metadata_mapping_desc.csv</code> go back to the platform via <code>dx upload</code></td></tr>
+       691 +</tbody></table></div>
+       692 +
+       693 +<div class="say" data-label="Why this is the card for his authorization / federation problem"><p>“Federating databases isn’t mostly an access problem, it’s a vocabulary p
+           +roblem — two sources describe the same field differently and an agent can’t tell. I built a mapping layer for that: fuzzy string matching proposes the field correspondenc
+           +es, a curator confirms or rejects them, and the curated map is persisted as a versioned artifact that the transform reads. Machine proposes, human disposes, and the decis
+           +ion is data rather than code. Rejections get stored too — a mapping someone deliberately refused shouldn’t get re-proposed next quarter. For agent-facing federation that
+           +curated map is the thing you’d actually serve: it’s what lets an agent ask one question across sources that don’t agree on names.”</p></div>
+       694 +
+       695 +<div class="say" data-label="Follow-up he may ask — “why not embeddings?”"><p>“Token-sort ratio was right for the data — these were field names, not prose, and the variat
+           +ion was word order and punctuation rather than meaning. Embeddings earn their keep when you’re matching descriptions. And the curation gate matters more than the scorer:
+           +whatever proposes the match, a human confirms it once and the answer is durable.”</p></div>
+       696 +
+       697 +<p class="onlyhere"><b>Only here</b>Semantic reconciliation between two vocabularies, with the human decision — including the rejections — persisted as a versioned artifa
+           +ct.</p>
+       698 +</div></article>
+       699 +
+       700 +<article class="card" id="pr13" data-k="naaccr omop concept cpt4 loinc snomed vocabulary myriad">
+       701 +<div class="card-hd"><div class="pid">13</div><div><h3>NAACCR → OMOP and the standard-vocabulary layer — Emory + Myriad</h3><p class="sub">The “I do controlled vocabulari
+           +es, not just schemas” project</p></div></div>
+       702 +<div class="card-bd">
+       703 +<p>Two threads, same competency.</p>
+       704 +<p><b>NAACCR mapping</b> (<code>Emory/naaccr.ipynb</code>): NAACCR is the North American cancer-registry standard — items identified by number (<code>naaccr_number</code>
+           +) and name (<code>naaccr_name</code>). The notebook joins those items against the <b>OMOP <code>CONCEPT.csv</code> vocabulary table</b>, filtering on <code>domain_id</cod
+           +e> and <code>concept_code</code> to place each registry item in the right OMOP domain. It also carries a hand-written <code>read_incorrectly_formatted_csv(path, no_cols,
+           +headers=…)</code> — a tolerant reader for registry exports with inconsistent column counts.</p>
+       705 +<p><b>Standard vocabulary normalisation</b> (<code>Myriad/OMOP_dashboard_loop.ipynb</code>): pulls <b>CPT4, LOINC and SNOMED</b> vocabulary releases from platform storage
+           + and normalises them to a uniform internal filename convention (<code>dx_coding_cpt4.csv</code>, <code>dx_coding_loinc.csv</code>, <code>dx_coding_snomed.csv</code>), inc
+           +luding seeding an empty SNOMED file with the LOINC header so the downstream loader sees a consistent schema. Also loads <code>omop_ERDrelate_dictionary.csv</code> — the e
+           +ntity-relationship map between OMOP tables.</p>
+       706 +
+       707 +<div class="say" data-label="Say this"><p>“Schema inference tells you a column holds codes. The vocabulary layer tells you <em>which</em> code system and what the codes m
+           +ean. I worked the standard vocabularies directly — CPT4, LOINC, SNOMED, and the OMOP CONCEPT table — including mapping a cancer-registry standard, NAACCR, into OMOP domai
+           +ns item by item. That’s the layer that makes a cross-source query correct rather than merely executable.”</p></div>
+       708 +
+       709 +<div class="fact" data-label="Where this connects to the role"><p>He needs agents to query public <em>and</em> proprietary databases. Public biomedical databases are voca
+           +bulary-keyed. An agent that cannot resolve a LOINC code to a concept can retrieve rows but cannot join them.</p></div>
+       710 +
+       711 +<p class="onlyhere"><b>Only here</b>Controlled-vocabulary mapping — a registry standard placed into OMOP domains item by item.</p>
+       712 +</div></article>
+       713 +
+       714 +<article class="card" id="pr14" data-k="fixed width fts dat cut dos2unix ssn crosswalk beneficiary 349912 cms">
+       715 +<div class="card-hd"><div class="pid">14</div><div><h3>Fixed-width federal claims parsing and beneficiary crosswalks — Emory/CMS</h3><p class="sub">Extends 08. Use only i
+           +f he presses on governance — but the detail here is what makes it real.</p></div></div>
+       716 +<div class="card-bd">
+       717 +<p><code>Emory/CMStoAPSmatchingFull.ipynb</code> (<span class="num">78</span> code cells) and <code>ACL_PII.ipynb</code>, working CMS Medicare data under controlled acces
+           +s.</p>
+       718 +<div class="tw"><table class="slot"><tbody>
+       719 +<tr><td>Data format</td><td>Fixed-width <code>.dat</code> files with accompanying <code>.fts</code> <b>format specification</b> files — no delimiters; columns are byte ra
+           +nges</td></tr>
+       720 +<tr><td>Extraction</td><td>Byte-offset slicing at the shell (<code>cut -c 21-35</code>), record filtering by trailing-field regex, <code>dos2unix</code> normalisation on
+           +CRLF-terminated federal exports</td></tr>
+       721 +<tr><td>Linkage</td><td>An <b>SSN-to-beneficiary crosswalk</b> (<code>ssn_bene_xwalk_….dat</code>) resolving identifiers across years, deduplicated <code>sort | uniq</cod
+           +e> then <code>drop_duplicates(subset=['dx_bene_id'])</code></td></tr>
+       722 +<tr><td>Scale</td><td><b class="num">349,912</b> unique beneficiaries after deduplication</td></tr>
+       723 +<tr><td>Access model</td><td>Data mounted read-only at <code>/mnt/project/…</code> inside the platform’s controlled-access environment; outputs written to a separate user
+           + namespace</td></tr>
+       724 +<tr><td>Span</td><td>Multi-year (<code>CMStoAPSmatching_2014_2020.ipynb</code>) — schema drift across annual releases is part of the problem</td></tr>
+       725 +</tbody></table></div>
+       726 +
+       727 +<div class="say" data-label="Say this only if he pushes on regulated data"><p>“CMS claims arrive as fixed-width files with a separate format spec — you parse by byte offs
+           +et against the <code>.fts</code>, not by delimiter. The linkage runs through an SSN-to-beneficiary crosswalk, so the identifier resolution is the part with the compliance
+           + weight on it: it happens inside the controlled-access environment, the raw identifiers never leave it, and what comes out is a de-identified beneficiary key. Roughly 350
+           +,000 unique beneficiaries across 2014 to 2020. That’s the practical shape of a data-federation rule — not a policy document, a boundary in the system that the pipeline ph
+           +ysically cannot cross.”</p></div>
+       728 +
+       729 +<div class="fact" data-label="That last sentence is the bridge"><p>He is being asked to build exactly that boundary, for agents.</p></div>
+       730 +
+       731 +<p class="onlyhere"><b>Only here</b>Identity resolution as a physical boundary — raw identifiers resolved <em>inside</em> the controlled environment, only de-identified k
+           +eys leave.</p>
+       732 +</div></article>
+       733 +
+       734 +<article class="card lead" id="pr15" data-k="ccw codebook excel openpyxl 5444 2663 dictionary spec sandbox cms">
+       735 +<div class="card-hd"><div class="pid">15</div><div><h3>CMS CCW codebooks → a 5,444-field machine-readable dictionary</h3><p class="sub">“Make a public database agent-quer
+           +yable”, done, with numbers</p></div><span class="tier t-lead">★★ Best answer</span></div>
+       736 +<div class="card-bd">
+       737 +<p><code>PlatformProjectFiles/Sandbox_CMS_work/</code> — 15 files, and the cleanest end-to-end artifact in the archive: <b>a published specification document goes in, a m
+           +achine-readable schema comes out.</b></p>
+       738 +
+       739 +<p><b>Input:</b> ten official <b>CMS Chronic Conditions Warehouse (CCW) codebooks</b> as Excel workbooks — MBSF ABCD, Medicare Encounter, Medicare Fee-For-Service, MedPAR
+           +, Part D Event / Drug Characteristics, and four TAF books (Annual Plan, Annual Provider, Claims, Demographic Eligibility). These are the authoritative human-readable spec
+           +s for federal claims data.</p>
+       740 +
+       741 +<div class="tw"><table>
+       742 +<thead><tr><th>Artifact</th><th class="num">Rows</th><th>What it is</th></tr></thead>
+       743 +<tbody>
+       744 +<tr><td><code>CMS_dx_data_dictionary_v0.csv</code></td><td class="num"><b>5,444</b> fields</td><td>The <b>same 16-column dictionary contract</b> emitted by <code>entity.p
+           +y</code> — <code>entity</code>, <code>name</code>, <code>type</code>, <code>primary_key_type</code>, <code>coding_name</code>, <code>is_sparse_coding</code>, <code>is_mul
+           +ti_select</code>, <code>is_longitudinal_axis</code>, <code>referenced_entity_field</code>, <code>relationship</code>, <code>folder_path</code>, <code>title</code>, <code>
+           +description</code>, <code>units</code>, <code>concept</code>, <code>linkout</code></td></tr>
+       745 +<tr><td><code>CMS_dx_coding_dictionary.csv</code></td><td class="num"><b>2,663</b> codings</td><td>The extracted controlled vocabulary — permitted values with short and l
+           +ong names</td></tr>
+       746 +</tbody></table></div>
+       747 +
+       748 +<h3>The transformation — <code>CMS_codings.ipynb</code>, step by step</h3>
+       749 +<ul>
+       750 +<li><code>glob</code> over the codebooks on the controlled-access mount (<code>/mnt/project/internal_projects/cms_coding/*.xlsx</code>), <code>openpyxl</code> engine, eve
+           +rything read as <code>dtype=str</code> so nothing is silently coerced</li>
+       751 +<li><b>Encoding sanitation</b> — every object column round-tripped <code>.str.encode('ascii','ignore').str.decode('ascii')</code> to strip the smart quotes and non-breaki
+           +ng spaces that federal Excel exports carry</li>
+       752 +<li>Concatenate many workbooks into one frame, then <b>normalise</b>: <code>short_name</code> falls back to <code>long_name</code> where blank, deduplicate on the <code>(
+           +long_name, value)</code> pair, drop rows with empty or whitespace-only <code>value</code></li>
+       753 +</ul>
+       754 +
+       755 +<div class="say" data-label="Possibly your single best answer to “what would you do here”"><p>“The closest thing I’ve done to what you’re describing is CMS. The Chronic C
+           +onditions Warehouse publishes its codebooks as Excel — human-readable specs, ten workbooks. I turned those into a machine-readable data dictionary: 5,444 fields with type
+           +s, key types, relationships and units, plus a separate controlled-vocabulary file of 2,663 permitted values. Same 16-column contract my ingestion library emits, so a publ
+           +ic federal dataset and a partner’s proprietary upload describe themselves identically downstream. That’s the precondition for an agent querying across both — it isn’t the
+           + API, it’s that both sides can answer ‘what’s in you’ in the same format.”</p></div>
+       756 +
+       757 +<p class="onlyhere"><b>Only here</b><em>Specification document → schema</em> conversion. Not inferring a schema from data — that is 07 — but <b>parsing a published human
+           +spec into the same contract</b>, so documented-but-unloaded sources join the federation.</p>
+       758 +</div></article>
+       759 +
+       760 +<article class="card warn" id="pr16" data-k="hdpm generic profiler dashboard xvantage lilly template productization">
+       761 +<div class="card-hd"><div class="pid">16</div><div><h3>The xVantage Profiler Dashboard — <code>Generic_HDPM_notebook.ipynb</code></h3><p class="sub">The deliverable is li
+           +terally titled for Lilly. Have this file open during the call.</p></div><span class="tier t-warn">Say “we”</span></div>
+       762 +<div class="card-bd">
+       763 +<p>Also in <code>Sandbox_CMS_work/</code>. <span class="num">144</span> cells, <span class="num">139</span> of them code. Its own markdown title block reads:</p>
+       764 +
+       765 +<div class="fact" data-label="Verbatim from the title cell"><p><b>xVantage Profiler Dashboard</b><br><em>Eli Lilly Preliminary Data Profile</em><br>— xVantage Data Scienc
+           +e</p></div>
+       766 +
+       767 +<p>This is the <code>HDPM</code> pipeline that appears as <code>hdpm_v2.ipynb</code> in <b>every partner directory</b> — LillyOMOP, Emory, Myriad, TCGA, DAO_main. The cop
+           +y sitting in the CMS sandbox is the <b>generic</b> one: the Lilly-branded deliverable, generalised into a reusable template and re-pointed at a different dataset.</p>
+       768 +
+       769 +<div class="say" data-label="Why that ordering matters, and how to say it"><p>“The profiler dashboard we delivered to Lilly became the template. Same notebook, parameteri
+           +sed, re-pointed at CMS claims — the customer-specific work got generalised rather than re-written. It runs on the ingestion library underneath, so what a partner receives
+           + is a profile of their own data produced by the same code path that profiles everyone else’s. That’s the productisation step: one deliverable, N customers, and the differ
+           +ences live in configuration.”</p></div>
+       770 +
+       771 +<div class="stop-box" data-label="One caution"><p>The title block says <em>xVantage Data Science</em> — a team product, not a solo one. Say “we delivered”, not “I deliver
+           +ed”, and describe your part precisely. He will not be impressed by an overclaim on a document that names a team.</p></div>
+       772 +
+       773 +<p class="onlyhere"><b>Only here</b>The generalisation arc itself — a named customer deliverable turned into a reusable product asset. Every other card shows you built so
+           +mething; this one shows you turned something you built into a template. And the customer named in the title is the one interviewing you.</p>
+       774 +</div></article>
+       775 +
+       776 +<article class="card lead" id="pr17" data-k="clinicaltrials ctgov mesh atc athena concept_ancestor hierarchy rpy2 polyglot xsd">
+       777 +<div class="card-hd"><div class="pid">17</div><div><h3>Public-database ingestion: ClinicalTrials.gov, MeSH, ATC</h3><p class="sub">Attribution resolved 2026-08-25 — the A
+           +TC flattener is yours, confirmed directly</p></div><span class="tier t-lead">★ Confirmed</span></div>
+       778 +<div class="card-bd">
+       779 +<p><code>Cool_notebooks/playgrounds/</code>. Three notebooks that together describe the <em>exact</em> job.</p>
+       780 +
+       781 +<div class="tw"><table>
+       782 +<thead><tr><th>Notebook</th><th>What it does</th></tr></thead>
+       783 +<tbody>
+       784 +<tr><td><b>Bulk public acquisition</b><br><code>clinicaltrials_govdata_download.ipynb</code></td><td>Downloads <code>https://clinicaltrials.gov/AllPublicXML.zip</code> <b
+           +>and, separately, the XSD schema</b> (<code>public.xsd</code>). Fetching the schema alongside the payload is the tell of someone who intends to parse against a contract r
+           +ather than guess at fields</td></tr>
+       785 +<tr><td><b>Federated SQL over the result</b><br><code>ctgov_mesh_interventions_playground.ipynb</code></td><td><code>dxdata.connect(dialect="hive+pyspark")</code> against
+           + a dataset record ID, then <code>dataset.entities_by_name</code> to enumerate, <code>SHOW TABLES IN ctgov_mesh_interventions</code>, and SQL across <code>trials</code>, <
+           +code>browse_conditions</code>, <code>interventions</code> — ClinicalTrials.gov cross-referenced with <b>MeSH</b> terms</td></tr>
+       786 +<tr><td><b>Hierarchy flattening</b><br><code>creating_atc_hierarchy_flat.ipynb</code> <span class="tier t-lead" style="font-size:9.5px">yours</span></td><td>Pulls the <b>
+           +Athena / OHDSI vocabulary tables</b> — <code>CONCEPT</code>, <code>CONCEPT_RELATIONSHIP</code>, <code>CONCEPT_ANCESTOR</code> — filters to <code>vocabulary_id == 'ATC'</c
+           +ode>, and self-joins relationship pairs into a flat parent/child table carrying both sides’ codes, classes and names. Staged in and out with <code>!dx download -r</code>
+           +/ <code>!dx upload</code></td></tr>
+       787 +</tbody></table></div>
+       788 +
+       789 +<div class="fact" data-label="Why this is a top-three card"><p>It is <em>literally</em> an agent-queryable public database, end to end: acquire the public payload with it
+           +s schema → load it into a queryable engine → resolve it against a standard vocabulary → flatten the hierarchy so a query can traverse it. The naming convention corroborat
+           +es it — <code>creating_atc_hierarchy_flat</code> sits alongside your own <code>condHierarchyFlatten</code>, <code>drugExpHierarchyFlatten</code>, <code>measHierarchyFlatt
+           +en</code> and <code>devHierarchyFlatten</code> in LillyOMOP and Emory. Same idea, same vocabulary tables, same hand.</p></div>
+       790 +
+       791 +<div class="say" data-label="Say this"><p>“ATC is a hierarchy, and a hierarchy is hostile to a flat query. I pulled the Athena vocabulary tables — CONCEPT, CONCEPT_RELATI
+           +ONSHIP, CONCEPT_ANCESTOR — filtered to ATC and self-joined the relationship pairs into a flat parent/child table with both sides’ codes, classes and names. That’s the sha
+           +pe a query engine can actually use. An agent asking ‘what else is in this drug class’ needs one join, not a recursive descent it has to be taught.”</p></div>
+       792 +
+       793 +<h3>The polyglot card — new, and it answers a question the brief previously could not</h3>
+       794 +<div class="fact" data-label="Verified in the same directory"><p><code>UKB_phenotype_preclustering.ipynb</code> runs <code>%load_ext rpy2</code>, <code>%%R</code> <em>and
+           +</em> <code>%%bash</code> cells under a single <code>python3</code> kernel. Nine further notebooks in <code>playgrounds/</code> run the native <code>ir</code> (R) kernel.
+           + You work across three languages inside one runtime.</p></div>
+       795 +
+       796 +<div class="say" data-label="If he asks how you work across language boundaries"><p>“Python and R, and often in the same notebook — <code>rpy2</code> magics let me keep a
+           + pandas frame in Python and hand it to an R library for the one thing R does better, without a serialisation round-trip or a second script. Plus shell cells for the file-
+           +staging work. I’d rather cross a language boundary in-process than build a handoff nobody maintains.”</p></div>
+       797 +
+       798 +<p class="onlyhere"><b>Only here</b>A public database acquired <em>with its XSD</em>, loaded, queried, and vocabulary-resolved — plus polyglot Python/R/shell execution in
+           +side one runtime via <code>rpy2</code>.</p>
+       799 +</div></article>
+       800 +
+       801 +<article class="card stop" id="excl" data-k="do not claim primekg apollo junayed laderas exclusions attribution">
+       802 +<div class="card-hd"><div class="pid">⛔</div><div><h3><code>Cool_notebooks/</code> — what must NOT be claimed</h3><p class="sub">389 files, and it is a mixed collection
+           +rather than a body of your work</p></div><span class="tier t-stop">Verified exclusions</span></div>
+       803 +<div class="card-bd">
+       804 +<div class="tw"><table>
+       805 +<thead><tr><th>Path</th><th>Why excluded</th></tr></thead>
+       806 +<tbody>
+       807 +<tr><td><code>clinical_knowledge_graph/</code> <span class="num">(34 files)</span></td><td><b>PrimeKG</b> — <code>github.com/mims-harvard/PrimeKG</code>, the Zitnik lab’s
+           + public dataset. 28 in-file references to PrimeKG, imports from <code>tdc.utils.knowledge_graph</code> (Harvard’s Therapeutics Data Commons). One notebook literally conta
+           +ins the comment <em>“updated PrimeKG: fix path”</em></td></tr>
+       808 +<tr><td><code>clinical_informatics/</code> <span class="num">(153 files)</span></td><td><code>README.md</code> reads <em>“Jupyter Notebooks for Apollo”</em> — a <b>DNAnex
+           +us product/example repo</b> distributed to customers. Company material, not personally attributable</td></tr>
+       809 +<tr><td><code>Junayed/</code> <span class="num">(11 files)</span></td><td>A <b>named colleague’s</b> directory — MONAI tutorials, FSLeyes, MedNIST</td></tr>
+       810 +<tr><td>Loose tutorials</td><td><code>00_Tutorial_working_in_R_notebooks</code>, <code>01_Tutorial_performing_differential_expression</code>, <code>getting_started_with_d
+           +xdata*</code>, <code>cnvkit-quickstart</code>, <code>541-simple-stats_synthetic_laderas</code> — vendor tutorials and teaching material; the <code>laderas</code> files ca
+           +rry another author’s name</td></tr>
+       811 +<tr><td><code>reprompter-mcp</code></td><td>Third-party clone, authored by “Mnehmos”</td></tr>
+       812 +</tbody></table></div>
+       813 +
+       814 +<div class="stop-box" data-label="Rule for the call"><p>If he asks “did you build this”, and the honest answer is “that’s a DNAnexus product notebook I worked alongside”,
+           + <b>say exactly that</b>. You have seventeen verified projects. You do not need an eighteenth badly enough to risk a claim that collapses under one follow-up question.</p
+           +></div>
+       815 +
+       816 +<div class="say" data-label="If knowledge graphs come up"><p>“Not as a builder. I’ve worked with the public biomedical graphs — PrimeKG, UMLS, MONDO — and I run a Neo4j k
+           +nowledge graph in my own infrastructure through Graphiti, which I wrote an MCP server against. What I’ve done at scale is the layer underneath: ontology mapping and cross
+           +-vocabulary reconciliation, which is what determines whether a graph’s edges mean anything.”</p></div>
+       817 +
+       818 +<p>That is true, it is defensible under follow-up, and it is a better answer than a claim that collapses.</p>
+       819 +</div></article>
+       820 +
+       821 +<h3>Archive coverage — what is mined and what is left</h3>
+       822 +<div class="tw"><table>
+       823 +<thead><tr><th>Archive directory</th><th class="num">Files</th><th>Status</th></tr></thead>
+       824 +<tbody>
+       825 +<tr><td><code>Cool_notebooks/</code></td><td class="num">389</td><td>⚠️ Mixed collection. <b>17</b> extracted; four paths <b>rejected</b>; Group F subdirectories unswept
+           +by choice</td></tr>
+       826 +<tr><td><code>DAO_main/</code></td><td class="num">125</td><td>✅ Projects 02, 09</td></tr>
+       827 +<tr><td><code>LillyOMOP/</code></td><td class="num">62</td><td>✅ Project 11</td></tr>
+       828 +<tr><td><code>Emory/</code></td><td class="num">58</td><td>✅ Projects 12, 13, 14</td></tr>
+       829 +<tr><td><code>ACL/</code></td><td class="num">38</td><td>✅ Project 08</td></tr>
+       830 +<tr><td><code>Myriad/</code></td><td class="num">36</td><td>✅ Project 13; VCF/<code>bcftools</code> scripts deliberately unmined</td></tr>
+       831 +<tr><td><code>TCGA_v3/</code></td><td class="num">35</td><td>✅ Project 10</td></tr>
+       832 +<tr><td><code>Sandbox_CMS_work/</code></td><td class="num">15</td><td>✅ Projects 15, 16</td></tr>
+       833 +<tr><td><code>XVG_coding_central/</code></td><td class="num">12</td><td>✅ Project 03</td></tr>
+       834 +</tbody></table></div>
+       835 +
+       836 +<div class="stop-box" data-label="Deliberately left on the table"><p>The Myriad genomics shell pipeline — <code>merge_vcf_bcftools.sh</code>, <code>index_vcf.sh</code>, <
+           +code>get_chr_info_from_vcf.sh</code>. Real bioinformatics tooling, but it argues you are a genomics specialist rather than a data-platform engineer. <b>That is the wrong
+           +frame for this interview.</b> Mention <code>bcftools</code> only if he asks what you did with genomic file formats.</p></div>
+       837 +
+       838 +<!-- ============ PART 1E ============ -->
+       839 +<h2 id="p1e"><span class="part-tag">Part 1E</span>The grouped map — everything, ranked</h2>
+       840 +<p class="sub">Six groups. Within each, ranked by strength for <em>this</em> role. The <b>Only-here</b> column is the point: it is the thing you cannot say from any other
+           + project, so it tells you which card to reach for when a question lands.</p>
+       841 +
+       842 +<h3 id="gA">Group A — Data integration &amp; harmonisation</h3>
+       843 +<p class="sub">Your home ground. If the conversation goes anywhere near “how would you connect these sources”, you are in this group.</p>
+       844 +<div class="tw"><table class="rank">
+       845 +<thead><tr><th>Rank</th><th>Project</th><th>Only-here feature</th></tr></thead>
+       846 +<tbody>
+       847 +<tr><td>A1</td><td><b>15 — CMS CCW codebooks → dictionary</b></td><td><b>Published spec document → machine-readable schema.</b> 5,444 fields, 2,663 codings, from ten Exce
+           +l workbooks. The only project where the input is a <em>human specification</em> rather than data</td></tr>
+       848 +<tr><td>A2</td><td><b>07 — <code>entity.py</code> ingestion library</b></td><td><b>Schema inferred from raw data</b> with a type-distribution confidence profile, date-for
+           +mat detection, Grubbs outlier bounds at both tails, healthcare-code-system detection. 45 columns of profile per column</td></tr>
+       849 +<tr><td>A3</td><td><b>17 — ClinicalTrials.gov / MeSH / ATC</b></td><td><b>Public database acquired with its XSD</b>, loaded, queried, vocabulary-resolved, hierarchy flatt
+           +ened. Plus polyglot Python/R/shell in one runtime</td></tr>
+       850 +<tr><td>A4</td><td><b>12 — fuzzy mapping + curation gate</b></td><td><b>Semantic reconciliation between two vocabularies</b>, with the human decision — including rejectio
+           +ns — persisted as a versioned artifact</td></tr>
+       851 +<tr><td>A5</td><td><b>11 — Lilly OMOP adapter</b></td><td><b>Widening a library’s input contract</b> for a customer, file-path to DataFrame, instead of forking a script.
+           +Plus a documented deprecation</td></tr>
+       852 +<tr><td>A6</td><td><b>02 — OMOP harmonisation / <code>DAO_main</code></b></td><td><b>A standard clinical data model as the target</b>, so N partner schemas converge on on
+           +e queryable shape</td></tr>
+       853 +<tr><td>A7</td><td><b>09 — shared core + per-partner adapters</b></td><td><b>The architectural pattern</b>: one transformation core, thin per-partner adapters, three cons
+           +umers over one library</td></tr>
+       854 +<tr><td>A8</td><td><b>13 — NAACCR → OMOP, CPT4/LOINC/SNOMED</b></td><td><b>Controlled-vocabulary mapping</b> — a registry standard placed into OMOP domains item by item</
+           +td></tr>
+       855 +<tr><td>A9</td><td><b>03 — <code>XVG_coding_central</code> + <code>validate.py</code></b></td><td><b>Reconciliation testing on the data itself</b>: identifiers in versus
+           +out, split updated versus newly-added, so a silent drop surfaces</td></tr>
+       856 +</tbody></table></div>
+       857 +
+       858 +<h3 id="gB">Group B — Governance, access control &amp; regulated data</h3>
+       859 +<p class="sub">This is the half of his problem nobody else interviewing will have touched. Reach here the moment he says “authorization”, “federation” or “compliance”.</p
+           +>
+       860 +<div class="tw"><table class="rank">
+       861 +<thead><tr><th>Rank</th><th>Project</th><th>Only-here feature</th></tr></thead>
+       862 +<tbody>
+       863 +<tr><td>B1</td><td><b>08 — CMS / ACL federal claims</b></td><td><b>Controlled-access regulated PII</b> under a federal data-use agreement. Real compliance weight, not a p
+           +olicy opinion</td></tr>
+       864 +<tr><td>B2</td><td><b>14 — fixed-width parsing + SSN crosswalk</b></td><td><b>Identity resolution as a physical boundary</b>: raw identifiers resolved <em>inside</em> the
+           + controlled environment, only de-identified keys leave. 349,912 beneficiaries, 2014–2020</td></tr>
+       865 +<tr><td>B3</td><td><b>06 — Project Aion permission layers</b></td><td><b>Per-persona tool allowlists plus human-in-the-loop gating</b> on irreversible calls — authorizati
+           +on for <em>agents</em> specifically</td></tr>
+       866 +<tr><td>B4</td><td><b>05 — multi-model gateway</b></td><td><b>API-key scoping and routing across model providers</b> — the caller-identity problem at the inference layer<
+           +/td></tr>
+       867 +</tbody></table></div>
+       868 +
+       869 +<div class="say" data-label="The bridge sentence — the most valuable one in this document"><p>“A data-federation rule isn’t a policy document, it’s a boundary the pipelin
+           +e physically cannot cross. I’ve built that for humans under a federal DUA. Building it for agents is the same boundary with a caller that’s faster, tireless, and will fin
+           +d every gap you left.”</p></div>
+       870 +
+       871 +<h3 id="gC">Group C — Agent &amp; LLM engineering</h3>
+       872 +<p class="sub">Where he tests whether you are current. Depth here is recent; say so plainly rather than implying a decade of it.</p>
+       873 +<div class="tw"><table class="rank">
+       874 +<thead><tr><th>Rank</th><th>Project</th><th>Only-here feature</th></tr></thead>
+       875 +<tbody>
+       876 +<tr><td>C1</td><td><b>04 — Confluence “Concierge” agent</b></td><td><b>Layer-by-layer debugging of a live agent</b> — and the correction that the framework was <code>agno
+           +</code>, with LangGraph and <code>langchain_ollama</code> elsewhere</td></tr>
+       877 +<tr><td>C2</td><td><b>06 — Project Aion</b></td><td><b>Agent infrastructure running unsupervised</b>: 18 MCP servers configured, 3 authored in FastMCP, per-tool allowlist
+           +s, a two-tier role/server RBAC matrix</td></tr>
+       878 +<tr><td>C3</td><td><b>05 — multi-model gateway</b></td><td><b>A routing layer across model providers</b>, with the architecture diagram you can put on screen</td></tr>
+       879 +</tbody></table></div>
+       880 +
+       881 +<div class="say" data-label="Say the honest version"><p>“The agent work is the newest thing I do — two years, not ten. What I bring to it is the decade underneath: the re
+           +ason agent tooling breaks in this domain is data integration, and that part I’ve done at scale.”</p></div>
+       882 +
+       883 +<h3 id="gD">Group D — API, library &amp; tooling craft</h3>
+       884 +<p class="sub">The “are you actually a developer” group. This is what he was probing in Round 1.</p>
+       885 +<div class="tw"><table class="rank">
+       886 +<thead><tr><th>Rank</th><th>Project</th><th>Only-here feature</th></tr></thead>
+       887 +<tbody>
+       888 +<tr><td>D1</td><td><b>01 — <code>variant_finder</code></b></td><td><b>A published API contract</b>: <code>api.pyi</code> type stub, declared <code>__all__</code> of six f
+           +unctions with typed signatures and documented raises, CLI as one consumer of the library</td></tr>
+       889 +<tr><td>D2</td><td><b>16 — xVantage Profiler Dashboard</b></td><td><b>Customer deliverable generalised into a reusable template</b> — the productisation move</td></tr>
+       890 +<tr><td>D3</td><td><b>11 — the vendored-copy audit</b></td><td><b>Auditing your own architecture</b>: 18 copies, 13 versions, 853–2,317 lines, one canonical build byte-id
+           +entical in four places. Self-diagnosis with numbers</td></tr>
+       891 +<tr><td>D4</td><td><b>13/09 — <code>genomic_xml_data_transformation.py</code></b></td><td><b>A typed CLI over the shared core</b>: <code>argparse</code>, <code>NamedTuple
+           +</code> argument struct, <code>xml.etree.ElementTree</code>, recursive <code>parse_levels</code> for hierarchy descent</td></tr>
+       892 +</tbody></table></div>
+       893 +
+       894 +<h3 id="gE">Group E — Scale, platform &amp; operations</h3>
+       895 +<p class="sub">Short group. Do not oversell it; know exactly where your ceiling is.</p>
+       896 +<div class="tw"><table class="rank">
+       897 +<thead><tr><th>Rank</th><th>Project</th><th>Only-here feature</th></tr></thead>
+       898 +<tbody>
+       899 +<tr><td>E1</td><td><b>10 — PySpark cohort querying</b></td><td><b>Distributed query at cohort scale</b>, plus retrieval against the public GDC API</td></tr>
+       900 +<tr><td>E2</td><td><b>07 — chunked ingestion</b></td><td><b>A declared scale threshold</b>: <code>large_data</code>, <code>csv_size_limit_gb=10</code>, <code>chunksize=1_
+           +000_000</code>, and a Parquet write path</td></tr>
+       901 +<tr><td>E3</td><td><b>06 — local Docker stacks</b></td><td><b>Multi-service orchestration you run yourself</b>: a five-service infra tier and a six-service app tier, CI o
+           +n push</td></tr>
+       902 +<tr><td>E4</td><td><b>13/Myriad — platform job orchestration</b></td><td><b>Driving a platform’s API from code</b> — <code>dx</code> CLI against project IDs, vocabulary r
+           +eleases pulled and normalised, <code>ipywidgets</code> dashboards over the result</td></tr>
+       903 +</tbody></table></div>
+       904 +
+       905 +<div class="say" data-label="State the ceiling before he finds it"><p>“I’ve not run Kubernetes in production. I understand the model; I’d be ramping.” Said early and flat
+           +ly, this costs you nothing and buys the rest.</p></div>
+       906 +
+       907 +<h3 id="gF">Group F — Scientific &amp; domain depth</h3>
+       908 +<p class="sub">Deliberately last. This is the frame you are trying to escape — it makes you the biologist in the room.</p>
+       909 +<div class="tw"><table class="rank">
+       910 +<thead><tr><th>Rank</th><th>Project</th><th>Only-here feature</th></tr></thead>
+       911 +<tbody>
+       912 +<tr><td>F1</td><td><b>01 — VCF handling in <code>variant_finder</code></b></td><td>Hand-rolled streaming VCF parse over an SFTP handle — <code>FILTER == PASS</code>, <cod
+           +e>AF=</code> from INFO. <b>Not <code>pysam</code></b></td></tr>
+       913 +<tr><td>F2</td><td><b>Myriad genomics pipeline</b></td><td><code>bcftools</code> merge / index / chromosome-info shell tooling</td></tr>
+       914 +<tr><td>F3</td><td><b><code>single_cell/</code>, <code>sepsis/</code>, <code>transcriptomics/</code></b></td><td>Analysis breadth — <b>and unswept attribution.</b> Do not
+           + volunteer</td></tr>
+       915 +</tbody></table></div>
+       916 +
+       917 +<div class="stop-box" data-label="Rule"><p><b>Never open with Group F.</b> Use it only to answer a direct domain question, then return to Group A. Every minute spent here
+           + re-frames you as a scientist who codes rather than an engineer who knows the science — precisely the misread you are correcting from Round 1.</p></div>
+       918 +
+       919 +<h3 id="reach">The one-page reach table — which group answers which question</h3>
+       920 +<p class="sub">Memorise this, not the cards. Seventeen projects is too many to recall under pressure; six groups and one opener each is not.</p>
+       921 +<div class="tw"><table>
+       922 +<thead><tr><th>If he asks…</th><th>Reach for</th><th>Open with</th></tr></thead>
+       923 +<tbody>
+       924 +<tr><td>“How would you approach the API library?”</td><td><b>A1 → A2</b></td><td>CMS codebooks: spec in, schema out</td></tr>
+       925 +<tr><td>“How do you handle authorization?”</td><td><b>B1 → B2 → B3</b></td><td>Federal DUA, then the physical-boundary sentence</td></tr>
+       926 +<tr><td>“What have you built that’s agent-facing?”</td><td><b>C2 → C1</b></td><td>18 MCP servers, 3 authored; then the RBAC matrix</td></tr>
+       927 +<tr><td>“Are you a developer?”</td><td><b>D1 → D3</b></td><td><code>api.pyi</code>, then audit your own vendored sprawl</td></tr>
+       928 +<tr><td>“How do you deal with scale?”</td><td><b>E1 → E2</b></td><td>PySpark cohorts, then the 10 GB threshold</td></tr>
+       929 +<tr><td>“Two databases disagree — now what?”</td><td><b>A4 → A8</b></td><td>Fuzzy propose, human dispose, decision as data</td></tr>
+       930 +<tr><td>“How do you query a public database?”</td><td><b>A3 → A1</b></td><td>ClinicalTrials.gov with its XSD, then ATC flattening</td></tr>
+       931 +<tr><td>“Do you work in more than one language?”</td><td><b>A3</b></td><td>Python and R in one notebook via <code>rpy2</code>, plus shell</td></tr>
+       932 +<tr><td>“Have you worked with us before?”</td><td><b>11 → 16</b></td><td>The Lilly adapter, then the Lilly-titled profiler</td></tr>
+       933 +<tr><td>Anything genomics-specific</td><td><b>F1, then leave</b></td><td>Answer in two sentences, return to Group A</td></tr>
+       934 +</tbody></table></div>
+       935 +
+       936 +<!-- ============ PART 2 ============ -->
+       937 +<h2 id="p2"><span class="part-tag">Part 2</span>What they actually need, and how you map onto it</h2>
+       938 +<p>From your Round 1 conversation plus the four adjacent postings, the shape is clear:</p>
+       939 +
+       940 +<p class="pull">An API library that lets agents run complex queries across public and proprietary databases, with an authorization layer that enforces data-federation rul
+           +es per caller.</p>
+       941 +
+       942 +<p>The Data Foundry posting states it almost verbatim — <em>“agent-ready APIs with structured error handling, audit trails, and monitoring”</em> and <em>“contribute to MC
+           +P servers exposing Data Foundry capabilities to AI agents.”</em> <b>Use their words.</b></p>
+       943 +
+       944 +<h3>The problem decomposed</h3>
+       945 +<div class="tw"><table>
+       946 +<thead><tr><th>Sub-problem</th><th>What it really is</th><th>Your evidence</th></tr></thead>
+       947 +<tbody>
+       948 +<tr><td><b>1. Heterogeneous sources</b></td><td>Public (NCBI, Ensembl, ChEMBL) plus proprietary (LIMS, ELN, warehouses) behind one query surface</td><td>OMOP harmonisatio
+           +n across 7 partner datasets; shared core with per-partner adapters; GDC and ClinicalTrials.gov programmatic retrieval — <b>same problem, done</b></td></tr>
+       949 +<tr><td><b>2. Machine-readable schema</b></td><td>An agent cannot query what it cannot describe</td><td><code>entity.py</code> — automated schema inference emitting a 16-
+           +column dictionary and a 45-column profile per source. <b>The sleeper strength</b></td></tr>
+       950 +<tr><td><b>3. Agent-callable contracts</b></td><td>Tools an LLM can invoke: typed signature, structured errors, bounded output</td><td>18 MCP servers governed by per-tool
+           + allowlists plus a ~20-file conformance suite; 3 authored FastMCP servers (19 tools); a shipped <code>.pyi</code> public-API stub</td></tr>
+       951 +<tr><td><b>4. Authorization / federation</b></td><td><em>Who</em> may see <em>which</em> rows, enforced per-caller, not per-app</td><td>MCP Assignment Matrix (role→server
+           + RBAC); scoped platform tokens; gateway-mediated token exchange; <b>CMS/ACL upstream PII suppression</b>. Tool-level yes, row-level no — <b>be honest</b></td></tr>
+       952 +<tr><td><b>5. Provenance &amp; audit</b></td><td>Reconstructing what an agent did, on whose authority</td><td>V&amp;V under design control plus HP ALM test generation; da
+           +ted mapping artifacts; count reconciliation; <code>log_progress_event</code> telemetry</td></tr>
+       953 +</tbody></table></div>
+       954 +
+       955 +<h3>The five things to say about the authorization problem</h3>
+       956 +<p class="sub">Prepare these. This is the conversation he most wants to have.</p>
+       957 +<ol class="sentences">
+       958 +<li><b>“Authorization belongs at the data layer, not the prompt layer.”</b> An agent asked nicely not to query a table is not a control. The tool must be <em>unable</em>
+           +to return rows the caller cannot see.</li>
+       959 +<li><b>“Two enforcement points, and they do different jobs.”</b> <em>Tool-level</em> allowlisting decides which capabilities a given agent persona may invoke at all. <em>
+           +Row-level</em> filtering decides what comes back once it does. You need both; either alone leaks.</li>
+       960 +<li><b>“The gateway holds the trust relationship, not the client.”</b> Exactly the APIM pattern from Thermo. The agent presents one scoped credential; the gateway does th
+           +e exchange to whatever the downstream source requires. No agent ever holds a cross-source secret.</li>
+       961 +<li><b>“Identity has to propagate, or federation is theatre.”</b> If the API calls the database as a single service account, every consortium restriction collapses to wha
+           +tever that account can see. The caller’s identity must reach the query — on-behalf-of token exchange, or a per-request security context. <span class="gloss">Then say: “th
+           +e OBO/token-exchange side is where I’d be ramping — I’ve consumed it, I haven’t stood up the IdP.”</span></li>
+       962 +<li><b>“Audit is a design requirement, not logging.”</b> From regulated assay work: what the agent did, why, under whose authority, reconstructable later. Most agent fram
+           +eworks treat it as a <code>logger</code> call. Under design control it is part of the spec.</li>
+       963 +</ol>
+       964 +
+       965 +<h3>The question to ask <em>him</em> — your best move</h3>
+       966 +<div class="say" data-label="Ask this"><p>“When an agent queries a federated dataset — say a consortium agreement that permits aggregate counts but not row-level export —
+           + where do you want that enforced? At the tool definition, in the query layer, or as a post-hoc filter on results?”</p></div>
+       967 +
+       968 +<p>Three effects: it proves you know this is a real architectural fork; it makes him describe their actual design, so you learn the stack; and it positions you as a peer
+           +rather than an applicant.</p>
+       969 +
+       970 +<p><b>Runners-up if there is time:</b></p>
+       971 +<ul>
+       972 +<li>“Do agents authenticate as themselves, or on-behalf-of the requesting user?” — the OBO question, the crux of federation, and most teams have not settled it</li>
+       973 +<li>“Is the API surface MCP-native, or REST with an MCP shim over it?”</li>
+       974 +<li>“What’s the eval story? How do you know a query tool regressed?”</li>
+       975 +</ul>
+       976 +
+       977 +<!-- ============ PART 3 ============ -->
+       978 +<h2 id="p3"><span class="part-tag">Part 3</span>Round-2 questions he will probably ask</h2>
+       979 +
+       980 +<div class="qa"><p class="q">“Have you built a REST API, or only consumed them?”</p><p class="a">“Consumed extensively, across DNAnexus’s platform API, Confluence, and th
+           +ree LLM providers behind an APIM gateway. Built: FastAPI services in my own work — a task-management API with a Postgres backend, plus MCP servers that are effectively ty
+           +ped RPC surfaces. What I haven’t done is own a public multi-tenant API with external SLAs, and I’d rather say that than have you find it.”</p></div>
+       981 +
+       982 +<div class="qa"><p class="q">“What does your testing look like?”</p><p class="a">“pytest, with the split that matters in data work: unit tests on the transform logic, and
+           + reconciliation checks on the data itself — unique identifiers in versus out, split between updated and newly-added, so a silent drop surfaces. In the regulated work, tes
+           +t evidence was a deliverable traced back to a requirement, generated into HP ALM.”</p></div>
+       983 +
+       984 +<div class="qa"><p class="q">“How do you handle a failing tool call in an agent loop?”</p><p class="a">“Classify before retrying. A 401 doesn’t get retried — it’s a scope
+           + problem and retrying just burns tokens. A 429 or a 5xx gets exponential backoff. A schema mismatch gets returned to the model as a <em>structured</em> error so it can co
+           +rrect, rather than a stack trace it will hallucinate around. And retry budgets are bounded, because an agent in a retry loop is an outage that bills.”</p></div>
+       985 +
+       986 +<div class="qa"><p class="q">“What’s your Docker and CI experience?”</p><p class="a">“Docker Compose for multi-service stacks — I run a five-service infra tier and a six-
+           +service app tier locally: Postgres, Qdrant, Neo4j, Redis, plus API and dashboard containers. CI in GitHub Actions on push. I’ve not run Kubernetes in production; I unders
+           +tand the model, I’d be ramping.”</p></div>
+       987 +
+       988 +<div class="qa"><p class="q">“How do you keep an agent from doing something destructive?”</p><p class="a">“Three layers. Allowlist the tools per persona so it can’t call
+           +what it shouldn’t. Gate the irreversible calls behind human confirmation — I run a human-in-the-loop MCP server for exactly that. And make the destructive operations <em>
+           +hard to express</em>: a tool that can only append is safer than a tool that can delete but is asked not to.”</p></div>
+       989 +
+       990 +<div class="qa"><p class="q">“Do you work in more than one language?”</p><p class="a">“Python primarily, R alongside it — often in the same notebook through <code>rpy2</c
+           +ode> magics, so a pandas frame can be handed to an R library without a serialisation round-trip. Bash for the orchestration and file-staging layer. TypeScript on the fron
+           +t end of my own dashboard work.”</p></div>
+       991 +
+       992 +<div class="qa"><p class="q">“How current are you? What are you reading?”</p><p class="a">Have one honest answer ready — MCP spec changes, agent-eval work, whatever you a
+           +ctually read. <b>Vagueness here reads worse than an unfashionable answer.</b></p></div>
+       993 +
+       994 +<!-- ============ PART 4 ============ -->
+       995 +<h2 id="p4"><span class="part-tag">Part 4</span>Before the call</h2>
+       996 +
+       997 +<ul class="check">
+       998 +<li class="done"><span class="box">☑</span><span class="txt"><b>Fill every <code>[CONFIRM]</code></b> — done 2026-08-25, verified against the archives. Every library, fla
+           +g, endpoint and count in this document was read out of a source file.</span></li>
+       999 +<li class="done"><span class="box">☑</span><span class="txt"><b>Resolve the Project 17 attribution</b> — done 2026-08-25. The ATC hierarchy flattener is confirmed yours;
+           +it now sits at <b>A3</b>. The polyglot <code>rpy2</code> evidence was found in the same directory.</span></li>
+      1000 +<li><span class="box">☐</span><span class="txt"><b>Have the architecture diagram open</b> — <code>multi_modal_manager_cannon.drawio.png</code>. “I designed the routing la
+           +yer for multi-model access” lands differently with the diagram on screen.</span></li>
+      1001 +<li><span class="box">☐</span><span class="txt"><b>Rehearse the four decoder sentences out loud</b> until they are reflexive. Not the content — the <em>speed</em>. The te
+           +ll he is reading is hesitation, not accuracy.</span></li>
+      1002 +<li><span class="box">☐</span><span class="txt"><b>Open a terminal in Project Aion.</b> If he asks what you are building, <code>docker compose ps</code> and a dashboard t
+           +ab are worth ten minutes of description.</span></li>
+      1003 +<li><span class="box">☐</span><span class="txt"><b>Lead with Lilly.</b> Your DNAnexus work includes <code>LillyOMOP</code> and <code>DAO_main/Lilly_UKB</code>. You have a
+           +lready delivered data harmonisation for them. First five minutes.</span></li>
+      1004 +<li><span class="box">☐</span><span class="txt"><b>Open <code>Generic_HDPM_notebook.ipynb</code></b> to the title cell — it reads <em>“Eli Lilly Preliminary Data Profile.
+           +”</em> Say “we”, not “I”: it names the xVantage team.</span></li>
+      1005 +<li><span class="box">☐</span><span class="txt"><b>Memorise the reach table</b>, not the cards. Six groups and one opener each.</span></li>
+      1006 +<li><span class="box">☐</span><span class="txt"><b>One sentence on why you left Thermo and DNAnexus.</b> Factual, forward-looking, no editorialising.</span></li>
+      1007 +</ul>
+      1017 +Assembled 2026-08-25; three archive verification sweeps completed the same day; Project 17 attribution resolved by the candidate 2026-08-25. Companion to <code>Lilly_Inte
+           +rview_Brief.md</code> (behavioural answers) and <code>Lilly_Interview_Prep.md</code> (evidence anchors).<br><br>
+      1018 +Sources read: <code>~/Documents/DNAnexusExit</code> (972 files), <code>~/Documents/ThermoDownloadFolder</code> (including four APIM OpenAPI specs), <code>~/Claude/Project
+           +s/ThermoThings</code>, and the live <code>Project_Aion</code> repository. Every library name, CLI flag, endpoint URL, rate limit, line count and tool count above was read
+           + from a source file — none is inferred or remembered. Five attributions were checked and <b>rejected</b>: <code>clinical_knowledge_graph/</code> (PrimeKG, Zitnik lab), <c
+           +ode>clinical_informatics/</code> (DNAnexus Apollo repo), <code>Junayed/</code>, the loose vendor tutorials, and <code>reprompter-mcp</code> (Mnehmos).
+      1019 +</p>
+      1020 +
+      1021  </main>
+      1022  </div>
+      1023
+  ⎿  Async hook PostToolUse completed
 
-∴ I'm seeing that the resume overflowed to a third page, so I need to trim it down. Looking at what changed—I added the CAP/CLIA clause, a reporting bullet point, and split Penn State into
-  two bullets. The Thermo section got longer, and while I kept five DNAnexus bullets, I consolidated the CMS information into the population bullet and added a new reporting bullet on top.
-  I should estimate the overflow rather than rendering to check the exact amount.
+∴ I need to update the markdown source with the Project 17 confirmation, polyglot card, reach table rows, and checklist changes, but I should publish the artifact first since that's the
+  actual deliverable requested, then go back and patch the .md file with those four edits.
 
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import sys
-      try:
-          import pypdf
-      except ImportError:
+⏺ Artifact(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Brief.html)
+  ⎿  Published ⧉ https://claude.ai/code/artifact/d61ac861-0dc0-43db-9a0a-de4116afdd92
+  ⎿  Async hook PostToolUse completed
 
-⏺ Two lines spilled onto page 3. Trimming three low-value clauses to reclaim them.
+⏺ Now the source markdown, so the two do not diverge.
 
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Technical_Translation.md)
   ⎿  Added 1 line, removed 1 line
-      311            interpretation</strong>, with a PASS/AF/hotspot-ID triple <strong>data-quality gate</strong>,
-      312            auditable control-sample filtering, and a 100-test pytest suite under <strong>GitHub
-      313            Actions CI</strong>, to FDA-submission validation and audit standards in a
-      314 -          <strong>CAP/CLIA</strong>-governed environment.</li>
-      315          <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
-      316            retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
-      317            Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
+      779  ---
+      780
+      781  ## Project 17 — Public-database ingestion: ClinicalTrials.gov, MeSH, ATC
+      782 -### ⚠️ **ATTRIBUTION UNVERIFIED — confirm before you use it. If it is yours, it is a top-three card.**
+      782 +### ⭐ **ATTRIBUTION RESOLVED 2026-08-25 — the ATC flattener is confirmed yours. Group A rank 3.**
+      783
+      784  `Cool_notebooks/playgrounds/`. Three notebooks that together describe the *exact* job:
+      785
+  ⎿  Async hook PostToolUse completed
 
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
-  ⎿  Added 2 lines, removed 2 lines
-      346            free-text fields to coded concepts (<strong>OMOP CDM</strong>; SNOMED-CT ↔ ICD-10-CM,
-      347            LOINC, RxNorm; CDISC SDTM/ADaM); shipped the <strong>Clinical Knowledge Graph</strong>
-      348            (extending Harvard's PrimeKG), unifying <strong>20+ biomedical ontologies</strong> via
-      349 -          multi-tier entity resolution (exact → BioBERT cosine ≥ 0.98 → Levenshtein → human review)
-      350 -          over <strong>NCBI, UniProt, and Ensembl REST</strong> sources.</li>
-      349 +          multi-tier entity resolution over <strong>NCBI, UniProt, and Ensembl REST</strong>
-      350 +          sources.</li>
-      351          <li><strong>Scaled population sequencing and statistical genetics</strong> — profiled and
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Technical_Translation.md)
+  ⎿  Error: String to replace not found in file.
+     String: **Evidence it might not be:** `playgrounds/` sits inside `Cool_notebooks/`, which is a mixed
+     collection, and this directory has no authorship marker.
 
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
-  ⎿  Added 1 line, removed 2 lines
-      357          <li><strong>Delivered reproducible analyses and interactive reporting</strong> — <strong>R
-      358            Markdown</strong> and <strong>Jupyter</strong> deliverables with <strong>ggplot2/tidyverse,
-      359            Plotly, matplotlib, and seaborn</strong> figures; built <strong>R Shiny and
-      360 -          Dash/Plotly</strong> interfaces for exploring high-dimensional genomic and clinical
-      361 -          cohorts.</li>
-      360 +          Dash/Plotly</strong> interfaces over high-dimensional genomic and clinical cohorts.</li>
-      361        </ul>
-      362      </div>
-  ⎿  CAP True
-     KG True
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+     > **Action: answer this yourself before the call.** Did you write the ATC hierarchy flattener? If yes, promote
+     > it into Group A below at rank 3. If you are unsure, describe the *capability* ("I've flattened ATC
+     > and OMOP hierarchies out of the Athena vocabulary tables") only if that is independently true of
+     > your own hierarchy work — which, per LillyOMOP and Emory, it is.
+     (note: Edit also tried swapping \uXXXX escapes and their characters; neither form matched, so the mismatch is likely elsewhere in old_string. Re-read the file and copy the exact
+     surrounding text.)
+  ⎿  Async hook PostToolUse completed
 
-⏺ Now verifying the page break visually.
+∴ I want to check the exact wording about those two notebook files, so I should pull up the earlier lines directly rather than paraphrasing from memory.
 
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && S=/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad
-      && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf,sys
-  ⎿  --- END OF PAGE 1 ---
-      Azure, DNAnexus
-     (Spark/Hive)
-     Containers & CI/CD: Docker,
-     Git, GitHub Actions
-     RESTful APIs: GA4GH-
-     aligned JSON/REST —
-     Ensembl VEP, NCBI E-
-     utilities, UniProt, AWS
-     HealthOmics
-     Python (pandas, NumPy,
-     scikit-learn, Flask) · R
-     (tidyverse, Bioconductor,
-     Shiny) · SQL · PySpark
-     Reporting & Visualization: R
-     Markdown, Jupyter,
-     --- START OF PAGE 2 ---
-     Scaled population sequencing and statistical genetics — proﬁled and ingested UK
-     Biobank / INTERVAL (tens of thousands of whole genomes, 242-metabolite NMR
-     panels, decades of longitudinal phenotype); partitioned GWAS by (phenotype,
-     chrom, bin) with DeepWAS deep-learning association; reconciled 349,912
-     CMS/HHS beneﬁciari
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Technical_Translation.md)
+  ⎿  Added 29 lines, removed 4 lines
+      811  **Evidence it might not be:** `playgrounds/` sits inside `Cool_notebooks/`, which is a mixed
+      812  collection, and this directory has no authorship marker.
+      813
+      814 -> **Action: answer this yourself before the call.** Did you write the ATC flattener? If yes, promote
+      815 -> it into Group A below at rank 3. If you are unsure, describe the *capability* ("I've flattened ATC
+      816 -> and OMOP hierarchies out of the Athena vocabulary tables") only if that is independently true of
+      817 -> your own hierarchy work — which, per LillyOMOP and Emory, it is.
+      814 +> **RESOLVED 2026-08-25** by the candidate directly: he wrote `creating_atc_hierarchy_flat.ipynb`.
+      815 +> Promoted to **Group A rank 3**.
+      816
+      817 +**Say this:**
+  ⎿  Added 7 lines, removed 7 lines
+      875  |---|---|---|
+      876  | **A1** | **15 — CMS CCW codebooks → dictionary** | **Published spec document → machine-readable schema.** 5,444 fields, 2,663 codings, from ten Excel workbooks. The only
+            project where the input is a *human specification* rather than data |
+      877  | **A2** | **7 — `entity.py` ingestion library** | **Schema inferred from raw data** with a type-distribution confidence profile, date-format detection, Grubbs outlier bou
+           nds at both tails, and healthcare-code-system detection. 45 columns of profile per column |
+      878 -| **A3** | **12 — fuzzy mapping + curation gate** | **Semantic reconciliation between two vocabularies**, with the human decision — including rejections — persisted as a v
+          -ersioned artifact |
+      879 -| **A4** | **11 — Lilly OMOP adapter** | **Widening a library's input contract** for a customer (file-path → DataFrame) instead of forking a script. Plus a documented depr
+          -ecation |
+      880 -| **A5** | **2 — OMOP harmonization / `DAO_main`** | **A standard clinical data model as the target**, so N partner schemas converge on one queryable shape |
+      881 -| **A6** | **9 — shared core + per-partner adapters** | **The architectural pattern**: one transformation core, thin per-partner adapters, three consumers over one library
+          - |
+      882 -| **A7** | **13 — NAACCR → OMOP, CPT4/LOINC/SNOMED** | **Controlled-vocabulary mapping** — a registry standard placed into OMOP domains item by item |
+      883 -| **A8** | **3 — `XVG_coding_central` + `validate.py`** | **Reconciliation testing on the data itself**: identifiers in vs. out, split updated vs. newly-added, so a silent
+          - drop surfaces |
+      887
+  ⎿  Async hook PostToolUse completed
 
-∴ I'm noticing the sidebar skills list is overflowing onto page 2 because my items are longer and wrap more than the original did, even
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Technical_Translation.md)
+  ⎿  Added 3 lines, removed 1 line
+      968  | "What have you built that's agent-facing?" | C2 → C1 | 18 MCP servers, 3 authored; then the RBAC matrix |
+      969  | "Are you a developer?" | D1 → D3 | `api.pyi`, then audit your own vendored sprawl |
+      970  | "How do you deal with scale?" | E1 → E2 | PySpark cohorts, then the 10 GB threshold |
+      971 -| "Two databases disagree — now what?" | A3 → A7 | Fuzzy propose, human dispose, decision as data |
+      971 +| "Two databases disagree — now what?" | A4 → A8 | Fuzzy propose, human dispose, decision as data |
+      972 +| "How do you query a public database?" | A3 → A1 | ClinicalTrials.gov with its XSD, then ATC flattening |
+      973 +| "Do you work in more than one language?" | A3 | Python and R in one notebook via `rpy2`, plus shell |
+      974  | "Have you worked with us before?" | 11 → 16 | The Lilly adapter, then the Lilly-titled profiler |
+      975  | Anything genomics-specific | F1, then **leave** | Answer in two sentences, return to Group A |
+      976
+  ⎿  Async hook PostToolUse completed
 
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('Cannon_CV_MLDiagnostics.pdf')
-      print('P1 END:',repr(r.pages[0].extract_text()[-200:]))
-      print('P2 START:',repr(r.pages[1].extract_text()[:200]))")
-  ⎿  P1 END: '/LangGraph,\nRAG, BioBERT/ClinicalBERT\nClinical & Real-World Data:\nOMOP CDM, CDISC\nSDTM/ADaM, FHIR;\nontology harmonization\nCloud & Pipelines:\nDNAnexus
-∴ The original layout also had sidebar items spilling onto page 2, so that's the expected behavior — but mine is breaking mid-item rather than between items, which is worse. I need to check
-  where the sidebar content actually starts on page 2.
+⏺ Update(/Users/nathanielcannon/Public/Drop Box/Lilly_Round2_Technical_Translation.md)
+  ⎿  Added 4 lines, removed 3 lines
+      1088        a dashboard tab are worth ten minutes of description.
+      1089  - [ ] **Lead with Lilly.** Your DNAnexus work includes `LillyOMOP` and `DAO_main/Lilly_UKB`. You
+      1090        have already delivered data harmonization for them. First five minutes.
+      1091 -- [ ] **Resolve the Project 17 attribution.** Did you write the ATC hierarchy flattener and the
+      1092 -      ClinicalTrials.gov ingestion in `Cool_notebooks/playgrounds/`? If yes it becomes a top-three
+      1093 -      card; if unsure, it stays out. Decide before the call, not during it.
+      1091 +- [x] ~~Resolve the Project 17 attribution~~ — **done 2026-08-25.** The ATC hierarchy flattener is
+      1092 +      confirmed yours; it now sits at **A3**. The polyglot `rpy2` evidence was found in the same
+      1093 +      directory and is a new card. The ClinicalTrials.gov downloader stays out on value, not
+      1094 +      attribution.
+      1095  - [ ] **Open `Generic_HDPM_notebook.ipynb`** to the title cell — it reads *"Eli Lilly Preliminary
+      1096        Data Profile."* Say "we," not "I": it names the xVantage team.
+      1097  - [ ] **Memorize the Part 1E reach table**, not the cards. Fourteen projects is too many to recall
+  ⎿  Async hook PostToolUse completed
 
-⏺ The original also carried the sidebar onto page 2, so that's by design — but mine split mid-item. Adding a break guard so items stay whole.
+∴ Updating the scratchpad's open items before I report back.
 
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.html)
-  ⎿  Added 1 line
-      130      margin: 0 0 0.05in 0;
-      131      line-height: 1.28;
-      132      font-size: 8.7pt;
-      133 +    break-inside: avoid;
-      134    }
-      135    aside ul.skills li strong { font-weight: 700; color: var(--sidebar-text); }
-      136
+⏺ Update(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.protos.md)
+  ⎿  Added 16 lines, removed 6 lines
+       82  - Loose tutorials: `00_Tutorial_*`, `01_Tutorial_*`, `getting_started_with_dxdata*`,
+       83    `cnvkit-quickstart`, `541-simple-stats_synthetic_laderas` (another author's name)
+       84
+       85 -## OPEN ITEMS
+       86 -1. **Project 17 attribution — needs the user, not the archive.** Did he write
+       87 -   `Cool_notebooks/playgrounds/creating_atc_hierarchy_flat.ipynb` and
+       88 -   `clinicaltrials_govdata_download.ipynb`? Circumstantial support: the `*HierarchyFlatten` naming
+       89 -   convention matches his own LillyOMOP/Emory files. If yes → promote to **Group A rank 3**. If
+       90 -   unsure → stays out. Standing rule: unverified stays unclaimed.
+       85 +## DELIVERABLES (two, kept in sync — edit BOTH)
+       86 +- `~/Public/Drop Box/Lilly_Round2_Technical_Translation.md` — canonical source, ~1,120 lines
+       87 +- `~/Public/Drop Box/Lilly_Round2_Brief.html` — formatted browser artifact, published
+       88 +  2026-08-25 at https://claude.ai/code/artifact/d61ac861-0dc0-43db-9a0a-de4116afdd92
+       89 +  Republish by calling Artifact on the same file path (keeps the URL); from a new session pass
+       90 +  that URL as `url` or a new one is minted.
+       91 +
+       92 +## CLOSED 2026-08-25
+       93 +1. ~~Project 17 attribution~~ — **CONFIRMED by the user: he wrote
+       94 +   `creating_atc_hierarchy_flat.ipynb`.** Promoted to **Group A rank 3**. New **polyglot card**
+       95 +   added: `UKB_phenotype_preclustering.ipynb` runs `%load_ext rpy2` + `%%R` + `%%bash` under a
+       96 +   `python3` kernel.
+       97 +   ⚠️ **STANDING CORRECTION — kernel metadata is NOT attribution evidence.** The user writes R,
+       98 +   and uses `%%R` magics, so a `python3` kernel may hold R and an `ir` kernel is no evidence
+       99 +   against him. Any argument resting on the kernel field is void. `clinicaltrials_govdata_download.ipynb`
+      100 +   is therefore **unresolved, not excluded** — kept out on value (6-cell tutorial), not authorship.
+      101  2. **Group F sweep not done** — `single_cell/` 27, `clin/` 27, `sepsis/` 8, `metagenomes/` 8,
+      102     `transcriptomics/` 7 (~50 files, same attribution ambiguity). Offered and *declined by default*:
+      103     it argues "biologist who codes," the exact Round-1 misread. Sweep only if he asks.
+  ⎿  Async hook PostToolUse completed
 
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
-      --print-to-pdf="Cannon_BioinfoGenomic_ML.pdf" "file://$PWD/Cannon_BioinfoGenomic_ML.html" 2>/dev/null;
-      S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad";
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf,re
-      r=pypdf.PdfReader('Cannon_BioinfoGenomic_ML.pdf')
-      print('PAGES:',len(r.pages))
-      print('P1 END:',repr(r.pages[0].extract_text()[-160:]))
-      print('P2:',repr(r.pages[1].extract_text()[:160]))"
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import fitz,sys
-      d=fitz.open('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf')
-      S='$S'
-      for i,p in enumerate(d): p.get_pixmap(dpi=100).save(f'{S}/cv_p{i+1}.png')
-      print('rendered',len(d))" 2>&1 | tail -2)
-  ⎿  PAGES: 2
-     ModuleNotFoundError: No module named 'fitz'
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+⏺ Done, Master Wayne.
 
-⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad"; cd "/Users/nathanielcannon/Public/Drop Box/Curricula/"
-      && /usr/bin/python3 -c "
-      import Quartz, CoreFoundation
-      url=CoreFoundation.CFURLCreateFromFileSystemRepresentation(None, b'Cannon_BioinfoGenomic_ML.pdf', len(b'Cannon_BioinfoGenomic_ML.pdf'), False)
-      doc=Quartz.CGPDFDocumentCreateWithURL(url)
-      n=Quartz.CGPDFDocumentGetNumberOfPages(doc)
-          ctx=Quartz.CGBitmapContextCreate(None,w,h,8,0,cs,Quartz.kCGImageAlphaPremultipliedFirst)
-          Quartz.CGContextSetRGBFillColor(ctx,1,1,1,1)
-          Quartz.CGContextFillRect(ctx,Quartz.CGRectMake(0,0,w,h))
-          Quartz.CGContextScaleCTM(ctx,sc,sc)
-          Quartz.CGContextDrawPDFPage(ctx,pg)
-          out='$S/cv_p%d.png'%i
-          u=CoreFoundation.CFURLCreateFromFileSystemRepresentation(None,out.encode(),len(out.encode()),False)
-          dst=Quartz.CGImageDestinationCreateWithURL(u,'public.png',1,None)
-          Quartz.CGImageDestinationAddImage(dst,img,None); Quartz.CGImageDestinationFinalize(dst)
-          print('wrote',out)")
-  ⎿  Error: Exit code 1
-     Traceback (most recent call last):
-       File "<string>", line 2, in <module>
-     ModuleNotFoundError: No module named 'Quartz'
+  Artifact: ⧉ https://claude.ai/code/artifact/d61ac861-0dc0-43db-9a0a-de4116afdd92
 
-⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad"; cd "$S" && /usr/bin/qlmanage -t -s 1400 -o "$S"
-      "/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf" 2>&1 | tail -2; ls "$S")
-  ⎿  * /Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf produced one thumbnail
-     Done producing thumbnails
-     Cannon_BioinfoGenomic_ML.pdf.png
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
+  ★ Insight ─────────────────────────────────────
+  The colour system encodes the document's real duality rather than decorating it. Teal is what is true — measured facts, line counts, MD5s. Ochre is what you say aloud — every quoted line,
+  in your voice. Oxide is do not claim. Once you have read three cards, you stop reading the labels and start reading the left edge of the block, which is the point: under interview
+  pressure you need to know in a quarter-second whether you are looking at evidence or at script.
 
-⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad";
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf')
-      for i,p in enumerate(r.pages):
-          w=pypdf.PdfWriter(); w.add_page(p); w.write('$S/p%d.pdf'%(i+1))
-      print('ok')" && /usr/bin/qlmanage -t -s 1400 -o "$S" "$S/p1.pdf" "$S/p2.pdf" >/dev/null 2>&1; ls "$S")
-  ⎿  ok
-     Cannon_BioinfoGenomic_ML.pdf.png
-     p1.pdf
-     p1.pdf.png
-     p2.pdf
-     p2.pdf.png
+  The eight-slot table is the memory device, not the design. Every one of the seventeen cards renders in the identical shape — Problem, Interface, Language, Libraries, Data stores, External
+  APIs, Auth, Deploy. That is why the repeated layout you asked for matters here specifically: when he asks "what platform", your eye already knows the answer sits in row three. The
+  uniformity is doing recall work that prose cannot.
 
-⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/p1.pdf.png)
-  ⎿  Read image (491.5KB)
-
-⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/p2.pdf.png)
-  ⎿  Read image (312.2KB)
-
-⏺ ★ Insight ─────────────────────────────────────
-  - The layout survives multi-page printing because of one trick in the CSS: .sidebar-bg is position: fixed with height: 100vh, so the teal band repaints on every printed sheet while the
-  actual <aside> content flows normally in the grid. Chrome's print engine treats fixed elements as per-page decoration — that's what keeps page 2 from having a white left gutter.
-  - The 3→2 page fix wasn't a font or margin change: break-inside: avoid on aside ul.skills li forces the pagination algorithm to move a whole skill item rather than orphan its first line.
-  Combined with ~4 lines of prose trimming, the main column's last bullet came back up onto page 1.
-  - pypdf's page count is the reliable check here — grepping the raw PDF for /Type /Page over-counts by one because /Type /Pages (the page-tree root) contains it as a substring.
+  Structural devices were kept honest. The project numbers are real identifiers you can cite; the A1–F3 ranks are a real taxonomy; the numbered sentence lists are genuinely ordered because
+  they are memorisation sequences. Nothing is numbered merely to look organised — decorative sequence markers would have trained you to trust an order that carries no information.
   ─────────────────────────────────────────────────
 
-  All three formats are updated in place at /Users/nathanielcannon/Public/Drop Box/Curricula/:
+  Three things it does that the markdown could not:
 
-  ┌───────────────────────────────┬─────────────────────────────────────────────────────────────┐
-  │             File              │                            Notes                            │
-  ├───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-  │ Cannon_BioinfoGenomic_ML.md   │ source of record                                            │
-  ├───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-  │ Cannon_BioinfoGenomic_ML.html │ CSS identical to the prior version + one break guard        │
-  ├───────────────────────────────┼─────────────────────────────────────────────────────────────┤
-  │ Cannon_BioinfoGenomic_ML.pdf  │ 2 pages, rendered headless Chrome, letter, no header/footer │
-  impact & disease association (Ensembl VEP, ClinVar/COSMIC/gnomAD, HGVS, ACMG, GWAS/QTL), samtools/bedtools, Nextflow (preferred), AWS + AWS CDK + HealthOmics, Docker, GitHub Actions,
-  GA4GH-aligned REST (VEP/NCBI/UniProt/HealthOmics), and the full reporting/viz row (R Markdown, Jupyter, Dash/Plotly, ggplot2/tidyverse, matplotlib, seaborn).
+  ┌────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  ├────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Filter                 │ Type into the rail — rpy2, LOINC, 349912, api.pyi — and only matching cards remain. Seventeen cards is past the point where scrolling is a search strategy. │
+  ├────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Recall mode            │ One button collapses every card to its title and tier badge. That is the rehearsal view: can you produce the eight slots before you reveal them?            │
+  ├────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Both themes, and print │ Light and dark are separately tuned, not inverted. Printing drops the rail and avoids breaking cards across pages, if you want it on paper beside you.      │
+  └────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
 
-  In the body, the ML/statistics framing was replaced with a sequencing-lifecycle framing: the Thermo bullet now leads with QC gating and hotspot detection in a CAP/CLIA laboratory under
-  GitHub Actions CI; the DNAnexus section gained a dedicated functional-impact/disease-association bullet and a dedicated reproducible reporting bullet; Penn State is now explicitly
-  "chromosome-level de novo assembly from multi-platform sequencing" plus QTL/GWAS genotype→phenotype.
+  Project 17 is in at A3, with the ATC flattening line written for you and the drug-class join framed as the thing a query engine can actually use.
 
-  Two points worth your judgment before you send it:
+  Your R remark produced a second card and one standing correction. The polyglot answer is new — Python and R in one runtime through rpy2, shell alongside — and it now has its own row in
+  the reach table, because "do you work in more than one language?" is a question the brief previously had no answer to. The correction is recorded in both files: kernel metadata is not
+  attribution evidence, in either direction. clinicaltrials_govdata_download.ipynb reverts to unresolved and stays out on value alone — six cells that download a zip file, which licenses
+  nothing you cannot say better from A3.
 
-  1. DRAGEN, minimap2, DeepVariant, GATK, and AWS CDK appear in the skills sidebar but are not evidenced by any bullet — they came from your instruction list rather than from the prior CV's
-  content. Every other sidebar entry is backed by a specific accomplishment. If any of those are aspirational rather than hands-on, say which and I'll demote or drop them.
-  2. "VEP-style annotation against ClinVar/COSMIC/gnomAD" is the phrasing I used for the DNAnexus work, since the prior CV documented ClinVar/COSMIC variant interpretation but never named
-  VEP itself. If you did run VEP there, I'll tighten it to a direct claim.
+  Both files are in sync. The markdown remains canonical; the HTML is generated from it, and I have noted in the scratchpad that they must be edited together.
 
-  Very good. Right away, Master Nathaniel.
+  The next thing that will want attention is the rehearsal itself. The document is now large enough that its value is entirely in Part 0 and the reach table — the other 1,100 lines exist to
+  make those two trustworthy, not to be read on the day.
 
-✻ Churned for 5m 6s
+  Very good.
 
-❯ Oh, can you revert changes to the original group of files '/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoGenomic_ML.pdf' and rewrite this all as a new set of files
-  called '/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf'?
-  Then change the phrase "VEP-style annotation against ClinVar/COSMIC/gnomAD" to just "annotation ClinVar/COSMIC/gnomAD", and that was Thermo Fisher, not DNAnexus
+✻ Cogitated for 10m 14s
 
-∴ I need to reorganize some CV files—restoring the original bioinformatics ML document, creating a new solutions document, and moving the annotation work bullet point to reflect that it was
-  actually done at Thermo Fisher rather than where it's currently listed.
+❯ Watcher here. Context is heavy and a refresh is imminent — please save any in-progress working details to .claude/context/.scratchpad.protos.md (update it, don't append blindly; it is
+  your resume doc), then stop. No need to reply at length.
+  ⎿  Async hook PostToolUse completed
 
-  "annotation." Since Thermo Fisher already has three bullets and the first one is quite long, I'm deciding whether to extend it or create a separate bullet to keep the page length
-  manageable.
+∴ I need to update the scratchpad doc with accurate resume info — refreshing the header, work-completed section, open items 2 and 3, and adding method notes about the artifact build
+  details. Let me make these targeted edits now.
 
-  I'm settling on adding a distinct second bullet for Thermo Fisher that focuses on functional impact and disease association, which lets me trim the DNAnexus bullet accordingly. The new
-  bullet will describe how variants are mapped to consequences, transcripts, and clinical significance through annotation against ClinVar, COSMIC, and gnomAD, with HGVS nomenclature and
-  ACMG/AMP-aligned tiering feeding into clinical reports. I'm being careful to preserve the user's exact phrasing while making it grammatically sound—"
+⏺ Read(/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.protos.md · lines 14-73)
+  ⎿  Read 60 lines
+  ⎿  Async hook UserPromptSubmit completed
 
-⏺ Original restored byte-identical, and the sources are now Cannon_BioinfoSolutions.{md,html}. Now relocating the annotation work to Thermo Fisher.
-
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.html)
-  ⎿  Added 4 lines
-      313            auditable control-sample filtering, and a 100-test pytest suite under <strong>GitHub
-      314            Actions CI</strong>, to FDA-submission validation and audit standards in a
-      315            <strong>CAP/CLIA</strong> laboratory.</li>
-      316 +        <li><strong>Annotated variants for functional impact and disease association</strong> —
-      317 +          mapped SNVs/indels to consequence, transcript, and clinical significance via
-      318 +          <strong>ClinVar/COSMIC/gnomAD annotation</strong>, with HGVS nomenclature and ACMG-aligned
-      319 +          tiering feeding clinical interpretation and reporting.</li>
-      320          <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
-      321            retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
-      322            Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
-
-      348          <li><strong>Harmonized unstructured clinical data into standardized models</strong> — mapped
-      349            free-text fields to coded concepts (<strong>OMOP CDM</strong>; SNOMED-CT ↔ ICD-10-CM,
-      350            LOINC, RxNorm; CDISC SDTM/ADaM); shipped the <strong>Clinical Knowledge Graph</strong>
-
-⏺ Now the same two changes in the markdown, plus re-render.
-
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.md)
-  ⎿  Added 3 lines
-      52    detection and VAF/allele-fraction interpretation**, with a PASS/AF/hotspot-ID triple
-      53    **data-quality gate**, auditable control-sample filtering, and a 100-test pytest suite under
-      58  - **Built RESTful and RAG-based services for trusted variant and evidence retrieval** — an Oncomine
-      59    scientific-evidence concierge and a division-wide Confluence assistant over JSON/REST interfaces;
-      60    engineered multi-agent orchestration (adversarial review + test-driven assembly) for validated
-
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.md)
-      71    with per-file reconciliation (zero silent drops) and automated `geno_db_stats` QC; delivered
-      72    **Natera Renasight** kidney-genetics and **Emory Winship** (NCI-designated) somatic/germline
-      73    cohorts as annotated, queryable allele/genotype tables.
-      74 -- **Annotated variants for functional impact and disease association** — mapped SNVs/indels/CNAs to
-      75 -  consequence, transcript, and clinical significance via **VEP-style annotation against
-      76 -  ClinVar/COSMIC/gnomAD**; ran multi-tumor **TCGA** analyses (`maftools` oncoplots,
-      77 -  somatic-interaction testing, Ti/Tv, survival analysis) and DESeq2 differential expression with
-      78 -  tumor-type stratification; fluent across **cfDNA/ctDNA** multimodal signals and vendor assays
-      79 -  (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).
-      74 +- **Ran multi-tumor cancer-genomics analyses (TCGA)** — `maftools` oncoplots, somatic-interaction
-      75 +  testing, Ti/Tv, and survival analysis; DESeq2 differential expression with tumor-type
-      76 +  stratification; fluent across **cfDNA/ctDNA** multimodal signals (SNVs/indels/CNAs) and vendor
-      77 +  assays (Predicine, Caris, Tempus, Olink NPX proteomics, NMR metabolomics).
-      78  - **Harmonized unstructured clinical data into standardized models** — mapped free-text fields to
-      79    coded concepts (**OMOP CDM**; SNOMED-CT ↔ ICD-10-CM, LOINC, RxNorm; CDISC SDTM/ADaM); shipped the
-      80    **Clinical Knowledge Graph** (extending Harvard's PrimeKG), unifying **20+ biomedical ontologies**
-
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
-      --print-to-pdf="Cannon_BioinfoSolutions.pdf" "file://$PWD/Cannon_BioinfoSolutions.html" 2>/dev/null; /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
-      print('P1 END:',repr(r.pages[0].extract_text()[-130:]))
-      print('P2 START:',repr(r.pages[1].extract_text()[:130]))
-      t=''.join(p.extract_text() for p in r.pages)
-      print('VEP-style present:', 'VEP-style' in t)")
-  ⎿  PAGES: 3
-     P1 END: 'ilities, UniProt, AWS\nHealthOmics\nPython (pandas, NumPy,\nscikit-learn, Flask) · R\n(tidyverse, Bioconductor,\nShiny) · SQL · PySpark'
-     P2 START: "Harvard's PrimeKG), unifying 20+ biomedical ontologies via multi-tier entity\nresolution over NCBI, UniProt, and Ensembl REST sourc"
-     VEP-style present: False
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
-
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf; r=pypdf.PdfReader('Cannon_BioinfoSolutions.pdf')
-      print(repr(r.pages[2].extract_text()))")
-
-∴ I'm tightening up the RAG bullet point for the Thermo section—condensing the description of the Oncomine evidence concierge and Confluence assistant while keeping the core value of
-  multi-agent orchestration and validated autonomous analysis.
-
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python - <<'PYEOF'
-      import io
-      h=open('Cannon_BioinfoSolutions.html').read()
-      m=open('Cannon_BioinfoSolutions.md').read()
-
-      h=h.replace("""over JSON/REST interfaces;
-                engineered multi-agent orchestration (adversarial review + test-driven assembly) for
-                validated autonomous analysis under guardrails.""",
-      """over JSON/REST interfaces,
-                with multi-agent orchestration for validated autonomous analysis under guardrails.""")
-      h=h.replace("""with HGVS nomenclature and ACMG-aligned
-                tiering feeding clinical interpretation and reporting.""",
-      """with HGVS nomenclature and ACMG-aligned tiering.""")
-
-      m=m.replace("""over JSON/REST interfaces;
-        engineered multi-agent orchestration (adversarial review + test-driven assembly) for validated
-        autonomous analysis under guardrails.""",
-      """over JSON/REST interfaces,
-        with multi-agent orchestration for validated autonomous analysis under guardrails.""")
-      m=m.replace("""with
-
-      open('Cannon_BioinfoSolutions.html','w').write(h)
-      open('Cannon_BioinfoSolutions.md','w').write(m)
-      print('html ok:', 'adversarial review + test-driven' not in h, 'feeding clinical' not in h)
-      PYEOF)
-  ⎿  html ok: False True
-     md ok: True True
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
-
-⏺ The markdown took both trims; one HTML replacement missed on line wrapping. Fixing it directly.
-
-⏺ Update(/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.html)
-  ⎿  Added 2 lines, removed 3 lines
-      318            <strong>ClinVar/COSMIC/gnomAD annotation</strong>, with HGVS nomenclature and ACMG-aligned tiering.</li>
-      319          <li><strong>Built RESTful and RAG-based services for trusted variant and evidence
-      320            retrieval</strong> — an Oncomine scientific-evidence concierge and a division-wide
-      321 -          Confluence assistant over JSON/REST interfaces; engineered multi-agent orchestration
-      322 -          (adversarial review + test-driven assembly) for validated autonomous analysis under
-      323 -          guardrails.</li>
-      321 +          Confluence assistant over JSON/REST interfaces, with multi-agent orchestration for
-      322 +          validated autonomous analysis under guardrails.</li>
-      323          <li><strong>Engineered a containerized internal LLM/AI-HPC platform</strong>
-      324            (<strong>Docker</strong> orchestration; persistent shared + on-demand specialty models) for
-      325            self-serve analysis across Japan, Korea, and US sites; drove FDA submission readiness
-
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer
-      --print-to-pdf="Cannon_BioinfoSolutions.pdf" "file://$PWD/Cannon_BioinfoSolutions.html" 2>/dev/null; /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
-      print('P1 END:',repr(r.pages[0].extract_text()[-110:]))
-      print('P2 START:',repr(r.pages[1].extract_text()[:110]))")
-  ⎿  PAGES: 3
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf; print(repr(pypdf.PdfReader('Cannon_BioinfoSolutions.pdf').pages[2].extract_text()))")
-  ⎿  'Microsoft Azure: AI Agent Builder Associate · Databricks Data Engineer Associate ·\nSQL AI Developer Associate'
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
-
-∴ I'm still about 2 lines over the limit. The recent trims helped but the new bullet point added back roughly 3 lines, so I need to cut another 2 lines somewhere. Rather than continue
-  trimming the prose, I could tighten the Certifications section—those bullets are each wrapping to 2 lines, so I could compress them or adjust the spacing in the CSS, like reducing the
-  bottom margin on list items or the padding on the main container.
-
-⏺ Content trims aren't quite enough. Switching to an invisible typographic tighten rather than cutting more substance.
-
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python - <<'PYEOF'
-      h=open('Cannon_BioinfoSolutions.html').read()
-      h=h.replace("""  main .job {
-          margin-bottom: 0.11in;
-        }""","""  main .job {
-          margin-bottom: 0.085in;
-        }""")
-      h=h.replace("""  main .job ul li {
-          margin-bottom: 0.042in;""","""  main .job ul li {
-          margin-bottom: 0.032in;""")
-      open('Cannon_BioinfoSolutions.html','w').write(h)
-      print('0.085in' in h, '0.032in' in h)
-      PYEOF
-      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="/Users/nathanielcannon/Public/Drop
-      Box/Curricula/Cannon_BioinfoSolutions.pdf" "file:///Users/nathanielcannon/Public/Drop%20Box/Curricula/Cannon_BioinfoSolutions.html" 2>/dev/null
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
-      print('P1 END:',repr(r.pages[0].extract_text()[-110:]))
-      print('P2 START:',repr(r.pages[1].extract_text()[:110]))")
-  ⎿  True True
-     PAGES: 3
-     P1 END: 'S\nHealthOmics\nPython (pandas, NumPy,\nscikit-learn, Flask) · R\n(tidyverse, Bioconductor,\nShiny) · SQL · PySpark'
-     P2 START: "Harvard's PrimeKG), unifying 20+ biomedical ontologies via multi-tier entity\nresolution over NCBI, UniProt, an"
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
-
-∴ The document is still running 2 lines over across 3 pages, and my margin adjustments haven't fully resolved the overflow. The issue seems to be that the Certifications section is forcing
-  its last bullet point to spill over, possibly because of a break-inside constraint that's pushing the entire 2-line item to the next page rather than allowing it to split naturally.
-
-  Since reducing padding won't help with pagination, I need to cut actual content. The most expendable text is the teaching detail in the Lecturer bullet about mentoring undergraduate
-  researchers — that's the least relevant for a Bioinformatics Engineer role, so I'll trim that phrase down.
-
-⏺ Spacing alone won't lift a 2-line unbreakable item. Trimming the three least role-relevant clauses instead.
-
-⏺ Bash(cd "/Users/nathanielcannon/Public/Drop Box/Curricula/" && /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python - <<'PYEOF'
-      h=open('Cannon_BioinfoSolutions.html').read(); m=open('Cannon_BioinfoSolutions.md').read()
-      pairs_h=[
-      ("""methods; mentored undergraduate researchers in experimental design, statistical data
-                analysis, scientific writing, and presentation.""",
-       """methods; mentored undergraduate researchers in experimental design and statistical data
-                analysis."""),
-      ("""(tens of thousands of whole genomes,
-                242-metabolite NMR panels, decades of longitudinal phenotype); partitioned <strong>GWAS</strong>
-                by (phenotype, chrom, bin)""",
-      ("""(Weiss Lab) with post-hoc autocorrelation correction, resolving the developmental genetic
-                architecture underlying co-varying phenotypes.""",
-       """(Weiss Lab) with post-hoc autocorrelation correction, resolving developmental genetic
-                architecture."""),
-      ]
-      pairs_m=[
-      ("""methods; mentored
-        undergraduate researchers in experimental design, statistical data analysis, scientific writing, and
-        presentation.""",
-       """methods; mentored
-       """242-metabolite NMR panels, longitudinal phenotype)"""),
-      ("""with post-hoc autocorrelation correction,
-        resolving the developmental genetic architecture underlying co-varying phenotypes.""",
-       """with post-hoc autocorrelation correction,
-        resolving developmental genetic architecture."""),
-      for a,b in pairs_h:
-          assert a in h, a[:50]; h=h.replace(a,b)
-      for a,b in pairs_m:
-          assert a in m, a[:50]; m=m.replace(a,b)
-      open('Cannon_BioinfoSolutions.html','w').write(h); open('Cannon_BioinfoSolutions.md','w').write(m)
-      print('all 6 replacements applied')
-      PYEOF
-      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="/Users/nathanielcannon/Public/Drop
-      Box/Curricula/Cannon_BioinfoSolutions.pdf" "file:///Users/nathanielcannon/Public/Drop%20Box/Curricula/Cannon_BioinfoSolutions.html" 2>/dev/null
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf'); print('PAGES:',len(r.pages))
-      print('P2 END:',repr(r.pages[1].extract_text()[-90:]))")
-  ⎿  all 6 replacements applied
-     PAGES: 2
-     P2 END: 'tplotlib, seaborn\nCAP/CLIA & PHI compliance;\nFDA-submission validation\nand audit standards'
-  ⎿  Shell cwd was reset to /Users/nathanielcannon/Claude/Project_Aion/alfred
-
-⏺ Two pages. Verifying the break visually.
-
-⏺ Bash(S="/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad"; rm -f "$S"/*.png "$S"/p?.pdf;
-      /Users/nathanielcannon/Claude/Project_Aion/infrastructure/.venv/bin/python -c "
-      import pypdf
-      r=pypdf.PdfReader('/Users/nathanielcannon/Public/Drop Box/Curricula/Cannon_BioinfoSolutions.pdf')
-      for i,p in enumerate(r.pages):
-          w=pypdf.PdfWriter(); w.add_page(p); w.write('$S/s%d.pdf'%(i+1))" && /usr/bin/qlmanage -t -s 1400 -o "$S" "$S/s1.pdf" "$S/s2.pdf" >/dev/null 2>&1; ls "$S")
-  ⎿  s1.pdf
-     s1.pdf.png
-     s2.pdf
-     s2.pdf.png
-
-⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/s1.pdf.png)
-  ⎿  Read image (484.7KB)
-
-⏺ Read(/private/tmp/claude-501/-Users-nathanielcannon-Claude-Project-Aion-alfred/e8f1e0d3-058c-4fa6-b325-40b9ecd41589/scratchpad/s2.pdf.png)
-  ⎿  Read image (314.9KB)
-
-⏺ ★ Insight ─────────────────────────────────────
-  - Reducing main bottom padding would not have helped here, which is why I didn't try it: Chrome paginates at the fixed page height, so trailing padding only adds whitespace after the
-  final content — it never buys clearance at a break. Only height above the break moves content up.
-  - The two spacing knobs I did tighten (.job margin 0.11→0.085in, bullet margin 0.042→0.032in) recovered ~1.8 lines, but the spilling unit was a 2-line unbreakable list item. Sub-item
-  savings can't lift an item that needs a whole 2 lines — this is the classic "granularity floor" of print pagination, and it's why the last ~3 lines had to come out of prose.
-  - Restoring the original was safe because Cannon_BioinfoGenomic_ML.pdf was a byte-identical copy of Cannon_CV_MLDiagnostics.pdf, verified by MD5 after the restore.
-  ─────────────────────────────────────────────────
-
-  Done. Three things happened:
-
-  1. Original restored. Cannon_BioinfoGenomic_ML.pdf is byte-identical to its pre-session state (MD5-verified against Cannon_CV_MLDiagnostics.pdf, its source). The .md and .html I had
-  created under that name did not exist before, so they were renamed rather than deleted — no stray files left behind.
-
-  2. New file set. Cannon_BioinfoSolutions.{md,html,pdf} — 2 pages, same sidebar layout and typography, clean break between bullets on both the main column and the skills sidebar.
-
-  3. The correction applied. The variant-annotation work now sits under Thermo Fisher, as its own bullet:
-
-  ▎ Annotated variants for functional impact and disease association — mapped SNVs/indels to consequence, transcript, and clinical significance via ClinVar/COSMIC/gnomAD annotation, with
-  ▎ HGVS nomenclature and ACMG-aligned tiering.
-
-  I rendered your phrase as "ClinVar/COSMIC/gnomAD annotation" rather than the literal "annotation ClinVar/COSMIC/gnomAD" — same words, grammatical word order, and "VEP-style" is gone
-  entirely. The DNAnexus entry keeps only what belongs to it, now retitled "Ran multi-tumor cancer-genomics analyses (TCGA)".
-
-  Adding that bullet pushed the document to 3 pages, so I recovered the space from the three least role-relevant clauses: the teaching bullet's "scientific writing, and presentation,"
-  "decades of" longitudinal phenotype, and the trailing "underlying co-varying phenotypes" on the QTL bullet. Nothing bearing on NGS, tooling, or the JD's requirements was cut.
-
-  Still outstanding from my earlier note: DRAGEN, minimap2, DeepVariant, GATK, and AWS CDK appear in the skills sidebar without a supporting bullet. Tell me which are hands-on and I'll
-  evidence them; tell me which aren't and I'll drop them.
-
-  Very good, Master Nathaniel.
-
-✻ Cooked for 2m 46s
+● Reticulating splines… (8s · ↓ 256 tokens)
 
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-❯ DRAGEN and GATK are hands-on, drop minimap2, DeepVariant, and AWS CDK
+❯ 
 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
-  alfred (main) | 184.8k [▓▒░░░·····│········▪] 18% | M:44 | $9.29 | BLK:$8.1/10h19m | 12:40:54 | 87h58m                                                                      185995 tokens
-  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent                                                                                          new task? /clear to save 186.7k tokens
+  alfred (main) | 220.8k [▓▒░░░░····│········▪] 22% | M:28 | $7.19 | 21:31:09 | 36m                                                                                           221060 tokens
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+  ⧉  Lilly_Round2_Brief
 
