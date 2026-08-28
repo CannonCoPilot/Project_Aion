@@ -156,32 +156,82 @@
 <div class="wrap">
 
 <header>
-  <div class="kicker">Project Aion · Design Analysis · No implementation</div>
+  <div class="kicker">Project Aion · Design Analysis · Revision 2 · No implementation</div>
   <h1>Loom as a Semantic Mesh</h1>
-  <p class="dek">An assessment of the proposal to route prompts through Loom so they collect semantically related context from local knowledge layers before reaching the model — measured against what Aion already runs, and against how prompt caching actually works.</p>
+  <p class="dek">Revised after twenty-five follow-up questions and one question about a dog. Four positions from the first revision have been overridden by Sir and are retracted here; one headline claim turned out to be factually wrong and is withdrawn. What remains is a design for reflexive context retrieval that does not eat its own tail.</p>
   <div class="badges">
-    <span class="badge">2026-08-27</span>
-    <span class="badge">verdict: build it, with one inversion</span>
-    <span class="badge">6.4 MB reachable vs 42 KB loaded</span>
-    <span class="badge">cache economics decide the design</span>
+    <span class="badge">rev 2 · 2026-08-27</span>
+    <span class="badge">25 questions + allegory</span>
+    <span class="badge">4 reversals honoured</span>
+    <span class="badge">1 blocker downgraded to a doc task</span>
+    <span class="badge">grounded: file:line throughout</span>
   </div>
 </header>
+
+<!-- 0 -->
+<section>
+  <div class="sec-head"><span class="num">00</span><h2>What changed since revision 1</h2></div>
+  <p>Six things in the first revision no longer stand. Four because Sir overrode them, one because it was simply wrong, and one because a newer API capability exists that revision 1 did not know about. They are listed first because several later sections depend on them.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Revision 1 said</th><th>Status</th><th>What now stands</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Build the evaluation harness <em>before</em> the retriever; Phase 6 A/B is a hard gate.</td>
+          <td class="m">retracted</td>
+          <td>Build Loom first, observe its behaviour, then form hypotheses. <strong>A/B testing gates nothing. Only functional validation gates rollout.</strong> The design keeps every data-gathering hook so a harness can be built later against real behaviour.</td>
+        </tr>
+        <tr>
+          <td>Never embed Loom mechanics in DwarfCron or Chronicler — a portfolio deliverable.</td>
+          <td class="m">reframed</td>
+          <td>Loom is a <strong>subsidiary component of Project Aion</strong>. Every Archon codebase and every Aion component is in scope, integral to Loom itself. The only rule is that Loom <em>mechanics</em> do not enter another project's shipped product unless that product is elevated to Archon status. Learnings, components and theories flow outward freely.</td>
+        </tr>
+        <tr>
+          <td>Hard 300 ms retrieval budget; Qdrant synchronous within a hard timeout.</td>
+          <td class="m">retracted</td>
+          <td>No latency controls, escapes or fallbacks during the build. The system runs at the pace it runs. Latency is resolved last, once there is data. Quality, routing, logging, telemetry and tunability come first.</td>
+        </tr>
+        <tr>
+          <td>A hard relevance floor; low-scoring passages must be dropped.</td>
+          <td class="m">retracted</td>
+          <td>Start with a <strong>generous</strong> range of relevance measures and discover the useful line empirically. Tuning follows working builds, not the other way round.</td>
+        </tr>
+        <tr>
+          <td>Loom's audit captures no cache tokens; routing through it would blind telemetry. Called a blocker.</td>
+          <td class="m">factually wrong</td>
+          <td>Withdrawn. Loom-OSS captures the cache split end to end and even records the ephemeral 5-minute breakdown that our own <code>:9800</code> proxy discards. The real issue is a one-line documentation gap. Details in §18.</td>
+        </tr>
+        <tr>
+          <td>—</td>
+          <td class="m">new</td>
+          <td><strong>Mid-conversation tool changes.</strong> An Opus 5 beta allows the tool set to change mid-conversation without invalidating the cache. Revision 1 did not know this existed. It opens a capability the mesh could not otherwise have. §06.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <h4>On the retraction of the hard gate</h4>
+    <p>Sir's reasoning is worth recording because it generalises: <em>build the harness first and you will build the thing to fit the harness you made for testing it.</em> That is a real failure mode, and it is the same shape as Goodhart's law arriving one step earlier than usual — not optimising to the metric, but <strong>designing the artefact to be measurable by a metric chosen in ignorance</strong>. The concession this design makes in return is that every retrieval decision is logged in full from day one, so the harness that eventually gets built has real behaviour to test against rather than a specification.</p>
+  </div>
+</section>
 
 <!-- 1 -->
 <section>
   <div class="sec-head"><span class="num">01</span><h2>The proposal in one paragraph</h2></div>
-  <p>Prompts would pass through Loom on their way to the model. Loom reads the prompt, searches local knowledge layers for related material — project history, related documents, guidelines, design patterns — and folds what it finds into the message. The enriched prompt is cached and sent upstream in place of what was typed at the terminal. The stated goal is a counterpart to the <code>CLAUDE.md</code> auto-load mechanism that is adaptive rather than fixed, and logged rather than invisible.</p>
+  <p>Prompts would pass through a layer that reads them, searches local knowledge for related material — project history, related documents, guidelines, design patterns — and folds what it finds into the message before it reaches the model. The intent is a counterpart to the <code>CLAUDE.md</code> auto-load mechanism that is adaptive rather than fixed, and logged rather than invisible.</p>
 
   <div class="note good">
-    <h4>Short answer</h4>
-    <p><strong>The diagnosis is correct and the mechanism exists.</strong> There is a purpose-built, cache-preserving way to inject context mid-conversation, and it is available today with no beta flag. But the injection should happen <em>client-side in the hook layer</em>, not inside the gateway — because Claude Code owns the conversation transcript and the cost difference is roughly twelvefold. Loom becomes the retrieval <em>service</em> rather than always being the <em>injector</em>. Section 5 shows the arithmetic.</p>
+    <h4>Short answer, unchanged from revision 1</h4>
+    <p><strong>The diagnosis is correct and the mechanism exists.</strong> There is a purpose-built, cache-preserving way to inject context mid-conversation, available today with no beta flag. The injection for interactive lanes should happen <em>client-side in the hook layer</em> rather than inside the gateway, because Claude Code owns the conversation transcript and the cost difference is roughly twelvefold. Loom becomes the retrieval <em>service</em> rather than always being the <em>injector</em>.</p>
   </div>
 </section>
 
 <!-- 2 -->
 <section>
   <div class="sec-head"><span class="num">02</span><h2>The problem is real, and it can be measured</h2></div>
-  <p>Every Archon session loads a fixed set of files unconditionally. Everything else in the curated knowledge base is invisible unless someone happens to search for it. Measured on this workspace today:</p>
+  <p>Every Archon session loads a fixed set of files unconditionally. Everything else in the curated knowledge base is invisible unless someone happens to search for it.</p>
 
   <div class="card">
     <div class="cap">Context the model can see, versus context that exists</div>
@@ -196,343 +246,824 @@
     </div>
   </div>
 
-  <p>Static memory surfaces about <strong>0.67%</strong> of the available corpus, and which 0.67% is decided in advance by hand. That is the actual defect. Note carefully that this is <em>not primarily a cost problem</em> — 11,257 tokens is roughly 1.1% of a one-million-token window, which is negligible. It is a <strong>relevance</strong> problem: the material that would help with today's task is usually not the material someone chose to pin last month.</p>
-
-  <div class="tw">
-    <table>
-      <thead><tr><th>Tier</th><th>File</th><th>Size</th><th>When loaded</th></tr></thead>
-      <tbody>
-        <tr><td>Project instructions</td><td class="m">CLAUDE.md</td><td class="n">9,821 B</td><td>always</td></tr>
-        <tr><td>Persona identity</td><td class="m">personas/jarvis/CLAUDE.md</td><td class="n">10,796 B</td><td>always</td></tr>
-        <tr><td>Cross-session memory</td><td class="m">MEMORY.md</td><td class="n">17,918 B</td><td>always</td></tr>
-        <tr><td>Session state</td><td class="m">session-state.md</td><td class="n">4,242 B</td><td>always</td></tr>
-        <tr><td><strong>Total resident</strong></td><td class="m">—</td><td class="n"><strong>42,777 B</strong></td><td><strong>~11,257 tokens</strong></td></tr>
-        <tr><td>Curated context corpus</td><td class="m">.claude/context/**/*.md</td><td class="n">6,412,558 B</td><td><strong>never, unless grepped</strong></td></tr>
-      </tbody>
-    </table>
-  </div>
+  <p>Static memory surfaces about <strong>0.67%</strong> of the corpus, and which 0.67% is decided in advance by hand. This is <em>not</em> primarily a cost problem — 11,257 tokens is about 1.1% of a one-million-token window. It is a <strong>relevance</strong> problem: the material that would help with today's task is usually not the material someone chose to pin last month.</p>
 
   <div class="note">
-    <h4>This session produced a textbook example of the failure</h4>
-    <p>Five Loom design documents totalling <strong>82 KB</strong> — directly relevant to evaluating Loom — sat in <code>alfred/.claude/context/systems/</code> the entire time. No memory tier surfaced them. They were discovered by accident, during a <code>grep</code> run for an unrelated purpose. A semantic layer keyed on the word "Loom" would have surfaced them in the first second of the task. That is the whole argument in one incident: <strong>the knowledge existed, was indexed nowhere the model reads, and appeared only by luck.</strong></p>
+    <h4>The proof case is this document</h4>
+    <p>The five Loom design documents from March — 82 KB, directly about the thing being evaluated — were surfaced by no memory tier. They were found by accident, in a <code>grep</code> run for an unrelated reason. Institutional knowledge existed, was indexed nowhere the model reads, and surfaced only by luck.</p>
   </div>
 </section>
 
 <!-- 3 -->
 <section>
-  <div class="sec-head"><span class="num">03</span><h2>A primitive version already exists</h2></div>
-  <p>This idea is not new to the workspace. A hook called <code>relevance-retrieval.js</code> is already registered on every prompt, and its own header describes it as <em>"the rattlesnake reflex for memory recall."</em> It has the right shape and the wrong engine.</p>
+  <div class="sec-head"><span class="num">03</span><h2>A primitive version already exists — and it is smaller than it looks</h2></div>
+  <p><code>relevance-retrieval.js</code> is one of twelve hooks on the <code>UserPromptSubmit</code> path. Its own header calls it "the rattlesnake reflex for memory recall". Reading it closely for this revision showed it is even thinner than revision 1 claimed, and that it has <strong>two quite different tracks</strong>.</p>
 
-  <div class="tw">
-    <table>
-      <thead><tr><th>Property</th><th>What it does today</th><th>What the proposal needs</th></tr></thead>
-      <tbody>
-        <tr><td>Matching</td><td>Hard-coded keyword <strong>regular expressions</strong> mapped to file paths</td><td>Semantic similarity over embeddings</td></tr>
-        <tr><td>Budget</td><td><strong>800 characters</strong>, one injection per prompt</td><td>Tunable token budget per lane</td></tr>
-        <tr><td>Sources</td><td>A static table written by hand</td><td>The whole 6.4 MB corpus, ranked</td></tr>
-        <tr><td>Network</td><td><strong>None</strong> — "file reads only", &lt;500 ms</td><td>Vector search within a latency budget</td></tr>
-      </tbody>
-    </table>
+  <div class="pipe">
+    <div class="pipe-row"><div class="pipe-k">Track 3</div><div class="pipe-v"><span class="seg seg-n">12 hardcoded keyword→file entries</span><span class="seg seg-n">literal substring counting</span><span class="seg seg-n">threshold 2 hits, 1 if a question</span><span class="seg seg-no">max one excerpt, 800 chars</span></div></div>
+    <div class="pipe-row"><div class="pipe-k">Track 4</div><div class="pipe-v"><span class="seg seg-n">5 detectors</span><span class="seg seg-no">calls nothing</span><span class="seg seg-n">injects an instruction telling the model to search</span><span class="seg seg-no">cost lands on the next turn</span></div></div>
   </div>
 
-  <p>Eight hundred characters is <strong>0.012%</strong> of the corpus per prompt. The hook is a lookup table wearing the costume of a retrieval system. Crucially, though, <strong>it is already wired into the right place in the request lifecycle</strong> — which turns out to matter enormously, for reasons the next two sections make clear.</p>
+  <p>Track 3 is a lookup table dressed as retrieval: best single match wins, and the winner is chosen by counting literal substrings. Track 4 is more interesting and more troubling — it does not retrieve anything. It injects text instructing the model to call the RAG search tool itself. <strong>The retrieval cost is therefore displaced onto the model's next turn</strong>, where it is invisible to the hook's own latency budget and where it may simply not happen.</p>
 
-  <h3>The retrieval infrastructure is also already running</h3>
-  <div class="tw">
-    <table>
-      <thead><tr><th>Component</th><th>Role in a semantic mesh</th><th>Latency</th></tr></thead>
-      <tbody>
-        <tr><td class="m">Qdrant · jarvis-rag</td><td>Primary semantic search — 4 collections, 2560-dimension Qwen3 vectors</td><td class="n">2–3 s</td></tr>
-        <tr><td class="m">Graphiti · Neo4j</td><td>Structural expansion across entities and relationships</td><td class="n">20–30 s</td></tr>
-        <tr><td class="m">MLX embed :8000</td><td>Embedding provider, already the matching model</td><td class="n">fast</td></tr>
-        <tr><td class="m">relevance-retrieval.js</td><td>The injection point, already registered</td><td class="n">&lt;500 ms</td></tr>
-      </tbody>
-    </table>
+  <div class="note bad">
+    <h4>Three defects in the existing reflex</h4>
+    <p><code>.retrieval-state.json</code> is <strong>not scoped by session</strong> — one file, rewritten on every prompt across every lane, with an unbounded <code>mcp_injected</code> list. Every failure path swallows to an empty output, so any error is a <strong>silent no-op</strong>. And <code>context-health-monitor.js</code> alongside it has its projects directory hardcoded to the old <code>Jarvis</code> path rather than <code>Project_Aion</code>, so one of its six health layers reports a number that is simply wrong here.</p>
   </div>
-  <p><strong>So the missing piece is not infrastructure.</strong> It is the ranking-and-injection layer that connects the vector store to the prompt, with a budget, a relevance floor, and an audit trail.</p>
+
+  <p>The infrastructure underneath is genuinely present: Qdrant with 23 collections at 2560 dimensions, Graphiti on Neo4j, an MLX embedding server, and JICM's compression cycle. <strong>What is missing is the ranking-and-injection layer that connects them to the prompt, with a budget and an audit trail.</strong></p>
+
+  <div class="note warn">
+    <h4>Measured today, and it revises a standing belief</h4>
+    <p>The MLX embedding server had been carrying a reputation for leaking badly. At 24 hours uptime it shows <strong>2.50 GB resident, 2,474 MB current footprint against a 3,322 MB peak</strong>. Peak exceeding current by ~850 MB is growth-then-collection, <em>not</em> a monotonic leak. A 4-bit 4B model has a steady-state floor near 2.4 GB, so this is healthy. LiteLLM over the same window is flat at 290 MB. The old figure should not be repeated without re-measuring. This matters for Q18 and is taken up in §13.</p>
+  </div>
 </section>
 
 <!-- 4 -->
 <section>
-  <div class="sec-head"><span class="num">04</span><h2>The technical crux: how prompt caching actually works</h2></div>
-  <p>This section decides the architecture. It is not a matter of taste or preference — it is arithmetic, and getting it wrong is the single most expensive mistake available in this design space.</p>
+  <div class="sec-head"><span class="num">04</span><h2>Cache anatomy — answering Q6 and Q7 properly</h2></div>
 
-  <p>Prompt caching is a <strong>prefix match</strong>. The system hashes the request from the beginning up to each cache breakpoint. <strong>Any byte that changes anywhere in that prefix invalidates everything after it.</strong> The request is assembled in a fixed order, and that order is what makes injection position so consequential:</p>
-
-  <div class="card">
-    <div class="cap">Request render order, and what each change invalidates</div>
-    <div class="pipe">
-      <div class="pipe-row"><div class="pipe-k">order</div><div class="pipe-v"><span class="seg seg-n">1 · tools</span><span class="seg seg-n">2 · system</span><span class="seg seg-n">3 · messages</span></div></div>
-      <div class="pipe-row"><div class="pipe-k">edit tools</div><div class="pipe-v"><span class="seg seg-no">tools lost</span><span class="seg seg-no">system lost</span><span class="seg seg-no">messages lost</span></div></div>
-      <div class="pipe-row"><div class="pipe-k">switch model</div><div class="pipe-v"><span class="seg seg-no">tools lost</span><span class="seg seg-no">system lost</span><span class="seg seg-no">messages lost</span></div></div>
-      <div class="pipe-row"><div class="pipe-k">edit system</div><div class="pipe-v"><span class="seg seg-ok">tools kept</span><span class="seg seg-no">system lost</span><span class="seg seg-no">messages lost</span></div></div>
-      <div class="pipe-row"><div class="pipe-k">append message</div><div class="pipe-v"><span class="seg seg-ok">tools kept</span><span class="seg seg-ok">system kept</span><span class="seg seg-ok">prefix kept</span></div></div>
-    </div>
+  <div class="note">
+    <h4>The misconception first, because it is the crux</h4>
+    <p>Sir asked whether "content block lookback pressure" presumes Loom is looking back through recent turns to pull context from them. <strong>It does not.</strong> Lookback is not Loom looking backward at anything. It is an internal mechanic of the server's cache lookup, and it would exist identically if Loom performed no retrieval whatsoever. Revision 1 used the term without unpacking it, which was my error.</p>
   </div>
+
+  <h3>Three facts that make the rest obvious</h3>
+  <ol>
+    <li><strong>The API is stateless. There is no session on the server.</strong> Claude Code re-uploads the entire conversation on every single turn — all 300,000 tokens of it, every time. What feels like the model remembering the conversation is the client replaying the whole transcript on each request.</li>
+    <li><strong>Prompt caching is therefore not memory. It is a receipt.</strong> The server retains precomputed attention state for byte sequences it has processed before. When the re-uploaded prefix matches one, it skips recomputation and charges 0.1× instead of 1.0×. Nothing is stored <em>for</em> you; you are simply not billed twice for the same work.</li>
+    <li><strong>Invalidation therefore loses no data and breaks no functionality.</strong> The conversation continues perfectly. You just silently pay roughly ten times more for that turn. That is precisely what makes it dangerous — a pure cost failure with no visible symptom.</li>
+  </ol>
+
+  <h3>What a breakpoint is</h3>
+  <p>A <code>cache_control</code> breakpoint is a marker attached to one content block. It means: <em>cache everything from the start of this request up to and including this block.</em> The request is assembled in a fixed render order — <code>tools</code> → <code>system</code> → <code>messages</code> — and matching is a strict prefix comparison. One changed byte at position N invalidates everything from N onward. A maximum of four breakpoints are allowed per request.</p>
+
+  <h3>And this is where the twenty blocks come in</h3>
+  <p>To reuse a cache entry the server walks backward from the breakpoint through <strong>at most twenty content blocks</strong> looking for a prior entry to extend. Beyond twenty, it stops looking and rebuilds.</p>
 
   <div class="note bad">
-    <h4>The mistake the naive reading walks straight into</h4>
-    <p>Read the <code>edit system</code> row again. <strong>Injecting retrieved context into the system prompt destroys the system cache and every message after it — on every single turn.</strong> Genie is currently running 234,000 tokens at a 99% cache hit rate; Jacques is at 335,000 tokens, also 99%. Cached reads cost roughly <strong>0.1×</strong> the base input price. Losing the cache means reprocessing the entire conversation at full price, every turn — an input-cost increase of about <strong>tenfold</strong>, with no error message and no visible symptom other than the bill.</p>
+    <h4>Why agentic work blows the window</h4>
+    <p>Every <code>tool_use</code> is its own content block, and so is every <code>tool_result</code>. A single turn in which the model makes twelve tool calls therefore produces roughly <strong>twenty-four blocks</strong> — the window is exceeded within one turn, before any retrieval layer adds anything. This is a pre-existing condition of Aion's workload, not something a mesh creates. A mesh adding one block per turn makes an existing problem marginally worse.</p>
+    <p>The remedy is mundane and cheap: place an intermediate breakpoint roughly every fifteen blocks. Four breakpoints are available and Aion currently reasons about none of them.</p>
   </div>
 
-  <h3>The mechanism that makes this safe</h3>
-  <p>There is a purpose-built escape hatch, and it is available <strong>today</strong> on Opus 5, Opus 4.8, Fable 5 and Mythos 5, <strong>with no beta header required</strong>:</p>
-
-  <div class="note good">
-    <h4>Append a system-role message to the messages array</h4>
-    <p>Instead of editing the top-level <code>system</code> field, append <code>{"role": "system", "content": "…"}</code> to <code>messages[]</code>. Because it sits <em>after</em> the cached history rather than before it, <strong>the entire cached prefix survives untouched</strong>. This is exactly the shape a semantic mesh needs.</p>
+  <h3>The invalidation hierarchy — the load-bearing table</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>What changes</th><th>Tools cache</th><th>System cache</th><th>Messages cache</th></tr></thead>
+      <tbody>
+        <tr><td>Tool definitions added, removed or reordered</td><td class="c">❌</td><td class="c">❌</td><td class="c">❌</td></tr>
+        <tr><td>Model switched</td><td class="c">❌</td><td class="c">❌</td><td class="c">❌</td></tr>
+        <tr><td>System prompt content edited</td><td class="c">✅</td><td class="c">❌</td><td class="c">❌</td></tr>
+        <tr><td>Message content appended</td><td class="c">✅</td><td class="c">✅</td><td class="c">❌</td></tr>
+      </tbody>
+    </table>
   </div>
+  <p>Read the bottom row and then the third row together. <strong>Ordinary conversation invalidates nothing.</strong> Only touching tools, the system prompt, or the model forces a rebuild. Injecting retrieved context into the <em>system prompt</em> invalidates the system cache and every message after it, on every turn — for a lane at 300,000 tokens and 99% cache hit rate, that converts a 0.1× read into a full reprocess. It is the single most expensive mistake available in this design space, and "enhance the prompt" read naively walks straight into it.</p>
 
-  <p>There is a second property that is easy to overlook and matters just as much:</p>
-
-  <div class="note warn">
-    <h4>It is also the prompt-injection-safe channel — and retrieval makes that essential</h4>
-    <p>Text placed inside a <em>user</em> turn can be forged by anything that writes to user-visible input. <strong>Retrieved documents are precisely that.</strong> A semantic mesh takes third-party file content and places it into the prompt; if that content lands in a user turn, then any retrieved file can impersonate the operator and issue instructions. The <code>role: "system"</code> channel cannot be spoofed from content. This is not a nicety — it is the difference between a retrieval layer and an injection vulnerability.</p>
-  </div>
-
-  <h3>Two more constraints worth knowing before designing</h3>
+  <h3>Three newer facts revision 1 did not have</h3>
   <ul>
-    <li><strong>Four breakpoints maximum</strong> per request, and the minimum cacheable prefix on Opus 5 is <strong>512 tokens</strong> — short injections will not cache at all, silently.</li>
-    <li><strong>A twenty-block lookback window.</strong> Each breakpoint searches backwards at most twenty content blocks to find a previous cache entry. Agentic loops already emit many tool-call and tool-result blocks per turn; adding an injected block each turn eats into that budget and can push a breakpoint out of range, producing a total cache miss that nothing reports.</li>
+    <li><strong>Opus 5's minimum cacheable prefix is 512 tokens</strong>, down from 1,024 on Opus 4.8. Prompts previously written off as too small to cache now qualify. Note the minimum is <em>not</em> monotonic across generations — it is 4,096 on Opus 4.6 and Haiku 4.5 — so it must be read per model, never assumed.</li>
+    <li><strong>Mid-conversation system messages</strong> are supported on Opus 5, Opus 4.8, Fable 5 and Mythos 5 with no beta header — but <strong>not on Sonnet 5</strong>. That exclusion matters if satellite lanes ever run Sonnet.</li>
+    <li><strong>A model switch has no cache escape hatch at all</strong> — caches are model-scoped. This is a hard strike against Loom's model-routing feature for interactive lanes, and it is a much sharper argument than revision 1 made. Routing remains perfectly safe for single-shot Nexus jobs.</li>
   </ul>
 </section>
 
 <!-- 5 -->
 <section>
-  <div class="sec-head"><span class="num">05</span><h2>Why the gateway is the wrong place to inject</h2></div>
-  <p>Loom sits at the <code>/v1/messages</code> boundary. By the time a request arrives there, Claude Code has already assembled everything — the system prompt, the <code>CLAUDE.md</code> imports, the tool definitions, the entire conversation history, and the new user turn. This creates one decisive asymmetry:</p>
+  <div class="sec-head"><span class="num">05</span><h2>Q8 — is there "some physics" to the static memory files?</h2></div>
+  <p>Sir asked what lies behind the recommendation to shrink Tier A "toward invariants only". There is something real there, and it is closer to economics than physics.</p>
 
-  <p><strong>Claude Code owns the transcript. Loom does not.</strong> Anything Loom adds in flight never becomes part of the client's record of the conversation. Three consequences follow.</p>
+  <p>A byte in <code>CLAUDE.md</code> is not paid for once. It is <strong>re-uploaded on every turn for the entire life of the session</strong>, and it sits in the cached prefix, so it is re-read at 0.1× on every turn thereafter. Its cost is small per turn and unbounded in aggregate. More importantly, its <em>selection</em> is paid for once, months ago, by a person guessing what would be needed.</p>
 
-  <div class="dia">
-    <pre class="mermaid">
-flowchart LR
-  subgraph G["Gateway injection — Loom appends"]
-    direction TB
-    G1["Turn N<br/>client sends history"] --> G2["Loom appends inject_N"]
-    G2 --> G3["cache WRITE at 1.25×"]
-    G3 --> G4["Turn N+1<br/>client sends history<br/>WITHOUT inject_N"]
-    G4 --> G5["Loom appends inject_N+1<br/>(different content)"]
-    G5 --> G6["inject_N never read<br/>0× return"]
-  end
-  subgraph C["Client injection — hook appends"]
-    direction TB
-    C1["Turn N<br/>hook adds inject_N"] --> C2["enters client transcript"]
-    C2 --> C3["cache WRITE at 1.25×"]
-    C3 --> C4["Turn N+1<br/>history INCLUDES inject_N"]
-    C4 --> C5["cache READ at 0.1×"]
-    C5 --> C6["and every turn after"]
-  end
-  style G6 fill:#fbe8e5,stroke:#b8402f,color:#111823
-  style C5 fill:#e3f4ec,stroke:#1f8a5f,color:#111823
-  style C6 fill:#e3f4ec,stroke:#1f8a5f,color:#111823
-    </pre>
-  </div>
-
-  <h3>Consequence one — injected tokens are paid for and never reused</h3>
   <div class="ledger">
-    <div class="led lose">
-      <h4>Gateway injection</h4>
-      <div class="big">1.25× · forever</div>
-      <p>Every injected token pays the cache <strong>write</strong> premium and is never read back, because the next request from the client does not contain it.</p>
+    <div class="led">
+      <h4>Static tier (Tier A)</h4>
+      <p class="big">1 × N turns</p>
       <ul>
-        <li>3,000 tokens injected per turn</li>
-        <li>≈ 3,750 token-equivalents written</li>
-        <li>0 tokens read back</li>
-        <li>Repeats identically every turn</li>
+        <li>Cost scales with session length, not with relevance</li>
+        <li>Selection is fixed before the task is known</li>
+        <li>Zero marginal cost to <em>read</em> once cached</li>
+        <li>Every added line dilutes attention across the whole session</li>
       </ul>
     </div>
-    <div class="led win">
-      <h4>Client-side injection</h4>
-      <div class="big">0.1× · thereafter</div>
-      <p>The content enters the transcript, becomes part of the stable prefix, and is served from cache on every subsequent turn.</p>
+    <div class="led">
+      <h4>Retrieved tier (Tier B)</h4>
+      <p class="big">1 × 1 turn</p>
       <ul>
-        <li>3,000 tokens injected once</li>
-        <li>≈ 3,750 token-equivalents written once</li>
-        <li>≈ 300 token-equivalents per later turn</li>
-        <li>Amortises across the conversation</li>
+        <li>Cost is paid when the material is plausibly relevant</li>
+        <li>Selection happens after the task is known</li>
+        <li>Also cached forward once injected into the transcript</li>
+        <li>Wrong retrievals are individually cheap and individually visible</li>
       </ul>
     </div>
   </div>
-  <p>The same content costs roughly <strong>twelve times more</strong> when delivered from the gateway than when delivered from the hook. That figure is not a modelling assumption; it falls directly out of the published 1.25× write and 0.1× read multipliers.</p>
 
-  <h3>Consequence two — the transcript develops holes</h3>
-  <p>The model's replies would reference context that the client never recorded. JICM then compresses a transcript with gaps in it, so checkpoints and scrollback summaries describe reasoning whose inputs are missing. After a <code>/clear</code> and restore, the conclusions survive but the evidence for them does not. This interacts badly with a system whose entire premise is careful context preservation.</p>
-
-  <h3>Consequence three — lookback pressure</h3>
-  <p>An extra content block per turn consumes part of the twenty-block lookback window described in section 4. In tool-heavy agentic loops this can silently push a breakpoint out of range.</p>
-
-  <div class="note good">
-    <h4>Where the gateway <em>is</em> exactly right</h4>
-    <p><strong>Single-shot calls have no conversation state to diverge from.</strong> Nexus jobs, cron dispatches and headless persona runs are one request and one response — there is no transcript to keep consistent and no next turn that would have read the cache. For those callers, gateway-side injection is not merely acceptable, it is the <em>only</em> place it can happen, because they have no hook layer at all. This is the observation that lets one system serve both worlds.</p>
+  <div class="note">
+    <h4>The real asymmetry is attention, not tokens</h4>
+    <p>The token arithmetic is minor at these sizes. What actually degrades is <strong>salience</strong>. A guardrail stated once among four hundred lines of pinned reference competes for attention with everything else pinned beside it, on every turn, whether or not it bears on the task. The invariants — identity, guardrails, form of address, filesystem policy — earn their place precisely because they apply unconditionally. Anything that applies <em>conditionally</em> is, by definition, better served by a mechanism that can evaluate the condition. That is the whole argument for the split, and it is why Tier A should shrink as Tier B becomes trustworthy — never before.</p>
   </div>
 </section>
 
 <!-- 6 -->
 <section>
-  <div class="sec-head"><span class="num">06</span><h2>Recommended architecture — three tiers</h2></div>
-  <p>The split follows directly from the two previous sections. The central move is an inversion of the original proposal: <strong>Loom becomes the retrieval service rather than always being the injector.</strong> That single change lets one implementation serve interactive lanes (where injection must be client-side) and Nexus jobs (where it must be gateway-side).</p>
+  <div class="sec-head"><span class="num">06</span><h2>Architecture — three tiers, one service</h2></div>
 
-  <div class="dia">
-    <pre class="mermaid">
-flowchart TB
-  A["<b>Tier A — Static invariants</b><br/>CLAUDE.md · identity · guardrails · form of address<br/>Always resident. Shrink toward invariants only."]
-  B["<b>Tier B — Adaptive injection</b><br/>UserPromptSubmit hook, client-side<br/>Cache-safe · transcript-honest · budgeted · logged<br/>Primary path for interactive Archon lanes"]
-  C["<b>Tier C — Loom retrieval service</b><br/>Embedding · RAG and graph fan-out · ranking · caching · audit<br/>Serves Tier B over HTTP<br/>ALSO injects directly for single-shot Nexus callers"]
-  Q[("Qdrant<br/>jarvis-rag")]
-  G[("Graphiti<br/>Neo4j")]
-  A --- B
-  B -->|"POST /v1/enrich"| C
-  C --> Q
-  C --> G
-  C -.->|"gateway-side injection<br/>single-shot only"| N["Nexus jobs<br/>(no hook layer)"]
-  style A fill:#eceff3,stroke:#c5d0da,color:#111823
-  style B fill:#e2f2f6,stroke:#0e7490,color:#111823
-  style C fill:#e2f2f6,stroke:#0e7490,color:#111823
-    </pre>
+  <div class="pipe">
+    <div class="pipe-row"><div class="pipe-k">Tier A</div><div class="pipe-v"><span class="seg seg-n">static invariants</span> identity · guardrails · form of address · filesystem policy. Always resident. Shrinks only as Tier B earns trust.</div></div>
+    <div class="pipe-row"><div class="pipe-k">Tier B</div><div class="pipe-v"><span class="seg seg-ok">adaptive injection</span> the <code>UserPromptSubmit</code> hook. Primary path for interactive lanes. Cache-safe, transcript-honest, budgeted, logged.</div></div>
+    <div class="pipe-row"><div class="pipe-k">Tier C</div><div class="pipe-v"><span class="seg seg-ok">Loom as retrieval service</span> owns embedding, fan-out, ranking, caching, audit. Serves Tier B over HTTP. Injects directly only for single-shot callers.</div></div>
   </div>
 
-  <h3>What happens on an interactive turn</h3>
+  <p><strong>The inversion is that Loom becomes the service, not always the injector.</strong> One implementation then serves both interactive lanes, where injection must be client-side, and Nexus jobs, where it must be gateway-side because no hook layer exists.</p>
+
   <div class="dia">
-    <pre class="mermaid">
-sequenceDiagram
-  autonumber
-  participant U as Sir
-  participant H as Hook
-  participant L as Loom
-  participant V as Qdrant
-  participant CC as Claude Code
-  participant M as Model
-  U->>H: types a prompt
-  H->>L: POST /v1/enrich {prompt, cwd, lane, budget}
-  L->>V: embed and search
-  V-->>L: candidate passages with scores
-  L->>L: rank · apply floor · trim to budget · cache
-  L-->>H: passages + provenance + request_id
-  H->>CC: additionalContext (role:"system" block)
-  CC->>M: full request, injection inside the transcript
-  M-->>CC: response
-  Note over CC,M: next turn reads the injection from cache at 0.1×
-    </pre>
+    <pre class="mermaid">flowchart TD
+  P[User types prompt] --> H[UserPromptSubmit hook]
+  H -->|POST /v1/enrich| L[Loom retrieval service]
+  L --> Q[(Qdrant · 23 collections)]
+  L --> G[(Graphiti · Neo4j)]
+  Q --> R[Score · rank · budget · cache]
+  G --> R
+  R -->|ranked passages + provenance + request_id| H
+  H -->|additionalContext| CC[Claude Code assembles request]
+  CC -->|via :9800, unchanged| A[Anthropic API]
+  A -.->|next turn reads injection at 0.1x| CC
+  N[Nexus single-shot job] -->|/v1/messages| L2[Loom gateway]
+  L2 -->|appends role:system block in-flight| A
+  L2 --> AU[(audit row: what was injected)]</pre>
   </div>
 
-  <p>Note what does <em>not</em> change in that diagram: the request still travels upstream through the usage proxy on port 9800 exactly as it does today. The enrichment path runs <strong>alongside</strong> the model path, not in front of it — which avoids chaining two proxies on <code>ANTHROPIC_BASE_URL</code>, a configuration already recorded as breaking Chrome's classifier.</p>
+  <h3>The new capability: reshaping tools without paying for it</h3>
+  <p>Revision 1 did not know this existed. On Opus 5 and later, behind the beta header <code>mid-conversation-tool-changes-2026-07-01</code>, <code>tool_addition</code> and <code>tool_removal</code> blocks on a system-role message can <strong>change the available tool set without invalidating the cache</strong>, provided the tool was pre-declared with deferred loading.</p>
+  <div class="note good">
+    <h4>Why this is more than a footnote</h4>
+    <p>Look again at the invalidation table: changing tools normally invalidates <em>everything</em>. That single fact is why no system in Aion has ever considered adapting an Archon's tool surface to the task at hand. This beta removes the cost. A mesh that already decides "this prompt is about Qdrant ingestion" is one step away from also deciding "so surface the RAG tools and retire the browser ones". <strong>Nothing here should be built yet</strong> — it is noted because it changes what the mature form of this system could be, and because designing Tier C's response shape to carry tool hints later costs nothing today.</p>
+  </div>
 </section>
 
 <!-- 7 -->
 <section>
-  <div class="sec-head"><span class="num">07</span><h2>What it solves, adds, replaces, and touches</h2></div>
+  <div class="sec-head"><span class="num">07</span><h2>Q13 — is the hook-sometimes, gateway-sometimes asymmetry a maintenance problem?</h2></div>
+  <p>It is a fair worry and the honest answer is: <strong>it would be, if the two paths held separate logic. In the proposed shape they do not.</strong></p>
 
-  <h3>Problems it solves</h3>
-  <ol>
-    <li><strong>The 0.67% surfacing problem.</strong> Six and a half megabytes of curated context become reachable by relevance instead of by prior enumeration.</li>
-    <li><strong>Staleness of hand-picked selection.</strong> <code>MEMORY.md</code> is manually curated and capped at 140 lines. Retrieval has no such ceiling and needs no curator.</li>
-    <li><strong>Opacity.</strong> Every injection carries a request identifier, a relevance score, a source path and a reason. The current auto-load mechanism is invisible by comparison — which is precisely the complaint that motivated the proposal.</li>
-    <li><strong>Cross-lane amnesia.</strong> Urist, Genie and Jacques currently have <em>no</em> vector or graph access at all. An HTTP enrichment service reaches them without giving each lane its own MCP stack.</li>
-  </ol>
+  <p>Everything that can be got wrong — embedding, fan-out across stores, scoring, budgeting, deduplication, provenance, caching, audit — lives in <strong>one service, in one process, behind one endpoint</strong>. What differs between the two paths is only the last step: who writes the returned passages into the request.</p>
 
-  <h3>Capabilities it adds</h3>
-  <ul>
-    <li>Semantic ranking, where today there is only keyword matching</li>
-    <li>Provenance and citation for every injected passage</li>
-    <li>A tunable token budget, per lane and per turn</li>
-    <li>Content-hash-keyed caching of enrichments — Loom already has this exact shape for its compression cache</li>
-  </ul>
-
-  <h3>What it replaces</h3>
   <div class="tw">
     <table>
-      <thead><tr><th>Component</th><th>Fate</th></tr></thead>
+      <thead><tr><th>Concern</th><th>Interactive lane</th><th>Single-shot Nexus job</th></tr></thead>
       <tbody>
-        <tr><td class="m">PATTERN_TRIGGERS table</td><td>Superseded by semantic retrieval. The hook itself survives as the injection point.</td></tr>
-        <tr><td class="m">MEMORY.md link section</td><td>The ~40 hand-maintained pointer links are a manual index of exactly what retrieval does automatically. Should shrink toward invariants.</td></tr>
-        <tr><td class="m">JICM · session-state · L1–L5</td><td><strong>Untouched.</strong> Session-level compression is a different concern from per-turn retrieval; the two compose.</td></tr>
+        <tr><td>Embedding, retrieval, ranking, budget</td><td colspan="2" style="text-align:center"><strong>identical — same service, same code path, same audit row</strong></td></tr>
+        <tr><td>Who injects</td><td>the hook, client-side</td><td>the gateway, in-flight</td></tr>
+        <tr><td>Why it must be that way</td><td>Claude Code owns the transcript; injecting elsewhere makes the transcript lie</td><td>no hook layer exists; no transcript exists to diverge from</td></tr>
+        <tr><td>Cache consequence</td><td>injection enters the prefix, read at 0.1× thereafter</td><td>no next turn, so caching is irrelevant</td></tr>
+        <tr><td>Failure surface</td><td>hook fails → prompt proceeds bare, alert raised</td><td>gateway fails → request proceeds bare, alert raised</td></tr>
       </tbody>
     </table>
   </div>
 
-  <h3>New infrastructure required</h3>
-  <ol>
-    <li>An <code>/v1/enrich</code> endpoint in Loom, returning ranked passages with provenance</li>
-    <li>Relevance threshold calibration, with an evaluation harness — see section 9</li>
-    <li>An injection budget policy, expressed per lane</li>
-    <li>Cache invalidation when source files change (filesystem watcher bumping a content hash)</li>
-    <li>A provenance format so injected passages remain attributable inside the context</li>
-    <li>Metrics covering injection rate, score distribution, cache hit rate <strong>and measured outcome</strong></li>
-  </ol>
+  <div class="note">
+    <h4>Could the paths be unified anyway?</h4>
+    <p>Yes, in one direction only: <strong>give Nexus jobs a hook layer</strong>. Nexus already forks Claude sessions through the Styx bridge, and those forked sessions do have hooks. If pipeline jobs were launched with the same hook set as interactive lanes, the gateway injection path could be deleted entirely and Loom would be purely a service. That is a genuinely attractive endgame and it costs nothing to keep the door open. It should not be attempted first, because it couples the Loom build to a Nexus refactor, and because the gateway path is the cheaper of the two to write.</p>
+    <p>Unifying in the <em>other</em> direction — routing interactive lanes through gateway injection to match Nexus — is the twelvefold-cost mistake. It should be named explicitly so nobody proposes it later as a simplification.</p>
+  </div>
+
+  <div class="note bad">
+    <h4>An unrelated defect this question exposed</h4>
+    <p>Investigating the Styx path turned up something worth fixing regardless of Loom. The bridge exports only the tmux session and Alfred directory to forked sessions, so <strong>pipeline-forked Claude sessions are untelemetered by construction</strong> — they never inherit the proxy base URL. Separately, no settings file sets that variable, so a bare <code>claude</code> invocation bypasses the usage proxy entirely. Neither is a Loom problem. Both mean the current telemetry picture has holes in it that any future measurement would inherit.</p>
+  </div>
 </section>
 
 <!-- 8 -->
 <section>
-  <div class="sec-head"><span class="num">08</span><h2>Risks, in order of severity</h2></div>
+  <div class="sec-head"><span class="num">08</span><h2>Q9 and Q15 — per-Archon stores, and the routing layer that chooses among them</h2></div>
+  <p>The cloning programme is the strongest argument for this whole design, and the current state of the per-Archon knowledge layer is worse than it appears from the launcher configuration.</p>
 
-  <div class="card">
-    <div class="cap">Latency budget — the synchronous path must stay under roughly 300 ms</div>
-    <div class="lat">
-      <div class="lat-row"><span class="lat-name">Budget ceiling</span><div class="lat-bar"><div class="lat-in" style="width:1%;background:var(--ink3)"></div></div><span class="lat-v">300 ms</span></div>
-      <div class="lat-row"><span class="lat-name">Existing hook</span><div class="lat-bar"><div class="lat-in" style="width:1.6%;background:var(--good)"></div></div><span class="lat-v">&lt;500 ms</span></div>
-      <div class="lat-row"><span class="lat-name">Qdrant search</span><div class="lat-bar"><div class="lat-in" style="width:10%;background:var(--warn)"></div></div><span class="lat-v">2–3 s</span></div>
-      <div class="lat-row"><span class="lat-name">Graphiti traversal</span><div class="lat-bar"><div class="lat-in" style="width:100%;background:var(--bad)"></div></div><span class="lat-v">20–30 s</span></div>
-    </div>
-  </div>
-  <p>The graph layer is <strong>two orders of magnitude</strong> over any acceptable synchronous budget. It cannot sit on the prompt path. The workable arrangement is Qdrant synchronously within a hard timeout, with Graphiti running asynchronously and its results arriving on a later turn.</p>
-
+  <h3>What is actually there, measured</h3>
   <div class="tw">
     <table>
-      <thead><tr><th>Risk</th><th>Severity</th><th>Mitigation</th></tr></thead>
+      <thead><tr><th>Namespace</th><th>Graphiti entities</th><th>Qdrant sessions</th><th>Qdrant context / research / codebase</th></tr></thead>
       <tbody>
-        <tr><td>Injecting into the system prompt destroys the cache</td><td><strong>critical</strong></td><td>Never touch <code>system</code> or <code>tools</code>. Append a <code>role:"system"</code> message. Verify with <code>cache_read_input_tokens</code>.</td></tr>
-        <tr><td>Prompt injection carried in retrieved files</td><td>high</td><td>Use the system-role operator channel, never a user turn. Frame retrieved material explicitly as data, with provenance.</td></tr>
-        <tr><td>Retrieval poisoning — irrelevant context degrades output</td><td>high</td><td>A hard relevance floor. A low-scoring passage must be dropped, never included speculatively.</td></tr>
-        <tr><td>Loom's audit has no cache-token fields</td><td>high</td><td>Its schema records only <code>tokens_in</code> and <code>tokens_out</code>. Extend it — the contract explicitly permits extra fields — before routing anything through it.</td></tr>
-        <tr><td>Retrieval fails and the bare prompt is sent</td><td><strong>guardrail</strong></td><td>Must raise an alert. Under the No Silent Degradation rule a failed enrichment is a visible defect, never a quiet fallback.</td></tr>
-        <tr><td>Non-reproducibility — same prompt, different context</td><td>medium</td><td>Log the exact injection against each request identifier so any turn can be replayed.</td></tr>
-        <tr><td>Licence</td><td>contractual</td><td>PolyForm Internal Use 1.0.0 — internal use only. <strong>Never embed in DwarfCron/Chronicler</strong>, which is a portfolio deliverable.</td></tr>
-        <tr><td>OAuth token visible in the audit log</td><td>high</td><td>Loom forwards the Authorization header and Claude Code authenticates by OAuth. Configure scanner redaction <em>before</em> first use.</td></tr>
+        <tr><td class="m">jarvis-core</td><td class="n">6,467</td><td class="n">608</td><td class="n">5,210 / 1,224 / 2,014</td></tr>
+        <tr><td class="m">jaques-core</td><td class="n">439</td><td class="n">109</td><td class="n">0 / 0 / 0</td></tr>
+        <tr><td class="m">genie-core</td><td class="n">305</td><td class="n">96</td><td class="n">0 / 0 / 0</td></tr>
+        <tr><td class="m">urist-core</td><td class="n">does not exist</td><td class="n">unbacked</td><td class="n">—</td></tr>
       </tbody>
     </table>
+  </div>
+
+  <div class="note bad">
+    <h4>Two configuration defects, found while grounding this answer</h4>
+    <p><strong>Urist's RAG namespace points at nothing.</strong> The launcher exports a collection name that does not exist in Qdrant and is not in the server's list of valid collections. Meanwhile the JICM config has explicit cases for Genie and Jacques but none for Urist, so Urist falls through to the default — meaning <strong>Urist's checkpoints are being written into Jarvis's namespace</strong>. Urist has never written a Graphiti episode at all, which is consistent.</p>
+    <p>Beyond that: <strong>only the JICM session path ever writes.</strong> Every per-Archon context, research and codebase collection is empty. The discretisation of memory that the cloning programme is meant to deliver currently exists as configuration, not as data.</p>
+  </div>
+
+  <h3>Q15 — the routing layer, and why it has to be built rather than configured</h3>
+  <p>Sir asked whether something tells Loom which stores to search and which tags to filter on. Today, nothing does, and the reason is structural:</p>
+  <div class="note warn">
+    <h4>There is no payload filtering on retrieval anywhere in the RAG server</h4>
+    <p>Qdrant's filter primitives are imported, but they are used <em>only</em> for deduplication and deletion. Neither search path passes a query filter. <strong>Isolation today is by collection, and by nothing else.</strong> The payload written at ingest carries text, source, chunk index, hashes and file metadata — and <strong>no Archon field, no lane field, no tag field</strong>. The one exception is that JICM's auto-ingest writes a <code>session_id</code>, which is the single field that could support per-session or per-Archon filtering today. No search path reads it.</p>
+  </div>
+
+  <p>So the routing layer has a real choice to make, and it should be made deliberately:</p>
+  <div class="ledger">
+    <div class="led">
+      <h4>Route by collection</h4>
+      <p class="big">works now</p>
+      <ul>
+        <li>Zero schema change; the multi-search tool already accepts a collection list</li>
+        <li>Hard isolation — an Archon cannot read what it was not pointed at</li>
+        <li>Coarse: a new axis means a new collection, and collections multiply</li>
+        <li>Cross-cutting queries need explicit fan-out</li>
+      </ul>
+    </div>
+    <div class="led">
+      <h4>Route by payload tag</h4>
+      <p class="big">needs a field</p>
+      <ul>
+        <li>Add <code>archon</code>, <code>lane</code>, <code>scope</code> and <code>tier</code> at ingest</li>
+        <li>Soft, composable isolation — one store, many views</li>
+        <li>Enables the thing Sir actually asked for: <em>core best-practice memory always reachable, Archon-specific memory elevated</em></li>
+        <li>Requires backfilling existing points, or accepting untagged legacy</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="note good">
+    <h4>Recommendation: both, in that order</h4>
+    <p>Ship the routing layer reading <strong>collections</strong> first, because it works against the system as it stands today and needs no migration. Add the payload fields at ingest <strong>immediately</strong> — from the first line of enrichment code — so that tagged data starts accumulating while the collection-based router is in service. Filtering by tag then becomes a change to a query, not a data migration. The mistake would be to design for tags and be unable to ship until Qdrant is backfilled.</p>
+    <p>The shape Sir described — core behavioural memory retrievable by everyone, Archon-specific knowledge elevated — is then expressible directly as a scored blend: search the shared <code>jarvis-context</code> tier and the requesting Archon's own tier, and apply a modest score premium to the Archon's own material rather than excluding the shared tier. Elevation by weighting, not by walling off. That also degrades gracefully for a brand-new Archon with an empty store, which walling off does not.</p>
   </div>
 </section>
 
 <!-- 9 -->
 <section>
-  <div class="sec-head"><span class="num">09</span><h2>The question nobody can answer yet</h2></div>
-  <div class="note warn">
-    <h4>Does injected context actually improve the output?</h4>
-    <p>There is no evidence either way in this workspace. Under the standing guidance on testing chaotic models, a single run cannot attribute a change — establishing this needs a fixed task set, K paired variants, and a signed-rank test, with injection on or off as the only varied factor.</p>
-    <p><strong>Build the evaluation harness before building the retriever.</strong> Without it the mesh is unfalsifiable: it will always <em>look</em> as though it is working, because context is visibly present, and no one will be able to say whether the answers got better. A system that cannot fail a test cannot pass one either.</p>
+  <div class="sec-head"><span class="num">09</span><h2>Q14 — does this quietly replace deliberate memory retrieval?</h2></div>
+  <p>This is the sharpest question in the set, and the concern is justified. A reflex that always fires does tend to displace the deliberate act it resembles. The answer is that the two must be <strong>separated by construction, not by discipline</strong>.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th></th><th>Reflexive (Tier B)</th><th>Intentional (MCP search)</th></tr></thead>
+      <tbody>
+        <tr><td>Who initiates</td><td>the hook, before the model sees the prompt</td><td>the model, mid-reasoning, as a tool call</td></tr>
+        <tr><td>What it optimises</td><td>breadth — "here is what may bear on this"</td><td>depth — "I need the answer to this specific question"</td></tr>
+        <tr><td>Query</td><td>the user's prompt, unmodified</td><td>a query the model composed deliberately</td></tr>
+        <tr><td>Budget</td><td>bounded per turn</td><td>bounded by the model's own judgement</td></tr>
+        <tr><td>Failure mode</td><td>dilution — irrelevant material crowds the window</td><td>omission — the model does not think to look</td></tr>
+        <tr><td>Marked in context as</td><td class="m">provenance-tagged, scored, attributed</td><td class="m">an ordinary tool result</td></tr>
+      </tbody>
+    </table>
   </div>
+
+  <p>They fail in <em>opposite</em> directions, which is exactly why keeping both is right. The reflex covers the model's blind spot — not knowing what it does not know to ask for. The deliberate call covers the reflex's blind spot — the query the prompt's surface form does not express.</p>
+
+  <div class="note">
+    <h4>Three concrete guarantees against displacement</h4>
+    <ul>
+      <li><strong>Reflexive material is labelled as such, always.</strong> Every injected passage carries its score, its source path and the fact that it arrived unbidden. The model can then discount it. Unlabelled injection is what would make deliberate search feel redundant.</li>
+      <li><strong>The reflex never answers a question — it only offers material.</strong> Its output is passages with provenance, never a synthesised claim. A summary would displace enquiry; a citation invites it.</li>
+      <li><strong>Instrument the interaction rather than assuming it.</strong> Log, per turn, whether an injection occurred and whether the model subsequently issued a deliberate search. If deliberate searches collapse once the reflex is on, that is a measurable regression and a reason to redesign — not an efficiency to celebrate. This is one of the data-gathering hooks Sir asked to retain in Q24.</li>
+    </ul>
+  </div>
+
+  <p>There is also a defect to fix in the current arrangement, which bears directly on this question. Track 4 of the existing hook does not retrieve — it <em>instructs the model to retrieve</em>. That is precisely the confusion of the two modes: a reflexive trigger wearing the costume of a deliberate act, spending the model's turn rather than the hook's. In the proposed design the reflex retrieves for itself, and the deliberate path is left to the model alone.</p>
 </section>
 
 <!-- 10 -->
 <section>
-  <div class="sec-head"><span class="num">10</span><h2>Phased plan</h2></div>
-  <div class="phases">
-    <div class="ph"><div class="ph-n">0</div><div class="ph-b"><h4>Reconcile the existing design documents</h4><p>Update the five documents from March in place, against what loom-oss has become. They are the institutional record; a sixth document would fragment it.</p></div></div>
-    <div class="ph"><div class="ph-n">1</div><div class="ph-b"><h4>Build the evaluation harness first</h4><p>A fixed task set, paired on-and-off runs, and a scoring method — before any retriever exists to be flattered by it.</p></div></div>
-    <div class="ph"><div class="ph-n">2</div><div class="ph-b"><h4>Deploy Loom inert</h4><p>Port 4444, SQLite backend, no lane routed to it. Confirm health endpoint and dashboard.</p><span class="ph-gate">gate: /health responds</span></div></div>
-    <div class="ph"><div class="ph-n">3</div><div class="ph-b"><h4>Extend the audit schema</h4><p>Add cache-token fields, so the telemetry Aion already depends on survives the transition.</p><span class="ph-gate">gate: cache_read_input_tokens present</span></div></div>
-    <div class="ph"><div class="ph-n">4</div><div class="ph-b"><h4>Implement /v1/enrich</h4><p>Qdrant only. Hard latency budget. No graph traversal on the synchronous path.</p><span class="ph-gate">gate: p95 under 300 ms</span></div></div>
-    <div class="ph"><div class="ph-n">5</div><div class="ph-b"><h4>Rewire the hook, one lane only</h4><p>Point <code>relevance-retrieval.js</code> at the service on a single low-value lane — not W0, not Genie.</p><span class="ph-gate">gate: cache hit rate unchanged from baseline</span></div></div>
-    <div class="ph gate"><div class="ph-n">6</div><div class="ph-b"><h4>A/B test — the hard gate</h4><p>Run the harness from phase 1. If paired testing shows no improvement, <strong>stop and redesign the retrieval approach</strong>. Do not ship it merely because the infrastructure now exists.</p><span class="ph-gate">gate: measured improvement, or stop</span></div></div>
-    <div class="ph"><div class="ph-n">7</div><div class="ph-b"><h4>Roll out and wire Nexus</h4><p>Remaining lanes, then point Nexus at the four stable endpoints — an API whose own documentation calls it the "Core Nexus contract."</p></div></div>
-    <div class="ph"><div class="ph-n">8</div><div class="ph-b"><h4>Revive the training-capture design</h4><p>The original March intent, now far cheaper because Loom's audit layer already records what those documents proposed instrumenting by hand.</p></div></div>
+  <div class="sec-head"><span class="num">10</span><h2>Q10, Q11, Q12 — freshness, bloat, and bad knowledge</h2>
   </div>
+  <p>These three are one problem viewed from three angles, and the current ingestion path answers none of them. It is worth being precise about what exists, because the gaps are specific.</p>
+
+  <h3>What ingestion actually does today</h3>
+  <div class="pipe">
+    <div class="pipe-row"><div class="pipe-k">Trigger</div><div class="pipe-v">the JICM actuator, at clear time. <span class="seg seg-no">not cron</span> <span class="seg seg-no">not launchd</span> <span class="seg seg-no">no repo sweeping</span></div></div>
+    <div class="pipe-row"><div class="pipe-k">Input</div><div class="pipe-v">exactly one file — the compressed checkpoint for that lane</div></div>
+    <div class="pipe-row"><div class="pipe-k">Dedup</div><div class="pipe-v">embeds <strong>the first 500 characters only</strong>, top-1 query, unfiltered, skips the entire ingest at score ≥ 0.92</div></div>
+    <div class="pipe-row"><div class="pipe-k">Staleness</div><div class="pipe-v">deletes prior points matching the same source path, then upserts</div></div>
+    <div class="pipe-row"><div class="pipe-k">Eviction</div><div class="pipe-v"><span class="seg seg-no">no TTL</span> <span class="seg seg-no">no age pruning</span> <span class="seg seg-no">no reconciliation against source files</span></div></div>
+  </div>
+
+  <div class="note bad">
+    <h4>Two consequences that are not obvious from the code</h4>
+    <p>Because the checkpoint path is a <em>fixed per-lane filename</em>, each cycle's delete-then-upsert overwrites the last. <strong>Only the most recent checkpoint per lane survives.</strong> The session store is not a history; it is a set of five current snapshots. And because dedup embeds only the first 500 characters, two checkpoints that open with the same boilerplate header will be judged duplicates regardless of what follows — <strong>a whole session can be silently discarded on the strength of its first paragraph</strong>. An <code>ingested_at</code> timestamp is written and never read.</p>
+  </div>
+
+  <h3>Q10 — what keeps it fresh</h3>
+  <p>Freshness needs to be separated into two questions that are usually conflated. <em>Is the index aware of a change?</em> and <em>does retrieval prefer the newer thing?</em></p>
+  <ul>
+    <li><strong>Awareness.</strong> The honest answer for the document corpus is that nothing watches it. A filesystem watcher over <code>.claude/context/**</code> that enqueues changed paths for re-embedding is the minimum viable mechanism, and it is small. Ingest is already keyed by source path with delete-before-upsert, so re-ingesting a changed file is correct by construction — the hard part is only noticing.</li>
+    <li><strong>Preference.</strong> Even a perfectly fresh index will happily return a superseded document, because cosine similarity has no opinion about time. Retrieval should apply an explicit recency term, and it should be a <em>tunable</em> one rather than a hidden constant. Loom's own compression module already does exactly this shape of thing — it computes an age ratio and discounts by it — so the pattern is present in the codebase to borrow.</li>
+  </ul>
+
+  <h3>Q11 — what keeps it from bloating</h3>
+  <p>Bloat has a natural bound here that is easy to miss: <strong>the corpus is 6.4 MB of Markdown, and it is not growing quickly.</strong> Embedding all 409 files at 2560 dimensions is a few hundred megabytes of vectors at most. The store is not where bloat will come from. It will come from <em>derived</em> material — checkpoints, scrollback summaries, digests — which is generated automatically, forever, at a rate set by session activity rather than by human authorship.</p>
+  <div class="note">
+    <h4>So bound the derived tier, not the authored one</h4>
+    <ul>
+      <li><strong>Authored documents</strong> — the 409 files — need no eviction policy. They are bounded by human effort and they are the material most worth retrieving.</li>
+      <li><strong>Derived artefacts</strong> need a retention policy from day one: an age horizon, a per-lane cap, or both. The current implicit policy, "keep exactly one per lane forever", is a policy by accident rather than design, and it discards history that would be valuable.</li>
+      <li><strong>Read the payload before deciding.</strong> The March quality-signal document already specifies a retention floor and banded scoring for training captures. The same banding applies cleanly to retrieval material and should be reused rather than reinvented.</li>
+    </ul>
+  </div>
+
+  <h3>Q12 — what prunes or corrects bad knowledge</h3>
+  <p>This is the one with no existing answer at all, and it is the most important of the three, because a retrieval system that surfaces a confidently-worded wrong thing is worse than one that surfaces nothing.</p>
+  <p>Three distinct kinds of "bad" need three distinct mechanisms, and conflating them is why this problem usually goes unsolved:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Kind</th><th>Example from this workspace</th><th>Mechanism</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Superseded</strong> — was true, now false</td><td>the MLX leak figure in §03; the "Loom captures no cache tokens" claim in §00</td><td>Recency weighting plus an explicit supersedes link. Cheap, and the corpus already uses this idiom in prose.</td></tr>
+        <tr><td><strong>Wrong on arrival</strong></td><td>a checkpoint that hallucinated a task, as happened to this very session's checkpoint</td><td>Needs human or model signal. The March quality-signal weights are directly reusable — human disagreement is already the heaviest negative weight in that scheme.</td></tr>
+        <tr><td><strong>Misleading in context</strong> — true but wrong to surface here</td><td>a DwarfCron gotcha retrieved during infrastructure work</td><td>Not a correctness problem at all. This is the dilution problem, and it is answered in §17, not here.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note good">
+    <h4>The cheapest correction channel already exists</h4>
+    <p>Corrections are already captured — there is a hook that writes them and an append-only corrections log on disk. Nothing reads it back into retrieval. Wiring corrections in as a <strong>negative signal against retrieved passages</strong> closes the loop with material the workspace is already producing. That is a far better first move than building a curation UI, and it directly serves Q24's request to retain data-gathering opportunities.</p>
+  </div>
+
+  <h3>Q18 — memory footprint, and a correction to the standing belief</h3>
+  <p>The measurement in §03 matters here: at 24 hours, the embedding server is flat-with-collection at 2.5 GB and LiteLLM is flat at 290 MB. <strong>The leak reputation is not supported by today's numbers</strong>, and the recent kernel panic — which had been loosely associated with memory pressure — was root-caused to a logging watchdog with zero swapouts and 93 GB free. Memory was ruled out from the panic's own stackshot.</p>
+  <p>That does not make the design question moot. It relocates it:</p>
+  <ul>
+    <li><strong>Do not add a resident process if an existing one will do.</strong> The embedding server is already running and already loaded. Loom should call it rather than embed anything itself.</li>
+    <li><strong>Bound every cache explicitly at creation.</strong> Loom's compression cache is keyed by content hash and age ratio — a good shape, but a shape with no natural ceiling. Enrichment caches must be given one.</li>
+    <li><strong>Measure footprint, not resident size.</strong> The 850 MB peak-over-current gap in the embedding server would read as a leak from resident size alone. Growth-then-collection and a true leak look identical unless you watch the right instrument over a long enough window.</li>
+  </ul>
 </section>
 
 <!-- 11 -->
 <section>
-  <div class="sec-head"><span class="num">11</span><h2>Verdict</h2></div>
-  <p><strong>The diagnosis is right.</strong> Static memory surfaces less than one percent of the corpus, by a selection fixed in advance, and this very session produced a concrete instance of the resulting failure.</p>
-  <p><strong>The mechanism is right.</strong> System-role messages appended to the messages array are both cache-preserving and injection-safe. They are, in effect, purpose-built for this.</p>
-  <p><strong>The placement needs one inversion.</strong> Loom should be the retrieval service; the injection point for interactive lanes stays client-side in the hook, because Claude Code owns the transcript and the cache economics differ by roughly twelvefold. Loom still injects directly for single-shot Nexus callers, which have no hook layer and no transcript to diverge from.</p>
+  <div class="sec-head"><span class="num">11</span><h2>Q4, Q5, Q19, Q21 — failure, alerting, and the deliberate absence of latency controls</h2></div>
+
+  <div class="note good">
+    <h4>Q19 accepted, and it is the right call</h4>
+    <p>Revision 1's hard 300 ms budget is withdrawn. Building latency controls before there is latency data means encoding a guess as a constraint, and then measuring the system's compliance with the guess rather than its actual behaviour. <strong>The system runs at the pace it runs.</strong> What replaces the budget is not nothing — it is <em>instrumentation</em>: every retrieval records its wall-clock time, per store, per stage. When latency work eventually happens it will start from a distribution rather than an intuition.</p>
+    <p>One caveat worth stating plainly, since it is the cost of this choice: the Graphiti path takes twenty to thirty seconds. Running it synchronously on the prompt path will be <em>felt</em> immediately, on every prompt. The design response is not a timeout but a structural one — Qdrant is fast enough to be synchronous, Graphiti is not, so Graphiti results land as an asynchronous follow-up rather than blocking. That is a pipeline shape, not a latency control, and it survives Q19 intact.</p>
+  </div>
+
+  <h3>The anticipated failure points, and how each is caught</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Failure</th><th>Symptom if unhandled</th><th>Detection</th></tr></thead>
+      <tbody>
+        <tr><td>Embedding server down</td><td>every enrichment silently returns nothing; prompts proceed bare</td><td>Health probe already exists in the watcher's maintenance cycle. Enrichment records the failure per request and alerts.</td></tr>
+        <tr><td>Qdrant unreachable or collection missing</td><td>as above, and <em>this is live today</em> for Urist's unbacked collection</td><td>Validate collection names at service start, not at query time. Fail loudly at boot rather than quietly per request.</td></tr>
+        <tr><td>Retrieval returns nothing relevant</td><td>indistinguishable from retrieval not running</td><td>Log the score distribution, not just the selection. A run where the best score was 0.31 is a different event from a run that returned no candidates, and they must not look alike in the audit.</td></tr>
+        <tr><td>Injection lands in the wrong place</td><td>cache invalidation — a pure cost failure with no visible symptom</td><td><strong>Watch <code>cache_read_input_tokens</code> per lane.</strong> This is the canary and it already flows through the proxy into Postgres. A step change in cache reads after enabling enrichment is the signal.</td></tr>
+        <tr><td>Retrieved content impersonates the operator</td><td>prompt injection via a retrieved file</td><td>Carry retrieved text in the system-role channel, framed as data with provenance, never inside a user turn. Loom's scanner module provides redaction on top.</td></tr>
+        <tr><td>Enrichment cache serves stale passages</td><td>the freshness problem, but harder to see</td><td>Key the cache on content hash so a changed source cannot hit a stale entry.</td></tr>
+        <tr><td>The hook itself throws</td><td><strong>silent no-op — this is the current behaviour</strong></td><td>Fail loudly. See below.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Q21 — how alerts are raised, through what channel, to what effect</h3>
+  <p>Aion already has an alerting path, and the right answer is to use it rather than invent one. The JICM watcher delivers alerts into the W0 inbox through the inbox script with nudging suppressed, and it uses a circuit breaker — at most three fires per hour, per key — to keep a persistent fault from becoming a persistent nuisance. That is the mechanism the mesh should adopt wholesale.</p>
+
+  <div class="note warn">
+    <h4>What an alert must and must not do</h4>
+    <p>Per the No Silent Degradation guardrail: a failed enrichment <strong>alerts and the prompt proceeds bare</strong>. It does not block the prompt — refusing to serve the user because a retrieval layer is unavailable would be a worse failure than the one being reported. But it must never be quiet, and it must never be counted as a success. The distinction that matters is that <strong>a degraded turn is a visible defect that stays open</strong>, not a fallback that closes the incident.</p>
+    <p>Concretely: alert into the W0 inbox, rate-limited by the existing breaker; record the failure on the audit row so it is countable after the fact; and surface a running failure count on the dashboard. Three channels, three different latencies of attention — immediate, forensic, and ambient.</p>
+  </div>
+
+  <div class="note bad">
+    <h4>The guardrail is currently violated by our own launcher</h4>
+    <p>Grounding this answer surfaced a live instance of exactly the pattern Q21 is asking about. If the usage proxy's health check fails at launch, the launcher <strong>unsets the base URL and every lane launches straight to the upstream API</strong>. Sessions work perfectly. Telemetry stops entirely. Nothing alerts. That is No Silent Degradation violated by Aion's own code, and it should be fixed regardless of whether Loom is ever built — not least because every future measurement of this system would silently inherit the gap.</p>
+  </div>
+</section>
+
+<!-- 12 -->
+<section>
+  <div class="sec-head"><span class="num">12</span><h2>Q16, Q17, Q25 — telemetry, tunability, compression, and the knock-on benefits</h2></div>
+
+  <div class="note good">
+    <h4>Q17 answered first: enrichment does not sideline the rest of Loom, because most of the rest is already built</h4>
+    <p>The worry was that reflexive context enrichment would crowd out compression, telemetry, transparency and user tuning. Reading loom-oss closely, the opposite is true — <strong>those parts exist and enrichment is the part that does not.</strong> There is a working extractive compression engine, a real DLP scanner with configurable rules, a twelve-page React dashboard served from the gateway itself with no separate service, live configuration through a PATCH endpoint that takes effect without a restart, and a per-request header override. Enrichment is the missing feature in an otherwise furnished house.</p>
+  </div>
+
+  <h3>Q16 — the Pulse message-size chart, and a correction that changes its meaning</h3>
+  <p>Sir noted that Pulse already plots message size, that it is interesting, and that nothing consumes it. Two things need saying, and the first inverts the chart's meaning.</p>
+
+  <div class="note bad">
+    <h4>The chart plots input plus output tokens and excludes cache reads</h4>
+    <p>For a lane running at 99% cache hit rate, the plotted number is <strong>the uncached remainder — a few thousand tokens — while the real prompt is 300,000+</strong>. So the chart is not showing prompt size at all. It is showing <em>cache efficiency</em>. A spike on that chart does not mean a big prompt; it means a cache miss. That reading is considerably more useful than the one the label implies, and any decision logic built on the current interpretation would have been built on sand.</p>
+  </div>
+
+  <p>So: at what stage should enrichment assess size against the window? <strong>Not from that chart, and not from the proxy's telemetry at all</strong> — both are after the fact, and the proxy's data arrives only once the request has already been sent. The assessment has to happen in the hook, before assembly, and the hook already has the right instrument: JICM's gate computes live token totals from the transcript on every prompt, summing input, cache-read and cache-creation tokens. <strong>That number is the one to budget against</strong>, it is already computed once per prompt for other reasons, and reusing it costs nothing.</p>
+
+  <p>One thing the proxy is currently throwing away deserves fixing while this is in hand: the nested cache-creation object carries an ephemeral five-minute and one-hour breakdown, and the proxy stores only the flat sum. Loom-oss captures that breakdown. If any status display is showing an ephemeral percentage today, it is not coming from that database, and that should be verified rather than assumed.</p>
+
+  <h3>What should be exposed as tunable</h3>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Parameter</th><th>Why it must be tunable rather than fixed</th></tr></thead>
+      <tbody>
+        <tr><td class="m">relevance range</td><td>Per Q20, the useful line is to be discovered empirically. Start generous.</td></tr>
+        <tr><td class="m">passages per turn</td><td>The dilution control from §17. The single most consequential knob.</td></tr>
+        <tr><td class="m">token budget per injection</td><td>Absolute ceiling, independent of passage count.</td></tr>
+        <tr><td class="m">recency weight</td><td>The freshness term from Q10. Its correct value is unknown.</td></tr>
+        <tr><td class="m">own-Archon score premium</td><td>How strongly per-Archon memory is elevated over shared. §08.</td></tr>
+        <tr><td class="m">store fan-out set</td><td>Which collections this lane searches, and whether Graphiti participates.</td></tr>
+        <tr><td class="m">enrichment on/off, per lane</td><td>Non-negotiable. Every lane must be independently revertible without a restart.</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>Loom already supports all three tuning surfaces this needs — a config file with per-source sections, environment variables, and a live API that applies changes immediately. <strong>The tunability requirement is largely already met</strong>; what is needed is to route the new parameters through the existing mechanisms rather than inventing a parallel one.</p>
+
+  <h3>Q25 — secondary benefits that come along for the ride</h3>
+  <p>Token compression and cost tracking were the two already named. Grounding the codebase surfaced several more, and two of them are arguably worth more than the compression:</p>
+  <ul>
+    <li><strong>A DLP scanner across all Archon traffic.</strong> Redaction rules for keys, tokens, cards and identifiers, runtime-editable, tested on the streaming path. Given that this workspace is a public repository with a live credential store, a redaction layer between the Archons and the wire has standalone value. It is also the answer to revision 1's open question about OAuth appearing in audit logs — the mechanism exists and is configurable.</li>
+    <li><strong>A complete request audit with routing rationale.</strong> Seventeen fields per request including latency, provider, task classification, compression ratio and routing reason, plus a separate table recording routing decisions with a determinism score and the alternatives considered. This is the substrate Q22 needs, and it is already written.</li>
+    <li><strong>Reconciliation against the provider's own usage reporting</strong>, which is a correctness check on our telemetry that Aion does not currently have in any form.</li>
+    <li><strong>A twelve-page dashboard</strong> served by the gateway process itself, requiring no additional service to run or maintain.</li>
+    <li><strong>The March training-capture design becomes viable again.</strong> Its schema, quality-signal weights and curation gates were written against an executor's internals and stranded there. An audit layer that sees every request is a better foundation than the shell functions those documents specified.</li>
+  </ul>
+
+  <div class="note warn">
+    <h4>Two claims that cannot be made yet</h4>
+    <p>Compression savings and session tracking <strong>currently report zeros</strong> — the documentation states plainly that per-request savings are not yet recorded pending parity work. The one impressive-looking compression figure in the docs is explicitly illustrative rather than measured. <strong>No claim about token savings should be made from this codebase until real numbers are produced.</strong> Relatedly, the throttle governor is a settings and audit surface with no enforcement whatsoever — its own docstring says so, and its utilisation counters sit at zero by design. Neither is a defect; both are features that would be badly mis-sold if quoted as working.</p>
+  </div>
+</section>
+
+<!-- 13 -->
+<section>
+  <div class="sec-head"><span class="num">13</span><h2>Q20, Q22, Q24 — non-determinism, and gathering data without building a harness</h2></div>
+
+  <p>Q24's instruction shapes this whole section: build first, observe, then hypothesise. So what follows is not an experimental design. It is a list of <strong>what must be recorded from the first day so that experiments are possible later</strong>, which is a genuinely different thing and a much smaller commitment.</p>
+
   <div class="note">
-    <h4>The strongest argument for building it</h4>
-    <p>It is not token savings — those are marginal. It is that a system whose institutional memory is <strong>150 times larger than what it can see</strong> has a specific, addressable, measurable defect, and every piece of infrastructure needed to fix it is already running on this machine.</p>
+    <h4>Q22 is the most scientifically interesting question in the set</h4>
+    <p>Sir is right that the variance introduced by context enrichment is worth studying in its own right. It is also the thing most likely to be quietly lost: once enrichment is on, the same prompt yields different context, so <strong>every subsequent measurement of the system is measuring a moving target</strong>. Unless the movement is recorded, it is not merely unmeasured — it becomes unmeasurable retrospectively, because the inputs are gone.</p>
+  </div>
+
+  <h3>The record that makes later analysis possible</h3>
+  <p>Per enrichment, keyed by request identifier and joinable to the proxy's telemetry row:</p>
+  <div class="tw">
+    <table>
+      <thead><tr><th>Recorded</th><th>What it later enables</th></tr></thead>
+      <tbody>
+        <tr><td>The prompt hash and the embedding vector hash</td><td>Identifying repeat prompts across sessions — the natural experiment that occurs without anyone designing one.</td></tr>
+        <tr><td><strong>Every candidate considered, with its score</strong> — not only those selected</td><td>The distribution is the object of study. Recording only winners discards the denominator and makes threshold questions unanswerable.</td></tr>
+        <tr><td>Selection decisions and why each was made</td><td>Attribution when output quality changes.</td></tr>
+        <tr><td>Store, collection and filter used per candidate</td><td>Whether routing (§08) helps or hurts, per Archon.</td></tr>
+        <tr><td>Index state — a corpus generation counter</td><td>Distinguishing "the retriever behaved differently" from "the corpus changed underneath it". Without this the two are permanently confounded.</td></tr>
+        <tr><td>Wall-clock timing per stage</td><td>The latency distribution Q19 defers to. Free, if recorded from the start.</td></tr>
+        <tr><td>Whether the model then issued a deliberate search</td><td>The displacement check from §09.</td></tr>
+        <tr><td>Any correction subsequently logged against that turn</td><td>The negative-signal loop from Q12.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note good">
+    <h4>The one design property worth protecting now: replayability</h4>
+    <p>If the candidate set and scores are recorded, then <strong>a past turn can be re-scored under a new ranking policy without re-running the model</strong>. That single property converts an unfalsifiable system into one where a year of accumulated real traffic can be replayed against any future hypothesis, offline and at no API cost. It costs almost nothing to build in on day one and is close to impossible to retrofit, because the candidate sets were never kept.</p>
+    <p>This is what "retain focus on data-gathering opportunities" translates to concretely. Not a harness — a record complete enough that any harness built later has something real to run against.</p>
+  </div>
+
+  <p><strong>Q20 accepted.</strong> Start with a generous relevance range and no hard floor. The thing that makes this safe rather than reckless is the passage-count and token budgets: with a generous score range, the ceiling on how much material can arrive is what prevents dilution, not the floor on how good it must be. The floor can then be discovered from the recorded distribution rather than guessed in advance. Note that these two controls are not interchangeable — a floor filters by quality, a ceiling filters by volume, and it is the ceiling that bounds the failure mode the dog question is about.</p>
+</section>
+
+<!-- 14 -->
+<section>
+  <div class="sec-head"><span class="num">14</span><h2>Q1 — quarantining the build without losing the Archon feel</h2></div>
+  <p>The requirement has two halves in tension: minimal blast radius, but a real Archon environment rather than a toy. The good news is that Aion's lane architecture already provides most of the isolation, and it does so at <strong>launch time</strong>, which is the property that makes it trustworthy.</p>
+
+  <h3>Isolation that already exists per lane</h3>
+  <div class="pipe">
+    <div class="pipe-row"><div class="pipe-k">Process</div><div class="pipe-v">one tmux window, one Claude process, its own working directory</div></div>
+    <div class="pipe-row"><div class="pipe-k">Semantic</div><div class="pipe-v">its own Graphiti group and Qdrant collections, set by environment at launch</div></div>
+    <div class="pipe-row"><div class="pipe-k">Write scope</div><div class="pipe-v">Graphiti enforces cross-group writes at a <strong>single point</strong>, keyed off the launch environment — a lane cannot write outside its group</div></div>
+    <div class="pipe-row"><div class="pipe-k">Context</div><div class="pipe-v">its own JICM registry entry, thresholds, checkpoint and scratchpad</div></div>
+    <div class="pipe-row"><div class="pipe-k">Tools</div><div class="pipe-v">its own MCP config, passed explicitly per lane</div></div>
+  </div>
+
+  <div class="note good">
+    <h4>The recommendation: a real Archon lane, not a sandbox</h4>
+    <p>Create a <strong>Loom lane</strong> exactly as Urist, Genie and Jacques were created — its own window, its own Graphiti group, its own collections, its own JICM registry entry, its own MCP config. This gives the full Archon experience because it <em>is</em> the full Archon experience, and it inherits the isolation properties above by construction rather than by convention. Adding a namespace requires no schema change anywhere — one environment variable, and the Graphiti server resolves the rest.</p>
+    <p>Do this in preference to a separate repository or a container. A separate repo would sever the thing that makes the work valuable, since per Q23 the Aion codebase <em>is</em> the subject matter. A container would isolate the filesystem, which is not where the risk lives.</p>
+  </div>
+
+  <h3>Where the blast radius actually is</h3>
+  <p>Worth being precise, because the intuitive answer is wrong. The risk is not that Loom code damages files — that is what git is for. The three real exposures are:</p>
+  <ul>
+    <li><strong>Shared mutable state.</strong> Qdrant and Neo4j are shared services. A Loom lane writing experimental vectors into <code>jarvis-context</code> would pollute the store every other lane retrieves from. <em>Mitigation:</em> dedicated collections and group from the start, never the shared ones. This is configuration, and it is the single most important isolation decision.</li>
+    <li><strong>The prompt path.</strong> The moment enrichment is wired into a hook, it affects that lane's every prompt. <em>Mitigation:</em> enable per lane, and make the switch live rather than launch-time so a bad rollout is reverted in seconds rather than requiring a restart.</li>
+    <li><strong>Hook registration semantics.</strong> This one has bitten repeatedly and deserves stating: <strong>a hook's script body is live immediately, but its registration is only picked up at session start</strong>, and MCP or permission changes need a full restart. So an experimental hook that appears inert may become live for every lane at the next clear. <em>Mitigation:</em> register the enrichment hook in the Loom lane's own settings, never in the shared set, until it has earned promotion.</li>
+  </ul>
+
+  <p>For the service itself, Loom's own defaults suit staging well without modification: SQLite storage by default, no provider keys stored, and localhost binding with no authentication assumed. A staging instance is genuinely inert until a lane is pointed at it.</p>
+</section>
+
+<!-- 15 -->
+<section>
+  <div class="sec-head"><span class="num">15</span><h2>Q2 — Watcher, JICM, and how a mesh interacts with them</h2></div>
+
+  <div class="note warn">
+    <h4>First, an ambiguity that causes real confusion</h4>
+    <p>"Watcher" names <strong>two different things</strong>. The <em>daemon</em> is a 1,358-line script running under launchd, polling every five seconds, and it is the thing that actually acts. The <em>console</em> is a tmux window showing a read-only dashboard. They are not the same process and the dashboard does nothing. There are two further watchers besides — a Jarvis watcher and a cost-anomaly watcher, both separate again. Any statement about "the watcher" should say which.</p>
+  </div>
+
+  <h3>The cycle, as a sensor–signal–actuator loop</h3>
+  <div class="pipe">
+    <div class="pipe-row"><div class="pipe-k">1 Measure</div><div class="pipe-v">the JICM gate hook, on every prompt. Canonical source is the transcript, <strong>not</strong> the status line. Tokens = input + cache-read + cache-creation. Carries the previous value forward if usage is unreadable — never zero.</div></div>
+    <div class="pipe-row"><div class="pipe-k">2 Decide</div><div class="pipe-v">soft 300,000 / hard 330,000 absolute tokens, with per-lane overrides. Burn rate and estimated time to each threshold computed alongside.</div></div>
+    <div class="pipe-row"><div class="pipe-k">3 Signal</div><div class="pipe-v">the Stop hook writes a clear-now signal file for that lane key</div></div>
+    <div class="pipe-row"><div class="pipe-k">4 Fire</div><div class="pipe-v">the daemon validates — live raiser, occupies the pane, still over threshold — then spawns the actuator, double-gated</div></div>
+    <div class="pipe-row"><div class="pipe-k">5 Actuate</div><div class="pipe-v">wait for idle, ask the session to flush to scratchpad, refuse to clear without a non-empty anchor, write a lineage edge, fold in a transcript digest, then inject the clear</div></div>
+    <div class="pipe-row"><div class="pipe-k">6 Compress</div><div class="pipe-v">two tiers — fast extraction, then a local narrative model</div></div>
+    <div class="pipe-row"><div class="pipe-k">7 Ingest</div><div class="pipe-v">the checkpoint goes to Qdrant; a parallel path goes to Graphiti</div></div>
+  </div>
+
+  <h3>Where a mesh helps JICM</h3>
+  <ul>
+    <li><strong>It closes the loop JICM leaves open.</strong> JICM already writes checkpoints into the semantic store on every clear. Almost nothing reads them back — the restoration path reads the checkpoint <em>file</em>, not the store. A retrieval layer makes years of accumulated checkpoints reachable by relevance instead of by recency. <strong>The producer exists and the consumer does not; the mesh is the missing consumer.</strong></li>
+    <li><strong>It makes post-clear restoration semantic rather than positional.</strong> Today a cleared session gets its own most recent checkpoint. With retrieval it could get the checkpoints, from any lane and any date, that bear on what it is about to do.</li>
+    <li><strong>It reduces the pressure that drives clearing.</strong> Retrieval on demand is a substitute for keeping material resident, and resident material is what drives the token count toward the threshold.</li>
+  </ul>
+
+  <h3>Where they genuinely conflict, and it must be designed for</h3>
+  <div class="note bad">
+    <h4>Injection inflates the number that triggers compression</h4>
+    <p>The gate counts <em>everything</em> — input, cache reads, cache creation. Injected passages enter the transcript, so they count. <strong>Enrichment therefore accelerates the arrival of the clear threshold</strong>, and a lane with aggressive retrieval will clear more often than the same lane without it. That is not a bug to suppress; it is a real resource being consumed. But it must be <em>visible</em>: injected tokens should be attributable in the gate's accounting, so that a lane clearing twice as often is understood as a consequence of its retrieval budget rather than a mystery.</p>
+    <p>There is a second-order effect worth naming. More frequent clears mean more checkpoints, which means more ingested material, which means more retrievable context, which means more injection. <strong>That is a feedback loop</strong>, and while it is slow and mild, it is the same shape as the runaway the dog question is about — see §17.</p>
+  </div>
+
+  <p>One further interaction is favourable and worth exploiting. The clear cycle already produces a compressed narrative of the outgoing session using a local model, and already folds in a transcript digest. That machinery is a ready-made summarisation resource for retrieval material, running locally at no API cost. Retrieval should reuse it rather than building a parallel summariser.</p>
+</section>
+
+<!-- 16 -->
+<section>
+  <div class="sec-head"><span class="num">16</span><h2>Q3 — the two ports. Do not merge them.</h2></div>
+  <p>Three grounded reasons, and the question is far from irrelevant — getting it wrong later would be expensive to undo.</p>
+
+  <div class="ledger">
+    <div class="led win">
+      <h4>Port 9800 — the observer</h4>
+      <p class="big">stays in-path</p>
+      <ul>
+        <li>Contract is explicit: observes, does not modify</li>
+        <li>Three deliberate exceptions, all mechanical — header stripping, encoding rewrite, response header allowlist. Body relayed verbatim.</li>
+        <li>Captures cache read and cache write tokens today</li>
+        <li>Writes to Postgres with conflict-safe inserts</li>
+      </ul>
+    </div>
+    <div class="led lose">
+      <h4>Port 4444 — the mutator</h4>
+      <p class="big">sits beside the path</p>
+      <ul>
+        <li>Rewrites request bodies by design — that is its purpose</li>
+        <li>Compresses, enriches, routes, redacts</li>
+        <li>Genuinely free: nothing listens on it, no config binds it</li>
+        <li>Serves the hook over HTTP for interactive lanes</li>
+      </ul>
+    </div>
+  </div>
+
+  <p>The decisive argument is the second one. <strong>An observer's value comes entirely from the guarantee that it does not modify.</strong> Chaining a mutator behind it destroys that property permanently and quietly — every future question of the form "did the proxy see what the client sent?" becomes unanswerable. Two processes, two roles, one of which can be trusted absolutely.</p>
+
+  <p>Revision 1 offered a third reason that has to be withdrawn: that Loom's audit lacks cache fields and would therefore blind telemetry. That was wrong. Loom-oss captures the split end to end and even records the ephemeral breakdown the proxy discards. The argument against merging does not need it and is stronger without it.</p>
+
+  <p><strong>Topology:</strong> Loom sits beside the path as a retrieval service that the hook calls; the proxy remains the only thing in-path. Loom goes in-path only for single-shot Nexus jobs, which do not traverse the proxy anyway — which is itself a telemetry gap worth closing separately, per §07.</p>
+</section>
+
+<!-- 17 -->
+<section>
+  <div class="sec-head"><span class="num">17</span><h2>Q23 — scope, corrected</h2></div>
+  <p>Revision 1 framed this as an embargo and got the relationship backwards. The correct framing, in Sir's terms:</p>
+  <div class="note good">
+    <h4>Loom is a subsidiary component of Project Aion</h4>
+    <p>The codebase of every Archon, and every other Aion component, is <strong>integral to the Loom project itself</strong> — all of it in scope, as subject matter and as material. The single restriction runs the other way: Loom <em>mechanics</em> are not introduced into another project's shipped product unless that product is itself elevated to Archon status. Conceivable for Chronicler; not on its roadmap. <strong>Learnings, components, theories and resources arising from Loom are entirely fair use for improving other projects' products.</strong></p>
+  </div>
+  <p>This squares neatly with the licence, which permits internal use but not redistribution, resale, embedding in a product, or offering as a hosted service. Internal Aion use is precisely what it allows. The restriction Sir states on scope-of-mechanics is stricter than the licence requires, and it is the one to follow.</p>
+  <p>One consequence is worth drawing out, because it is the opposite of the caution revision 1 recommended: <strong>the defects catalogued throughout this document are not distractions from the Loom work — they are part of it.</strong> The unbacked Urist collection, the launcher's silent telemetry loss, the misread message-size chart, the session-unscoped retrieval state — each is a property of the system Loom is meant to serve, and each would corrupt Loom's own data if left in place.</p>
+</section>
+
+<!-- 18 -->
+<section>
+  <div class="sec-head"><span class="num">18</span><h2>The dog — designing a reflex that terminates</h2></div>
+
+  <p>The allegory does more work than it first appears to, and the reason is in what the two scenarios hold constant. Same person, same dog, same childhood memory, same pleasantness, same associative cascade. <strong>The retrieval is identical in both. Only the aim differs.</strong> In one case the aim is focus, and the memory is a defection from it. In the other the aim is diffuse and prosocial, and the same memory fulfils it.</p>
+
+  <div class="note bad">
+    <h4>The consequence is uncomfortable for the whole design</h4>
+    <p>Semantic similarity measures the relation between a passage and a prompt. In both scenarios that relation is unchanged. <strong>No embedding model, at any quality, can tell the two scenarios apart</strong>, because the difference is not in the material and not in the prompt — it is in the goal, which is nowhere in the input. Improving the retriever cannot fix this. The information required is simply absent.</p>
+    <p>That is the single most important thing this question exposes, and it means relevance has to be modelled as a <em>three-way</em> relation — passage, prompt, and <strong>aim</strong> — rather than the two-way relation every retrieval system defaults to.</p>
+  </div>
+
+  <h3>The pathologies, translated into mechanisms</h3>
+  <p>Sir's list is not metaphorical. Each named condition has a specific, buildable failure mode, and — usefully — a specific structural prevention. The distinction that matters throughout is that these are prevented <strong>by construction, not by tuning</strong>. A threshold can always be set wrong. A loop that cannot form cannot form.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Pathology</th><th>The mechanism that would produce it</th><th>Structural prevention</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Rumination</strong> — the unending chain of context-grabbing</td>
+          <td>Retrieved passages are themselves used as retrieval queries. Each hop is locally reasonable; the chain diverges.</td>
+          <td><strong>One hop, always.</strong> Retrieval never feeds retrieval. The query is the user's prompt and nothing else, ever. This is not a budget — it is an absence of the edge that would make a cycle possible.</td>
+        </tr>
+        <tr>
+          <td><strong>Hyperfixation</strong> — the same material, every turn, forever</td>
+          <td>Injected text enters the transcript, so next turn's context resembles it more closely, so it scores higher, so it is injected again. A genuine positive feedback loop.</td>
+          <td><strong>Embed the user's prompt only — never the transcript, never prior injections.</strong> The loop's return path is severed. Add a refractory period: a source recently injected is suppressed for a few turns. This is habituation, and it is what a healthy nervous system does with a repeated stimulus.</td>
+        </tr>
+        <tr>
+          <td><strong>Phobia and avoidance</strong></td>
+          <td>One heavily-weighted document dominates an entire trigger class — every mention of a word drags in the same incident report, indefinitely.</td>
+          <td><strong>Cap per-source dominance within a turn, and require diversity across the selected set.</strong> One source may not supply the whole budget. Decay the weight of material that is repeatedly surfaced and never acted upon.</td>
+        </tr>
+        <tr>
+          <td><strong>Decision paralysis</strong></td>
+          <td>Too many plausible passages, none decisive; the model spends its turn adjudicating context rather than working.</td>
+          <td><strong>A hard ceiling on passage count</strong> — the volume control from §13. Note this is the <em>ceiling</em>, not the floor, and it is why the generous relevance range Sir asked for in Q20 is safe.</td>
+        </tr>
+        <tr>
+          <td><strong>Dissociation</strong></td>
+          <td>Retrieval fails silently; the model reasons from context that was never delivered, and the transcript records conclusions without inputs.</td>
+          <td>Alert on failure, per §11. This is also precisely the transcript-divergence problem from §07 — the same defect arriving by two different routes.</td>
+        </tr>
+        <tr>
+          <td><strong>Intrusive recall</strong></td>
+          <td>Material arrives with the same authority as the user's own words, and cannot be discounted because its origin is invisible.</td>
+          <td><strong>Provenance on every passage, always.</strong> Score, source, and the fact that it arrived unbidden. Unlabelled context is indistinguishable from instruction — which is the prompt-injection problem and the psychological one having the same root.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note good">
+    <h4>The organising principle: a healthy reflex terminates</h4>
+    <p>Sir's own contrast contains the answer. The rational response to the mouse is <em>surprise, recognition, rational reaction</em> — three steps, and then it is <strong>over</strong>. The pathological response is characterised not by having been triggered but by <strong>failing to terminate</strong>. Fear, cascade, paralysis, and no exit.</p>
+    <p>So the design target is not a cleverer reflex. It is a reflex that is <strong>terminating by construction</strong>: one hop, bounded volume, habituating on repetition, labelled at delivery, and structurally incapable of triggering itself. Given those five properties, a badly-tuned retriever produces irrelevant context — which is annoying and visible and cheap. It cannot produce a spiral, because there is no path along which a spiral could propagate.</p>
+  </div>
+
+  <h3>The aim problem, and what can honestly be done about it</h3>
+  <p>The jog-versus-park distinction still needs answering, and it cannot be answered by retrieval quality. Three approaches, in increasing order of ambition and decreasing order of confidence:</p>
+  <ul>
+    <li><strong>Inherit the aim from the lane.</strong> Weak but free and available immediately. An Archon lane already <em>is</em> a declared purpose — that is the entire point of the cloning programme. Urist's aim is the fortress; Genie's is its project. Per-Archon store routing (§08) is therefore already a partial aim signal, arriving as a side effect of work that is happening anyway.</li>
+    <li><strong>Let the session declare its mode.</strong> A focused mode and an exploratory mode, differing in budget and in how much associative distance is tolerated. This is the jog and the park, made explicit rather than inferred. It is honest about the fact that the system cannot know the aim, and asks. It is also the only one of the three that would have distinguished Sir's two scenarios reliably, because the information genuinely lives with the person, not in the scene.</li>
+    <li><strong>Infer the aim from trajectory.</strong> Recent turns do carry evidence of whether the session is converging on a task or ranging across one. Attractive, and it should be recorded (§13) long before it is acted upon — inferring aim badly is worse than not inferring it, because it produces confident misdirection rather than mere noise.</li>
+  </ul>
+
+  <div class="note">
+    <h4>And one thing the system already has that a person does not</h4>
+    <p>The jogger cannot decline the memory — by the time it has surfaced, the focus is already broken. <strong>An Archon can.</strong> Retrieval offers material with provenance; the model decides whether it bears on the task and may disregard it in a sentence. The reflex is genuinely reflexive, but the response to it is not.</p>
+    <p>This is why §09's separation matters so much and why provenance is load-bearing rather than decorative: it preserves the step the pathological cases lack. Retrieval proposes. The model disposes. <strong>The failure mode to fear most is not retrieving the wrong thing — it is retrieving the wrong thing in a way that cannot be recognised as retrieved</strong>, because that is the one case where the deliberating step has nothing to work with.</p>
+  </div>
+</section>
+
+<!-- 19 -->
+<section>
+  <div class="sec-head"><span class="num">19</span><h2>Defects found while grounding these answers</h2></div>
+  <p>Answering the questions properly meant reading the running system rather than recalling it. Eight defects surfaced. None was being looked for. Per §17 they are in scope, and several would corrupt Loom's own data if left in place.</p>
+
+  <div class="tw">
+    <table>
+      <thead><tr><th>Defect</th><th>Effect</th><th>Bearing on Loom</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Launcher unsets the proxy URL on health-check failure</strong></td><td>Every lane launches straight to the upstream API. Sessions work; telemetry stops; nothing alerts.</td><td>Violates No Silent Degradation in our own code. Any measurement would silently inherit the gap. <strong>Fix regardless.</strong></td></tr>
+        <tr><td>Urist's RAG collection does not exist and is not a valid collection name</td><td>Urist's semantic namespace is unbacked.</td><td>Retrieval for that lane would fail at query time rather than at boot.</td></tr>
+        <tr><td>JICM config has no case for Urist</td><td>Urist's checkpoints are written into Jarvis's namespace.</td><td>Cross-Archon contamination of exactly the store the mesh would retrieve from.</td></tr>
+        <tr><td>Retrieval state file is not session-scoped</td><td>One file for all lanes, rewritten every prompt, with an unbounded list.</td><td>The re-injection suppression that §18 depends on does not currently work across lanes.</td></tr>
+        <tr><td>Every hook failure path swallows to an empty result</td><td>Silent no-op on any error.</td><td>Directly contrary to the Q21 alerting requirement.</td></tr>
+        <tr><td>Context-health monitor's projects directory is hardcoded to the old path</td><td>One of six health layers reports a wrong number here.</td><td>Health signals feed the watcher; a wrong input produces confident wrong output.</td></tr>
+        <tr><td>Styx-forked sessions inherit no proxy routing; no settings file sets it either</td><td>Pipeline sessions are untelemetered by construction.</td><td>A permanent hole in the data any future evaluation would draw on.</td></tr>
+        <tr><td>Auto-ingest dedup embeds only the first 500 characters</td><td>A whole session can be discarded on the strength of its opening paragraph.</td><td>Silent, unrecoverable loss of the material the mesh exists to retrieve.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note warn">
+    <h4>A pattern worth naming</h4>
+    <p>Six of the eight are <strong>silent</strong>. They do not fail; they succeed while doing nothing, or while doing something wrong. That is the same class as the cache-invalidation failure in §04 — a cost or correctness loss with no symptom at the point of use. It is worth taking as a standing lesson for the mesh itself: <strong>in this system, the dangerous defects are not the ones that throw.</strong></p>
+  </div>
+</section>
+
+<!-- 20 -->
+<section>
+  <div class="sec-head"><span class="num">20</span><h2>Revised plan — functional gates only</h2></div>
+  <p>Restructured per Q24. The evaluation harness is no longer first and no longer a gate. Every gate below is a <strong>functional</strong> check — does the thing work as specified — and none is a measured-improvement check.</p>
+
+  <div class="phases">
+    <div class="ph">
+      <div class="ph-n">0</div>
+      <div class="ph-b">
+        <h4>Fix the defects that would corrupt Loom's own data</h4>
+        <p>The launcher's silent telemetry loss, Urist's namespace, the session-unscoped retrieval state, the 500-character dedup window. These are prerequisites, not housekeeping — each one poisons the well the mesh drinks from.</p>
+        <span class="ph-gate">gate: each verified by observation, not by inspection</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">1</div>
+      <div class="ph-b">
+        <h4>Create the Loom lane</h4>
+        <p>A real Archon lane with its own window, Graphiti group, collections, JICM registry entry and MCP config. No schema change required anywhere.</p>
+        <span class="ph-gate">gate: lane writes to its own namespace and cannot write outside it</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">2</div>
+      <div class="ph-b">
+        <h4>Deploy Loom inert on 4444</h4>
+        <p>SQLite storage, no lane routed through it, scanner redaction configured <em>before</em> first use.</p>
+        <span class="ph-gate">gate: health endpoint and dashboard respond; nothing routes to it</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">3</div>
+      <div class="ph-b">
+        <h4>The enrichment endpoint — Qdrant only, collection routing, generous relevance range</h4>
+        <p>Records every candidate with its score, the stores queried, per-stage timing, and the corpus generation counter. Replayability is a requirement of this phase, not a later addition.</p>
+        <span class="ph-gate">gate: returns ranked passages with provenance; a past request can be re-scored offline from its own record</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">4</div>
+      <div class="ph-b">
+        <h4>Freshness and tagging</h4>
+        <p>Filesystem watcher over the context tree; Archon, lane, scope and tier fields written at ingest so tagged data accumulates while collection routing is still in service.</p>
+        <span class="ph-gate">gate: a changed file is retrievable in its new form; new points carry tags</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">5</div>
+      <div class="ph-b">
+        <h4>Wire the hook — Loom lane only</h4>
+        <p>Registered in that lane's own settings, never the shared set. One hop, prompt-only embedding, refractory suppression, per-source dominance cap, provenance on every passage.</p>
+        <span class="ph-gate">gate: cache-read tokens unchanged against baseline — the invalidation canary</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">6</div>
+      <div class="ph-b">
+        <h4>One production lane, with a live per-lane switch</h4>
+        <p>Enable and disable without a restart. Injected tokens attributable in JICM's accounting so a change in clear frequency is explicable.</p>
+        <span class="ph-gate">gate: revertible in seconds; clear-rate change accounted for</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">7</div>
+      <div class="ph-b">
+        <h4>Graphiti as an asynchronous second channel</h4>
+        <p>Results land as a follow-up rather than blocking the prompt. A pipeline shape, not a latency control.</p>
+        <span class="ph-gate">gate: structural results arrive and are attributable; prompt path unblocked</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">8</div>
+      <div class="ph-b">
+        <h4>Nexus — the gateway injection path and the four stable endpoints</h4>
+        <p>Also closes the Styx telemetry hole, which is a prerequisite for the pipeline path being measurable at all.</p>
+        <span class="ph-gate">gate: single-shot jobs enriched and audited end to end</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">9</div>
+      <div class="ph-b">
+        <h4>Revive the March training-capture design on the audit layer</h4>
+        <p>Its schema, quality-signal weights and curation gates carry over unchanged. Only the mechanisms — the shell capture function and the executor line-number call sites — are welded to Nexus internals and do not transfer.</p>
+        <span class="ph-gate">gate: captures land with quality bands populated</span>
+      </div>
+    </div>
+    <div class="ph">
+      <div class="ph-n">10</div>
+      <div class="ph-b">
+        <h4>Only now: hypotheses, and a harness built to test them</h4>
+        <p>By this point there is recorded behaviour, a replayable candidate archive, and real questions arising from observation rather than from imagination. The harness is built to those questions.</p>
+        <span class="ph-gate">not a gate — an instrument</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="note">
+    <h4>Held deliberately out of the plan</h4>
+    <p><strong>Mid-conversation tool reshaping</strong> (§06) is the most interesting capability found in this revision and it is not scheduled. It should wait until retrieval is trusted, because a system that adapts an Archon's <em>tools</em> on a misjudged signal fails considerably harder than one that adds an irrelevant paragraph. Designing Phase 3's response shape so it could carry tool hints later costs nothing now, and that is the whole of the accommodation being made for it.</p>
+  </div>
+</section>
+
+<!-- 21 -->
+<section>
+  <div class="sec-head"><span class="num">21</span><h2>Verdict</h2></div>
+  <p><strong>The diagnosis is right.</strong> Static memory surfaces under one percent of the corpus by a selection fixed in advance, and this document's own subject matter was surfaced by accident rather than by any memory tier.</p>
+  <p><strong>The mechanism is right.</strong> System-role messages appended to the messages array are cache-preserving and injection-safe. They are purpose-built for this.</p>
+  <p><strong>The placement needs one inversion.</strong> Loom is the retrieval service; injection for interactive lanes stays client-side in the hook, because Claude Code owns the transcript and the cache economics differ by roughly twelvefold. Loom injects directly only for single-shot callers, which have no hook layer and no transcript to diverge from.</p>
+  <p><strong>And the dog question changes the design more than the other twenty-five combined.</strong> Relevance cannot be a two-way relation between a passage and a prompt, because the two scenarios differ in neither. The reflex must instead be built so that it <em>terminates</em> — one hop, bounded volume, habituating, labelled, and structurally unable to trigger itself — and so that the deliberating step above it always retains the ability to decline what it is handed.</p>
+
+  <div class="note good">
+    <h4>The argument for building it</h4>
+    <p>Not token savings; those are marginal, and on this codebase they are currently unmeasured and reported as zero. It is that a system whose institutional memory is <strong>150 times larger than what it can see</strong> has a specific, addressable defect — and every piece of infrastructure needed to fix it is already running on this machine. What this revision adds is that the same investigation found <strong>eight silent defects</strong> in that infrastructure, which is itself an argument for the work: the mesh cannot be built without first making the system it retrieves from tell the truth.</p>
   </div>
 </section>
 
 <footer>
+  <div>Revision 2 — incorporates 25 follow-up questions and the allegorical question, 2026-08-27.</div>
+  <div>Four positions from revision 1 retracted at Sir's direction; one headline claim withdrawn as factually wrong. See §00.</div>
   <div>Companion document: <code>projects/project-aion/plans/loom-semantic-mesh-design.md</code></div>
   <div>Extends the five 2026-03-29 Loom documents in <code>alfred/.claude/context/systems/</code> — training capture, a complementary concern.</div>
   <div>Analysis only. No implementation performed. All figures measured on this workspace, 2026-08-27.</div>
