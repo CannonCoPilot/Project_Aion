@@ -83,13 +83,26 @@ export interface MessageSizes {
   status?: string;
   message?: string;
   window_start?: string;
+  /** Max of the LEGACY total_tokens (input+output), i.e. uncached remainder. */
   max_message_tokens?: number;
+  /** Max of raw_prompt_tokens — the real prompt size the model processed. */
+  max_raw_prompt_tokens?: number;
   message_count?: number;
   messages?: Array<{
     input_tokens: number;
     output_tokens: number;
     cache_read_tokens: number;
+    cache_write_tokens: number;
+    /**
+     * LEGACY: input + output. Excludes cache reads, so on a high-cache-hit
+     * lane this is the *uncached remainder*, not the message size.
+     */
     total_tokens: number;
+    /** input + cache_read + cache_write — what the model actually processed. */
+    raw_prompt_tokens: number;
+    raw_total_tokens: number;
+    /** cache_read / raw_prompt. null when the prompt is empty. */
+    cache_hit_ratio: number | null;
     model: string;
     timestamp: string;
   }>;

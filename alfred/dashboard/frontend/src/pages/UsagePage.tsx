@@ -947,8 +947,11 @@ function MessageSizesTooltip({ active, payload }: any) {
       <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 4 }}>
         {p.label} tokens
       </div>
+      <div style={{ color: '#f0b429' }}>
+        Raw prompt size: <span style={{ fontWeight: 600 }}>{p.rawCount}</span> msg
+      </div>
       <div style={{ color: '#A366AB' }}>
-        Current session: <span style={{ fontWeight: 600 }}>{p.sessionCount}</span> msg
+        Uncached remainder: <span style={{ fontWeight: 600 }}>{p.sessionCount}</span> msg
       </div>
       {p.q2 > 0 && (
         <div style={{ color: '#7dd3fc', fontSize: 11, marginTop: 4 }}>
@@ -986,6 +989,7 @@ function MessagePanel() {
 
   const messages = data?.messages ?? [];
   const sessionMax = data?.max_message_tokens ?? 0;
+  const rawMax = data?.max_raw_prompt_tokens ?? 0;
   const histBins = historical?.bins ?? [];
   const nSessions = historical?.n_sessions ?? 0;
   const histDays = historical?.days ?? 30;
@@ -1025,12 +1029,24 @@ function MessagePanel() {
     q0: number; q1: number; q2: number; q3: number; q4: number;
     q2Connector: number | null; // null at empty bins so the line draws gaps
     sessionCount: number;
+    rawCount: number;
     nSessionsWithMsgs: number;
   };
 
+  // TWO distributions over the same log-spaced grid:
+  //   sessionCount — legacy total_tokens (input+output). Excludes cache reads,
+  //                  so on a 99%-cache lane this is the UNCACHED REMAINDER.
+  //   rawCount     — raw_prompt_tokens (input+cache_read+cache_write), the size
+  //                  of the prompt the model actually processed.
+  // The gap between the two traces IS the cache. Expect rawCount to sit two or
+  // more bins to the right; if it does not, the lane is missing cache.
   const sessionBinCounts = new Array(histBins.length).fill(0);
+  const rawBinCounts = new Array(histBins.length).fill(0);
   for (const m of messages) {
     sessionBinCounts[binIndexFor(m.total_tokens)] += 1;
+    // Older payloads (pre-raw-token rollout) omit raw_prompt_tokens; fall back
+    // to the legacy value rather than binning undefined into bin 0.
+    rawBinCounts[binIndexFor(m.raw_prompt_tokens ?? m.total_tokens)] += 1;
   }
 
   // Show historical overlay only once at least one completed session exists.
@@ -1048,6 +1064,7 @@ function MessagePanel() {
     q4: showHistorical ? b.q4 : 0,
     q2Connector: showHistorical && b.q2 > 0 ? b.q2 : null,
     sessionCount: sessionBinCounts[i],
+    rawCount: rawBinCounts[i],
     nSessionsWithMsgs: b.n_sessions_with_msgs ?? 0,
   }));
 
@@ -1055,7 +1072,7 @@ function MessagePanel() {
   // the next power of 10 across all visible series so log gridlines stay clean.
   let yMax = 1;
   for (const b of chartData) {
-    for (const v of [b.sessionCount, b.q0, b.q1, b.q2, b.q3, b.q4]) {
+    for (const v of [b.sessionCount, b.rawCount, b.q0, b.q1, b.q2, b.q3, b.q4]) {
       if (v > yMax) yMax = v;
     }
   }
@@ -1075,9 +1092,26 @@ function MessagePanel() {
         </div>
       </div>
 
-      <div className="flex items-center justify-between mb-4 p-3 rounded bg-surface-2">
-        <span className="text-xs text-muted">Max message tokens (this session)</span>
-        <span className="text-lg font-mono font-semibold text-secondary">{formatTokens(sessionMax)}</span>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="flex flex-col gap-0.5 p-3 rounded bg-surface-2">
+          <span className="text-xs text-muted">Max raw prompt</span>
+          <span className="text-lg font-mono font-semibold" style={{ color: '#f0b429' }}>
+            {formatTokens(rawMax)}
+          </span>
+          <span className="text-[10px] text-faint">input + cache read + cache write</span>
+        </div>
+        <div className="flex flex-col gap-0.5 p-3 rounded bg-surface-2">
+          <span className="text-xs text-muted">Max uncached remainder</span>
+          <span className="text-lg font-mono font-semibold" style={{ color: '#A366AB' }}>
+            {formatTokens(sessionMax)}
+          </span>
+          <span className="text-[10px] text-faint">
+            input + output
+            {rawMax > 0 && sessionMax > 0 && (
+              <> · {((1 - sessionMax / rawMax) * 100).toFixed(1)}% cached</>
+            )}
+          </span>
+        </div>
       </div>
 
       <ResponsiveContainer width="100%" height={240}>
@@ -1200,6 +1234,29 @@ function MessagePanel() {
             legendType="none"
           />
 
+          {/* Layer 5.5: RAW PROMPT SIZE distribution — hollow amber outline, full bin
+              width, drawn behind the solid purple bars. Amber sits to the RIGHT of
+              purple by however much the cache is carrying; the horizontal gap between
+              the two traces is the cache, read directly off the axis. */}
+          {chartData.flatMap((b) => {
+            if (b.rawCount <= 0) return [];
+            return [
+              <ReferenceArea
+                key={`raw-${b.index}`}
+                x1={b.index - 0.45}
+                x2={b.index + 0.45}
+                y1={1}
+                y2={Math.max(b.rawCount, 1.05)}
+                fill="#f0b429"
+                fillOpacity={0.12}
+                stroke="#f0b429"
+                strokeOpacity={0.95}
+                strokeWidth={1.5}
+                ifOverflow="visible"
+              />,
+            ];
+          })}
+
           {/* Layer 6 (front): live current-session histogram bars. Equal pixel width via
               integer index x-coordinates; no Bar element required. */}
           {chartData.flatMap((b) => {
@@ -1226,8 +1283,15 @@ function MessagePanel() {
       {/* Legend */}
       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-muted">
         <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block w-3 h-2 border"
+            style={{ backgroundColor: 'rgba(240,180,41,0.12)', borderColor: '#f0b429' }}
+          />
+          Raw prompt size
+        </span>
+        <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-2 bg-purple-400/75 border border-purple-400" />
-          Current session
+          Uncached remainder
         </span>
         <span className="flex items-center gap-1.5">
           <span className="inline-block w-3 h-2 bg-sky-300/45 border border-sky-300" />
@@ -2856,6 +2920,226 @@ function RejectionsPanel() {
 
 // ── Main Page ──
 
+// ── Panel 4b: Raw Prompt vs Uncached Remainder ──
+//
+// Log-log scatter. One point per request in the current 5h window.
+//   x — raw_prompt_tokens: input + cache_read + cache_write. The prompt the
+//       model actually processed. The API is stateless, so the whole transcript
+//       is re-uploaded every turn; this is that size.
+//   y — total_tokens: input + output. What the Message Sizes histogram has
+//       always plotted. It EXCLUDES cache reads, so it is the uncached
+//       remainder, not the message size.
+//
+// Geometry does the explaining. The diagonal y = x is 0% cache: every token
+// paid fresh. Each decade BELOW it is another 90% served from cache. A healthy
+// interactive lane lives near the 99% guide, two decades under the diagonal.
+// A point climbing toward the diagonal is a cache miss, and on a 300K prompt
+// that is roughly a tenfold cost event for that turn.
+
+const CACHE_BANDS = [
+  { key: 'lo',   label: '<50% cached',   color: '#ef4444', test: (r: number | null) => r === null || r < 0.5 },
+  { key: 'mid',  label: '50-90%',        color: '#f0b429', test: (r: number | null) => r !== null && r >= 0.5 && r < 0.9 },
+  { key: 'high', label: '90-99%',        color: '#7dd3fc', test: (r: number | null) => r !== null && r >= 0.9 && r < 0.99 },
+  { key: 'top',  label: '≥99%',          color: '#34d399', test: (r: number | null) => r !== null && r >= 0.99 },
+];
+
+function CacheScatterTooltip({ active, payload }: any) {
+  if (!active || !payload?.length) return null;
+  const p = payload[0]?.payload;
+  if (!p) return null;
+  const pct = p.ratio === null ? '—' : `${(p.ratio * 100).toFixed(1)}%`;
+  return (
+    <div style={{
+      backgroundColor: '#1f2937',
+      border: '1px solid #374151',
+      borderRadius: '8px',
+      fontSize: '12px',
+      padding: '8px 12px',
+    }}>
+      <div style={{ color: '#9ca3af', fontSize: 11, marginBottom: 4 }}>{p.model}</div>
+      <div style={{ color: '#f0b429' }}>
+        Raw prompt: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTokens(p.x)}</span>
+      </div>
+      <div style={{ color: '#A366AB' }}>
+        Uncached: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{formatTokens(p.y)}</span>
+      </div>
+      <div style={{ color: '#34d399', marginTop: 4 }}>
+        Cache hit: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{pct}</span>
+      </div>
+      <div style={{ color: '#6b7280', fontSize: 10, marginTop: 4 }}>
+        {new Date(p.ts).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' })}
+      </div>
+    </div>
+  );
+}
+
+function CacheScatterPanel() {
+  const { data, isLoading } = useMessageSizes();
+
+  if (isLoading) {
+    return (
+      <div className="rounded-lg border border-default bg-surface-1 p-5">
+        <h3 className="text-sm font-semibold text-secondary mb-4">Raw Prompt vs Uncached</h3>
+        <div className="h-48 flex items-center justify-center text-faint text-sm">Loading...</div>
+      </div>
+    );
+  }
+
+  if (data?.status === 'no_proxy_data') {
+    return (
+      <div className="rounded-lg border border-default bg-surface-1 p-5">
+        <h3 className="text-sm font-semibold text-secondary mb-4">Raw Prompt vs Uncached</h3>
+        <NoProxyData message={data?.message} />
+      </div>
+    );
+  }
+
+  const messages = data?.messages ?? [];
+
+  // Log axes cannot take 0. Clamp to 1 — a request with no uncached remainder
+  // is real and must still plot, at the axis floor rather than not at all.
+  const points = messages.map((m) => ({
+    x: Math.max(m.raw_prompt_tokens ?? m.total_tokens, 1),
+    y: Math.max(m.total_tokens, 1),
+    ratio: m.cache_hit_ratio ?? null,
+    model: m.model,
+    ts: m.timestamp,
+  }));
+
+  if (!points.length) {
+    return (
+      <div className="rounded-lg border border-default bg-surface-1 p-5">
+        <h3 className="text-sm font-semibold text-secondary mb-4">Raw Prompt vs Uncached</h3>
+        <NoProxyData message="No requests captured in the current window yet." />
+      </div>
+    );
+  }
+
+  // Square the domain across both axes so the y = x diagonal reads at 45°.
+  // A skewed box would make the cache guides lie about their slope.
+  const maxV = Math.max(...points.map((p) => Math.max(p.x, p.y)));
+  const axMax = Math.pow(10, Math.ceil(Math.log10(Math.max(maxV, 10))));
+  const axMin = 1;
+
+  // Recharts auto-ticks a log axis poorly — it produced a single label on a
+  // six-decade range. Tick every decade explicitly so both axes stay readable
+  // and the 45° guides can be verified by eye against the gridlines.
+  const decadeTicks: number[] = [];
+  for (let v = axMin; v <= axMax; v *= 10) decadeTicks.push(v);
+
+  const guides = [
+    { div: 1,    label: '0% cached',  dash: '4 4' },
+    { div: 10,   label: '90%',        dash: '2 5' },
+    { div: 100,  label: '99%',        dash: '2 5' },
+  ];
+
+  const banded = CACHE_BANDS.map((b) => ({
+    ...b,
+    data: points.filter((p) => b.test(p.ratio)),
+  })).filter((b) => b.data.length > 0);
+
+  const withRatio = points.filter((p) => p.ratio !== null);
+  const medianRatio = withRatio.length
+    ? [...withRatio].sort((a, b) => (a.ratio! - b.ratio!))[Math.floor(withRatio.length / 2)].ratio!
+    : null;
+
+  return (
+    <div className="rounded-lg border border-default bg-surface-1 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-secondary">Raw Prompt vs Uncached</h3>
+        <div className="text-xs text-muted">
+          <span className="font-mono">{points.length}</span> requests
+          {medianRatio !== null && (
+            <span className="font-mono"> · median {(medianRatio * 100).toFixed(1)}% cached</span>
+          )}
+        </div>
+      </div>
+
+      <ResponsiveContainer width="100%" height={280}>
+        {/* right margin leaves room for the guide labels, which sit at the
+            top-right end of each isoline and were otherwise clipped. */}
+        <ScatterChart margin={{ top: 8, right: 46, bottom: 18, left: -5 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+          <XAxis
+            type="number"
+            dataKey="x"
+            scale="log"
+            domain={[axMin, axMax]}
+            ticks={decadeTicks}
+            allowDataOverflow={false}
+            tick={{ fill: '#6b7280', fontSize: 10 }}
+            tickFormatter={(v) => formatTokens(Number(v))}
+            label={{
+              value: 'Raw prompt tokens',
+              position: 'insideBottom',
+              offset: -10,
+              fill: '#6b7280',
+              fontSize: 10,
+            }}
+          />
+          <YAxis
+            type="number"
+            dataKey="y"
+            scale="log"
+            domain={[axMin, axMax]}
+            ticks={decadeTicks}
+            allowDataOverflow={false}
+            tick={{ fill: '#6b7280', fontSize: 10 }}
+            tickFormatter={(v) => formatTokens(Number(v))}
+          />
+          <Tooltip cursor={{ strokeDasharray: '3 3', stroke: '#374151' }} content={CacheScatterTooltip as any} />
+
+          {/* Cache isolines: y = x / 10^k. Each decade below the diagonal is
+              another 90% of the prompt served from cache. */}
+          {guides.map((g) => (
+            <ReferenceLine
+              key={`guide-${g.div}`}
+              segment={[
+                { x: axMin * g.div, y: axMin },
+                { x: axMax, y: axMax / g.div },
+              ]}
+              stroke={g.div === 1 ? '#9ca3af' : '#4b5563'}
+              strokeDasharray={g.dash}
+              strokeWidth={g.div === 1 ? 1.25 : 1}
+              ifOverflow="visible"
+              label={{
+                value: g.label,
+                position: 'insideTopRight',
+                fill: '#6b7280',
+                fontSize: 9,
+              }}
+            />
+          ))}
+
+          {banded.map((b) => (
+            <Scatter
+              key={b.key}
+              name={b.label}
+              data={b.data}
+              fill={b.color}
+              fillOpacity={0.75}
+              isAnimationActive={false}
+            />
+          ))}
+        </ScatterChart>
+      </ResponsiveContainer>
+
+      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-[10px] text-muted">
+        {CACHE_BANDS.map((b) => (
+          <span key={b.key} className="flex items-center gap-1.5">
+            <span
+              className="inline-block w-2 h-2 rounded-full"
+              style={{ backgroundColor: b.color }}
+            />
+            {b.label}
+          </span>
+        ))}
+        <span className="text-faint ml-auto">Further below the diagonal = more cache</span>
+      </div>
+    </div>
+  );
+}
+
 export default function UsagePage() {
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -2888,6 +3172,9 @@ export default function UsagePage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <ModelUsagePanel />
         <MessagePanel />
+      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <CacheScatterPanel />
       </div>
 
       {/* History — across-window allotment + temporal patterns */}

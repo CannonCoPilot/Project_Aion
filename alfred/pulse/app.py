@@ -2641,14 +2641,38 @@ async def usage_message_sizes():
 
     messages = []
     max_tokens = 0
+    max_raw_prompt = 0
     for r in rows:
-        total = (r["input_tokens"] or 0) + (r["output_tokens"] or 0)
+        inp = r["input_tokens"] or 0
+        out = r["output_tokens"] or 0
+        c_read = r["cache_read_tokens"] or 0
+        c_write = r["cache_write_tokens"] or 0
+
+        # `total_tokens` is the LEGACY field: input + output only. It excludes
+        # cache reads, so for a high-cache-hit lane it is the *uncached
+        # remainder*, not the message size. Kept unchanged for the existing
+        # histogram; do not redefine it.
+        total = inp + out
+
+        # The real prompt the model actually processed. The API is stateless —
+        # the whole transcript is re-uploaded every turn — so the prompt is the
+        # sum of what was billed fresh, what was read from cache, and what was
+        # written to cache this turn.
+        raw_prompt = inp + c_read + c_write
+
         max_tokens = max(max_tokens, total)
+        max_raw_prompt = max(max_raw_prompt, raw_prompt)
         messages.append({
-            "input_tokens": r["input_tokens"] or 0,
-            "output_tokens": r["output_tokens"] or 0,
-            "cache_read_tokens": r["cache_read_tokens"] or 0,
+            "input_tokens": inp,
+            "output_tokens": out,
+            "cache_read_tokens": c_read,
+            "cache_write_tokens": c_write,
             "total_tokens": total,
+            "raw_prompt_tokens": raw_prompt,
+            "raw_total_tokens": raw_prompt + out,
+            # Fraction of the prompt served from cache. None (not 0) when the
+            # prompt is empty, so "no data" never plots as "0% cache hit".
+            "cache_hit_ratio": (c_read / raw_prompt) if raw_prompt > 0 else None,
             "model": r["model"],
             "timestamp": r["timestamp"].isoformat(),
         })
@@ -2656,6 +2680,7 @@ async def usage_message_sizes():
     return {
         "window_reset": current_reset.isoformat(),
         "max_message_tokens": max_tokens,
+        "max_raw_prompt_tokens": max_raw_prompt,
         "message_count": len(messages),
         "messages": messages,
     }
