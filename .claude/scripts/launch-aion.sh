@@ -936,15 +936,83 @@ preflight_services() {
         echo -e "    ${YELLOW}⚠${NC} Vite Dev Sidecar — not reachable on :8702 (hot-reload may be slow to start)"
         warnings=$((warnings + 1))
     fi
-    # Usage Proxy + failover
+    # ── Usage Proxy (:9800) ─────────────────────────────────────────────────
+    # This block used to be the worst kind of failure in the codebase: on a
+    # failed health check it silently `unset ANTHROPIC_BASE_URL`, every lane
+    # launched straight to api.anthropic.com, every session worked perfectly,
+    # and ALL cost/cache telemetry stopped with nothing but a yellow line in a
+    # scrolling pre-flight. `PROXY_OFFLINE` was set and read by nothing.
+    #
+    # That is No Silent Degradation violated by our own launcher. A safeguard
+    # may keep a run alive; it may NEVER quietly accept the degraded state.
+    # So: repair first, and if repair fails, be impossible to miss.
     if check_port 9800 "/health"; then
         echo -e "    ${GREEN}✓${NC} Usage Proxy (:9800)"
         export ANTHROPIC_BASE_URL="http://localhost:9800"
     else
-        echo -e "    ${YELLOW}⚠${NC} Usage Proxy DOWN — telemetry offline, routing direct to Anthropic"
-        unset ANTHROPIC_BASE_URL
-        PROXY_OFFLINE=true
-        warnings=$((warnings + 1))
+        # Step 1 — REPAIR. The proxy is a container we control, and the
+        # pre-flight header promises we auto-start those. It was the only such
+        # service left that we did not.
+        echo -e "    ${YELLOW}…${NC} Usage Proxy (:9800) not answering — starting container..."
+        docker start aifred-dev-usage-proxy >/dev/null 2>&1
+        local proxy_waited=0
+        while [[ $proxy_waited -lt 20 ]]; do
+            check_port 9800 "/health" && break
+            sleep 2; proxy_waited=$((proxy_waited + 2))
+        done
+
+        if check_port 9800 "/health"; then
+            echo -e "    ${GREEN}✓${NC} Usage Proxy (:9800) — recovered after ${proxy_waited}s"
+            export ANTHROPIC_BASE_URL="http://localhost:9800"
+        else
+            # Step 2 — ALERT. Repair failed. Telemetry loss is now a CRITICAL
+            # failure, not a warning, because it is invisible from inside a
+            # session: the lanes work, so nothing else will ever report this.
+            unset ANTHROPIC_BASE_URL
+            PROXY_OFFLINE=true
+            failures=$((failures + 1))
+            echo -e "    ${RED}✗${NC} ${RED}Usage Proxy DOWN after ${proxy_waited}s of repair attempts${NC}"
+            echo -e "      ${RED}EVERY LANE WILL RUN UNTELEMETERED.${NC} Sessions will work normally."
+            echo -e "      ${RED}No cost, cache or rate-limit data will be recorded for this run.${NC}"
+            echo -e "      Diagnose: ${CYAN}docker logs --tail 50 aifred-dev-usage-proxy${NC}"
+
+            # Durable alert — the pre-flight scrolls past, the inbox does not.
+            local inbox="$PROJECT_DIR/.claude/scripts/aion-inbox.sh"
+            if [[ -x "$inbox" ]]; then
+                printf '%s\n' \
+                    "Usage proxy :9800 failed its health check at launch and did NOT recover after ${proxy_waited}s of auto-start attempts." \
+                    "" \
+                    "ANTHROPIC_BASE_URL is unset, so every lane launched this run routes DIRECT to api.anthropic.com." \
+                    "Sessions work normally. Cost, cache and rate-limit telemetry are NOT being recorded." \
+                    "" \
+                    "This is a visible defect that stays OPEN until the proxy is restored." \
+                    "Diagnose: docker logs --tail 50 aifred-dev-usage-proxy" \
+                    "Restore:  docker start aifred-dev-usage-proxy" \
+                    | "$inbox" send w0 --from launch-aion --subject "TELEMETRY OFF — usage proxy down at launch" --no-nudge >/dev/null 2>&1
+            fi
+
+            # Step 3 — ACKNOWLEDGE. Never proceed untelemetered without someone
+            # knowing. Skipped when:
+            #   * stdin is not a TTY — headless/cron runs must never hang
+            #   * health-check mode — that is a diagnostic, not a launch
+            #   * AION_ALLOW_UNTELEMETERED=1 — explicit pre-authorisation
+            # NOTE: this must `exit`, not `return`. BOTH callers of
+            # preflight_services discard its return value, so a `return 1` here
+            # would abort nothing and the launch would proceed untelemetered —
+            # the very failure this block exists to prevent.
+            if [[ -t 0 \
+                  && "${HEALTH_CHECK_ONLY:-false}" != "true" \
+                  && "${AION_ALLOW_UNTELEMETERED:-0}" != "1" ]]; then
+                echo ""
+                echo -ne "  ${YELLOW}Launch anyway, with telemetry off? [y/N] ${NC}"
+                local proxy_ack=""
+                read -r proxy_ack
+                case "$proxy_ack" in
+                    y|Y|yes|YES) echo -e "  ${YELLOW}Acknowledged — continuing untelemetered.${NC}" ;;
+                    *) echo -e "  ${RED}Aborted. Restore the proxy and relaunch.${NC}"; exit 1 ;;
+                esac
+            fi
+        fi
     fi
     # Pipeline Watcher
     if check_container aifred-dev-pipeline; then
@@ -1812,11 +1880,28 @@ echo -e "${CYAN}Archon Service Summary:${NC}"
 echo -n "  Jarvis Infra : "; check_port 5432 && check_port 6333 "/collections" && check_port 7474 && echo -e "${GREEN}PG+Qdrant+Neo4j ✓${NC}" || echo -e "${YELLOW}partial${NC}"
 echo -n "  Alfred Pulse : "; check_port 8800 "/api/v1/health" && echo -e "${GREEN}:8800 ✓${NC}" || echo -e "${YELLOW}⚠${NC}"
 echo -n "  Dashboard    : "; check_port 8701 && echo -e "${GREEN}:8701 ✓${NC}" || echo -e "${YELLOW}⚠${NC}"
-echo -n "  Usage Proxy  : "; check_port 9800 "/health" && echo -e "${GREEN}:9800 ✓${NC}" || echo -e "${YELLOW}offline${NC}"
+echo -n "  Usage Proxy  : "
+if check_port 9800 "/health"; then
+    echo -e "${GREEN}:9800 ✓${NC}"
+else
+    echo -e "${RED}OFFLINE — lanes are running UNTELEMETERED${NC}"
+fi
 echo -n "  AI Services  : "; check_port 11434 "/api/version" && echo -n -e "${GREEN}Ollama${NC} " || echo -n -e "${YELLOW}Ollama?${NC} "
 check_port 8000 "/health" && echo -n -e "${GREEN}MLX${NC} " || echo -n -e "${YELLOW}MLX…${NC} "
 check_port 4000 "/v1/models" && echo -e "${GREEN}LiteLLM${NC}" || echo -e "${YELLOW}LiteLLM…${NC}"
 echo ""
+
+# PROXY_OFFLINE used to be set and read by nothing. It is now the last thing
+# printed, because a defect the operator scrolled past is a defect nobody has.
+if [[ "$PROXY_OFFLINE" == "true" ]]; then
+    echo -e "${RED}╔══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║  TELEMETRY IS OFF FOR THIS RUN                                   ║${NC}"
+    echo -e "${RED}║  The usage proxy did not come up. Lanes route direct to the API. ║${NC}"
+    echo -e "${RED}║  Cost, cache and rate-limit data are NOT being recorded.         ║${NC}"
+    echo -e "${RED}║  Restore: docker start aifred-dev-usage-proxy, then relaunch.    ║${NC}"
+    echo -e "${RED}╚══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+fi
 
 if [[ "$ITERM2_MODE" == "true" ]]; then
     echo "iTerm2 Integration Mode:"
