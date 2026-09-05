@@ -63,6 +63,30 @@ function normalizePath(filePath) {
   return filePath.replace(/^~/, process.env.HOME || '');
 }
 
+// ── Refusal shape ───────────────────────────────────────────────────────────
+// 🔴 2026-09-03: every refusal below used to `return { continue: false, reason }`.
+// For a PreToolUse hook that is the WRONG shape. `continue:false` is the blunt
+// "abandon the whole turn" escape hatch — the harness reports
+// "PreToolUse:Bash hook stopped continuation: Execution stopped by hook" and the
+// assistant's entire turn dies. Observed live the moment this guard was repaired:
+// a diagnostic command that merely CONTAINED the text of a dangerous pattern
+// killed the turn outright.
+//
+// The correct way to refuse ONE tool call is hookSpecificOutput.permissionDecision
+// = "deny", which declines that call, hands the model the reason, and lets the turn
+// continue so it can adapt. That is the difference between a guard and a kill switch.
+// `continue: true` is kept alongside it so the turn is explicitly allowed to proceed.
+function _deny(reason) {
+  return {
+    continue: true,
+    hookSpecificOutput: {
+      hookEventName: 'PreToolUse',
+      permissionDecision: 'deny',
+      permissionDecisionReason: reason
+    }
+  };
+}
+
 function isJarvisAllowed(filePath) {
   const normalized = normalizePath(filePath);
   return JARVIS_ALLOWED.some(p => p.test(normalized));
@@ -85,15 +109,61 @@ function containsCredentials(content) {
   return CREDENTIAL_PATTERNS.some(p => p.test(content));
 }
 
+// Returns the FIRST blocked-credential path referenced anywhere in a Bash command, or null.
+//
+// 🔴 REWRITTEN 2026-09-03. The previous version matched a fixed list of reader verbs
+// (cat/less/more/head/tail/vi/nano) and returned only the FIRST capture. It therefore missed
+// every other way a shell reads a file: `grep pat .env`, `< .env`, `cd dir && cat .env`,
+// `awk/sed/sort/tac/xxd/base64 .env`, `python -c "open('.env')"`, and any second path in a
+// command whose first path was innocent. Those gaps did not matter while the CLI's
+// `Read(**/.env)` deny rules were also in force. They matter now: those deny rules are being
+// removed because, as of CLI 2.1.259, their mere existence makes Claude Code prompt for any
+// Bash command whose cwd it cannot statically resolve — the interruption this whole change
+// exists to eliminate.
+//
+// So protection MOVES from the CLI layer to here, and this function has to be at least as
+// thorough as the rules it replaces. Verb matching cannot be, so it is abandoned: tokenize
+// the command and test EVERY token. A blocked path is blocked no matter which program touches
+// it or where it sits in the pipeline.
+//
+// Splitting on shell metacharacters (whitespace, ; | & < > ( ) and quotes) is what lets a
+// redirect target and a post-`&&` operand be seen at all. Tokens are stripped of a leading
+// `=` value form (`--file=.env`) since 2.1.259 called that case out explicitly.
 function extractBashReadPath(command) {
-  const patterns = [
-    /cat\s+([^\s|>]+)/, /less\s+([^\s]+)/, /more\s+([^\s]+)/,
-    /head\s+(?:-n\s+\d+\s+)?([^\s]+)/, /tail\s+(?:-n\s+\d+\s+)?([^\s]+)/,
-    /vim?\s+([^\s]+)/, /nano\s+([^\s]+)/
-  ];
-  for (const p of patterns) {
-    const m = command.match(p);
-    if (m) return m[1];
+  if (!command) return null;
+  let cmd = String(command);
+
+  // ── Strip heredoc BODIES before tokenizing ────────────────────────────────
+  // A heredoc body is DATA the command writes, not a path it reads. Without this the
+  // tokenizer flags any document that merely MENTIONS a blocked path — which it did
+  // immediately: appending a note containing the literal text "Read(**/.env)" to a scratchpad
+  // was denied as credential access. Blocking someone for writing the WORD is the difference
+  // between a guard and a censor, and it would have made this hook impossible to document.
+  //
+  // Matches `<<EOF`, `<<'EOF'`, `<<"EOF"`, `<<-EOF`, and removes through the closing
+  // delimiter (or to end-of-string if unterminated, which is the safe direction: an
+  // unterminated heredoc means everything after it is body text, not operands).
+  // NOTE the deliberate absence of the `m` flag. With `m`, `$` matches at EVERY line break,
+  // so the lazy `[\s\S]*?` terminated at the first newline and the body was never stripped —
+  // the rule looked right and did nothing, and only the separate glob rule masked it in
+  // testing. Without `m`, `$` means end-of-string, which is the correct fallback for an
+  // unterminated heredoc. The delimiter is matched as its own line via explicit newlines.
+  cmd = cmd.replace(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1\r?\n[\s\S]*?(?:\r?\n\2(?:\r?\n|$)|$)/g, ' ');
+
+  const raw = cmd.split(/[\s;|&<>()'"`]+/).filter(Boolean);
+  for (let tok of raw) {
+    // Glob PATTERNS are rule syntax, not paths. `Read(**/.env)` is a permission rule being
+    // discussed; `**/.env` cannot be opened by any program. Real accesses name real paths.
+    if (tok.includes('*') || tok.includes('?')) continue;
+    // `--opt=path` / `-f=path` → keep only the value side.
+    const eq = tok.indexOf('=');
+    if (eq > -1 && eq < tok.length - 1) tok = tok.slice(eq + 1);
+    // Strip a trailing comma/colon that shell-adjacent prose sometimes leaves attached.
+    tok = tok.replace(/[,:]+$/, '');
+    if (!tok || tok === '-' || tok === '--') continue;
+    // Only consider things that could plausibly be a path or a dotfile name.
+    if (!/[./]/.test(tok)) continue;
+    if (isBlockedCredentialPath(tok)) return tok;
   }
   return null;
 }
@@ -129,7 +199,7 @@ function checkCredentials(tool, parameters) {
     console.error('\n[bash-safety-guard/credentials] BLOCKED: Credential file access');
     console.error(`  File: ${filePath}`);
     console.error('  Reason: This file type may contain sensitive credentials\n');
-    return { continue: false, reason: `Blocked: Cannot access credential file ${path.basename(filePath)}` };
+    return _deny(`Blocked: Cannot access credential file ${path.basename(filePath)}`);
   }
 
   if (isWarnCredentialPath(filePath)) {
@@ -180,7 +250,7 @@ function checkDangerousOps(command) {
       console.error(`  Pattern: ${name}`);
       console.error(`  Reason: ${message}`);
       console.error(`  Command: ${command.length > 80 ? command.substring(0, 80) + '...' : command}\n`);
-      return { continue: false, reason: `Blocked: ${message}` };
+      return _deny(`Blocked: ${message}`);
     }
   }
 
@@ -243,7 +313,7 @@ async function checkBranchProtection(command) {
       console.error(`  Action: ${action}`);
       console.error(`  Branch: ${targetBranch || currentBranch}`);
       console.error(`  Protected branches: ${PROTECTED_BRANCHES.join(', ')}\n`);
-      return { continue: false, reason: `Blocked: ${action} on protected branch ${targetBranch || currentBranch}` };
+      return _deny(`Blocked: ${action} on protected branch ${targetBranch || currentBranch}`);
     }
 
     if (affectsProtected) {
@@ -283,9 +353,39 @@ function isBaselinePath(targetPath) {
       || (resolved === AIFRED_PRO_PRODUCTION || resolved.startsWith(AIFRED_PRO_PRODUCTION + '/'));
 }
 
+// Populated per-invocation from the hook payload's `scratchpad_dir` (see handler). Held in
+// an object rather than a bare `let` so the value set in handler() is visible here without
+// threading it through every call site.
+const SESSION_SCRATCHPAD = { path: null };
+
+// Character devices that are WRITE SINKS, not filesystem locations. `2>/dev/null` appears
+// in a large share of ordinary shell commands, and `/dev/null` is not under /Users, so the
+// catch-all rule below classified it as a forbidden system path and denied the command.
+// Observed immediately after this guard was repaired: a routine diagnostic using
+// `2>/dev/null` came back "Blocked: Forbidden system path /dev/null".
+//
+// Writing to these is meaningless-by-design, never destructive. Note this is an EXACT-match
+// list, not a /dev prefix exemption — /dev/sda and friends must stay forbidden, and the
+// BLOCK_OPS raw-disk-write patterns cover those separately.
+const WRITE_SINKS = new Set(['/dev/null', '/dev/stdout', '/dev/stderr', '/dev/tty', '/dev/zero']);
+
 function isForbiddenPath(targetPath) {
   if (!targetPath) return false;
-  const resolved = path.resolve(targetPath);
+  // Strip shell punctuation that a write-path extractor drags along with the operand.
+  // `... 2>/dev/null)"` yielded the token `/dev/null)"`, which failed the exact-match sink
+  // check below and was denied as a forbidden system path — blocking an ordinary command.
+  // Normalising here rather than in each extractor keeps every caller consistent.
+  const cleaned = String(targetPath).replace(/^[\s'"`(]+/, '').replace(/[\s'"`);,:&|]+$/, '');
+  if (!cleaned) return false;
+  const resolved = path.resolve(cleaned);
+  if (WRITE_SINKS.has(resolved)) return false;
+  // Sanctioned session scratchpad wins over the outside-/Users rule. Exact-prefix match on
+  // the payload-supplied directory only — never a blanket /tmp or /private/tmp exemption,
+  // which would re-open the system temp dirs the Filesystem Policy forbids.
+  if (SESSION_SCRATCHPAD.path &&
+      (resolved === SESSION_SCRATCHPAD.path || resolved.startsWith(SESSION_SCRATCHPAD.path + '/'))) {
+    return false;
+  }
   for (const forbidden of FORBIDDEN_PATHS) {
     if (resolved === forbidden) return true;
     if (forbidden === '/' && !resolved.startsWith('/Users')) return true;
@@ -334,13 +434,13 @@ function checkWorkspaceBounds(tool, parameters) {
     console.error('\n[bash-safety-guard/workspace] BLOCKED — AIfred Baseline Modification');
     console.error(`  Path: ${targetPath}`);
     console.error('  The AIfred baseline repository is READ-ONLY.\n');
-    return { continue: false, reason: `Blocked: AIfred baseline is read-only` };
+    return _deny(`Blocked: AIfred baseline is read-only`);
   }
 
   if (isForbiddenPath(targetPath)) {
     console.error('\n[bash-safety-guard/workspace] BLOCKED — Forbidden System Path');
     console.error(`  Path: ${targetPath}\n`);
-    return { continue: false, reason: `Blocked: Forbidden system path ${targetPath}` };
+    return _deny(`Blocked: Forbidden system path ${targetPath}`);
   }
 
   if ((tool === 'Write' || tool === 'Edit') && !isJarvisWorkspace(targetPath)) {
@@ -392,7 +492,7 @@ async function checkAmendSafety(command) {
     console.error('\n[bash-safety-guard/amend] BLOCKED — Amending another author\'s commit');
     console.error(`  Author: ${headInfo.authorName} <${headInfo.authorEmail}>`);
     console.error(`  Subject: ${headInfo.subject?.substring(0, 50)}...\n`);
-    return { continue: false, reason: 'Cannot amend commit by different author' };
+    return _deny('Cannot amend commit by different author');
   }
 
   const isPushed = await isCommitPushed(headInfo.hash);
@@ -405,7 +505,7 @@ async function checkAmendSafety(command) {
       if (ahead === 0) {
         console.error('\n[bash-safety-guard/amend] BLOCKED — Commit already synced to remote');
         console.error('  Amending would require force push. Create a new commit instead.\n');
-        return { continue: false, reason: 'Cannot amend commit that exists on remote' };
+        return _deny('Cannot amend commit that exists on remote');
       }
       console.error('[bash-safety-guard/amend] Warning: Branch ahead of remote — amend may be okay');
     } catch {
@@ -434,7 +534,24 @@ const FALSE_POSITIVE_INDICATORS = ['example', 'placeholder', 'your_', 'xxx', 'te
 
 function isFalsePositive(match) {
   const lower = match.toLowerCase();
-  return FALSE_POSITIVE_INDICATORS.some(ind => lower.includes(ind));
+  if (FALSE_POSITIVE_INDICATORS.some(ind => lower.includes(ind))) return true;
+
+  // ZERO-ENTROPY REJECTION.
+  // The 'AWS Secret Key' pattern is /[A-Za-z0-9\/+=]{40}/ -- unanchored, and '=' is in the
+  // class -- so ANY 40-character separator line matches it. Every banner-commented shell
+  // script in this repo ('# ====...====') therefore reads as three leaked AWS secrets, and
+  // the block only surfaces the first time such a file is staged. That is the worst kind of
+  // guard failure: it fires constantly on noise, which trains the operator to reach for a
+  // bypass, and a guard that is routinely bypassed protects nothing.
+  //
+  // A real base64 secret is high-entropy: a 40-char AWS secret key has ~30 distinct
+  // characters. Requiring merely FIVE distinct characters discards separator runs, ruler
+  // lines and padding while staying far below anything a genuine secret could hit. The
+  // patterns themselves are NOT weakened -- this only filters matches that cannot be secrets.
+  const distinct = new Set(match).size;
+  if (distinct < 5) return true;
+
+  return false;
 }
 
 function checkSecrets(command) {
@@ -472,7 +589,7 @@ function checkSecrets(command) {
       console.error(`  File: ${f.file}  Type: ${f.type}  Preview: ${f.preview}`);
     }
     console.error('\n  Remove secrets, add to .gitignore, or use environment variables.\n');
-    return { continue: false, reason: `Blocked: ${findings.length} potential secret(s) in staged files` };
+    return _deny(`Blocked: ${findings.length} potential secret(s) in staged files`);
   }
 
   return null;
@@ -483,8 +600,30 @@ function checkSecrets(command) {
 // ============================================================
 
 async function handler(context) {
-  const { tool, tool_input } = context;
-  const parameters = tool_input || context.parameters || {};
+  // 🔴 FIELD NAME FIX (2026-09-03). This read `const { tool, tool_input } = context`, but
+  // Claude Code sends the tool name as `tool_name`, NOT `tool`. So `tool` was ALWAYS
+  // undefined, every `if (tool === 'Bash' | 'Read' | ...)` branch below was skipped, and
+  // this entire guard returned {continue:true} for everything — including `rm -rf /`.
+  // Proven by running the hook both ways: with `tool_name` it passed `rm -rf /`; with
+  // `tool` it correctly BLOCKED it. Credential blocking, dangerous-ops, branch protection,
+  // workspace bounds, amend safety and the secret scanner were all dead code.
+  //
+  // A security control that silently does nothing is the exact shape CLAUDE.md's
+  // No Silent Degradation rule exists to forbid: it reported success (exit 0, continue:true)
+  // while delivering none of its function, and nothing anywhere surfaced the gap.
+  // `context.tool` is kept as a fallback so direct require()/unit-test callers still work.
+  const tool = context.tool_name || context.tool;
+  const parameters = context.tool_input || context.parameters || {};
+
+  // Session scratchpad exemption. FORBIDDEN_PATHS contains '/', and isForbiddenPath()
+  // treats any resolved path outside /Users as forbidden — which is correct for /etc and
+  // /var, but Claude Code's own per-session scratchpad lives under /private/tmp/claude-501/
+  // and the harness instructs every session to write temp files THERE rather than in the
+  // project tree. Without this exemption, repairing the field name above would have
+  // immediately started blocking the sanctioned temp directory. The path is taken from the
+  // hook payload (`scratchpad_dir`), never guessed, so it cannot widen to /tmp generally.
+  const scratchpadDir = context.scratchpad_dir || process.env.CLAUDE_SCRATCHPAD_DIR || null;
+  if (scratchpadDir) SESSION_SCRATCHPAD.path = path.resolve(scratchpadDir);
 
   try {
     if (tool === 'Bash') {
