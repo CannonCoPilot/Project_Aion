@@ -181,3 +181,20 @@ save-gate.
   at WATCHING, that the two tiers do not suppress each other, and that latency stays ~22ms.
 - F3: `--dry-run` on dev; then a real run on dev; confirm no double-fire by watching
   `jicm-watcher.log` for a second actuation within 60s.
+
+### Verification results (2026-09-04 18:2x) — ALL THREE COMPLETE ✅
+- **F1** DONE. SOFT/HARD text rewritten; the two VERIFY-BEFORE-SHIPPING rows were softened
+  rather than asserted (not testable without clearing a live lane). `/clear` minting a new
+  session uuid confirmed structurally: `ce0c9b6c…` → `ec4f01a4…`.
+- **F2** DONE. Quota tier sits ABOVE the action gate; matrix verified (90 fires / 89 does not ·
+  float `91.7` · quota-only standalone · both-hot = ONE block · escalation not swallowed).
+  Common path **18ms**, under the 22ms baseline.
+- **F3** DONE — **live non-dry-run fire on dev, no double-fire.** `jicm-now.sh` actuated at
+  18:24:32; `jicm-actuate.log` shows exactly one `preserve-restore start/complete` pair
+  (checkpoint 5350 bytes, digest 501 words in 147s, `/clear` at 18:27:25, RESUME nudge 18:27:28);
+  `jicm-watcher.log` reaped it once — `reap: key=dev actuation cycle complete (lock released
+  after 184s)`. **No second actuation** in the following 60s, no `actuating.dev` lock left
+  behind, and no `clear-now.dev.signal` written (contrast the 17:22 watcher-driven cycle, which
+  DID leave SOFT_NUDGE signal lines in `jicm-stop.log` at 23:22:09Z/23:22:36Z). The stale-signal
+  cleanup in `jicm-now.sh` step 4 is therefore sound: the direct-fire path leaves the watcher
+  nothing to re-trigger on.
