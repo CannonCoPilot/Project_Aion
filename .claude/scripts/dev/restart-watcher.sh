@@ -31,7 +31,7 @@
 # CORRECT REMEDIES TODAY
 #   Restart the watcher:   launchctl kickstart -k gui/$UID/com.aion.jicm-watcher
 #   Is it alive?           launchctl list | grep com.aion.jicm-watcher
-#   Watch it:              tail -f .claude/logs/jicm-watcher.log      (console: tmux aion:8)
+#   Watch it:              tail -f .claude/logs/jicm-watcher.log      (console: tmux aion:Watcher)
 #   Thresholds:            JICM_SOFT_TOKENS / JICM_HARD_TOKENS (see .claude/scripts/jicm-config.sh);
 #                          the DAEMON reads them from its plist environment, NOT from your shell.
 #
@@ -48,7 +48,7 @@ this script's flags and writes no PID file.
 Use instead:
   restart      launchctl kickstart -k gui/$UID/com.aion.jicm-watcher
   status       launchctl list | grep com.aion.jicm-watcher
-  logs         tail -f .claude/logs/jicm-watcher.log   (console: tmux window aion:8)
+  logs         tail -f .claude/logs/jicm-watcher.log   (console: tmux window aion:Watcher)
   thresholds   JICM_SOFT_TOKENS / JICM_HARD_TOKENS, set in the job's plist environment
                (see .claude/scripts/jicm-config.sh) — shell env does not reach the daemon.
 

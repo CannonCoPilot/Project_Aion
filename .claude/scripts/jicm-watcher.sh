@@ -67,7 +67,26 @@ WATCH_PID_FILE="$JICM_DIR/watcher.pid"
 POLL_SEC="${JICM_WATCHER_POLL:-5}"
 GC_STALE_SEC="${JICM_WATCHER_GC_SEC:-7200}"        # last_seen older than this → GC (2h)
 LOCK_TTL_SEC="${JICM_WATCHER_LOCK_TTL:-1200}"      # SIGKILL backstop only; liveness is primary
-STATE_LAG_SEC="${JICM_WATCHER_STATE_LAG:-300}"     # transcript newer than state ts by this → sampler stopped writing
+# 300 → 900 (2026-09-03). At 300s this fired against lanes whose sampler was merely BEHIND,
+# not stopped. A busy lane runs long tool-heavy turns; the gate samples on PostToolUse, so a
+# single slow tool call (a 319s graphiti add_episode was logged the same day) pushes the
+# transcript's newest record well past the state ts while the sampler is working perfectly.
+# Observed 2026-09-03: FROZEN STATE alerts for urist/w0/dev/jaques/protos — all five lanes —
+# while jicm-gate.log showed continuous samples for each. The alert conflated "sampler
+# stopped" with "sampler is behind", and five simultaneous false alarms is what made JICM
+# look like it was refusing to act (it was not: this branch is alert-only and never touches
+# the actuation path). 900s stays well inside the real failure it exists to catch — a sampler
+# that has genuinely stopped never recovers, so a longer window costs detection latency only.
+STATE_LAG_SEC="${JICM_WATCHER_STATE_LAG:-900}"     # transcript newer than state ts by this → sampler stopped writing
+# R3 (2026-09-03): how long a lane may sit ABOVE hard with no clear-now before the
+# OVER-THRESHOLD-WAITING notice escalates to an ALERT. Actuation is raised at a turn
+# boundary, so a normal wait is one turn; 600s is generously past that. The 2026-09-03
+# incident ran ~22 minutes (1,320s) and cost 198,402 tokens of overshoot.
+OVER_THRESHOLD_WARN_SEC="${JICM_WATCHER_OVER_THRESHOLD_WARN:-600}"
+# A lane whose newest transcript RECORD is older than this is idle, and an idle lane above
+# threshold is not accumulating overshoot — it is a state file remembering. Suppresses the
+# notice entirely for such lanes (see the idle guard in the decision loop).
+OVER_THRESHOLD_IDLE_SEC="${JICM_WATCHER_OVER_THRESHOLD_IDLE:-600}"
 # Circuit breaker (review finding 4): a key that fires too many times in a window is
 # STUCK — an actuator aborting a structurally-unresolvable key (bad transcript / stale
 # uuid) that retries every Stop, OR a session whose baseline sits over threshold. Back
@@ -544,7 +563,13 @@ MAINT_MLX_FOOTPRINT_GB="${JICM_HEALTH_MLX_FOOTPRINT_GB:-$(( (MAINT_MLX_BASELINE_
 MAINT_MLX_AUTORESTART="${JICM_HEALTH_MLX_AUTORESTART:-1}"
 MAINT_MLX_RESTART_COOLDOWN_SEC="${JICM_HEALTH_MLX_COOLDOWN_SEC:-900}"    # never loop-restart
 MAINT_MLX_ESCALATE_SEC="${JICM_HEALTH_MLX_ESCALATE_SEC:-7200}"           # 2 restarts in 2h = escalate
-MAINT_MLX_TARGET="${JICM_HEALTH_MLX_TARGET:-${JICM_TMUX_SESSION}:5}"
+# ⚠️ TARGET BY NAME, NEVER BY INDEX. _maintain_mlx() calls `respawn-pane -k` on this
+# target: a wrong address does not fail, it KILLS whatever session occupies that pane and
+# respawns it running the embedding server. This was `:5` until 2026-09-07, when the window
+# renumber moved MLX-Embed to 11 and put JACQUES — a live Archon holding paid client work —
+# at index 5. A leak-triggered restart would have destroyed his session. A window NAME is
+# resolved exactly by tmux or errors, so it cannot silently drift when indices move again.
+MAINT_MLX_TARGET="${JICM_HEALTH_MLX_TARGET:-${JICM_TMUX_SESSION}:MLX-Embed}"
 # NOT free-swap. macOS RESIZES the swap file to match demand: after the MLX restart it shrank
 # 45 GB -> 15 GB, so "free swap" sat at ~940 MB while memory was 83% free. A first version of this
 # alerted on free-swap and fired on the first healthy pass — the metric is near-constant by design
@@ -650,6 +675,17 @@ _mlx_restart() {                             # <pid> <gb>
     [[ "$last" =~ ^[0-9]+$ ]] || last=0
     if [[ $(( now - last )) -lt "$MAINT_MLX_RESTART_COOLDOWN_SEC" ]]; then
         _log "MAINTAIN: MLX ${gb}GB over threshold but restarted $(( now - last ))s ago — cooldown, NOT restarting."
+        return 1
+    fi
+    # BELT AND BRACES over the name-addressing above. `tmux display -t` falls back to the
+    # session's ACTIVE window for a target that does not exist — for a bogus NAME just as
+    # much as a bogus index — and still exits 0. Since the next call is `respawn-pane -k`,
+    # an unnoticed fallback kills whatever the user happens to be looking at. Confirm the
+    # pane we resolved really is MLX-Embed before touching it.
+    local _mlx_name
+    _mlx_name="$("$JICM_TMUX_BIN" display -t "$MAINT_MLX_TARGET" -p '#{window_name}' 2>/dev/null)"
+    if [[ "$_mlx_name" != "MLX-Embed" ]]; then
+        _log "MAINTAIN: ALERT — ${MAINT_MLX_TARGET} start command unresolvable: resolved to window '${_mlx_name:-<none>}', not MLX-Embed. REFUSING to respawn (that would kill a live pane). MLX at ${gb}GB; restart it by hand."
         return 1
     fi
     cmd="$("$JICM_TMUX_BIN" display -t "$MAINT_MLX_TARGET" -p '#{pane_start_command}' 2>/dev/null)"
@@ -1076,11 +1112,13 @@ _pass() {
     # GC/sense/fire decision reads the registry. Ordering matters: reconciling first
     # promotes a startup-race-demoted occupant back to its canonical key, so GC cannot
     # collect the key out from under a live session and the pass senses the right head.
-    # genie added with the Research Archon install: it is pane-actuated (aion:12), so
+    # genie added with the Research Archon install: it is pane-actuated (aion:4), so
     # without reconciliation a startup-race demotion to genie-bg-* would never be
     # promoted back and the lane would silently run second-class forever. Any key with
-    # a jicm_default_target() pane belongs in this list.
-    for ck in w0 dev genie jaques; do
+    # a jicm_default_target() pane belongs in this list — protos, urist and fleming were
+    # added 2026-09-07; before that they were pane-actuated but never reconciled, so a
+    # startup-race demotion stuck permanently.
+    for ck in w0 dev genie jaques fleming urist protos; do
         jicm_reconcile_pane_key "$ck"; rc=$?
         if [[ -n "${JICM_RECONCILE_NOTE:-}" ]]; then
             if [[ "$rc" -eq 2 ]]; then _log "RECONCILE-$JICM_RECONCILE_NOTE"
@@ -1150,6 +1188,67 @@ _pass() {
         else
             # Signal gone → clear the once-per-episode marker so a new signal re-logs.
             rm -f "$noted" 2>/dev/null
+            # R3 (2026-09-03): OVER THRESHOLD, NO SIGNAL — the silent wait. This state was
+            # completely invisible and is what "JICM has stopped firing" actually looks like
+            # from the outside. It is usually NOT a fault: actuation is raised by jicm-stop.sh,
+            # a Stop hook, so a lane in a long agentic turn is legitimately over threshold with
+            # no signal until that turn ends. But the wait is unbounded (overshoot = burn x
+            # remaining turn) and measured at 198,402 tokens on 2026-09-03, so it must be
+            # visible rather than inferred from a climbing token count in the gate log.
+            #
+            # Once per episode, cleared by the same marker the ACTUATE-PENDING path uses, so a
+            # 10s poll cannot spam the log. Reports the WAIT DURATION, not just the fact —
+            # a 30s wait is a healthy turn boundary, a 20-minute wait is a lane to look at.
+            local _ot_tok _ot_pend _ot_hard _ot_since _ot_waited _ot_tp _ot_rec _ot_idle
+            local _ot_waiting="$JICM_SIGNALS_DIR/over-threshold.$key"
+            IFS='|' read -r _ot_tok _ot_pend _ot_hard < <(_sense "$key")
+            # IDLE GUARD. Overshoot only grows while a lane is actually taking turns, so an
+            # idle lane sitting above threshold is not the condition this warning is about —
+            # it is just a state file remembering the last thing that happened. Without this,
+            # urist (last turn 14:12Z, frozen at HARD_HALT) and protos (14:33Z, SOFT_NUDGE)
+            # would ALERT every episode forever while burning nothing.
+            # Uses the newest RECORD, never mtime: a transcript carries mutable metadata whose
+            # rewrite bumps mtime with zero new turns (documented above _transcript_newest_record_epoch).
+            _ot_idle=0
+            _ot_tp="$(jicm_registry_get "$key" '.transcript_path')"
+            if [[ -n "$_ot_tp" && "$_ot_tp" != "null" && -f "$_ot_tp" ]]; then
+                _ot_rec="$(_transcript_newest_record_epoch "$_ot_tp")"
+                [[ "$_ot_rec" =~ ^[0-9]+$ ]] || _ot_rec=0
+                # 0 = unreadable → treat as idle: never alert on an unmeasurable lane
+                # (absence of a measurement is not a measurement of failure).
+                if [[ "$_ot_rec" -eq 0 || $(( now - _ot_rec )) -gt "${OVER_THRESHOLD_IDLE_SEC:-600}" ]]; then
+                    _ot_idle=1
+                fi
+            else
+                _ot_idle=1
+            fi
+            [[ "$_ot_idle" == "1" ]] && { rm -f "$_ot_waiting" 2>/dev/null; continue; }
+            if [[ "$_ot_tok" =~ ^[0-9]+$ && "$_ot_hard" =~ ^[0-9]+$ && "$_ot_hard" -gt 0 && "$_ot_tok" -ge "$_ot_hard" ]]; then
+                if [[ -f "$_ot_waiting" ]]; then
+                    _ot_since="$(cut -d'|' -f1 "$_ot_waiting" 2>/dev/null)"
+                    [[ "$_ot_since" =~ ^[0-9]+$ ]] || _ot_since="$now"
+                    _ot_waited=$(( now - _ot_since ))
+                    # ESCALATE once, at OVER_THRESHOLD_WARN_SEC. One turn boundary should
+                    # arrive well inside this; past it the lane is not merely mid-turn.
+                    if [[ "$_ot_waited" -ge "$OVER_THRESHOLD_WARN_SEC" ]] \
+                       && ! grep -q '|warned$' "$_ot_waiting" 2>/dev/null; then
+                        printf '%s|warned\n' "$_ot_since" > "$_ot_waiting"
+                        _log "ALERT ⚠️ OVER-THRESHOLD-STUCK key=$key tokens=$_ot_tok hard=$_ot_hard waited=${_ot_waited}s — over threshold for longer than one turn should take, with NO clear-now raised. Actuation is raised by jicm-stop.sh at a TURN BOUNDARY, so a wait this long means the lane is in a very long agentic turn (overshoot grows at the lane's burn rate for every second of it) or its Stop hook is not firing. Check .claude/logs/jicm-stop.log for key=$key — silence there while jicm-gate.log keeps sampling is the signature."
+                    fi
+                else
+                    printf '%s|\n' "$now" > "$_ot_waiting"
+                    _log "OVER-THRESHOLD-WAITING key=$key tokens=$_ot_tok hard=$_ot_hard — over threshold, no clear-now raised yet. Expected mid-turn: jicm-stop.sh raises it at the next TURN BOUNDARY. Escalates to ALERT after ${OVER_THRESHOLD_WARN_SEC}s."
+                fi
+            elif [[ -f "$_ot_waiting" ]]; then
+                # Back under threshold → episode resolved. Report the TOTAL wait and the
+                # overshoot it bought, which is the number that says whether thresholds and
+                # turn length are in balance. Then end the episode so the next crossing
+                # starts a fresh clock.
+                _ot_since="$(cut -d'|' -f1 "$_ot_waiting" 2>/dev/null)"
+                [[ "$_ot_since" =~ ^[0-9]+$ ]] || _ot_since="$now"
+                _log "OVER-THRESHOLD-CLEARED key=$key waited=$(( now - _ot_since ))s — back under threshold."
+                rm -f "$_ot_waiting" 2>/dev/null
+            fi
         fi
     done
 }

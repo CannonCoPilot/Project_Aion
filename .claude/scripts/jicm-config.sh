@@ -135,10 +135,16 @@ jicm_key_paths() {
     # that env, so it fell through to the global `sessions` default. Deriving from the key
     # here puts the routing in the same place as every other per-key artifact, where it
     # cannot be bypassed by whoever happens to spawn the cycle.
+    # EVERY pane-actuated lane needs a row here. A lane that is missing falls to the
+    # `*)` default and silently ingests its checkpoints into `sessions`/`jarvis-core` —
+    # cross-namespace contamination that no error surfaces. urist was missing from
+    # 2026-08-24 until 2026-09-07 and did exactly that; check this list when adding a lane.
     case "$key" in
-        genie|genie-bg-*)   JK_RAG_COLLECTION="genie-sessions";  JK_GRAPHITI_GROUP="genie-core" ;;
-        jaques|jaques-bg-*) JK_RAG_COLLECTION="jaques-sessions"; JK_GRAPHITI_GROUP="jaques-core" ;;
-        *)                  JK_RAG_COLLECTION="sessions";        JK_GRAPHITI_GROUP="jarvis-core" ;;
+        genie|genie-bg-*)     JK_RAG_COLLECTION="genie-sessions";   JK_GRAPHITI_GROUP="genie-core" ;;
+        jaques|jaques-bg-*)   JK_RAG_COLLECTION="jaques-sessions";  JK_GRAPHITI_GROUP="jaques-core" ;;
+        fleming|fleming-bg-*) JK_RAG_COLLECTION="fleming-sessions"; JK_GRAPHITI_GROUP="fleming-core" ;;
+        urist|urist-bg-*)     JK_RAG_COLLECTION="urist-sessions";   JK_GRAPHITI_GROUP="urist-core" ;;
+        *)                    JK_RAG_COLLECTION="sessions";         JK_GRAPHITI_GROUP="jarvis-core" ;;
     esac
 }
 
@@ -205,22 +211,25 @@ jicm_derive_key() {                          # <my_session_id>
     # a w0-bg-* key: self-actuating, no pane target, invisible to the pane-driven path we are
     # trying to test. Requires JARVIS_WINDOW=1 to be set explicitly at launch.
     elif [[ "${JARVIS_WINDOW:-}" == "1" ]];         then candidate="protos"
-    # genie (aion:12) — the Research Archon. Checked BEFORE the unset-JARVIS_WINDOW
+    # genie (aion:4) — the Research Archon. Checked BEFORE the unset-JARVIS_WINDOW
     # fallback for the same reason as protos: falling through would hand Genie the w0
     # candidate and, via the occupancy gate, a w0-bg-* key — self-actuating, paneless,
     # and sharing W0's legacy state paths. Both the role and the window are accepted so
     # the lane still resolves if one env var is lost across a resume.
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then candidate="genie"
-    # jaques (aion:13) — the Contract Archon. Same placement rule as genie/protos: BEFORE
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "4" ]]; then candidate="genie"
+    # jaques (aion:5) — the Contract Archon. Same placement rule as genie/protos: BEFORE
     # the unset-JARVIS_WINDOW fallback, or it inherits the w0 candidate and a paneless
     # w0-bg-* key sharing W0's legacy state paths.
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then candidate="jaques"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "5" ]]; then candidate="jaques"
+    # fleming (aion:6) — the second Contract Archon (micro1), added 2026-09-07. Structural
+    # twin of jaques; same placement rule and the same reason.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "fleming" || "${JARVIS_WINDOW:-}" == "6" ]]; then candidate="fleming"
     # urist (aion:2) — the Dwarf Fortress Archon, added 2026-08-24. Placed here for the SAME
     # reason as genie/jaques/protos: above the unset-JARVIS_WINDOW fallback. Falling through
     # would hand Urist the w0 candidate and, via the occupancy gate, a paneless w0-bg-* key
     # sharing W0's legacy state paths — self-actuating and invisible to the pane-driven path.
     # Both role and window are accepted so the lane still resolves if one env var is lost
-    # across a resume. Window 2 was freed when the HUD folded into W8 on 2026-08-20.
+    # across a resume. Window 2 was freed when the HUD folded into the Watcher window on 2026-08-20.
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "urist" || "${JARVIS_WINDOW:-}" == "2" ]]; then candidate="urist"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then candidate="w0"
     else echo "${my_sid:-unknown}"; return; fi
@@ -241,19 +250,22 @@ jicm_derive_key() {                          # <my_session_id>
 jicm_default_target() {
     case "${1:-}" in
         w0)     echo "${JICM_TMUX_SESSION}:0"  ;;
-        dev)    echo "${JICM_TMUX_SESSION}:11" ;;
+        dev)    echo "${JICM_TMUX_SESSION}:3"  ;;
         # protos (aion:1) — the TEST lane. A first-class pane-actuated key so live cycles
         # exercise the REAL path (pane injection, actuator, pre-warm) instead of the
         # second-class self-actuating bg key a keyless window would otherwise get. It owns
         # no work, so a cycle that goes wrong there costs nothing.
         protos) echo "${JICM_TMUX_SESSION}:1"  ;;
-        # genie (aion:12) — the Research Archon. Pane-actuated like w0/dev: it holds
+        # genie (aion:4) — the Research Archon. Pane-actuated like w0/dev: it holds
         # real work (a funded grant), so it gets the full cycle, not the second-class
         # self-actuating path. Must stay in step with launch-aion.sh window_target_index().
-        genie)  echo "${JICM_TMUX_SESSION}:12" ;;
-        # jaques (aion:13) — pane-actuated: it holds real paid client work, so it gets the
+        genie)  echo "${JICM_TMUX_SESSION}:4"  ;;
+        # jaques (aion:5) — pane-actuated: it holds real paid client work, so it gets the
         # full cycle. Must stay in step with launch-aion.sh window_target_index().
-        jaques) echo "${JICM_TMUX_SESSION}:13" ;;
+        jaques) echo "${JICM_TMUX_SESSION}:5"  ;;
+        # fleming (aion:6) — second Contract Archon (micro1), added 2026-09-07. Pane-actuated
+        # for the same reason as jaques: real paid client work.
+        fleming) echo "${JICM_TMUX_SESSION}:6" ;;
         # urist (aion:2) — the Dwarf Fortress Archon. Pane-actuated like the other work-holding
         # lanes: it owns the Chronicler pipeline and live fortress state, so it gets the full
         # cycle rather than the second-class self-actuating bg path.
@@ -279,7 +291,7 @@ JICM_TO="$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || 
 # and this function is built on `pgrep -P <pane_pid>`. Demonstrated by contrast: from
 # inside W11's own subtree, `pgrep -P 17378` returned empty and `pgrep -x claude` omitted
 # pid 17381, while plain `ps` saw it fine; the identical probe run under the tmux server
-# (via `tmux run-shell`) returned 17381 and resolved aion:11 to its true session id.
+# (via `tmux run-shell`) returned 17381 and resolved aion:11 to its true session id (pre-2026-09-07 numbering; the dev lane is now aion:3).
 #
 # CONSEQUENCES:
 #   · A watcher run BY HAND from a Claude pane is blind to that pane and will log
@@ -290,9 +302,29 @@ JICM_TO="$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || 
 #   · Any SELF-actuation path built on this probe is blind to its own pane by
 #     construction. Do not build one without a different occupancy test.
 jicm_pane_session() {                        # <tmux_target>
-    local target="$1" ppid child sid
+    local target="$1" ppid child sid want got out
     [[ -n "$target" ]] || return 0
-    ppid="$(${JICM_TO} ${JICM_TO:+2} "$JICM_TMUX_BIN" display -t "$target" -p '#{pane_pid}' 2>/dev/null)" || return 0
+    # ⚠️ `tmux display -t <session>:<index>` on a window index that DOES NOT EXIST does not
+    # fail: it silently falls back to the session's ACTIVE window and still exits 0. So a
+    # key pointed at a dead index resolves to whatever pane the user happens to be looking
+    # at. Observed live 2026-09-07 during the window renumber: the watcher daemon was still
+    # running the pre-renumber config (genie->:12, jaques->:13), both indices had just been
+    # vacated, and reconcile wrote the DEV session's uuid into .current-genie-uuid AND
+    # .current-jaques-uuid — two lanes silently bound to a third lane's transcript.
+    # Ask the window's OWN identity back and assert it is the one we requested. This applies
+    # to NAMES as well as indices: `display -t aion:NoSuchWindow` also falls back to the
+    # active window and also exits 0 (verified 2026-09-07). So compare the requested suffix
+    # against the index for a numeric target and against the name for a named one. A
+    # mismatch is a MISS, and a miss returns empty so callers take their fail-safe path.
+    local gotname
+    want="${target##*:}"
+    out="$(${JICM_TO} ${JICM_TO:+2} "$JICM_TMUX_BIN" display -t "$target" -p '#{window_index}|#{window_name}|#{pane_pid}' 2>/dev/null)" || return 0
+    [[ -n "$out" ]] || return 0
+    got="${out%%|*}"; ppid="${out##*|}"; gotname="${out#*|}"; gotname="${gotname%|*}"
+    case "$want" in
+        ''|*[!0-9]*) [[ "$gotname" == "$want" ]] || return 0 ;;  # named target
+        *)           [[ "$got" == "$want" ]]     || return 0 ;;  # numeric target
+    esac
     [[ -n "$ppid" ]] || return 0
     for child in $(pgrep -P "$ppid" 2>/dev/null); do
         sid="$(_jicm_pid_session "$child")"
@@ -561,8 +593,26 @@ JICM_PROJECTS_DIR="$HOME/.claude/projects/${JICM_PROJECT_SLUG}"
 # and jicm_key_thresholds could not honour "explicit env always wins".
 [[ -n "${JICM_SOFT_TOKENS:-}" ]] && _JICM_SOFT_FROM_ENV=1 || _JICM_SOFT_FROM_ENV=0
 [[ -n "${JICM_HARD_TOKENS:-}" ]] && _JICM_HARD_FROM_ENV=1 || _JICM_HARD_FROM_ENV=0
-JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-300000}    # 30% of 1M
-JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-330000}    # 33% of 1M
+# 🔴 RESTORED 2026-09-03 to 550K/600K after measuring what 300K/330K actually did.
+# The paragraph above is kept as the record of the earlier reasoning, but it stopped being
+# true in practice: at 33% of a 1M window the Archon lanes crossed hard almost immediately
+# and then LIVED there. Measured on 2026-09-03 from jicm-gate.log: w0 logged 22 consecutive
+# HARD_HALT samples, jaques 14, protos 5, urist 2 — a permanent over-threshold state, which
+# jicm-config already calls "a reset loop, not a tight budget" for protos (see the protos
+# guard below) and which is no less a reset loop for a 1M lane.
+#
+# The band mattered as much as the floor. soft=300000/hard=330000 is 30,000 tokens apart —
+# about two minutes at the observed peak burn of ~14,000 tpm — so SOFT_NUDGE had no runway
+# and every soft crossing became a hard crossing before the lane could act on it. 550K/600K
+# gives a 50,000-token band.
+#
+# Headroom is not at risk. Actuation can only fire at a TURN BOUNDARY (jicm-stop.sh is a Stop
+# hook), so overshoot = burn x remaining-turn-duration and is unbounded by design. The worst
+# case measured live on 2026-09-03 was 198,402 tokens (w0 crossed hard by 428,602 at 18:53Z
+# and cleared at 528,402 at 19:15:38Z). 600,000 + ~200,000 lands near 800K, still inside a
+# 1M window. At the old 330,000 the same overshoot fired a cycle at barely half the window.
+JICM_SOFT_TOKENS=${JICM_SOFT_TOKENS:-550000}    # 55% of 1M
+JICM_HARD_TOKENS=${JICM_HARD_TOKENS:-600000}    # 60% of 1M — leaves ~400K for turn overshoot
 
 # Per-key threshold defaults. Called with the derived key AFTER the globals above.
 #

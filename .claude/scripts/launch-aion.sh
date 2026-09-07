@@ -9,7 +9,7 @@
 # keys into aion:1, which is Protos, a live lane. Describe ROLES here, read indices
 # from the map.
 #
-# Watcher:    JICM context monitoring + actuation (the launchd daemon; W8 is its console)
+# Watcher:    JICM context monitoring + actuation (the launchd daemon; W7 is its console)
 # Ennoia:     Session orchestration, intent-driven wake-up
 # Virgil:     Task tracking, agent monitoring, file changes
 # Commands:   Signal file → command injection via send-keys
@@ -19,7 +19,7 @@
 #
 # Modes:
 #   (default)    Full Aion with session persistence (W0-W4, resume by UUID)
-#   --dev        Add W11 Jarvis-dev test driver
+#   --dev        Add W3 Jarvis-dev test driver
 #   --fresh      Full Aion but new session (archive old, start clean)
 #   --lite       Isolated one-off session (W0+Watcher only, no persistence,
 #                separate tmux session 'lite', minimal CLAUDE.md ~340 tokens,
@@ -30,7 +30,7 @@
 #   This makes tmux windows appear as standard iTerm2 tabs/windows
 #
 # Updated: 2026-07-25 — v3.4: default model Claude Opus 5 @ 1M via the `[1m]` suffix, unified across
-#          W0 (Jarvis) + W1 (Protos/Alfred seed) + W11 (Jarvis-dev) via AION_MODEL;
+#          W0 (Jarvis) + W1 (Protos/Alfred seed) + W3 (Jarvis-dev) via AION_MODEL;
 #          Jarvis-dev cross-codebase --add-dir (Projects, GitRepos); refreshed awareness doc
 
 TMUX_BIN="${TMUX_BIN:-$HOME/bin/tmux}"
@@ -64,69 +64,209 @@ ALFRED_DIR="$PROJECT_DIR/alfred"
 #   * With the old PCT_OVERRIDE=50 the compactor triggered at 50% of 200K = 100K,
 #     which is what made autocompact feel early and relentless.
 # One dropped suffix; four downstream symptoms that each looked like its own bug.
-export AION_MODEL="${AION_MODEL:-claude-opus-5[1m]}"
+# ── MODEL FALLBACK CASCADE (2026-09-04) ─────────────────────────────────────
+# Ordered best-first. EVERY entry keeps the [1m] suffix for the reason above.
+AION_MODEL_CASCADE=(
+    "claude-opus-5[1m]"
+    "claude-opus-4-8[1m]"
+    "claude-opus-4-6[1m]"
+    "claude-sonnet-5[1m]"
+)
+# Effort for every Archon lane. Was --effort low on W0 and W3 and UNSET elsewhere,
+# so lanes silently ran at three different efforts. One knob now.
+export AION_EFFORT="${AION_EFFORT:-high}"
+
+# Resolved artifact: the SINGLE source of truth for what model the estate is on.
+# Consumers must prefer this file over $AION_MODEL, because the env var has two
+# independent staleness paths — a cron-invoked executor with AION_MODEL unset falls back
+# to its own hardcoded literal, and the tmux GLOBAL environment is captured once at server
+# start and handed unchanged to windows created by LATER launcher runs.
+AION_RESOLVED_MODEL_FILE="$PROJECT_DIR/.claude/context/.aion-resolved-model"
+
+# Resolve the cascade with ONE probe and adopt whichever model actually served.
+#
+# WHY A PROBE AND NOT --fallback-model ON THE LANES: `--fallback-model` is documented
+# "(only works with --print)". Every Archon lane is INTERACTIVE, so the flag cannot carry
+# the cascade for them. It works perfectly inside a one-shot -p probe, which is exactly
+# what this is: one `claude -p` resolves the whole chain and reports the winner.
+#
+# 🔴 THE PROBE MUST RUN LEAN OR IT HANGS. Measured 2026-09-03: run from PROJECT_DIR it
+# produced ZERO bytes in 120s, because a probe started in-tree boots the full estate —
+# 6 MCP servers and ~39 hooks. Run from a neutral cwd with --strict-mcp-config and an empty
+# server set it returns in 2-5s. `< /dev/null` is required too, or stdin blocks for 3s.
+#
+# The served model is read from result.modelUsage, which is KEYED BY the model that actually
+# answered, and carries the REAL contextWindow. We record that window as well, so JICM can
+# read a measured number instead of inferring one from the model name.
+resolve_aion_model() {
+    # An explicit operator pin always wins; never spend a probe overriding a human.
+    if [[ -n "${AION_MODEL:-}" ]]; then
+        echo "  Model pinned by environment: $AION_MODEL" >&2
+        printf '%s\n' "$AION_MODEL" ; return 0
+    fi
+    if [[ "${AION_SKIP_MODEL_PROBE:-0}" == "1" ]]; then
+        printf '%s\n' "${AION_MODEL_CASCADE[0]}" ; return 0
+    fi
+
+    local primary="${AION_MODEL_CASCADE[0]}"
+    local rest fallbacks probe_dir out served window
+    rest=("${AION_MODEL_CASCADE[@]:1}")
+    fallbacks=$(IFS=,; echo "${rest[*]}")
+
+    probe_dir="$(mktemp -d "${TMPDIR:-/tmp}/aion-probe.XXXXXX")" || {
+        printf '%s\n' "$primary"; return 0; }
+    printf '{"mcpServers":{}}' > "$probe_dir/mcp.json"
+
+    out="$(cd "$probe_dir" && timeout "${AION_PROBE_TIMEOUT:-90}" claude -p 'ok' \
+            --model "$primary" --fallback-model "$fallbacks" \
+            --output-format json --strict-mcp-config --mcp-config "$probe_dir/mcp.json" \
+            --dangerously-skip-permissions 2>/dev/null < /dev/null)"
+
+    served="$(printf '%s' "$out" | python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: raise SystemExit
+for e in (d if isinstance(d,list) else [d]):
+    if e.get("type")=="result":
+        mu=e.get("modelUsage") or {}
+        for m,u in mu.items():
+            print(m, u.get("contextWindow",0)); raise SystemExit
+' 2>/dev/null)"
+
+    rm -rf "$probe_dir" 2>/dev/null
+    window="${served##* }"; served="${served%% *}"
+
+    if [[ -z "$served" ]]; then
+        # NO SILENT DEGRADATION: an unresolvable probe is not a licence to pretend the
+        # primary is healthy. Say so, name the fallbacks that were offered, and proceed on
+        # the primary so a launch is never blocked by a diagnostic.
+        echo "  ⚠️  MODEL PROBE FAILED (no result payload). Cascade offered: $primary,$fallbacks" >&2
+        echo "     Launching on the PRIMARY unverified. If lanes 529 immediately, the cascade did not run." >&2
+        printf '%s\n' "$primary"; return 0
+    fi
+    if [[ "$served" != "$primary" ]]; then
+        echo "  ⚠️  CASCADE FELL BACK: $primary unavailable → serving $served" >&2
+    fi
+    # Print BOTH values. Assigning AION_RESOLVED_WINDOW here would be discarded: this
+    # function is called inside $( ), which runs it in a SUBSHELL, so any variable it sets
+    # dies with that subshell. The window has to travel out through stdout like the model.
+    printf '%s %s\n' "$served" "${window:-0}"
+}
+
+# Every early-return path above prints only a model, so default the window to 0 when the
+# second field is absent — 0 means "unmeasured", and consumers fall back to the name-based map.
+_aion_resolved="$(resolve_aion_model)"
+AION_MODEL="${_aion_resolved%% *}"
+AION_RESOLVED_WINDOW="${_aion_resolved##* }"
+[[ "$AION_RESOLVED_WINDOW" == "$AION_MODEL" ]] && AION_RESOLVED_WINDOW=0
+export AION_MODEL AION_RESOLVED_WINDOW
+unset _aion_resolved
+
+# Publish the resolved model so cron-invoked executors and status tooling read a FACT rather
+# than each falling back to its own hardcoded literal. Written before any lane starts.
+mkdir -p "$(dirname "$AION_RESOLVED_MODEL_FILE")" 2>/dev/null
+printf '%s\n' "$AION_MODEL" > "$AION_RESOLVED_MODEL_FILE" 2>/dev/null
+printf '%s\n' "$AION_RESOLVED_WINDOW" > "${AION_RESOLVED_MODEL_FILE}.window" 2>/dev/null
+
+# 🔴 REFRESH THE TMUX GLOBAL ENVIRONMENT. Without this the cascade silently reverts.
+# tmux captures its global environment ONCE, when the server starts, and hands that snapshot
+# to every window created afterwards — including windows created by a LATER launcher run that
+# resolved a DIFFERENT model. Measured 2026-09-03: `tmux show-environment -g` still read
+# AION_MODEL=claude-opus-5[1m] from an earlier server start.
+#
+# The damage is not cosmetic. chain-executor.sh and host-executor-bridge.sh run INSIDE tmux
+# windows and read AION_MODEL to decide what to write into alfred/.claude/jobs/state/seed-model,
+# which pipeline-watcher.py then forks every task onto. A stale value there points forked tasks
+# at a different model than the seed they fork FROM, which invalidates the shared prefix cache —
+# the exact condition observed live on Protos (running Sonnet 5 while seed-model claimed Opus 5).
+if [ -n "${TMUX_BIN:-}" ] && "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
+    "$TMUX_BIN" set-environment -g AION_MODEL   "$AION_MODEL"   2>/dev/null || true
+    "$TMUX_BIN" set-environment -g AION_EFFORT  "$AION_EFFORT"  2>/dev/null || true
+fi
 
 # ── Window Index Map ──────────────────────────────────────────────────
 # Permanent window ordering. Core sessions first, infrastructure second,
 # aion subsystems third. Chain windows (from Alfred fork-resume) stack
 # at the end automatically since they get the next available index.
 #
+# RENUMBERED 2026-09-07 (see the migration table at the bottom of this block).
+# Conversational Archon lanes now occupy 0-6 contiguously; service/daemon windows
+# sit at 7-11. Ennoia (old 6), Virgil (old 7) and Commands (old 9) were RETIRED —
+# they ran no live work and cost a pane each.
+#
 #   0: Jarvis       — Master Archon
 #   1: Protos       — Alfred seed (fork cache)
 #   2: Urist        — Dwarf Fortress Archon (cwd Projects/DwarfCron)
-#   3: LiteLLM      — Model proxy
-#   4: Ollama       — Local model monitor
-#   5: MLX-Embed    — Embedding server
-#   6: Ennoia       — Session orchestrator
-#   7: Virgil       — Codebase guide
-#   8: Watcher      — JICM context monitor
-#   9: Commands     — Signal injection
-#  10: Styx         — Host executor daemon + reaper
-#  11: Jarvis-dev   — Dev test driver (when invoked)
-#  12: Genie        — Research Archon (cwd Projects/WVU)
-#  13: Jacques       — Contract Archon (cwd Projects/SnorkelTasks)
+#   3: Jarvis-dev   — Dev test driver (when invoked)
+#   4: Genie        — Research Archon (cwd Projects/WVU)
+#   5: Jacques      — Contract Archon (cwd Projects/SnorkelTasks)
+#   6: Fleming      — Contract Archon (cwd Projects/micro1)
+#   7: Watcher      — JICM context monitor (HUD lives INSIDE this window)
+#   8: Styx         — Host executor daemon + reaper
+#   9: LiteLLM      — Model proxy
+#  10: Ollama       — Local model monitor
+#  11: MLX-Embed    — Embedding server
+#  12, 13:          — DELIBERATELY LEFT EMPTY (buffer below the chain floor)
 #  14+: chain-*     — Alfred fork-resume task windows (auto-stacked)
 #
-# NOTE: chain windows started at 12, then 13. Genie owns 12 and Jacques owns 13, so
-# alfred/.claude/jobs/lib/host-executor-bridge.sh `_next_chain_index()` starts at 14.
-# Those numbers must move together — a chain fork landing on an Archon's pane would
-# inject an Alfred task into a live session. This is not hypothetical: during the Genie
-# install a stale Styx daemon forked chain-31bcc85d straight onto window 12.
+# NOTE: chain windows start at 14 and `_next_chain_index()` in
+# alfred/.claude/jobs/lib/host-executor-bridge.sh hardcodes that floor. No Archon may
+# be placed at 14 or above without moving that floor in lockstep — a chain fork landing
+# on an Archon's pane injects an Alfred task into a live session. This is not
+# hypothetical: during the Genie install a stale Styx daemon forked chain-31bcc85d
+# straight onto window 12. The 12/13 gap is the safety buffer that keeps a stray
+# off-by-one away from Fleming.
+#
+# MIGRATION TABLE (old -> new). Anything quoting an old index is stale:
+#   Jarvis-dev  11 -> 3     Watcher      8 -> 7     LiteLLM    3 ->  9
+#   Genie       12 -> 4     Styx        10 -> 8     Ollama     4 -> 10
+#   Jacques     13 -> 5     Fleming      - -> 6     MLX-Embed  5 -> 11
+#   RETIRED: Ennoia (6), Virgil (7), Commands (9)
 
+# EVERY index here is PAIRED WITH jicm-config.sh jicm_default_target() and with the
+# per-key targets in jicm-actuate.sh. Edit all three or none — a lane whose pane address
+# disagrees with its actuation target gets its /clear sent into another Archon's session.
 window_target_index() {
     case "$1" in
         Jarvis)     echo 0 ;;
         Protos)     echo 1 ;;
         # Urist (aion:2) — Dwarf Fortress Archon, added 2026-08-24. Takes the slot the HUD
-        # vacated on 2026-08-20 when the dashboard folded into W8 "Watcher".
-        # WHY 2 AND NOT 14: chain windows (Alfred fork-resume) start at 14, and
+        # vacated on 2026-08-20 when the dashboard folded into the Watcher window.
+        # WHY NOT 14+: chain windows (Alfred fork-resume) start at 14, and
         # alfred/.claude/jobs/lib/host-executor-bridge.sh `_next_chain_index()` has to move in
         # lockstep with any Archon that lands there. A chain fork onto an Archon's pane injects
         # an Alfred task into a live session — not hypothetical, it happened to window 12 during
-        # the Genie install. Using the genuinely free slot avoids that coupling entirely.
-        # PAIRED WITH jicm-config.sh jicm_default_target(): urist -> :2. Edit both or neither.
+        # the Genie install. Every Archon stays below the floor to avoid that coupling entirely.
         Urist)      echo 2 ;;
-        # HUD has NO index: it lives inside the Watcher window (W8) and is launched there.
+        # The conversational lanes, grouped contiguously at 3-6 by the 2026-09-07 renumber.
+        Jarvis-dev) echo 3 ;;
+        Genie)      echo 4 ;;
+        Jacques)    echo 5 ;;
+        # Fleming (aion:6) — second Contract Archon, cloned from Jacques 2026-09-07.
+        # Sits immediately after Jacques by design: the two are structural twins working
+        # different clients (Jacques -> Projects/SnorkelTasks, Fleming -> Projects/micro1).
+        Fleming)    echo 6 ;;
+        # HUD has NO index: it lives inside the Watcher window and is launched there.
         # It previously mapped to 2. Restoring a standalone second copy now means picking a
         # free index deliberately rather than assuming 2 is still vacant — it is not.
         HUD)        echo "" ;;
-        LiteLLM)    echo 3 ;;
-        Ollama)     echo 4 ;;
-        MLX-Embed)  echo 5 ;;
-        Ennoia)     echo 6 ;;
-        Virgil)     echo 7 ;;
-        Watcher)    echo 8 ;;
-        Commands)   echo 9 ;;
-        Styx)       echo 10 ;;
-        Jarvis-dev) echo 11 ;;
-        Genie)      echo 12 ;;
-        Jacques)     echo 13 ;;
+        Watcher)    echo 7 ;;
+        Styx)       echo 8 ;;
+        LiteLLM)    echo 9 ;;
+        Ollama)     echo 10 ;;
+        MLX-Embed)  echo 11 ;;
+        # RETIRED 2026-09-07: Ennoia (was 6), Virgil (was 7), Commands (was 9). They held no
+        # live work. Their launch blocks are gone; these names now fall through to "" so a
+        # stale window left over from a previous session is simply never reordered.
         *)          echo "" ;;
     esac
 }
 
-# Highest index FIRST — reorder_windows() relies on this to avoid collisions.
-WINDOW_ORDER="Jacques Genie Jarvis-dev Styx Commands Watcher Virgil Ennoia MLX-Embed Ollama LiteLLM Urist Protos Jarvis"
+# Highest index FIRST. reorder_windows() is a selection sort by swapping: once a name is
+# placed at its target, no later iteration disturbs it, because every remaining name belongs
+# at a STRICTLY LOWER index. That proof only holds while this list is monotonically
+# descending by window_target_index() — keep it sorted when you add a lane.
+WINDOW_ORDER="MLX-Embed Ollama LiteLLM Styx Watcher Fleming Jacques Genie Jarvis-dev Urist Protos Jarvis"
 
 reorder_windows() {
     # Move each named window to its assigned index. Process in the order
@@ -176,13 +316,21 @@ CLAUDE_PROJECT_SLUG="-$(echo "$CLAUDE_LAUNCH_DIR" | sed 's|^/||; s|/|-|g')"
 # W0: UUID v5 of "project_aion_jarvis_w0" in NAMESPACE_URL (used only for --fresh)
 JARVIS_W0_SESSION_ID="17612316-37f1-5cec-b456-6a79f7735a9f"
 JARVIS_W0_SESSION_FILE="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}/${JARVIS_W0_SESSION_ID}.jsonl"
-# W11: UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
-JARVIS_W11_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
+# W3 (dev lane): UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL (excluded from W0 lookup)
+#
+# ⚠️ THE SEED-DERIVATION STRINGS BELOW AND THROUGHOUT THIS FILE ARE FROZEN.
+# "project_aion_jarvis_dev", "project_aion_genie_w12", "project_aion_jaques_w13",
+# "project_aion_urist_w2", "project_aion_jarvis_w0" and the x-aion-agent-name values
+# ("genie-w12", "jaques-w13") each MINT a deterministic UUID v5. The embedded w12/w13 are
+# now historical — Genie is W4 and Jacques is W5 since the 2026-09-07 renumber — but
+# editing the string changes the hash, which mints a DIFFERENT uuid and silently orphans
+# every existing session for that lane. Renumber the labels, never these literals.
+JARVIS_DEV_SESSION_ID="fbd7528a-c1bd-414a-bdaa-c3cc23f53215"
 JARVIS_PROJECTS_DIR="$HOME/.claude/projects/${CLAUDE_PROJECT_SLUG}"
 W0_UUID_FILE="$PROJECT_DIR/.claude/context/.current-w0-uuid"
 
-# W12:Genie launches from Projects/WVU, so Claude Code files its sessions under a
-# DIFFERENT project slug than W0/W11. That separation is deliberate and load-bearing:
+# W4:Genie launches from Projects/WVU, so Claude Code files its sessions under a
+# DIFFERENT project slug than W0/W3. That separation is deliberate and load-bearing:
 # Genie gets its own JSONL dir and its own L2 memory dir for free, and can never be
 # picked up by W0's latest-session scan.
 GENIE_PROJECT_SLUG="-Users-nathanielcannon-Claude-Projects-WVU"
@@ -207,7 +355,7 @@ GENIE_PROJECTS_DIR="$HOME/.claude/projects/${GENIE_PROJECT_SLUG}"
 # the launcher from selecting sessions that belong to OTHER unrelated
 # projects (e.g. lite-workspace) that share a JSONL store via symlink.
 # $2 = expected launch dir (default: CLAUDE_LAUNCH_DIR, i.e. the W0/dev Jarvis symlink).
-# Parameterized for W12:Genie, which launches from Projects/WVU — hardcoding the Jarvis
+# Parameterized for W4:Genie, which launches from Projects/WVU — hardcoding the Jarvis
 # path made every Genie session look cwd-mismatched and therefore unresumable.
 session_cwd_matches() {
     local jsonl="$1"
@@ -244,7 +392,7 @@ session_uuid_in_use() {
 
 # Composite check: 0 = safely resumable from this launcher, 1 = skip.
 # $2 = projects (JSONL) dir, $3 = expected launch dir. Both default to the W0/dev pair,
-# so w0 and dev behavior is byte-identical. W12:Genie must pass its own: Claude Code files
+# so w0 and dev behavior is byte-identical. W4:Genie must pass its own: Claude Code files
 # sessions under a slug derived from cwd, and Genie's cwd is Projects/WVU — its JSONLs are
 # in a DIFFERENT directory than W0's. Left unparameterized, session_resumable could never
 # find Genie's seed, resolve_genie_session fell through to `uuidgen new`, and Genie minted
@@ -263,10 +411,10 @@ session_resumable() {
 
 # Find the most recent resumable W0 session — i.e., the newest JSONL whose
 # recorded cwd matches CLAUDE_LAUNCH_DIR (or its realpath) AND whose UUID is
-# not currently held by a live claude process. Excludes W11's deterministic
-# UUID to prevent W11/W0 cross-contamination.
+# not currently held by a live claude process. Excludes the dev lane's deterministic
+# UUID to prevent dev/W0 cross-contamination.
 find_latest_w0_session() {
-    local exclude_uuid="$JARVIS_W11_SESSION_ID"
+    local exclude_uuid="$JARVIS_DEV_SESSION_ID"
     local f uuid
     for f in $(ls -t "$JARVIS_PROJECTS_DIR"/*.jsonl 2>/dev/null); do
         uuid=$(basename "$f" .jsonl)
@@ -280,7 +428,7 @@ find_latest_w0_session() {
 }
 
 # ──────────────────────────────────────────────────────────────────────────
-# Dev lane (W11:Jarvis-dev) session resolution + window launch — single source
+# Dev lane (W3:Jarvis-dev) session resolution + window launch — single source
 # of truth shared by the fresh-launch and existing-session paths, which had
 # drifted (the existing-session path was missing proxy routing, JARVIS_WINDOW,
 # attribution headers, resume-UUID validation, and a survivability loop).
@@ -313,7 +461,7 @@ resolve_dev_session() {
     echo "$(uuidgen) new"
 }
 
-# Create the W11:Jarvis-dev tmux window. Caller reorders afterward if needed.
+# Create the W3:Jarvis-dev tmux window. Caller reorders afterward if needed.
 launch_dev_window() {
     local dev_uuid dev_mode
     read -r dev_uuid dev_mode < <(resolve_dev_session)
@@ -344,9 +492,9 @@ launch_dev_window() {
     # into one field. The \n stay literal here (backslash-n inside double quotes) and are expanded
     # by the $'...' quoting in the wrapper below, which keeps the tmux command on one line.
     local dev_headers="x-aion-project: project-aion\nx-aion-agent-name: jarvis-dev-w5\nx-aion-session-id: $(uuidgen)"
-    local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=5 ANTHROPIC_BASE_URL=$proxy_url"
-    local sysappend="You are W11:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+    local env_dev="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=40000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=dev JARVIS_WINDOW=3 ANTHROPIC_BASE_URL=$proxy_url"
+    local sysappend="You are W3:Jarvis-dev, the engineering/infrastructure agent. Focus on Aion core systems (JICM, hooks, AC components, skills, tmux, infrastructure). DwarfCron/Chronicler product work belongs to W0. Ignore DF-specific @-imports unless explicitly tasked with Chronicler work."
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --mcp-config '$PROJECT_DIR/.mcp.json' --add-dir .claude/personas/jarvis --add-dir /Users/nathanielcannon/Claude/Projects --add-dir /Users/nathanielcannon/Claude/GitRepos --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
     local first
     if [[ "$dev_mode" == "resume" ]]; then
         first="$base --resume $dev_uuid"
@@ -366,7 +514,7 @@ launch_dev_window() {
 }
 
 # ──────────────────────────────────────────────────────────────────────────
-# Genie lane (W12) — Research Archon. Scientific coding, analysis, research and
+# Genie lane (W4) — Research Archon. Scientific coding, analysis, research and
 # writing for the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE
 # system. Structurally mirrors launch_dev_window() above; the differences that
 # matter are called out inline.
@@ -405,7 +553,7 @@ resolve_genie_session() {
     echo "$(uuidgen) new"
 }
 
-# Create the W12:Genie tmux window. Caller reorders afterward if needed.
+# Create the W4:Genie tmux window. Caller reorders afterward if needed.
 launch_genie_window() {
     [[ -d "$GENIE_LAUNCH_DIR" ]] || {
         echo -e "  ${YELLOW}⊘${NC} Genie skipped (no $GENIE_LAUNCH_DIR)"
@@ -429,8 +577,8 @@ launch_genie_window() {
     # GRAPHITI_GROUP_ID + the three cache paths are the ONLY per-lane MCP values now.
     # They finally BIND: the root .mcp.json used to hardcode literals, which override the
     # launching env, so this export was silently inert. It now reads "${VAR:-default}".
-    local env_genie="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=genie JARVIS_WINDOW=12 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=genie-core JICM_RAG_COLLECTION=genie-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Projects/WVU/data/raw/fulltext/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Projects/WVU/refs/papers ANTHROPIC_BASE_URL=$proxy_url"
-    local sysappend="You are W12:Genie, the Research Archon of Project Aion — co-developer and co-researcher to the User on scientific coding, analysis, research, writing, and automation. Your domain is the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE microbiome genotype-to-phenotype system. Your memory namespace is genie-* / genie-core; never write to Jarvis jarvis-* collections or the jarvis-core graph. Never invent a figure and never attribute an unresolved citation. Aion core engineering belongs to W11:Jarvis-dev; Chronicler and Palimpsest belong to W0:Jarvis."
+    local env_genie="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=genie JARVIS_WINDOW=4 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=genie-core JICM_RAG_COLLECTION=genie-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Projects/WVU/data/raw/fulltext/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Projects/WVU/refs/papers ANTHROPIC_BASE_URL=$proxy_url"
+    local sysappend="You are W4:Genie, the Research Archon of Project Aion — co-developer and co-researcher to the User on scientific coding, analysis, research, writing, and automation. Your domain is the DOE GENESIS grant (PI Dr. Ember Morrissey, WVU) and the IMAGINE microbiome genotype-to-phenotype system. Your memory namespace is genie-* / genie-core; never write to Jarvis jarvis-* collections or the jarvis-core graph. Never invent a figure and never attribute an unresolved citation. Aion core engineering belongs to W3:Jarvis-dev; Chronicler and Palimpsest belong to W0:Jarvis."
     # --add-dir Project_Aion is what makes the shared .claude/ capabilities (skills, agents,
     # patterns, hooks context) reachable from a cwd outside the monorepo.
     # --mcp-config points at the SHARED root config. It is still required (Genie's cwd is
@@ -440,7 +588,7 @@ launch_genie_window() {
     # real cwd — dropping it alone yields 15 servers (6 project + 8 connectors + chrome).
     # Per-lane values now ride in env_genie above; see the _comment in .mcp.json.
     local genie_mcp="$PROJECT_DIR/.mcp.json"
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/genie --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$genie_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-genie.log"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/genie --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$genie_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-genie.log"
 
     local first
     if [[ "$genie_mode" == "resume" ]]; then
@@ -458,7 +606,7 @@ launch_genie_window() {
 }
 
 # ──────────────────────────────────────────────────────────────────────────
-# Jacques lane (W13) — Contract Archon. Snorkel AI evaluation-task authoring across
+# Jacques lane (W5) — Contract Archon. Snorkel AI evaluation-task authoring across
 # ec-beech / ecs-otter / ec-starfish. Structurally mirrors launch_genie_window().
 #
 # Deterministic seed: UUID v5 of "project_aion_jaques_w13" in NAMESPACE_URL.
@@ -493,7 +641,7 @@ resolve_jaques_session() {
     echo "$(uuidgen) new"
 }
 
-# Create the W13:Jacques tmux window. Caller reorders afterward if needed.
+# Create the W5:Jacques tmux window. Caller reorders afterward if needed.
 launch_jaques_window() {
     [[ -d "$JAQUES_LAUNCH_DIR" ]] || {
         echo -e "  ${YELLOW}⊘${NC} Jacques skipped (no $JAQUES_LAUNCH_DIR)"
@@ -508,16 +656,16 @@ launch_jaques_window() {
     # JICM_PROJECT_DIR is load-bearing: cwd is outside the monorepo, so every hook would
     # otherwise write lane state into SnorkelTasks/.claude/ where the supervisor, actuator
     # and this launcher would never find it.
-    local env_jaques="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=jaques JARVIS_WINDOW=13 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=jaques-core JICM_RAG_COLLECTION=jaques-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Project_Aion/projects/jacques/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Project_Aion/projects/jacques/papers ANTHROPIC_BASE_URL=$proxy_url"
+    local env_jaques="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=jaques JARVIS_WINDOW=5 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=jaques-core JICM_RAG_COLLECTION=jaques-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Project_Aion/projects/jacques/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Project_Aion/projects/jacques/papers ANTHROPIC_BASE_URL=$proxy_url"
     # NO APOSTROPHES IN THIS STRING. It is interpolated into a single-quoted argument inside
     # the tmux command line; an apostrophe closes that quote early and the shell then glob-
     # expands what follows. Observed on the first Jacques launch: "the User's" broke the quote,
     # zsh tried to glob jaques-* and jarvis-*, failed with "no matches found", and claude never
     # started at all — an empty pane and zero hooks, which looks exactly like the settings-root
     # bug but is not. Wildcards are fine INSIDE the quotes; unbalanced quotes are not.
-    local sysappend="You are W13:Jacques, the Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for Snorkel AI across three projects: ec-beech, ecs-otter, ec-starfish. The file SnorkelTasks/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on Harbor bundle rules, the auto-reject list and Gate 1/Gate 2 — never restate it from memory. Your memory namespace is jaques-context/research/sessions/codebase plus the jaques-core graph; never write to any jarvis- or genie- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING TO experts.snorkel-ai.com IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W11:Jarvis-dev; WVU and GENESIS research belong to W12:Genie."
+    local sysappend="You are W5:Jacques, the Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for Snorkel AI across three projects: ec-beech, ecs-otter, ec-starfish. The file SnorkelTasks/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on Harbor bundle rules, the auto-reject list and Gate 1/Gate 2 — never restate it from memory. Your memory namespace is jaques-context/research/sessions/codebase plus the jaques-core graph; never write to any jarvis- or genie- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING TO experts.snorkel-ai.com IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W3:Jarvis-dev; WVU and GENESIS research belong to W4:Genie; micro1 contract work belongs to W6:Fleming, your structural twin — never touch his client, his cwd or his fleming-* namespaces."
     local jaques_mcp="$PROJECT_DIR/.mcp.json"
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/jacques --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$jaques_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-jaques.log"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/jacques --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$jaques_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-jaques.log"
 
     local first
     if [[ "$jaques_mode" == "resume" ]]; then
@@ -532,6 +680,85 @@ launch_jaques_window() {
         "cd '$JAQUES_LAUNCH_DIR' && export $env_jaques && export ANTHROPIC_CUSTOM_HEADERS=$'$jaques_headers' && $first '$init'; while true; do echo ''; echo 'Jacques exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jacques" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Jacques window (${jaques_mode}: ${jaques_uuid})"
+}
+
+# --- W6: FLEMING — Contract Archon, micro1 (added 2026-09-07) -----------------
+# Fleming is a STRUCTURAL CLONE of W5:Jacques: same model, effort, MCP config, tool search,
+# output-token ceiling, autocompact override, --chrome, --add-dir set and resume loop. The
+# only differences are the ones that MUST differ so the two lanes never collide:
+#   cwd            Projects/micro1        (Jacques: Projects/SnorkelTasks)
+#   role/key       fleming               (Jacques: jaques)
+#   graph / RAG    fleming-core / fleming-sessions
+#   seed uuid      its own v5 hash
+# Read launch_jaques_window()'s comments as well — every trap documented there (the
+# no-apostrophes rule, JICM_PROJECT_DIR being load-bearing, the own-projects-dir resume
+# lookup) applies here identically and is not repeated in full.
+#
+# Deterministic seed: UUID v5 of "project_aion_fleming_w6" in NAMESPACE_URL.
+#   python3 -c 'import uuid;print(uuid.uuid5(uuid.NAMESPACE_URL,"project_aion_fleming_w6"))'
+# FROZEN literal — see the seed-derivation warning near JARVIS_DEV_SESSION_ID.
+FLEMING_SEED_UUID="4f1ca4fc-02f5-56f2-ab23-c9b8764abad4"
+
+FLEMING_LAUNCH_DIR="/Users/nathanielcannon/Claude/Projects/micro1"
+FLEMING_PROJECT_SLUG="-Users-nathanielcannon-Claude-Projects-micro1"
+FLEMING_PROJECTS_DIR="$HOME/.claude/projects/${FLEMING_PROJECT_SLUG}"
+
+# Prints "<uuid> <resume|new>". Same trust model as the dev/genie/jaques/urist resolvers.
+resolve_fleming_session() {
+    local candidate=""
+    [[ -s "$PROJECT_DIR/.claude/context/.current-fleming-uuid" ]] && \
+        candidate="$(tr -d '[:space:]' < "$PROJECT_DIR/.claude/context/.current-fleming-uuid")"
+    # Pass Fleming's OWN projects dir + launch dir: session_resumable defaults to W0's, and
+    # Claude Code files sessions under a slug derived from cwd, so the defaults would never
+    # find Fleming's seed and every launch would mint a fresh random session.
+    if [[ -n "$candidate" ]] && session_resumable "$candidate" "$FLEMING_PROJECTS_DIR" "$FLEMING_LAUNCH_DIR"; then
+        echo "$candidate resume"; return 0
+    fi
+    if session_resumable "$FLEMING_SEED_UUID" "$FLEMING_PROJECTS_DIR" "$FLEMING_LAUNCH_DIR"; then
+        echo "$FLEMING_SEED_UUID resume"; return 0
+    fi
+    if [[ ! -f "$FLEMING_PROJECTS_DIR/${FLEMING_SEED_UUID}.jsonl" ]]; then
+        echo "$FLEMING_SEED_UUID new"; return 0
+    fi
+    echo "$(uuidgen) new"
+}
+
+# Create the W6:Fleming tmux window. Caller reorders afterward if needed.
+launch_fleming_window() {
+    [[ -d "$FLEMING_LAUNCH_DIR" ]] || {
+        echo -e "  ${YELLOW}⊘${NC} Fleming skipped (no $FLEMING_LAUNCH_DIR)"
+        return 0
+    }
+
+    local fleming_uuid fleming_mode
+    read -r fleming_uuid fleming_mode < <(resolve_fleming_session)
+
+    local proxy_url="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
+    local fleming_headers="x-aion-project: micro1\nx-aion-agent-name: fleming-w6\nx-aion-session-id: $(uuidgen)"
+    # JICM_PROJECT_DIR is load-bearing: cwd is outside the monorepo, so every hook would
+    # otherwise write lane state into micro1/.claude/ where the supervisor, actuator
+    # and this launcher would never find it.
+    local env_fleming="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=fleming JARVIS_WINDOW=6 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=fleming-core JICM_RAG_COLLECTION=fleming-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Project_Aion/projects/fleming/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Project_Aion/projects/fleming/papers ANTHROPIC_BASE_URL=$proxy_url"
+    # NO APOSTROPHES IN THIS STRING — see launch_jaques_window() for the full trap. An
+    # apostrophe closes the single-quoted tmux argument early, the shell glob-expands the
+    # remainder, and claude never starts: an empty pane with zero hooks.
+    local sysappend="You are W6:Fleming, a Contract Archon of Project Aion, collaborator to the User on paid evaluation-task authoring for micro1. The file micro1/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on client rules, gates and task law — never restate it from memory, and never import a rule from Snorkel AI by analogy. Your memory namespace is fleming-context/research/sessions/codebase plus the fleming-core graph; never write to any jarvis-, genie-, urist- or jaques- collection or graph. Never state a telemetry fact you have not read out of the run-record JSON. SUBMITTING WORK TO THE CLIENT IS THE USER ACTION, NEVER YOURS. Aion core engineering belongs to W3:Jarvis-dev; WVU and GENESIS research belong to W4:Genie; Snorkel AI contract work belongs to W5:Jacques, your structural twin — never touch his client, his cwd or his jaques- namespaces."
+    local fleming_mcp="$PROJECT_DIR/.mcp.json"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/fleming --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$fleming_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-fleming.log"
+
+    local first
+    if [[ "$fleming_mode" == "resume" ]]; then
+        first="$base --resume $fleming_uuid"
+    else
+        first="$base --session-id $fleming_uuid"
+    fi
+    local loop_resume="$base --resume $fleming_uuid"
+    local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/fleming/CLAUDE.md"
+
+    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Fleming" -d \
+        "cd '$FLEMING_LAUNCH_DIR' && export $env_fleming && export ANTHROPIC_CUSTOM_HEADERS=$'$fleming_headers' && $first '$init'; while true; do echo ''; echo 'Fleming exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Fleming" automatic-rename off 2>/dev/null || true
+    echo -e "  ${GREEN}✓${NC} Fleming window (${fleming_mode}: ${fleming_uuid})"
 }
 
 # --- W2: URIST — Dwarf Fortress Archon (added 2026-08-24) --------------------
@@ -594,9 +821,9 @@ launch_urist_window() {
     # inside the tmux command line; an apostrophe closes that quote early and the shell then
     # glob-expands what follows. On the first Jacques launch that produced an empty pane and
     # zero hooks, which looks exactly like a settings-root bug and is not.
-    local sysappend="You are W2:Urist, the Dwarf Fortress Archon of Project Aion. You own DFHack Lua tooling, the Chronicler and DwarfCron product code, the live fortress and its saves, and the DF-Windows VM. DwarfCron/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on the Chronicler data model and pipeline rules; never restate it from memory. Your memory namespace is urist-context/research/sessions/codebase plus the urist-core graph; never write to any jarvis-, genie- or jaques- collection or graph. NEVER set enabler.fps or calculated_fps to 0 via Lua: it freezes the game permanently, use the timestream plugin. Corroborate any fortress claim across three sources (bridge state file, live DFHack probe, DB denizen registry) before asserting it. Do not short-cut Chronicler functionality with ad-hoc scripts; a phase is complete only when a stand-alone packaged executable exists. Aion core engineering belongs to W11:Jarvis-dev; research belongs to W12:Genie; Snorkel contract work belongs to W13:Jacques."
+    local sysappend="You are W2:Urist, the Dwarf Fortress Archon of Project Aion. You own DFHack Lua tooling, the Chronicler and DwarfCron product code, the live fortress and its saves, and the DF-Windows VM. DwarfCron/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on the Chronicler data model and pipeline rules; never restate it from memory. Your memory namespace is urist-context/research/sessions/codebase plus the urist-core graph; never write to any jarvis-, genie- or jaques- collection or graph. NEVER set enabler.fps or calculated_fps to 0 via Lua: it freezes the game permanently, use the timestream plugin. Corroborate any fortress claim across three sources (bridge state file, live DFHack probe, DB denizen registry) before asserting it. Do not short-cut Chronicler functionality with ad-hoc scripts; a phase is complete only when a stand-alone packaged executable exists. Aion core engineering belongs to W3:Jarvis-dev; research belongs to W4:Genie; Snorkel contract work belongs to W5:Jacques; micro1 contract work belongs to W6:Fleming."
     local urist_mcp="$PROJECT_DIR/.mcp.json"
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/urist --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$urist_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-urist.log"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/urist --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$urist_mcp' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-urist.log"
 
     local first
     if [[ "$urist_mode" == "resume" ]]; then
@@ -622,7 +849,7 @@ launch_urist_window() {
 # it. Starting it here as well would put TWO managers on one signal file, which is the
 # original race the W0 cutover was built to end.
 #
-# So W8 "Watcher" is a read-only CONSOLE onto that daemon (jicm-watcher-hud.sh), not the
+# So W7 "Watcher" is a read-only CONSOLE onto that daemon (jicm-watcher-hud.sh), not the
 # daemon. WATCHER_SCRIPT is the CONSOLE, and the old JICM_WATCHER_CYCLE_ENABLED /
 # JICM_WATCHER_MAINT_ENABLED exports were retired with the v7.9 singleton — under the new
 # naming those read as "disable the watcher's cycling", the exact opposite of their intent.
@@ -752,7 +979,7 @@ if [[ "$LITE_MODE" == "true" ]]; then
     fi
 fi
 
-# --dev only controls W11 creation; W0 resumes by default regardless
+# --dev only controls W3 creation; W0 resumes by default regardless
 # Use --fresh explicitly if you want a clean W0 slate
 
 # Auto-detect iTerm2
@@ -1222,7 +1449,7 @@ if [[ -n "$RESTART_COMPONENT" ]]; then
             fi
             ;;
         console|hud)
-            echo "Restarting Watcher console (W8)..."
+            echo "Restarting Watcher console (W7)..."
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Watcher" C-c 2>/dev/null
             sleep 1
             "$TMUX_BIN" send-keys -t "${SESSION_NAME}:Watcher" "bash '$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh'" Enter 2>/dev/null
@@ -1289,7 +1516,7 @@ fi
 #    block used to sit ~100 lines BELOW those calls, so any lane added to an already
 #    running session launched with NEO4J_PASSWORD and ANNAS_SECRET_KEY UNSET — its
 #    graphiti MCP then 401s and Anna's silently supplies nothing, while a full cold
-#    launch works fine. Observed live 2026-08-24 on W11. Do not move it back down.
+#    launch works fine. Observed live 2026-08-24 on the dev lane. Do not move it back down.
 # Load MCP-server credentials from the gitignored credentials.yaml so settings.json
 # and every persona mcp.json can reference them via ${VAR} expansion instead of
 # carrying literal secrets.
@@ -1341,11 +1568,11 @@ fi
 if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
     echo -e "${GREEN}Session '$SESSION_NAME' already exists.${NC}"
 
-    # If --dev requested and W11 doesn't exist, add it to the running session
+    # If --dev requested and W3 doesn't exist, add it to the running session
     if [[ "$DEV_MODE" == "true" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jarvis-dev$"; then
-            echo "Adding Jarvis-dev window (W11) to existing session..."
+            echo "Adding Jarvis-dev window (W3) to existing session..."
             launch_dev_window
             reorder_windows
         else
@@ -1353,13 +1580,13 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         fi
     fi
 
-    # Genie (W12) — add to a running session if missing. Not flag-gated; Genie is a
+    # Genie (W4) — add to a running session if missing. Not flag-gated; Genie is a
     # permanent Archon. This is also the install path: an existing aion session picks
     # Genie up without a full relaunch.
     if [[ "${GENIE:-on}" != "off" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Genie$"; then
-            echo "Adding Genie window (W12) to existing session..."
+            echo "Adding Genie window (W4) to existing session..."
             launch_genie_window
             reorder_windows
         else
@@ -1367,15 +1594,27 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         fi
     fi
 
-    # Jacques (W13) — add to a running session if missing. Also the install path.
+    # Jacques (W5) — add to a running session if missing. Also the install path.
     if [[ "${JAQUES:-on}" != "off" ]]; then
         EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
         if ! echo "$EXISTING_WINDOWS" | grep -q "^Jacques$"; then
-            echo "Adding Jacques window (W13) to existing session..."
+            echo "Adding Jacques window (W5) to existing session..."
             launch_jaques_window
             reorder_windows
         else
             echo "  Jacques window already exists."
+        fi
+    fi
+
+    # Fleming (W6) — add to a running session if missing. Also the install path.
+    if [[ "${FLEMING:-on}" != "off" ]]; then
+        EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
+        if ! echo "$EXISTING_WINDOWS" | grep -q "^Fleming$"; then
+            echo "Adding Fleming window (W6) to existing session..."
+            launch_fleming_window
+            reorder_windows
+        else
+            echo "  Fleming window already exists."
         fi
     fi
 
@@ -1497,7 +1736,7 @@ CLAUDE_ENV="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_A
 # --add-dir loads .claude/personas/jarvis/CLAUDE.md with @-import processing.
 # Jarvis identity, psyche, and force-loaded context are in that persona CLAUDE.md,
 # NOT in the root CLAUDE.md (which is shared with Alfred to avoid external-import conflicts).
-CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort low --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
+CLAUDE_BASE="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --exclude-dynamic-system-prompt-sections --model '${AION_MODEL}' --mcp-config '$PROJECT_DIR/.mcp.json' --add-dir .claude/personas/jarvis --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug.log"
 
 # Cross-project workspace dirs (Pyright LSP + cross-repo awareness).
 # Each path in .claude/context/.active-projects (one per line; blanks/#comments OK)
@@ -1602,7 +1841,7 @@ if [[ -n "$JARVIS_SESSION_ID_FOR_PIPELINE" ]]; then
 fi
 
 # Restart loop: --continue is safe here because W0's JSONL was the most recently
-# modified file (it just exited). W11 contamination only affects initial launch.
+# modified file (it just exited). Dev-lane contamination only affects initial launch.
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
 W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS=$'$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
 
@@ -1620,7 +1859,7 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     export TMUX_SESSION="$SESSION_NAME"
     export CLAUDE_PROJECT_DIR="$PROJECT_DIR"
 
-    # W8 "Watcher" — the console. reorder_windows() pins it to index 8 BY NAME
+    # W7 "Watcher" — the console. reorder_windows() pins it to index 7 BY NAME
     # (window_target_index: Watcher -> 8), so the index follows the name, not this
     # block's position in the file.
     #
@@ -1644,31 +1883,15 @@ if [[ "$WATCHER_ENABLED" = true ]]; then
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Watcher" automatic-rename off 2>/dev/null || true
 fi
 
-# Launch Ennoia session orchestrator in a tmux window (window 2, detached)
-ENNOIA_SCRIPT="$PROJECT_DIR/.claude/scripts/ennoia.sh"
-if [[ -x "$ENNOIA_SCRIPT" ]]; then
-    echo "Launching Ennoia orchestrator in tmux window..."
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Ennoia" -d \
-        "cd '$PROJECT_DIR' && '$ENNOIA_SCRIPT'; echo 'Ennoia stopped.'; read"
-fi
+# RETIRED 2026-09-07 — Ennoia (old W6), Virgil (old W7) and Commands (old W9).
+# All three launched a pane that idled: none had driven live work in months, and the
+# session-orchestration / signal-injection jobs they were written for are now done by
+# the JICM watcher (W7) and the inbox (aion-inbox.sh). Their scripts are left on disk
+# (.claude/scripts/{ennoia,virgil,command-handler}.sh) — this removes only the automatic
+# launch, so any of them can still be run by hand. Removing them freed 6, 7 and 9, which
+# is what let the Archon lanes group contiguously at 3-6.
 
-# Launch Virgil codebase guide in a tmux window (window 3, detached)
-VIRGIL_SCRIPT="$PROJECT_DIR/.claude/scripts/virgil.sh"
-if [[ -x "$VIRGIL_SCRIPT" ]]; then
-    echo "Launching Virgil codebase guide in tmux window..."
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Virgil" -d \
-        "cd '$PROJECT_DIR' && '$VIRGIL_SCRIPT'; echo 'Virgil stopped.'; read"
-fi
-
-# Launch command handler in a tmux window (window 4, detached)
-CMD_HANDLER_SCRIPT="$PROJECT_DIR/.claude/scripts/command-handler.sh"
-if [[ -x "$CMD_HANDLER_SCRIPT" ]]; then
-    echo "Launching command handler in tmux window..."
-    "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Commands" -d \
-        "cd '$PROJECT_DIR' && '$CMD_HANDLER_SCRIPT' --interval 3; echo 'Command handler stopped.'; read"
-fi
-
-# W11: Jarvis-dev (developer's seat — named session for deterministic resumption)
+# W3: Jarvis-dev (developer's seat — named session for deterministic resumption)
 # Uses a deterministic UUID so --resume always picks up the same conversation.
 # UUID v5 of "project_aion_jarvis_dev" in NAMESPACE_URL = fbd7528a-c1bd-414a-bdaa-c3cc23f53215
 if [[ "$DEV_MODE" == "true" ]]; then
@@ -1676,7 +1899,7 @@ if [[ "$DEV_MODE" == "true" ]]; then
     launch_dev_window
 fi
 
-# W12: Genie (Research Archon). Unlike Jarvis-dev this is NOT flag-gated — Genie is a
+# W4: Genie (Research Archon). Unlike Jarvis-dev this is NOT flag-gated — Genie is a
 # permanent Archon, not an on-demand test driver. It self-skips if Projects/WVU is absent,
 # and GENIE=off suppresses it for a lean launch.
 if [[ "${GENIE:-on}" != "off" ]]; then
@@ -1684,11 +1907,18 @@ if [[ "${GENIE:-on}" != "off" ]]; then
     launch_genie_window
 fi
 
-# W13: Jacques (Contract Archon). Permanent, not flag-gated; self-skips if SnorkelTasks
+# W5: Jacques (Contract Archon). Permanent, not flag-gated; self-skips if SnorkelTasks
 # is absent, and JAQUES=off suppresses it for a lean launch.
 if [[ "${JAQUES:-on}" != "off" ]]; then
     echo "Launching Jacques (Contract Archon) in tmux window..."
     launch_jaques_window
+fi
+
+# W6: Fleming (Contract Archon, micro1). Permanent, not flag-gated; self-skips if
+# Projects/micro1 is absent, and FLEMING=off suppresses it for a lean launch.
+if [[ "${FLEMING:-on}" != "off" ]]; then
+    echo "Launching Fleming (Contract Archon) in tmux window..."
+    launch_fleming_window
 fi
 
 # W2: Urist (Dwarf Fortress Archon). Permanent, not flag-gated; self-skips if
@@ -1773,8 +2003,8 @@ done'
 "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Ollama" automatic-rename off 2>/dev/null || true
 echo -e "  ${GREEN}✓${NC} Ollama model monitor window created"
 
-# HUD window — RETIRED 2026-08-20, folded into W8 "Watcher".
-# It ran the same jicm-watcher-hud.sh that W8 now runs, so keeping both produced two
+# HUD window — RETIRED 2026-08-20, folded into W7 "Watcher".
+# It ran the same jicm-watcher-hud.sh that W7 now runs, so keeping both produced two
 # identical dashboards. The dashboard's subject is the watcher, so it belongs in the
 # watcher's window. To restore a second copy at W2, re-add a new-window -n "HUD" block
 # here; window_target_index still knows HUD -> 2.
@@ -1805,7 +2035,7 @@ if ! "$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null
         echo "Launching Protos (warm chain session via Alfred-Dev)..."
         SEED_PROXY_URL="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
         "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "${SEED_WINDOW}" \
-            "cd '$ALFRED_LAUNCH_DIR' && export JARVIS_WINDOW=1 JICM_PROJECT_DIR='$PROJECT_DIR' ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${AION_MODEL}' --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
+            "cd '$ALFRED_LAUNCH_DIR' && export JARVIS_WINDOW=1 JICM_PROJECT_DIR='$PROJECT_DIR' ANTHROPIC_BASE_URL='$SEED_PROXY_URL' && export ANTHROPIC_CUSTOM_HEADERS='x-aion-session-id: seed-session' && claude --model '${AION_MODEL}' --effort \${AION_EFFORT} --chrome --mcp-config '$PROJECT_DIR/.mcp.json' --dangerously-skip-permissions --permission-mode bypassPermissions; echo 'Protos stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:${SEED_WINDOW}" automatic-rename off 2>/dev/null || true
         # Prime the seed: wait for Claude to be interactive, then inject the seed prompt.
         # This caches the initial context and confirms the session is ready for forking.
@@ -1855,8 +2085,8 @@ echo -e "${GREEN}║                    Aion is ready!                          
 echo -e "${GREEN}╚═══════════════════════════════════════════════════════════════╝${NC}"
 echo ""
 # Indices are READ FROM window_target_index(), never retyped. A hand-maintained copy
-# of this list is how the summary came to claim chain windows start at W12 — which is
-# GENIE's window, and W13 is Jacques. Both are live Archon lanes.
+# of this list is how the summary came to claim chain windows start at W12 — which was
+# GENIE's old window (Genie is now W4, Jacques W5). Chain windows genuinely start at 14.
 echo -e "${CYAN}Tmux Windows:${NC}"
 _w() { printf '  W%-3s %-13s %s\n' "$(window_target_index "$1")" "$1" "$2"; }
 _w Jarvis      "Master Archon ($([ "$FRESH_MODE" == "true" ] && echo "fresh" || echo "resumed"))"

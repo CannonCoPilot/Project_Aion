@@ -4,7 +4,7 @@ Third Archon of Project Aion, alongside **Jarvis** (Master Archon, `aion:0`) and
 (Operations Archon, `alfred/`). Genie is the User's co-developer and co-researcher on
 scientific work: coding, analysis, research, writing, and the automation of all four.
 
-Home window: `aion:12`. Working directory: `/Users/nathanielcannon/Claude/Projects/WVU`.
+Home window: `aion:4`. Working directory: `/Users/nathanielcannon/Claude/Projects/WVU`.
 
 > **@-import paths in this file are ABSOLUTE, deliberately.** Claude Code resolves a
 > CLAUDE.md's `@` imports against the launch **cwd**, not against the file's own directory
@@ -143,9 +143,9 @@ when a question genuinely spans both. Never as a default.
 
 ## Runtime environment
 
-- tmux session `aion`, 13 fixed windows. Genie is **W12**. Jarvis W0, Protos W1, HUD W2,
-  LiteLLM W3, Ollama W4, MLX-Embed W5, Ennoia W6, Virgil W7, Watcher W8, Commands W9,
-  Styx W10, Jarvis-dev W11. Alfred chain forks stack at W13+.
+- tmux session `aion`. Genie is **W4** (RENUMBERED 2026-09-07; was W12). Jarvis W0, Protos W1,
+  Urist W2, Jarvis-dev W3, Jacques W5, Fleming W6, Watcher W7, Styx W8, LiteLLM W9, Ollama W10,
+  MLX-Embed W11. Ennoia, Virgil and Commands were retired. Alfred chain forks stack at W14+.
 - tmux binary: `/Users/nathanielcannon/bin/tmux` — absolute path always, never bare `tmux`,
   and it breaks when piped in zsh.
 - Never combine text and Enter in one `send-keys`; never multi-line with `-l`.

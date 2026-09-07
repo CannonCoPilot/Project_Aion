@@ -1,6 +1,6 @@
 # Jarvis-dev Session Instructions — Autonomous Test Driver
 
-You are running in **W11:Jarvis-dev** — the autonomous test driver for Project Aion.
+You are running in **W3:Jarvis-dev** — the autonomous test driver for Project Aion.
 
 ---
 
@@ -26,22 +26,29 @@ You are inside a **tmux session** named `aion` with 14 fixed windows (chain wind
 | W0 | Jarvis | System Under Test (primary Archon) | Via dev scripts |
 | W1 | Protos | Alfred seed session (fork cache) | Read pane |
 | W2 | Urist | Dwarf Fortress Archon (cwd `Projects/DwarfCron`) | Read pane |
-| W3 | LiteLLM | Model proxy (:4000) | Read pane |
-| W4 | Ollama | Local model monitor (:11434) | Read pane |
-| W5 | MLX-Embed | Qwen3-Embedding-4B (:8000) | Read pane |
-| W6 | Ennoia | Session orchestrator | Read state files |
-| W7 | Virgil | Codebase guide | Read state files |
-| W8 | Watcher | JICM watcher console (HUD v2) | Read logs, restart |
-| W9 | Commands | Command signal handler | Write signal files |
-| W10 | Styx | Host executor daemon (bridge) | Read pane |
-| W11 | Jarvis-dev | **YOU ARE HERE** — test driver | Direct execution |
-| W12 | Genie | Research Archon (cwd `Projects/WVU`) | Read pane |
-| W13 | Jacques | Contract Archon (cwd `Projects/SnorkelTasks`) | Read pane |
+| W3 | Jarvis-dev | **YOU ARE HERE** — test driver | Direct execution |
+| W4 | Genie | Research Archon (cwd `Projects/WVU`) | Read pane |
+| W5 | Jacques | Contract Archon (cwd `Projects/SnorkelTasks`) | Read pane |
+| W6 | Fleming | Contract Archon (cwd `Projects/micro1`) | Read pane |
+| W7 | Watcher | JICM watcher console (HUD v2) | Read logs, restart |
+| W8 | Styx | Host executor daemon (bridge) | Read pane |
+| W9 | LiteLLM | Model proxy (:4000) | Read pane |
+| W10 | Ollama | Local model monitor (:11434) | Read pane |
+| W11 | MLX-Embed | Qwen3-Embedding-4B (:8000) | Read pane |
+| W12, W13 | *(empty)* | Buffer below the chain floor — keep clear | — |
 | W14+ | chain-* | Alfred fork-resume task windows | Read pane |
 
 **Source of truth is the launcher**, `.claude/scripts/launch-aion.sh` (header comment +
 `window_target_index()`). If this table and the launcher ever disagree, the launcher is right —
-fix the table. W2 was `HUD` until 2026-08-24; Urist took that slot. Chain windows moved from
+fix the table.
+
+**RENUMBERED 2026-09-07.** Conversational lanes were grouped contiguously at W3-W6 and the
+service windows moved to W7-W11. Ennoia (old W6), Virgil (old W7) and Commands (old W9) were
+RETIRED — idle panes, no live work. Old -> new: Jarvis-dev 11->3, Genie 12->4, Jacques 13->5,
+Watcher 8->7, Styx 10->8, LiteLLM 3->9, Ollama 4->10, MLX-Embed 5->11. Fleming at W6 is new.
+Anything quoting an old index is stale.
+
+W2 was `HUD` until 2026-08-24; Urist took that slot. Chain windows moved from
 W12 to W14 when Genie and Jacques claimed 12/13, and `_next_chain_index()` in
 `alfred/.claude/jobs/lib/host-executor-bridge.sh` must move with them — a chain fork landing
 on an Archon's pane injects an Alfred task into a live session.
@@ -173,7 +180,7 @@ See the skill for execution patterns (A-F), domain rotation, exit criteria, stat
 - **Window**: W11 (tmux window 11, name `Jarvis-dev`)
 - **Session ID**: Deterministic UUID `fbd7528a-c1bd-414a-bdaa-c3cc23f53215` (pinned across relaunches)
 - **Env var**: `JARVIS_SESSION_ROLE=dev`
-- **Isolation**: Watcher and command-handler target `aion:0` (Jarvis) only — W11 is invisible to all JICM monitoring
+- **Isolation**: Watcher and command-handler target `aion:0` (Jarvis) only — W3 (dev) is a first-class JICM lane since v9 — no longer invisible
 - **JICM exclusion**: jicm-gate.sh and jicm-stop.sh exit early for `JARVIS_SESSION_ROLE=dev` — W11 prompts never overwrite W0's state file
 
 ## Context Isolation — W11 vs W0

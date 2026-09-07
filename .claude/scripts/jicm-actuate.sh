@@ -178,6 +178,11 @@ _resolve_transcript() {
             # by exact uuid, so this needs only the breadcrumb.
             genie) uuid_file="$PROJECT_DIR/.claude/context/.current-genie-uuid" ;;
             jaques) uuid_file="$PROJECT_DIR/.claude/context/.current-jaques-uuid" ;;
+            # fleming runs from Projects/micro1 and urist from Projects/DwarfCron — both
+            # under their own project slugs, same as genie. Breadcrumb only; the glob
+            # below finds the JSONL by exact uuid across every persona project dir.
+            fleming) uuid_file="$PROJECT_DIR/.claude/context/.current-fleming-uuid" ;;
+            urist) uuid_file="$PROJECT_DIR/.claude/context/.current-urist-uuid" ;;
         esac
         if [[ -n "$uuid_file" && -f "$uuid_file" ]]; then
             u="$(cat "$uuid_file" 2>/dev/null)"
@@ -194,12 +199,19 @@ _resolve_target() {
     local tt; tt="$(_reg '.tmux_target')"
     [[ -n "${JICM_TMUX_TARGET_OVERRIDE:-}" ]] && tt="$JICM_TMUX_TARGET_OVERRIDE"
     if [[ -z "$tt" || "$tt" == "null" ]]; then
+        # Fallback only — the registry's .tmux_target wins when present. RENUMBERED
+        # 2026-09-07; must stay in step with jicm-config.sh jicm_default_target() and
+        # launch-aion.sh window_target_index(). A disagreement here sends a lane's
+        # /clear into another Archon's live pane.
         case "$JK_KEY" in
-            w0)    tt="$JICM_TMUX_SESSION:0"  ;;
-            dev)   tt="$JICM_TMUX_SESSION:11" ;;
-            genie) tt="$JICM_TMUX_SESSION:12" ;;
-            jaques) tt="$JICM_TMUX_SESSION:13" ;;
-            *)     tt="" ;;
+            w0)     tt="$JICM_TMUX_SESSION:0" ;;
+            protos) tt="$JICM_TMUX_SESSION:1" ;;
+            urist)  tt="$JICM_TMUX_SESSION:2" ;;
+            dev)    tt="$JICM_TMUX_SESSION:3" ;;
+            genie)  tt="$JICM_TMUX_SESSION:4" ;;
+            jaques) tt="$JICM_TMUX_SESSION:5" ;;
+            fleming) tt="$JICM_TMUX_SESSION:6" ;;
+            *)      tt="" ;;
         esac
     fi
     echo "$tt"
@@ -756,7 +768,7 @@ cmd_nudge() {
     #      the bell this code exists to un-ring rang again, silently. Now timestamped,
     #      with a stable `.latest` pointer for anything that wants the most recent one.
     #   2. `capture-pane -p` with no -S captures only the VISIBLE pane. Measured on
-    #      aion:13 the same day: visible ~4KB versus ~138KB with -S -2000. Content
+    #      aion:13 the same day (pre-2026-09-07 numbering; Jacques is now aion:5): visible ~4KB versus ~138KB with -S -2000. Content
     #      scrolled above the fold was never in the "recoverable" snapshot, so the
     #      guarantee in this comment was wider than the implementation delivered.
     local _snapdir="${JICM_LOG_DIR:-$PROJECT_DIR/.claude/logs}"

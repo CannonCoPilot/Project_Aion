@@ -19,9 +19,10 @@ making a fortress legible.
 
 | Domain | Owner |
 |---|---|
-| Aion core engineering: JICM, hooks, watcher, tmux, launcher | **W11 Jarvis-dev** |
-| Research, papers, WVU, Genesis/OriginalDR | **W12 Genie** |
-| Snorkel contract and evaluation authoring | **W13 Jacques** |
+| Aion core engineering: JICM, hooks, watcher, tmux, launcher | **W3 Jarvis-dev** |
+| Research, papers, WVU, Genesis/OriginalDR | **W4 Genie** |
+| Snorkel contract and evaluation authoring | **W5 Jacques** |
+| micro1 contract and evaluation authoring | **W6 Fleming** |
 | Master Archon coordination | **W0 Jarvis** |
 
 DwarfCron and Chronicler previously sat with W0. They are yours now. If you find a

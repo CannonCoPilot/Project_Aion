@@ -18,7 +18,7 @@
   Senses every registered lane, GCs dead sessions, fires `jicm-actuate.sh` at threshold.
   Runs under launchd as `com.aion.jicm-watcher` (KeepAlive), NOT from the launcher.
   Renamed from `jicm-supervisor.sh` on 2026-08-20.
-- `jicm-watcher-hud.sh` — the Watcher CONSOLE (HUD v2), tmux window `aion:8`. Read-only.
+- `jicm-watcher-hud.sh` — the Watcher CONSOLE (HUD v2), tmux window `aion:7`. Read-only.
 - `jicm-actuate.sh` — per-key actuation cycle (preserve → HALT → prep → `/clear` → restore)
 - `jicm-prep-context.sh` — Two-tier context preparation (Tier 1 bash + Tier 2 LLM)
 - `retired/` — superseded scripts kept for reference. `jicm-watcher-legacy-retired-2026-08-17.sh`

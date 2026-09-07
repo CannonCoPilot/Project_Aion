@@ -81,18 +81,24 @@ if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-dev-uuid"
         echo "$TIMESTAMP | SessionStart | DEV UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then
-        # W12:Genie. Ordered to mirror jicm_derive_key exactly — the two must not drift,
-        # or the launcher's resume candidate and the JICM lane key disagree. Genie's
-        # breadcrumb lives in Project_Aion (not its own cwd) so the launcher, the
-        # actuator and this hook all read one path.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "4" ]]; then
+        # W4:Genie (was W12 before the 2026-09-07 renumber). Ordered to mirror
+        # jicm_derive_key exactly — the two must not drift, or the launcher's resume
+        # candidate and the JICM lane key disagree. Genie's breadcrumb lives in
+        # Project_Aion (not its own cwd) so the launcher, the actuator and this hook
+        # all read one path.
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-genie-uuid"
         echo "$TIMESTAMP | SessionStart | GENIE UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then
-        # W13:Jacques. Mirrors jicm_derive_key exactly — the two must not drift or the
-        # launcher's resume candidate and the JICM lane key disagree.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "5" ]]; then
+        # W5:Jacques (was W13). Mirrors jicm_derive_key exactly — the two must not drift
+        # or the launcher's resume candidate and the JICM lane key disagree.
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-jaques-uuid"
         echo "$TIMESTAMP | SessionStart | JAQUES UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "fleming" || "${JARVIS_WINDOW:-}" == "6" ]]; then
+        # W6:Fleming — second Contract Archon (micro1), added 2026-09-07. Structural twin
+        # of Jacques; same breadcrumb-in-Project_Aion rule for the same reason.
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-fleming-uuid"
+        echo "$TIMESTAMP | SessionStart | FLEMING UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     elif [[ -z "${JARVIS_WINDOW:-}" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
         echo "$TIMESTAMP | SessionStart | W0 UUID tracked (unset-window recovery): $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
@@ -434,14 +440,16 @@ else
     # routes to the safety fallback, NOT blanket-forced to w0 (which would mis-inject).
     if   [[ "${JARVIS_WINDOW:-}" == "0" ]];         then JICM_KEY="w0"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "dev" ]]; then JICM_KEY="dev"
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "12" ]]; then JICM_KEY="genie"
-    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "13" ]]; then JICM_KEY="jaques"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "4" ]]; then JICM_KEY="genie"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "5" ]]; then JICM_KEY="jaques"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "fleming" || "${JARVIS_WINDOW:-}" == "6" ]]; then JICM_KEY="fleming"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then JICM_KEY="w0"
     else JICM_KEY="$SESSION_ID"; fi
-    if [[ "$JICM_KEY" == "jaques" ]]; then
-        JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/jaques.compressed.md"
-        JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/clear-now.jaques.signal"
-        JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/resume-complete.jaques.signal"
+    if [[ "$JICM_KEY" == "jaques" || "$JICM_KEY" == "fleming" ]]; then
+        # Both Contract Archons use the namespaced jicm/ tree keyed by name.
+        JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/${JICM_KEY}.compressed.md"
+        JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/clear-now.${JICM_KEY}.signal"
+        JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/resume-complete.${JICM_KEY}.signal"
     elif [[ "$JICM_KEY" == "genie" ]]; then
         # Non-w0 keys use the namespaced jicm/ tree; mirror jicm_key_paths' else-branch.
         JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/genie.compressed.md"

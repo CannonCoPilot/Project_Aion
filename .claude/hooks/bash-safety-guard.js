@@ -526,7 +526,12 @@ const SECRET_PATTERNS = [
   { name: 'GitHub Token', pattern: /gh[pousr]_[A-Za-z0-9_]{36,}/ },
   { name: 'Generic API Key', pattern: /[aA][pP][iI][-_]?[kK][eE][yY][\s]*[=:]\s*["']?[A-Za-z0-9_\-]{20,}/ },
   { name: 'Private Key', pattern: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
-  { name: 'Password in URL', pattern: /:\/\/[^:]+:[^@]+@/ },
+  // Userinfo in a URL cannot contain whitespace, '/' or '@'. The previous class pairs
+  // ([^:]+ and [^@]+) both matched NEWLINES, so this ran from a bare '://localhost:7687'
+  // across ~400 chars of unrelated shell until it found any '@' anywhere later in the
+  // file, and reported the whole span as a leaked password. Constrain to the actual URL
+  // grammar: this still catches user:pass@host, and no longer matches across lines.
+  { name: 'Password in URL', pattern: /:\/\/[^:\s\/@]+:[^@\s\/]+@/ },
   { name: 'JWT Token', pattern: /eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/ },
 ];
 
@@ -550,6 +555,15 @@ function isFalsePositive(match) {
   // patterns themselves are NOT weakened -- this only filters matches that cannot be secrets.
   const distinct = new Set(match).size;
   if (distinct < 5) return true;
+
+  // FILESYSTEM PATHS ARE NOT CREDENTIALS.
+  // '/' is in the AWS-secret class, so any 40-character run of an absolute path matches --
+  // '/Users/nathanielcannon/Claude/Projects/m' is 40 chars with ~19 distinct characters, so
+  // it sails past the entropy floor above. Every persona file and every script that names an
+  // absolute path therefore read as leaked AWS secrets. A credential does not contain a
+  // '/Users/' or '/home/' segment, so this discards path noise without weakening the pattern
+  // for anything that could actually be a secret.
+  if (/\/(Users|home|opt|var|usr|Applications)\//.test(match)) return true;
 
   return false;
 }

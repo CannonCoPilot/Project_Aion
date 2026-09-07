@@ -1,7 +1,7 @@
 #!/bin/bash
 # Branch harness for the MLX leak auto-restart (jicm-watcher.sh).
 # SAFE BY CONSTRUCTION: every path that could respawn a pane is pointed at a THROWAWAY tmux
-# target, and the real aion:5 is never named. A test that can restart production is not a test.
+# target, and the real MLX-Embed window is never named. A test that can restart production is not a test.
 SUP="/Users/nathanielcannon/Claude/Project_Aion/.claude/scripts/jicm-watcher.sh"
 TMUX_BIN="/Users/nathanielcannon/bin/tmux"
 P=0; F=0
@@ -11,9 +11,15 @@ has(){ case "$2" in *"$3"*) echo "  PASS $1"; P=$((P+1));; *) echo "  FAIL $1 (g
 # shellcheck disable=SC1090
 source "$SUP"
 
+# The two log assertions below read $SUP_LOG. It was USED but never ASSIGNED (pre-existing
+# bug found 2026-09-07), so `grep "$SUP_LOG"` and `tail "$SUP_LOG"` both ran against an empty
+# path and those checks failed unconditionally regardless of the code under test. _log()
+# appends to $WATCH_LOG, which sourcing $SUP defines — point at that.
+SUP_LOG="${WATCH_LOG:?WATCH_LOG undefined after sourcing jicm-watcher.sh}"
+
 echo "1. threshold derives from baseline x multiplier (not a hand-set constant)"
 ok "2654MB x3 -> 8GB" "$MAINT_MLX_FOOTPRINT_GB" "8"
-ok "target is aion:5" "$MAINT_MLX_TARGET" "aion:5"
+ok "target is aion:MLX-Embed (NAME, not index — see jicm-watcher.sh)" "$MAINT_MLX_TARGET" "aion:MLX-Embed"
 (
   export JICM_HEALTH_MLX_BASELINE_MB=4000 JICM_HEALTH_MLX_LEAK_MULT=5
   v=$(bash -c 'source '"$SUP"'; echo $MAINT_MLX_FOOTPRINT_GB')

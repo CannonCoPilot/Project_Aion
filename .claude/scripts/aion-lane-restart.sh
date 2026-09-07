@@ -44,7 +44,7 @@
 #
 # Usage:
 #   aion-lane-restart.sh <lane> [--dry-run] [--force] [--idle-sec N] [--yes]
-#   lane: jaques|jacques|genie|dev|w0   (or the tmux window name)
+#   lane: jaques|jacques|fleming|genie|dev|w0|protos|urist   (or the tmux window name)
 #
 # Exit: 0 restarted (or dry-run OK) · 1 refused/failed · 64 usage
 # NOTE: bash 3.2 on macOS — no assoc arrays, no readarray. Never `set -euo pipefail` here.
@@ -84,17 +84,18 @@ while [[ $# -gt 0 ]]; do
         # priority role is a seed: it must reset to the default tool/permission surface, NOT to
         # its last conversation.
         --fresh)    FRESH=1; shift ;;
-        -h|--help)  echo "usage: aion-lane-restart.sh <jaques|genie|dev|w0> [--dry-run] [--force] [--allow-bg-kill] [--idle-sec N] [--yes]"; exit 0 ;;
+        -h|--help)  echo "usage: aion-lane-restart.sh <jaques|fleming|genie|dev|w0|protos|urist> [--dry-run] [--force] [--allow-bg-kill] [--idle-sec N] [--yes]"; exit 0 ;;
         -*)         echo "unknown flag: $1" >&2; exit 64 ;;
         *)          LANE="$1"; shift ;;
     esac
 done
-[[ -n "$LANE" ]] || { echo "usage: aion-lane-restart.sh <jaques|genie|dev|w0> [--dry-run] [--force]" >&2; exit 64; }
+[[ -n "$LANE" ]] || { echo "usage: aion-lane-restart.sh <jaques|fleming|genie|dev|w0|protos|urist> [--dry-run] [--force]" >&2; exit 64; }
 
 # --- lane -> (registry key, tmux window). Jacques is spelled `jaques` everywhere in the
 # --- codebase (registry key, uuid file, graph namespace); accept both spellings as input.
 case "$LANE" in
-    jaques|jacques|Jacques|13) KEY="jaques"; WIN="Jacques" ;;
+    jaques|jacques|Jacques|5) KEY="jaques"; WIN="Jacques" ;;
+    fleming|Fleming|6) KEY="fleming"; WIN="Fleming" ;;
     genie|Genie|12)            KEY="genie";  WIN="Genie" ;;
     dev|Jarvis-dev|11)         KEY="dev";    WIN="Jarvis-dev" ;;
     w0|jarvis|Jarvis|0)        KEY="w0";     WIN="Jarvis" ;;
@@ -103,7 +104,7 @@ case "$LANE" in
     # never the residue of whatever one-off interactive session last used it.
     protos|Protos|1)           KEY="protos"; WIN="Protos" ;;
     urist|Urist|2)             KEY="urist";  WIN="Urist" ;;
-    *) _die "unknown lane '$LANE' (expected jaques|genie|dev|w0|protos|urist)" ;;
+    *) _die "unknown lane '$LANE' (expected jaques|fleming|genie|dev|w0|protos|urist)" ;;
 esac
 
 _log "==== lane-restart requested: lane=$KEY window=$WIN dry_run=$DRY_RUN force=$FORCE ===="

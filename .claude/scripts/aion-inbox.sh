@@ -65,7 +65,7 @@ _lane_keys() {
         ls -1 "$reg"/*.json 2>/dev/null | sed 's|.*/||; s|\.json$||'
         return 0
     fi
-    printf '%s\n' w0 dev genie jaques protos urist
+    printf '%s\n' w0 dev genie jaques fleming protos urist
 }
 
 _valid_key() {
@@ -75,7 +75,7 @@ _valid_key() {
     done < <(_lane_keys)
     # Registry misses are not fatal: a legitimate lane may not have registered yet.
     case "$1" in
-        w0|dev|genie|jaques|protos|urist) return 0 ;;
+        w0|dev|genie|jaques|fleming|protos|urist) return 0 ;;
         *) return 1 ;;
     esac
 }

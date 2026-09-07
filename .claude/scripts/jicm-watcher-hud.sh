@@ -4,7 +4,7 @@
 # ============================================================================
 #
 # Read-only console for the JICM watcher daemon (jicm-watcher.sh, run by launchd as
-# com.aion.jicm-watcher). Lives in tmux window aion:8 "Watcher". Touches nothing:
+# com.aion.jicm-watcher). Lives in the tmux window named "Watcher" (aion:7 since the 2026-09-07 renumber; was aion:8). Touches nothing:
 # no signals, no state writes, no actuation. If this process dies, JICM is unaffected.
 #
 # NAMING, because the words changed under this file (2026-08-20):

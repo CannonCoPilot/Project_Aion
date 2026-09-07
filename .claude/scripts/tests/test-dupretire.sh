@@ -13,7 +13,7 @@ R="$JICM_REGISTRY_DIR"; S="$JICM_DIR/state"; SIG="$JICM_SIGNALS_DIR"
 reset(){
   rm -rf "$R" "$S" "$SIG" "$JICM_CHAIN_DIR" "$JICM_DIR/archive"
   mkdir -p "$R" "$S" "$SIG" "$JICM_CHAIN_DIR"
-  echo "{\"session_id\":\"$SID\",\"tmux_target\":\"aion:12\"}" > "$R/genie.json"
+  echo "{\"session_id\":\"$SID\",\"tmux_target\":\"aion:4\"}" > "$R/genie.json"
   echo "{\"session_id\":\"${1:-$SID}\",\"tmux_target\":\"\"}"  > "$R/genie-bg-6c429de9.json"
   echo '{"tokens":0}' > "$S/genie-bg-6c429de9.json"
   : > "$S/.last-sample.genie-bg-6c429de9"
