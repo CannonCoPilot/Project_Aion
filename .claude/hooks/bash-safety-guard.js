@@ -150,7 +150,69 @@ function extractBashReadPath(command) {
   // unterminated heredoc. The delimiter is matched as its own line via explicit newlines.
   cmd = cmd.replace(/<<-?\s*(['"]?)([A-Za-z_][A-Za-z0-9_]*)\1\r?\n[\s\S]*?(?:\r?\n\2(?:\r?\n|$)|$)/g, ' ');
 
-  const raw = cmd.split(/[\s;|&<>()'"`]+/).filter(Boolean);
+  // ── Drop PATTERN operands before treating tokens as paths ─────────────────
+  // The splitter below breaks on `|` and on quotes, so a grep alternation
+  // `grep -iE 'credential|secret|\.env|token'` shatters into the bare token `\.env`, which
+  // reads exactly like a path and was denied as credential access — while doing nothing but
+  // LISTING FILENAMES. Same family as the glob and heredoc rules above: rule syntax is not
+  // an access.
+  //
+  // A blanket "skip anything with regex metacharacters" would be a BYPASS, not a fix:
+  // `cat \.env` is a real read (the shell unescapes `\.` to `.`), and it is indistinguishable
+  // from the grep case at the token level. The distinguishing fact is ARGUMENT POSITION — the
+  // token is the *pattern* operand of a pattern-consuming tool, not a path operand. So parse
+  // that position instead of guessing from the token's shape.
+  //
+  // Deliberately narrow: only the pattern operand is dropped. `grep foo .env` still blocks on
+  // `.env`, `-f patternfile` keeps its operand (that IS a path), and every non-pattern command
+  // is untouched.
+  const PATTERN_TOOLS = new Set(['grep','egrep','fgrep','rg','ripgrep','ag','ack','sed','awk','gawk']);
+  // Flags whose NEXT token is the pattern itself (drop it).
+  const PATTERN_FLAGS = new Set(['-e','--regexp','--expression']);
+  // Flags whose NEXT token is a value but NOT a positional (skip position accounting only).
+  const VALUE_FLAGS = new Set(['-m','--max-count','-A','--after-context','-B','--before-context',
+                               '-C','--context','--include','--exclude','--exclude-dir',
+                               '-f','--file','-d','--directories','--color','--colour']);
+
+  // Quote-aware split into pipeline segments so each segment's command word is knowable.
+  const segments = [];
+  {
+    let cur = '', q = null, seg = [];
+    const push = () => { if (cur) { seg.push(cur); cur = ''; } };
+    for (let i = 0; i < cmd.length; i++) {
+      const ch = cmd[i];
+      if (q) { if (ch === q) q = null; else cur += ch; continue; }
+      if (ch === "'" || ch === '"' || ch === '`') { q = ch; continue; }
+      if (ch === '\n' || ch === ';' || ch === '|' || ch === '&') { push(); if (seg.length) segments.push(seg); seg = []; continue; }
+      if (/\s/.test(ch)) { push(); continue; }
+      if (ch === '(' || ch === ')' || ch === '<' || ch === '>') { push(); continue; }
+      cur += ch;
+    }
+    push(); if (seg.length) segments.push(seg);
+  }
+
+  const raw = [];
+  for (const seg of segments) {
+    const base = (seg[0] || '').split('/').pop();
+    if (!PATTERN_TOOLS.has(base)) { raw.push(...seg); continue; }
+    let sawPattern = false;
+    for (let i = 1; i < seg.length; i++) {
+      const tok = seg[i];
+      if (PATTERN_FLAGS.has(tok)) { i++; sawPattern = true; continue; }        // drop the pattern
+      const eqFlag = tok.match(/^(--regexp|--expression)=/);
+      if (eqFlag) { sawPattern = true; continue; }                             // drop --regexp=...
+      // `-f FILE` / `--file FILE` supplies the patterns FROM A FILE, so this segment has no
+      // positional pattern and every later operand is a real path. Without setting sawPattern
+      // here, `grep -f pats.txt .env` consumed `.env` as "the pattern" and stopped blocking a
+      // genuine credential read — a bypass this fix introduced and this line closes.
+      if (tok === '-f' || tok === '--file') sawPattern = true;
+      if (VALUE_FLAGS.has(tok)) { if (seg[i + 1] !== undefined) raw.push(seg[i + 1]); i++; continue; }
+      if (tok.startsWith('-') && tok.length > 1) continue;                     // other flags
+      if (!sawPattern) { sawPattern = true; continue; }                        // first positional = pattern
+      raw.push(tok);                                                           // remaining = real paths
+    }
+  }
+  
   for (let tok of raw) {
     // Glob PATTERNS are rule syntax, not paths. `Read(**/.env)` is a permission rule being
     // discussed; `**/.env` cannot be opened by any program. Real accesses name real paths.
