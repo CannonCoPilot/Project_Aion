@@ -31,6 +31,18 @@ LAYER 2 extracts claim triplets from both texts with a local model and checks
 entailment in both directions. It needs Ollama on localhost. It is the layer
 that catches a meaning change carried by ordinary words rather than by symbols.
 
+WHAT THE SUITE PROVES, AND WHAT IT DOES NOT
+-------------------------------------------
+`corpus/test_fidelity.py` is 13 pairs, 5 benign and 8 breaking, and it is green
+in both modes. On first full run it was NOT: bidirectional entailment passed
+"may account for some of the gap" -> "accounts for the gap", because entailment
+is weak on hedging and the design let layer 2 clear layer 1's hedge advisory.
+The targeted strength probe fixed it.
+
+The honest limit: I wrote both the gate and its test set, so a green suite shows
+the gate handles the failure modes I thought of. It is not evidence about the
+ones I did not. Real revisions and the ablation pairs are the actual test.
+
 NO SILENT DEGRADATION
 ---------------------
 If layer 2 is requested and unavailable, the gate returns `unknown` and NEVER
