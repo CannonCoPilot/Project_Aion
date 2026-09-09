@@ -1079,7 +1079,10 @@ _rest_run() {
     # R5 — scratchpad prune. Per-key now that JK_SCRATCHPAD is per-key and correct.
     if [[ -f "$JK_SCRATCHPAD" ]]; then
         n="$(wc -l < "$JK_SCRATCHPAD" | tr -d ' ')"
-        if [[ "${n:-0}" -gt 60 ]]; then
+        # Fire at the limit the nudge NAMES. It fired at 60 while reporting 80, so every count in
+        # 61-80 produced a nudge that was correct to refuse — four in a row on 2026-09-06..09,
+        # which trains the reader to ignore the nudge. Same threshold in the test and the message.
+        if [[ "${n:-0}" -gt 80 ]]; then
             _rest_nudge "$key" "Watcher here. Scratchpad ${JK_SCRATCHPAD#$PROJECT_DIR/} is at ${n} lines (limit 80). Please prune stale entries, then reply Done."
             _log "REST: R5 scratchpad prune nudged (${n} lines)"
         fi
