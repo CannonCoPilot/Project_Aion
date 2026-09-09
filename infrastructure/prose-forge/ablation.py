@@ -101,7 +101,11 @@ _FILE = re.compile(
     r"(?:\.(?:gz|bz2|xz|zst))?\b")
 
 
-_BULLET_LINE = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])\s+")
+# re.M matters: without it `^` anchors to the start of the STRING, so
+# findall over a document returned 0 bullets and the non-gloss bullet count
+# came out negative. `.match()` on a single line worked either way, which is
+# why it went unnoticed until the count was used document-wide.
+_BULLET_LINE = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])\s+", re.M)
 
 
 def _units(text: str) -> list[str]:
@@ -183,7 +187,15 @@ def file_gloss_ratio(text: str) -> tuple[float, int]:
 
 
 #: An em-dash in `filename — description` position, i.e. the gloss delimiter.
-_DELIM_DASH = re.compile(r"`?[\w.<>/-]+\.[a-z0-9]{1,6}`?\*{0,2}\s*(?:—|--)\s")
+# EM-DASH IS U+2014 ONLY. Matching a double hyphen as well was my own
+# documented finding violated in my own code: Phase 0 Addendum D records
+# DoubleHyphen as markdown rules and CLI flags rather than punctuation style,
+# and I warned W13 not to conflate the two. af7 carries 12 true em-dashes and
+# 4 double hyphens; counting 16 inflated the density by a fifth and disagreed
+# with his instrument, which was right.
+_EM_DASH = re.compile("\u2014")
+
+_DELIM_DASH = re.compile(r"`?[\w.<>/-]+\.[a-z0-9]{1,6}`?\*{0,2}\s*\u2014\s")
 
 
 def em_dash_position(text: str) -> tuple[int, int, float]:
@@ -196,9 +208,26 @@ def em_dash_position(text: str) -> tuple[int, int, float]:
     delimiters and the variant's are all somewhere else, the density matched
     and the construction moved anyway.
     """
-    total = len(re.findall(r"—|--", text))
+    total = len(_EM_DASH.findall(text))
     delim = len(_DELIM_DASH.findall(text))
     return total, delim, (delim / total if total else 0.0)
+
+
+def gloss_bullets(text: str) -> tuple[int, int]:
+    """(total bullets, bullets that are file-gloss units).
+
+    W13's mediator argument applies to bullets exactly as it applies to
+    em-dashes, and for the same reason: in these documents the per-file list IS
+    a bulleted list, so removing the one-to-one mapping removes those bullets
+    necessarily. They are mediated by the manipulation. Bullets that are NOT
+    file glosses are not mediated by anything, so those are the off-target
+    quantity. Decomposing is not exempting: it measures the part that was never
+    mediated instead of waving through the part that was.
+    """
+    total = len(_BULLET_LINE.findall(text))
+    gloss_texts = {u for _, u in gloss_units(text)}
+    mediated = sum(1 for u in gloss_texts if _BULLET_LINE.match(u))
+    return total, mediated
 
 
 def dims(text: str) -> dict[str, float]:
@@ -209,6 +238,7 @@ def dims(text: str) -> dict[str, float]:
     cv = (st.stdev(lens) / st.mean(lens)) if len(lens) > 1 and st.mean(lens) else 0.0
     gloss, nfiles = file_gloss_ratio(text)
     dash_n, dash_d, dash_share = em_dash_position(text)
+    _nb_total, _nb_med = gloss_bullets(text)
     return {
         "em_dash_delimiter_share": dash_share,
         "em_dash_delimiter_n": float(dash_d),
@@ -217,8 +247,15 @@ def dims(text: str) -> dict[str, float]:
         "sentence_colon_per_1k": len(re.findall(r"[a-z,\)]\s?:\s", s)) / w * 1000,
         "hedge_per_1k": len(F._HEDGE.findall(s)) / w * 1000,
         "sentence_len_cv": cv,
-        "em_dash_per_1k": len(re.findall(r"—|--", s)) / w * 1000,
-        "bullet_per_1k": len(re.findall(r"(?m)^\s*[-*+]\s", text)) / w * 1000,
+        # Raw text and raw word count, matching em_dash_position. Measuring
+        # one on stripped text and the other on raw produced two densities
+        # for one document, 11.98 and 13.09.
+        "em_dash_per_1k": len(_EM_DASH.findall(text)) / max(len(text.split()), 1) * 1000,
+        # Non-gloss bullets only: the file-gloss bullets are mediated by the
+        # manipulation, so constraining them would change what the
+        # manipulation is. See gloss_bullets.
+        "bullet_per_1k": (_nb_total - _nb_med) / max(len(text.split()), 1) * 1000,
+        "bullet_total_per_1k": _nb_total / max(len(text.split()), 1) * 1000,
     }
 
 
