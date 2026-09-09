@@ -46,7 +46,8 @@ import re
 from typing import Callable
 
 __all__ = ["DETECTORS", "analyse", "colon_usage", "cataphoric_forecasting",
-           "strip_markup", "PRECISION", "RATES"]
+           "strip_markup", "PRECISION", "RATES", "sentence_colon",
+           "SEPARATION", "SENTENCE_COLON_THRESHOLD"]
 
 
 # ---------------------------------------------------------------------------
@@ -331,6 +332,79 @@ FIXTURE_SIGN_TEST: dict[str, str] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# SentenceColon — the rule ColonUsage was a bad proxy for
+#
+# ColonUsage requires a CAPITAL after the colon, which selects the run-in label
+# construction, which is house style. The discriminating thing is the colon
+# used MID-SENTENCE, after a lowercase word, comma or closing paren, to hinge
+# one clause onto another. Both human arms agree on it. Archon prose does not.
+#
+#   Sir 7.92/1k · other humans 8.57/1k · Archon-authored 34.50/1k (medians)
+#
+# This is the first metric to clear the bar Addendum D set: it separates
+# machine text from EVERY human arm at once, and the two human arms are nearly
+# indistinguishable on it (AUC 0.584, where 0.5 is chance).
+#
+# HARD LIMIT, stated because it bounds every claim made from this rule: the
+# qwen3:8b JICM digest arm scores 0.586 AUC and reads human. This is a tell for
+# CLAUDE-family prose, not for machine text in general. For revising Archon
+# output that is exactly the target. As an "AI detector" it would be a fraud.
+# ---------------------------------------------------------------------------
+
+_SENTENCE_COLON = re.compile(r"[a-z,\)]\s?:\s")
+
+#: 90th percentile of the pooled human arms (236 documents, >=50 words).
+SENTENCE_COLON_THRESHOLD = 25.4
+
+SEPARATION: dict[str, dict[str, float]] = {
+    "SentenceColon": {
+        "sir_per_1k_median": 7.92,
+        "snorkel_other_humans_per_1k_median": 8.57,
+        "archon_authored_per_1k_median": 34.50,
+        "archon_digest_per_1k_median": 11.83,
+        "auc_archon_authored_vs_pooled_humans": 0.917,
+        "auc_archon_authored_vs_sir": 0.906,
+        "auc_archon_authored_vs_other_humans": 0.969,
+        "auc_archon_digest_vs_pooled_humans": 0.586,   # the limit
+        "auc_sir_vs_other_humans": 0.584,              # ~chance, as it should be
+        "flag_rate_archon_authored": 0.73,
+        "flag_rate_sir": 0.12,
+        "flag_rate_other_humans": 0.00,
+    },
+}
+
+
+def sentence_colon(text: str, genre: str | None = None) -> dict:
+    """Mid-sentence colon density. The one ported-family rule that flags."""
+    t = strip_markup(text, drop_headings=True)
+    words = max(len(t.split()), 1)
+    spans = [(m.start(), m.end()) for m in _SENTENCE_COLON.finditer(t)]
+    rate = len(spans) / words * 1000
+    metrics = {"SentenceColon_hits": len(spans),
+               "SentenceColon_per_1k": round(rate, 3),
+               "words": len(text.split())}
+    flags = []
+    if words < 50:
+        metrics["SentenceColon_suppressed_reason"] = (
+            "under 50 words; the rate is unstable and was never measured there")
+    elif rate > SENTENCE_COLON_THRESHOLD:
+        flags.append({
+            "level": "medium",
+            "name": "SentenceColon",
+            "detail": (f"{rate:.1f} mid-sentence colons per 1k words, above the "
+                       f"{SENTENCE_COLON_THRESHOLD}/1k 90th percentile of 236 human "
+                       f"documents by two separate authors. AUC 0.917 against pooled "
+                       f"humans; 73% of Archon documents flag here against 12% of "
+                       f"Sir's and 0% of third-party humans'. Claude-family tell "
+                       f"only: the qwen3:8b arm reads human at AUC 0.586."),
+            "evidence": [t[max(0, s - 45):e + 45].replace("\n", " ").strip()
+                         for s, e in spans[:6]]})
+    return {"verdict": "flagged" if flags else "clean",
+            "score": min(100, int(rate / SENTENCE_COLON_THRESHOLD * 50)),
+            "flags": flags, "metrics": metrics}
+
+
 def _result(name: str, spans: list[tuple[int, int]], text: str,
             metrics: dict[str, float], detail: str,
             per_1k_flag: float) -> dict:
@@ -359,7 +433,7 @@ def _result(name: str, spans: list[tuple[int, int]], text: str,
     return {"score": score, "flags": flags, "metrics": metrics}
 
 
-def colon_usage(text: str) -> dict:
+def colon_usage(text: str, genre: str | None = None) -> dict:
     spans, bold = _colon_spans(text)
     r = _result(
         "ColonUsage", spans, text,
@@ -370,7 +444,7 @@ def colon_usage(text: str) -> dict:
     return r
 
 
-def cataphoric_forecasting(text: str) -> dict:
+def cataphoric_forecasting(text: str, genre: str | None = None) -> dict:
     spans = _cataphoric_spans(text)
     r = _result(
         "CataphoricForecasting", spans, text, {},
@@ -380,9 +454,16 @@ def cataphoric_forecasting(text: str) -> dict:
     return r
 
 
-def analyse(text: str) -> dict:
-    """Both ported rules under one call, in the Console's contract shape."""
-    parts = [colon_usage(text), cataphoric_forecasting(text)]
+def analyse(text: str, genre: str | None = None) -> dict:
+    """Every rule under one call, in the Console's contract shape.
+
+    `genre` is accepted and forwarded so the Console can scope calls the way
+    W13:Jacques scopes `structural_tell`. No rule here is genre-gated yet:
+    SentenceColon was measured across three document sub-genres and held, and
+    the other two are METRIC_ONLY, so gating them would be theatre.
+    """
+    parts = [colon_usage(text, genre), cataphoric_forecasting(text, genre),
+             sentence_colon(text, genre)]
     metrics: dict[str, float] = {}
     flags: list[dict] = []
     for p in parts:
@@ -393,7 +474,8 @@ def analyse(text: str) -> dict:
             "flags": flags, "metrics": metrics}
 
 
-DETECTORS: dict[str, Callable[[str], dict]] = {
+DETECTORS: dict[str, Callable[..., dict]] = {
+    "sentence_colon": sentence_colon,
     "colon_usage": colon_usage,
     "cataphoric_forecasting": cataphoric_forecasting,
     "prose_forge_ported_rules": analyse,

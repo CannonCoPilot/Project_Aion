@@ -391,3 +391,52 @@ messages. Some of the gap is genre, not authorship. That weakens any claim about
 which arm is higher. It does not weaken the conclusion, which needs only this: two
 human arms in document genre disagree on both rules by more than machines differ
 from either. A flag calibrated on one of them does not transfer to the other.
+
+---
+
+## Addendum E — the rule ColonUsage was a bad proxy for (2026-09-09)
+
+Addendum D retired ColonUsage. W13:Jacques then offered a third data point against
+it: raw colon density on his 52-document human arm reads 11.43 per 1k words,
+against my Archon-authored 4.100. That looked like humans out-colon machines.
+
+**The two figures are different instruments.** His 11.43 counts every colon. My
+4.100 counts ColonUsage, which requires a capital after the colon. Measured
+like for like on the same documents, the comparison inverts.
+
+| Metric (median /1k) | Sir | Other humans | Archon authored | Archon digest |
+|---|---|---|---|---|
+| raw colon | 13.83 | 11.43 | 32.54 | 15.28 |
+| colon, markup stripped | 13.56 | 11.36 | 39.92 | 15.38 |
+| **mid-sentence colon** | **7.92** | **8.57** | **34.50** | **11.83** |
+
+His 11.43 reproduces exactly. The conclusion it was offered for does not.
+
+### What the like-for-like comparison found instead
+
+The **mid-sentence colon**, one that follows a lowercase word, comma or closing
+paren, is the first metric to clear the bar Addendum D set. It separates machine
+text from every human arm at once, and the two human arms agree on it.
+
+- AUC 0.917 for Archon-authored against pooled humans, on 59 versus 236 documents.
+- AUC 0.906 against Sir alone, 0.969 against third-party humans.
+- AUC 0.584 between the two human arms, where 0.5 is chance.
+- At the humans' own 90th percentile of 25.4/1k: 73% of Archon documents flag,
+  12% of Sir's, 0% of third-party humans'.
+
+**Why ColonUsage failed and this does not.** Requiring a capital after the colon
+selects the run-in label. That is house style, and Sir writes it 8.3x more often
+than other humans do. The discriminating construction is the colon used as a
+clause hinge inside a sentence, and capitalisation is precisely what excludes it.
+
+### The limit that bounds every claim from this rule
+
+The qwen3:8b digest arm reads human at AUC 0.586. **This is a tell for
+Claude-family prose, not for machine text in general.** For revising Archon
+output that is the target. Presented as an AI detector it would be a fraud.
+
+Genre confound remains partly open. The arms differ in document sub-genre. The
+protection is that the two human arms also differ from each other in sub-genre
+and still agree to within 8%.
+
+Shipped as `sentence_colon` in `prose_tells.py`, threshold 25.4/1k, level medium.
