@@ -136,10 +136,23 @@ def dims(text: str) -> dict[str, float]:
 TARGET_DIRECTION = {"sentence_colon_per_1k": +1, "hedge_per_1k": +1,
                     "sentence_len_cv": -1, "file_gloss_ratio": -1}
 
+#: ABSOLUTE CEILING on the manipulated dimension in the VARIANT, where the
+#: manipulation is a removal.
+#:
+#: A fixed delta was wrong and the base table shows why. At a 0.50 drop, af7
+#: starts at 1.00 and satisfies the check while still glossing HALF its files,
+#: so the tell is arguably still there; 751 starts at 0.54 and would have to be
+#: scrubbed to 0.04. The variants would not have been comparable to each other,
+#: and "the tell was removed" is the property the experiment needs, not "the
+#: number moved by a fixed amount". So the variant must land BELOW the ceiling
+#: AND move by a minimum, which makes every variant equivalent in the property
+#: under test. Registered before any pair was generated or any invocation spent.
+VARIANT_CEILING = {"file_gloss_ratio": 0.25}
+
 #: How far the target must move for the pair to be a real manipulation, and how
 #: far anything else may drift before the pair stops isolating one variable.
 MIN_TARGET_DELTA = {"sentence_colon_per_1k": 15.0, "hedge_per_1k": 8.0,
-                    "sentence_len_cv": 0.20, "file_gloss_ratio": 0.50}
+                    "sentence_len_cv": 0.20, "file_gloss_ratio": 0.25}
 MAX_OFFTARGET_DELTA = {"sentence_colon_per_1k": 6.0, "hedge_per_1k": 5.0,
                        "sentence_len_cv": 0.25, "em_dash_per_1k": 3.0,
                        "bullet_per_1k": 3.0, "file_gloss_ratio": 0.20}
@@ -197,10 +210,14 @@ def build_pair(rec: dict, dimension: str, model: str) -> dict:
 
     reject = None
     want = TARGET_DIRECTION[dimension]
+    ceiling = VARIANT_CEILING.get(dimension)
     if delta[dimension] * want < MIN_TARGET_DELTA[dimension]:
         arrow = "down" if want < 0 else "up"
         reject = (f"target moved {delta[dimension]:+.2f}, short of a "
                   f"{MIN_TARGET_DELTA[dimension]} move {arrow}")
+    elif ceiling is not None and d1[dimension] > ceiling:
+        reject = (f"variant still at {d1[dimension]:.2f} on {dimension}, above the "
+                  f"{ceiling} ceiling, so the tell was reduced but not removed")
     else:
         for k, lim in MAX_OFFTARGET_DELTA.items():
             if k != dimension and k not in NOT_A_DIMENSION and abs(delta[k]) > lim:

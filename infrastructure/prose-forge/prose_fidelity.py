@@ -54,6 +54,7 @@ says so in the verdict, so a caller cannot mistake one for the other.
 
 from __future__ import annotations
 
+import concurrent.futures as _cf
 import json
 import re
 import urllib.error
@@ -256,15 +257,24 @@ def _strength(a: str, b: str, model: str, timeout: int) -> str:
     return "STRONGER"        # unparseable answer is not permission to pass
 
 
+#: Concurrent entailment calls. The loop is O(claims) and a 1,200-word document
+#: yields dozens, so sequentially it runs for a quarter of an hour per pair.
+#: Capping the claim list would be faster still and would be silent degradation:
+#: an unchecked claim would count as clean. So every claim is checked, just not
+#: one at a time. Stdlib only, so the Console constraint still holds.
+ENTAIL_WORKERS = 6
+
+
 def _direction(ref: str, claims: list[list[str]], model: str, timeout: int,
                label: str, level: str) -> tuple[list[dict], int]:
     """Check every claim against a reference. Returns (flags, n_unsupported)."""
+    texts = [" ".join(str(x) for x in t) for t in claims]
     bad = []
-    for t in claims:
-        claim = " ".join(str(x) for x in t)
-        v = _verdict(ref, claim, model, timeout)
-        if v != "SUPPORTED":
-            bad.append((claim, v))
+    with _cf.ThreadPoolExecutor(max_workers=ENTAIL_WORKERS) as pool:
+        for claim, v in zip(texts, pool.map(
+                lambda c: _verdict(ref, c, model, timeout), texts)):
+            if v != "SUPPORTED":
+                bad.append((claim, v))
     if not bad:
         return [], 0
     return [{
