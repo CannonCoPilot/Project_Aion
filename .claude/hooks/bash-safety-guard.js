@@ -690,6 +690,26 @@ function isFalsePositive(match) {
   // for anything that could actually be a secret.
   if (/\/(Users|home|opt|var|usr|Applications)\//.test(match)) return true;
 
+  // RELATIVE PATHS ARE NOT CREDENTIALS EITHER.
+  // The absolute-path rule above only catches matches carrying a /Users/ or /home/
+  // segment. A repository-relative path has none, so 40-character runs like
+  // "alfred/dashboard/server/dist/routes/jarv" and
+  // "claude/context/archive/insights/insights" still passed the entropy floor and
+  // blocked a commit of ordinary notes (found 2026-09-09, fourth false-positive
+  // class in this one pattern). Three or more slash-separated word-like segments is
+  // a path, not a base64 secret: real base64 has no reason to place separators
+  // between pronounceable segments.
+  const segs = match.split('/');
+  if (segs.length >= 3 && segs.filter(x => /^[A-Za-z0-9_.-]*$/.test(x)).length === segs.length) {
+    return true;
+  }
+
+  // SOURCE CODE IS NOT A CREDENTIAL.
+  // "claudeInChromeDefaultEnabled===undefined" is a JS comparison, 40 chars of the
+  // secret class. Base64 padding only ever appears at the END of a value, so an
+  // "=" run sitting mid-string is an operator, not padding.
+  if (/==[^=]/.test(match.slice(0, -2))) return true;
+
   return false;
 }
 
