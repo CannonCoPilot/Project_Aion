@@ -81,8 +81,85 @@ def _sentences(t: str) -> list[str]:
     return [s for s in re.split(r"(?<=[.!?])\s+", _strip(t)) if s.strip()]
 
 
-_FILE = re.compile(r"[\w/.-]+\.(?:csv|tsv|json|jsonl|py|R|md|txt|ya?ml|parquet|h5ad|"
-                  r"fastq|bam|sam|vcf|tar\.gz|tgz|zip|xlsx|sh|ipynb|pkl|npz)\b")
+# Filename matching, and three defects that were all in the first version.
+#
+# (1) COMPOUND EXTENSIONS. `cells.csv.gz` matched as `cells.csv`, truncating the
+#     real name. That is not cosmetic: the filename-set equality check compares
+#     these strings, so a rewrite silently changing `cells.csv.gz` to
+#     `cells.csv` would normalise to the same token on both sides and the check
+#     -- the one thing separating grouping from omission for unqualified names
+#     -- would pass a real difference.
+# (2) TEMPLATED SEGMENTS. The text writes `calls/<screen_id>_calls.tsv`. The
+#     angle brackets fell outside the character class, so the match began
+#     mid-token at `_calls.tsv`: a fragment, not a file, inflating the
+#     denominator of the ratio with a token no rewrite can preserve.
+# (3) A template names a FAMILY, not a file, and is counted once.
+_FILE = re.compile(
+    r"(?<![\w])(?:[\w.<>-]+/)*[\w.<>-]*[\w>]"
+    r"\.(?:csv|tsv|json|jsonl|py|R|md|txt|ya?ml|parquet|h5ad|fastq|bam|sam|vcf|"
+    r"zip|xlsx|sh|ipynb|pkl|npz|tar|tgz)"
+    r"(?:\.(?:gz|bz2|xz|zst))?\b")
+
+
+_BULLET_LINE = re.compile(r"^[ \t]*(?:[-*+]|\d+[.)])\s+")
+
+
+def _units(text: str) -> list[str]:
+    """Sentence- and bullet-level units, with hard wrapping undone first.
+
+    THE CORPUS IS HARD-WRAPPED AT ABOUT 72 COLUMNS. Splitting on every newline
+    -- which this did until it was caught -- makes a "unit" an 80-character
+    LINE rather than a sentence, and that breaks the metric in both directions.
+    A file mentioned anywhere on a wrapped line scores as glossed because the
+    line almost always carries 8 more words. Worse, a successful GROUPING
+    sentence ("`a.csv` and `b.csv` are per-object tables ...") that happens to
+    wrap between the two names splits into two single-file units and scores as
+    TWO glosses, so the manipulation the experiment depends on could not have
+    registered at all.
+
+    So: paragraphs are unwrapped, bullets stay their own units, and sentences
+    are split on punctuation.
+    """
+    units: list[str] = []
+    for block in re.split(r"\n\s*\n", text):
+        lines = [l for l in block.split("\n") if l.strip()]
+        if not lines:
+            continue
+        if any(_BULLET_LINE.match(l) for l in lines):
+            # A bullet list: each bullet is a unit, continuation lines fold in.
+            cur = ""
+            for l in lines:
+                if _BULLET_LINE.match(l):
+                    if cur:
+                        units.append(cur)
+                    cur = l.strip()
+                else:
+                    cur = f"{cur} {l.strip()}".strip()
+            if cur:
+                units.append(cur)
+        else:
+            para = " ".join(l.strip() for l in lines)
+            units.extend(u for u in re.split(r"(?<=[.!?])\s+", para) if u.strip())
+    return units
+
+
+def gloss_units(text: str) -> list[tuple[str, str]]:
+    """The (filename, unit) pairs `file_gloss_ratio` counts as glosses.
+
+    Exposed so any analysis of WHICH units are glosses runs the same code the
+    ratio runs. Re-splitting the text in a caller is a reimplementation, and a
+    reimplemented metric is exactly what put two different numbers into a
+    pre-registration earlier today.
+    """
+    out = []
+    for u in _units(text):
+        named = {m.group(0) for m in _FILE.finditer(u)}
+        if len(named) != 1:
+            continue                  # several filenames in one unit is grouping
+        f = next(iter(named))
+        if len(u.replace(f, " ").split()) >= 8:
+            out.append((f, u))
+    return out
 
 
 def file_gloss_ratio(text: str) -> tuple[float, int]:
@@ -101,16 +178,7 @@ def file_gloss_ratio(text: str) -> tuple[float, int]:
     files = {m.group(0) for m in _FILE.finditer(text)}
     if not files:
         return 0.0, 0
-    units = [u for u in re.split(r"(?<=[.!?])\s+|\n", text) if u.strip()]
-    glossed = set()
-    for u in units:
-        named = {m.group(0) for m in _FILE.finditer(u)}
-        if len(named) != 1:
-            continue                      # a run of filenames is a list, not a gloss
-        f = next(iter(named))
-        rest = len(u.replace(f, " ").split())
-        if rest >= 8:
-            glossed.add(f)
+    glossed = {f for f, _ in gloss_units(text)}
     return len(glossed) / len(files), len(files)
 
 
