@@ -259,6 +259,20 @@ def dims(text: str) -> dict[str, float]:
     }
 
 
+def check_has_power(base_value: float, limit: float) -> bool:
+    """Can this off-target check fail at all on this base?
+
+    A decomposed check inherits the limit of the undecomposed one, and the
+    decomposed quantity is smaller by construction. On af7 the entire
+    non-delimiter em-dash signal is 1.64 per 1k against a limit of 3.0, so no
+    variant can move it far enough to fail: a variant that removes EVERY
+    unmediated dash still reads clear. That check is not passing, it is unable
+    to fire, and reporting it as clear would be a green tick with nothing
+    behind it. Callers must report a powerless check as INAPPLICABLE.
+    """
+    return base_value > limit
+
+
 #: Required SIGN of the target move. A manipulation that went the wrong way is
 #: not a smaller version of the right one, it is a different experiment.
 TARGET_DIRECTION = {"sentence_colon_per_1k": +1, "hedge_per_1k": +1,
