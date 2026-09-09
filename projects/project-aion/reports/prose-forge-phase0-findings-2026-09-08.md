@@ -311,3 +311,83 @@ accumulate.
 `NegatedPair` as rules that would have argued Sir's own prose was machine-written.
 
 **Phase 1 inherits this table, not section 3's.**
+
+---
+
+## Addendum D — a second human author retires both top rules (2026-09-09)
+
+**Status:** Phase 1.1 delivered a working stdlib port. The port is sound. The two
+rules it carries are not. Both are now metric-only, and neither may raise a flag.
+
+### What was built
+
+`infrastructure/prose-forge/prose_tells.py` ports ColonUsage and
+CataphoricForecasting to pure Python. No Vale at request time, no network, no
+subprocess, stdlib only. It answers W13:Jacques' Console contract:
+`DETECTORS[name](text) -> {verdict, score, flags[], metrics{}}`. Measured latency
+is 5 ms on a 2,472-word document, against a 2-second interactive budget.
+
+`corpus/validate_port.py` checks the port against Vale by comparing matched
+strings per record. Recall is 1.000 on the Archon arm for both rules. Port-only
+hits are 6 and 5. The human arm shows 12 Vale hits the port declines on purpose.
+Vale matches a colon at the end of a line against the next line's first word.
+It scans block by block, so that pairing crosses a boundary Vale itself respects.
+
+**Two real defects surfaced during validation.** Blanking markup while preserving
+length turned `**Changes**: Updated` into `Changes  :  Updated`, and every rule
+with a literal single space stopped matching. Separately, a greedy `.*$` under
+`re.DOTALL` made one code fence blank every paragraph after it. Both are fixed.
+Both were invisible in hit counts and only appeared in a string-level comparison.
+
+### The finding
+
+Phase 0 compared Archon prose against one human arm. That arm is Sir. A
+single-author arm cannot distinguish "machines do this" from "this author avoids
+this." Jacques' corpus extractor supplied 52 harbor-family documents by other
+contributors. That is a second human arm in the same genre. Both rules fail it.
+
+| Rule | Sir /1k | Other humans /1k | Archon authored /1k | Archon digest /1k |
+|---|---|---|---|---|
+| ColonUsage | 2.375 | 0.286 | 4.100 | 15.617 |
+| CataphoricForecasting | 0.127 | 1.220 | 0.625 | 0.666 |
+
+**ColonUsage measures house style.** Sir writes it 8.3x more than other humans do.
+Archon prose is 1.7x Sir but 14.3x those humans. The two human arms disagree by
+more than the human-machine gap. That is disqualifying for an authorship flag.
+
+**ColonUsage's headline was a contaminated arm.** The 4.98x rested on JICM digests
+written by qwen3:8b, at 15.6/1k. Those are machine summaries of Archon work, not
+Archon prose. Adjudicating 60 sampled hits found 51 of them there. Excluding
+digests, the rule reads 4.100 against 2.375, which is 1.73x.
+
+**CataphoricForecasting is reversed.** Other humans fire it at 1.220/1k against
+Archon-authored 0.625/1k. The 4.9x was Sir's own avoidance of numbered lead-ins.
+Adjudicating all 54 Archon hits gives 0.537 precision for the construction itself.
+Half the hits are ordinary back-reference, such as "the four commits were pushed."
+
+### Sign test against the labelled fixtures
+
+Both rules score zero on all four Snorkel fixtures. This is no signal, not a
+failure. The constructions are absent from that register. The set cannot be
+widened: the platform keeps only the current submission, so the three failed
+variants exist nowhere but `fixtures.py`.
+
+### What this changes
+
+1. **Do not ship either rule as a flag.** Both join the counter-indicative set.
+2. **Every future rule is measured against both human arms from the start.**
+   A rule earns a flag only by separating machine text from every human arm.
+3. **Held-out splits key on `task_ref`, not author.** Jacques confirms `assignee`
+   is constant across the account, so author-level holdout is not available.
+4. **Genres stay unpooled.** A rubric criterion is one sentence. A review
+   description runs 19k characters.
+5. **The digest contamination class is wider than Phase 0 recorded.** JICM digests
+   are machine-written and were sitting inside the Archon-authored arm.
+
+### Honest limit on this addendum
+
+The second human arm is harbor task documentation. Sir's arm is plans, reports and
+messages. Some of the gap is genre, not authorship. That weakens any claim about
+which arm is higher. It does not weaken the conclusion, which needs only this: two
+human arms in document genre disagree on both rules by more than machines differ
+from either. A flag calibrated on one of them does not transfer to the other.
