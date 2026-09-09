@@ -4,7 +4,11 @@
 **Owner:** W3:Jarvis-dev
 **Plan:** `projects/project-aion/plans/prose-forge-research-and-plan-2026-09-08.md`
 **Code:** `infrastructure/prose-forge/`
-**Status:** Phase 0 gate **PASSED**. Rules that discriminate exist, and they are named below.
+**Status:** Phase 0 gate **PASSED**, both carry-overs **CLOSED**. Rules that discriminate exist.
+
+> ⚠️ **READ THE ADDENDUM FIRST.** Section 3 is a CROSS-GENRE comparison and is superseded.
+> The same-genre table in Addendum C is the one Phase 1 calibrates against; its ratios are
+> roughly a third of section 3's, because much of that separation was genre, not authorship.
 
 ---
 
@@ -193,3 +197,117 @@ infrastructure/.venv/bin/python infrastructure/prose-forge/corpus/measure_rules.
 Outputs land in `infrastructure/prose-forge/out/` (gitignored): `manifest.json`, `arms/*.jsonl`,
 `rule_baseline.json` with the full 102-rule table. Requires `vale` on `PATH` (3.20.0, `brew install
 vale`) and a `vale sync` to populate `styles/`.
+
+---
+
+# Addendum: carry-overs closed, 2026-09-08
+
+## A. Watermark on Opus 5 output: NOT DETERMINABLE
+
+Closed as a negative result rather than left open. Four independent blockers:
+
+1. **Coverage unstated.** Anthropic's support article still reads, verbatim: *"Models currently
+   supported include Fable 5.1 and Mythos 5.1."* No Opus model appears. Earlier models are
+   described only as ones Anthropic is "working to add marking support" for.
+2. **Detector gated.** Text-watermark detection remains in private preview, restricted to
+   organisations with a legal obligation to verify. There is no self-serve path.
+3. **No public text checker.** The free Claude Content Checker covers *files* carrying C2PA
+   Content Credentials, not embedded text watermarks.
+4. **No probe channel.** Generating controlled samples for a black-box presence test would require
+   calling the Anthropic API directly, which standing policy forbids.
+
+A scheme-specific open detector cannot substitute. MarkLLM's detectors only find their own
+schemes, so a null result against KGW says nothing about an unpublished Anthropic scheme. Running
+it would be a dead metric: a test whose negative result is uninformative.
+
+**Design impact: none.** The ledger already carries an explicit `unknown, vendor detector gated`
+state for exactly this case, which is why the design chose reporting over scrubbing.
+
+**Revisit triggers:** an Opus model appearing on the supported list, or the detection API opening
+beyond private preview.
+
+## B. Human-document arm: BUILT
+
+The blocker was that git author is `CannonCoPilot` for both of us, so document authorship is not
+attributable from history. Solved from a different direction: **long-form prose Sir typed into
+prompts is document-register human prose**, and its provenance is certain.
+
+The obstacle was that the contamination had moved from between records to inside them. The longest
+human record is 15,368 words and is a kernel panic log with roughly 1,700 words of Sir's framing
+around it. Several others are AutoEval build logs behind a sentence of introduction.
+
+`corpus/deprose.py` strips machine output line by line: fenced blocks, timestamped log lines,
+shell prompts, tracebacks, bare paths and hashes, and symbol-dense lines below an alphabetic
+ratio floor. It is deliberately conservative, since a dropped log line costs nothing but a dropped
+sentence biases the arm we are characterising.
+
+Validated before use, which is the point:
+
+| Record | Before | After | Kept |
+|---|---|---|---|
+| kernel panic report | 15,368 | 1,667 | 11% |
+| review brief (pure prose) | 1,806 | 1,806 | **100%** |
+| "Whoa there cowboy" (pure prose) | 1,661 | 1,661 | **100%** |
+| AutoEval log + framing | 1,198 | 641 | 54% |
+
+Across the whole human arm, 87.9% of words survive. The stripper guts logs and leaves prose intact.
+
+**Final arms:**
+
+| Arm | Records | Words | Median | p90 | Max |
+|---|---|---|---|---|---|
+| archon-conversational | 12,002 | 904,156 | 24 | 219 | 4,240 |
+| archon-document | 162 | 225,515 | 653 | 3,618 | 6,962 |
+| human-conversational | 806 | 56,311 | 31 | 230 | 248 |
+| **human-document** | **193** | **94,724** | **390** | **908** | **1,806** |
+
+## C. The same-genre baseline, and how much it revises
+
+Running document against document removes the genre confound flagged as the main limitation.
+**It matters. Ratios collapse by roughly two thirds.**
+
+| Rule | cross-genre ratio | same-genre ratio | same-genre hits h/a |
+|---|---|---|---|
+| `EmphaticCopula` | 134.0 | **16.6** | 0 / 6 |
+| `CataphoricForecasting` | 11.7 | **5.07** | 12 / 49 |
+| `ExplainerHeadings` | 55.1 | **11.5** | 0 / 4 |
+| `AnthropomorphicJustification` | 57.2 | **8.96** | 0 / 3 |
+
+So a large part of the headline separation in section 3 was Sir-writes-instructions against
+Archon-writes-explanations. The cross-genre table should not be used for rule selection. **The
+same-genre table supersedes it**, and is the one Phase 1 calibrates against.
+
+**Strongest same-genre discriminators**, ordered by trustworthiness rather than ratio:
+
+| Rule | human/1k | archon/1k | ratio | hits h/a |
+|---|---|---|---|---|
+| **`ColonUsage`** | **2.470** | **11.771** | **4.76** | **234 / 871** |
+| `CataphoricForecasting` | 0.127 | 0.662 | 5.07 | 12 / 49 |
+| `ShipOveruse` | 0.095 | 0.500 | 5.05 | 9 / 37 |
+| `ConsequenceParticiple` | 0.032 | 0.419 | 11.52 | 3 / 31 |
+| `ContrastiveNegation` | 0.021 | 0.203 | 7.94 | 2 / 15 |
+| `Metacommentary` | 0.011 | 0.162 | 10.67 | 1 / 12 |
+| `FigurativeLands` | 0.011 | 0.162 | 10.67 | 1 / 12 |
+
+**`ColonUsage` is now the single most valuable rule.** It has by far the largest counts (871
+against 234), so its 4.76x rests on volume rather than a handful of hits. The rules above it by
+ratio all sit on single-digit Archon counts and should be treated as suggestive until they
+accumulate.
+
+**Reversed rules in document register**, all to be dropped or re-scoped:
+
+| Rule | human/1k | archon/1k | ratio | hits h/a |
+|---|---|---|---|---|
+| `NegatedPair` | 0.454 | 0.013 | 0.04 | 43 / 1 |
+| `BareHolds` | 0.401 | 0.013 | 0.05 | 38 / 1 |
+| `DoubleHyphen` | 3.072 | 0.284 | 0.09 | 291 / 21 |
+| `HedgingPhrases` | 0.074 | 0.000 | 0.09 | 7 / 0 |
+| `FigurativeCarries` | 0.908 | 0.081 | 0.10 | 86 / 6 |
+| `RestatementMarkers` | 0.063 | 0.000 | 0.10 | 6 / 0 |
+| `FillerPhrases` | 0.169 | 0.013 | 0.12 | 16 / 1 |
+| `UniversalSubject` | 0.517 | 0.081 | 0.17 | 49 / 6 |
+
+`FigurativeCarries` at 86 human hits and `UniversalSubject` at 49 join `DoubleHyphen` and
+`NegatedPair` as rules that would have argued Sir's own prose was machine-written.
+
+**Phase 1 inherits this table, not section 3's.**

@@ -42,6 +42,9 @@ import argparse, hashlib, json, re, sys
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).parent))
+from deprose import strip_machine  # noqa: E402
+
 PROJECTS = Path.home() / ".claude" / "projects"
 REPO = Path("/Users/nathanielcannon/Claude/Project_Aion")
 
@@ -170,8 +173,21 @@ def extract(path: Path, stats: dict) -> list[dict]:
                 if not body:
                     stats["user_empty_after_clean"] += 1
                     continue
-                recs.append({"arm": "human-conversational", "text": body,
-                             "src": path.name, "words": words(body)})
+                # Strip pasted logs and code from INSIDE the message. Without this
+                # a 15,368-word crash report counts as human prose; it is ~1,700
+                # words of Sir wrapped around a kernel panic log.
+                body, ds = strip_machine(body)
+                stats["human_machine_lines_stripped"] += ds["machine_lines_removed"]
+                stats["human_fenced_lines_stripped"] += ds["fenced_lines_removed"]
+                if not body:
+                    stats["user_empty_after_strip"] += 1
+                    continue
+                w = words(body)
+                # Document arm = long-form prose AFTER stripping, so length reflects
+                # what Sir actually wrote rather than what he pasted.
+                arm = "human-document" if w >= 250 else "human-conversational"
+                recs.append({"arm": arm, "text": body,
+                             "src": path.name, "words": w})
             else:
                 if not isinstance(content, list):
                     continue
@@ -290,7 +306,9 @@ def main() -> int:
     print(f"transcripts read (inode-deduped): {len(files)}")
     print("\nfiltered out of the human arm:")
     for k in ("user_tool_result", "user_harness", "user_machine_injection",
-              "user_empty_after_clean", "unparseable_lines", "duplicate_records"):
+              "user_empty_after_clean", "user_empty_after_strip", "unparseable_lines",
+              "duplicate_records", "human_machine_lines_stripped",
+              "human_fenced_lines_stripped"):
         if stats.get(k):
             print(f"  {k:26s} {stats[k]:>8,}")
     print("\narms:")

@@ -95,10 +95,13 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--seed", type=int, default=17)
     ap.add_argument("--max-per-arm", type=int, default=1200)
+    ap.add_argument("--human-arm", default="human-conversational")
+    ap.add_argument("--archon-arm", default="archon-conversational")
+    ap.add_argument("--tag", default="")
     args = ap.parse_args()
 
-    human = load("human-conversational")
-    archon = load("archon-conversational")
+    human = load(args.human_arm)
+    archon = load(args.archon_arm)
 
     rng = random.Random(args.seed)
     if len(human) > args.max_per_arm:
@@ -137,7 +140,7 @@ def main() -> int:
     res = {"human_words": hw, "archon_words": aw,
            "human_records": len(human), "archon_records": len(matched),
            "rules_fired": len(rows), "rules_total": 132, "rows": rows}
-    (OUT / "rule_baseline.json").write_text(
+    (OUT / f"rule_baseline{args.tag}.json").write_text(
         json.dumps(res, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
     print(f"\n{len(rows)} of 132 rules fired at all\n")
@@ -150,7 +153,7 @@ def main() -> int:
     for x in rows[-8:]:
         print(f"{x['rule']:34s} {x['human_per_1k']:>9.3f} {x['archon_per_1k']:>10.3f} "
               f"{x['ratio']:>7.2f} {x['human_hits']:>4}/{x['archon_hits']:<5}")
-    print(f"\nfull table -> {OUT / 'rule_baseline.json'}")
+    print(f"\nfull table -> {OUT / ('rule_baseline'+args.tag+'.json')}")
     return 0
 
 
