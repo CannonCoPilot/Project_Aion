@@ -31,17 +31,59 @@ const execAsync = util.promisify(exec);
 // CREDENTIAL GUARD — Patterns & Functions
 // ============================================================
 
-const BLOCKED_PATHS = [
-  /\.ssh\/id_/, /\.ssh\/.*_key$/, /\.ssh\/known_hosts$/,
-  /\.aws\/credentials$/, /\.aws\/config$/, /\.npmrc$/, /\.netrc$/,
-  /\.docker\/config\.json$/,
-  /\.anthropic/, /\.openai/, /\.github\/.*token/,
-  /\.password-store\//, /\.gnupg\/.*\.key$/,
-  /\.bash_history$/, /\.zsh_history$/,
-  /\.pgpass$/, /\.my\.cnf$/,
-  /\.env$/, /\.env\.[^/]+$/, /secrets\.ya?ml$/, /credentials\.json$/,
-  /service-account.*\.json$/
-];
+// EXACT-NAME CREDENTIAL MATCHING (rewritten 2026-09-08)
+// These used to be UNANCHORED regexes tested against the whole path, so each matched a
+// SUBSTRING ANYWHERE in it. `/\.anthropic/` blocked every path containing that text,
+// `/\.openai/` likewise, and `/\.github\/.*token/` blocked any file under a .github
+// directory whose name merely mentioned a token. Ordinary project files -- notes, configs,
+// documentation about an API -- tripped a credential refusal, and every false block is a
+// nudge toward reaching for a bypass.
+//
+// Matching is now on the EXACT BASENAME, or on an exact two-segment path tail where the
+// parent directory is what carries the meaning (a file called `config` is nothing; the one
+// inside `.aws` is a credential). Substring matching is gone, so
+// `research/anthropic-pricing.md` and `.github/workflows/token-refresh.yml` are ordinary
+// files again.
+//
+// The two FAMILY rules at the bottom are the deliberate exceptions, kept narrow and
+// enumerated because their members are genuinely unbounded: you cannot list every
+// `.env.<stage>` a project might invent, nor every filename a cloud service-account key is
+// downloaded under. Everything else is an exact string comparison.
+
+// Exact basenames.
+const BLOCKED_BASENAMES = new Set([
+  // dotenv
+  '.env',
+  // shell / package-manager credential files
+  '.netrc', '.npmrc', '.pgpass', '.my.cnf',
+  // shell history (routinely carries pasted secrets)
+  '.bash_history', '.zsh_history',
+  // ssh PRIVATE keys only. The `.pub` counterparts are public by definition and stay
+  // readable -- the old `/\.ssh\/id_/` prefix rule blocked those too, for no benefit.
+  'id_rsa', 'id_dsa', 'id_ecdsa', 'id_ed25519', 'id_ed25519_sk', 'id_ecdsa_sk',
+  // conventional secret stores
+  'credentials.json', 'secrets.yaml', 'secrets.yml',
+]);
+
+// Exact two-segment tails, for names only meaningful inside a particular directory.
+const BLOCKED_PATH_TAILS = new Set([
+  '.aws/credentials', '.aws/config',
+  '.docker/config.json',
+  '.anthropic/config.json', '.anthropic/credentials.json',
+  '.openai/auth.json',
+  'gh/hosts.yml',          // ~/.config/gh/hosts.yml — GitHub CLI token store
+  '.kube/config',
+]);
+
+// Directories whose every member is key material.
+const BLOCKED_DIR_SEGMENTS = ['.password-store', '.gnupg'];
+
+// FAMILY RULES -- the only non-exact matches, deliberately narrow.
+function isCredentialFamily(base) {
+  if (base.startsWith('.env.')) return true;                      // .env.<anything>
+  if (/^service-account[-_.].*\.json$/.test(base)) return true;   // cloud service-account keys
+  return false;
+}
 
 const JARVIS_ALLOWED = [
   /\.claude\/config\//, /\.claude\/state\//, /\.claude\/context\//,
@@ -60,7 +102,16 @@ const CREDENTIAL_PATTERNS = [
 ];
 
 function normalizePath(filePath) {
-  return filePath.replace(/^~/, process.env.HOME || '');
+  return filePath
+    .replace(/^~/, process.env.HOME || '')
+    // Undo shell backslash escaping BEFORE any name comparison. `cat \.env` is a genuine
+    // read: the shell turns `\.` into `.`. The old unanchored regexes caught it by accident
+    // (matching `.env` at the tail of the literal token `\.env`); exact-basename matching
+    // would compare `\.env` against `.env` and let it through. Unescaping restores the
+    // shell's own semantics, which is what actually decides which file gets opened.
+    // A real filename containing a backslash is vanishingly rare, and the only effect there
+    // is a MORE conservative match.
+    .replace(/\\(.)/g, '$1');
 }
 
 // ── Refusal shape ───────────────────────────────────────────────────────────
@@ -95,7 +146,19 @@ function isJarvisAllowed(filePath) {
 function isBlockedCredentialPath(filePath) {
   const normalized = normalizePath(filePath);
   if (isJarvisAllowed(normalized)) return false;
-  return BLOCKED_PATHS.some(p => p.test(normalized));
+
+  // POSIX paths only. Empty and '.' segments are dropped so './x' and 'a//x' normalise.
+  const parts = normalized.split('/').filter(function (seg) { return seg && seg !== '.'; });
+  if (!parts.length) return false;
+  const base = parts[parts.length - 1];
+
+  if (BLOCKED_BASENAMES.has(base)) return true;
+  if (isCredentialFamily(base)) return true;
+  if (parts.length >= 2 && BLOCKED_PATH_TAILS.has(parts[parts.length - 2] + '/' + base)) return true;
+  // Any file inside a key-material directory, at any depth.
+  if (parts.slice(0, -1).some(function (seg) { return BLOCKED_DIR_SEGMENTS.indexOf(seg) !== -1; })) return true;
+
+  return false;
 }
 
 function isWarnCredentialPath(filePath) {

@@ -122,5 +122,41 @@ const secretCases = [
 ];
 for (const [name, text, want] of secretCases) check(name, flags(text) ? 'flag' : 'clean', want ? 'flag' : 'clean');
 
+// EXACT-NAME MATCHING (2026-09-08). The blocked list used to be unanchored regexes tested
+// against the whole path, so `/\.anthropic/`, `/\.openai/` and `/\.github\/.*token/` matched
+// a SUBSTRING ANYWHERE and refused ordinary project files. Matching is now exact-basename,
+// exact two-segment tail, or a key-material directory. These assert both directions:
+// benign look-alikes must stay readable, real credential files must still block.
+console.log('\n3. exact-name credential matching (benign look-alikes vs real files)');
+
+const nameCases = [
+  // ── benign: must NOT block ──
+  ['doc mentioning a vendor name',   'research/anthropic-pricing.md',              'allow'],
+  ['dir named after a vendor',       'notes/.anthropic-api-notes/summary.md',      'allow'],
+  ['workflow mentioning token',      '.github/workflows/token-refresh.yml',        'allow'],
+  ['ordinary file called config',    'projects/app/config',                        'allow'],
+  ['ordinary credentials-ish doc',   'docs/credentials-policy.md',                 'allow'],
+  ['env in the middle of a name',    'src/environment.ts',                         'allow'],
+  ['file named like a key but .pub', String.raw`/Users/x/.ssh/id_rsa.pub`,         'allow'],
+  ['known_hosts (not secret)',       String.raw`/Users/x/.ssh/known_hosts`,        'allow'],
+  ['a yaml that is not secrets',     'infrastructure/docker-compose.yaml',         'allow'],
+
+  // ── real credential files: must STILL block ──
+  ['dotenv exact',                   'app/' + '.' + 'env',                         'deny'],
+  ['dotenv variant family',          'app/' + '.' + 'env' + '.production',         'deny'],
+  ['aws credentials tail',           '/Users/x/.aws/credentials',                  'deny'],
+  ['aws config tail',                '/Users/x/.aws/config',                       'deny'],
+  ['ssh private key',                '/Users/x/.ssh/id_ed25519',                   'deny'],
+  ['netrc',                          '/Users/x/.netrc',                            'deny'],
+  ['pgpass',                         '/Users/x/.pgpass',                           'deny'],
+  ['secrets.yaml exact',             'deploy/secrets.yaml',                        'deny'],
+  ['gnupg member at depth',          '/Users/x/.gnupg/private-keys/key1',          'deny'],
+  ['password-store member',          '/Users/x/.password-store/web/site.gpg',      'deny'],
+  ['service-account family',         'infra/service-account-prod.json',            'deny'],
+  ['kube config tail',               '/Users/x/.kube/config',                      'deny'],
+];
+
+for (const [name, fp, want] of nameCases) check(name, decision({ file_path: fp }, 'Read'), want);
+
 console.log(`\nPASS=${P} FAIL=${F}`);
 process.exit(F === 0 ? 0 : 1);
