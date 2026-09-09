@@ -487,3 +487,51 @@ if __name__ == "__main__":
     import sys
     src = sys.stdin.read() if not sys.argv[1:] else open(sys.argv[1], encoding="utf-8").read()
     print(json.dumps(analyse(src), indent=2))
+
+
+# ---------------------------------------------------------------------------
+# ENFORCEMENT OF PHASE 0 ADDENDUM D
+#
+# These rules were prose in a findings document and nothing made the code obey
+# them. Within one day their own author violated two: em-dash density was
+# implemented as `\u2014|--`, which is exactly the DoubleHyphen conflation
+# Addendum D warns against and which I had personally warned W13 about; and a
+# unit splitter split hard-wrapped lines, which Addendum D's method section
+# assumes never happens. A documented reversed rule needs an assertion, not a
+# paragraph.
+# ---------------------------------------------------------------------------
+
+#: Rules measured as firing MORE on Sir's prose than on Archon prose. Shipping
+#: any of them as a flag would argue a human wrote like a machine.
+COUNTER_INDICATIVE: frozenset[str] = frozenset({
+    "NegatedPair", "BareHolds", "DoubleHyphen", "FigurativeCarries",
+    "UniversalSubject", "HedgingPhrases", "FillerPhrases", "RestatementMarkers",
+})
+
+#: The em-dash is U+2014. A double hyphen is markdown rules and CLI flags, and
+#: Addendum D measures it as counter-indicative. They are not the same
+#: character and must never share a pattern.
+EM_DASH = "\u2014"
+
+
+def assert_addendum_d(flagging_rules) -> None:
+    """Raise if a counter-indicative rule has reached a flagging path."""
+    bad = sorted(set(flagging_rules) & COUNTER_INDICATIVE)
+    if bad:
+        raise AssertionError(
+            f"Addendum D violation: {bad} fire MORE on human prose than on "
+            f"Archon prose and may never raise a flag. See COUNTER_INDICATIVE.")
+
+
+def assert_not_double_hyphen(pattern: str) -> None:
+    """Raise if an em-dash pattern also matches a double hyphen."""
+    if "--" in pattern:
+        raise AssertionError(
+            "Addendum D violation: this em-dash pattern also matches `--`, "
+            "which is markdown and CLI syntax, not punctuation style. "
+            "af7 carries 12 em-dashes and 4 double hyphens; conflating them "
+            "inflated its density by a fifth.")
+
+
+# Enforced at import: what flags today must be clean, and stay clean.
+assert_addendum_d(set(RATES) - METRIC_ONLY)

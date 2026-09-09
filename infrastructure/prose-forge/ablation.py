@@ -259,17 +259,34 @@ def dims(text: str) -> dict[str, float]:
     }
 
 
-def check_has_power(base_value: float, limit: float) -> bool:
-    """Can this off-target check fail at all on this base?
+def check_has_power(base_value: float, limit: float, direction: str) -> bool:
+    """Can this off-target check fail on this base, IN THIS DIRECTION?
 
-    A decomposed check inherits the limit of the undecomposed one, and the
-    decomposed quantity is smaller by construction. On af7 the entire
-    non-delimiter em-dash signal is 1.64 per 1k against a limit of 3.0, so no
-    variant can move it far enough to fail: a variant that removes EVERY
-    unmediated dash still reads clear. That check is not passing, it is unable
-    to fire, and reporting it as clear would be a green tick with nothing
-    behind it. Callers must report a powerless check as INAPPLICABLE.
+    Power is per-direction, not a property of the check, because the achievable
+    range is asymmetric. A density has a FLOOR AT ZERO and NO CEILING:
+
+      REMOVE  the largest possible move is the base value itself. On af7 the
+              non-delimiter em-dash density is 1.64 per 1k against a limit of
+              3.0, so a variant stripping EVERY unmediated dash still reads
+              clear. Powerless, on 8 of 8 bases.
+      ADD     unbounded. Three to five inserted prose em-dashes breach the
+              limit on every base, and that is precisely the danger W13
+              registered as outcome two: the abandoned fix of holding em-dash
+              density flat would have replaced af7's ten lost delimiters with
+              about ten inserted prose dashes, an 8.2 per 1k move that this
+              check blocks decisively.
+
+    So the check is ONE-SIDED, not dead, and the live side guards the confound
+    that would otherwise have looked like success. Report it that way: a green
+    tick meaning something in one direction and nothing in the other is worse
+    than a dead check UNLESS IT IS LABELLED.
+
+    Do not lower the limit to manufacture power. It would bite only in the
+    removal direction, where it would start blocking pairs for dropping af7's
+    two genuine prose dashes -- collateral, not signal.
     """
+    if direction == "add":
+        return True
     return base_value > limit
 
 
@@ -548,3 +565,30 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+
+def assert_built_from_units(original: str, transformed: str, units: list[str]) -> None:
+    """Raise if a corpus transformation was string-replaced into raw text.
+
+    THE HARD-WRAP DEFECT APPEARED IN THREE SEPARATE COMPONENTS IN ONE DAY: the
+    gloss metric, the em-dash decomposition analysis, and the negative control.
+    The third is the instructive one -- A_omission was built by replacing
+    UNWRAPPED unit text into the RAW hard-wrapped document, nearly every
+    replace was a no-op, and the "omission" control moved the gloss ratio 1.00
+    to 0.90 instead of to 0.10. It was a negative control that was not
+    negative, and had it not been checked it would have been reported as
+    evidence that the decomposed checks block omission, which they had never
+    been shown.
+
+    Rule: any transformation of corpus text is CONSTRUCTED FROM THE UNIT LIST,
+    never string-replaced into raw. Every time this was caught, it was caught
+    by a nonsense number and never by reading the code.
+    """
+    if not units:
+        return
+    unmatched = sum(1 for u in units if u not in original)
+    if unmatched > len(units) // 2:
+        raise AssertionError(
+            f"{unmatched} of {len(units)} unit strings do not occur verbatim in "
+            f"the source, so a string-replace transformation would silently "
+            f"no-op. Rebuild the document from the unit list instead.")
