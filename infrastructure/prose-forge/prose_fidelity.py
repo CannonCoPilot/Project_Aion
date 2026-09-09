@@ -140,7 +140,20 @@ def layer1(original: str, revised: str) -> dict:
     blocked = False
 
     for cat in BLOCKING + ADVISORY:
-        dropped, added = _multiset_diff(fo[cat], fr[cat])
+        if cat in BLOCKING:
+            # SET comparison, not multiset. A rewrite that states a threshold
+            # twice instead of once has not changed a number, and a multiset
+            # rule blocked exactly that: a grouped variant repeated `0.9`,
+            # `10%` and `50` while every value was present on both sides, and
+            # the gate called it a changed figure. A value present in one text
+            # and ABSENT from the other is the meaning change; a value restated
+            # is not. "3 of 8" -> "3 of 3" still blocks, because 8 disappears.
+            dropped = sorted(set(fo[cat]) - set(fr[cat]))
+            added = sorted(set(fr[cat]) - set(fo[cat]))
+            m_drop, m_add = _multiset_diff(fo[cat], fr[cat])
+            metrics[f"{cat}_count_changed"] = len(m_drop) + len(m_add)
+        else:
+            dropped, added = _multiset_diff(fo[cat], fr[cat])
         metrics[f"{cat}_dropped"] = len(dropped)
         metrics[f"{cat}_added"] = len(added)
         if not (dropped or added):
@@ -311,6 +324,15 @@ def check(original: str, revised: str, *, model: str = DEFAULT_MODEL,
                 "flags": flags, "metrics": metrics,
                 "note": "layer 1 only; meaning-level changes carried by ordinary "
                         "words were NOT checked"}
+
+    # A layer-1 block is DETERMINISTIC and already decided. Falling through to
+    # layer 2 and returning `unknown` when the model is unreachable would
+    # downgrade a settled rejection into a statement about reachability, and
+    # those are exactly the two things a caller must be able to tell apart: one
+    # is a fact about the pair, the other is a fact about the machine.
+    if l1["blocked"]:
+        return {"verdict": "block", "score": 0, "flags": flags, "metrics": metrics,
+                "note": "layer 1 blocked deterministically; layer 2 not consulted"}
 
     try:
         c_rev = _triplets(revised, model, timeout)

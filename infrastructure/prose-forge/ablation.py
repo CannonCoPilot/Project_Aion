@@ -182,6 +182,25 @@ def file_gloss_ratio(text: str) -> tuple[float, int]:
     return len(glossed) / len(files), len(files)
 
 
+#: An em-dash in `filename — description` position, i.e. the gloss delimiter.
+_DELIM_DASH = re.compile(r"`?[\w.<>/-]+\.[a-z0-9]{1,6}`?\*{0,2}\s*(?:—|--)\s")
+
+
+def em_dash_position(text: str) -> tuple[int, int, float]:
+    """(total em-dashes, those in gloss-delimiter position, share).
+
+    W13's guard against the outcome that LOOKS like success: a rewrite told to
+    hold em-dash density flat can do it by putting em-dashes where this genre
+    does not put them, trading a measured confound for an unmeasured one. A
+    count-only check cannot see that. This can: if the base's dashes are all
+    delimiters and the variant's are all somewhere else, the density matched
+    and the construction moved anyway.
+    """
+    total = len(re.findall(r"—|--", text))
+    delim = len(_DELIM_DASH.findall(text))
+    return total, delim, (delim / total if total else 0.0)
+
+
 def dims(text: str) -> dict[str, float]:
     s = _strip(text)
     w = max(len(s.split()), 1)
@@ -189,7 +208,10 @@ def dims(text: str) -> dict[str, float]:
     lens = [len(x.split()) for x in sents] or [1]
     cv = (st.stdev(lens) / st.mean(lens)) if len(lens) > 1 and st.mean(lens) else 0.0
     gloss, nfiles = file_gloss_ratio(text)
+    dash_n, dash_d, dash_share = em_dash_position(text)
     return {
+        "em_dash_delimiter_share": dash_share,
+        "em_dash_delimiter_n": float(dash_d),
         "file_gloss_ratio": gloss,
         "files_named": float(nfiles),
         "sentence_colon_per_1k": len(re.findall(r"[a-z,\)]\s?:\s", s)) / w * 1000,
