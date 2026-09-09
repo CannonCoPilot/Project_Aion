@@ -335,11 +335,25 @@ plus Prometheus rubric grading on rewrite pairs.
 
 ## 8. Development plan
 
-**Phase 0: foundation and the empirical question.** Vendor and read the leading rule sets. Build
-`prose-corpus` (moderate). Measure every vale-ai-tells rule against every corpus arm (moderate).
-Determine empirically whether Opus 5 output carries a watermark (moderate).
-**Gate:** we can state with numbers which rules separate Archon prose from Sir's. If none do, Phase 1
-changes shape rather than proceeding on faith.
+**Phase 0: foundation and the empirical question. GATE PASSED 2026-09-08.**
+Findings: `projects/project-aion/reports/prose-forge-phase0-findings-2026-09-08.md`.
+Code: `infrastructure/prose-forge/`.
+
+- [x] Vendor and read the leading rule sets (vale-ai-tells 132 rules, Vale 3.20.0)
+- [x] Build `prose-corpus`. Three arms, 550 inode-deduped transcripts, 2.5s, deterministic
+- [x] Measure every rule against every arm, length-matched
+- [ ] Determine empirically whether Opus 5 output carries a watermark **(still open)**
+- [ ] Build the `human-document` arm **(new, added by the findings)**
+
+**Result:** 102 of 132 rules fired. `CataphoricForecasting` separates the arms 11.7x on 299 Archon
+hits against 26 human, and is the strongest rule on both volume and cleanliness. Seven rules fire
+MORE on Sir's prose and must be dropped or re-scoped, `DoubleHyphen` worst at 406 human hits, which
+turned out to be markdown rules and CLI flags rather than punctuation style.
+
+**The corpus finding matters more than the rule table.** Forty percent of the apparent human arm was
+machine text: autocompact summaries, watcher injections, task notifications and fork duplicates, all
+arriving as `type:user` records. Before filtering, records of 500+ words were 7.5% of human records
+but 46.3% of human words, and most of that tail was machine-authored.
 
 **Phase 1: the instrument.** Recalibrated `prose-tells` (moderate). Encode Sir's style spec (low).
 `prose-score` with one-class distance (moderate). `prose-absence` (**high**). `prose-fidelity`,
