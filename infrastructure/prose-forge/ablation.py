@@ -44,6 +44,7 @@ import os
 import re
 import statistics as st
 import sys
+import time
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent
@@ -178,14 +179,33 @@ INSTRUCTION = {
     # format of a Harbor task prompt. Only 2 of 10 tasks have headroom to ADD
     # glossing; 8 have headroom to REMOVE it. So the base carries the tell and
     # the variant is the one with it taken out.
+    #
+    # GROUPING, NOT OMISSION, AND THE DISTINCTION DECIDES THE EXPERIMENT.
+    # The obvious way to lower the ratio is to stop saying what each file is.
+    # That is wrong twice over. First, the gloss IS content: "X.csv holds the
+    # per-sample counts" is a proposition, and dropping it is a meaning change
+    # that `prose_fidelity` blocks by design. Second and worse, an omitted
+    # variant is VAGUER than its base, so a flipped verdict could be the checker
+    # punishing vagueness rather than responding to the structural tell, and we
+    # would read that as confirmation of the thing we were testing.
+    #
+    # Grouping removes the ONE-TO-ONE MAPPING while keeping every proposition:
+    # "the three count matrices, A, B and C, hold per-sample counts at
+    # increasing depth" says what three separate sentences said. It also lowers
+    # the ratio by construction, because the metric only counts a unit naming
+    # EXACTLY ONE file. The contrast becomes per-file-mapping against
+    # same-content-grouped, which isolates the structure from the information.
     "file_gloss_ratio": (
-        "Rewrite the passage so that it STOPS describing each named file "
-        "individually. Keep every file name exactly as written and keep every "
-        "claim, number, date, path, hedge and qualifier, but do not give each "
-        "file its own sentence of description: refer to the files together, or "
-        "in passing, the way a colleague writing quickly would. Keep it as "
-        "FLOWING PROSE with no bullets and no list. Do not add or remove any "
-        "file name and do not add or remove any claim."),
+        "Rewrite the passage so that NO sentence describes exactly one named "
+        "file. PRESERVE EVERY FACT about every file: say everything the passage "
+        "says about what each file contains and what it is for, losing nothing. "
+        "Achieve this by GROUPING: gather files that share a role or a format "
+        "and describe them together in one sentence naming several of them, and "
+        "fold file details into sentences that are about the work rather than "
+        "about the file. Do NOT omit a file, do NOT omit what a file contains, "
+        "and do NOT become vaguer. Keep every file name, number, date, path, "
+        "hedge and qualifier exactly as written, and do not add or remove any "
+        "claim. Keep it as FLOWING PROSE with no bullets and no list."),
     "sentence_len_cv": (
         "Rewrite the passage so every sentence is close to the same length, about "
         "18 words each, by splitting long sentences and merging short ones. Keep "
@@ -201,12 +221,44 @@ def rewrite(text: str, dimension: str, model: str, timeout: int = 300) -> str:
     return re.sub(r"^```[a-z]*\n|\n```$", "", out).strip()
 
 
+#: An UNKNOWN from the fidelity gate says ollama was unreachable. It says
+#: NOTHING about the pair. Treating it as a rejection would make the sample
+#: non-deterministic -- re-run and get a different eight -- which is exactly the
+#: property pre-registration forecloses, and it would let a busy machine drive
+#: us under the constructibility floor and be written up as "the manipulation is
+#: infeasible on this material". So UNKNOWN is retried, and if it will not
+#: resolve the pair is UNRESOLVED_GATE: reported in full, named separately from
+#: NOT CONSTRUCTIBLE, and counted against neither the floor nor the sign test.
+GATE_RETRIES = 3
+GATE_BACKOFF_S = 20
+
+
+def _certify(base: str, var: str, model: str) -> dict:
+    last = None
+    for attempt in range(GATE_RETRIES):
+        last = F.check(base, var, model=model)
+        if last["verdict"] != "unknown":
+            return last
+        if attempt < GATE_RETRIES - 1:
+            time.sleep(GATE_BACKOFF_S)
+    return last
+
+
 def build_pair(rec: dict, dimension: str, model: str) -> dict:
     """One base text plus one contrasting variant, or a rejection with a reason."""
     base = rec["text"]
     var = rewrite(base, dimension, model)
     d0, d1 = dims(base), dims(var)
     delta = {k: round(d1[k] - d0[k], 3) for k in d0}
+
+    # W13's check, and it is not redundant with the fidelity gate: layer 1
+    # compares PATHS, and its path pattern requires a slash, so a bare
+    # `results.csv` is invisible to it. Grouping is only grouping if every file
+    # survives; without set equality, omission re-enters wearing the grouping
+    # label and one instrument carries the whole load. Set equality is
+    # deterministic and costs nothing.
+    files_base = {m.group(0) for m in _FILE.finditer(base)}
+    files_var = {m.group(0) for m in _FILE.finditer(var)}
 
     reject = None
     want = TARGET_DIRECTION[dimension]
@@ -215,6 +267,11 @@ def build_pair(rec: dict, dimension: str, model: str) -> dict:
         arrow = "down" if want < 0 else "up"
         reject = (f"target moved {delta[dimension]:+.2f}, short of a "
                   f"{MIN_TARGET_DELTA[dimension]} move {arrow}")
+    elif dimension == "file_gloss_ratio" and files_base != files_var:
+        lost = sorted(files_base - files_var)
+        gained = sorted(files_var - files_base)
+        reject = ("filename set changed, so this is omission wearing the grouping "
+                  f"label: dropped {lost[:6]}" + (f", added {gained[:6]}" if gained else ""))
     elif ceiling is not None and d1[dimension] > ceiling:
         reject = (f"variant still at {d1[dimension]:.2f} on {dimension}, above the "
                   f"{ceiling} ceiling, so the tell was reduced but not removed")
@@ -225,8 +282,13 @@ def build_pair(rec: dict, dimension: str, model: str) -> dict:
                           f"so a flip could not be attributed to {dimension}")
                 break
 
-    fid = F.check(base, var) if reject is None else None
-    if fid is not None and fid["verdict"] != "pass":
+    fid = _certify(base, var, model) if reject is None else None
+    unresolved = False
+    if fid is not None and fid["verdict"] == "unknown":
+        unresolved = True
+        reject = ("fidelity gate UNRESOLVED after retries: this is a statement "
+                  "about model reachability, not about the pair")
+    elif fid is not None and fid["verdict"] != "pass":
         reject = (f"fidelity gate returned {fid['verdict']}: "
                   + "; ".join(f["name"] for f in fid["flags"])[:200])
 
@@ -234,11 +296,15 @@ def build_pair(rec: dict, dimension: str, model: str) -> dict:
         "task_ref": rec.get("task_ref"), "genre": rec["genre"],
         "arm": rec.get("arm"), "dimension": dimension,
         "words_base": len(base.split()), "words_variant": len(var.split()),
+        "files_base": sorted(files_base), "files_variant": sorted(files_var),
+        "filename_set_equal": files_base == files_var,
         "dims_base": {k: round(v, 3) for k, v in d0.items()},
         "dims_variant": {k: round(v, 3) for k, v in d1.items()},
         "delta": delta,
         "fidelity_verdict": (fid or {}).get("verdict", "not_run"),
         "accepted": reject is None,
+        "status": ("accepted" if reject is None
+                   else "UNRESOLVED_GATE" if unresolved else "NOT_CONSTRUCTIBLE"),
         "reject_reason": reject,
         "base_text": base, "variant_text": var,
     }
@@ -281,7 +347,7 @@ def main() -> int:
     print(f"corpus {Path(files[-1]).name}: {len(pool)} in-band {CLEAN_ARM} records, "
           f"{len(uniq)} distinct task_refs")
 
-    out, attempts, notbuilt = [], 0, []
+    out, attempts, notbuilt, unresolved, report = [], 0, [], [], []
     for r in uniq:
         attempts += 1
         p = build_pair(r, args.dimension, args.model)
@@ -289,16 +355,42 @@ def main() -> int:
         print(f"  [{mark}] {p['genre']:20s} {p['words_base']:>5}w  "
               f"target {p['delta'][args.dimension]:+7.2f}  "
               f"fidelity {p['fidelity_verdict']:<8} {p['reject_reason'] or ''}")
+        row = {"task_ref": p["task_ref"], "genre": p["genre"],
+               "status": p["status"], "reason": p["reject_reason"],
+               "fidelity_verdict": p["fidelity_verdict"],
+               "filename_set_equal": p["filename_set_equal"],
+               "gloss_base": p["dims_base"]["file_gloss_ratio"],
+               "gloss_variant": p["dims_variant"]["file_gloss_ratio"]}
         if p["accepted"]:
             out.append(p)
+        elif p["status"] == "UNRESOLVED_GATE":
+            unresolved.append(row)
         else:
-            notbuilt.append({"task_ref": p["task_ref"], "genre": p["genre"],
-                             "reason": p["reject_reason"]})
+            notbuilt.append(row)
+        report.append(row)
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
         for p in out:
             fh.write(json.dumps(p) + "\n")
+    rep = Path(args.out).with_name("ablation_construction_report.json")
+    rep.write_text(json.dumps({
+        "constructibility_floor": 6,
+        "accepted": len(out), "not_constructible": len(notbuilt),
+        "unresolved_gate": len(unresolved),
+        "note": ("UNRESOLVED_GATE counts against neither the floor nor the sign "
+                 "test; it is a statement about model reachability."),
+        "per_task": [{k: v for k, v in r.items()} for r in report],
+    }, indent=2) + "\n", encoding="utf-8")
+    print(f"\nconstruction report (no text, no ids, does not unblind) -> {rep}")
+    if unresolved:
+        print(f"UNRESOLVED_GATE ({len(unresolved)}) — reachability, NOT a finding "
+              f"about the material, counts against neither floor nor test:")
+        for x in unresolved:
+            print(f"  {x['task_ref'][:8]}")
+    if len(out) < 6:
+        print(f"\n*** CONSTRUCTIBILITY FLOOR NOT MET: {len(out)} < 6. "
+              f"Do NOT run stage two. Report the shortfall and re-cost. ***")
     if notbuilt:
         nb = Path(args.out).with_name("ablation_not_constructible.json")
         nb.write_text(json.dumps(notbuilt, indent=2) + "\n", encoding="utf-8")
