@@ -64,7 +64,10 @@ fi
 ACTUATOR="$PROJECT_DIR/.claude/scripts/jicm-actuate.sh"
 WATCH_LOG="$PROJECT_DIR/.claude/logs/jicm-watcher.log"
 WATCH_PID_FILE="$JICM_DIR/watcher.pid"
-POLL_SEC="${JICM_WATCHER_POLL:-5}"
+# 2s, not 5s. The reap and the arm both wait on this poll, so it is pure latency
+# on both ends of a cycle. Measured post-digest phase is 4s, so a 5s poll was
+# comparable to the entire rest of the cycle once the digest went async.
+POLL_SEC="${JICM_WATCHER_POLL:-2}"
 GC_STALE_SEC="${JICM_WATCHER_GC_SEC:-7200}"        # last_seen older than this → GC (2h)
 LOCK_TTL_SEC="${JICM_WATCHER_LOCK_TTL:-1200}"      # SIGKILL backstop only; liveness is primary
 # 300 → 900 (2026-09-03). At 300s this fired against lanes whose sampler was merely BEHIND,

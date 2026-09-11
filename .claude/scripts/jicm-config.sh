@@ -58,6 +58,17 @@ JICM_CHECKPOINTS_DIR="$JICM_DIR/checkpoints"
 JICM_CHAIN_DIR="$JICM_DIR/chain"
 JICM_DIGESTS_DIR="$JICM_DIR/digests"
 
+# ASYNC DIGEST (2026-09-10). Measured over 114 cycles: median total 446s, of
+# which the digest was 424s and everything after it 4s. The digest still runs
+# at the hard-threshold signal; it no longer blocks the /clear. Set BLOCKING
+# true to restore the old behaviour (successor gets history at second zero,
+# cycle returns to ~450s).
+JICM_DIGEST_BLOCKING="${JICM_DIGEST_BLOCKING:-false}"
+JICM_DIGEST_FINALIZE_TIMEOUT="${JICM_DIGEST_FINALIZE_TIMEOUT:-1200}"
+JICM_DIGEST_NOTIFY="${JICM_DIGEST_NOTIFY:-true}"
+JICM_DIGEST_NOTIFY_IDLE="${JICM_DIGEST_NOTIFY_IDLE:-120}"
+JICM_RESUME_SIGNAL_TIMEOUT="${JICM_RESUME_SIGNAL_TIMEOUT:-15}"
+
 # Session-digest shipping config — ONE definition, shared by the pre-warm (jicm-prewarm.sh) and
 # the real digest (jicm-actuate.sh step 3.5). These MUST be identical: the warm's whole value is
 # that the digest re-sends a byte-identical prompt prefix, so any drift between the two silently

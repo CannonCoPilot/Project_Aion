@@ -440,12 +440,20 @@ _step_scratchpad_rotate() {   # 5.8 — rotate the shared .scratchpad.md (SHARED
     _log "5.8 scratchpad rotated"
 }
 
+JD_PID=""; JD_OUT=""; JD_SID=""; JD_ROW_FILE=""
+
 _step_digest() {   # STAGE ③ — distil the OUTGOING transcript, then fold it into the checkpoint
-    # WHY HERE (before the /clear, blocking): the digest's whole purpose is to reach the SUCCESSOR,
-    # and the successor is fed from JK_COMPRESSED at session-start. Running it after the clear
-    # would produce a fine artifact that arrives one cycle too late. The pre-warm exists precisely
-    # to make this blocking step affordable: ~170s warm vs ~495s cold, paid while the session sits
-    # idle awaiting its own clear.
+    # WHY HERE, AND WHY IT NO LONGER BLOCKS (revised 2026-09-10). The digest's purpose is to reach
+    # the SUCCESSOR, which is fed from JK_COMPRESSED at session-start, so it used to run BEFORE the
+    # /clear and the whole cycle waited on it. Measured over 114 cycles that wait was 424s of a
+    # 446s cycle. It now launches here, at the same hard-threshold signal as before, and is folded
+    # by _step_digest_finalize after the resume. The successor therefore starts WITHOUT its history
+    # and is told when it arrives -- that cost is real and is why the finalizer notifies rather
+    # than silently appending. JICM_DIGEST_BLOCKING=true restores the old ordering.
+    #
+    # NOTE: jicm-prewarm.sh was written to make the blocking version affordable (495s -> 118s
+    # measured) and is NOT wired into the watcher -- its log stops 2026-08-12. Wiring it would
+    # shorten the async window too, but it is not what makes the cycle fast.
     #
     # This step is ADVISORY: a missing digest costs the successor context, but a session stuck
     # above its hard threshold costs it everything. So every failure path here logs and returns 0.
@@ -458,9 +466,24 @@ _step_digest() {   # STAGE ③ — distil the OUTGOING transcript, then fold it 
 
     mkdir -p "$JICM_DIGESTS_DIR" 2>/dev/null
     out="$JICM_DIGESTS_DIR/${JK_KEY}-${sid:0:8}.md"
-    _log "3.5 digest: distilling ${sid:0:8} (pre-warm makes this ~170s; cold ~495s)"
-    row="$(cd "$SCRIPT_DIR/jicm-digest" && python3 tdigest.py "$sid" $JICM_DIGEST_ARGS \
-             --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE")"
+    # MEASURED 2026-09-10 over 114 cycles: median total 446s, median DIGEST 424s,
+    # median post-digest 4s. The digest was 95% of every cycle and everything
+    # after it was already fast, so the cycle time IS this call. It still runs
+    # at the hard-threshold signal; it just no longer stands between the
+    # threshold and the /clear.
+    JD_OUT="$out"; JD_SID="$sid"; JD_ROW_FILE="$out.row"
+    if [[ "${JICM_DIGEST_BLOCKING:-false}" == "true" ]]; then
+        _log "3.5 digest: distilling ${sid:0:8} BLOCKING (median 424s)"
+        row="$(cd "$SCRIPT_DIR/jicm-digest" && python3 tdigest.py "$sid" $JICM_DIGEST_ARGS \
+                 --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE")"
+        printf '%s' "$row" > "$JD_ROW_FILE" 2>/dev/null
+    else
+        ( cd "$SCRIPT_DIR/jicm-digest" && python3 tdigest.py "$sid" $JICM_DIGEST_ARGS \
+              --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE" > "$JD_ROW_FILE" ) &
+        JD_PID=$!
+        _log "3.5 digest: distilling ${sid:0:8} ASYNC (pid $JD_PID, median 424s) — the /clear no longer waits on it; folded by _step_digest_finalize when it lands"
+        return 0
+    fi
     if [[ -z "$row" || ! -s "$out" ]]; then
         _log "3.5 ALERT: digest produced nothing — successor resumes WITHOUT session history"
         return 0
@@ -498,6 +521,73 @@ _step_digest() {   # STAGE ③ — distil the OUTGOING transcript, then fold it 
     # Record it against the chain row, so the succession carries a pointer to its own history.
     "$SCRIPT_DIR/jicm-chain.sh" digest "$JK_KEY" "$sid" "$out" 2>>"$JICM_LOG_FILE" \
         || _log "3.5 note: chain digest attach failed (digest itself is fine)"
+    return 0
+}
+
+_step_digest_finalize() {   # 3.5b — fold the ASYNC digest once it lands, after the resume
+    # WHY THIS EXISTS, AND WHAT IT COSTS. Moving the digest off the blocking path
+    # buys a ~30s cycle instead of a ~450s one. The price is that the successor
+    # resumes BEFORE its session history is ready, so it must be told when the
+    # history arrives rather than silently never getting it. That is the whole
+    # job of this step, and it is why the digest is not simply backgrounded and
+    # forgotten (No Silent Degradation: a missing handoff must be visible).
+    [[ "${JICM_DIGEST_BLOCKING:-false}" == "true" ]] && return 0
+    [[ -n "$JD_PID" ]] || return 0
+
+    local waited=0 max="${JICM_DIGEST_FINALIZE_TIMEOUT:-1200}" row degen trunc words
+    while kill -0 "$JD_PID" 2>/dev/null; do
+        [[ "$waited" -ge "$max" ]] && {
+            _log "3.5b ALERT: digest pid $JD_PID still running after ${max}s — the successor has NO session history and will not get one this cycle. Left running; inspect $JD_OUT"
+            return 0; }
+        sleep 2; waited=$(( waited + 2 ))
+    done
+    row="$(cat "$JD_ROW_FILE" 2>/dev/null)"
+    if [[ -z "$row" || ! -s "$JD_OUT" ]]; then
+        _log "3.5b ALERT: async digest produced nothing after ${waited}s — successor resumed WITHOUT session history"
+        return 0
+    fi
+    degen="$(printf '%s' "$row" | jq -r '.degenerate // false' 2>/dev/null)"
+    trunc="$(printf '%s' "$row" | jq -r '.truncated  // false' 2>/dev/null)"
+    words="$(printf '%s' "$row" | jq -r '.words // 0' 2>/dev/null)"
+    if [[ "$degen" == "true" ]]; then
+        _log "3.5b ALERT: digest DEGENERATE (${words} words) after ${waited}s — NOT folded; kept at $JD_OUT"
+        return 0
+    fi
+    [[ "$trunc" == "true" ]] && _log "3.5b WARN: digest hit the generation cap (${words} words) — folding anyway"
+
+    # Append to the checkpoint so the NEXT refresh carries it, then tell the
+    # successor it exists. The successor already resumed without it, so a
+    # pointer is the only honest delivery: it can read the file now.
+    {
+        echo; echo "---"; echo
+        echo "## Session History Digest (previous session ${JD_SID:0:8})"
+        echo
+        echo "*Distilled from the full transcript. Arrived ${waited}s after resume"
+        echo "because the digest runs asynchronously; see 3.5b.*"
+        echo
+        cat "$JD_OUT"
+    } >> "$JK_COMPRESSED" 2>/dev/null
+    _log "3.5b digest folded into checkpoint after ${waited}s (${words} words, $JD_OUT)"
+
+    "$SCRIPT_DIR/jicm-chain.sh" digest "$JK_KEY" "$JD_SID" "$JD_OUT" 2>>"$JICM_LOG_FILE" \
+        || _log "3.5b note: chain digest attach failed (digest itself is fine)"
+
+    # RESOLVE THE LIVE TRANSCRIPT. $TRANSCRIPT is the OUTGOING session, pinned before the /clear;
+    # by now it is a dead file whose last record is terminal, so _wait_for_idle on it returns
+    # TRUE instantly and we would inject into whatever the successor happens to be doing. Ask the
+    # registry for the session that exists now.
+    local live; live="$(_reg '.transcript_path')"
+    [[ -n "$live" && "$live" != "null" && -f "$live" && "$live" != "$TRANSCRIPT" ]] || {
+        _log "3.5b digest ready but the successor's transcript is not resolvable yet — not injecting; it is in the checkpoint and at $JD_OUT"
+        return 0; }
+    if [[ "${JICM_DIGEST_NOTIFY:-true}" == "true" ]] && _wait_for_idle "$live" "${JICM_DIGEST_NOTIFY_IDLE:-120}"; then
+        _inject clear-input; sleep 0.3
+        _inject text "Session history digest for ${JD_SID:0:8} is now available at $JD_OUT (it was still generating when you resumed). Read it if you need what the previous session actually did."
+        sleep 0.5; _inject submit
+        _log "3.5b successor notified of the late digest"
+    else
+        _log "3.5b digest ready but successor busy — not injecting; it is in the checkpoint and at $JD_OUT"
+    fi
     return 0
 }
 
@@ -588,7 +678,11 @@ _cycle_preserve_restore() {
     _log "step4: /clear sent"
 
     # 5. Wait for session-start to inject the checkpoint (writes JK_RESUME_SIGNAL).
-    if _wait_for_signal "$JK_RESUME_SIGNAL" 60; then
+    # 15s, not 60s. This is a wait for a signal that session-start writes within
+    # a second or two in every observed cycle; the 60s ceiling only ever paid out
+    # when the signal was never coming, and then it delayed the nudge that
+    # recovers from exactly that case.
+    if _wait_for_signal "$JK_RESUME_SIGNAL" "${JICM_RESUME_SIGNAL_TIMEOUT:-15}"; then
         _log "step5: resume signal observed (session-start injected checkpoint)"
     else
         _log "step5: resume-signal timeout — sending RESUME nudge anyway"
@@ -603,7 +697,12 @@ _cycle_preserve_restore() {
 
     # 7. Cleanup transient per-key signals.
     rm -f "$JK_CLEAR_SIGNAL" "$JK_COMPRESSION_SIGNAL" "$JK_COMPRESSION_GUARD" "$JK_RESUME_SIGNAL"
-    _log "==== preserve-restore complete ===="
+    _log "==== preserve-restore complete (cycle time excludes the async digest) ===="
+
+    # 8. Fold the async digest when it lands. AFTER the complete marker on
+    #    purpose: the cycle is over and the lane is already working. This step
+    #    only delivers history that arrived late.
+    _step_digest_finalize
 }
 
 _cycle_zero_state() {
