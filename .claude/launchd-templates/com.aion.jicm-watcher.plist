@@ -80,7 +80,7 @@
         <key>JICM_WATCHER_INCLUDE_W0</key>
         <string>1</string>
         <key>JICM_WATCHER_POLL</key>
-        <string>10</string>
+        <string>2</string>
     </dict>
 
     <key>WorkingDirectory</key>
