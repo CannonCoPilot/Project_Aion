@@ -50,7 +50,7 @@ chrome-pin.sh — lane -> role -> Chrome deviceId
   roles                           every role and whether it is resolved
   list                            every lane mapping
   resolve                         how to establish which deviceId is which
-  set-role <role> <deviceId>      record a VERIFIED mapping
+  set-profile <personal|micro1> <deviceId>   record a VERIFIED mapping
   set-default <role|deviceId>     rewrite the GLOBAL pin
 USAGE
 }
@@ -61,7 +61,7 @@ case "${1:-show}" in
     roles)       _q roles ;;
     list)        _q list ;;
     resolve)     _q resolve ;;
-    set-role)    _q set-role "${2:-}" "${3:-}" ;;
+    set-profile) _q set-profile "${2:-}" "${3:-}" ;;
     set-default) _q set-default "${2:-}" ;;
     -h|--help)   usage ;;
     *)           usage; exit 2 ;;

@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Map logic for chrome-pin.sh. Python, not bash, because the map is JSON and
-nested heredocs in bash are how the first version of this broke.
+"""Map logic for chrome-pin.sh.
 
-Nothing here guesses a deviceId. An unresolved role prints UNRESOLVED and says
-so, because sending a lane at the wrong session can push credentialed work into
-the wrong account, and a wrong answer is worse than no answer.
+CORRECTED MODEL. A Chrome WINDOW is not a browser identity: the Claude
+extension attaches per PROFILE, so every window of a profile shares one
+deviceId, and cookies are profile-wide. The BYU library session is the first
+tab of a third window of the PERSONAL profile -- the same profile that holds
+the Snorkel session -- so it is a DESTINATION, not a browser to select.
+
+Nothing here guesses a deviceId. Driving the wrong profile pushes credentialed
+work into the wrong account, so an unverified profile refuses to answer.
 """
 import json, os, sys, tempfile
 
@@ -15,65 +19,54 @@ def load(p):
 
 
 def save(p, d):
-    # Same-directory temp + rename. ~/.claude.json is live state for every
-    # running session; a partial write corrupts all of them.
+    # Same-directory temp + rename: ~/.claude.json is live state for every
+    # running session and a partial write corrupts all of them.
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(p) or ".")
     with os.fdopen(fd, "w") as f:
         json.dump(d, f, indent=2)
     os.replace(tmp, p)
 
 
-def role_for(m, lane, want):
-    l = m["lanes"].get(lane)
-    if not l:
-        return None, None
-    role = want or l["primary"]
-    if want and want != l["primary"] and want not in l.get("alternates", []):
-        return l, None            # not permitted for this lane
-    return l, role
+def dev_of(m, prof):
+    return (m["profiles"].get(prof) or {}).get("deviceId")
 
 
-def device(m, role):
-    return (m["roles"].get(role) or {}).get("deviceId")
-
-
-def role_of_device(m, dev):
-    for r, v in m["roles"].items():
+def prof_of_dev(m, dev):
+    for p, v in m["profiles"].items():
         if v.get("deviceId") == dev:
-            return r
+            return p
     return "(unrecognised)"
 
 
-def current_pin(cfg):
+def pin(cfg):
     try:
         return load(cfg).get("chromeExtension", {}).get("pairedDeviceId") or ""
     except Exception:
         return ""
 
 
-RESOLVE = """RESOLVING WHICH deviceId IS WHICH — measured, never guessed.
+RESOLVE = """RESOLVING THE TWO deviceIds — one measurement, then done.
 
-Known:
-  * Two extensions connected: da3bf06e… ("Browser 1"), b72a12c5… ("Browser 2").
-  * Chrome has exactly TWO profiles:
-        Default    "Your Chrome"       nathaniel.cannon@gmail.com
-        Profile 1  "expert.micro1.ai"  naca028@expert.micro1.ai
-  * Arc, Brave, Chromium, Edge, Firefox are ALSO installed. Any Chromium one can
-    carry the extension, so the two connected browsers need not be those profiles.
-  * NO profile is named for BYU or journal access, so the library session lives
-    inside one of these, or in a browser that is not currently connected.
+There are only TWO browser identities, because the extension attaches per
+PROFILE and a window is not an identity:
 
-Why list_connected_browsers cannot settle it:
-  it returns deviceId, name, osPlatform, connectedAt, isLocal — and NO account.
+    personal   Chrome "Default"    nathaniel.cannon@gmail.com   Snorkel + BYU library
+    micro1     Chrome "Profile 1"  naca028@expert.micro1.ai
 
-The measurement, about a minute per browser:
-  1. select_browser <deviceId>
-  2. navigate to https://myaccount.google.com/   (or the library's landing page)
-  3. read the signed-in account off the page
-  4. chrome-pin.sh set-role <role> <deviceId>
+Connected: da3bf06e… ("Browser 1") and b72a12c5… ("Browser 2"). Which is which
+is NOT established. list_connected_browsers reports no account, so it cannot
+settle it.
 
-If the library session is in a browser that is not connected, open that browser
-with the Claude extension first; it will then appear in list_connected_browsers."""
+The measurement:
+  1. select_browser da3bf06e-c998-4850-84c5-ad64aac738e5
+  2. navigate https://myaccount.google.com/
+  3. read the signed-in address
+  4. chrome-pin.sh set-profile personal <that deviceId>   (or micro1)
+     the other deviceId is then the other profile by elimination
+  5. chrome-pin.sh set-default personal
+
+There is NO third deviceId to find. The library window shares the personal
+profile's deviceId and its cookies."""
 
 
 def main():
@@ -82,88 +75,112 @@ def main():
     m = load(mp)
 
     if verb == "roles":
-        for r, v in m["roles"].items():
-            print(f"  {r:9s} {v.get('deviceId') or 'UNRESOLVED':40s} {v['purpose'][:58]}")
+        for p, v in m["profiles"].items():
+            print(f"  {p:9s} {v.get('deviceId') or 'UNRESOLVED':40s} {v['chrome_profile']:10s} {v['account']}")
+        print("  destinations (same profile, just a URL):")
+        for d, v in m["destinations"].items():
+            print(f"    {d:9s} profile={v['profile']:9s} {v.get('url') or ''}")
         return 0
 
     if verb == "list":
         for k, v in m["lanes"].items():
-            d = device(m, v["primary"]) or "UNRESOLVED"
-            alt = ",".join(v.get("alternates", [])) or "-"
+            d = dev_of(m, v["profile"]) or "UNRESOLVED"
+            mu = ",".join(v.get("may_use", [])) or "-"
             nw = "new-window" if v.get("new_window") else "reuse"
-            print(f"  {k:9s} primary={v['primary']:8s} alt={alt:8s} {nw:10s} {d}")
+            print(f"  {k:9s} profile={v['profile']:9s} may_use={mu:16s} {nw:10s} {d}")
         return 0
 
     if verb == "resolve":
         print(RESOLVE)
         return 0
 
-    if verb == "set-role":
-        role, dev = (a + ["", ""])[:2]
-        if role not in m["roles"]:
-            print(f"unknown role {role!r}; known: {list(m['roles'])}", file=sys.stderr)
+    if verb == "set-profile":
+        prof, dev = (a + ["", ""])[:2]
+        if prof not in m["profiles"]:
+            print(f"unknown profile {prof!r}; known: {list(m['profiles'])}", file=sys.stderr)
             return 2
         if not dev:
-            print("usage: chrome-pin.sh set-role <role> <deviceId>", file=sys.stderr)
+            print("usage: chrome-pin.sh set-profile <personal|micro1> <deviceId>", file=sys.stderr)
             return 2
-        before = m["roles"][role].get("deviceId")
-        m["roles"][role]["deviceId"] = dev
-        m["roles"][role]["evidence"] = "VERIFIED via chrome-pin.sh set-role (account read from the live session)"
+        before = m["profiles"][prof].get("deviceId")
+        m["profiles"][prof]["deviceId"] = dev
+        m["profiles"][prof]["evidence"] = "VERIFIED: account read from the live session"
         save(mp, m)
-        print(f"role {role}: {before} -> {dev}")
+        print(f"profile {prof}: {before} -> {dev}")
+        other = [p for p in m["profiles"] if p != prof]
+        if other and not dev_of(m, other[0]):
+            print(f"note: {other[0]} is still UNRESOLVED. With two connected browsers it is the "
+                  f"other deviceId by elimination, but record it explicitly rather than assuming.")
         return 0
 
     if verb == "set-default":
         target = (a + [""])[0]
-        dev = device(m, target) or target
-        if not dev:
-            print("usage: chrome-pin.sh set-default <role|deviceId>", file=sys.stderr)
+        dev = dev_of(m, target) or target
+        if target in m["profiles"] and not dev_of(m, target):
+            print(f"profile {target!r} is UNRESOLVED — run: chrome-pin.sh resolve", file=sys.stderr)
             return 2
-        if dev == target and target in m["roles"]:
-            print(f"role {target!r} is UNRESOLVED — nothing to pin. Run: chrome-pin.sh resolve",
-                  file=sys.stderr)
+        if not dev:
+            print("usage: chrome-pin.sh set-default <profile|deviceId>", file=sys.stderr)
             return 2
         d = load(cfg)
         ce = d.setdefault("chromeExtension", {})
         before = ce.get("pairedDeviceId")
         ce["pairedDeviceId"] = dev
-        ce["pairedDeviceName"] = role_of_device(m, dev)
+        ce["pairedDeviceName"] = prof_of_dev(m, dev)
         save(cfg, d)
-        print(f"global pin {before} -> {dev} ({role_of_device(m, dev)})")
+        print(f"global pin {before} -> {dev} ({prof_of_dev(m, dev)})")
         print("New SESSIONS inherit this. Running sessions keep their in-memory selection.")
         return 0
 
     lane = a[0] if a else ""
     want = a[1] if len(a) > 1 and a[1] else None
-    l, role = role_for(m, lane, want)
+    l = m["lanes"].get(lane)
 
     if verb == "id":
-        print(device(m, role) or "" if role else "")
+        if not l:
+            print("")
+            return 0
+        prof = l["profile"]
+        if want:
+            dest = m["destinations"].get(want)
+            if not dest or want not in l.get("may_use", []) and want not in m["destinations"]:
+                print("")
+                return 0
+            prof = dest["profile"]
+        print(dev_of(m, prof) or "")
         return 0
 
     # show
     if not l:
-        print(f"lane            : {lane}\nrole            : (UNMAPPED LANE — add it to {mp})")
+        print(f"lane            : {lane}\nprofile         : (UNMAPPED LANE — add it to {mp})")
         return 0
-    if role is None:
-        print(f"lane            : {lane}")
-        print(f"role            : {want!r} is NOT permitted for this lane")
-        print(f"                  primary={l['primary']} alternates={l.get('alternates', []) or '-'}")
-        return 0
-    dev, pin = device(m, role), current_pin(cfg)
+    prof, dest = l["profile"], None
+    if want:
+        dest = m["destinations"].get(want)
+        if not dest:
+            print(f"lane            : {lane}\ndestination     : {want!r} is unknown; known: {list(m['destinations'])}")
+            return 0
+        if want not in l.get("may_use", []) and want not in m["destinations"].get(want, {}).get("profile", ""):
+            pass
+        prof = dest["profile"]
+    dev, cur = dev_of(m, prof), pin(cfg)
     print(f"lane            : {lane}")
-    print(f"role            : {role}" + ("  (primary)" if role == l["primary"] else "  (alternate)"))
+    print(f"profile         : {prof}  ({m['profiles'][prof]['chrome_profile']}, {m['profiles'][prof]['account']})")
+    if dest:
+        print(f"destination     : {want} -> {dest['url']}")
+        print(f"                  {dest['note']}")
+        if prof != l["profile"]:
+            print(f"                  NOTE: this lane's primary profile is {l['profile']}; switching.")
     print(f"open new window : {'yes' if l.get('new_window') else 'no'}")
     if not dev:
-        print("deviceId        : UNRESOLVED — this role has no verified deviceId")
+        print("deviceId        : UNRESOLVED")
         print("\nDO NOT GUESS. Run: chrome-pin.sh resolve")
-        print("Driving the wrong session can push credentialed work into the wrong account.")
+        print("Driving the wrong profile pushes credentialed work into the wrong account.")
         return 0
     print(f"deviceId        : {dev}")
-    print(f"global pin      : {pin or '(none)'} ({role_of_device(m, pin) if pin else '-'})")
-    if dev != pin:
-        print(f"\nACTION: call select_browser with {dev} as this lane's FIRST browser action.")
-        print("        Per-session and promptless; other lanes are unaffected.")
+    print(f"global pin      : {cur or '(none)'} ({prof_of_dev(m, cur) if cur else '-'})")
+    if dev != cur:
+        print(f"\nACTION: select_browser {dev} as this lane's FIRST browser action.")
     else:
         print("\nOK: global pin already matches. The MCP auto-connects silently.")
     return 0
