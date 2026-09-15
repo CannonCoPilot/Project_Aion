@@ -1,0 +1,26 @@
+{
+  "_comment": [
+    "Lane -> Chrome browser pin. Read by scripts/chrome-pin.sh.",
+    "WHY THIS EXISTS: Claude Code stores exactly ONE browser pin, globally, at",
+    "~/.claude.json .chromeExtension.pairedDeviceId. With 2+ browsers connected and no pin",
+    "match, the Chrome MCP forces an AskUserQuestion before every browser action.",
+    "A pin that matches a connected browser makes that prompt disappear entirely.",
+    "requirePairedDevice exists in the binary but the CLI never provides its getter, so it",
+    "cannot be used (verified Claude Code v2.1.259).",
+    "deviceIds come from list_connected_browsers. They are stable per Chrome profile."
+  ],
+  "default": "da3bf06e-c998-4850-84c5-ad64aac738e5",
+  "browsers": {
+    "da3bf06e-c998-4850-84c5-ad64aac738e5": { "name": "Browser 1", "account": "UNVERIFIED" },
+    "b72a12c5-0ccf-4471-aa10-ef23552ffba1": { "name": "Browser 2", "account": "UNVERIFIED" }
+  },
+  "lanes": {
+    "w0":      { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "Jarvis" },
+    "dev":     { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "Jarvis-dev" },
+    "jaques":  { "deviceId": "b72a12c5-0ccf-4471-aa10-ef23552ffba1", "note": "Snorkel — authenticated Snorkel session lives in Browser 2" },
+    "fleming": { "deviceId": "b72a12c5-0ccf-4471-aa10-ef23552ffba1", "note": "micro1 — same family as Jacques" },
+    "genie":   { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "" },
+    "urist":   { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "" },
+    "protos":  { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "" }
+  }
+}
