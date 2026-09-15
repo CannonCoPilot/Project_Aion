@@ -1,26 +1,57 @@
 {
   "_comment": [
-    "Lane -> Chrome browser pin. Read by scripts/chrome-pin.sh.",
-    "WHY THIS EXISTS: Claude Code stores exactly ONE browser pin, globally, at",
-    "~/.claude.json .chromeExtension.pairedDeviceId. With 2+ browsers connected and no pin",
-    "match, the Chrome MCP forces an AskUserQuestion before every browser action.",
-    "A pin that matches a connected browser makes that prompt disappear entirely.",
-    "requirePairedDevice exists in the binary but the CLI never provides its getter, so it",
-    "cannot be used (verified Claude Code v2.1.259).",
-    "deviceIds come from list_connected_browsers. They are stable per Chrome profile."
+    "Lane -> ROLE -> Chrome deviceId. Read by scripts/chrome-pin.sh.",
+    "",
+    "WHY ROLES AND NOT A SINGLE PIN PER LANE: several lanes need a PRIMARY session plus",
+    "occasional access to a shared one (journal access). A lane therefore has one primary",
+    "role and a list of alternates it may switch to with select_browser.",
+    "",
+    "MECHANISM (Claude Code v2.1.259, read from the binary): the MCP prompts only when the",
+    "GLOBAL pin (~/.claude.json .chromeExtension.pairedDeviceId) matches no connected browser.",
+    "A matching pin auto-connects silently. selectedDeviceId is PER-PROCESS, so a lane may",
+    "call select_browser for an alternate without disturbing any other lane's routing.",
+    "requirePairedDevice exists in the binary but is never provided by the CLI: unusable.",
+    "",
+    "DEVICE IDs ARE DELIBERATELY null WHERE UNVERIFIED. Two extensions are connected",
+    "(da3bf06e... 'Browser 1', b72a12c5... 'Browser 2') but which profile each one IS has",
+    "NOT been established. Evidence so far: only two Chrome profiles exist -- Default",
+    "('Your Chrome', nathaniel.cannon@gmail.com) and Profile 1 ('expert.micro1.ai',",
+    "naca028@expert.micro1.ai) -- and Arc, Brave, Chromium, Edge and Firefox are also",
+    "installed, any Chromium one of which can carry the extension. No profile named for BYU",
+    "or journal access was found, so the library session lives inside one of these or in a",
+    "browser not yet connected. Run `chrome-pin.sh resolve` for how to settle it.",
+    "GUESSING HERE WOULD SEND AN ARCHON'S CREDENTIALED WORK INTO THE WRONG SESSION."
   ],
-  "default": "da3bf06e-c998-4850-84c5-ad64aac738e5",
-  "browsers": {
-    "da3bf06e-c998-4850-84c5-ad64aac738e5": { "name": "Browser 1", "account": "UNVERIFIED" },
-    "b72a12c5-0ccf-4471-aa10-ef23552ffba1": { "name": "Browser 2", "account": "UNVERIFIED" }
+  "roles": {
+    "snorkel": {
+      "deviceId": null,
+      "purpose": "Authenticated Snorkel platform session (contract work).",
+      "evidence": "W13:Jacques reported 'Browser 2: Authenticated Snorkel session' on 2026-09-09 -- a browser LABEL, not a verified profile."
+    },
+    "micro1": {
+      "deviceId": null,
+      "purpose": "expert.micro1.ai session.",
+      "evidence": "Chrome 'Profile 1' is named expert.micro1.ai (naca028@expert.micro1.ai). Which deviceId serves it is unverified."
+    },
+    "library": {
+      "deviceId": null,
+      "purpose": "BYU library / journal access. Carries the cookies and session for bulk literature download. SHARED: several lanes borrow it.",
+      "evidence": "NOT LOCATED. No Chrome profile is named for it. Likely inside the Default profile or in another installed browser."
+    },
+    "general": {
+      "deviceId": null,
+      "purpose": "Ordinary browsing with no credentialed session to protect. Lanes using this should OPEN A NEW WINDOW rather than adopt whatever is on screen.",
+      "evidence": "Default profile ('Your Chrome') is the natural candidate."
+    }
   },
   "lanes": {
-    "w0":      { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "Jarvis" },
-    "dev":     { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "Jarvis-dev" },
-    "jaques":  { "deviceId": "b72a12c5-0ccf-4471-aa10-ef23552ffba1", "note": "Snorkel — authenticated Snorkel session lives in Browser 2" },
-    "fleming": { "deviceId": "b72a12c5-0ccf-4471-aa10-ef23552ffba1", "note": "micro1 — same family as Jacques" },
-    "genie":   { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "" },
-    "urist":   { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "" },
-    "protos":  { "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5", "note": "" }
-  }
+    "jaques":  { "primary": "snorkel", "alternates": ["library"], "new_window": false },
+    "fleming": { "primary": "micro1",  "alternates": ["library"], "new_window": false },
+    "genie":   { "primary": "library", "alternates": [],          "new_window": false },
+    "w0":      { "primary": "general", "alternates": ["library"], "new_window": true },
+    "dev":     { "primary": "general", "alternates": ["library"], "new_window": true },
+    "protos":  { "primary": "general", "alternates": ["library"], "new_window": true },
+    "urist":   { "primary": "general", "alternates": ["library"], "new_window": true }
+  },
+  "global_pin_role": "general"
 }
