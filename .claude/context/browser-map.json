@@ -2,44 +2,65 @@
   "_comment": [
     "Lane -> browser PROFILE, plus named destinations within a profile.",
     "",
-    "CORRECTED 2026-09-14 after Sir clarified: the BYU library session is the first tab of a",
-    "THIRD CHROME WINDOW, logged in with the SAME personal gmail as the Snorkel window.",
+    "RESOLVED 2026-09-14. Both deviceIds were MEASURED, not inferred: each browser was",
+    "selected in turn and https://myaccount.google.com/ read for the signed-in address.",
+    "Neither was taken by elimination, because Arc/Brave/Chromium/Edge/Firefox are also",
+    "installed and a connected extension need not be one of the two Chrome profiles.",
+    "   personal  da3bf06e-c998-4850-84c5-ad64aac738e5  'Browser 1'  Default    nathaniel.cannon@gmail.com",
+    "   micro1    b72a12c5-0ccf-4471-aa10-ef23552ffba1  'Browser 2'  Profile 1  naca028@expert.micro1.ai",
+    "",
     "A Chrome WINDOW IS NOT A BROWSER IDENTITY. The Claude extension attaches per PROFILE,",
     "so every window of a profile shares one deviceId -- and cookies are profile-wide, so",
-    "library auth is already present in ANY window or tab of the personal profile.",
-    "There is therefore NO third deviceId to find, and 'library' is a DESTINATION, not a role.",
-    "",
-    "Two browser identities exist, matching the two Chrome profiles:",
-    "   personal  Default    'Your Chrome'      nathaniel.cannon@gmail.com  (Snorkel + BYU library)",
-    "   micro1    Profile 1  'expert.micro1.ai' naca028@expert.micro1.ai",
+    "BYU library auth is already present in ANY window or tab of the personal profile.",
+    "There is NO third deviceId, and 'library' is a DESTINATION (a URL), not a role.",
     "",
     "MECHANISM (Claude Code v2.1.259, read from the binary): the MCP prompts only when the",
     "global pin (~/.claude.json .chromeExtension.pairedDeviceId) matches no connected browser.",
-    "A match auto-connects silently. selectedDeviceId is PER-PROCESS, so a lane may switch",
-    "with select_browser without disturbing another lane. requirePairedDevice is consumed but",
-    "never provided by the CLI: unusable."
+    "A match auto-connects silently. requirePairedDevice is consumed but never provided by",
+    "the CLI: unusable.",
+    "",
+    "SIDE EFFECT, MEASURED: select_browser REWRITES THE GLOBAL PIN. selectedDeviceId is",
+    "per-process so no RUNNING lane is disturbed, but the default every NEW session inherits",
+    "is left pointing at the browser that was borrowed. Any lane that borrows the non-default",
+    "profile must run `chrome-pin.sh restore` when it is done."
   ],
   "profiles": {
     "personal": {
-      "deviceId": null,
+      "deviceId": "da3bf06e-c998-4850-84c5-ad64aac738e5",
       "chrome_profile": "Default",
       "account": "nathaniel.cannon@gmail.com",
-      "carries": ["snorkel", "library"],
-      "evidence": "UNVERIFIED which of da3bf06e… / b72a12c5… serves it. One measurement settles it."
+      "carries": [
+        "snorkel",
+        "library"
+      ],
+      "evidence": "VERIFIED 2026-09-14 by direct measurement: select_browser da3bf06e\u2026 -> myaccount.google.com read 'nathaniel.cannon@gmail.com'."
     },
     "micro1": {
-      "deviceId": null,
+      "deviceId": "b72a12c5-0ccf-4471-aa10-ef23552ffba1",
       "chrome_profile": "Profile 1",
       "account": "naca028@expert.micro1.ai",
-      "carries": ["micro1"],
-      "evidence": "UNVERIFIED which deviceId serves it."
+      "carries": [
+        "micro1"
+      ],
+      "evidence": "VERIFIED 2026-09-14 by direct measurement, NOT by elimination: select_browser b72a12c5\u2026 -> myaccount.google.com read 'naca028@expert.micro1.ai'."
     }
   },
   "destinations": {
     "library": {
       "profile": "personal",
       "url": "https://lib.byu.edu/databases/",
-      "note": "BYU library databases. Auth is a PROFILE-WIDE cookie, so any window or tab of the personal profile has it. Open a new tab rather than hunting for Sir's window."
+      "note": "BYU HBLL. Auth is a PROFILE-WIDE cookie, so any window or tab of the personal profile has it. Open a new tab rather than hunting for Sir's window.",
+      "verified": "2026-09-14: navigated https://dbs.lib.byu.edu/jstor in Browser 1 and landed on https://www-jstor-org.byu.idm.oclc.org/ ('JSTOR Home') with NO login prompt. The EZproxy session is live in the personal profile. The public /databases/ index does NOT prove this -- it is unauthenticated; only a proxied resource does.",
+      "resolver": {
+        "pattern": "https://dbs.lib.byu.edu/<slug>",
+        "note": "Every database on the A-Z list links through this resolver, which 302s to the EZproxy host. Slugs come from https://lib.byu.edu/databases/?letter=<a-z>. Examples: jstor, jstor-daily, jstor-plants."
+      },
+      "ezproxy": {
+        "pattern": "https://<publisher-host-with-dots-as-dashes>.byu.idm.oclc.org/<path>",
+        "example": "www.jstor.org -> https://www-jstor-org.byu.idm.oclc.org/",
+        "note": "OCLC EZproxy host rewriting. A proxied URL can be built DIRECTLY from a publisher URL without going through the resolver -- replace the dots in the hostname with dashes and append .byu.idm.oclc.org. Keeps the path intact."
+      },
+      "gotcha": "javascript_tool is PERMISSION DENIED on *.byu.idm.oclc.org ('Permission denied for JavaScript execution on this domain'). get_page_text, navigate and tabs_context_mcp all work there. Read proxied pages with get_page_text, not JS."
     },
     "snorkel": {
       "profile": "personal",
@@ -48,13 +69,59 @@
     }
   },
   "lanes": {
-    "jaques":  { "profile": "personal", "may_use": ["snorkel", "library"], "new_window": false, "note": "Snorkel contract work" },
-    "fleming": { "profile": "micro1",   "may_use": ["library"],            "new_window": false, "note": "micro1; must switch to the personal profile for library work" },
-    "genie":   { "profile": "personal", "may_use": ["library"],            "new_window": false, "note": "literature retrieval" },
-    "w0":      { "profile": "personal", "may_use": ["library"],            "new_window": true },
-    "dev":     { "profile": "personal", "may_use": ["library"],            "new_window": true },
-    "protos":  { "profile": "personal", "may_use": ["library"],            "new_window": true },
-    "urist":   { "profile": "personal", "may_use": ["library"],            "new_window": true }
+    "jaques": {
+      "profile": "personal",
+      "may_use": [
+        "snorkel",
+        "library"
+      ],
+      "new_window": false,
+      "note": "Snorkel contract work"
+    },
+    "fleming": {
+      "profile": "micro1",
+      "may_use": [
+        "library"
+      ],
+      "new_window": false,
+      "note": "micro1 primary. For library work: select_browser <personal deviceId>, then chrome-pin.sh restore when done -- select_browser clobbers the global pin."
+    },
+    "genie": {
+      "profile": "personal",
+      "may_use": [
+        "library"
+      ],
+      "new_window": false,
+      "note": "literature retrieval"
+    },
+    "w0": {
+      "profile": "personal",
+      "may_use": [
+        "library"
+      ],
+      "new_window": true
+    },
+    "dev": {
+      "profile": "personal",
+      "may_use": [
+        "library"
+      ],
+      "new_window": true
+    },
+    "protos": {
+      "profile": "personal",
+      "may_use": [
+        "library"
+      ],
+      "new_window": true
+    },
+    "urist": {
+      "profile": "personal",
+      "may_use": [
+        "library"
+      ],
+      "new_window": true
+    }
   },
   "global_pin_profile": "personal"
 }

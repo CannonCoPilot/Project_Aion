@@ -15,13 +15,22 @@
 #   4. persisted pin matches -> auto-connect, SILENT        <== the lever
 #   5. otherwise             -> the AskUserQuestion prompt
 #
-# WHY ROLES
-#   Lanes need a PRIMARY session plus occasional access to a SHARED one (journal
-#   access). getPersistedDeviceId reads ie().chromeExtension?.pairedDeviceId --
-#   ONE value, global, no project scope. But selectedDeviceId is PER-PROCESS, so
-#   a lane can borrow an alternate with select_browser without disturbing any
-#   other lane's live routing. Global pin = the common case; select_browser =
-#   the exception.
+# WHY PROFILES
+#   Two browser identities exist, one per Chrome PROFILE, both measured:
+#     personal  da3bf06e-…  "Browser 1"  nathaniel.cannon@gmail.com  Snorkel + BYU library
+#     micro1    b72a12c5-…  "Browser 2"  naca028@expert.micro1.ai
+#   A WINDOW is not an identity. Cookies are profile-wide, so the BYU library
+#   session lives in Browser 1 like any other tab -- `library` is a URL, not a
+#   browser to select.
+#
+# THE BORROW, AND ITS SIDE EFFECT
+#   getPersistedDeviceId reads ie().chromeExtension?.pairedDeviceId -- ONE value,
+#   global, no project scope. selectedDeviceId is PER-PROCESS, so a lane that
+#   borrows the other profile does not disturb any RUNNING lane's routing.
+#   BUT select_browser ALSO REWRITES THE GLOBAL PIN (measured 2026-09-14: pin was
+#   da3bf06e, one select_browser b72a12c5 call, pin read back b72a12c5). So a
+#   borrow silently changes the default every NEW session inherits.
+#   Borrow, then `chrome-pin.sh restore`. That is the whole contract.
 #
 # Bash 3.2 (macOS). Never `set -euo pipefail`.
 
@@ -49,9 +58,12 @@ chrome-pin.sh — lane -> role -> Chrome deviceId
   id   [lane] [role]              just the deviceId (feed to select_browser)
   roles                           every role and whether it is resolved
   list                            every lane mapping
-  resolve                         how to establish which deviceId is which
+  resolve                         the measured profile <-> deviceId table
+  restore                         put the GLOBAL pin back to the default profile
+                                  (run this after any borrow -- select_browser
+                                   clobbers the pin)
   set-profile <personal|micro1> <deviceId>   record a VERIFIED mapping
-  set-default <role|deviceId>     rewrite the GLOBAL pin
+  set-default <profile|deviceId>  rewrite the GLOBAL pin
 USAGE
 }
 
@@ -61,6 +73,7 @@ case "${1:-show}" in
     roles)       _q roles ;;
     list)        _q list ;;
     resolve)     _q resolve ;;
+    restore)     _q restore ;;
     set-profile) _q set-profile "${2:-}" "${3:-}" ;;
     set-default) _q set-default "${2:-}" ;;
     -h|--help)   usage ;;

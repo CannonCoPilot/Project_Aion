@@ -9,6 +9,12 @@ the Snorkel session -- so it is a DESTINATION, not a browser to select.
 
 Nothing here guesses a deviceId. Driving the wrong profile pushes credentialed
 work into the wrong account, so an unverified profile refuses to answer.
+
+select_browser HAS A SIDE EFFECT, measured rather than assumed: it rewrites
+the global pin in ~/.claude.json. Live routing stays per-process, so no
+running lane is disturbed, but the default a NEW session inherits is left
+pointing at the borrowed browser. A lane that borrows the other profile must
+call `chrome-pin.sh restore` when it is done.
 """
 import json, os, sys, tempfile
 
@@ -45,28 +51,25 @@ def pin(cfg):
         return ""
 
 
-RESOLVE = """RESOLVING THE TWO deviceIds — one measurement, then done.
+RESOLVE = """BOTH deviceIds ARE RESOLVED — measured 2026-09-14, not inferred.
 
-There are only TWO browser identities, because the extension attaches per
-PROFILE and a window is not an identity:
+Each was established by selecting it and reading the signed-in address at
+https://myaccount.google.com/ . Neither was taken by elimination.
 
-    personal   Chrome "Default"    nathaniel.cannon@gmail.com   Snorkel + BYU library
-    micro1     Chrome "Profile 1"  naca028@expert.micro1.ai
+    personal   da3bf06e-c998-4850-84c5-ad64aac738e5  "Browser 1"
+               Chrome "Default"    nathaniel.cannon@gmail.com
+               carries BOTH the Snorkel session and the BYU library session
 
-Connected: da3bf06e… ("Browser 1") and b72a12c5… ("Browser 2"). Which is which
-is NOT established. list_connected_browsers reports no account, so it cannot
-settle it.
+    micro1     b72a12c5-0ccf-4471-aa10-ef23552ffba1  "Browser 2"
+               Chrome "Profile 1"  naca028@expert.micro1.ai
 
-The measurement:
-  1. select_browser da3bf06e-c998-4850-84c5-ad64aac738e5
-  2. navigate https://myaccount.google.com/
-  3. read the signed-in address
-  4. chrome-pin.sh set-profile personal <that deviceId>   (or micro1)
-     the other deviceId is then the other profile by elimination
-  5. chrome-pin.sh set-default personal
+There is NO third deviceId. The BYU library window is a third WINDOW of the
+personal profile, and cookies are profile-wide, so any tab of Browser 1 already
+carries the library entitlement. 'library' is a URL, not a browser to select.
 
-There is NO third deviceId to find. The library window shares the personal
-profile's deviceId and its cookies."""
+To re-measure after a Chrome reinstall or a new profile:
+  select_browser <id> -> navigate https://myaccount.google.com/ -> read address
+  -> chrome-pin.sh set-profile <personal|micro1> <id> -> chrome-pin.sh restore"""
 
 
 def main():
@@ -92,6 +95,24 @@ def main():
 
     if verb == "resolve":
         print(RESOLVE)
+        return 0
+
+    if verb == "restore":
+        target = m.get("global_pin_profile") or "personal"
+        dev = dev_of(m, target)
+        if not dev:
+            print(f"profile {target!r} is UNRESOLVED — run: chrome-pin.sh resolve", file=sys.stderr)
+            return 2
+        cur = pin(cfg)
+        if cur == dev:
+            print(f"global pin already {target} ({dev}); nothing to do")
+            return 0
+        d = load(cfg)
+        ce = d.setdefault("chromeExtension", {})
+        ce["pairedDeviceId"] = dev
+        ce["pairedDeviceName"] = target
+        save(cfg, d)
+        print(f"global pin RESTORED {cur or '(none)'} -> {dev} ({target})")
         return 0
 
     if verb == "set-profile":
@@ -167,10 +188,22 @@ def main():
     print(f"lane            : {lane}")
     print(f"profile         : {prof}  ({m['profiles'][prof]['chrome_profile']}, {m['profiles'][prof]['account']})")
     if dest:
-        print(f"destination     : {want} -> {dest['url']}")
+        print(f"destination     : {want} -> {dest['url'] or '(no fixed URL)'}")
         print(f"                  {dest['note']}")
         if prof != l["profile"]:
             print(f"                  NOTE: this lane's primary profile is {l['profile']}; switching.")
+        if dest.get("verified"):
+            print(f"  verified      : {dest['verified']}")
+        for k in ("resolver", "ezproxy"):
+            v = dest.get(k)
+            if isinstance(v, dict):
+                print(f"  {k:14s}: {v.get('pattern', '')}")
+                if v.get("example"):
+                    print(f"                  e.g. {v['example']}")
+                if v.get("note"):
+                    print(f"                  {v['note']}")
+        if dest.get("gotcha"):
+            print(f"  GOTCHA        : {dest['gotcha']}")
     print(f"open new window : {'yes' if l.get('new_window') else 'no'}")
     if not dev:
         print("deviceId        : UNRESOLVED")
@@ -181,6 +214,12 @@ def main():
     print(f"global pin      : {cur or '(none)'} ({prof_of_dev(m, cur) if cur else '-'})")
     if dev != cur:
         print(f"\nACTION: select_browser {dev} as this lane's FIRST browser action.")
+        print("        Then, when you are done with this browser, run:")
+        print("            chrome-pin.sh restore")
+        print("        select_browser WRITES THE GLOBAL PIN (measured 2026-09-14).")
+        print("        Live routing is per-process and no running lane is disturbed,")
+        print("        but the default every NEW session inherits is left pointing at")
+        print("        the browser you borrowed. restore puts it back.")
     else:
         print("\nOK: global pin already matches. The MCP auto-connects silently.")
     return 0
