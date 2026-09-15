@@ -345,14 +345,46 @@ _gc_key() {
     rm -f "$JK_REGISTRY" "$JK_STATE" "$JK_CLEAR_SIGNAL" "$JK_RESUME_SIGNAL" \
           "$JK_COMPRESSION_SIGNAL" "$JK_COMPRESSION_GUARD" \
           "$JICM_SIGNALS_DIR/actuating.$1" "$JICM_SIGNALS_DIR/actuating.$1.alerted" \
+          "$JICM_SIGNALS_DIR/digesting.$1" \
           "$JICM_SIGNALS_DIR/pending-noted.$1" \
           "$JICM_SIGNALS_DIR/fire-log.$1" "$JICM_SIGNALS_DIR/fire-log.$1.alerted" 2>/dev/null
     _log "GC: removed dead key=$1 (stale last_seen; registry + state + signals)"
 }
 
+# Reap a STALE digesting.<key>. The actuator renames actuating.<key> -> digesting.<key> at
+# step 7b, and its EXIT trap removes it — but a SIGKILL runs no trap, and a stale marker
+# defers prewarm, housekeep, the MLX leak-restart and both bg-key reconcilers INDEFINITELY.
+# That is the same wedge the PID owner token was introduced to stop on the actuating lock,
+# so the digesting marker gets the same treatment: the pid is the owner, and a marker whose
+# owner is gone is garbage. Belt-and-braces TTL for a tokenless marker, so a malformed one
+# cannot wedge a lane either.
+_reap_digest_marker() {
+    local mk="$JICM_SIGNALS_DIR/digesting.$1" pid born age
+    [[ -f "$mk" ]] || return 0
+    pid="$(cut -d'|' -f2 -s "$mk" 2>/dev/null)"
+    if [[ "$pid" =~ ^[0-9]+$ ]]; then
+        kill -0 "$pid" 2>/dev/null && return 0        # owner alive: digest genuinely running
+    else
+        # NO -s here: it suppresses lines with no delimiter, which is exactly the
+        # tokenless marker this branch exists to handle (it read empty and was
+        # misclassified as MALFORMED). -s is correct for the pid field above.
+        born="$(cut -d'|' -f1 "$mk" 2>/dev/null)"
+        [[ "$born" =~ ^[0-9]+$ ]] || { rm -f "$mk"; _log "reap: key=$1 removed MALFORMED digesting marker"; return 0; }
+        age=$(( $(_now) - born ))
+        [[ "$age" -lt "$LOCK_TTL_SEC" ]] && return 0
+    fi
+    rm -f "$mk"
+    _log "reap: key=$1 stale digesting marker removed (owner pid ${pid:-none} gone) — the async digest died without folding; its transcript history was NOT delivered"
+}
+
 # Release the actuating lock once the actuator has finished (its clear-now signal gone).
+# NOTE (2026-09-14): in the normal path the ACTUATOR now releases this itself at step 7b,
+# as soon as the /clear and resume nudge are done, so the "reap: ... lock released" line no
+# longer appears for a healthy cycle — step 7b logs "actuation lock RELEASED" instead. This
+# function remains the backstop for a cycle that died BEFORE 7b.
 _reap_lock() {
     jicm_key_paths "$1"
+    _reap_digest_marker "$1"
     local lock="$JICM_SIGNALS_DIR/actuating.$1"
     [[ -f "$lock" ]] || return 0
     if ! _worker_alive "$1" && [[ ! -f "$JK_CLEAR_SIGNAL" ]]; then
@@ -656,6 +688,10 @@ _mlx_pid() { pgrep -f "qwen3-embeddings-mlx" 2>/dev/null | while read -r p; do
 _mlx_busy() {                                # <pid> <probe_cause>
     local pid="$1" cause="${2:-}" a b
     ls "$JICM_SIGNALS_DIR"/actuating.* >/dev/null 2>&1 && { echo "actuation-in-flight"; return 0; }
+    # digesting.<key> = the actuation lock was released (step 7b) but the worker is still
+    # running the async digest, whose detached 5.5/5.6c/5.9 ingests EMBED. The lane is free
+    # to re-cycle; MLX is NOT free to restart. Same refusal, different phase.
+    ls "$JICM_SIGNALS_DIR"/digesting.* >/dev/null 2>&1 && { echo "digest-in-flight"; return 0; }
     pgrep -f 'jicm-auto-ingest|graphiti-auto-ingest' >/dev/null 2>&1 && { echo "ingest-running"; return 0; }
     [[ "$cause" == "timeout" ]] && { echo "probe-saturated"; return 0; }
     a="$(_footprint_gb "$pid")"; sleep 5; b="$(_footprint_gb "$pid")"

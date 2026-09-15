@@ -147,7 +147,7 @@ phase_jicm_reset() {
     # An in-flight actuation lock is the other, stronger signal that a cycle is running —
     # and unlike the state field it is written by the actuator itself for exactly this purpose.
     local actuating=""
-    for _lk in "$CONTEXT_DIR"/jicm/signals/actuating.*; do
+    for _lk in "$CONTEXT_DIR"/jicm/signals/actuating.* "$CONTEXT_DIR"/jicm/signals/digesting.*; do
         [[ -e "$_lk" ]] || continue
         actuating="yes"; break
     done

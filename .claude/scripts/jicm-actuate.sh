@@ -555,6 +555,17 @@ _step_digest_finalize() {   # 3.5b — fold the ASYNC digest once it lands, afte
     fi
     [[ "$trunc" == "true" ]] && _log "3.5b WARN: digest hit the generation cap (${words} words) — folding anyway"
 
+    # A NEW CYCLE MAY HAVE CLAIMED THE LANE while this digest was generating — that is
+    # now possible by design, because step 7b released the lock. If it has, this digest
+    # describes a session two generations back: appending it would corrupt the fresh
+    # checkpoint the new cycle just wrote, and injecting would fire a nudge into a lane
+    # mid-/clear. Refuse both, loudly, and leave the file on disk (No Silent Degradation:
+    # the handoff is skipped, never silently dropped).
+    if [[ -f "$JICM_SIGNALS_DIR/actuating.$JK_KEY" ]]; then
+        _log "3.5b SKIPPED: a NEW actuation cycle claimed key=$JK_KEY while this digest ran (${waited}s). NOT folding into the checkpoint and NOT injecting — it would clobber the newer cycle's checkpoint. The digest is intact at $JD_OUT"
+        return 0
+    fi
+
     # Append to the checkpoint so the NEXT refresh carries it, then tell the
     # successor it exists. The successor already resumed without it, so a
     # pointer is the only honest delivery: it can read the file now.
@@ -699,6 +710,33 @@ _cycle_preserve_restore() {
     rm -f "$JK_CLEAR_SIGNAL" "$JK_COMPRESSION_SIGNAL" "$JK_COMPRESSION_GUARD" "$JK_RESUME_SIGNAL"
     _log "==== preserve-restore complete (cycle time excludes the async digest) ===="
 
+    # 7b. RELEASE THE ACTUATION LOCK. The /clear and the resume nudge are both done,
+    #     so nothing this worker still does can double-drive the pane. Holding
+    #     actuating.<key> through the digest kept the LANE unavailable for ~450s
+    #     against ~29s of actual work (measured across 15 cycles, 2026-09-07..14):
+    #     the watcher's fire gate and jicm-now both refuse while the lock's PID is
+    #     alive, which is what produced "ALREADY actuating key=jaques ... started
+    #     118s ago" on a cycle whose /clear had long finished.
+    #
+    #     RENAME rather than delete. digesting.<key> keeps the epoch|pid token, so
+    #     consumers that must STILL defer during the digest can see it: MLX restart
+    #     (5.5/5.6c/5.9 detach ingests that embed), prewarm (same GPU), housekeep
+    #     (deletes signal files), and the bg-key reconcilers (this worker still reads
+    #     the registry + checkpoint). Consumers whose hazard is over — a new cycle,
+    #     jicm-now, lane-restart, watcher kickstart — correctly stop seeing a lock.
+    #
+    #     _reap_lock in the watcher owns actuating.<key> normally; it no-ops on a
+    #     missing file, so releasing here does not race it. The digesting marker is
+    #     removed by the EXIT trap, so a crash cannot wedge it.
+    if [[ -f "$JICM_SIGNALS_DIR/actuating.$key" ]]; then
+        local _held=0 _born
+        _born="$(cut -d'|' -f1 -s "$JICM_SIGNALS_DIR/actuating.$key" 2>/dev/null)"
+        [[ "$_born" =~ ^[0-9]+$ ]] && _held=$(( $(date +%s) - _born ))
+        mv -f "$JICM_SIGNALS_DIR/actuating.$key" "$JICM_SIGNALS_DIR/digesting.$key" 2>/dev/null \
+            && _log "7b actuation lock RELEASED after ${_held}s — lane is available again; digest continues under digesting.$key" \
+            || _log "7b WARN: could not rename the actuation lock; the lane stays locked until the watcher reaps it"
+    fi
+
     # 8. Fold the async digest when it lands. AFTER the complete marker on
     #    purpose: the cycle is over and the lane is already working. This step
     #    only delivers history that arrived late.
@@ -762,6 +800,11 @@ _cleanup_transient() {
     for f in "$JK_COMPRESSION_GUARD" "$JK_COMPRESSION_SIGNAL" "$JK_CLEAR_SIGNAL"; do
         [[ -n "$f" ]] && rm -f "$f" 2>/dev/null
     done
+    # digesting.<key> is written by step 7b when the actuation lock is released. It is
+    # owned by THIS worker for its whole lifetime, so its removal belongs on the exit
+    # path: a crash during the digest must not leave a marker that defers prewarm,
+    # housekeep, MLX restart and the reconcilers forever.
+    [[ -n "$JK_KEY" ]] && rm -f "$JICM_SIGNALS_DIR/digesting.$JK_KEY" 2>/dev/null
     return 0
 }
 

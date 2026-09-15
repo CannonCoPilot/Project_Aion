@@ -401,8 +401,9 @@ _jicm_retire_duplicate_bg() {
     # Identity must be EXACT. A bg key naming a different session is a real fork — leave it.
     [[ "$(jicm_registry_get "$bgkey" '.session_id')" == "$pane_sid" ]] || return 1
     # Never yank files out from under a cycle in flight, on EITHER key.
-    if [[ -f "$JICM_SIGNALS_DIR/actuating.$canonical" || -f "$JICM_SIGNALS_DIR/actuating.$bgkey" ]]; then
-        JICM_RECONCILE_NOTE="defer ${bgkey}: actuation in flight"; return 1
+    if [[ -f "$JICM_SIGNALS_DIR/actuating.$canonical" || -f "$JICM_SIGNALS_DIR/actuating.$bgkey" \
+       || -f "$JICM_SIGNALS_DIR/digesting.$canonical" || -f "$JICM_SIGNALS_DIR/digesting.$bgkey" ]]; then
+        JICM_RECONCILE_NOTE="defer ${bgkey}: actuation or async digest in flight"; return 1
     fi
 
     # Merge the bg chain into the canonical one before anything is moved (same policy as
@@ -494,8 +495,9 @@ jicm_reconcile_pane_key() {
     [[ "$(jicm_registry_get "$bgkey" '.session_id')" == "$pane_sid" ]] || return 1
 
     # Safety: never yank files out from under a cycle in flight, on EITHER key.
-    if [[ -f "$JICM_SIGNALS_DIR/actuating.$canonical" || -f "$JICM_SIGNALS_DIR/actuating.$bgkey" ]]; then
-        JICM_RECONCILE_NOTE="defer ${canonical}: actuation in flight"; return 1
+    if [[ -f "$JICM_SIGNALS_DIR/actuating.$canonical" || -f "$JICM_SIGNALS_DIR/actuating.$bgkey" \
+       || -f "$JICM_SIGNALS_DIR/digesting.$canonical" || -f "$JICM_SIGNALS_DIR/digesting.$bgkey" ]]; then
+        JICM_RECONCILE_NOTE="defer ${canonical}: actuation or async digest in flight"; return 1
     fi
     # Safety: never displace a canonical key still held by a DIFFERENT LIVE session. Two
     # live sessions claiming one pane is a real conflict for a human, not a thing to

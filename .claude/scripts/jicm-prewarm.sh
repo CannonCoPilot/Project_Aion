@@ -51,6 +51,11 @@ mkdir -p "$PW_DIR" "$(dirname "$PW_LOG")" 2>/dev/null
 if [[ -f "$JICM_SIGNALS_DIR/actuating.$KEY" ]]; then
     _log "skip: actuation in flight"; exit 0
 fi
+# digesting.<key>: the cycle's /clear is done and the lane is working again, but the async
+# digest still owns the GPU. Warming now would contend with it for the same model.
+if [[ -f "$JICM_SIGNALS_DIR/digesting.$KEY" ]]; then
+    _log "skip: async digest in flight (GPU busy)"; exit 0
+fi
 
 [[ -f "$JK_STATE" ]] || { _log "skip: no state file"; exit 0; }
 TOKENS="$(jq -r '.tokens // 0' "$JK_STATE" 2>/dev/null)"
