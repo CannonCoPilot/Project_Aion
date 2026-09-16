@@ -58,11 +58,30 @@ and `getOSType() == "windows"`.
 **Toolset**: `DwarfCron/scripts/cx-lifecycle.sh` (+ `cx-config.sh`, `cx-rpc.py`), and
 `chronicler/dfhack/scripts/chronicler-ui.lua` in-game.
 
-    cx-lifecycle.sh start          cold start -> live RPC in 3.5s
-    cx-lifecycle.sh load region1   clicks through the menus, map in 12s
-    cx-lifecycle.sh deploy         push the in-game Lua into the bottle
+    cx-lifecycle.sh start          cold start -> RPC in ~4s, waits for the title, clears the Welcome panel
+    cx-lifecycle.sh load <folder>  any world, any number of saves; map in ~12s
+    cx-lifecycle.sh state          screen / focus / map / paused / year / tick / modal, one line
+    cx-lifecycle.sh step <ticks>   run the fort N ticks then pause (~100 ticks/s; overshoot < 50)
+    cx-lifecycle.sh save <name>    manual named save = a COPY into a new folder; source untouched
+    cx-lifecycle.sh save           DFHack quicksave -> "autosave N"; ONLY completes while unpaused
+    cx-lifecycle.sh title          quit WITHOUT saving, back to the title screen
+    cx-lifecycle.sh deploy         push Chronicler's in-game Lua; deploy-tool <dir> for anything with gui/
     cx-lifecycle.sh health         process / port / handshake / Lua exec
-    cx-lifecycle.sh ui click <text>
+    cx-lifecycle.sh key|type|wait|screen|ui <cmd>   primitives (chronicler-ui.lua)
+
+🔴 **One atomic step per in-game call.** A Lua script run over RPC executes with the
+core suspended, so a loop inside it that waits for the screen to change never sees
+it change. Flows are sequenced from the shell, one `ui` call per step. This is why
+`fort/gen-world embark` fails: it clicks through five screens inside one script.
+
+🔴 **Read state from DFHack, click by text.** The title screen's `savegame_header`
+says which folder belongs to which world; `title_mode_type` says how deep the menu
+is (`MAIN_MENU` → `CONTINUE_ACTIVE_WORLD` → `CONTINUE_ACTIVE`, `LEAVESCREEN` backs
+out one level); `isMapLoaded`/`pause_state` say what the game is doing. The world
+list groups saves BY WORLD — three saves in one world draw as "Three saves" until
+the row is clicked, and each save is then two rows (`<fort>, Fortress` above
+`Folder: <name>`), so a folder is chosen by clicking the row ABOVE its label.
+Non-ASCII in world names renders as a space; match on the normalised form.
 
 🔴 **`chronicler-ui.lua` addresses controls by their RENDERED TEXT**, not by
 viewscreen fields. Three other routes were tried and rejected against DF 53.15:
