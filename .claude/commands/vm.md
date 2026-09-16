@@ -8,7 +8,7 @@
 
 ## Overview
 
-Wraps `projects/chronicler/scripts/vm-lifecycle.sh` for convenient VM management. The VM runs Windows 11 ARM (Prism x86-64 emulation) with DF+DFHack.
+Wraps `DwarfCron/scripts/vm-lifecycle.sh` for convenient VM management. The VM runs Windows 11 ARM (Prism x86-64 emulation) with DF+DFHack.
 
 ## Subcommands
 
@@ -30,7 +30,7 @@ Wraps `projects/chronicler/scripts/vm-lifecycle.sh` for convenient VM management
 ## Implementation
 
 ```bash
-SCRIPTS="/Users/nathanielcannon/Claude/Project_Aion/projects/chronicler/scripts"
+SCRIPTS="/Users/nathanielcannon/Claude/Projects/DwarfCron/scripts"
 VM="$SCRIPTS/vm-lifecycle.sh"
 ```
 
@@ -93,7 +93,7 @@ $SCRIPTS/vm-bootstrap.sh
 - **IP**: Dynamic (usually 192.168.64.3)
 - **SSH Key**: `~/.ssh/df-vm`
 - **SSH User**: Jarvis
-- **Scripts**: `projects/chronicler/scripts/vm-{config,lifecycle,bootstrap}.sh`
+- **Scripts**: `DwarfCron/scripts/vm-{config,lifecycle,bootstrap}.sh`
 
 ## Key Gotchas
 

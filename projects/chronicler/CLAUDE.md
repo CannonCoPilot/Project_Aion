@@ -84,9 +84,14 @@ loaded fortress, measured 2026-09-15. Do not carry the SSH workaround across.
 Keep the VM for pre-release certification: Wine is not Windows, and it is what
 adjudicates a divergence before a tool ships to players.
 
-⚠️ `vm-lifecycle.sh` lives **here** (Jarvis repo, `projects/chronicler/scripts/`) while
-its counterpart `cx-lifecycle.sh` lives in **DwarfCron**. The two sibling scripts are
-in different repositories; `/vm` and `/df` point at this copy. Unresolved.
+**Toolset**: `DwarfCron/scripts/vm-lifecycle.sh` (+ `vm-config.sh`, `vm-bootstrap.sh`,
+and the guest-side `file-server.ps1` / `install-sshd.ps1`).
+
+*Consolidated 2026-09-15: these lived in this repo at `projects/chronicler/scripts/`
+while their CrossOver counterparts lived in DwarfCron. Both rigs' lifecycle scripts
+are now in DwarfCron, which is where deliverable code belongs. Git history for the
+moved files stays in this repo before that date — `git log` in DwarfCron starts them
+at the move. `/vm`, `/df` and the chronicler-ops skill were repointed.*
 
 ## Project Context
 
