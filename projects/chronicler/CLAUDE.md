@@ -41,6 +41,19 @@ and `getOSType() == "windows"`.
   reaches it without opening the server to the network. The VM rig has to set it true
   to cross the guest boundary, which DFHack's own docs call insecure.
 - **No deploy step**: the DF directory is an ordinary macOS path. `cp`, not `scp`.
+- 🔴 **Saves are NOT under the DF install directory.** The Steam build writes them to
+  the Windows user profile:
+  `drive_c/users/crossover/AppData/Roaming/Bay 12 Games/Dwarf Fortress/save`.
+  `$DF_DIR/save` and `$DF_DIR/data/save` do not exist and never will. This cost a
+  session on 2026-09-16: an empty `$DF_DIR/save` reads exactly like "the fortress is
+  gone", and that was the conclusion drawn — while every save was present the whole
+  time. `load` never caught it because it drives the menus by on-screen text and never
+  touches a path. Now `cx-config.sh:DF_SAVE_DIR`; use `cx-lifecycle.sh saves`.
+- **Deploying a tool with a `gui/` entry point** needs `deploy-tool <dir>`, not
+  `deploy` — the latter is a flat `cp *.lua` from Chronicler's own directory and
+  silently drops subfolders. `gui/<name>` only resolves if the launcher is at that path.
+- **Backing up before a destructive test**: `save-backup <region>` (one save, MBs, works
+  with DF running), not `snapshot` (the whole 5.4 GB bottle, session must be stopped).
 
 **Toolset**: `DwarfCron/scripts/cx-lifecycle.sh` (+ `cx-config.sh`, `cx-rpc.py`), and
 `chronicler/dfhack/scripts/chronicler-ui.lua` in-game.
@@ -68,6 +81,16 @@ cost, and the number that matters for bridge design).
 🔴 **Known broken**: `-gen` writes `save/regionN` with an uncompressed `world.dat`
 and DF's own menus never list it. `COMPRESSED_SAVES` was tested as the cause and
 **disproved**. Worldgen output is currently unloadable; use an existing save.
+*(Scope, clarified 2026-09-16: this is about the SAVE ARTIFACT only. Live worldgen
+telemetry — `worldgen-bridge.lua` polling `world.worldgen_status` — is a separate
+thing and works; roadmap Stage 3.2 has been complete since 2026-03-20.)*
+✅ **There is a route around it.** `fort/gen-world.lua` (GitRepos/dfhack-commands)
+never uses `-gen`: it drives `viewscreen_new_regionst` directly and DF writes the
+save through its own normal flow, so DF can list it. Verified here — generated
+"Ilusr th" as `region3`. **It needs one patch to work on this rig**: it sets only
+`gps.mouse_x/y` (tiles), so no fed click lands. Set `precise_mouse_x/y` in pixels
+as `chronicler-ui.lua` does. With that, even DF's first-run "Welcome" modal — which
+gen-world's own docs call undismissable — clicks away first try.
 
 ### UTM VM — the fidelity backstop
 
