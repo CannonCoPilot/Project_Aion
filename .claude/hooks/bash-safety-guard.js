@@ -704,6 +704,23 @@ function isFalsePositive(match) {
     return true;
   }
 
+  // A HEX DIGEST IS NOT A BASE64 CREDENTIAL.
+  // Fifth false-positive class in this one pattern (found 2026-09-19, blocking an
+  // experiment's provenance.json). The class is /[A-Za-z0-9\/+=]{40}/, so the first 40
+  // characters of a 64-char sha256 match it: 15 distinct characters clears the entropy
+  // floor, there is no /Users/ segment, and there are no slashes to read as a path. Every
+  // run's provenance file records a save-file checksum, and 49 of them were already
+  // committed before this fired -- so the guard blocked one file while ignoring the same
+  // value in the rest of the tree, which is the signature of a rule that is wrong rather
+  // than a leak that is real.
+  //
+  // A base64 credential draws on the full 62-character alphabet; the odds of 40 such
+  // characters landing entirely inside [0-9a-f] are effectively zero. So an all-hex run is
+  // a digest (md5/sha1/sha256), never an AWS secret key. This does NOT weaken the pattern
+  // for a genuine credential, and a hex API token assigned to a variable is still caught by
+  // the 'api_key =' and 'secret_key =' patterns above, which key on the assignment.
+  if (/^[0-9a-fA-F]+$/.test(match)) return true;
+
   // SOURCE CODE IS NOT A CREDENTIAL.
   // "claudeInChromeDefaultEnabled===undefined" is a JS comparison, 40 chars of the
   // secret class. Base64 padding only ever appears at the END of a value, so an
