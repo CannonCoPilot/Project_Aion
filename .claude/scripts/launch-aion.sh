@@ -67,6 +67,15 @@ ALFRED_DIR="$PROJECT_DIR/alfred"
 # ── MODEL FALLBACK CASCADE (2026-09-04) ─────────────────────────────────────
 # Ordered best-first. EVERY entry keeps the [1m] suffix for the reason above.
 AION_MODEL_CASCADE=(
+    # Opus 5.5 (2026-09-24). Its 1M window is NATIVE — the migration guide is explicit:
+    # "No context-window beta header is needed. The 1M token context window is the default,
+    # and a header sent for older models has no effect." The [1m] suffix is therefore
+    # REDUNDANT here, not wrong: the CLI strips it (/\[1m\]$/i) after using it to pick a
+    # window, so it never reaches the API. It is kept anyway for two reasons — the cascade's
+    # invariant is that EVERY entry carries it, and jicm-gate.sh's suffix audit clamps a
+    # 1M-family id WITHOUT the suffix down to 200K. The gate now knows 5.5 is 1M-native, so
+    # either spelling is safe; this one needs no special case anywhere.
+    "claude-opus-5-5[1m]"
     "claude-opus-5[1m]"
     "claude-opus-4-8[1m]"
     "claude-opus-4-6[1m]"

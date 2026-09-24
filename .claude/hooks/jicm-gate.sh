@@ -261,7 +261,11 @@ case "$MODEL" in
     # shipping model listed. A model absent from this map is not "safe by default" — it
     # silently lands on the 250K unknown branch, whose 200K clamp then reads a real 1M
     # session as permanently over-threshold (see R4/R5 finding, 2026-07-27).
-    *opus-5*)                          WINDOW=1000000 ;;  # Opus 5 = 1M — the current launcher default
+    # Opus 5.5 FIRST: *opus-5* would swallow it, and the two need different audit
+    # treatment below even though both map to 1M. 5.5's 1M is NATIVE (no beta header,
+    # no suffix required); Opus 5's 1M is an opt-in window selected by the [1m] suffix.
+    *opus-5-5*)                        WINDOW=1000000 ;;  # Opus 5.5 = 1M NATIVE
+    *opus-5*)                          WINDOW=1000000 ;;  # Opus 5 = 1M only WITH the [1m] suffix
     *opus-4-8*)                        WINDOW=1000000 ;;  # Opus 4.8 1M
     *opus-4-7*|*opus-4-6*|*opus-4-5*)  WINDOW=1000000 ;;  # legacy 1M opus (resumed sessions)
     *fable-5*|*mythos-5*)              WINDOW=1000000 ;;  # Fable 5 / Mythos 5 = 1M
@@ -294,6 +298,13 @@ esac
 if [[ -n "${AION_MODEL:-}" && "$WINDOW" -eq 1000000 ]]; then
     case "$AION_MODEL" in
         *\[1m\]|*\[1M\]) : ;;   # suffix present — the 1M mapping is genuine
+        # Opus 5.5 and later serve 1M NATIVELY. Per the migration guide: "No context-window
+        # beta header is needed. The 1M token context window is the default, and a header
+        # sent for older models has no effect." So a BARE claude-opus-5-5 really is a 1M
+        # session, and clamping it to 200K here would be the 2026-08-01 failure in reverse:
+        # JICM would fire cycles at a fifth of the real window and ALERT the operator to
+        # "fix" a launcher that was already correct. Exempt it.
+        *opus-5-5*) : ;;
         *)
             WINDOW=200000
             # NOTE: NOW_ISO is not assigned until later in this script, so stamp inline.
