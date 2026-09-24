@@ -1435,6 +1435,57 @@ if [[ "$HEALTH_CHECK_ONLY" == "true" ]]; then
 fi
 
 # ─── Restart Mode ────────────────────────────────────────────────────────────
+# ══ SKETCH (not implemented): `--restart update` ═════════════════════════════
+# A whole-estate model/CLI migration as one verb. Today it is a hand-run sequence,
+# and the hand-run version is where the two known traps live. Rough shape:
+#
+#   --restart update [--model <id>|--latest-opus] [--dry-run] [--skip-cli-update]
+#
+#   0. REFUSE unless invoked DETACHED. Step 4 kills the tmux server, so a caller
+#      inside tmux kills itself mid-sequence and the estate never comes back up.
+#      Re-exec self via python os.setsid() (macOS ships no setsid) and log to
+#      .claude/logs/aion-update-<stamp>.log. Everything after this point must be
+#      readable from that log alone -- nobody is watching a terminal.
+#   1. PRESERVE every lane: jicm-actuate.sh <key> prepare, per registry key.
+#      A lane whose prepare FAILS aborts the whole run. Losing one lane's context
+#      to save four minutes is the wrong trade and it is not reversible.
+#   2. REFUSE if any signals/actuating.* or signals/digesting.* exists -- a cycle
+#      is mid-flight. Poll with a ceiling, then give up loudly.
+#   3. BOOTOUT the four tmux-driving agents, in this order:
+#         com.aion.jicm-watcher            (KeepAlive: `stop` will NOT hold it)
+#         com.aion.nexus-dev-dispatcher    (forks chain-* windows into the session)
+#         com.aion.nexus-dev-watchdog
+#         com.aion.nexus-dev-event-watcher
+#      Record which were loaded BEFORE bootout; step 8 restores exactly those and
+#      nothing else, so a deliberately-disabled agent stays disabled.
+#   4. tmux kill-server.
+#   5. claude update (skippable). Capture the version before and after; a no-op
+#      update is a legitimate outcome, a FAILED one must abort before relaunch.
+#   6. RESOLVE the model: --latest-opus runs aion-model-probe.sh with the
+#      `opus[1m]` alias and adopts the concrete served id; --model <id> probes that
+#      id specifically. EITHER WAY, VERIFY THE SERVED ID IS THE INTENDED ONE and
+#      abort if not. This is the whole reason the verb is worth having: a wrong id
+#      does not error, resolve_aion_model() silently falls through the cascade, and
+#      the estate comes up on the OLD model looking perfectly healthy.
+#   7. EDIT the four sites that must agree, each idempotently, each with a backup:
+#         a. AION_MODEL_CASCADE head (this file)
+#         b. ~/.claude/settings.json  .model
+#         c. ~/.claude/settings.json  .modelSettings["<BARE id>"].effortLevel
+#            (keyed WITHOUT the [1m] suffix -- the existing entries are bare)
+#         d. .claude/hooks/jicm-gate.sh case map: a new arm AHEAD of the broad
+#            family glob, plus a suffix-audit exemption if the model is 1M-NATIVE.
+#            Opus 5.5 is; Opus 5 is not. Get this wrong and JICM runs a real 1M
+#            session at 200K while telling the operator to fix a correct launcher.
+#      --dry-run stops here and prints the four diffs. That is the useful mode.
+#   8. RELAUNCH (normal path), then launchctl bootstrap the agents from step 3.
+#   9. VERIFY and write a report: CLI version, .aion-resolved-model + .window,
+#      watcher loaded, every lane's pane alive. Any failure = CRITICAL in the log.
+#
+# WHY NOT REUSE --restart's existing machinery: every other component here restarts
+# a SERVICE and explicitly leaves Claude windows alone ("tmux processes unchanged").
+# `update` is the opposite -- it exists precisely to replace the Claude lanes. It
+# belongs behind its own confirmation, not folded into `--restart all`.
+# ═════════════════════════════════════════════════════════════════════════════
 if [[ -n "$RESTART_COMPONENT" ]]; then
     AIFRED_DEV_DIR="$ALFRED_DIR"
     case "$RESTART_COMPONENT" in
