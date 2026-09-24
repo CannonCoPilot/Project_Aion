@@ -1379,6 +1379,27 @@ preflight_services() {
         warnings=$((warnings + 1))
     fi
 
+    # ── com.aion.jicm-watcher: VERIFY, never auto-load ──────────────────────
+    # DELIBERATELY not in the loop above. Booting the watcher out is a legitimate
+    # maintenance move (you do it before killing the tmux session so it cannot
+    # actuate against dying panes), and a launcher that silently revived it would
+    # override that decision. But the reverse failure is worse and is the one that
+    # actually bites: bootout -> update -> relaunch, and JICM is simply GONE. The
+    # estate looks perfectly healthy, because a missing watcher has no symptom at
+    # all until a lane sails past its hard threshold with nothing to fire a cycle.
+    #
+    # So: check loudly, fix never. This is a CRITICAL, not a warning, because the
+    # thing it guards is the mechanism that keeps every lane alive.
+    if launchctl list com.aion.jicm-watcher &>/dev/null; then
+        echo -e "    ${GREEN}✓${NC} com.aion.jicm-watcher loaded (JICM is armed)"
+    else
+        echo -e "    ${RED}✗ CRITICAL: com.aion.jicm-watcher is NOT loaded — JICM WILL NOT FIRE.${NC}"
+        echo -e "      ${RED}Every lane will run to its context limit with no cycle to rescue it,${NC}"
+        echo -e "      ${RED}and there is no other symptom. If this was a deliberate bootout, carry on.${NC}"
+        echo -e "      ${CYAN}Restore with:${NC} launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/com.aion.jicm-watcher.plist"
+        failures=$((failures + 1))
+    fi
+
     # ── Summary ─────────────────────────────────────────────────────────────
     echo ""
     if [[ $failures -gt 0 ]]; then
