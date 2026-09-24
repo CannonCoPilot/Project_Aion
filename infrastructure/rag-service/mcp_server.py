@@ -45,7 +45,21 @@ VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
                      # all mean something specific and different in Harbor bundles than
                      # they do in Aion's own codebase collection.
                      "jaques-context", "jaques-research",
-                     "jaques-sessions", "jaques-codebase"}
+                     "jaques-sessions", "jaques-codebase",
+                     # Fleming (Contract Archon, W6) — micro1 / Cortex PharmaBench
+                     # evaluation-task authoring. Jacques' structural twin, and separate
+                     # from him for the same reason he is separate from Jarvis: "task",
+                     # "rubric", "oracle" and "golden" mean different things to each
+                     # client, and a Snorkel rule retrieved into a micro1 deliverable is
+                     # an invented requirement.
+                     "fleming-context", "fleming-research",
+                     "fleming-sessions", "fleming-codebase"}
+
+# Paths that must never be embedded, whatever collection they would route to.
+# micro1's run harvests carry the platform's credentials, and scratch/ holds working
+# copies of them; both are gitignored for the same reason. ingest_directory already
+# skips dot-files (.realm-token), but not these.
+NEVER_INGEST = ("/projects/micro1/data/run-harvest/", "/projects/micro1/scratch/")
 
 qdrant = QdrantClient(url=QDRANT_URL)
 mcp = FastMCP("jarvis-rag")
@@ -154,6 +168,17 @@ def file_to_collection(file_path: str) -> str:
         if "/docs/" in p or "/source-materials/" in p or "/gdrive_files/" in p:
             return "jaques-research"
         return "jaques-context"
+    # Fleming / micro1 — MUST precede the generic rules for the same reason as WVU and
+    # SnorkelTasks: micro1 has its own docs/, scripts/, research/ and projects/ trees.
+    if "/projects/micro1/" in p:
+        if ".jsonl" in p or "/sessions/" in p:
+            return "fleming-sessions"
+        if "/scripts/" in p or "/shared/" in p or "/jobs/" in p or "/.claude/skills/" in p:
+            return "fleming-codebase"
+        if ("/research/" in p or "/source-library/" in p or "/data/source-docs/" in p
+                or "/docs/" in p):
+            return "fleming-research"
+        return "fleming-context"
     # Jarvis internal
     if "/reports/" in p or "/deep-research/" in p or "/research/" in p:
         return "research"
@@ -269,6 +294,8 @@ async def ingest(
         collection: Target collection. Auto-detected from path if omitted.
     """
     path = Path(file_path)
+    if any(frag in str(path.resolve()).lower() for frag in NEVER_INGEST):
+        return {"status": "skipped", "reason": "excluded path (credentials)", "file": file_path}
     if not path.exists():
         return {"error": f"File not found: {file_path}"}
     if not path.is_file():
