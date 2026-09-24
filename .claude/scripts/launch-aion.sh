@@ -1481,6 +1481,42 @@ fi
 #   9. VERIFY and write a report: CLI version, .aion-resolved-model + .window,
 #      watcher loaded, every lane's pane alive. Any failure = CRITICAL in the log.
 #
+# ── LESSONS FROM THE FIRST RUN (2026-09-24, hand-built prototype, Opus 5 -> 5.5) ──
+# The prototype logged "6 VERIFIED: served claude-opus-5-5[1m]" and "DONE", then
+# relaunched every lane on the OLD model. Three defects, all now requirements:
+#
+#   L1. SCRUB THE INHERITED PIN. The runner was spawned from a lane whose environment
+#       carried AION_MODEL=claude-opus-5[1m]. resolve_aion_model() honours an env pin
+#       FIRST ("Model pinned by environment") and never probes, so the new cascade head
+#       was never even consulted. Run step 8 as `env -u AION_MODEL -u AION_RESOLVED_WINDOW`.
+#       The tmux GLOBAL environment is a second copy of the same pin; kill-server clears
+#       that one, but a --restart that does not kill the server would inherit it too.
+#
+#   L2. VERIFY THE LAUNCHER'S DECISION, NOT THE MODEL'S AVAILABILITY. Step 6 probed the
+#       target and got a clean answer, which proved only that 5.5 EXISTS. The verdict
+#       that matters is what the launcher RESOLVED: read .aion-resolved-model after step 8
+#       and compare it to the target, and also check the live `--model` in `ps` for every
+#       lane. The prototype's own step-9 report printed "resolved model: claude-opus-5[1m]"
+#       and "window: 0" three lines after "VERIFIED". The evidence was on the page, but
+#       nothing compared it with the target. A report line that is never compared to an
+#       expectation is decoration, not verification.
+#
+#   L3. NO TTY, NO ATTACH -- AND THE DEV LANE IS OPT-IN. The launcher ends in
+#       `exec tmux attach-session`, which fails detached ("open terminal failed: not a
+#       terminal") and returns rc=1 AFTER every window is already built. So rc=1 here
+#       is not a failure signal, and a real one would be indistinguishable. This needs a
+#       --no-attach flag, with rc=0 as the success contract. Separately, W3:Jarvis-dev only
+#       exists under --dev; the prototype omitted it and the estate came back without the
+#       dev lane. Pass --dev whenever the pre-migration estate had it (read that from tmux
+#       BEFORE step 4, same as the agent list in step 3).
+#
+#   Also seen, harmless: `launchctl bootstrap` in step 8 printed "5: Input/output error"
+#   for the two Nexus agents, because the launcher's pre-flight had ALREADY `load`ed them.
+#   Check `launchctl list` before bootstrapping, not after.
+#   And the new pre-flight CRITICAL ("com.aion.jicm-watcher is NOT loaded") fired, which is
+#   correct: at step 8 the watcher is deliberately booted out and returns at step 9.
+#   So the verb must expect that one CRITICAL and not treat it as a failure.
+#
 # WHY NOT REUSE --restart's existing machinery: every other component here restarts
 # a SERVICE and explicitly leaves Claude windows alone ("tmux processes unchanged").
 # `update` is the opposite -- it exists precisely to replace the Claude lanes. It
