@@ -38,6 +38,20 @@ def extract(sid, reason_cap=0, tail_turns=0):
             for m in RE_HASH.findall(txt): hc[m]+=1; hlast[m]=_i[0]
             if r["type"]=="user":
                 if re.search(r'<system-reminder>|hook success|<local-command-|<command-name>|Caveat: The messages',txt): continue
+                # FILTER PARITY with jicm-prep-context.sh:115, which drops every user turn that
+                # starts "Watcher here." -- the prefix the actuator puts on its own injected
+                # prompts (the step-1.5 HALT and the step-6 RESUME nudge). jicm-actuate.sh says so
+                # outright: the prefix exists so the instruction "never reads back as if the USER
+                # had asked for it". This extractor never got the filter, so the HALT -- "save your
+                # scratchpad ... then stop. No need to reply at length." -- was the LAST imperative
+                # in almost every digested transcript, and the digest model obeyed it: 16 of 21
+                # digests from 2026-09-17..26 came back as 13-89 words of "I've updated
+                # .scratchpad.<lane>.md and stopped as requested", across all four lanes. The
+                # degenerate guard caught every one, so nothing corrupt was folded -- but each of
+                # those successors resumed with NO session history at all.
+                # The lane's ACKNOWLEDGEMENT is kept: it is a true record that the resume doc was
+                # written, and without the instruction above it there is nothing to continue.
+                if txt.lstrip().startswith("Watcher here."): continue
                 segs.append(("USER",txt.strip()))
             elif kind=="thinking":
                 t=txt.strip()
