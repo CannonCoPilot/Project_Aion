@@ -64,7 +64,23 @@ def _seed_model() -> str:
         pass
     # Fallback only when AION_MODEL is unset. The [1m] suffix selects the 1M beta
     # window; a bare model ID silently yields 200K. Match launch-aion.sh's default.
-    return os.environ.get("AION_MODEL", "claude-opus-5[1m]")
+    # Same precedence as the shell executors: env -> resolved artifact -> literal.
+    # Reaching the literal means nobody told us what the estate is running, which is a
+    # cache-invalidation risk, not a safe default.
+    _env = os.environ.get("AION_MODEL")
+    if _env:
+        return _env
+    try:
+        _resolved = Path(os.environ.get("JICM_PROJECT_DIR",
+                         str(Path.home() / "Claude" / "Project_Aion"))) \
+                    / ".claude" / "context" / ".aion-resolved-model"
+        if _resolved.exists():
+            v = _resolved.read_text().strip()
+            if v:
+                return v
+    except Exception:
+        pass
+    return "claude-opus-5[1m]"
 PULSE_PORT = int(os.environ.get("PULSE_PORT", "8800"))
 PULSE_API = os.environ.get("PULSE_API") or f"http://localhost:{PULSE_PORT}/api/v1"
 os.environ["PULSE_API"] = PULSE_API

@@ -52,7 +52,17 @@ ensure_seed() {
     # Fallback only when AION_MODEL is unset (cron/direct invocation outside
     # launch-aion.sh). Keep the [1m] suffix — it selects the 1M beta window and a
     # bare ID silently yields 200K. Keep in step with launch-aion.sh's default.
-    local seed_model="${AION_MODEL:-claude-opus-5[1m]}"
+    # Precedence: explicit env -> the launcher's RESOLVED artifact -> literal.
+    # The artifact tier is the important one. This line used to go straight from an unset
+    # AION_MODEL to a hardcoded literal, and cron invokes this script OUTSIDE launch-aion.sh
+    # with AION_MODEL unset — so a launcher that had cascaded to a fallback model would be
+    # silently reverted here on the next cron tick, and seed-model rewritten to the primary.
+    # That points forked tasks at a different model than the seed they fork FROM, killing the
+    # shared prefix cache. The literal remains only as a cold-boot bootstrap.
+    local _aion_resolved="${JICM_PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/context/.aion-resolved-model"
+    local seed_model="${AION_MODEL:-}"
+    [ -z "$seed_model" ] && [ -r "$_aion_resolved" ] && seed_model="$(tr -d '[:space:]' < "$_aion_resolved")"
+    seed_model="${seed_model:-claude-opus-5[1m]}"
     # Publish the seed model so Python executors fork tasks on the SAME model
     # (prefix-cache match). Read by executor.py / pipeline-watcher.py.
     printf '%s' "$seed_model" > "${STATE_DIR}/seed-model" 2>/dev/null || true
