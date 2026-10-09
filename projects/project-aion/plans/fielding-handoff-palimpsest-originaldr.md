@@ -152,7 +152,7 @@ session; Fielding can update them by URL.
   project-specific. Runbook `.claude/scratch/postgres-rotation-runbook.md`. Still not run.
 - **Unpushed commits** in palimpsest: **21** ahead of origin (corrected 2026-10-09; the scratchpad's "five"
   predated later work). Repo is **PUBLIC**. Full-diff credential sweep clean (host value only). Push awaits
-  Sir. Fielding does not commit in palimpsest until it lands, so two Archons never race one branch.
+  Sir. **Pushed 2026-10-09** (`79936db..ff5d0bc`), so the commit ban on Fielding is lifted.
 - **Shared checkout.** Palimpsest is a shared working tree. Stage by explicit path, never `-A`.
   This rule transfers to Fielding as-is.
 
@@ -162,7 +162,7 @@ session; Fielding can update them by URL.
 
 - [~] Jarvis-dev: Fielding persona, lane (aion:12), scratchpad, `fielding-*` RAG (registered), `fielding-core` graph. Home `Projects/Fielding` (own repo, no remote yet)
 - [x] Jarvis: move `lector-review-2026-09-03/` → `Projects/Fielding/research/originaldr/` (verified; in Fielding root commit `e7023ec`). Scratch original kept until Fielding's repo has a remote
-- [~] Jarvis: resolve the **21** unpushed palimpsest commits (swept clean; push awaits Sir — public repo)
+- [x] Jarvis: pushed the **21** palimpsest commits on Sir's approval (2026-10-09, `79936db..ff5d0bc`; swept clean first). Fielding may commit there
 - [x] Jarvis: write `Project_Aion/.claude/context/.scratchpad.fielding.md` from §5 (`e3e217c`, 71 lines; path measured by dev)
 - [ ] Jarvis-dev: copy ALL §4 files to `~/.claude/projects/-Users-nathanielcannon-Claude-Projects-Fielding/memory/`, re-verifying; then Jarvis removes MOVE entries from its index
 - [ ] Jarvis-dev: ingest §3 primary docs into `fielding-*` RAG
