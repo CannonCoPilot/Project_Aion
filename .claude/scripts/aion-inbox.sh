@@ -126,7 +126,7 @@ cmd_send() {
     # reported and never fatal — the message is already durable on disk.
     if [[ "$nudge" -eq 1 && -x "$ACTUATE" ]]; then
         local rc
-        JICM_NUDGE_TEXT="Inbox: you have a new message from ${from}${subject:+ — \"$subject\"}. Read it with: .claude/scripts/aion-inbox.sh read $key   (it is also @-imported at session start, so it cannot be lost)." \
+        JICM_NUDGE_TEXT="Inbox: you have a new message from ${from}${subject:+ — \"$subject\"}. Read it with: .claude/scripts/aion-inbox.sh read $key  then mark it read with: .claude/scripts/aion-inbox.sh ack $key   (it is also @-imported at session start, so it cannot be lost)." \
             "$ACTUATE" "$key" nudge >/dev/null 2>&1; rc=$?
         case "$rc" in
             0) echo "aion-inbox: pointer delivered (user turn observed)" ;;
