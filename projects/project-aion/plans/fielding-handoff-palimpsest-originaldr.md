@@ -164,10 +164,10 @@ session; Fielding can update them by URL.
 - [x] Jarvis: move `lector-review-2026-09-03/` → `Projects/Fielding/research/originaldr/` (verified; in Fielding root commit `e7023ec`). Scratch original kept until Fielding's repo has a remote
 - [x] Jarvis: pushed the **21** palimpsest commits on Sir's approval (2026-10-09, `79936db..ff5d0bc`; swept clean first). Fielding may commit there
 - [x] Jarvis: write `Project_Aion/.claude/context/.scratchpad.fielding.md` from §5 (`e3e217c`, 71 lines; path measured by dev)
-- [ ] Jarvis-dev: copy ALL §4 files to `~/.claude/projects/-Users-nathanielcannon-Claude-Projects-Fielding/memory/`, re-verifying; then Jarvis removes MOVE entries from its index
+- [x] Jarvis-dev: copy ALL §4 files to `~/.claude/projects/-Users-nathanielcannon-Claude-Projects-Fielding/memory/`, re-verifying (re-checked 2026-10-09 21:4xZ: all 24 listed present, 33 files incl. Fielding MEMORY.md); then Jarvis removes MOVE entries from its index
 - [ ] Jarvis: triage the **43 uncommitted palimpsest entries** (13 M, 30 untracked; flagged by Fielding 2026-10-09). `.archive-consensus-full.pre-r9.4b/` + `OriginalDRnotes` believed Sir's: leave untouched
 - [x] Jarvis: rulings to Fielding 2026-10-09 — work 109 (dr-original) INDEX HOLD STAYS (modern apparatus; 199 modern fallbacks; OCR-consensus input not clearable of fabricated S01/S08); work-101 LDS gold map defect CONFIRMED (no D&C entry; Moroni spans 1.03M chars) → Fielding fixes the generator after handoff
-- [ ] Jarvis-dev: ingest §3 primary docs into `fielding-*` RAG
+- [x] Jarvis-dev: ingest §3 primary docs into `fielding-*` RAG: all 11 PROSE docs (6 in fielding-context, 5 in fielding-research; re-checked 2026-10-09). Code and JSON (plate_tool.py, gold-*.json, ...) deliberately NOT ingested: read from the repo, since a RAG copy of code goes stale on its first edit
 - [ ] Fielding: read §3 "read first" list; confirm state in §5 against the repo
 - [ ] Fielding: establish Palimpsest platform state from the repo (§3)
 - [ ] Jarvis: remove moved files from my `MEMORY.md` index; record supervisor role
