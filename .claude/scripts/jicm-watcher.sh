@@ -1160,7 +1160,7 @@ _pass() {
     # a jicm_default_target() pane belongs in this list — protos, urist and fleming were
     # added 2026-09-07; before that they were pane-actuated but never reconciled, so a
     # startup-race demotion stuck permanently.
-    for ck in w0 dev genie jaques fleming urist protos; do
+    for ck in w0 dev genie jaques fleming urist protos fielding; do
         jicm_reconcile_pane_key "$ck"; rc=$?
         if [[ -n "${JICM_RECONCILE_NOTE:-}" ]]; then
             if [[ "$rc" -eq 2 ]]; then _log "RECONCILE-$JICM_RECONCILE_NOTE"

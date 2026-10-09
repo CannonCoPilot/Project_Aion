@@ -99,6 +99,11 @@ if [[ "$JARVIS_LITE" != "true" ]] && [[ "$SESSION_ID" != "unknown" ]]; then
         # of Jacques; same breadcrumb-in-Project_Aion rule for the same reason.
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-fleming-uuid"
         echo "$TIMESTAMP | SessionStart | FLEMING UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "fielding" || "${JARVIS_WINDOW:-}" == "12" ]]; then
+        # W12:Fielding — Literary/Theological Archon, added 2026-10-09. Same
+        # breadcrumb-in-Project_Aion rule as every out-of-tree lane.
+        echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-fielding-uuid"
+        echo "$TIMESTAMP | SessionStart | FIELDING UUID tracked: $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
     elif [[ -z "${JARVIS_WINDOW:-}" ]]; then
         echo "$SESSION_ID" > "$CLAUDE_PROJECT_DIR/.claude/context/.current-w0-uuid"
         echo "$TIMESTAMP | SessionStart | W0 UUID tracked (unset-window recovery): $SESSION_ID (source=$SOURCE)" >> "$LOG_DIR/session-start-diagnostic.log"
@@ -443,10 +448,14 @@ else
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "genie" || "${JARVIS_WINDOW:-}" == "4" ]]; then JICM_KEY="genie"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "jaques" || "${JARVIS_WINDOW:-}" == "5" ]]; then JICM_KEY="jaques"
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "fleming" || "${JARVIS_WINDOW:-}" == "6" ]]; then JICM_KEY="fleming"
+    # urist was missing from this inline fallback since 2026-08-24 (it only runs when
+    # jicm-config.sh cannot be sourced); added with fielding on 2026-10-09.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "urist" || "${JARVIS_WINDOW:-}" == "2" ]]; then JICM_KEY="urist"
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "fielding" || "${JARVIS_WINDOW:-}" == "12" ]]; then JICM_KEY="fielding"
     elif [[ -z "${JARVIS_WINDOW:-}" ]];             then JICM_KEY="w0"
     else JICM_KEY="$SESSION_ID"; fi
-    if [[ "$JICM_KEY" == "jaques" || "$JICM_KEY" == "fleming" ]]; then
-        # Both Contract Archons use the namespaced jicm/ tree keyed by name.
+    if [[ "$JICM_KEY" == "jaques" || "$JICM_KEY" == "fleming" || "$JICM_KEY" == "urist" || "$JICM_KEY" == "fielding" ]]; then
+        # Every named out-of-tree lane uses the namespaced jicm/ tree keyed by name.
         JK_COMPRESSED="$CLAUDE_PROJECT_DIR/.claude/context/jicm/checkpoints/${JICM_KEY}.compressed.md"
         JK_CLEAR_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/clear-now.${JICM_KEY}.signal"
         JK_RESUME_SIGNAL="$CLAUDE_PROJECT_DIR/.claude/context/jicm/signals/resume-complete.${JICM_KEY}.signal"

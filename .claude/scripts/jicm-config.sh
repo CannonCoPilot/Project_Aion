@@ -154,6 +154,7 @@ jicm_key_paths() {
         genie|genie-bg-*)     JK_RAG_COLLECTION="genie-sessions";   JK_GRAPHITI_GROUP="genie-core" ;;
         jaques|jaques-bg-*)   JK_RAG_COLLECTION="jaques-sessions";  JK_GRAPHITI_GROUP="jaques-core" ;;
         fleming|fleming-bg-*) JK_RAG_COLLECTION="fleming-sessions"; JK_GRAPHITI_GROUP="fleming-core" ;;
+        fielding|fielding-bg-*) JK_RAG_COLLECTION="fielding-sessions"; JK_GRAPHITI_GROUP="fielding-core" ;;
         urist|urist-bg-*)     JK_RAG_COLLECTION="urist-sessions";   JK_GRAPHITI_GROUP="urist-core" ;;
         *)                    JK_RAG_COLLECTION="sessions";         JK_GRAPHITI_GROUP="jarvis-core" ;;
     esac
@@ -235,6 +236,10 @@ jicm_derive_key() {                          # <my_session_id>
     # fleming (aion:6) — the second Contract Archon (micro1), added 2026-09-07. Structural
     # twin of jaques; same placement rule and the same reason.
     elif [[ "${JARVIS_SESSION_ROLE:-}" == "fleming" || "${JARVIS_WINDOW:-}" == "6" ]]; then candidate="fleming"
+    # fielding (aion:12) — the Literary/Theological Archon, added 2026-10-09. Lives in the old
+    # W12 buffer slot, BELOW the chain floor (14), so no live window had to be renumbered.
+    # Same placement rule as every named lane: above the unset-JARVIS_WINDOW fallback.
+    elif [[ "${JARVIS_SESSION_ROLE:-}" == "fielding" || "${JARVIS_WINDOW:-}" == "12" ]]; then candidate="fielding"
     # urist (aion:2) — the Dwarf Fortress Archon, added 2026-08-24. Placed here for the SAME
     # reason as genie/jaques/protos: above the unset-JARVIS_WINDOW fallback. Falling through
     # would hand Urist the w0 candidate and, via the occupancy gate, a paneless w0-bg-* key
@@ -277,6 +282,9 @@ jicm_default_target() {
         # fleming (aion:6) — second Contract Archon (micro1), added 2026-09-07. Pane-actuated
         # for the same reason as jaques: real paid client work.
         fleming) echo "${JICM_TMUX_SESSION}:6" ;;
+        # fielding (aion:12) — Literary/Theological Archon, added 2026-10-09. Pane-actuated: it
+        # owns Palimpsest, OriginalDR and the LDS corpus. Pair with launch-aion.sh.
+        fielding) echo "${JICM_TMUX_SESSION}:12" ;;
         # urist (aion:2) — the Dwarf Fortress Archon. Pane-actuated like the other work-holding
         # lanes: it owns the Chronicler pipeline and live fortress state, so it gets the full
         # cycle rather than the second-class self-actuating bg path.

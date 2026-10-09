@@ -182,6 +182,7 @@ _resolve_transcript() {
             # under their own project slugs, same as genie. Breadcrumb only; the glob
             # below finds the JSONL by exact uuid across every persona project dir.
             fleming) uuid_file="$PROJECT_DIR/.claude/context/.current-fleming-uuid" ;;
+            fielding) uuid_file="$PROJECT_DIR/.claude/context/.current-fielding-uuid" ;;
             urist) uuid_file="$PROJECT_DIR/.claude/context/.current-urist-uuid" ;;
         esac
         if [[ -n "$uuid_file" && -f "$uuid_file" ]]; then
@@ -211,6 +212,7 @@ _resolve_target() {
             genie)  tt="$JICM_TMUX_SESSION:4" ;;
             jaques) tt="$JICM_TMUX_SESSION:5" ;;
             fleming) tt="$JICM_TMUX_SESSION:6" ;;
+            fielding) tt="$JICM_TMUX_SESSION:12" ;;
             *)      tt="" ;;
         esac
     fi

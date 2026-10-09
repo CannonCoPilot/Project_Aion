@@ -53,7 +53,18 @@ VALID_COLLECTIONS = {"jarvis-context", "codebase", "research", "sessions",
                      # client, and a Snorkel rule retrieved into a micro1 deliverable is
                      # an invented requirement.
                      "fleming-context", "fleming-research",
-                     "fleming-sessions", "fleming-codebase"}
+                     "fleming-sessions", "fleming-codebase",
+                     # Fielding (Literary/Theological Archon, W12, added 2026-10-09) —
+                     # Palimpsest, OriginalDR, the LDS discourse corpus. The four standard
+                     # collections hold HIS working memory. His three RESEARCH CORPORA
+                     # (fielding-lds-discourses, fielding-palimpsest, fielding-scholarly)
+                     # are deliberately NOT routed here: they carry speaker/date/edition
+                     # metadata this server's search drops, so they are built and served by
+                     # Projects/Fielding/corpus-mcp. Listed so search() can still reach them.
+                     "fielding-context", "fielding-research",
+                     "fielding-sessions", "fielding-codebase",
+                     "fielding-lds-discourses", "fielding-palimpsest",
+                     "fielding-scholarly"}
 
 # Paths that must never be embedded, whatever collection they would route to.
 # micro1's run harvests carry the platform's credentials, and scratch/ holds working
@@ -179,6 +190,19 @@ def file_to_collection(file_path: str) -> str:
                 or "/docs/" in p):
             return "fleming-research"
         return "fleming-context"
+    # Fielding / Projects/Fielding + Palimpsest (handed to Fielding 2026-10-09) — MUST
+    # precede the generic rules for the same reason as WVU: these trees have their own
+    # docs/, research/ and scripts/, and would otherwise be swept into Jarvis's collections.
+    # Palimpsest routes here from the handoff on; what W0 ingested earlier stays put.
+    if "/projects/fielding/" in p or "/projects/palimpsest/" in p:
+        if ".jsonl" in p or "/sessions/" in p:
+            return "fielding-sessions"
+        if ("/scripts/" in p or "/src/" in p or "/backend/" in p or "/frontend/" in p
+                or "/pipelines/" in p or "/.claude/skills/" in p or "/tools/" in p):
+            return "fielding-codebase"
+        if "/research/" in p or "/docs/" in p or "/refs/" in p or "/reports/" in p:
+            return "fielding-research"
+        return "fielding-context"
     # Jarvis internal
     if "/reports/" in p or "/deep-research/" in p or "/research/" in p:
         return "research"

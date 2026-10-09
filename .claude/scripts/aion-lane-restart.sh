@@ -84,27 +84,31 @@ while [[ $# -gt 0 ]]; do
         # priority role is a seed: it must reset to the default tool/permission surface, NOT to
         # its last conversation.
         --fresh)    FRESH=1; shift ;;
-        -h|--help)  echo "usage: aion-lane-restart.sh <jaques|fleming|genie|dev|w0|protos|urist> [--dry-run] [--force] [--allow-bg-kill] [--idle-sec N] [--yes]"; exit 0 ;;
+        -h|--help)  echo "usage: aion-lane-restart.sh <jaques|fleming|genie|dev|w0|protos|urist|fielding> [--dry-run] [--force] [--allow-bg-kill] [--idle-sec N] [--yes]"; exit 0 ;;
         -*)         echo "unknown flag: $1" >&2; exit 64 ;;
         *)          LANE="$1"; shift ;;
     esac
 done
-[[ -n "$LANE" ]] || { echo "usage: aion-lane-restart.sh <jaques|fleming|genie|dev|w0|protos|urist> [--dry-run] [--force]" >&2; exit 64; }
+[[ -n "$LANE" ]] || { echo "usage: aion-lane-restart.sh <jaques|fleming|genie|dev|w0|protos|urist|fielding> [--dry-run] [--force]" >&2; exit 64; }
 
 # --- lane -> (registry key, tmux window). Jacques is spelled `jaques` everywhere in the
 # --- codebase (registry key, uuid file, graph namespace); accept both spellings as input.
 case "$LANE" in
     jaques|jacques|Jacques|5) KEY="jaques"; WIN="Jacques" ;;
     fleming|Fleming|6) KEY="fleming"; WIN="Fleming" ;;
-    genie|Genie|12)            KEY="genie";  WIN="Genie" ;;
-    dev|Jarvis-dev|11)         KEY="dev";    WIN="Jarvis-dev" ;;
+    # NUMERIC ALIASES CORRECTED 2026-10-09. These still read 12 and 11 from BEFORE the
+    # 2026-09-07 renumber, so `aion-lane-restart.sh 12` resolved to GENIE. With Fielding now
+    # at aion:12 that would have respawned Genie's live session on a request for Fielding.
+    genie|Genie|4)             KEY="genie";  WIN="Genie" ;;
+    dev|Jarvis-dev|3)          KEY="dev";    WIN="Jarvis-dev" ;;
+    fielding|Fielding|12)      KEY="fielding"; WIN="Fielding" ;;
     w0|jarvis|Jarvis|0)        KEY="w0";     WIN="Jarvis" ;;
     # protos (aion:1) — the Alfred Pulse-Nexus seed. Its PRIORITY role is to be forked from,
     # so `--fresh` is its normal reset: a seed must offer the default tool/permission surface,
     # never the residue of whatever one-off interactive session last used it.
     protos|Protos|1)           KEY="protos"; WIN="Protos" ;;
     urist|Urist|2)             KEY="urist";  WIN="Urist" ;;
-    *) _die "unknown lane '$LANE' (expected jaques|fleming|genie|dev|w0|protos|urist)" ;;
+    *) _die "unknown lane '$LANE' (expected jaques|fleming|genie|dev|w0|protos|urist|fielding)" ;;
 esac
 
 _log "==== lane-restart requested: lane=$KEY window=$WIN dry_run=$DRY_RUN force=$FORCE ===="

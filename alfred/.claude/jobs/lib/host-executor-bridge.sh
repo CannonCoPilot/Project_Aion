@@ -34,8 +34,8 @@ log() {
     echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] [host-bridge] $*" >&2
 }
 
-# Lowest free tmux window index >= 14. Indices 11, 12 and 13 are reserved for
-# W11:Jarvis-dev, W12:Genie and W13:Jacques so those lanes and Alfred chain workers
+# Lowest free tmux window index >= 14. Everything below 14 belongs to Archons and services
+# (2026-10-09: 0-6 Archons, 7-11 services, 12 Fielding, 13 buffer) so those lanes and Alfred chain workers
 # never collide (chains previously claimed the lowest free slot, grabbing 11 whenever
 # the dev window was absent — and did in fact grab 12 during the Genie install,
 # forking chain-31bcc85d onto Genie's pane).
@@ -81,7 +81,17 @@ ensure_seed() {
     # Fallback only when AION_MODEL is unset (cron/direct invocation outside
     # launch-aion.sh). Keep the [1m] suffix — it selects the 1M beta window and a
     # bare ID silently yields 200K. Keep in step with launch-aion.sh's default.
-    local seed_model="${AION_MODEL:-claude-opus-5[1m]}"
+    # Precedence: explicit env -> the launcher's RESOLVED artifact -> literal.
+    # The artifact tier is the important one. This line used to go straight from an unset
+    # AION_MODEL to a hardcoded literal, and cron invokes this script OUTSIDE launch-aion.sh
+    # with AION_MODEL unset — so a launcher that had cascaded to a fallback model would be
+    # silently reverted here on the next cron tick, and seed-model rewritten to the primary.
+    # That points forked tasks at a different model than the seed they fork FROM, killing the
+    # shared prefix cache. The literal remains only as a cold-boot bootstrap.
+    local _aion_resolved="${JICM_PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/context/.aion-resolved-model"
+    local seed_model="${AION_MODEL:-}"
+    [ -z "$seed_model" ] && [ -r "$_aion_resolved" ] && seed_model="$(tr -d '[:space:]' < "$_aion_resolved")"
+    seed_model="${seed_model:-claude-opus-5[1m]}"
     # Publish the seed model so Python executors fork tasks on the SAME model
     # (prefix-cache match). Read by executor.py / pipeline-watcher.py.
     printf '%s' "$seed_model" > "${STATE_DIR}/seed-model" 2>/dev/null || true
