@@ -46,7 +46,11 @@ set -o pipefail
 
 PROJECT_DIR="${JICM_PROJECT_DIR:-${CLAUDE_PROJECT_DIR:-$HOME/Claude/Project_Aion}}"
 INBOX_DIR="$PROJECT_DIR/.claude/context/inbox"
-ACTUATE="$PROJECT_DIR/.claude/scripts/jicm-actuate.sh"
+ACTUATE="${AION_INBOX_ACTUATE:-$PROJECT_DIR/.claude/scripts/jicm-actuate.sh}"
+SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
+INBOX_LOG="$PROJECT_DIR/.claude/logs/aion-inbox.log"
+RETRY_INTERVAL="${AION_INBOX_RETRY_INTERVAL:-60}"    # seconds between pointer attempts
+RETRY_TTL="${AION_INBOX_RETRY_TTL:-7200}"            # give up after this many seconds
 UNREAD_MARK="<!-- UNREAD -->"
 READ_MARK="<!-- read -->"
 
@@ -129,12 +133,72 @@ cmd_send() {
         JICM_NUDGE_TEXT="Inbox: you have a new message from ${from}${subject:+ — \"$subject\"}. Read it with: .claude/scripts/aion-inbox.sh read $key  then mark it read with: .claude/scripts/aion-inbox.sh ack $key   (it is also @-imported at session start, so it cannot be lost)." \
             "$ACTUATE" "$key" nudge >/dev/null 2>&1; rc=$?
         case "$rc" in
-            0) echo "aion-inbox: pointer delivered (user turn observed)" ;;
-            3) echo "aion-inbox: lane busy — pointer skipped; message is on disk and @-imported at next start" ;;
+            0) echo "aion-inbox: pointer delivered (user turn observed)"
+               touch "$INBOX_DIR/.pointer-delivered.$key" 2>/dev/null ;;
+            3) echo "aion-inbox: lane busy — pointer skipped; message is on disk and @-imported at next start"
+               _spawn_pointer_retry "$key" ;;
             4) echo "aion-inbox: pointer UNVERIFIED (no user turn) — message is on disk and @-imported at next start" ;;
             *) echo "aion-inbox: pointer failed rc=$rc — message is on disk and @-imported at next start" ;;
         esac
     fi
+}
+
+# ── POINTER RETRY ─────────────────────────────────────────────────────────────
+# A busy lane refuses the pointer (rc 3), and nothing used to retry it. An Archon working
+# continuously never reaches idle, so on 2026-10-09 Fielding went 10+ minutes without seeing
+# a message explaining why his fetch had been stopped, read the stop as a fault, and relaunched
+# it. One detached loop per lane now retries until the pointer lands, the recipient has read
+# everything, another sender's pointer lands first, or RETRY_TTL expires. The message itself
+# was never at risk (it is on disk and @-imported at start); only its timeliness was.
+_ilog() { mkdir -p "$(dirname "$INBOX_LOG")" 2>/dev/null; printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$*" >> "$INBOX_LOG"; }
+
+_retry_owner_alive() {   # pid in the lock is alive AND is a retry for this key (argv != identity alone)
+    local lock="$1" key="$2" pid
+    [[ -f "$lock" ]] || return 1
+    pid="$(awk '{print $1}' "$lock" 2>/dev/null)"
+    [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+    kill -0 "$pid" 2>/dev/null || return 1
+    ps -o command= -p "$pid" 2>/dev/null | grep -qF "aion-inbox.sh _retry $key"
+}
+
+_spawn_pointer_retry() {
+    local key="$1" lock="$INBOX_DIR/.pointer-retry.$1"
+    if _retry_owner_alive "$lock" "$key"; then
+        echo "aion-inbox: pointer retry already pending for $key"; return 0
+    fi
+    nohup bash "$SELF" _retry "$key" </dev/null >/dev/null 2>&1 &
+    disown 2>/dev/null
+    echo "aion-inbox: pointer retry scheduled (every ${RETRY_INTERVAL}s, up to ${RETRY_TTL}s)"
+}
+
+cmd__retry() {
+    local key="$1" lock="$INBOX_DIR/.pointer-retry.$1" file="$INBOX_DIR/$1.md"
+    local delivered="$INBOX_DIR/.pointer-delivered.$1" start n rc deadline
+    start="$(date +%s)"; deadline=$(( start + RETRY_TTL ))
+    printf '%s %s\n' "$$" "$start" > "$lock"
+    # Remove the lock only if it is still ours. A trap on TERM must EXIT, or the loop survives
+    # the signal with its lock gone (reference_trap_term_unkillable).
+    # GLOBAL, not local: the EXIT trap runs after this function returns, when locals are gone.
+    _RETRY_LOCK="$lock"
+    trap '[[ "$(awk "{print \$1}" "$_RETRY_LOCK" 2>/dev/null)" == "$$" ]] && rm -f "$_RETRY_LOCK"' EXIT
+    trap 'exit 143' TERM INT
+    _ilog "retry START key=$key pid=$$ interval=${RETRY_INTERVAL}s ttl=${RETRY_TTL}s"
+    while [[ "$(date +%s)" -lt "$deadline" ]]; do
+        sleep "$RETRY_INTERVAL"
+        n="$(grep -c "$UNREAD_MARK" "$file" 2>/dev/null)"; [[ "$n" =~ ^[0-9]+$ ]] || n=0
+        if [[ "$n" -eq 0 ]]; then _ilog "retry DONE key=$key: nothing unread (recipient read it)"; return 0; fi
+        if [[ -f "$delivered" ]] && [[ "$(stat -f %m "$delivered" 2>/dev/null || echo 0)" -gt "$start" ]]; then
+            _ilog "retry DONE key=$key: another sender's pointer landed"; return 0
+        fi
+        JICM_NUDGE_TEXT="Inbox: $n unread message(s). Read with: .claude/scripts/aion-inbox.sh read $key  then mark read with: .claude/scripts/aion-inbox.sh ack $key" \
+            "$ACTUATE" "$key" nudge >/dev/null 2>&1; rc=$?
+        if [[ "$rc" -eq 0 ]]; then
+            touch "$delivered" 2>/dev/null
+            _ilog "retry DELIVERED key=$key after $(( $(date +%s) - start ))s ($n unread)"; return 0
+        fi
+    done
+    _ilog "retry WARN key=$key: pointer NOT delivered within ${RETRY_TTL}s (last rc=$rc); $n unread stay on disk, @-imported at next start"
+    return 1
 }
 
 cmd_read() {
@@ -183,6 +247,7 @@ case "${1:-}" in
     read) shift; cmd_read "${1:?key required}" "${2:-}" ;;
     ack)  shift; cmd_ack  "${1:?key required}" ;;
     list) cmd_list ;;
+    _retry) shift; cmd__retry "${1:?key required}" ;;
     -h|--help|"") _usage ;;
     *) echo "aion-inbox: unknown verb '$1'" >&2; _usage; exit 64 ;;
 esac
