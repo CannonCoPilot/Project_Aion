@@ -1,0 +1,67 @@
+persona: fielding
+tier: implement
+
+allowed_tools:
+  - Read
+  - Glob
+  - Grep
+  - Bash
+  - Write
+  - Edit
+  - ToolSearch
+  # Research corpora — read-only. Building or re-indexing a corpus is `./fc`, run on purpose.
+  - mcp__fielding-corpus__corpus_search
+  - mcp__fielding-corpus__corpus_document
+  - mcp__fielding-corpus__corpus_list
+  - mcp__fielding-corpus__corpus_speakers
+  - mcp__fielding-corpus__corpus_stats
+  # Memory — fielding-* collections and the fielding-core graph only. The collection and
+  # group_id are arguments, so scoping is enforced by the prompt and reviewed in
+  # output, not by the tool surface. Treat a write to a jarvis-* namespace as a defect.
+  - mcp__jarvis-rag__search
+  - mcp__jarvis-rag__multi_search
+  - mcp__jarvis-rag__ingest
+  - mcp__jarvis-rag__list_collections
+  - mcp__jarvis-graphiti__search
+  - mcp__jarvis-graphiti__search_nodes
+  - mcp__jarvis-graphiti__add_episode
+  - mcp__jarvis-graphiti__get_episodes
+  # Literature
+  - mcp__scholar-gateway__searchPapers
+  - mcp__scholar-gateway__searchAuthor
+  - mcp__scholar-gateway__getPaperDetails
+  - mcp__scholar-gateway__getBibtex
+  - mcp__scholar-gateway__downloadPDF
+
+denied_tools:
+  - Agent
+  # Deleting from the vector store is not a job-scoped action. If a headless run
+  # concludes something must be removed, it says so and a human does it.
+  - mcp__jarvis-rag__delete_file
+
+allowed_bash:
+  - "pulse create:*"
+  - "pulse update:*"
+  - "pulse close:*"
+  - "pulse list:*"
+  - "pulse show:*"
+  - "ls:*"
+  - "find:*"
+  - "wc:*"
+  - "file:*"
+  - "head:*"
+  - "mkdir:*"
+  - "git status:*"
+  - "git log:*"
+  - "git diff:*"
+  # Corpus engine: read-only subcommands. `fetch`, `parse` and `index` are bulk or
+  # long-running and stay under interactive control (one indexer at a time, serial fetches).
+  - "./fc search:*"
+  - "./fc stats:*"
+
+pre_approved:
+  - "Search the lds, palimpsest and scholarly corpora and read catalogued documents"
+  - "Search and ingest into fielding-* Qdrant collections and the fielding-core graph"
+  - "Search Google Scholar and download PDFs to Staging/verified/fielding/scholarly/papers"
+  - "Write analysis reports under Projects/Fielding/reports"
+  - "Create and close Pulse tasks labelled agent:fielding"
