@@ -121,6 +121,14 @@
         "library"
       ],
       "new_window": true
+    },
+    "fielding": {
+      "profile": "personal",
+      "may_use": [
+        "library"
+      ],
+      "new_window": false,
+      "note": "literary/theological research; BYU library (journal access) is a URL in this profile"
     }
   },
   "global_pin_profile": "personal"
