@@ -70,7 +70,9 @@ reader of the gold record), `witness/test_plate_gold.py` (7 tests, run with `pyt
 `witness/plates/gold-set-1-proposed.json`, `witness/plates/skew-survey-B.json`,
 `witness/cold-read/register-build/build_register_B.py`.
 
-**At risk, move it:** `Project_Aion/.claude/scratch/lector-review-2026-09-03/` is the distilled
+**Moved 2026-10-09** to `Projects/Fielding/research/originaldr/lector-review-2026-09-03/` (sha256-identical,
+15 files, credential-swept; awaits Fielding's root commit, original kept until then). Was:
+`Project_Aion/.claude/scratch/lector-review-2026-09-03/` is the distilled
 doc corpus (1,943 lines from 13,087, every claim `file:line`; read its `README.md` first). It sits
 in a **gitignored** scratch folder. It should move to a tracked location Fielding owns before
 anything else, or a cleanup erases it.
@@ -148,8 +150,9 @@ session; Fielding can update them by URL.
 
 - **Postgres password rotation.** Shared by `jarvis`, `chronicler` and `n8n`; Aion-wide, not
   project-specific. Runbook `.claude/scratch/postgres-rotation-runbook.md`. Still not run.
-- **Unpushed commits** in palimpsest (`735a775` `ce54375` `14ba4e7` `7a0a55e` `a4cf4b0`): I push or
-  hand off explicitly before Fielding starts committing there, so two Archons never race one branch.
+- **Unpushed commits** in palimpsest: **21** ahead of origin (corrected 2026-10-09; the scratchpad's "five"
+  predated later work). Repo is **PUBLIC**. Full-diff credential sweep clean (host value only). Push awaits
+  Sir. Fielding does not commit in palimpsest until it lands, so two Archons never race one branch.
 - **Shared checkout.** Palimpsest is a shared working tree. Stage by explicit path, never `-A`.
   This rule transfers to Fielding as-is.
 
@@ -157,11 +160,11 @@ session; Fielding can update them by URL.
 
 ## 7. Handoff checklist
 
-- [ ] Jarvis-dev: Fielding persona, lane, scratchpad, `fielding-*` RAG, `fielding-core` graph (Fleming pattern)
-- [ ] Jarvis: move `lector-review-2026-09-03/` to a tracked, Fielding-owned location
-- [ ] Jarvis: resolve the five unpushed palimpsest commits
+- [~] Jarvis-dev: Fielding persona, lane (aion:12), scratchpad, `fielding-*` RAG (registered), `fielding-core` graph. Home `Projects/Fielding` (own repo, no remote yet)
+- [~] Jarvis: move `lector-review-2026-09-03/` → `Projects/Fielding/research/originaldr/` (copied+verified; tracked at Fielding's first commit)
+- [~] Jarvis: resolve the **21** unpushed palimpsest commits (swept clean; push awaits Sir — public repo)
 - [ ] Jarvis: write `.scratchpad.fielding.md` from §5 (verified extract)
-- [ ] Jarvis + Jarvis-dev: move / copy memory files per §4, re-verifying each
+- [ ] Jarvis-dev: copy ALL §4 files to `~/.claude/projects/-Users-nathanielcannon-Claude-Projects-Fielding/memory/`, re-verifying; then Jarvis removes MOVE entries from its index
 - [ ] Jarvis-dev: ingest §3 primary docs into `fielding-*` RAG
 - [ ] Fielding: read §3 "read first" list; confirm state in §5 against the repo
 - [ ] Fielding: establish Palimpsest platform state from the repo (§3)
