@@ -163,7 +163,7 @@ session; Fielding can update them by URL.
 - [~] Jarvis-dev: Fielding persona, lane (aion:12), scratchpad, `fielding-*` RAG (registered), `fielding-core` graph. Home `Projects/Fielding` (own repo, no remote yet)
 - [x] Jarvis: move `lector-review-2026-09-03/` → `Projects/Fielding/research/originaldr/` (verified; in Fielding root commit `e7023ec`). Scratch original kept until Fielding's repo has a remote
 - [~] Jarvis: resolve the **21** unpushed palimpsest commits (swept clean; push awaits Sir — public repo)
-- [x] Jarvis: write `Project_Aion/.claude/context/.scratchpad.fielding.md` from §5 (`311f8db`, 71 lines; path measured by dev)
+- [x] Jarvis: write `Project_Aion/.claude/context/.scratchpad.fielding.md` from §5 (`e3e217c`, 71 lines; path measured by dev)
 - [ ] Jarvis-dev: copy ALL §4 files to `~/.claude/projects/-Users-nathanielcannon-Claude-Projects-Fielding/memory/`, re-verifying; then Jarvis removes MOVE entries from its index
 - [ ] Jarvis-dev: ingest §3 primary docs into `fielding-*` RAG
 - [ ] Fielding: read §3 "read first" list; confirm state in §5 against the repo
