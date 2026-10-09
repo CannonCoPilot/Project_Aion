@@ -171,5 +171,5 @@ session; Fielding can update them by URL.
 - [ ] Fielding: read §3 "read first" list; confirm state in §5 against the repo
 - [ ] Fielding: establish Palimpsest platform state from the repo (§3)
 - [x] Jarvis: removed the 13 MOVE entries from `MEMORY.md` (2026-10-09, after verifying all 24 §4 files in Fielding's memory dir: 23 byte-identical, `project_genesis_walkthrough` = dev's annotated path fix); index 151→140; supervisor role recorded
-- [ ] Jarvis-dev: ingest lector-review A–E (`A-masterplan` … `E-code`, 1,943 ln) into `fielding-research`; only its README went in (plan §3 did not ask — my omission)
+- [x] Jarvis-dev: ingest lector-review A–E (`A-masterplan` … `E-code`, 1,943 ln) into `fielding-research`; only its README went in (plan §3 did not ask — my omission). DONE 2026-10-09 22:4xZ: A 77, B 71, C 75, D 82, E 69 chunks (fielding-research 67 -> 441); retrieval checked (D/C return in top 4 for a LECTOR-roadmap query)
 - [ ] Sir: confirm the handoff is complete; Fielding takes the next OriginalDR turn
