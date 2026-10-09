@@ -170,5 +170,6 @@ session; Fielding can update them by URL.
 - [x] Jarvis-dev: ingest §3 primary docs into `fielding-*` RAG: all 11 PROSE docs (6 in fielding-context, 5 in fielding-research; re-checked 2026-10-09). Code and JSON (plate_tool.py, gold-*.json, ...) deliberately NOT ingested: read from the repo, since a RAG copy of code goes stale on its first edit
 - [ ] Fielding: read §3 "read first" list; confirm state in §5 against the repo
 - [ ] Fielding: establish Palimpsest platform state from the repo (§3)
-- [ ] Jarvis: remove moved files from my `MEMORY.md` index; record supervisor role
+- [x] Jarvis: removed the 13 MOVE entries from `MEMORY.md` (2026-10-09, after verifying all 24 §4 files in Fielding's memory dir: 23 byte-identical, `project_genesis_walkthrough` = dev's annotated path fix); index 151→140; supervisor role recorded
+- [ ] Jarvis-dev: ingest lector-review A–E (`A-masterplan` … `E-code`, 1,943 ln) into `fielding-research`; only its README went in (plan §3 did not ask — my omission)
 - [ ] Sir: confirm the handoff is complete; Fielding takes the next OriginalDR turn
