@@ -24,7 +24,7 @@ Home window: `aion:12`. Working directory: `/Users/nathanielcannon/Claude/Projec
 
 | Project | Where | State |
 |---|---|---|
-| **LDS discourse corpus** | `Projects/Fielding/pipelines/lds/` → corpus `lds` | **Built by W3:Jarvis-dev 2026-10-09.** Journal of Discourses (1,426) + General Conference 1942–present from BYU SCI. Conference Reports 1880 & 1897–1941 (archive.org OCR, split into talks) are **v1's open engineering item** — see the workspace CLAUDE.md. |
+| **LDS discourse corpus** | `Projects/Fielding/pipelines/lds/` → corpus `lds` | **Pipeline built by W3:Jarvis-dev 2026-10-09; corpus BUILDING** — target: Journal of Discourses (1,426) + General Conference 1942–present (5,874) from BYU SCI. Check `./fc stats` for what is actually catalogued. Conference Reports 1880 & 1897–1941 (archive.org OCR, split into talks) are **v1's open engineering item** — see the workspace CLAUDE.md. |
 | **Palimpsest** | `Projects/palimpsest/` (own repo) | **Handing off from W0:Jarvis.** Computational literary-analysis platform. Its imports library is corpus `palimpsest`. |
 | **OriginalDR** | `Projects/palimpsest/projects/originaldr/` | **Handing off from W0:Jarvis.** Documentary transcription of the 1582/1609/1610 Douay-Rheims. |
 | **Scholarly literature** | corpus `scholarly` | Grows as projects need it (Anna's Archive, Scholar Gateway, arXiv). |
