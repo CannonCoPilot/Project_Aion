@@ -12,7 +12,7 @@
     "  GRAPHITI_GROUP_ID    jarvis-core | genie-core | jaques-core | urist-core",
     "  ARXIV_STORAGE_PATH   per-project arxiv cache",
     "  SCHOLAR_DOWNLOAD_PATH  per-project paper cache",
-    "  ANNAS_DOWNLOAD_PATH  per-project library cache",
+    "  ANNAS_DOWNLOAD_PATH  per-project library cache; the fallback is Staging/incoming (Bulk Download Policy: never an indexed tree)",
     "",
     "WHY THIS REPLACED per-persona mcp.json files (deleted 2026-08-24): they existed only to",
     "carry those values, and they had ROTTED — all three had lost the mcp-hot-reload wrapper",
@@ -33,7 +33,7 @@
       ],
       "env": {
         "ANNAS_SECRET_KEY": "${ANNAS_SECRET_KEY}",
-        "ANNAS_DOWNLOAD_PATH": "${ANNAS_DOWNLOAD_PATH:-/Users/nathanielcannon/Claude/Project_Aion/projects/annas_archive/library}"
+        "ANNAS_DOWNLOAD_PATH": "${ANNAS_DOWNLOAD_PATH:-/Users/nathanielcannon/Claude/Staging/incoming/annas-archive}"
       },
       "disabled": false
     },
