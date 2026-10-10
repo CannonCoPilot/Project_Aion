@@ -964,12 +964,27 @@ _audit_sampler_coverage() {
     done
 }
 
+# M5 — drain the post-cycle RETRY QUEUE (2026-10-10). jicm-actuate.sh and
+# graphiti-auto-ingest.py queue ingests that were killed, failed, or never got the GPU; before
+# this, every one of them was logged and lost ("nothing retries it"). The drainer is single-
+# instance (its own lock) and takes the shared GPU queue at the LOWEST priority, so launching it
+# every maintenance pass is safe: a live cycle's work always goes first.
+_maint_retry_drain() {
+    local rd="${JICM_RETRY_DIR:-$PROJECT_DIR/.claude/context/jicm/retry}" d="$PROJECT_DIR/.claude/scripts/jicm-retry-drain.sh"
+    [[ -x "$d" || -f "$d" ]] || return 0
+    compgen -G "$rd/*.json" >/dev/null 2>&1 || return 0
+    local n; n="$(ls -1 "$rd"/*.json 2>/dev/null | wc -l | tr -d ' ')"
+    ( JICM_PROJECT_DIR="$PROJECT_DIR" nohup bash "$d" >/dev/null 2>&1 & )
+    _log "MAINTAIN: M5 retry queue has $n item(s); drainer launched (single-instance, GPU prio 3)"
+}
+
 _maintenance_pass() {
     local now; now="$(_now)"
     [[ $(( now - LAST_MAINT )) -lt "$MAINT_EVERY_SEC" ]] && return 0
     LAST_MAINT="$now"
     _maint_service_health
     _maint_identity_changes
+    _maint_retry_drain
     _audit_sampler_coverage
 }
 

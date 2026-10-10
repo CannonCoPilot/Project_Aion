@@ -122,6 +122,26 @@ _bounded() {
     return "$rc"
 }
 
+# RETRY QUEUE (Option 2 of the 2026-10-10 context-cycle fix). A post-cycle ingest that is
+# killed, fails, or never gets the GPU used to be lost: "nothing retries it". Now it is queued
+# for jicm-retry-drain.sh, which the watcher runs when the GPU is idle. The INPUT IS SNAPSHOTTED:
+# the next cycle for this key overwrites JK_COMPRESSED and the scrollback summary, so a queue
+# entry that pointed at the live file would retry the wrong text.
+JICM_RETRY_DIR="${JICM_RETRY_DIR:-$PROJECT_DIR/.claude/context/jicm/retry}"
+_enqueue_rag_retry() {   # <label> <file> <collection> <session_id> <reason>
+    local label="$1" file="$2" coll="$3" sid="$4" why="$5" ts snap item
+    [[ -s "$file" ]] || { _log "retry: NOT queued ($label): input $file missing or empty"; return 0; }
+    mkdir -p "$JICM_RETRY_DIR/files" 2>/dev/null
+    ts="$(date +%Y%m%dT%H%M%S)-$$-$RANDOM"
+    snap="$JICM_RETRY_DIR/files/${ts}-${JK_KEY}-rag.md"
+    cp "$file" "$snap" 2>/dev/null || { _log "retry: ALERT could not snapshot $file for $label"; return 0; }
+    item="$JICM_RETRY_DIR/${ts}-${JK_KEY}-rag.json"
+    jq -n --arg k "$JK_KEY" --arg l "$label" --arg f "$snap" --arg c "$coll" --arg s "$sid" --arg w "$why" \
+        '{kind:"rag", key:$k, label:$l, file:$f, collection:$c, session_id:$s, reason:$w, attempts:0}' \
+        > "$item.tmp" 2>/dev/null && mv "$item.tmp" "$item"
+    _log "retry: queued $label for key=$JK_KEY ($why) -> $(basename "$item")"
+}
+
 # ---------------------------------------------------------------------------
 # Resolution helpers — registry is the source of truth; env overrides for the
 # throwaway test harness; per-key defaults; then refuse (empty) on ambiguity.
@@ -382,8 +402,16 @@ _step_rag_ingest() {   # 5.5 — checkpoint → L4 RAG (async, non-blocking)
                JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
         export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION"
         export JICM_COMPRESSED_FILE="$JK_COMPRESSED" JICM_SESSION_ID="$sid"
-        _bounded "5.5 RAG ingest" "$JICM_INGEST_TIMEOUT_RAG" \
-            "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+        # One GPU job at a time (jicm-gpu-queue.sh). The wait happens OUTSIDE the timeout.
+        source "$SCRIPT_DIR/jicm-gpu-queue.sh"
+        if gpu_acquire 1 "5.5 RAG ingest key=$JK_KEY" "${JICM_GPU_WAIT_RAG:-1800}"; then
+            _bounded "5.5 RAG ingest" "$JICM_INGEST_TIMEOUT_RAG" \
+                "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1; rc=$?
+            gpu_release
+            [[ "$rc" -ne 0 ]] && _enqueue_rag_retry "5.5 RAG ingest" "$JK_COMPRESSED" "$JK_RAG_COLLECTION" "$sid" "rc=$rc"
+        else
+            _enqueue_rag_retry "5.5 RAG ingest" "$JK_COMPRESSED" "$JK_RAG_COLLECTION" "$sid" "gpu-wait-timeout"
+        fi
     ) &
     _log "5.5 RAG ingest launched (pid $!, collection=$JK_RAG_COLLECTION)"
 }
@@ -419,8 +447,15 @@ _step_scrollback() {   # 5.6 capture + 5.6b NLP compress + 5.6c summary → RAG
                    JICM_RAG_QDRANT_URL JICM_RAG_EMBED_URL JICM_INGEST_LOG
             export JICM_RAG_COLLECTION="$JK_RAG_COLLECTION"
             export JICM_COMPRESSED_FILE="$JK_SCROLLBACK_SUMMARY" JICM_SESSION_ID="$sid"
-            _bounded "5.6c scrollback RAG ingest" "$JICM_INGEST_TIMEOUT_RAG" \
-                "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1
+            source "$SCRIPT_DIR/jicm-gpu-queue.sh"
+            if gpu_acquire 1 "5.6c scrollback RAG key=$JK_KEY" "${JICM_GPU_WAIT_RAG:-1800}"; then
+                _bounded "5.6c scrollback RAG ingest" "$JICM_INGEST_TIMEOUT_RAG" \
+                    "$VENV_PY" "$JICM_AUTO_INGEST_SCRIPT" >> "$JICM_LOG_FILE" 2>&1; rc=$?
+                gpu_release
+                [[ "$rc" -ne 0 ]] && _enqueue_rag_retry "5.6c scrollback RAG ingest" "$JK_SCROLLBACK_SUMMARY" "$JK_RAG_COLLECTION" "$sid" "rc=$rc"
+            else
+                _enqueue_rag_retry "5.6c scrollback RAG ingest" "$JK_SCROLLBACK_SUMMARY" "$JK_RAG_COLLECTION" "$sid" "gpu-wait-timeout"
+            fi
         ) &
         _log "5.6c scrollback → RAG ingest launched (pid $!, collection=$JK_RAG_COLLECTION)"
     fi
@@ -480,8 +515,15 @@ _step_digest() {   # STAGE ③ — distil the OUTGOING transcript, then fold it 
                  --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE")"
         printf '%s' "$row" > "$JD_ROW_FILE" 2>/dev/null
     else
-        ( cd "$SCRIPT_DIR/jicm-digest" && python3 tdigest.py "$sid" $JICM_DIGEST_ARGS \
-              --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE" > "$JD_ROW_FILE" ) &
+        # Priority 1 in the GPU queue: the successor is waiting for this, and the finalizer gives
+        # up after JICM_DIGEST_FINALIZE_TIMEOUT. A digest that never gets the GPU produces no row,
+        # which the finalizer already reports as "successor resumed WITHOUT session history".
+        ( source "$SCRIPT_DIR/jicm-gpu-queue.sh"
+          if gpu_acquire 1 "3.5 digest key=$JK_KEY" "${JICM_GPU_WAIT_DIGEST:-2400}"; then
+              cd "$SCRIPT_DIR/jicm-digest" && python3 tdigest.py "$sid" $JICM_DIGEST_ARGS \
+                  --out "$out" --tag "cycle|$JK_KEY" 2>>"$JICM_LOG_FILE" > "$JD_ROW_FILE"
+              gpu_release
+          fi ) &
         JD_PID=$!
         _log "3.5 digest: distilling ${sid:0:8} ASYNC (pid $JD_PID, median 424s) — the /clear no longer waits on it; folded by _step_digest_finalize when it lands"
         return 0
@@ -536,7 +578,7 @@ _step_digest_finalize() {   # 3.5b — fold the ASYNC digest once it lands, afte
     [[ "${JICM_DIGEST_BLOCKING:-false}" == "true" ]] && return 0
     [[ -n "$JD_PID" ]] || return 0
 
-    local waited=0 max="${JICM_DIGEST_FINALIZE_TIMEOUT:-1200}" row degen trunc words
+    local waited=0 max="${JICM_DIGEST_FINALIZE_TIMEOUT:-3600}" row degen trunc words
     while kill -0 "$JD_PID" 2>/dev/null; do
         [[ "$waited" -ge "$max" ]] && {
             _log "3.5b ALERT: digest pid $JD_PID still running after ${max}s — the successor has NO session history and will not get one this cycle. Left running; inspect $JD_OUT"
@@ -612,10 +654,19 @@ _step_graphiti() {   # 5.9 — checkpoint → L5 Graphiti episode (async, non-bl
         # GRAPHITI_GROUP_ID was never exported here, so every lane's episodes went to
         # graphiti-auto-ingest.py's default group. Same detached-process blind spot as
         # the RAG steps above.
-        ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED"
+        # Priority 2: slow, and nothing waits on it. Failed PARTS are queued for retry by the
+        # Python itself (JICM_RETRY_DIR); a run that never gets the GPU queues the whole
+        # checkpoint, which is safe because none of its parts were ingested.
+        ( export PROJECT_DIR JICM_COMPRESSED_FILE="$JK_COMPRESSED" JICM_RETRY_DIR JICM_KEY="$JK_KEY"
           export GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"
-          _bounded "5.9 Graphiti ingest" "$JICM_INGEST_TIMEOUT_GRAPHITI" \
-              "$VENV_PY" "$g" >> "$JICM_LOG_FILE" 2>&1 ) &
+          source "$SCRIPT_DIR/jicm-gpu-queue.sh"
+          if gpu_acquire 2 "5.9 Graphiti key=$JK_KEY" "${JICM_GPU_WAIT_GRAPHITI:-5400}"; then
+              _bounded "5.9 Graphiti ingest" "$JICM_INGEST_TIMEOUT_GRAPHITI" \
+                  "$VENV_PY" "$g" >> "$JICM_LOG_FILE" 2>&1
+              gpu_release
+          else
+              "$VENV_PY" "$g" --enqueue-only >> "$JICM_LOG_FILE" 2>&1
+          fi ) &
         _log "5.9 Graphiti episode ingest launched (pid $!, group=$JK_GRAPHITI_GROUP)"
     elif [[ -f "$JICM_GRAPHITI_INGEST_SCRIPT" ]]; then
         ( export GRAPHITI_GROUP_ID="$JK_GRAPHITI_GROUP"

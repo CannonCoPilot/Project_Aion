@@ -171,6 +171,31 @@ def plan_chunks(text: str, budget: int = 0):
     return [c for c in chunks if c.strip()]
 
 
+# RETRY QUEUE (2026-10-10). A failed or timed-out part used to be logged and dropped: "Nothing
+# retries this". Fielding's first cycle lost its highest-value part that way, purely to GPU
+# contention (the same part took 41-155s on an idle GPU). Now each failed PART is written to the
+# retry queue with its own text, and jicm-retry-drain.sh re-sends it when the GPU is idle. Only
+# the failed part is retried, so parts that landed are never duplicated as extra episodes.
+RETRY_DIR = os.getenv("JICM_RETRY_DIR", os.path.join(PROJECT_DIR, ".claude/context/jicm/retry"))
+RETRY_KEY = os.getenv("JICM_KEY", GROUP_ID.replace("-core", ""))
+MAX_RETRY_ATTEMPTS = int(os.getenv("JICM_RETRY_MAX_ATTEMPTS", "3"))
+
+
+def enqueue_chunk(text: str, name: str, source: str, reason: str) -> str:
+    """Queue one part for retry. Returns the item path. Writes are atomic (tmp + rename)."""
+    os.makedirs(os.path.join(RETRY_DIR, "files"), exist_ok=True)
+    tag = f"{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')}-{os.getpid()}-{abs(hash(name)) % 100000:05d}"
+    text_file = os.path.join(RETRY_DIR, "files", f"{tag}-{RETRY_KEY}-graphiti.txt")
+    Path(text_file).write_text(text, encoding="utf-8")
+    item = os.path.join(RETRY_DIR, f"{tag}-{RETRY_KEY}-graphiti.json")
+    with open(item + ".tmp", "w") as f:
+        json.dump({"kind": "graphiti", "key": RETRY_KEY, "group_id": GROUP_ID, "name": name,
+                   "source": source, "text_file": text_file, "reason": reason, "attempts": 0}, f)
+    os.replace(item + ".tmp", item)
+    log_to_file(f"RETRY QUEUED: '{name}' ({len(text)} chars, group={GROUP_ID}) -> {os.path.basename(item)} [{reason}]")
+    return item
+
+
 def log_to_file(msg: str):
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     os.makedirs(os.path.dirname(LOG_FILE), exist_ok=True)
@@ -289,6 +314,7 @@ async def main():
                         f"({len(chunk)} chars)")
         except asyncio.TimeoutError:
             failed.append({"part": i, "chars": len(chunk), "error": "timeout"})
+            enqueue_chunk(chunk, name, source, f"timeout {INGEST_TIMEOUT_SEC:.0f}s")
             log_to_file(
                 f"ALERT: TIMEOUT on chunk {i}/{len(chunks)} after {INGEST_TIMEOUT_SEC:.0f}s — "
                 f"{len(chunk)} chars NOT ingested. Blocked inside the client, not the services: "
@@ -301,13 +327,15 @@ async def main():
             # before chunking that single failure lost the entire night's ingest.
             failed.append({"part": i, "chars": len(chunk), "error": str(e)[:200]})
             log_to_file(f"ALERT: chunk {i}/{len(chunks)} FAILED ({len(chunk)} chars): {str(e)[:200]}")
+            enqueue_chunk(chunk, name, source, f"error: {str(e)[:120]}")
 
     if failed:
         lost = sum(f["chars"] for f in failed)
         msg = (
             f"ALERT L5 ingest INCOMPLETE: {ok_chunks}/{len(chunks)} chunks ingested, "
             f"{len(failed)} failed, {lost} chars ({lost * 100 // max(original_chars, 1)}%) "
-            f"missing from the graph for {Path(CHECKPOINT_FILE).name}. Nothing retries this."
+            f"missing from the graph for {Path(CHECKPOINT_FILE).name}. Each failed part is QUEUED "
+            f"for retry ({RETRY_DIR}); jicm-retry-drain.sh re-sends it when the GPU is idle."
         )
         print(msg, file=sys.stderr, flush=True)
         log_to_file(msg)
@@ -339,7 +367,57 @@ async def main():
         sys.exit(1)
 
 
+def enqueue_only() -> None:
+    """The GPU never came free for this cycle: queue EVERY part, ingest nothing."""
+    if not os.path.isfile(CHECKPOINT_FILE):
+        log_to_file(f"SKIP enqueue-only: checkpoint not found: {CHECKPOINT_FILE}"); return
+    content = Path(CHECKPOINT_FILE).read_text(encoding="utf-8", errors="replace").strip()
+    chunks = plan_chunks(content)[:MAX_CHUNKS]
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    source = f"jicm-compression-cycle — {Path(CHECKPOINT_FILE).name}"
+    for i, chunk in enumerate(chunks, 1):
+        part = f" (part {i}/{len(chunks)})" if len(chunks) > 1 else ""
+        enqueue_chunk(chunk, f"JICM cycle {stamp}{part}", source, "gpu-wait-timeout")
+    log_to_file(f"ALERT L5 ingest DEFERRED: GPU unavailable; {len(chunks)} parts queued for retry")
+
+
+async def drain_one(item_path: str) -> int:
+    """Re-send one queued part. 0 = ingested (item removed); 1 = failed (kept, or dead after N)."""
+    global GROUP_ID
+    item = json.loads(Path(item_path).read_text())
+    text = Path(item["text_file"]).read_text(encoding="utf-8")
+    GROUP_ID = item["group_id"]   # ingest_episode reads the module global at call time
+    attempt = item.get("attempts", 0) + 1
+    try:
+        e, g, elapsed = await asyncio.wait_for(
+            ingest_episode(text, item["name"], item["source"]), timeout=INGEST_TIMEOUT_SEC)
+        log_to_file(f"RETRY INGESTED '{item['name']}' (attempt {attempt}, group={GROUP_ID}): "
+                    f"{e} entities, {g} edges in {elapsed:.1f}s ({len(text)} chars)")
+        os.remove(item_path); os.remove(item["text_file"])
+        return 0
+    except Exception as ex:                                    # noqa: BLE001
+        cause = "timeout" if isinstance(ex, asyncio.TimeoutError) else str(ex)[:120]
+        item["attempts"] = attempt
+        item["last_error"] = cause
+        if attempt >= MAX_RETRY_ATTEMPTS:
+            dead = os.path.join(RETRY_DIR, "dead"); os.makedirs(dead, exist_ok=True)
+            Path(os.path.join(dead, os.path.basename(item_path))).write_text(json.dumps(item))
+            os.remove(item_path)
+            log_to_file(f"ALERT RETRY EXHAUSTED: '{item['name']}' failed {attempt}x ({cause}); moved to "
+                        f"{dead}. NEEDS A HUMAN: this part of the checkpoint is NOT in the graph.")
+        else:
+            # Backoff, mirrored in jicm-retry-drain.sh: the watcher launches a drain every ~100s.
+            item["not_before"] = int(time.time()) + int(os.getenv("JICM_RETRY_BACKOFF", "600")) * attempt
+            Path(item_path).write_text(json.dumps(item))
+            log_to_file(f"RETRY FAILED '{item['name']}' attempt {attempt}/{MAX_RETRY_ATTEMPTS}: {cause}")
+        return 1
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "--enqueue-only":
+        enqueue_only(); sys.exit(0)
+    if len(sys.argv) > 2 and sys.argv[1] == "--drain-one":
+        sys.exit(asyncio.run(drain_one(sys.argv[2])))
     try:
         asyncio.run(main())
     except Exception as e:

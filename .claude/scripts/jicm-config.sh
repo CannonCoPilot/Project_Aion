@@ -64,7 +64,9 @@ JICM_DIGESTS_DIR="$JICM_DIR/digests"
 # true to restore the old behaviour (successor gets history at second zero,
 # cycle returns to ~450s).
 JICM_DIGEST_BLOCKING="${JICM_DIGEST_BLOCKING:-false}"
-JICM_DIGEST_FINALIZE_TIMEOUT="${JICM_DIGEST_FINALIZE_TIMEOUT:-1200}"
+# 1200 -> 3600 (2026-10-10): the digest now QUEUES for the GPU (jicm-gpu-queue.sh) and can wait
+# behind another lane's post-cycle work, so its window must cover queue time as well as run time.
+JICM_DIGEST_FINALIZE_TIMEOUT="${JICM_DIGEST_FINALIZE_TIMEOUT:-3600}"
 JICM_DIGEST_NOTIFY="${JICM_DIGEST_NOTIFY:-true}"
 JICM_DIGEST_NOTIFY_IDLE="${JICM_DIGEST_NOTIFY_IDLE:-120}"
 JICM_RESUME_SIGNAL_TIMEOUT="${JICM_RESUME_SIGNAL_TIMEOUT:-15}"

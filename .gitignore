@@ -210,3 +210,7 @@ alfred/.claude/scratch/canary-repo/
 # Machine-scoped service probe results, rewritten by jicm-supervisor every ~100s.
 # Pure ephemeral telemetry — the canonical .memory-health.json folds it in on read.
 .claude/context/.memory-health-services.json
+
+# JICM runtime queues (2026-10-10): retry items hold checkpoint SNAPSHOTS; gpu-queue is a live lock
+.claude/context/jicm/retry/
+.claude/context/jicm/signals/gpu-queue/

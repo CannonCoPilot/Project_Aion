@@ -21,6 +21,11 @@
 - `jicm-watcher-hud.sh` — the Watcher CONSOLE (HUD v2), tmux window `aion:7`. Read-only.
 - `jicm-actuate.sh` — per-key actuation cycle (preserve → HALT → prep → `/clear` → restore)
 - `jicm-prep-context.sh` — Two-tier context preparation (Tier 1 bash + Tier 2 LLM)
+- `jicm-gpu-queue.sh` — sourced: ONE post-cycle GPU job at a time across all lanes, priority
+  queue (1 RAG + digest, 2 Graphiti, 3 retries). Jobs wait OUTSIDE their timeouts. 2026-10-10.
+- `jicm-retry-drain.sh` — re-sends post-cycle ingests that failed or never got the GPU (queue at
+  `.claude/context/jicm/retry/`; 3 attempts with backoff, then `dead/` + ALERT). Launched by the
+  watcher's M5 maintenance step; single instance.
 - `retired/` — superseded scripts kept for reference. `jicm-watcher-legacy-retired-2026-08-17.sh`
   is the v7.9 W0-only singleton that used to be called "the watcher"; it is not launched by
   anything. Do not revive it: cycling, MAINTAIN and REST all moved to the daemon above.
