@@ -125,28 +125,10 @@ _now() { date +%s; }
 # Deduped by content hash so a condition that re-fires every poll cannot flood the inbox.
 # Hooking _log rather than each call site means every alert, including ones added later,
 # is delivered by construction.
-ALERT_INBOX_KEY="${JICM_ALERT_INBOX_KEY:-w0}"
-ALERT_DEDUP_SEC="${JICM_ALERT_DEDUP_SEC:-21600}"   # 6h
-_deliver_alert() {
-    local msg="$1" inbox="$PROJECT_DIR/.claude/scripts/aion-inbox.sh"
-    [[ -x "$inbox" || -f "$inbox" ]] || return 0
-    local dir="$JICM_SIGNALS_DIR/alert-delivered"
-    mkdir -p "$dir" 2>/dev/null || return 0
-    # Hash the message with volatile numbers stripped, so "605s behind" and "612s behind"
-    # dedupe as ONE condition instead of re-delivering on every poll.
-    local key; key=$(printf '%s' "$msg" | sed 's/[0-9]\{1,\}//g' | shasum | cut -c1-16)
-    local marker="$dir/$key"
-    if [[ -f "$marker" ]]; then
-        local age=$(( $(_now) - $(stat -f %m "$marker" 2>/dev/null || echo 0) ))
-        [[ "$age" -lt "$ALERT_DEDUP_SEC" ]] && return 0
-    fi
-    # Best-effort and bounded: alert DELIVERY must never be able to wedge the daemon.
-    printf '%s\n\n_(raised by the JICM watcher; deduped for %sh)_\n' "$msg" "$(( ALERT_DEDUP_SEC / 3600 ))" \
-      | ${TIMEOUT_BIN:+"$TIMEOUT_BIN" 20} bash "$inbox" send "$ALERT_INBOX_KEY" \
-          --from watcher --subject "JICM alert" --no-nudge >/dev/null 2>&1 || true
-    : > "$marker"
-    return 0
-}
+# Body moved to jicm-alert.sh (2026-10-12) so the actuator, retry drain and GPU queue deliver
+# their ALERTs too; they had log-only loggers and 40+ GPU-queue ALERTs reached nobody.
+source "$PROJECT_DIR/.claude/scripts/jicm-alert.sh"
+_deliver_alert() { JICM_ALERT_SOURCE="the JICM watcher" jicm_deliver_alert "$1"; }
 
 # Report how a backgrounded R1/R2 ingest ENDED. Without this the ingests were pure
 # fire-and-forget `( … ) &` with no rc check, and `timeout` kills its child WITHOUT

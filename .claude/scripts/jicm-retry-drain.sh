@@ -25,7 +25,11 @@ LOG="${_CALLER_LOG:-${JICM_LOG_FILE:-$PROJECT_DIR/.claude/logs/jicm-watcher.log}
 TIMEOUT_BIN="${JICM_TIMEOUT_BIN:-$(command -v timeout 2>/dev/null || command -v gtimeout 2>/dev/null || true)}"
 export JICM_LOG_FILE="$LOG" JICM_RETRY_DIR="$RETRY_DIR"
 
-_log() { printf '%s [retry-drain] %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$*" >> "$LOG"; }
+source "$SCRIPT_DIR/jicm-alert.sh"
+_log() {
+    printf '%s [retry-drain] %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$*" >> "$LOG"
+    case "$*" in *ALERT*) JICM_ALERT_SOURCE="jicm-retry-drain" jicm_deliver_alert "$*" ;; esac
+}
 
 # ── single instance: mkdir lock + pid token; a dead owner's lock is reaped ──
 LOCK="$RETRY_DIR/.drain.lock"

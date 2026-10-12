@@ -76,7 +76,11 @@ TMUX_BIN="$JICM_TMUX_BIN"
 VENV_PY="$PROJECT_DIR/infrastructure/.venv/bin/python"
 ACT_LOG="$PROJECT_DIR/.claude/logs/jicm-actuate.log"
 
-_log() { printf '%s [%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "${JK_KEY:-?}" "$*" >> "$ACT_LOG"; }
+source "$SCRIPT_DIR/jicm-alert.sh"
+_log() {
+    printf '%s [%s] %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "${JK_KEY:-?}" "$*" >> "$ACT_LOG"
+    case "$*" in *ALERT*) JICM_ALERT_SOURCE="jicm-actuate key=${JK_KEY:-?}" jicm_deliver_alert "$*" ;; esac
+}
 
 # Portable timeout binary. macOS ships neither `timeout` nor `setsid`; Homebrew coreutils
 # supplies `timeout`, MacPorts `gtimeout`. Resolved once, empty if genuinely absent.

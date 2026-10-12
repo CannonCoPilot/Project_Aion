@@ -40,6 +40,7 @@
 # 2026-10-09 19:29 to 2026-10-12 (bash 5 on PATH execs implicitly, so the tests passed).
 # ============================================================================
 
+source "$(dirname "${BASH_SOURCE[0]}")/jicm-alert.sh"
 GPU_Q_DIR="${JICM_GPU_QUEUE_DIR:-${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/context/jicm/signals/gpu-queue}"
 GPU_HOLDER="$GPU_Q_DIR/holder"               # a DIRECTORY: mkdir is the atomic acquire
 GPU_HOLD_TTL="${JICM_GPU_HOLD_TTL:-7200}"    # backstop: a live holder older than this is reaped
@@ -50,6 +51,7 @@ _GPU_MYPID=""
 _gpu_log() {
     local f="${JICM_LOG_FILE:-${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/logs/jicm-actuate.log}"
     printf '%s [gpu-queue] %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$*" >> "$f" 2>/dev/null
+    case "$*" in *ALERT*) JICM_ALERT_SOURCE="jicm-gpu-queue" jicm_deliver_alert "$*" ;; esac
 }
 
 _gpu_self_pid() { exec sh -c 'echo $PPID'; }

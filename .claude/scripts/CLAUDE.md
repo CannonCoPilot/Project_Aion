@@ -26,6 +26,12 @@
 - `jicm-retry-drain.sh` — re-sends post-cycle ingests that failed or never got the GPU (queue at
   `.claude/context/jicm/retry/`; 3 attempts with backoff, then `dead/` + ALERT). Launched by the
   watcher's M5 maintenance step; single instance.
+- `jicm-alert.sh` — sourced: `jicm_deliver_alert`, the ONE delivery path for JICM ALERTs (w0 inbox,
+  `--no-nudge`, 6h dedup). Hooked into the loggers of the watcher, actuator, retry drain and GPU
+  queue. A new JICM logger must hook it too: a log-only ALERT reaches nobody. 2026-10-12.
+- **Restarting the watcher kills its job tree.** `launchctl kickstart -k com.aion.jicm-watcher`
+  SIGTERMs the detached actuators, their post-cycle jobs and the drain, even with parent pid 1.
+  Killed jobs skip their retry-enqueue path. Check `ps` for `jicm-actuate.sh __run` first.
 - `retired/` — superseded scripts kept for reference. `jicm-watcher-legacy-retired-2026-08-17.sh`
   is the v7.9 W0-only singleton that used to be called "the watcher"; it is not launched by
   anything. Do not revive it: cycling, MAINTAIN and REST all moved to the daemon above.
