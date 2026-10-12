@@ -33,7 +33,11 @@
 #     else ...the wait timed out: ALERTed; enqueue a retry or skip...; fi
 #
 # bash 3.2 (macOS): no $BASHPID. Inside `( ) &`, $$ is the PARENT's pid, so every job would
-# look like the same owner. The subshell's own pid comes from `sh -c 'echo $PPID'`.
+# look like the same owner. The subshell's own pid comes from `$(exec sh -c 'echo $PPID')`.
+# The `exec` is load-bearing: bash 3.2 forks a child for $(...) and does NOT exec its last
+# command, so without it $PPID is that throwaway child, dead on return. Each job then stamped
+# its ticket with a dead pid, _gpu_reap_tickets deleted it, and NO job acquired the GPU from
+# 2026-10-09 19:29 to 2026-10-12 (bash 5 on PATH execs implicitly, so the tests passed).
 # ============================================================================
 
 GPU_Q_DIR="${JICM_GPU_QUEUE_DIR:-${PROJECT_DIR:-$HOME/Claude/Project_Aion}/.claude/context/jicm/signals/gpu-queue}"
@@ -48,7 +52,7 @@ _gpu_log() {
     printf '%s [gpu-queue] %s\n' "$(date +%Y-%m-%dT%H:%M:%S%z)" "$*" >> "$f" 2>/dev/null
 }
 
-_gpu_self_pid() { sh -c 'echo $PPID'; }
+_gpu_self_pid() { exec sh -c 'echo $PPID'; }
 
 _gpu_pid_alive() { [[ "$1" =~ ^[0-9]+$ ]] && kill -0 "$1" 2>/dev/null; }
 
@@ -90,6 +94,12 @@ gpu_acquire() {
     local prio="$1" label="$2" max="${3:-3600}" waited=0 seq
     mkdir -p "$GPU_Q_DIR" 2>/dev/null
     _GPU_MYPID="$(_gpu_self_pid)"
+    # A dead self-pid means our own ticket is reaped on the first poll and we can never win.
+    # That starved every lane for 2.5 days once; refuse loudly instead of waiting out $max.
+    if ! _gpu_pid_alive "$_GPU_MYPID"; then
+        _gpu_log "ALERT: '$label' self-pid '${_GPU_MYPID}' is not a live process; queue identity broken, NOT run"
+        _GPU_MYPID=""; return 1
+    fi
     seq="$(printf '%05d' $(( RANDOM % 100000 )))"
     _GPU_TICKET="t.${prio}.$(date +%s).${seq}.${_GPU_MYPID}"
     : > "$GPU_Q_DIR/$_GPU_TICKET"
