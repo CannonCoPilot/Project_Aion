@@ -24,8 +24,11 @@
 # A job WAITS FOR THE GPU OUTSIDE ITS OWN TIMEOUT: acquire first, then run under _bounded.
 # Otherwise queueing alone would kill jobs, which is the failure this replaces.
 #
-# Long batch work (a corpus indexer running for hours) does NOT take this lock: it would
-# hold every lane's memory hostage. Such work still contends; that is known and stated.
+# Long batch work (a corpus indexer running for hours) must NOT take this lock ONCE for the whole
+# run: it would hold every lane's memory hostage. It takes it PER BATCH at prio 3, with a long
+# wait (e.g. 10800s), releasing after each batch, so a cycle's prio-1/2 work slips in between.
+#     for batch in ...; do gpu_acquire 3 "<job> batch $k" 10800 && { ...one batch...; gpu_release; }; done
+# Proven on Fielding's chunk study 2026-10-12 (71 batches; lanes cycling mid-run were served first).
 #
 # USAGE (inside a detached `( ... ) &` subshell):
 #     source "$SCRIPT_DIR/jicm-gpu-queue.sh"
