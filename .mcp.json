@@ -33,7 +33,7 @@
       ],
       "env": {
         "ANNAS_SECRET_KEY": "${ANNAS_SECRET_KEY}",
-        "ANNAS_DOWNLOAD_PATH": "${ANNAS_DOWNLOAD_PATH:-/Users/nathanielcannon/Claude/Staging/incoming/annas-archive}"
+        "ANNAS_DOWNLOAD_PATH": "${ANNAS_DOWNLOAD_PATH:-/Users/nathanielcannon/Claude/Staging/incoming/annas-archive/library}"
       },
       "disabled": false
     },
