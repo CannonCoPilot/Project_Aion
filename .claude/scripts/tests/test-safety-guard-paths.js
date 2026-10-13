@@ -26,11 +26,11 @@ const GUARD = path.resolve(__dirname, '../../hooks/bash-safety-guard.js');
 // blocks anyone who greps this suite, which is the very bug it tests for.
 const D = '.' + 'env';
 
-function decision(toolInput, toolName = 'Bash') {
+function decision(toolInput, toolName = 'Bash', extra = {}) {
   let out = '';
   try {
     out = execSync(`node ${JSON.stringify(GUARD)}`, {
-      input: JSON.stringify({ tool_name: toolName, tool_input: toolInput }),
+      input: JSON.stringify({ tool_name: toolName, tool_input: toolInput, ...extra }),
       encoding: 'utf8', stdio: ['pipe', 'pipe', 'ignore'],
     });
   } catch (e) { out = e.stdout || ''; }
@@ -157,6 +157,44 @@ const nameCases = [
 ];
 
 for (const [name, fp, want] of nameCases) check(name, decision({ file_path: fp }, 'Read'), want);
+
+// PROJECT SCRATCHPADS (2026-10-13). A JICM clear starts a new session with a new scratchpad,
+// and the exemption matched only the CURRENT one, so a multi-session job was denied its own
+// pre-cycle folders. Sibling sessions of the same project are now allowed. Everything else
+// under /private/tmp, including other projects' scratchpads, must still block.
+console.log('\n4. project scratchpads (sibling sessions allowed, the rest of tmp still forbidden)');
+
+const TMPROOT = '/private/tmp/claude-501';
+const PROJ = TMPROOT + '/-Users-x-Claude-Projects-Demo';
+const SP = PROJ + '/sess-now/scratchpad';
+const withSp = (toolInput, toolName = 'Bash') =>
+  decision(toolInput, toolName, { scratchpad_dir: SP });
+
+const spCases = [
+  // ── allowed ──
+  ['current scratchpad (Bash redirect)',  { command: `echo x > ${SP}/a.txt` },               'Bash',  'allow'],
+  ['current scratchpad via /tmp alias',   { command: `echo x > ${SP.replace('/private', '')}/a.txt` }, 'Bash', 'allow'],
+  ['prior session, same project',         { command: `echo x > ${PROJ}/sess-old/scratchpad/r/a.txt` }, 'Bash', 'allow'],
+  ['prior session, Write tool',           { file_path: `${PROJ}/sess-old/scratchpad/a.json` }, 'Write', 'allow'],
+  // ── still forbidden ──
+  ['other project scratchpad',            { command: `echo x > ${TMPROOT}/-Users-x-Other/s/scratchpad/a` }, 'Bash', 'deny'],
+  ['project root itself',                 { command: `echo x > ${PROJ}/a.txt` },               'Bash',  'deny'],
+  ['session dir, not its scratchpad',     { command: `echo x > ${PROJ}/sess-old/a.txt` },      'Bash',  'deny'],
+  ['lookalike segment scratchpadX',       { command: `echo x > ${PROJ}/sess-old/scratchpadX/a` }, 'Bash', 'deny'],
+  ['dotdot escape from scratchpad',       { command: `echo x > ${SP}/../../../../etc-ish` },   'Bash',  'deny'],
+  ['plain /tmp',                          { command: 'echo x > /tmp/a.txt' },                  'Bash',  'deny'],
+  // ── cleanup: rm must follow the same boundary as writes ──
+  ['rm own scratch file',                 { command: `rm -f ${SP}/a.txt` },                    'Bash',  'allow'],
+  ['rm -rf prior session reader dir',     { command: `rm -rf ${PROJ}/sess-old/scratchpad/r` }, 'Bash',  'allow'],
+  ['rm -rf the whole claude tmp root',    { command: `rm -rf ${TMPROOT}` },                    'Bash',  'deny'],
+  ['rm -rf other project scratchpad',     { command: `rm -rf ${TMPROOT}/-Users-x-Other/s/scratchpad` }, 'Bash', 'deny'],
+  ['rm -rf /private/var',                 { command: 'rm -rf /private/var/db' },               'Bash',  'deny'],
+  ['rm -rf /private/tmp itself',          { command: 'rm -rf /private/tmp' },                  'Bash',  'deny'],
+];
+for (const [name, input, tool, want] of spCases) check(name, withSp(input, tool), want);
+// With no scratchpad_dir in the payload there is nothing to derive from: prior sessions block.
+check('no payload dir: prior session blocks',
+  decision({ command: `echo x > ${PROJ}/sess-old/scratchpad/a.txt` }), 'deny');
 
 console.log(`\nPASS=${P} FAIL=${F}`);
 process.exit(F === 0 ? 0 : 1);

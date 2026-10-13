@@ -344,8 +344,12 @@ function checkCredentials(tool, parameters) {
 // DANGEROUS OPERATION GUARD — Patterns & Functions
 // ============================================================
 
+// `Delete system root` lets /tmp and /private/tmp through to isForbiddenPath(), which denies
+// all of it except this project's scratchpads. /private/tmp is the real path of /tmp on
+// macOS and is what the harness hands every session; without it a session could write its
+// scratch files but not clean them up.
 const BLOCK_OPS = [
-  { name: 'Delete system root', pattern: /rm\s+(-[rfRvfi]+\s+)*\/(?!Users|home|tmp)/, message: 'Attempting to delete system root directories' },
+  { name: 'Delete system root', pattern: /rm\s+(-[rfRvfi]+\s+)*\/(?!Users|home|tmp|private\/tmp\/)/, message: 'Attempting to delete system root directories' },
   { name: 'Delete entire home', pattern: /rm\s+(-[rfRvfi]+\s+)*~\/?$/, message: 'Attempting to delete entire home directory' },
   { name: 'Sudo recursive delete', pattern: /sudo\s+rm\s+(-[rfRvfi]+\s+)*(\/|~)/, message: 'Sudo recursive delete on root or home' },
   { name: 'Format filesystem', pattern: /mkfs(\.[a-z0-9]+)?\s+/i, message: 'Filesystem format command detected' },
@@ -483,6 +487,40 @@ function isBaselinePath(targetPath) {
 // threading it through every call site.
 const SESSION_SCRATCHPAD = { path: null };
 
+// macOS aliases /tmp to /private/tmp. path.resolve() does not follow symlinks, so a command
+// spelling `/tmp/claude-501/...` would miss a payload that says `/private/tmp/...`.
+function canonTmp(p) {
+  return p === '/tmp' || p.startsWith('/tmp/') ? '/private' + p : p;
+}
+
+// Is `resolved` inside a scratchpad of THIS project, from this session or an earlier one?
+//
+// The harness lays scratchpads out as <tmp>/claude-<uid>/<project-slug>/<session>/scratchpad,
+// and a JICM clear starts a NEW session, so the payload names a NEW directory after every
+// cycle. An exact-prefix match on the current dir alone therefore blocked every multi-session
+// job at its first cycle: Fielding's census readers had folders under the pre-cycle session's
+// scratchpad, and the post-cycle session was denied "Forbidden system path" on its own work.
+// Reproduced 2026-10-13 from this lane: same write, current session allowed, prior one denied.
+//
+// The widening is to sibling sessions of the same project slug ONLY, derived from the payload
+// path rather than guessed. Other projects' scratchpads and the rest of /private/tmp stay
+// forbidden. Jobs that must outlive the machine's tmp sweep belong in ~/Claude/Staging or a
+// project `.claude/scratch/`, which are under /Users and never reach this check.
+function isProjectScratchpad(resolved) {
+  const own = SESSION_SCRATCHPAD.path;
+  if (!own) return false;
+  const target = canonTmp(resolved);
+  const current = canonTmp(own);
+  if (target === current || target.startsWith(current + '/')) return true;
+  if (path.basename(current) !== 'scratchpad') return false;
+  const projectRoot = path.dirname(path.dirname(current));
+  if (!target.startsWith(projectRoot + '/')) return false;
+  // Exactly <session>/scratchpad below the project root, then anything. One segment for the
+  // session id, so `..`-free resolved paths cannot reach the project root itself.
+  const rest = target.slice(projectRoot.length + 1).split('/');
+  return rest.length >= 2 && rest[0] !== '' && rest[1] === 'scratchpad';
+}
+
 // Character devices that are WRITE SINKS, not filesystem locations. `2>/dev/null` appears
 // in a large share of ordinary shell commands, and `/dev/null` is not under /Users, so the
 // catch-all rule below classified it as a forbidden system path and denied the command.
@@ -504,13 +542,10 @@ function isForbiddenPath(targetPath) {
   if (!cleaned) return false;
   const resolved = path.resolve(cleaned);
   if (WRITE_SINKS.has(resolved)) return false;
-  // Sanctioned session scratchpad wins over the outside-/Users rule. Exact-prefix match on
-  // the payload-supplied directory only — never a blanket /tmp or /private/tmp exemption,
+  // Sanctioned project scratchpads win over the outside-/Users rule. Derived from the
+  // payload-supplied directory only — never a blanket /tmp or /private/tmp exemption,
   // which would re-open the system temp dirs the Filesystem Policy forbids.
-  if (SESSION_SCRATCHPAD.path &&
-      (resolved === SESSION_SCRATCHPAD.path || resolved.startsWith(SESSION_SCRATCHPAD.path + '/'))) {
-    return false;
-  }
+  if (isProjectScratchpad(resolved)) return false;
   for (const forbidden of FORBIDDEN_PATHS) {
     if (resolved === forbidden) return true;
     if (forbidden === '/' && !resolved.startsWith('/Users')) return true;
