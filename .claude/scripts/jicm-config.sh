@@ -671,9 +671,11 @@ JICM_PROTOS_BASELINE_TOKENS="${JICM_PROTOS_BASELINE_TOKENS:-98771}"
 jicm_key_thresholds() {                      # <key>
     case "${1:-}" in
         protos|protos-bg-*)
-            # baseline + working headroom (~41K soft / ~61K hard).
-            [[ "$_JICM_SOFT_FROM_ENV" == "1" ]] || JICM_SOFT_TOKENS="${JICM_PROTOS_SOFT_TOKENS:-140000}"
-            [[ "$_JICM_HARD_FROM_ENV" == "1" ]] || JICM_HARD_TOKENS="${JICM_PROTOS_HARD_TOKENS:-160000}"
+            # 2026-10-13 (Sir): raised 140K/160K -> 550K/600K, the Archon default band. At 160K
+            # Protos crossed hard within minutes of each reset and the watcher armed three
+            # actuators for it in five minutes (15:08-15:13). Floor guard below still applies.
+            [[ "$_JICM_SOFT_FROM_ENV" == "1" ]] || JICM_SOFT_TOKENS="${JICM_PROTOS_SOFT_TOKENS:-550000}"
+            [[ "$_JICM_HARD_FROM_ENV" == "1" ]] || JICM_HARD_TOKENS="${JICM_PROTOS_HARD_TOKENS:-600000}"
             # FLOOR GUARD — a threshold at or below the session's unavoidable baseline is not a
             # tight threshold, it is an infinite reset loop, and it would present as "JICM is
             # cycling Protos constantly" rather than as a config error. Refuse it and say so.
