@@ -67,8 +67,12 @@ JICM_DIGEST_BLOCKING="${JICM_DIGEST_BLOCKING:-false}"
 # 1200 -> 3600 (2026-10-10): the digest now QUEUES for the GPU (jicm-gpu-queue.sh) and can wait
 # behind another lane's post-cycle work, so its window must cover queue time as well as run time.
 JICM_DIGEST_FINALIZE_TIMEOUT="${JICM_DIGEST_FINALIZE_TIMEOUT:-3600}"
-JICM_DIGEST_NOTIFY="${JICM_DIGEST_NOTIFY:-true}"
-JICM_DIGEST_NOTIFY_IDLE="${JICM_DIGEST_NOTIFY_IDLE:-120}"
+# How the successor learns a late digest exists (2026-10-13, Sir: "turn off the digest ping").
+#   next-turn  one line of additionalContext on its next real prompt (jicm-gate.sh). Default.
+#   pane       the old ping: Ctrl+U, then a typed user turn. Can erase the User's draft.
+#   off        nothing; the digest is still folded into the checkpoint.
+JICM_DIGEST_NOTIFY="${JICM_DIGEST_NOTIFY:-next-turn}"
+JICM_DIGEST_NOTIFY_IDLE="${JICM_DIGEST_NOTIFY_IDLE:-120}"     # pane mode only
 JICM_RESUME_SIGNAL_TIMEOUT="${JICM_RESUME_SIGNAL_TIMEOUT:-15}"
 
 # Session-digest shipping config — ONE definition, shared by the pre-warm (jicm-prewarm.sh) and

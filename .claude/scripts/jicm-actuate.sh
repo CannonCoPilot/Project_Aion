@@ -639,14 +639,36 @@ _step_digest_finalize() {   # 3.5b — fold the ASYNC digest once it lands, afte
     [[ -n "$live" && "$live" != "null" && -f "$live" && "$live" != "$TRANSCRIPT" ]] || {
         _log "3.5b digest ready but the successor's transcript is not resolvable yet — not injecting; it is in the checkpoint and at $JD_OUT"
         return 0; }
-    if [[ "${JICM_DIGEST_NOTIFY:-true}" == "true" ]] && _wait_for_idle "$live" "${JICM_DIGEST_NOTIFY_IDLE:-120}"; then
-        _inject clear-input; sleep 0.3
-        _inject text "Session history digest for ${JD_SID:0:8} is now available at $JD_OUT (it was still generating when you resumed). Read it if you need what the previous session actually did."
-        sleep 0.5; _inject submit
-        _log "3.5b successor notified of the late digest"
-    else
-        _log "3.5b digest ready but successor busy — not injecting; it is in the checkpoint and at $JD_OUT"
-    fi
+    # DELIVERY (2026-10-13, Sir). The default is NEXT-TURN: leave a one-shot marker that
+    # jicm-gate.sh turns into one line of additionalContext on the successor's next real
+    # prompt. It never types into the pane. The old PANE path typed a whole user turn after a
+    # Ctrl+U, and its idle test (last assistant end_turn) says nothing about the input box,
+    # so it could erase a draft the User was typing. It also cost the lane a turn: 57 of 79
+    # pings were followed by a digest read. Kept only as an explicit opt-in.
+    case "${JICM_DIGEST_NOTIFY:-next-turn}" in
+        next-turn|true)   # "true" was the old on-switch; it means notify, so next-turn
+            local succ marker="$JICM_SIGNALS_DIR/digest-ready.$JK_KEY"
+            succ="$(_reg '.session_id')"
+            if [[ -n "$succ" && "$succ" != "null" ]] && jq -n --arg s "$succ" --arg d "$JD_SID" \
+                    --arg p "$JD_OUT" --argjson w "${words:-0}" --argjson t "$waited" \
+                    '{for_session:$s, digest_sid:$d, path:$p, words:$w, waited_s:$t}' > "$marker.tmp.$$" \
+                    && mv "$marker.tmp.$$" "$marker"; then
+                _log "3.5b digest ready: next-turn notice queued for ${succ:0:8} ($marker)"
+            else
+                rm -f "$marker.tmp.$$"
+                _log "3.5b ALERT: could not queue the next-turn digest notice; it is in the checkpoint and at $JD_OUT"
+            fi ;;
+        pane)
+            if _wait_for_idle "$live" "${JICM_DIGEST_NOTIFY_IDLE:-120}"; then
+                _inject clear-input; sleep 0.3
+                _inject text "Session history digest for ${JD_SID:0:8} is now available at $JD_OUT (it was still generating when you resumed). Read it if you need what the previous session actually did."
+                sleep 0.5; _inject submit
+                _log "3.5b successor notified of the late digest (pane)"
+            else
+                _log "3.5b digest ready but successor busy — not injecting; it is in the checkpoint and at $JD_OUT"
+            fi ;;
+        *)  _log "3.5b digest ready; notice off (JICM_DIGEST_NOTIFY=${JICM_DIGEST_NOTIFY}); it is in the checkpoint and at $JD_OUT" ;;
+    esac
     return 0
 }
 

@@ -518,7 +518,33 @@ if [[ "$LOG_SIZE" -gt 102400 ]]; then
     mv "$LOG_FILE" "${LOG_FILE}.1" 2>/dev/null
 fi
 
+# ─── Late-digest notice (the ONE additionalContext this hook emits) ─────────
+# 2026-10-13 (Sir): the async digest (jicm-actuate.sh 3.5b) used to TYPE a user turn into the
+# successor's pane, after a Ctrl+U that could erase the User's draft. It now leaves a one-shot
+# marker, and this hook turns it into one line of context on the successor's next REAL prompt:
+# no extra turn, no pane input. Only for the session the marker names; a marker for another
+# session is left alone, and dropped (logged) after 6h, because the digest is already folded
+# into the checkpoint either way. Consumed with mv, so it is delivered at most once.
+_DIGEST_NOTE=""
+_dmark="$JICM_SIGNALS_DIR/digest-ready.$JICM_KEY"
+if [[ "$EVENT" == "UserPromptSubmit" && -f "$_dmark" ]]; then
+    if [[ "$(jq -r '.for_session // ""' "$_dmark" 2>/dev/null)" == "$SESSION_ID" ]] \
+            && mv "$_dmark" "$_dmark.consumed.$$" 2>/dev/null; then
+        _DIGEST_NOTE="$(jq -r '"JICM: the session-history digest for the previous session (\(.digest_sid[0:8])) finished \(.waited_s)s after you resumed and was appended to your checkpoint. File: \(.path). It is a machine summary, less reliable than your checkpoint, scratchpad and git; read it only if you need something they lack. No reply needed."' "$_dmark.consumed.$$" 2>/dev/null)"
+        rm -f "$_dmark.consumed.$$"
+        echo "$NOW_ISO | DIGEST-NOTICE | key=$JICM_KEY | delivered on next turn to ${SESSION_ID:0:8}" >> "$LOG_FILE"
+    elif [[ -n "$(find "$_dmark" -mmin +360 2>/dev/null)" ]]; then
+        rm -f "$_dmark"
+        echo "$NOW_ISO | DIGEST-NOTICE | key=$JICM_KEY | dropped stale marker (>6h, other session); digest is in the checkpoint" >> "$LOG_FILE"
+    fi
+fi
+if [[ -n "$_DIGEST_NOTE" ]]; then
+    jq -cn --arg c "$_DIGEST_NOTE" '{hookSpecificOutput:{hookEventName:"UserPromptSubmit",additionalContext:$c}}'
+    exit 0
+fi
+
 # ─── Always pass through ─────────────────────────────────────────────────────
-# Per v7.9 spec: hook ONLY updates state. NO additionalContext, NO decision:block.
+# Per v7.9 spec: hook ONLY updates state. NO decision:block. The late-digest notice above is
+# the single exception to "no additionalContext".
 # Actuation belongs to the legacy watcher, triggered by jicm-stop.sh writing .jicm-clear-now.signal.
 _passthrough
