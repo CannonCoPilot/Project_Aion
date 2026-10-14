@@ -359,16 +359,9 @@ async def ingest(
     except Exception:
         pass  # Collection might not have indexed payloads yet
 
-    # Delete old vectors for this file (re-index scenario)
-    try:
-        qdrant.delete(
-            collection_name=collection,
-            points_selector=Filter(
-                must=[FieldCondition(key="source", match=MatchValue(value=file_path))]
-            ),
-        )
-    except Exception:
-        pass
+    # The old version of this file is retired only AFTER the new one is written (below). Deleting
+    # first meant a failed embed (embedder down) left the file with NO vectors at all; that is how
+    # fleming-sessions went 121 -> 0 on 2026-10-13 via the same pattern in jicm-auto-ingest.py.
 
     # Chunk and embed
     chunks = chunk_text(text)
@@ -398,6 +391,15 @@ async def ingest(
         for batch_start in range(0, len(points), batch_size):
             batch = points[batch_start : batch_start + batch_size]
             qdrant.upsert(collection_name=collection, points=batch)
+
+        # Re-index: retire the previous version (any other file_hash) now the new one is in.
+        qdrant.delete(
+            collection_name=collection,
+            points_selector=Filter(
+                must=[FieldCondition(key="source", match=MatchValue(value=file_path))],
+                must_not=[FieldCondition(key="file_hash", match=MatchValue(value=file_hash))],
+            ),
+        )
 
     return {
         "status": "ingested",

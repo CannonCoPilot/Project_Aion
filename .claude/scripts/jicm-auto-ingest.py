@@ -133,25 +133,19 @@ def ingest_checkpoint(qdrant: QdrantClient, text: str, file_path: str):
     session_id = os.environ.get("JICM_SESSION_ID", "unknown")
     timestamp = datetime.now(timezone.utc).isoformat()
 
-    # Delete old vectors for this source (re-ingest scenario)
-    try:
-        qdrant.delete(
-            collection_name=COLLECTION,
-            points_selector=Filter(
-                must=[FieldCondition(key="source", match=MatchValue(value=file_path))]
-            ),
-        )
-    except Exception:
-        pass
-
+    # ORDER IS THE SAFETY (2026-10-14): embed EVERY chunk, upsert the new version, and only then
+    # delete this source's OLD version (other file_hash). This used to delete first and skip
+    # chunks whose embed failed: with :8000 down on 2026-10-13 that erased fleming-sessions
+    # (121 -> 0) and 95 fielding-sessions points, logged a WARN per chunk, and exited 0, so the
+    # retry queue never saw it. Now any embed failure raises before anything is written; the
+    # previous version stays searchable and main() exits non-zero for jicm-retry-drain.sh.
     chunks = chunk_text(text)
     points = []
     for i, chunk in enumerate(chunks):
         try:
             embedding = get_embedding(chunk)
         except Exception as e:
-            log(f"WARN: embedding failed for chunk {i} ({e}) — skipping")
-            continue
+            raise RuntimeError(f"embedding failed for chunk {i}/{len(chunks)} ({e}); nothing written, old version kept") from e
         point_id = abs(hash(f"{file_path}:{i}:{file_hash}")) % (2**63)
         points.append(
             PointStruct(
@@ -177,6 +171,15 @@ def ingest_checkpoint(qdrant: QdrantClient, text: str, file_path: str):
         for batch_start in range(0, len(points), batch_size):
             batch = points[batch_start:batch_start + batch_size]
             qdrant.upsert(collection_name=COLLECTION, points=batch)
+
+        # Only now retire the previous version of this source.
+        qdrant.delete(
+            collection_name=COLLECTION,
+            points_selector=Filter(
+                must=[FieldCondition(key="source", match=MatchValue(value=file_path))],
+                must_not=[FieldCondition(key="file_hash", match=MatchValue(value=file_hash))],
+            ),
+        )
 
     return len(points)
 
@@ -215,7 +218,7 @@ def main():
             f"elapsed={elapsed:.1f}s)")
     except Exception as e:
         log(f"ERROR: ingest failed ({e})")
-        return
+        sys.exit(1)   # non-zero, so the retry drain re-sends it (a return here reported success)
 
     # Write metadata for observability
     metadata = {
