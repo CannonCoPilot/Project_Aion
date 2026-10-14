@@ -2861,16 +2861,41 @@ async def usage_window_transitions():
 
 
 @app.get("/api/v1/usage/burn-rate-curve")
-async def usage_burn_rate_curve():
+async def usage_burn_rate_curve(
+    windows: int = Query(30, ge=1, le=5000),
+    bucket: Optional[str] = Query(None, pattern="^minute$"),
+):
     """Utilization % over time within each 5h window.
 
     Returns per-request utilization snapshots grouped by window, with elapsed
     seconds from window start. Enables overlaying multiple windows on the same
     0-5h x-axis to compare consumption patterns.
+
+    BOUNDED (2026-10-14). This used to return EVERY window since April on every 10s poll:
+    412 windows, 164k points, 17.6 MB, and the Usage page drew at most 30 of them. The page
+    crashed (Chrome "Error code: 5", renderer out of memory). Now:
+      windows   the most recent N windows (default 30 = the page's slider maximum);
+                total_windows still counts ALL windows, so "last 30 of 412" stays true.
+      bucket    'minute' keeps the last point per elapsed minute (<= 300 per window) for
+                DRAWING. Each window also carries `fit` (sum x*y, sum x*x, n) and
+                `max_util` computed from EVERY raw point, so a through-origin regression
+                or a y-axis cap built from them is identical to one over the raw points.
     """
     async with pool.acquire() as conn:
+        total_windows = await conn.fetchval(f"""
+            SELECT COUNT(DISTINCT unified_5h_reset) FROM api_requests
+            WHERE unified_5h_reset IS NOT NULL AND unified_5h_utilization IS NOT NULL
+              AND {PROXY_ONLY}
+        """)
         rows = await conn.fetch(f"""
-            WITH windowed AS (
+            WITH recent AS (
+                SELECT DISTINCT unified_5h_reset FROM api_requests
+                WHERE unified_5h_reset IS NOT NULL AND unified_5h_utilization IS NOT NULL
+                  AND {PROXY_ONLY}
+                ORDER BY unified_5h_reset DESC
+                LIMIT $1
+            ),
+            windowed AS (
                 SELECT
                     unified_5h_reset,
                     timestamp,
@@ -2882,7 +2907,7 @@ async def usage_burn_rate_curve():
                     ROW_NUMBER() OVER (PARTITION BY unified_5h_reset ORDER BY id) AS seq,
                     (unified_5h_reset - INTERVAL '5 hours') AS window_open
                 FROM api_requests
-                WHERE unified_5h_reset IS NOT NULL
+                WHERE unified_5h_reset IN (SELECT unified_5h_reset FROM recent)
                   AND unified_5h_utilization IS NOT NULL
                   AND {PROXY_ONLY}
             )
@@ -2897,23 +2922,31 @@ async def usage_burn_rate_curve():
                 EXTRACT(DOW FROM window_open) AS day_of_week
             FROM windowed
             ORDER BY unified_5h_reset, seq
-        """)
+        """, windows)
 
-    windows: dict = {}
+    out: dict = {}
     day_names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     for r in rows:
         key = r["unified_5h_reset"].isoformat()
-        if key not in windows:
+        if key not in out:
             window_open = r["unified_5h_reset"] - timedelta(hours=5)
-            windows[key] = {
+            out[key] = {
                 "window_reset": key,
                 "window_open": window_open.isoformat(),
                 "first_observed_util": r["util"],
                 "day_of_week": int(r["day_of_week"]),
                 "day_name": day_names[int(r["day_of_week"])],
                 "points": [],
+                "fit": {"sxy": 0.0, "sxx": 0.0, "n": 0},
+                "max_util": 0.0,
             }
-        windows[key]["points"].append({
+        w = out[key]
+        x, y = r["elapsed_seconds"] / 3600, r["util"] * 100
+        w["fit"]["sxy"] += x * y
+        w["fit"]["sxx"] += x * x
+        w["fit"]["n"] += 1
+        w["max_util"] = max(w["max_util"], r["util"])
+        w["points"].append({
             "elapsed_seconds": r["elapsed_seconds"],
             "utilization": r["util"],
             "cumulative_tokens": r["cum_tokens"],
@@ -2921,9 +2954,21 @@ async def usage_burn_rate_curve():
             "model": r["model"],
         })
 
+    if bucket == "minute":
+        for w in out.values():
+            pts = w["points"]
+            keep: dict = {}
+            for p in pts:                          # rows are in seq order: last write wins
+                keep[p["elapsed_seconds"] // 60] = p
+            thinned = list(keep.values())
+            if pts and thinned[0] is not pts[0]:   # always keep the window's first point
+                thinned.insert(0, pts[0])
+            w["points_raw"] = len(pts)
+            w["points"] = thinned
+
     return {
-        "windows": list(windows.values()),
-        "total_windows": len(windows),
+        "windows": list(out.values()),
+        "total_windows": total_windows or 0,
     }
 
 
@@ -2933,47 +2978,64 @@ async def usage_burn_rate_curve():
 
 
 @app.get("/api/v1/usage/cache-effectiveness")
-async def usage_cache_effectiveness():
+async def usage_cache_effectiveness(hours: float = Query(168, gt=0, le=24 * 3650)):
     """Cache hit ratio over time.
 
     cache_read_tokens are 10x cheaper than input_tokens and do NOT count toward
     ITPM rate limits. A high cache ratio means we're saving both money and budget.
     Returns per-request and rolling averages.
+
+    BOUNDED (2026-10-14). This used to return every proxied request since April on every
+    10s poll (168k points, 31 MB) and compute the rolling average with a Python loop over
+    all of them (~2s). The Usage page filtered to its slider (1-168h) after downloading
+    everything, and crashed. Now `points` covers the last `hours` (default 168 = the
+    slider maximum). The LIFETIME totals and the 10-request rolling average are computed
+    in SQL over ALL rows, so every value is the same as before; only the span sent shrinks.
     """
     async with pool.acquire() as conn:
-        rows = await conn.fetch(f"""
-            SELECT
-                timestamp,
-                model,
-                input_tokens,
-                cache_read_tokens,
-                cache_write_tokens,
-                CASE WHEN (input_tokens + cache_read_tokens) > 0
-                    THEN cache_read_tokens::float /
-                         (input_tokens + cache_read_tokens)
-                    ELSE 0
-                END AS cache_hit_ratio,
-                unified_5h_reset
-            FROM api_requests
-            WHERE {PROXY_ONLY}
-            ORDER BY timestamp ASC
+        tot = await conn.fetchrow(f"""
+            SELECT COUNT(*) AS n,
+                   COALESCE(SUM(input_tokens), 0)::bigint       AS inp,
+                   COALESCE(SUM(cache_read_tokens), 0)::bigint  AS rd,
+                   COALESCE(SUM(cache_write_tokens), 0)::bigint AS wr
+            FROM api_requests WHERE {PROXY_ONLY}
         """)
+        rows = await conn.fetch(f"""
+            WITH r AS (
+                SELECT
+                    id,
+                    timestamp,
+                    model,
+                    input_tokens,
+                    cache_read_tokens,
+                    cache_write_tokens,
+                    CASE WHEN (input_tokens + cache_read_tokens) > 0
+                        THEN cache_read_tokens::float /
+                             (input_tokens + cache_read_tokens)
+                        ELSE 0
+                    END AS cache_hit_ratio,
+                    SUM(COALESCE(input_tokens, 0))      OVER w AS win_input,
+                    SUM(COALESCE(cache_read_tokens, 0)) OVER w AS win_cache
+                FROM api_requests
+                WHERE {PROXY_ONLY}
+                WINDOW w AS (ORDER BY timestamp, id ROWS BETWEEN 9 PRECEDING AND CURRENT ROW)
+            )
+            SELECT * FROM r
+            WHERE timestamp >= now() - make_interval(secs => $1)
+            ORDER BY timestamp, id
+        """, hours * 3600)
 
-    if not rows:
+    if not tot["n"]:
         return {"status": "no_proxy_data", "message": "No proxy-captured requests."}
 
-    total_input = sum(r["input_tokens"] or 0 for r in rows)
-    total_cache_read = sum(r["cache_read_tokens"] or 0 for r in rows)
-    total_cache_write = sum(r["cache_write_tokens"] or 0 for r in rows)
+    total_input = tot["inp"]
+    total_cache_read = tot["rd"]
+    total_cache_write = tot["wr"]
     overall_ratio = total_cache_read / max(total_input + total_cache_read, 1)
 
     points = []
-    window_size = 10
-    for i, r in enumerate(rows):
-        window_start = max(0, i - window_size + 1)
-        window_input = sum(rows[j]["input_tokens"] or 0 for j in range(window_start, i + 1))
-        window_cache = sum(rows[j]["cache_read_tokens"] or 0 for j in range(window_start, i + 1))
-        rolling = window_cache / max(window_input + window_cache, 1)
+    for r in rows:
+        rolling = r["win_cache"] / max(r["win_input"] + r["win_cache"], 1)
 
         points.append({
             "timestamp": r["timestamp"].isoformat(),
@@ -2991,7 +3053,8 @@ async def usage_cache_effectiveness():
         "total_cache_read_tokens": total_cache_read,
         "total_cache_write_tokens": total_cache_write,
         "estimated_savings_factor": round(1 / max(1 - overall_ratio * 0.9, 0.1), 2),
-        "request_count": len(rows),
+        "request_count": tot["n"],          # lifetime, as before (NOT len(points))
+        "points_hours": hours,
         "points": points,
     }
 
@@ -3021,8 +3084,7 @@ async def usage_rejection_events():
                 unified_5h_reset,
                 retry_after_secs,
                 EXTRACT(DOW FROM timestamp) AS day_of_week,
-                EXTRACT(HOUR FROM timestamp) AS hour_of_day,
-                raw_headers
+                EXTRACT(HOUR FROM timestamp) AS hour_of_day
             FROM api_requests
             WHERE source = 'proxy' AND http_status = 429
             ORDER BY timestamp ASC

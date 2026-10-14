@@ -5,7 +5,7 @@
  * "Session" = Anthropic's 5h rolling window, NOT a Claude Code session.
  */
 
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { get } from './client';
 
 // ── Types ──
@@ -196,6 +196,13 @@ export interface BurnRateWindow {
   day_of_week: number;
   day_name: string;
   points: BurnRatePoint[];
+  /** Exact through-origin fit sums over EVERY raw point (x = elapsed h, y = util %),
+   *  so a regression is unchanged when `points` is thinned for drawing. */
+  fit?: { sxy: number; sxx: number; n: number };
+  /** Highest raw utilization in the window (0-1). */
+  max_util?: number;
+  /** Raw point count before per-minute thinning (present when bucketed). */
+  points_raw?: number;
 }
 
 export interface BurnRateCurve {
@@ -335,21 +342,27 @@ export function useWindowTransitions() {
   });
 }
 
+// The two hooks below used to pull ALL history every 10s (17.6 MB + 31 MB, growing with
+// every request) and crashed the tab (Chrome "Error code: 5", renderer out of memory).
+// They now ask Pulse for what the page draws: the last 30 windows thinned to one point per
+// minute (exact fit sums ride along), and only the cache slider's hours. 30s is plenty for
+// 5h windows; the live gauges keep their own 5s hooks.
 export function useBurnRateCurve() {
   return useQuery<BurnRateCurve>({
-    queryKey: ['usage', 'burn-rate-curve'],
-    queryFn: () => get('/usage/burn-rate-curve'),
-    refetchInterval: 10_000,
-    staleTime: 5_000,
+    queryKey: ['usage', 'burn-rate-curve', 'minute'],
+    queryFn: () => get('/usage/burn-rate-curve', { windows: '30', bucket: 'minute' }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
   });
 }
 
-export function useCacheEffectiveness() {
+export function useCacheEffectiveness(hours: number) {
   return useQuery<CacheEffectiveness>({
-    queryKey: ['usage', 'cache-effectiveness'],
-    queryFn: () => get('/usage/cache-effectiveness'),
-    refetchInterval: 10_000,
-    staleTime: 5_000,
+    queryKey: ['usage', 'cache-effectiveness', hours],
+    queryFn: () => get('/usage/cache-effectiveness', { hours: String(hours) }),
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+    placeholderData: keepPreviousData,   // keep the chart up while a slider change refetches
   });
 }
 

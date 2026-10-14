@@ -339,9 +339,14 @@ function TimePanel() {
   // Through-origin linear regression for current-window trendline: y = slope * x.
   // Y-intercept fixed at 0% — every window starts at 0% utilization at hour 0.
   // Closed-form: slope = Σ(xy) / Σ(x²). Matches BurnRatePanel regression.
+  // Prefer Pulse's exact fit sums over EVERY raw point: `points` is thinned to one per
+  // minute for drawing, and a fit over the thinned points would re-weight the window.
+  // The synthetic (0,0) anchor adds nothing to either sum, so the two paths agree.
   let curveSlope = 0;
   const curveIntercept = 0;
-  if (regressionInput.length >= 1) {
+  if (currentWindow?.fit && currentWindow.fit.sxx > 0) {
+    curveSlope = currentWindow.fit.sxy / currentWindow.fit.sxx;
+  } else if (regressionInput.length >= 1) {
     let sumXY = 0, sumXX = 0;
     for (const p of regressionInput) {
       sumXY += p.elapsed_h * p.utilization;
@@ -1979,11 +1984,13 @@ function BurnRatePanel() {
   // slice(-count) silently returns the full array if count > length;
   // accumulating data degrades gracefully without explicit clamping.
   const windows = allWindows.slice(-count);
-  const showingAll = windows.length === allWindows.length;
+  // Pulse sends only the most recent 30 windows; total_windows counts them all.
+  const totalWindows = Math.max(data?.total_windows ?? 0, allWindows.length);
+  const showingAll = windows.length === totalWindows;
 
   // Linear least-squares regression across all visible (elapsed_h, util%) points.
   // Recomputes naturally on every render — slider change OR live data refetch
-  // (useBurnRateCurve refetches every 10s) both flow through windows[].
+  // (useBurnRateCurve refetches every 30s) both flow through windows[].
   const allPoints: Array<{ x: number; y: number }> = [];
   for (const w of windows) {
     for (const p of w.points) {
@@ -1996,8 +2003,18 @@ function BurnRatePanel() {
   // Through-origin linear regression: y = slope * x. Y-intercept is fixed at 0%
   // because utilization is always 0% at hour 0 of any window — physical constraint.
   // Closed-form solution for slope when intercept = 0: slope = Σ(xy) / Σ(x²).
+  // Exact path: Pulse's per-window fit sums cover EVERY raw point, while w.points is thinned
+  // to one per minute for drawing. Summing them gives the same slope as the raw points.
   let slope = 0;
-  if (allPoints.length >= 1) {
+  if (windows.every((w) => w.fit)) {
+    let sumXY = 0;
+    let sumXX = 0;
+    for (const w of windows) {
+      sumXY += w.fit!.sxy;
+      sumXX += w.fit!.sxx;
+    }
+    if (sumXX > 0) slope = sumXY / sumXX;
+  } else if (allPoints.length >= 1) {
     let sumXY = 0;
     let sumXX = 0;
     for (const p of allPoints) {
@@ -2021,6 +2038,10 @@ function BurnRatePanel() {
   // — it must never push the cap higher. The best-fit line is also excluded.
   let maxYAcrossWindows = 0;
   for (const w of windows) {
+    if (w.max_util != null) {
+      maxYAcrossWindows = Math.max(maxYAcrossWindows, w.max_util * 100);   // raw max, not thinned
+      continue;
+    }
     for (const p of w.points) {
       const yPct = p.utilization * 100;
       if (yPct > maxYAcrossWindows) maxYAcrossWindows = yPct;
@@ -2041,7 +2062,7 @@ function BurnRatePanel() {
         <span className="text-xs text-muted">
           {showingAll
             ? `${windows.length} windows`
-            : `last ${windows.length} of ${allWindows.length}`}
+            : `last ${windows.length} of ${totalWindows}`}
         </span>
       </div>
       <div className="text-[10px] text-faint mb-3">
@@ -2226,10 +2247,21 @@ function formatHoursLabel(h: number): string {
   return `${h}h`;
 }
 
+// The slider moves 1h at a time while dragged; one query per value would cache up to 168
+// copies of several MB each. Fetch the smallest TIER covering the slider instead (at most
+// four cached responses), and trim to the exact hour below.
+const CACHE_FETCH_TIERS = [6, 24, 72, 168] as const;
+function cacheFetchHours(h: number): number {
+  return CACHE_FETCH_TIERS.find((t) => t >= h) ?? CACHE_FETCH_TIERS[CACHE_FETCH_TIERS.length - 1];
+}
+// Most charts here are SVG: thousands of marks per refresh is what made the page hang.
+// Above this many points the CHART (never the stats) draws time buckets instead.
+const CACHE_CHART_MAX_POINTS = 1500;
+
 function CachePanel() {
-  const { data, isLoading } = useCacheEffectiveness();
-  const { data: budgetHistory } = useSessionBudgetHistory();
   const [hoursWindow, setHoursWindow] = useState<number>(readCacheHoursWindow);
+  const { data, isLoading } = useCacheEffectiveness(cacheFetchHours(hoursWindow));
+  const { data: budgetHistory } = useSessionBudgetHistory();
 
   function handleHoursChange(e: ChangeEvent<HTMLInputElement>) {
     const next = parseInt(e.target.value, 10);
@@ -2318,6 +2350,29 @@ function CachePanel() {
 
   const minT = chartData[0]?.t;
   const maxT = chartData[chartData.length - 1]?.t;
+
+  // Drawing only: stats above and cold starts are computed from every filtered point.
+  // A bucket averages hit ratios, sums token volumes, and keeps its last model.
+  const drawData = (() => {
+    if (chartData.length <= CACHE_CHART_MAX_POINTS || minT == null || maxT == null) return chartData;
+    const span = Math.max(1, maxT - minT);
+    const width = span / CACHE_CHART_MAX_POINTS;
+    const out: typeof chartData = [];
+    let i = 0;
+    while (i < chartData.length) {
+      const k = Math.min(CACHE_CHART_MAX_POINTS - 1, Math.floor((chartData[i].t - minT) / width));
+      let j = i, hit = 0, rolling = 0, reads = 0, inputs = 0;
+      while (j < chartData.length && Math.min(CACHE_CHART_MAX_POINTS - 1, Math.floor((chartData[j].t - minT) / width)) === k) {
+        hit += chartData[j].hit; rolling += chartData[j].rolling;
+        reads += chartData[j].cacheReads; inputs += chartData[j].inputTokens; j++;
+      }
+      const n = j - i;
+      out.push({ t: chartData[j - 1].t, hit: +(hit / n).toFixed(1), rolling: +(rolling / n).toFixed(1),
+                 cacheReads: reads, inputTokens: inputs, model: chartData[j - 1].model });
+      i = j;
+    }
+    return out;
+  })();
 
   // X-axis ticks: one per distinct UTC date in the visible window, anchored at 12:00 UTC of that date.
   // Format is numeric m/d (e.g., "5/6"). Independent of range; single label per date always.
@@ -2423,7 +2478,7 @@ function CachePanel() {
       </div>
 
       <ResponsiveContainer width="100%" height={220}>
-        <ComposedChart data={chartData} margin={{ top: 8, right: 35, bottom: 0, left: -10 }}>
+        <ComposedChart data={drawData} margin={{ top: 8, right: 35, bottom: 0, left: -10 }}>
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="rgba(239, 68, 68, 0.10)"

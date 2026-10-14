@@ -14,6 +14,17 @@ const PULSE_URL = process.env.PULSE_API_URL || 'http://pulse:8700/api/v1';
 const OLLAMA_URL = process.env.OLLAMA_URL || 'http://host.docker.internal:11434';
 const MLX_EMBED_URL = process.env.MLX_EMBED_URL || 'http://host.docker.internal:8000';
 
+function boundedQuery(req: { query: unknown }, keys: string[]): string {
+  const q = (req.query ?? {}) as Record<string, unknown>;
+  const out = new URLSearchParams();
+  for (const k of keys) {
+    const v = q[k];
+    if (typeof v === 'string' && v !== '') out.set(k, v);
+  }
+  const s = out.toString();
+  return s ? `?${s}` : '';
+}
+
 async function proxyGet(path: string) {
   const res = await fetch(`${PULSE_URL}${path}`);
   if (!res.ok) {
@@ -93,8 +104,9 @@ export async function usageRoutes(app: FastifyInstance) {
   app.get('/api/usage/message-sizes-historical', async () => proxyGet('/usage/message-sizes-historical?days=30'));
   app.get('/api/usage/session-budget-history', async () => proxyGet('/usage/session-budget-history'));
   app.get('/api/usage/window-transitions', async () => proxyGet('/usage/window-transitions'));
-  app.get('/api/usage/burn-rate-curve', async () => proxyGet('/usage/burn-rate-curve'));
-  app.get('/api/usage/cache-effectiveness', async () => proxyGet('/usage/cache-effectiveness'));
+  // Bounded endpoints: forward ONLY the whitelisted bounds (Pulse validates them again).
+  app.get('/api/usage/burn-rate-curve', async (req) => proxyGet('/usage/burn-rate-curve' + boundedQuery(req, ['windows', 'bucket'])));
+  app.get('/api/usage/cache-effectiveness', async (req) => proxyGet('/usage/cache-effectiveness' + boundedQuery(req, ['hours'])));
   app.get('/api/usage/rejection-events', async () => proxyGet('/usage/rejection-events'));
   app.get('/api/usage/loaded-models', async () => ({ models: await discoverLoadedModels() }));
 }
