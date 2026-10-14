@@ -883,8 +883,20 @@ load_watcher_daemon() {
     # This process does not inherit the launchd job's environment, so echoing our own
     # JICM_WATCHER_* would describe the wrong process — the "settings file contrast"
     # failure that has burned this lane repeatedly. The banner is what is RUNNING.
+    #
+    # PRIMARY: $pidfile.runtime ("act|w0|poll"), written by the daemon at start and removed
+    # by its EXIT trap — the same source `jicm-watcher.sh status` trusts. The banner is only
+    # the fallback: log-rotation.sh caps this log at 5MB, and once the start banner rotated
+    # into .log.1 the HUD read "actuate: OFF (sense-only) · poll: ?" over a daemon running
+    # actuate=1 that fired a cycle the same minute (2026-10-13).
+    if [[ "$WD_ALIVE" == "true" && -f "$pidfile.runtime" ]]; then
+        local _p
+        IFS='|' read -r WD_ACTUATE WD_W0 _p < "$pidfile.runtime"
+        [[ -n "$_p" ]] && WD_POLL="${_p}s"
+        return 0
+    fi
     local banner
-    banner=$(grep -E '==== watcher start' "$HUD_WATCHER_LOG" 2>/dev/null | tail -1)
+    banner=$(cat "$HUD_WATCHER_LOG.1" "$HUD_WATCHER_LOG" 2>/dev/null | grep -E '==== watcher start' | tail -1)
     if [[ -n "$banner" ]]; then
         WD_POLL=$(sed -nE 's/.*poll=([0-9]+s).*/\1/p'      <<<"$banner")
         WD_ACTUATE=$(sed -nE 's/.*actuate=([0-9]+).*/\1/p'  <<<"$banner")
@@ -951,7 +963,7 @@ load_cycle_history() {
     HUD_CYCLES=(); WC_DRIVES=""
     HUD_TODAY=$(date '+%Y-%m-%d')
     [[ -f "$HUD_WATCHER_LOG" ]] || return 0
-    WC_DRIVES=$(grep -oE 'ACTUATE: armed detached actuator for key=[A-Za-z0-9_-]+' "$HUD_WATCHER_LOG" 2>/dev/null \
+    WC_DRIVES=$(cat "$HUD_WATCHER_LOG.1" "$HUD_WATCHER_LOG" 2>/dev/null | grep -oE 'ACTUATE: armed detached actuator for key=[A-Za-z0-9_-]+' \
         | awk -F= '{print $2}' | sort | uniq -c \
         | awk '{printf "%s:%s|", $2, $1}')
     local line t k d
@@ -965,8 +977,24 @@ load_cycle_history() {
         k=$(sed -nE 's/.*key=([A-Za-z0-9_-]+).*/\1/p' <<<"$line")
         d=$(sed -nE 's/.*after ([0-9]+)s.*/\1/p' <<<"$line")
         HUD_CYCLES+=("${t}|${k}|${d}")
-    done < <(grep -E 'reap: key=.*actuation cycle complete' "$HUD_WATCHER_LOG" 2>/dev/null | tail -8)
+    done < <(_cycle_complete_lines | tail -8)
     return 0
+}
+
+# One line per completed cycle, oldest first, normalised to "<stamp> key=<k> after <N>s".
+# Since 2026-09-14 a HEALTHY cycle releases its own lock at actuator step 7b and logs that
+# to jicm-actuate.log; the watcher's "reap: ... actuation cycle complete" line is now only
+# the backstop for a cycle that died before 7b. Reading the watcher log alone left this
+# panel at "(no completed cycles)" for a month of working cycles. Both logs, plus .1, so
+# a size rotation never empties the panel either.
+_cycle_complete_lines() {
+    local alog="${JICM_ACTUATE_LOG:-$PROJECT_DIR/.claude/logs/jicm-actuate.log}"
+    {
+        cat "$alog.1" "$alog" 2>/dev/null \
+            | sed -nE 's/^([^ ]+) \[([A-Za-z0-9_-]+)\] 7b actuation lock RELEASED after ([0-9]+)s.*/\1 key=\2 after \3s/p'
+        cat "$HUD_WATCHER_LOG.1" "$HUD_WATCHER_LOG" 2>/dev/null \
+            | sed -nE 's/^([^ ]+) reap: key=([A-Za-z0-9_-]+) actuation cycle complete \(lock released after ([0-9]+)s\).*/\1 key=\2 after \3s/p'
+    } | sort
 }
 
 # ─── SERVICES / RESOURCES ──────────────────────────────────────────────────

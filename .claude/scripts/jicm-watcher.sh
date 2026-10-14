@@ -654,7 +654,18 @@ _footprint_gb() {   # echo integer GB for a pid; empty when unmeasurable (absenc
 
 # Resolve the live MLX-Embed python (the tmux pane runs a zsh wrapper whose own footprint is ~1 MB —
 # measuring the wrapper would report a permanent all-clear).
-_mlx_pid() { pgrep -f "qwen3-embeddings-mlx" 2>/dev/null | while read -r p; do
+# IDENTITY = the process LISTENING on MAINT_MLX_URL's port, i.e. the server the health probe
+# just talked to. argv is not identity: a second server.py (the v2 embedder on :8010, started
+# for the cutover) matches the same pgrep, and on 2026-10-13 it was measured, alerted and
+# offered for restart as "the MLX-Embed leak" while the real :8000 server was already gone.
+# pgrep stays only as the fallback for a box without lsof.
+_mlx_pid() {
+    local port="${MAINT_MLX_URL#*://}"; port="${port%%/*}"; port="${port##*:}"
+    if [[ "$port" =~ ^[0-9]+$ ]] && command -v lsof >/dev/null 2>&1; then
+        lsof -nP -iTCP:"$port" -sTCP:LISTEN -t 2>/dev/null | head -1
+        return
+    fi
+    pgrep -f "qwen3-embeddings-mlx" 2>/dev/null | while read -r p; do
                  case "$(ps -o command= -p "$p" 2>/dev/null)" in *[Pp]ython*) echo "$p"; return ;; esac
              done; }
 
