@@ -107,7 +107,7 @@ These SUPERSEDE the research claims above where they conflict (verify-before-use
   geometric line-drop) **and (b) genuine recognition misses** — NOT a ſ problem. Do not reach for a
   modernizing recognizer to close it.
 - **Engine reality:** kraken loads `.mlmodel` via **coremltools** (NOT mlx); working venv is
-  `originaldr-project/ocr-venv`; models in `ocr-spike/models/`; driver is `ocr-spike/rung1_reocr.py`
+  `palimpsest/projects/originaldr/ocr-venv`; models in `ocr-spike/models/`; driver is `ocr-spike/rung1_reocr.py`
   (segment → recognize → geometric suppression → dual-track score).
 
 ## Multi-witness consensus (we have several scans of the same text — use it)
@@ -132,7 +132,7 @@ for bleed-through, else Otsu) → despeckle. Detect + mask drop-caps and running
 
 ## Project bindings
 
-- Ladder tool: `/Users/nathanielcannon/Claude/Projects/palimpsest/core/.scratch/originaldr-project/ocr-spike/reocr_ladder.py` (absolute — `Projects/` is a sibling of `Project_Aion`, so a repo-relative path does NOT resolve from the Jarvis cwd).
+- Ladder tool: `/Users/nathanielcannon/Claude/Projects/palimpsest/projects/originaldr/ocr-spike/reocr_ladder.py` (absolute — `Projects/` is a sibling of `Project_Aion`, so a repo-relative path does NOT resolve from the Jarvis cwd).
 - Metric gate: archaic-preeminent, normalized-Levenshtein ≥0.90 (`char_identity.py`).
 - Ground truth must be produced under a WRITTEN diplomatic guideline (which glyphs preserved vs
   collapsed) — "an undocumented reference is an undefined target."
