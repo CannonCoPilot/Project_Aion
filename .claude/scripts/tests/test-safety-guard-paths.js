@@ -107,6 +107,10 @@ const secretCases = [
   // here blocks the commit of the suite itself. Splitting the literal keeps the runtime
   // VALUE intact (so the assertion is real) while ensuring no 40-char run, no complete
   // token and no PEM header exists on disk. Do not 'tidy' these back into one string.
+  // uv.lock shapes (2026-10-21). Built by concatenation like the secrets below, so this file
+  // carries no 40-char run of its own. The URL is a real PyPI path from the WVU lockfile.
+  ['PyPI wheel URL in uv.lock', 'url = "https://files.pythonhosted.org/packages/a9/d2/' + 'f4d173e22df740bc37b1d' + 'b102b386ba719b66e95b0f0d751f556b387e6d2' + '/anyio-4.15.1.tar.gz"', false],
+  ['sha256 hash in uv.lock', 'hash = "sha256:' + '9f0b1c2d3e4f5a6b7c8d9e0f' + '1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b' + '"', false],
   ['real AWS secret',   'aws_secret=' + 'wJalrXUtnFEMI2K7' + 'MDENGbPxRfiCYz' + 'JbQxWvKpNrTgHd', true],
   // Wholly invented user AND password. Two traps met here, both worth keeping:
   //   1. An earlier draft used this repo's REAL database username with a fake password. The

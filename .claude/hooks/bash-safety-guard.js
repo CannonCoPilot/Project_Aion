@@ -682,7 +682,13 @@ async function checkAmendSafety(command) {
 
 const SECRET_PATTERNS = [
   { name: 'AWS Access Key', pattern: /AKIA[0-9A-Z]{16}/ },
-  { name: 'AWS Secret Key', pattern: /[A-Za-z0-9\/+=]{40}/ },
+  // {40,} not {40}: with the 'g' flag a fixed width slices a long run into consecutive
+  // 40-char chunks and judges each chunk alone. A PyPI URL in uv.lock then yields a chunk of
+  // 39 hex + '/', which is neither all-hex nor a 3-segment path, so 1,221 lockfile URLs read
+  // as AWS secrets (found 2026-10-21, sixth false-positive class in this pattern). Judging
+  // the maximal run lets the path rule see the whole URL path. A genuine secret is still a
+  // run of at least 40 class characters, so nothing that matched before is missed.
+  { name: 'AWS Secret Key', pattern: /[A-Za-z0-9\/+=]{40,}/ },
   { name: 'GitHub Token', pattern: /gh[pousr]_[A-Za-z0-9_]{36,}/ },
   { name: 'Generic API Key', pattern: /[aA][pP][iI][-_]?[kK][eE][yY][\s]*[=:]\s*["']?[A-Za-z0-9_\-]{20,}/ },
   { name: 'Private Key', pattern: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
