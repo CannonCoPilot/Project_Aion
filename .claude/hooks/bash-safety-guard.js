@@ -562,32 +562,156 @@ function isJarvisWorkspace(targetPath) {
   return AUTHORIZED_WORKSPACES.some(ws => resolved.startsWith(ws));
 }
 
-function extractWritePath(tool, parameters) {
-  if (tool === 'Write' || tool === 'Edit') {
-    return parameters?.file_path || parameters?.path || null;
+// WRITE TARGETS, read by a small shell scanner, not by regexes over the raw command (2026-10-21).
+// The old extractor ran />\s*(\S+)/ (and six command patterns) over the raw text and returned the
+// FIRST hit only. It failed both ways:
+//   - a '>' inside quotes is text: awk '/<!-- UNREAD -->/{p=1} p' was denied as a write to '/{p=1}';
+//   - '>>' captured its own second '>' as the "path", so NO append redirect was ever checked;
+//   - 'echo a > ok; echo b > /etc/x' checked ok only, and so did a later rm after a harmless redirect.
+// One pass now yields (1) every redirect target and (2) the VISIBLE command: non-shell heredoc
+// bodies dropped, and non-shell quoted text kept as ONE word (its whitespace -> \x01), so the
+// command-word patterns (rm, cp, mkdir ...) see real commands and not prose or a script file's
+// body ('cat > solve.sh <<EOF ... mkdir -p /app ... EOF' writes a file; it runs nothing).
+// Text a shell RUNS is scanned as commands: bash/sh -c '...', eval "...", bash <<EOF.
+// Replayed against 31,811 real commands from every lane's transcripts before shipping.
+const RUN_SHELL = /(?:^|[\s;|&(`])(?:\S*\/)?(?:bash|sh|zsh|dash|ksh)(?:\s+-[A-Za-z]+)*\s*$/;
+const RUN_SHELL_C = /(?:^|[\s;|&(`])(?:\S*\/)?(?:bash|sh|zsh|dash|ksh)(?:\s+-[A-Za-z]+)*\s+-[A-Za-z]*c[A-Za-z]*\s*$/;
+const RUN_EVAL = /(?:^|[\s;|&(`])eval\s+$/;
+// ...but a shell string handed to a container or another host runs THERE, not on this machine:
+// 'docker run img bash -c "mkdir -p /tmp/o"' writes inside the container (replay, 2026-10-21).
+const ELSEWHERE = /(?:^|[\s;|&(`])(?:docker|podman|nerdctl|kubectl|ssh|utmctl|limactl)\s/;
+const WORD_END = new Set([' ', '\t', '\n', ';', '|', '&', '<', '>', '(', ')']);
+const JOIN = '\x01';              // stands for whitespace inside one quoted word
+
+function _quoteEnd(s, i) {
+  const q = s[i];
+  for (let k = i + 1; k < s.length; k++) {
+    if (q === '"' && s[k] === '\\') { k++; continue; }
+    if (s[k] === q) return k;
   }
-  if (tool === 'Bash') {
-    const command = parameters?.command || '';
-    const writePatterns = [
-      />\s*(\S+)/, />>\s*(\S+)/, /tee\s+(?:-a\s+)?(\S+)/,
-      /mv\s+\S+\s+(\S+)/, /cp\s+\S+\s+(\S+)/, /rm\s+(?:-[rf]+\s+)?(\S+)/,
-      /mkdir\s+(?:-p\s+)?(\S+)/, /touch\s+(\S+)/,
-    ];
-    for (const p of writePatterns) {
-      const m = command.match(p);
-      if (m && m[1]) return m[1];
+  return s.length - 1;
+}
+
+function _unquote(s, i, e) {
+  return s.slice(i + 1, e).replace(s[i] === '"' ? /\\(["\\$`])/g : /$^/, '$1');
+}
+
+// One shell word from k, quotes removed. Returns [word, index after it].
+function _readWord(s, k) {
+  let w = '';
+  while (k < s.length && !WORD_END.has(s[k])) {
+    if (s[k] === '\\') { w += s[k + 1] || ''; k += 2; continue; }
+    if (s[k] === "'" || s[k] === '"') { const e = _quoteEnd(s, k); w += _unquote(s, k, e); k = e + 1; continue; }
+    w += s[k++];
+  }
+  return [w, k];
+}
+
+function scanShell(cmd, depth = 0) {
+  const targets = [];
+  let vis = '';
+  if (!cmd || depth > 3) return { targets, visible: vis };
+  const n = cmd.length;
+  const heredocs = [];            // pending { delim, strip, shell }: bodies start after the next newline
+  let i = 0, stmt = 0;
+  const run = text => { const r = scanShell(text, depth + 1); targets.push(...r.targets); vis += ' ' + r.visible + ' '; };
+  while (i < n) {
+    const c = cmd[i];
+    if (c === '\\') { vis += cmd.slice(i, i + 2); i += 2; continue; }
+    if (c === '#' && (i === 0 || /\s/.test(cmd[i - 1]))) {          // comment to end of line
+      const j = cmd.indexOf('\n', i); i = j === -1 ? n : j; continue;
     }
-    if (command.includes(AIFRED_BASELINE)) return AIFRED_BASELINE;
-    if (command.includes(AIFRED_PRO_PRODUCTION) && !command.includes(AIFRED_PRO_PRODUCTION + '-Dev')) return AIFRED_PRO_PRODUCTION;
+    if (c === "'" || c === '"') {
+      const e = _quoteEnd(cmd, i);
+      const inner = _unquote(cmd, i, e);
+      const before = cmd.slice(stmt, i);
+      if ((RUN_SHELL_C.test(before) || RUN_EVAL.test(before)) && !ELSEWHERE.test(before)) run(inner);
+      else vis += inner.replace(/\s/g, JOIN);
+      i = e + 1; continue;
+    }
+    if (c === '\n') {
+      vis += c; i++;
+      while (heredocs.length) {
+        const h = heredocs.shift();
+        const start = i;
+        let end = n;
+        while (i < n) {
+          let j = cmd.indexOf('\n', i); if (j === -1) j = n;
+          const line = h.strip ? cmd.slice(i, j).replace(/^\t+/, '') : cmd.slice(i, j);
+          if (line === h.delim) { end = i; i = Math.min(j + 1, n); break; }
+          i = j + 1;
+        }
+        if (end === n) i = n;
+        if (h.shell) run(cmd.slice(start, end));
+      }
+      stmt = i; continue;
+    }
+    if (c === '<' && cmd[i + 1] === '<') {
+      if (cmd[i + 2] === '<') { vis += '<<<'; i += 3; continue; }    // here-string
+      let k = i + 2, strip = false;
+      if (cmd[k] === '-') { strip = true; k++; }
+      while (cmd[k] === ' ' || cmd[k] === '\t') k++;
+      const [delim, next] = _readWord(cmd, k);
+      if (delim) heredocs.push({ delim, strip, shell: RUN_SHELL.test(cmd.slice(stmt, i)) && !ELSEWHERE.test(cmd.slice(stmt, i)) });
+      vis += ' ';
+      i = Math.max(next, i + 2); continue;
+    }
+    if (c === '>') {
+      let k = i + 1;
+      if (cmd[k] === '>' || cmd[k] === '|') k++;
+      if (cmd[k] === '(') { vis += ' '; i = k + 1; continue; }        // process substitution >(...)
+      if (cmd[k] === '&') {                                           // >&2, >&- : fd dup/close
+        if (/[0-9-]/.test(cmd[k + 1] || '')) { vis += ' '; i = k + 2; continue; }
+        k++;                                                          // >& file : both streams
+      }
+      while (cmd[k] === ' ' || cmd[k] === '\t') k++;
+      const [w, next] = _readWord(cmd, k);
+      if (w) targets.push(w);
+      vis += ' ';
+      i = Math.max(next, k, i + 1); continue;
+    }
+    if (c === ';' || c === '|' || c === '(' || (c === '&' && cmd[i + 1] !== '>')) stmt = i + 1;
+    vis += c; i++;
   }
-  return null;
+  return { targets, visible: vis };
+}
+
+function extractWritePaths(tool, parameters) {
+  if (tool === 'Write' || tool === 'Edit') {
+    const p = parameters?.file_path || parameters?.path;
+    return p ? [p] : [];
+  }
+  if (tool !== 'Bash') return [];
+  const command = parameters?.command || '';
+  const { targets, visible } = scanShell(command);
+  const out = [...targets];
+  // Command-word writers, on the VISIBLE command: each pattern's first hit, at a word start ('perform /x' is not rm).
+  const B = String.raw`(?:^|[\s;|&(\x60])`;
+  const writePatterns = [
+    new RegExp(B + String.raw`tee\s+(?:-a\s+)?(\S+)`), new RegExp(B + String.raw`mv\s+\S+\s+(\S+)`),
+    new RegExp(B + String.raw`cp\s+\S+\s+(\S+)`), new RegExp(B + String.raw`rm\s+(?:-[rf]+\s+)?(\S+)`),
+    new RegExp(B + String.raw`mkdir\s+(?:-p\s+)?(\S+)`), new RegExp(B + String.raw`touch\s+(\S+)`),
+  ];
+  for (const p of writePatterns) {
+    const m = visible.match(p);
+    if (m && m[1]) out.push(m[1].split(JOIN).join(' '));
+  }
+  if (command.includes(AIFRED_BASELINE)) out.push(AIFRED_BASELINE);
+  if (command.includes(AIFRED_PRO_PRODUCTION) && !command.includes(AIFRED_PRO_PRODUCTION + '-Dev')) out.push(AIFRED_PRO_PRODUCTION);
+  return out;
 }
 
 function checkWorkspaceBounds(tool, parameters) {
   const WRITE_TOOLS = ['Write', 'Edit', 'Bash'];
   if (!WRITE_TOOLS.includes(tool)) return null;
+  for (const targetPath of extractWritePaths(tool, parameters)) {
+    const r = _checkOneWritePath(tool, targetPath);
+    if (r) return r;
+  }
+  return null;
+}
 
-  const targetPath = extractWritePath(tool, parameters);
+function _checkOneWritePath(tool, targetPath) {
   if (!targetPath) return null;
 
   if (isBaselinePath(targetPath)) {

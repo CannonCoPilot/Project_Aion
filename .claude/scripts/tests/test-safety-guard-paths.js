@@ -200,5 +200,46 @@ for (const [name, input, tool, want] of spCases) check(name, withSp(input, tool)
 check('no payload dir: prior session blocks',
   decision({ command: `echo x > ${PROJ}/sess-old/scratchpad/a.txt` }), 'deny');
 
+// REDIRECT TARGETS (2026-10-21). The write-path extractor was a regex, />\s*(\S+)/, run on the
+// raw command and returning only its FIRST hit. Two failures, one per direction:
+//   noise:  awk '/<!-- UNREAD -->/{p=1} p' file  -> the '>' of '-->' inside the quoted awk
+//           program read as a redirect to '/{p=1}', denied as a forbidden system path;
+//   unsafe: echo a > ok.txt; echo b > /etc/x     -> only ok.txt was ever checked.
+// A '>' inside quotes or a heredoc body is text, unless that text is itself run by a shell
+// (bash -c '...', eval "...", bash <<EOF), and every redirect in the command is a target.
+console.log('\n5. redirect targets (quoted text is not a redirect; every target is checked)');
+const rdCases = [
+  // ── noise: must NOT block ──
+  ['quoted awk regex holding -->',          String.raw`awk '/<!-- UNREAD -->/{p=1} p' inbox/dev.md`, 'allow'],
+  ['double-quoted arrow to a path',         `echo "a -> /etc/x"`,                                   'allow'],
+  ['heredoc body with > /etc text',         'cat > notes.md <<\'EOF\'\nredirect like > /etc/x is blocked\nEOF', 'allow'],
+  ['comment holding a redirect',            'ls # > /etc/x',                                        'allow'],
+  ['fd dup 2>&1 then pipe',                 'make 2>&1 | tail -3',                                  'allow'],
+  ['process substitution >(...)',           'tee >(wc -l) < in.txt',                                'allow'],
+  ['redirect to /dev/null',                 'grep x f 2>/dev/null',                                 'allow'],
+  // ── unsafe: MUST block ──
+  ['second redirect is the forbidden one',  'echo a > ok.txt; echo b > /etc/x',                     'deny'],
+  ['quoted forbidden target',               'echo a > "/etc/x"',                                    'deny'],
+  ['append to forbidden',                   'echo a >> /usr/local/x',                               'deny'],
+  ['&> to forbidden',                       'cmd &> /var/log/x',                                    'deny'],
+  ['>| clobber to forbidden',               'echo a >| /etc/x',                                     'deny'],
+  ['bash -c string redirect',               `bash -c 'echo a > /etc/x'`,                            'deny'],
+  ['sh -c string after other flags',        `sh -e -c "echo a > /etc/x"`,                           'deny'],
+  ['eval string redirect',                  `eval "echo a > /etc/x"`,                               'deny'],
+  ['heredoc fed to bash',                   'bash <<\'EOF\'\necho a > /etc/x\nEOF',                 'deny'],
+  ['rm after a harmless redirect',          'echo a > ok.txt && rm -rf /tmp/x',                     'deny'],
+  // ── command words (mkdir, cp ...) read the VISIBLE command: a script file's body runs nothing ──
+  ['script body written by heredoc',        'cat > solve.sh <<\'EOF\'\nmkdir -p /app/workdir\nEOF',  'allow'],
+  ['command words inside quoted prose',     `echo "then mkdir -p /etc/foo"`,                        'allow'],
+  ['mkdir inside bash -c',                  `bash -c 'mkdir -p /etc/foo'`,                          'deny'],
+  ['cp to a quoted path with a space',      `cp a "/Library/Application Support/x"`,                'deny'],
+  // ── a shell string run in a container or on another host writes THERE ──
+  ['bash -c inside docker run',             `docker run --rm img bash -c "mkdir -p /tmp/o"`,        'allow'],
+  ['ssh remote command string',             `ssh host 'echo a > /etc/x'`,                           'allow'],
+  ['heredoc fed to a remote shell',         'ssh host bash <<\'EOF\'\necho a > /etc/x\nEOF',       'allow'],
+  ['docker, then a LOCAL bash -c',          `docker ps; bash -c 'echo a > /etc/x'`,                 'deny'],
+];
+for (const [name, cmd, want] of rdCases) check(name, decision({ command: cmd }), want);
+
 console.log(`\nPASS=${P} FAIL=${F}`);
 process.exit(F === 0 ? 0 : 1);
