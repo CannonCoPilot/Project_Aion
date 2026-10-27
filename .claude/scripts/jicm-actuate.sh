@@ -387,6 +387,12 @@ _step_prep() {   # build the resume checkpoint into JK_COMPRESSED; return non-em
         JICM_SESSION_STATE="$JK_SESSION_STATE" \
         JICM_SCRATCHPAD="$JK_SCRATCHPAD" \
         JICM_ACTIVE_PLAN="$JK_ACTIVE_PLAN" \
+        JICM_KEY="$JK_KEY" \
+        JICM_LANE_LABEL="$JK_LANE_LABEL" \
+        JICM_GIT_DIRS="$JK_GIT_DIRS" \
+        JICM_RESUME_BLOCK="$JK_RESUME_BLOCK" \
+        JICM_LANE_RAG="$JK_RAG_COLLECTION" \
+        JICM_LANE_GRAPHITI="$JK_GRAPHITI_GROUP" \
             bash "$PREP" >> "$ACT_LOG" 2>&1
     fi
     [[ -s "$JK_COMPRESSED" ]]

@@ -49,6 +49,43 @@ ACTIVE_PLAN_FILE="${JICM_ACTIVE_PLAN:-$PROJECT_DIR/.claude/context/.active-plan}
 SESSION_STATE="${JICM_SESSION_STATE:-$PROJECT_DIR/.claude/context/session-state.md}"
 SCRATCHPAD="${JICM_SCRATCHPAD:-$PROJECT_DIR/.claude/context/.scratchpad.md}"
 
+# LANE IDENTITY (2026-10-27, W2:Urist's repair request). Every string below used to be W0's
+# ("You are Jarvis", .scratchpad.md, rag 'sessions', session-state.md, Project_Aion's git), so an
+# out-of-tree lane's checkpoint told it to be another lane. The actuator passes these per key from
+# jicm-config.sh:jicm_key_paths; unset (w0, or an old caller) = the legacy W0 text, unchanged.
+LANE_KEY="${JICM_KEY:-w0}"
+LANE_LABEL="${JICM_LANE_LABEL:-}"
+LANE_GIT_DIRS="${JICM_GIT_DIRS:-}"            # ':'-separated repos the lane works in
+LANE_RESUME_MODE="${JICM_RESUME_BLOCK:-none}"  # first = the scratchpad's top '## ... RESUME HERE' block
+LANE_RAG="${JICM_LANE_RAG:-sessions}"
+LANE_GRAPHITI="${JICM_LANE_GRAPHITI:-jarvis-core}"
+
+# The lane's own authoritative RESUME block, VERBATIM: the first '## ...RESUME HERE' heading that is
+# not marked '## (' (superseded/older), up to the next '## ' heading. Capped at 80 lines.
+lane_resume_block() {
+    [[ "$LANE_RESUME_MODE" == "first" && -f "$SCRATCHPAD" ]] || return 0
+    awk 'BEGIN{p=0;n=0}
+         /^## / { if (p) exit; if ($0 ~ /RESUME HERE/ && $0 !~ /^## \(/) p=1 }
+         p { print; n++; if (n>=80) exit }' "$SCRATCHPAD"
+}
+
+# Git state of the lane's OWN repos (status -sb + last 3 commits each).
+lane_git_state() {
+    local d IFS=':'
+    for d in $LANE_GIT_DIRS; do
+        echo "### $d"
+        if git -C "$d" rev-parse --git-dir >/dev/null 2>&1; then
+            echo '```'
+            git -C "$d" status -sb 2>/dev/null | head -12
+            echo "-- last 3 commits:"
+            git -C "$d" log --oneline -3 2>/dev/null | cut -c1-160
+            echo '```'
+        else
+            echo "(not a git repo / missing)"
+        fi
+    done
+}
+
 # Configuration (defaults — can be overridden via .prep-override file)
 JSONL_TAIL_LINES=5000    # Scan last N JSONL entries for user messages
 USER_MSG_COUNT=10         # Number of recent user messages to include
@@ -349,6 +386,10 @@ fi
     # tokens at every JICM cycle. (See: 2026-05-04 context-budget audit.)
 
     # --- Git state ---
+    if [[ -n "$LANE_GIT_DIRS" ]]; then
+    echo "## Git State (lane $LANE_KEY: its own repos)"
+    lane_git_state
+    else
     echo "## Git State"
     echo "Branch: $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo unknown)"
     UNCOMMITTED=$(git -C "$PROJECT_DIR" status --porcelain 2>/dev/null | grep -v '^??' | head -15)
@@ -366,6 +407,7 @@ fi
         echo '```'
         echo "$RECENT_DIFF"
         echo '```'
+    fi
     fi
     echo ""
 
@@ -400,6 +442,21 @@ fi
 
     # --- Resume instructions ---
     echo "## Resume Instructions"
+    if [[ -n "$LANE_LABEL" ]]; then
+    echo "You are $LANE_LABEL (JICM key $LANE_KEY). Context was cleared via a JICM cycle."
+    echo ""
+    echo "### Context restoration checklist:"
+    if [[ "$LANE_RESUME_MODE" == "first" ]]; then
+    echo "1. The AUTHORITATIVE RESUME block at the top of this checkpoint is verbatim from $SCRATCHPAD. Trust it over the machine summary."
+    echo "2. $SCRATCHPAD is large: read only its top '## RESUME HERE' block, not the whole file."
+    else
+    echo "1. Review the conversation above."
+    echo "2. Read $SCRATCHPAD for transient working details."
+    fi
+    echo "3. Query jarvis-rag (collection: $LANE_RAG) and jarvis-graphiti (group: $LANE_GRAPHITI) for prior context."
+    echo "4. NEVER read session-state.md or .claude/context/.scratchpad.md: those are W0's."
+    echo "5. Resume work immediately. Do NOT greet. Do NOT ask what to work on."
+    else
     echo "You are Jarvis. Context was cleared via JICM v7 stop-and-wait cycle."
     echo "Foundation docs (CLAUDE.md, capability-map.yaml, identity) are auto-loaded."
     echo ""
@@ -410,6 +467,7 @@ fi
     echo "4. Query jarvis-graphiti for facts related to current task."
     echo "5. If conversation above is sparse, read session-state.md for full priorities."
     echo "6. Resume work immediately. Do NOT greet. Do NOT ask what to work on."
+    fi
 
 } > "$OUTPUT"
 
@@ -465,10 +523,21 @@ if [[ "$LLM_SUMMARIZE" == "true" ]]; then
             fi
 
             # Git state (compact)
+            if [[ -n "$LANE_GIT_DIRS" ]]; then
+                echo "## Git State (lane repos)"
+                lane_git_state
+            else
             echo "## Git State"
             echo "Branch: $(git -C "$PROJECT_DIR" branch --show-current 2>/dev/null || echo unknown)"
             git -C "$PROJECT_DIR" status --porcelain 2>/dev/null | grep -v '^??' | head -10
+            fi
             echo ""
+            LRB="$(lane_resume_block)"
+            if [[ -n "$LRB" ]]; then
+                echo "## The lane's own RESUME block (authoritative: Current Task and Next Step come from HERE)"
+                echo "$LRB"
+                echo ""
+            fi
 
             # Active tasks
             if [[ -n "$TODOS" ]]; then
@@ -533,13 +602,14 @@ for m in msgs[-5:]:
             PREP_TIMEOUT="$LLM_TIMEOUT" \
             PREP_MAX_TOKENS="$LLM_MAX_TOKENS" \
             PREP_ENDPOINT="$LLM_ENDPOINT" \
+            PREP_LANE="$LANE_LABEL" \
             python3 -c '
 import json, subprocess, sys, os
 
-SYSTEM_PROMPT = """You are Jarvis context preservation system. Given raw session data, produce a structured checkpoint for resuming work after context is cleared. Include ONLY these sections:
+SYSTEM_PROMPT = """You are the context preservation system for the {lane} session. Given raw session data, produce a structured checkpoint for resuming work after context is cleared. Include ONLY these sections:
 
 ## Current Task
-What is Jarvis working on RIGHT NOW? Be specific about the project and immediate goal. Derive this from the conversation and active tasks, NOT from stale session-state.
+What is {lane} working on RIGHT NOW? Be specific about the project and immediate goal. Derive this from the conversation and active tasks, NOT from stale session-state.
 
 ## Progress
 Numbered steps — what is done (DONE) vs remaining (TODO/IN PROGRESS). Include items from BOTH the session-state priorities AND any new work visible in the conversation.
@@ -577,7 +647,7 @@ try:
 except FileNotFoundError:
     sys.exit(1)
 
-system_prompt = SYSTEM_PROMPT.replace("{project_dir}", project_dir)
+system_prompt = SYSTEM_PROMPT.replace("{project_dir}", project_dir).replace("{lane}", os.environ.get("PREP_LANE") or "Jarvis")
 
 import tempfile
 
@@ -647,7 +717,39 @@ except KeyError:
                 echo "Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
                 echo "Method: LLM-enriched ($LLM_MODEL)"
                 echo ""
-                echo "$LLM_RESPONSE"
+                LRB="$(lane_resume_block)"
+                if [[ -n "$LRB" ]]; then
+                    echo "## AUTHORITATIVE: $LANE_LABEL's own RESUME block (verbatim from $SCRATCHPAD)"
+                    echo ""
+                    echo "$LRB"
+                    echo ""
+                    echo "## Machine summary below (NON-AUTHORITATIVE; where it conflicts with the block above, the block wins)"
+                    echo ""
+                fi
+                echo "$LLM_RESPONSE" | LANE_DIRS="$PROJECT_DIR:$LANE_GIT_DIRS" python3 -c '
+# Drop Key Paths lines whose every path does not exist (the 8B model invents them).
+import os, re, sys
+dirs = [d for d in os.environ.get("LANE_DIRS", "").split(":") if d]
+def exists(t):
+    t = t.rstrip(".,;:)`\x27\x22")
+    t = os.path.expanduser(t)
+    if os.path.isabs(t):
+        return os.path.exists(t)
+    return any(os.path.exists(os.path.join(d, t)) for d in dirs)
+out, sec, dropped = [], None, 0
+for line in sys.stdin.read().splitlines():
+    if line.startswith("## "):
+        sec = line[3:].strip().lower()
+    if sec == "key paths" and not line.startswith("## "):
+        toks = re.findall(r"(?:~|/|\.claude/)[\w./~-]+", line)
+        if toks and not any(exists(t) for t in toks):
+            dropped += 1
+            continue
+    out.append(line)
+print("\n".join(out))
+if dropped:
+    print(f"\n(prep: {dropped} Key Paths line(s) dropped: no such path on disk)")
+' 2>/dev/null || echo "$LLM_RESPONSE"
                 echo ""
                 echo "---"
                 echo ""
@@ -671,6 +773,23 @@ except KeyError:
         # NB: the probe is Ollama's /api/tags, and $LLM_ENDPOINT is Ollama direct
         # (LiteLLM adds ~13s) — so name Ollama here, not LiteLLM.
         echo "ALERT ⚠️ Ollama unreachable (http://localhost:11434/api/tags probe failed) — checkpoint DEGRADED to Tier 1 (raw extraction, no narrative). Resume still works but the anchor is thinner. Start the Ollama tmux window; do not treat this as normal." >&2
+    fi
+fi
+
+# Tier-1 fallback keeps the lane's RESUME block on top too (the enriched path adds it above).
+if [[ "$LANE_RESUME_MODE" == "first" ]] && ! grep -q '^## AUTHORITATIVE:' "$OUTPUT" 2>/dev/null; then
+    LRB="$(lane_resume_block)"
+    if [[ -n "$LRB" ]]; then
+        T1_TMP="$(cat "$OUTPUT")"
+        {
+            echo "$T1_TMP" | head -2
+            echo ""
+            echo "## AUTHORITATIVE: $LANE_LABEL's own RESUME block (verbatim from $SCRATCHPAD)"
+            echo ""
+            echo "$LRB"
+            echo ""
+            echo "$T1_TMP" | tail -n +3
+        } > "$OUTPUT"
     fi
 fi
 

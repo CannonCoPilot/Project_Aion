@@ -164,6 +164,19 @@ jicm_key_paths() {
         urist|urist-bg-*)     JK_RAG_COLLECTION="urist-sessions";   JK_GRAPHITI_GROUP="urist-core" ;;
         *)                    JK_RAG_COLLECTION="sessions";         JK_GRAPHITI_GROUP="jarvis-core" ;;
     esac
+
+    # LANE IDENTITY for the checkpoint (2026-10-27, W2:Urist's repair request). Without these,
+    # jicm-prep-context.sh writes W0's identity, W0's memory pointers and Project_Aion's git
+    # into every lane's checkpoint. Empty = the legacy W0 text. JK_GIT_DIRS is ':'-separated.
+    # JK_RESUME_BLOCK=first: the lane keeps an authoritative '## RESUME HERE' block at the TOP
+    # of its scratchpad, and prep copies it verbatim above the machine summary.
+    JK_LANE_LABEL=""; JK_GIT_DIRS=""; JK_RESUME_BLOCK="none"
+    case "$key" in
+        urist|urist-bg-*)
+            JK_LANE_LABEL="Urist (W2, the Dwarf Fortress Archon, cwd ~/Claude/Projects/DwarfCron)"
+            JK_GIT_DIRS="$HOME/Claude/Projects/DwarfCron:$HOME/Claude/Projects/sw-wt/plugin"
+            JK_RESUME_BLOCK="first" ;;
+    esac
 }
 
 # Registry helpers (shared by gate upsert, watcher read/GC, chain bridge).
