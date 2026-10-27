@@ -521,9 +521,13 @@ launch_dev_window() {
     local loop_resume="$base --resume $dev_uuid"
     local instr="$PROJECT_DIR/.claude/context/dev-session-instructions.md"
     local init="Please load these files into context: @${instr}"
+    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
+    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
+    local init_arg="'$init'"
+    [[ "$first" == *"--resume "* ]] && init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jarvis-dev" -d \
-        "cd '$CLAUDE_LAUNCH_DIR' && export $env_dev && export ANTHROPIC_CUSTOM_HEADERS=$'$dev_headers' && $first '$init'; while true; do echo ''; echo 'Jarvis-dev exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$CLAUDE_LAUNCH_DIR' && export $env_dev && export ANTHROPIC_CUSTOM_HEADERS=$'$dev_headers' && $first $init_arg; while true; do echo ''; echo 'Jarvis-dev exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis-dev" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Jarvis-dev window (${dev_mode}: ${dev_uuid})"
 }
@@ -613,9 +617,13 @@ launch_genie_window() {
     fi
     local loop_resume="$base --resume $genie_uuid"
     local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/genie/CLAUDE.md"
+    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
+    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
+    local init_arg="'$init'"
+    [[ "$first" == *"--resume "* ]] && init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Genie" -d \
-        "cd '$GENIE_LAUNCH_DIR' && export $env_genie && export ANTHROPIC_CUSTOM_HEADERS=$'$genie_headers' && $first '$init'; while true; do echo ''; echo 'Genie exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$GENIE_LAUNCH_DIR' && export $env_genie && export ANTHROPIC_CUSTOM_HEADERS=$'$genie_headers' && $first $init_arg; while true; do echo ''; echo 'Genie exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Genie" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Genie window (${genie_mode}: ${genie_uuid})"
 }
@@ -690,9 +698,13 @@ launch_jaques_window() {
     fi
     local loop_resume="$base --resume $jaques_uuid"
     local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/jacques/CLAUDE.md"
+    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
+    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
+    local init_arg="'$init'"
+    [[ "$first" == *"--resume "* ]] && init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Jacques" -d \
-        "cd '$JAQUES_LAUNCH_DIR' && export $env_jaques && export ANTHROPIC_CUSTOM_HEADERS=$'$jaques_headers' && $first '$init'; while true; do echo ''; echo 'Jacques exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$JAQUES_LAUNCH_DIR' && export $env_jaques && export ANTHROPIC_CUSTOM_HEADERS=$'$jaques_headers' && $first $init_arg; while true; do echo ''; echo 'Jacques exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jacques" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Jacques window (${jaques_mode}: ${jaques_uuid})"
 }
@@ -769,9 +781,13 @@ launch_fleming_window() {
     fi
     local loop_resume="$base --resume $fleming_uuid"
     local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/fleming/CLAUDE.md"
+    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
+    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
+    local init_arg="'$init'"
+    [[ "$first" == *"--resume "* ]] && init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Fleming" -d \
-        "cd '$FLEMING_LAUNCH_DIR' && export $env_fleming && export ANTHROPIC_CUSTOM_HEADERS=$'$fleming_headers' && $first '$init'; while true; do echo ''; echo 'Fleming exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$FLEMING_LAUNCH_DIR' && export $env_fleming && export ANTHROPIC_CUSTOM_HEADERS=$'$fleming_headers' && $first $init_arg; while true; do echo ''; echo 'Fleming exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Fleming" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Fleming window (${fleming_mode}: ${fleming_uuid})"
 }
@@ -843,9 +859,13 @@ launch_fielding_window() {
     fi
     local loop_resume="$base --resume $fielding_uuid"
     local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/fielding/CLAUDE.md"
+    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
+    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
+    local init_arg="'$init'"
+    [[ "$first" == *"--resume "* ]] && init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Fielding" -d \
-        "cd '$FIELDING_LAUNCH_DIR' && export $env_fielding && export ANTHROPIC_CUSTOM_HEADERS=$'$fielding_headers' && $first '$init'; while true; do echo ''; echo 'Fielding exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$FIELDING_LAUNCH_DIR' && export $env_fielding && export ANTHROPIC_CUSTOM_HEADERS=$'$fielding_headers' && $first $init_arg; while true; do echo ''; echo 'Fielding exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Fielding" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Fielding window (${fielding_mode}: ${fielding_uuid})"
 }
@@ -922,9 +942,13 @@ launch_urist_window() {
     fi
     local loop_resume="$base --resume $urist_uuid"
     local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/urist/CLAUDE.md"
+    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
+    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
+    local init_arg="'$init'"
+    [[ "$first" == *"--resume "* ]] && init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Urist" -d \
-        "cd '$URIST_LAUNCH_DIR' && export $env_urist && export ANTHROPIC_CUSTOM_HEADERS=$'$urist_headers' && $first '$init'; while true; do echo ''; echo 'Urist exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
+        "cd '$URIST_LAUNCH_DIR' && export $env_urist && export ANTHROPIC_CUSTOM_HEADERS=$'$urist_headers' && $first $init_arg; while true; do echo ''; echo 'Urist exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
     "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Urist" automatic-rename off 2>/dev/null || true
     echo -e "  ${GREEN}✓${NC} Urist window (${urist_mode}: ${urist_uuid})"
 }

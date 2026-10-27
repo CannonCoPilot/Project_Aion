@@ -290,6 +290,15 @@ else
         | sed -E "s/--session-id[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g; s/--resume[[:space:]]+[0-9a-fA-F-]{36}/--resume $SID/g")"
     printf '%s' "$NEW_CMD" | grep -q -- "--resume $SID" || _die "uuid rewrite failed — refusing to respawn with an unverified command"
     _log "uuid rewrite: [$OLD_IDS] -> $SID"
+    # A --resume restart must NOT replay the launcher's persona prompt ('Please load these files
+    # into context: @...'): the resumed transcript already holds it, and it would land as a fresh
+    # USER turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). --fresh keeps it.
+    if printf '%s' "$NEW_CMD" | grep -q "Please load these files into context: @"; then
+        NEW_CMD="$(printf '%s' "$NEW_CMD" | sed -E "s/ '?Please load these files into context: @[^';]*'?//")"
+        printf '%s' "$NEW_CMD" | grep -q "Please load these files into context" \
+            && _die "persona-prompt strip failed — refusing to respawn with an unverified command"
+        _log "persona init prompt stripped (resume restart)"
+    fi
     if [[ "$OLD_IDS" != *"$SID"* ]]; then
         _log "NOTE: the window's baked uuid was STALE (the 'Press Enter to --resume' path would have resumed the wrong session)"
     fi
