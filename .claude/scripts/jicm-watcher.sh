@@ -248,7 +248,13 @@ _transcript_newest_record_epoch() {
     # end. Bounded so the cost cannot scale with transcript size (this runs every poll,
     # for every key). No timestamp in the chunk → 0 → caller reports "na", never an alert.
     local ts
+    # TURN records only (2026-10-27). A finished background task ENQUEUES a notification
+    # ("type":"queue-operation") while the lane sits idle; counting that as an advance fired
+    # FROZEN STATE on urist at 2026-10-26T21:38 (6 enqueues at 03:38:25Z, last turn 02:54:41Z,
+    # sampler fine), and the pane was respawned on that false NEEDS-A-HUMAN. A turn always
+    # writes a user or assistant record, so only those can show the sampler missed one.
     ts="$(tail -c "${JICM_STATE_LAG_TAIL_BYTES:-262144}" "$1" 2>/dev/null \
+          | grep -E '"type":"(user|assistant)"' \
           | grep -o '"timestamp":"[0-9T:.Z-]*"' \
           | sed 's/.*":"//; s/"$//' \
           | sort | tail -1)"
