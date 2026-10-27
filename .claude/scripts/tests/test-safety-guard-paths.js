@@ -123,6 +123,8 @@ const secretCases = [
   ['real password URL', 'postgres://' + 'dbowner' + ':' + 'Kf7qLm2Pz9Rt' + '@' + 'internal.invalid:5432/appdb', true],
   ['real GitHub token', 'ghp_' + 'A'.repeat(20) + 'b3Kd9xQ7mZ1pL5vR2tY8', true],
   ['real private key',  '-----' + 'BEGIN ' + 'RSA ' + 'PRIVATE ' + 'KEY' + '-----', true],
+  // Upside-down OCR garbage (2026-10-27, Fielding's corrected-pages registers): all lower-case.
+  ['all-lower-case OCR run', '"' + 'ccscccsscoesceseseesec' + 'eescessotseneeeeteees' + '"', false],
 ];
 for (const [name, text, want] of secretCases) check(name, flags(text) ? 'flag' : 'clean', want ? 'flag' : 'clean');
 
@@ -240,6 +242,46 @@ const rdCases = [
   ['docker, then a LOCAL bash -c',          `docker ps; bash -c 'echo a > /etc/x'`,                 'deny'],
 ];
 for (const [name, cmd, want] of rdCases) check(name, decision({ command: cmd }), want);
+
+// ── 5. WHICH REPOSITORY a commit is scanned in (2026-10-27) ─────────────────
+// The scan used the hook's cwd, so `cd <repo> && git commit` and `git -C <repo> commit` were
+// scanned against the wrong index; and a staged file over 1 MiB threw ENOBUFS and was skipped.
+// Real throwaway repos under .claude/scratch; GIT_* stripped so no test git can reach a real repo.
+console.log('\n5. secret scan: the repository the commit runs in');
+{
+  const fs = require('fs');
+  const root = path.resolve(__dirname, '../../scratch', `sg-repo-test-${process.pid}`);
+  const env = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+  const sh = (cmd, cwd) => execSync(cmd, { cwd, env, stdio: 'ignore' });
+  const mkrepo = (name, files) => {
+    const d = path.join(root, name);
+    fs.mkdirSync(d, { recursive: true });
+    sh('git init -q && git config user.email t@t.invalid && git config user.name t', d);
+    for (const [f, body] of Object.entries(files)) fs.writeFileSync(path.join(d, f), body);
+    sh('git add -A', d);
+    return d;
+  };
+  const SECRET = 'aws_secret=' + 'wJalrXUtnFEMI2K7' + 'MDENGbPxRfiCYz' + 'JbQxWvKpNrTgHd';
+  try {
+    const dirty = mkrepo('dirty', { 'a.txt': SECRET + '\n' });
+    const clean = mkrepo('clean', { 'a.txt': 'nothing here\n' });
+    const big = mkrepo('big', { 'b.txt': 'x'.repeat(2 * 1024 * 1024) + '\n' + SECRET + '\n' });
+    const here = path.resolve(__dirname, '../../..');   // the session cwd: NOT the repos above
+    const repoCases = [
+      ['cd <dirty> && git commit',          `cd ${dirty} && git commit -m x`, 'deny'],
+      ['git -C <dirty> commit',             `git -C ${dirty} commit -m x`,    'deny'],
+      ['cd <clean> && git commit',          `cd ${clean} && git commit -m x`, 'allow'],
+      ['cd <clean>; git -C <dirty> commit', `cd ${clean}; git -C ${dirty} commit -m x`, 'deny'],
+      ['staged file over 1 MiB',            `cd ${big} && git commit -m x`,   'deny'],
+      ['cd $VAR (unresolvable) && commit',  'cd "$SOMEWT" && git commit -m x', 'deny'],
+      ['cd $VAR, then no commit at all',    'cd "$SOMEWT" && git log --grep commit', 'allow'],
+    ];
+    for (const [name, cmd, want] of repoCases) check(name, decision({ command: cmd }, 'Bash', { cwd: here }), want);
+    check('session cwd = <dirty>, bare commit', decision({ command: 'git commit -m x' }, 'Bash', { cwd: dirty }), 'deny');
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+}
 
 console.log(`\nPASS=${P} FAIL=${F}`);
 process.exit(F === 0 ? 0 : 1);

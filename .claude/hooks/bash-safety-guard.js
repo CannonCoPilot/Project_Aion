@@ -892,36 +892,123 @@ function isFalsePositive(match) {
   // "=" run sitting mid-string is an operator, not padding.
   if (/==[^=]/.test(match.slice(0, -2))) return true;
 
+  // AN ALL-LOWER-CASE LETTER RUN IS NOT A BASE64 CREDENTIAL.
+  // Seventh false-positive class in this one pattern (found 2026-10-27 by Fielding, blocking a
+  // commit): OCR of upside-down scanned pages reads as runs like 'ccscccsscoesceseseeseceesce...'
+  // (9 such in cr_corrected_pages.json, 18 in its decisions register). A base64 key draws on
+  // 64 characters; the chance that 40 of them are all lower-case letters is (26/64)^40 ~ 3e-16.
+  // Real keys keep matching (mixed case, digits); an 'api_key = ...' assignment is still caught
+  // by its own pattern, which keys on the assignment, not the alphabet.
+  if (/^[a-z]+$/.test(match)) return true;
+
   return false;
 }
 
-function checkSecrets(command) {
-  if (!command.includes('git commit')) return null;
+// WHICH REPOSITORY DOES THIS COMMIT RUN IN? (2026-10-27, reported by Fielding.)
+// checkSecrets used to run `git diff --cached` in the HOOK's cwd, i.e. the session's directory,
+// so `cd <worktree> && git commit` and `git -C <repo> commit` were scanned against the WRONG
+// index (or none): a worktree commit went through unscanned. And the trigger was the literal
+// text 'git commit', which `git -C <repo> commit` does not contain. Now every statement is
+// walked in order: `cd DIR` moves the current directory, `git [-C DIR]... commit` records it.
+// Returns { dirs, unresolved }: a cd/-C target holding a shell variable other than $HOME
+// cannot be resolved statically, and the caller refuses rather than scan the wrong tree.
+function commitRepoDirs(command, baseCwd) {
+  const dirs = new Set();
+  const unresolved = [];
+  let cur = baseCwd;
+  let lastUnresolved = '';
+  const expand = w => w.replace(/^~(?=\/|$)/, process.env.HOME || '~').replace(/\$\{?HOME\}?/g, process.env.HOME || '$HOME');
+  const resolveIn = (base, w) => {
+    const e = expand(w);
+    if (/[$`]/.test(e) || base === null) return null;
+    return path.resolve(base, e);
+  };
+  // Split into statements at top level (quotes respected): ; | & newline ( ) { }.
+  const stmts = [];
+  let buf = '';
+  for (let i = 0; i < command.length; i++) {
+    const c = command[i];
+    if (c === "'" || c === '"') { const e = _quoteEnd(command, i); buf += command.slice(i, e + 1); i = e; continue; }
+    if (c === '\\') { buf += command.slice(i, i + 2); i++; continue; }
+    if (';|&\n(){}'.includes(c)) { stmts.push(buf); buf = ''; continue; }
+    buf += c;
+  }
+  stmts.push(buf);
+  for (const st of stmts) {
+    const words = [];
+    let k = 0;
+    while (k < st.length) {
+      while (k < st.length && /\s/.test(st[k])) k++;
+      if (k >= st.length) break;
+      const [w, next] = _readWord(st, k);
+      words.push(w);
+      k = Math.max(next, k + 1);
+    }
+    let j = 0;
+    while (j < words.length && /^[A-Za-z_][A-Za-z0-9_]*=/.test(words[j])) j++;   // env prefixes
+    if (j >= words.length) continue;
+    const cmd = words[j];
+    if (cmd === 'cd' || cmd === 'pushd') {
+      const target = words[j + 1] && words[j + 1] !== '--' ? words[j + 1] : (words[j + 2] || process.env.HOME || '~');
+      const r = resolveIn(cur, target);
+      cur = r;                       // null = unresolvable; it matters only if a commit runs there
+      if (r === null) lastUnresolved = `cd ${target}`;
+      continue;
+    }
+    if (cmd === 'git' || /\/git$/.test(cmd)) {
+      let dir = cur, m = j + 1;
+      while (m < words.length && words[m].startsWith('-')) {
+        if (words[m] === '-C') { const r = resolveIn(dir, words[m + 1] || ''); if (r === null && dir !== null) lastUnresolved = `git -C ${words[m + 1]}`; dir = r; m += 2; continue; }
+        if (words[m] === '-c') { m += 2; continue; }
+        m++;
+      }
+      if (words[m] === 'commit') {
+        if (dir === null) unresolved.push(lastUnresolved || 'an unresolvable directory');
+        else dirs.add(dir);
+      }
+    }
+  }
+  return { dirs: [...dirs], unresolved };
+}
 
-  let stagedFiles;
-  try {
-    const output = execSync('git diff --cached --name-only', { encoding: 'utf8' });
-    stagedFiles = output.trim().split('\n').filter(Boolean);
-  } catch { return null; }
-
-  if (stagedFiles.length === 0) return null;
+function checkSecrets(command, baseCwd) {
+  if (!/\bcommit\b/.test(command) || !/\bgit\b/.test(command)) return null;
+  const cwd0 = baseCwd || process.cwd();
+  const { dirs, unresolved } = commitRepoDirs(command, cwd0);
+  if (unresolved.length) {
+    return _deny(`Blocked: the secret scan cannot tell which repository this commit runs in (${unresolved.join(', ')}). Use a literal path in cd / git -C so the staged files can be scanned.`);
+  }
+  // A commit the walker did not see (e.g. inside bash -c '...'): scan the session cwd, as before.
+  if (dirs.length === 0 && command.includes('git commit')) dirs.push(cwd0);
+  if (dirs.length === 0) return null;
 
   const findings = [];
+  for (const dir of dirs) {
+  let stagedFiles;
+  try {
+    const output = execSync('git diff --cached --name-only', { encoding: 'utf8', cwd: dir });
+    stagedFiles = output.trim().split('\n').filter(Boolean);
+  } catch { continue; }
+
   for (const file of stagedFiles) {
     if (file.match(/\.(png|jpg|gif|ico|woff|ttf|pdf)$/i)) continue;
 
     let content;
-    try { content = execSync(`git show :${file}`, { encoding: 'utf8' }); }
+    // execFileSync, not a shell string: a staged name with a space or quote must not break the read.
+    // maxBuffer raised from Node's 1 MiB default: a larger staged file used to throw ENOBUFS into the
+    // catch below and be SKIPPED, i.e. never scanned.
+    try { content = require('child_process').execFileSync('git', ['show', ':' + file], { encoding: 'utf8', cwd: dir, maxBuffer: 256 * 1024 * 1024 }); }
     catch { continue; }
 
     for (const { name, pattern } of SECRET_PATTERNS) {
       const matches = content.match(new RegExp(pattern, 'g')) || [];
       for (const match of matches) {
         if (!isFalsePositive(match)) {
-          findings.push({ file, type: name, preview: match.substring(0, 20) + '...' });
+          findings.push({ file: dirs.length > 1 || dir !== cwd0 ? `${dir}: ${file}` : file, type: name, preview: match.substring(0, 20) + '...' });
         }
       }
     }
+  }
   }
 
   if (findings.length > 0) {
@@ -991,7 +1078,7 @@ async function handler(context) {
       if (amendResult) return amendResult;
 
       // 6. Secret scanner (sync execSync — only for git commit)
-      const secretResult = checkSecrets(command);
+      const secretResult = checkSecrets(command, context.cwd);
       if (secretResult) return secretResult;
 
     } else if (tool === 'Read' || tool === 'Write' || tool === 'Edit') {
