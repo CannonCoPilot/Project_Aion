@@ -907,6 +907,19 @@ function isFalsePositive(match) {
   // by its own pattern, which keys on the assignment, not the alphabet.
   if (/^[a-z]+$/.test(match)) return true;
 
+  // AN '=' INSIDE A RUN IS A DELIMITER, NOT PADDING -- JUDGE EACH SIDE.
+  // Eighth false-positive class in this one pattern (found 2026-10-27 by Genie, blocking a
+  // data-health commit): ProTraits trait names such as 'ecosystemtype=' + 'nonmarinesaline...'
+  // are key=value runs of lower-case words. The all-lower-case rule misses them only because
+  // of the '='. Base64 padding sits at the END; an '=' with characters after it separates an
+  // assignment, and a secret on either side is still a 40-character run by itself. So split
+  // there and judge each side: 'KEY=' + a real 40-char key keeps flagging, while two short
+  // words joined by '=' cannot. Sides under 40 characters were never secret-length.
+  const body = match.replace(/=+$/, '');
+  if (body.includes('=')) {
+    return body.split('=').every(side => side.length < 40 || isFalsePositive(side));
+  }
+
   return false;
 }
 

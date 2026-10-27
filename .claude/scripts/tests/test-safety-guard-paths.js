@@ -127,6 +127,12 @@ const secretCases = [
   ['all-lower-case OCR run', '"' + 'ccscccsscoesceseseesec' + 'eescessotseneeeeteees' + '"', false],
   // Advertisement-page OCR (cr_section_speech_adjudicated.json): few distinct letters, some capitals.
   ['mixed-case OCR advert run', '"' + 'aaTttaeHhnnoeeTaaNnooh' + 'teeaAtnnheeoTaAtnheeo' + '"', false],
+  // ProTraits trait names in a data-health record (2026-10-27, Genie): lower-case key=value runs.
+  ['ProTraits key=value trait', '"' + 'ecosystemtype=' + 'nonmarinesalineandalkaline' + '"', false],
+  ['ProTraits habitat trait',   '"' + 'knownhabitats=' + 'animalgastrointestinaltract' + '"', false],
+  // The '=' split must not open a hole: an upper-case env name (in the class) before a real key.
+  ['real key after KEY=',       'AWS_SECRET_ACCESS_KEY=' + 'wJalrXUtnFEMI2K7' + 'MDENGbPxRfiCYz' + 'JbQxWvKpNrTgHd', true],
+  ['real key with padding',     'token: ' + 'wJalrXUtnFEMI2K7' + 'MDENGbPxRfiCYz' + 'JbQxWvKpNrTgHd' + '==', true],
 ];
 for (const [name, text, want] of secretCases) check(name, flags(text) ? 'flag' : 'clean', want ? 'flag' : 'clean');
 
