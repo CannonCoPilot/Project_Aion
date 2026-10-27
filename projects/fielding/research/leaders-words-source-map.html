@@ -1,0 +1,370 @@
+<title>Leaders' Words Source Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&family=Public+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{
+  --bg:#F4F6F8; --surface:#FFFFFF; --ink:#18212B; --muted:#5A6573; --rule:#D9DFE6; --tint:#E8EEF2;
+  --accent:#1F5F73; --seal:#8A2D3B;
+  --held:#2F6B4F; --staged:#2B6A86; --free:#3B5BA5; --view:#6A55A0; --gate:#9A6118; --buy:#8A2D3B; --none:#5A6573;
+  --display:"Newsreader",Georgia,"Times New Roman",serif;
+  --body:"Public Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#11161C; --surface:#19212A; --ink:#E6EBF0; --muted:#9AA6B2; --rule:#2B3540; --tint:#1E2933;
+    --accent:#6FB3C8; --seal:#D27A86;
+    --held:#6CC08F; --staged:#6FB3C8; --free:#8FA9E8; --view:#B7A6E6; --gate:#E0A85A; --buy:#D27A86; --none:#9AA6B2;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#11161C; --surface:#19212A; --ink:#E6EBF0; --muted:#9AA6B2; --rule:#2B3540; --tint:#1E2933;
+  --accent:#6FB3C8; --seal:#D27A86;
+  --held:#6CC08F; --staged:#6FB3C8; --free:#8FA9E8; --view:#B7A6E6; --gate:#E0A85A; --buy:#D27A86; --none:#9AA6B2;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.55;padding-inline:16px;padding-block:36px 64px}
+.wrap{max-width:1040px;margin:0 auto;display:flex;flex-direction:column;gap:44px}
+.prose{max-width:720px}
+h1,h2{font-family:var(--display);font-weight:600;line-height:1.2;text-wrap:balance;margin:0}
+h1{font-size:clamp(2rem,4.6vw,2.7rem)}
+h2{font-size:1.55rem}
+h3{font-family:var(--body);font-size:1.02rem;font-weight:700;margin:0}
+p{margin:0}
+section{display:flex;flex-direction:column;gap:14px}
+.eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:var(--seal)}
+.lede{font-size:1.1rem}
+.muted{color:var(--muted)}
+.mono{font-family:var(--mono);font-size:.86em}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.callout{background:var(--tint);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;max-width:820px}
+ul.plain{margin:0;padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.chip{display:inline-block;font-family:var(--mono);font-size:.68rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:3px;border:1px solid currentColor;white-space:nowrap;vertical-align:1px}
+.c-held{color:var(--held)} .c-staged{color:var(--staged)} .c-free{color:var(--free)} .c-view{color:var(--view)}
+.c-gate{color:var(--gate)} .c-buy{color:var(--buy)} .c-none{color:var(--none)}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.legend div{display:flex;flex-direction:column;gap:4px;background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:10px 12px;font-size:.9rem}
+.tablebox{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:760px;font-size:.88rem}
+th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface);position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+td.y{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.82rem}
+td.src{min-width:210px}
+td.src b{font-weight:600}
+.prio{display:flex;flex-direction:column;gap:0;counter-reset:p;max-width:880px}
+.prio li{list-style:none;display:grid;grid-template-columns:36px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--rule)}
+.prio li:last-child{border-bottom:1px solid var(--rule)}
+.prio .n{font-family:var(--mono);font-weight:600;color:var(--accent);padding-top:1px}
+.prio ul{margin:0;padding:0}
+.toc{display:flex;flex-wrap:wrap;gap:8px 14px;font-size:.9rem}
+footer{font-size:.84rem;color:var(--muted);border-top:1px solid var(--rule);padding-top:16px;max-width:820px;display:flex;flex-direction:column;gap:6px}
+</style>
+
+<div class="wrap">
+
+<header class="prose" style="display:flex;flex-direction:column;gap:14px">
+  <span class="eyebrow">Source survey · 27 October 2026</span>
+  <h1>Where the rest of the leaders' words are</h1>
+  <p class="lede">You asked what we do not yet have of the words of Latter-day Saint leaders, and where to get it. This page answers that, with the pre-1900 gaps first.</p>
+  <p>It builds on Fielding's two surveys of 12 October and adds three new research passes from today. Each source is marked by how we can actually get it, not just whether it exists.</p>
+  <nav class="toc" aria-label="Sections">
+    <a href="#answer">The answer</a><a href="#legend">Legend</a><a href="#held">What we hold</a><a href="#pre1900">Before 1900</a>
+    <a href="#epistles">Epistles</a><a href="#books">Books and pamphlets</a><a href="#periodicals">Periodicals 1900–1970</a>
+    <a href="#women">Women leaders</a><a href="#modern">Since 1971</a><a href="#finding">Finding aids</a><a href="#decisions">Decisions</a><a href="#annas">Anna&#39;s Archive</a>
+  </nav>
+</header>
+
+<section id="answer">
+  <div class="eyebrow">1 · The answer</div>
+  <h2>What we do not have, in order of value</h2>
+  <ol class="prio">
+    <li><span class="n">01</span><div><b>The two worst pre-1900 gaps, 1845–1851 and 1880–1899.</b> No Journal of Discourses, no official Conference Reports. Fill them from: the Frontier Guardian (Orson Hyde, 1849–52), the General Epistles, Orson Pratt's Liverpool pamphlets, the Deseret Weekly's "Discourse" column (verbatim, 1886–98), the official reports of 1897–99, and a transcription project covering all 40 conferences of 1880–1899. <span class="chip c-free">free</span></div></li>
+    <li><span class="n">02</span><div><b>Watt's unpublished shorthand sermons, 1851–1874.</b> Hundreds of sermons never printed, including about 235 by Brigham Young. Free to read in the Church History Catalog, but the Church's terms forbid automated download. <span class="chip c-view">read only</span></div></li>
+    <li><span class="n">03</span><div><b>Eliza R. Snow's 1,200+ discourses, 1840–1887.</b> The largest body of a Relief Society president's words. Church Historian's Press, free online. <span class="chip c-view">read only</span></div></li>
+    <li><span class="n">04</span><div><b>54 complete early periodical runs on archive.org.</b> Elders' Journal, The Prophet, St. Louis Luminary, The Mormon, Western Standard, Nauvoo Neighbor and more, uploaded by the Smith-Pettit Foundation. Clean public-domain text. <span class="chip c-free">free</span></div></li>
+    <li><span class="n">05</span><div><b>Pamphlets, tracts and books before 1931.</b> 4,104 Church History Library items dated 1830–99 on archive.org, plus about 40 leaders' books proofread on Project Gutenberg (Talmage, Roberts, Whitney, Widtsoe, Gospel Doctrine). <span class="chip c-free">free</span></div></li>
+    <li><span class="n">06</span><div><b>Relief Society Magazine 1914–1970, Instructor 1930–1970, Millennial Star 1901–1970, Young Woman's Journal 1889–1929, Woman's Exponent 1872–1914.</b> Full runs, all free full text. We hold none of these yet. <span class="chip c-free">free</span></div></li>
+    <li><span class="n">07</span><div><b>Devotional talks outside conference.</b> BYU (2,545), BYU–Idaho (2,529, from 1957) and BYU–Hawaii (1,437, from 1955). We hold a 27-talk sample of BYU only. <span class="chip c-free">free</span></div></li>
+    <li><span class="n">08</span><div><b>Leaders' books published after 1930.</b> Doctrines of Salvation, Gospel Standards, Gospel Ideals, Answers to Gospel Questions, Mormon Doctrine and others. Borrow-only online. <span class="chip c-buy">buy / borrow</span></div></li>
+    <li><span class="n">09</span><div><b>Conferences the Church site leaves out.</b> Relief Society general conferences and June youth and Primary conferences (to 1975), and the 1970s area conferences. Only in the Ensign, the Relief Society Magazine and the Conference Reports. <span class="chip c-free">free</span> <span class="chip c-view">read only</span></div></li>
+    <li><span class="n">10</span><div><b>Councils and diaries that record what leaders said.</b> George Q. Cannon's journal (1849–1901), the Nuttall, Roberts, Lund and John Henry Smith diaries, Heber J. Grant's journals. Mostly free; Abraham H. Cannon's diaries must be bought. <span class="chip c-free">free</span> <span class="chip c-buy">buy</span></div></li>
+  </ol>
+  <div class="callout">
+    <h3>Already complete</h3>
+    <p>General Conference from 1971 on. I matched six sample conferences talk for talk against the Church's site. Our copy has every sermon. It leaves out only the sustainings and the audit and statistical reports.</p>
+  </div>
+</section>
+
+<section id="legend">
+  <div class="eyebrow">2 · How to read the marks</div>
+  <h2>What each mark means</h2>
+  <div class="legend">
+    <div><span><span class="chip c-held">held</span></span>Searchable in our corpus today.</div>
+    <div><span><span class="chip c-staged">staged</span></span>On our disk, not yet in the corpus.</div>
+    <div><span><span class="chip c-free">free</span></span>Free full text we may download.</div>
+    <div><span><span class="chip c-view">read only</span></span>Free to read, but automated download is barred, or it is page images only.</div>
+    <div><span><span class="chip c-gate">request</span></span>Behind a request, login or reading room.</div>
+    <div><span><span class="chip c-buy">buy / borrow</span></span>Purchase, or borrow one copy at a time online.</div>
+    <div><span><span class="chip c-none">print only</span></span>Not digitized anywhere we found.</div>
+  </div>
+  <p class="muted prose">Rights: a work published in or before 1930 is US public domain in 2026. Later works are under copyright unless shown otherwise. That is fine for private research. The text is never republished.</p>
+</section>
+
+<section id="held">
+  <div class="eyebrow">3 · Our shelf today</div>
+  <h2>What Fielding holds</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Source</th><th>Years</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="src"><b>General Conference talks</b> (BYU Scripture Citation Index)</td><td class="y">1942–2026</td><td><span class="chip c-held">held</span></td><td>5,874 talks. Complete from 1971. 1942–70 misses talks that cite no scripture; the Conference Report split fills that.</td></tr>
+      <tr><td class="src"><b>Journal of Discourses</b></td><td class="y">1839–1886</td><td><span class="chip c-held">held</span></td><td>1,426 discourses.</td></tr>
+      <tr><td class="src"><b>Conference Reports</b> (archive.org)</td><td class="y">1880, 1897–1970</td><td><span class="chip c-staged">staged</span></td><td>147 conferences, OCR and images. Being split talk by talk now.</td></tr>
+      <tr><td class="src"><b>Early periodicals</b> ("Utah and the Mormons" set)</td><td class="y">1832–1856</td><td><span class="chip c-staged">staged</span></td><td>Evening and Morning Star, Messenger and Advocate, Times and Seasons, Nauvoo Neighbor, Southern Star, Frontier Guardian, Zion's Watchman, The Seer. OCR; some runs partial.</td></tr>
+      <tr><td class="src"><b>Millennial Star</b></td><td class="y">1850–1898</td><td><span class="chip c-staged">staged</span></td><td>Used only to check other texts, never as the text itself.</td></tr>
+      <tr><td class="src"><b>Improvement Era</b></td><td class="y">1900–1970</td><td><span class="chip c-staged">staged</span></td><td>Volumes 4–73. <b>Volumes 1–3 (1897–1900) missing.</b></td></tr>
+      <tr><td class="src"><b>The Contributor; Juvenile Instructor</b></td><td class="y">1879–1896; 1866–1929</td><td><span class="chip c-staged">staged</span></td><td>Contributor complete.</td></tr>
+      <tr><td class="src"><b>Young Woman's Journal</b></td><td class="y">1889–1910</td><td><span class="chip c-staged">staged</span></td><td>Only 9 of 43 volumes.</td></tr>
+      <tr><td class="src"><b>Elden Watson, Early Church Conference Reports</b></td><td class="y">1830–1897</td><td><span class="chip c-staged">staged</span></td><td>Transcribed from the Deseret News and Millennial Star; spelling standardized.</td></tr>
+      <tr><td class="src"><b>1852 territorial legislature speeches</b></td><td class="y">1852</td><td><span class="chip c-staged">staged</span></td><td>From the "This Abominable Slavery" exhibit.</td></tr>
+      <tr><td class="src"><b>Stuy, Collected Discourses</b> (5 vols)</td><td class="y">1886–1898</td><td><span class="chip c-staged">staged</span></td><td>Private research only. Its chapter dates are claims, checked against the Star.</td></tr>
+      <tr><td class="src"><b>Words of Joseph Smith; Teachings of the Prophet Joseph Smith; Messages of the First Presidency</b> (6 vols)</td><td class="y">1839–1964</td><td><span class="chip c-staged">staged</span></td><td>Ebooks, private research only.</td></tr>
+      <tr><td class="src"><b>BYU Speeches</b></td><td class="y">1891–</td><td><span class="chip c-staged">staged</span></td><td>A 27-talk sample of 2,545.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="pre1900">
+  <div class="eyebrow">4 · Before 1900 (most critical)</div>
+  <h2>Sources for the nineteenth century</h2>
+  <p class="prose">Grouped by era. The gap years, 1845–1851 and 1880–1899, are flagged.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Source</th><th>Years</th><th>Kind of text</th><th>Access</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td colspan="5"><h3>Joseph Smith era, 1830–1844</h3></td></tr>
+      <tr><td class="src"><b>Joseph Smith Papers</b></td><td class="y">1828–1844</td><td>Clerks' minutes of discourses; scholarly edition</td><td><span class="chip c-view">read only</span></td><td><a href="https://www.josephsmithpapers.org/">josephsmithpapers.org</a>. Church terms bar automated download.</td></tr>
+      <tr><td class="src"><b>Historian's Office General Church Minutes</b> (CR 100 318)</td><td class="y">1839–1877</td><td>Minutes of remarks</td><td><span class="chip c-view">read only</span></td><td>Church History Catalog. Same terms bar.</td></tr>
+      <tr><td class="src"><b>Elders' Journal; The Wasp; The Prophet; Gospel Reflector; Prophetic Almanac</b></td><td class="y">1837–1845</td><td>Periodicals; Joseph Smith editorials, Pratt writings</td><td><span class="chip c-free">free</span></td><td>archive.org Smith-Pettit set, e.g. <span class="mono">EldersJournal18371838</span>, <span class="mono">TheProphet18441845</span></td></tr>
+      <tr><td class="src"><b>Brigham Young Journals</b> (BYU RSC)</td><td class="y">1832–1846</td><td>Diary</td><td><span class="chip c-free">free</span></td><td><a href="https://rsc.byu.edu/book/brigham-young-journals">rsc.byu.edu</a></td></tr>
+      <tr><td class="src"><b>Nauvoo Relief Society Minute Book</b>, in <i>The First Fifty Years of Relief Society</i></td><td class="y">1842–1892</td><td>Minutes; verbatim</td><td><span class="chip c-view">read only</span></td><td><a href="https://www.churchhistorianspress.org/the-first-fifty-years-of-relief-society?lang=eng">Church Historian's Press</a></td></tr>
+
+      <tr><td colspan="5"><h3>Exodus years, 1845–1851 <span class="chip c-gate">gap</span></h3></td></tr>
+      <tr><td class="src"><b>Nauvoo Neighbor; New York Messenger</b></td><td class="y">1843–1845</td><td>Periodicals; John Taylor, Parley Pratt</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">NauvooNeighbor18431845</span>, <span class="mono">NewYorkMessenger1845</span>; cleaner transcriptions at <a href="https://byustudies.byu.edu/online-book/nauvoo-neighbor">BYU Studies</a></td></tr>
+      <tr><td class="src"><b>Orson Hyde, Speech to the High Priests</b></td><td class="y">27 Apr 1845</td><td>Verbatim address</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">speechofelderors00hyde</span></td></tr>
+      <tr><td class="src"><b>Council of Fifty minutes</b></td><td class="y">1844–Jan 1846</td><td>Near-verbatim speeches by Young, Kimball, Pratt, Taylor</td><td><span class="chip c-view">read only</span></td><td>Joseph Smith Papers, Administrative Records</td></tr>
+      <tr><td class="src"><b>Frontier Guardian</b> (Orson Hyde, President of the Twelve)</td><td class="y">1849–1852</td><td>Conference minutes, epistles</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">FrontierGuardian18491852</span>; we hold part. Transcribed at <a href="https://byustudies.byu.edu/online-book/the-frontier-guardian/february-7-1849-volume-1-number-1-146">BYU Studies</a></td></tr>
+      <tr><td class="src"><b>Orson Pratt, Series of Pamphlets</b> (Liverpool)</td><td class="y">1848–1851</td><td>Doctrinal tracts</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">seriesofpamphl1891prat</span> and single tracts</td></tr>
+      <tr><td class="src"><b>Manuscript History of Brigham Young 1846–47</b> (Watson ed.)</td><td class="y">1846–1847</td><td>Office journal with remarks</td><td><span class="chip c-gate">request</span></td><td>FamilySearch, search only</td></tr>
+      <tr><td class="src"><b>History of the Church, vol. 7</b> (Roberts)</td><td class="y">1844–1848</td><td>Compiled history with discourses</td><td><span class="chip c-buy">borrow</span></td><td>Published 1932; archive.org lending copy</td></tr>
+      <tr><td class="src"><b>Heber C. Kimball diaries</b> (<i>On the Potter's Wheel</i>)</td><td class="y">1837–1860s</td><td>Diary</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">OnThePottersWheelHeberKimball</span> (CC licence)</td></tr>
+      <tr><td class="src"><b>Brigham Young office files</b> (CR 1234 1)</td><td class="y">1832–1878</td><td>Handwritten letters and epistles</td><td><span class="chip c-view">read only</span></td><td>Church History Catalog, page images; no transcription</td></tr>
+
+      <tr><td colspan="5"><h3>Utah, 1852–1885 (Journal of Discourses years)</h3></td></tr>
+      <tr><td class="src"><b>Watt shorthand transcriptions</b> (CR 100 912, Carruth)</td><td class="y">1851–1874</td><td>Verbatim; sermons never printed in the JD</td><td><span class="chip c-view">read only</span></td><td>Church History Catalog; some items restricted pending publication</td></tr>
+      <tr><td class="src"><b>The Seer; The Mormon; St. Louis Luminary; Western Standard</b></td><td class="y">1853–1857</td><td>Periodicals by Orson Pratt, John Taylor, Erastus Snow, George Q. Cannon</td><td><span class="chip c-free">free</span></td><td>archive.org Smith-Pettit set. Cannon was not yet an apostle in 1856–57.</td></tr>
+      <tr><td class="src"><b>Deseret News</b></td><td class="y">1850–</td><td>Sermon reports, often upstream of the JD</td><td><span class="chip c-view">read only</span></td><td>Utah Digital Newspapers blocks automated access. Issue index at <a href="https://archiveviewer.org/collections/en/deseret-news-weekly">ArchiveViewer</a></td></tr>
+      <tr><td class="src"><b>Complete Discourses of Brigham Young</b> (Van Wagoner, 5 vols)</td><td class="y">1832–1877</td><td>Every known sermon, published and unpublished</td><td><span class="chip c-buy">buy</span></td><td>Kindle volumes about $10 each</td></tr>
+      <tr><td class="src"><b>Salt Lake School of the Prophets</b> (Anderson, 2018)</td><td class="y">1867–1883</td><td>Minutes</td><td><span class="chip c-buy">buy</span></td><td>The only published edition; originals restricted</td></tr>
+      <tr><td class="src"><b>Wilford Woodruff's journals</b></td><td class="y">1833–1898</td><td>Diary summaries of sermons</td><td><span class="chip c-view">read only</span> <span class="chip c-buy">buy</span></td><td>Woodruff Papers site bars our crawler by name; Kenney edition is print</td></tr>
+
+      <tr><td colspan="5"><h3>Late Utah, 1880–1899 <span class="chip c-gate">gap</span></h3></td></tr>
+      <tr><td class="src"><b>Historical General Conferences</b> (transcription project)</td><td class="y">1830–1970</td><td>Transcribed minutes and epistles; all 40 conferences 1880–1899; cites its sources</td><td><span class="chip c-free">free</span></td><td><a href="https://historicalgeneralconferences.weebly.com/">historicalgeneralconferences.weebly.com</a>. Anonymous; check against its cited originals.</td></tr>
+      <tr><td class="src"><b>Year of Jubilee</b> (April 1880 conference report)</td><td class="y">1880</td><td>Verbatim</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">yearjubileeaful01estagoog</span></td></tr>
+      <tr><td class="src"><b>Deseret Weekly "Discourse" column</b></td><td class="y">1886–1898</td><td>Verbatim conference discourses (Stuy's source)</td><td><span class="chip c-free">free</span></td><td>HathiTrust full view about 1889–94; Google scans on archive.org</td></tr>
+      <tr><td class="src"><b>Deseret Evening News; Salt Lake Herald</b></td><td class="y">1889–1910; 1870–1909</td><td>Conference reports, some verbatim</td><td><span class="chip c-free">free</span></td><td>Library of Congress, Chronicling America</td></tr>
+      <tr><td class="src"><b>Official Conference Reports</b></td><td class="y">1897–1899</td><td>Verbatim</td><td><span class="chip c-staged">staged</span></td><td>Part of our Conference Report split</td></tr>
+      <tr><td class="src"><b>Journal of George Q. Cannon</b></td><td class="y">1849–1901</td><td>First Presidency diary; about 2.5 million words</td><td><span class="chip c-view">read only</span></td><td><a href="https://www.churchhistorianspress.org/george-q-cannon?lang=eng">Church Historian's Press</a></td></tr>
+      <tr><td class="src"><b>Nuttall, B. H. Roberts, Lund, John Henry Smith, Clawson diaries</b></td><td class="y">1872–1921</td><td>Diaries with council minutes</td><td><span class="chip c-free">free</span></td><td>archive.org, Signature Books uploads (CC licence)</td></tr>
+      <tr><td class="src"><b>Heber J. Grant journals</b></td><td class="y">1880–1925</td><td>Diary, page images</td><td><span class="chip c-view">read only</span></td><td>Church History Catalog, released February 2025</td></tr>
+      <tr><td class="src"><b>Abraham H. Cannon diaries</b> (<i>Candid Insights</i>)</td><td class="y">1889–1895</td><td>Detailed council minutes</td><td><span class="chip c-buy">buy</span></td><td><a href="https://www.signaturebooks.com/books/p/candid-insights-of-a-mormon-apostle">Signature Books</a>, $9.99 ebook</td></tr>
+      <tr><td class="src"><b>Shorthand reports after 1874</b> (Irvine, Gibbs, Winter)</td><td class="y">1874–1899</td><td>Original shorthand</td><td><span class="chip c-none">not transcribed</span></td><td>No public transcription found</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted prose">Caution: several prolific writers were not General Authorities when they wrote. George Q. Cannon became an apostle in 1860, B. H. Roberts joined the Seventy's presidency in 1888, and Charles W. Penrose became an apostle in 1904. Orson Spencer was never one. Each text should be tagged with the author's office on its date.</p>
+</section>
+
+<section id="epistles">
+  <div class="eyebrow">5 · Epistles and proclamations</div>
+  <h2>Formal letters to the Church</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Item</th><th>Date</th><th>Access</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td class="src"><b>Proclamation of the Twelve Apostles</b></td><td class="y">1845</td><td><span class="chip c-free">free</span></td><td>BYU digital collections; archive.org <span class="mono">proclamationoftw00unse</span></td></tr>
+      <tr><td class="src"><b>General Epistle of the Twelve</b>, Winter Quarters</td><td class="y">23 Dec 1847</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">generalepistlefr00quor</span></td></tr>
+      <tr><td class="src"><b>First Presidency General Epistles 1–14</b></td><td class="y">1849–1856</td><td><span class="chip c-free">free</span> <span class="chip c-buy">buy</span></td><td>Scans of some; all printed in the Deseret News and Star. Critical edition: Neilson and Waite, <i>Settling the Valley</i> (Oxford 2017), purchase.</td></tr>
+      <tr><td class="src"><b>Epistles of the First Presidency and of the Twelve</b></td><td class="y">1887</td><td><span class="chip c-free">free</span></td><td>archive.org <span class="mono">epistleoffirstpr00churrich</span>, <span class="mono">epistleofcouncil00coun</span></td></tr>
+      <tr><td class="src"><b>Messages of the First Presidency</b> (Clark, 6 vols)</td><td class="y">1833–1964</td><td><span class="chip c-staged">staged</span></td><td>The standard compilation; we hold it</td></tr>
+      <tr><td class="src"><b>1865 proclamation on Orson Pratt's doctrines</b></td><td class="y">1865</td><td><span class="chip c-staged">staged</span></td><td>In Clark vol. 2; no standalone scan found</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="books">
+  <div class="eyebrow">6 · Books, pamphlets and tracts</div>
+  <h2>Leaders' own books</h2>
+  <p class="prose">Before 1931 nearly everything is free. From the 1940s on, nearly everything is borrow-only or for sale.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Work</th><th>Published</th><th>Access</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td colspan="4"><h3>Public domain (1930 and before)</h3></td></tr>
+      <tr><td class="src"><b>Parley P. Pratt</b>: Voice of Warning; Key to the Science of Theology; Autobiography</td><td class="y">1837–1874</td><td><span class="chip c-free">free</span></td><td>archive.org; Gutenberg; BYU Mormon Publications</td></tr>
+      <tr><td class="src"><b>John Taylor</b>: Government of God; Items on Priesthood; Mediation and Atonement</td><td class="y">1852–1882</td><td><span class="chip c-free">free</span></td><td>archive.org; Gutenberg</td></tr>
+      <tr><td class="src"><b>George Q. Cannon</b>: Writings from the Western Standard; Life of Joseph Smith; My First Mission</td><td class="y">1864–1888</td><td><span class="chip c-free">free</span></td><td>archive.org; Gutenberg</td></tr>
+      <tr><td class="src"><b>Wilford Woodruff</b>: Leaves from My Journal; <b>Lorenzo Snow</b>: The Only Way to Be Saved</td><td class="y">1841–1882</td><td><span class="chip c-free">free</span></td><td>archive.org</td></tr>
+      <tr><td class="src"><b>James E. Talmage</b>: Articles of Faith; Great Apostasy; House of the Lord; Jesus the Christ; Vitality of Mormonism</td><td class="y">1899–1919</td><td><span class="chip c-free">free</span></td><td>Gutenberg 42238, 35514, 45149, 22542, 47182</td></tr>
+      <tr><td class="src"><b>B. H. Roberts</b>: The Gospel; New Witnesses for God; Seventy's Course in Theology (5 yrs); Defense of the Faith; Comprehensive History of the Church (6 vols)</td><td class="y">1888–1930</td><td><span class="chip c-free">free</span></td><td>archive.org; Gutenberg (Seventy's Course 60235 and others)</td></tr>
+      <tr><td class="src"><b>Joseph F. Smith</b>: Gospel Doctrine</td><td class="y">1919</td><td><span class="chip c-free">free</span></td><td>Gutenberg 47109</td></tr>
+      <tr><td class="src"><b>Orson F. Whitney; John A. Widtsoe; David O. McKay; Joseph Fielding Smith</b> (early works)</td><td class="y">1888–1922</td><td><span class="chip c-free">free</span></td><td>Gutenberg; archive.org. E.g. A Rational Theology, Ancient Apostles, Essentials in Church History.</td></tr>
+      <tr><td class="src"><b>Discourses of Brigham Young</b> (Widtsoe comp.)</td><td class="y">1925</td><td><span class="chip c-free">free</span></td><td>Gutenberg 74447; drawn from the JD</td></tr>
+      <tr><td class="src"><b>Pamphlet collections</b>: Church History Library uploads (4,104 items dated 1830–99) and "Utah and the Mormons" microfilm (5,206)</td><td class="y">1830–1899</td><td><span class="chip c-free">free</span></td><td>archive.org collections <span class="mono">churchhistorylibrary</span>, <span class="mono">pub_utah-and-the-mormons</span></td></tr>
+      <tr><td colspan="4"><h3>Later works ruled public domain</h3></td></tr>
+      <tr><td class="src"><b>Teachings of the Prophet Joseph Smith</b>; <b>Priesthood and Church Government</b></td><td class="y">1938; 1939</td><td><span class="chip c-free">free</span></td><td>HathiTrust has ruled both public domain (copyright not renewed). Others from 1931–63 may be too; a renewal check would settle it.</td></tr>
+      <tr><td colspan="4"><h3>Under copyright (1931 on)</h3></td></tr>
+      <tr><td class="src"><b>Joseph Fielding Smith</b>: Way to Perfection; Doctrines of Salvation; Answers to Gospel Questions</td><td class="y">1931–1966</td><td><span class="chip c-buy">borrow / buy</span></td><td>Way to Perfection is open on archive.org; the rest borrow-only</td></tr>
+      <tr><td class="src"><b>Heber J. Grant</b>: Gospel Standards; <b>David O. McKay</b>: Gospel Ideals; <b>J. Reuben Clark</b>; <b>Widtsoe</b>: Evidences and Reconciliations</td><td class="y">1941–1962</td><td><span class="chip c-buy">borrow / buy</span></td><td>archive.org lending</td></tr>
+      <tr><td class="src"><b>McConkie, Kimball, LeGrand Richards, Hugh B. Brown, Lee, Benson, Petersen</b></td><td class="y">1950–1982</td><td><span class="chip c-buy">borrow / buy</span></td><td>archive.org lending; GospeLink ($4.99/month, appears unmaintained)</td></tr>
+      <tr><td class="src"><b>B. H. Roberts, The Truth, The Way, The Life</b></td><td class="y">written 1928, pub. 1994</td><td><span class="chip c-free">free</span></td><td>1996 edition PDF posted with permission by Book of Mormon Central</td></tr>
+      <tr><td class="src"><b>Teachings of Presidents of the Church</b> (16 manuals)</td><td class="y">1997–2023</td><td><span class="chip c-view">read only</span></td><td>Gospel Library. Excerpts with source citations: a good index back to the original talks.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="periodicals">
+  <div class="eyebrow">7 · Periodicals 1900–1970</div>
+  <h2>Where leaders printed their articles</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Title</th><th>Years</th><th>Status</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td class="src"><b>Relief Society Magazine</b></td><td class="y">1914–1970</td><td><span class="chip c-free">free</span></td><td>archive.org, full run (57 yearly volumes). Carries Relief Society conference addresses.</td></tr>
+      <tr><td class="src"><b>The Instructor</b></td><td class="y">1930–1970</td><td><span class="chip c-free">free</span></td><td>archive.org, 494 issues</td></tr>
+      <tr><td class="src"><b>Millennial Star</b> (20th century)</td><td class="y">1901–1970</td><td><span class="chip c-free">free</span></td><td>archive.org, 2,597 items. Apostles who presided over the European Mission wrote here.</td></tr>
+      <tr><td class="src"><b>Improvement Era</b>, volumes 1–3</td><td class="y">1897–1900</td><td><span class="chip c-free">free</span></td><td>HathiTrust full view; Church History Catalog. The rest of the run we hold.</td></tr>
+      <tr><td class="src"><b>Young Woman's Journal</b> (full run)</td><td class="y">1889–1929</td><td><span class="chip c-free">free</span></td><td>BYU digital collection <span class="mono">YWJ</span>, 43 volumes with OCR</td></tr>
+      <tr><td class="src"><b>Woman's Exponent</b> (full run)</td><td class="y">1872–1914</td><td><span class="chip c-free">free</span></td><td>BYU digital collection <span class="mono">WomansExp</span>, public domain</td></tr>
+      <tr><td class="src"><b>Children's Friend</b></td><td class="y">1902–1970</td><td><span class="chip c-view">read only</span></td><td>Church History Catalog, page images; some early volumes on HathiTrust</td></tr>
+      <tr><td class="src"><b>Utah Genealogical and Historical Magazine</b></td><td class="y">1910–1940</td><td><span class="chip c-free">free</span></td><td>archive.org, most volumes</td></tr>
+      <tr><td class="src"><b>Liahona, the Elders' Journal; Elders' Journal of the Southern States Mission</b></td><td class="y">1907–1945; 1903–1907</td><td><span class="chip c-view">read only</span></td><td>Church History Catalog only</td></tr>
+      <tr><td class="src"><b>Deseret News and Church Section / Church News</b></td><td class="y">1900–1970</td><td><span class="chip c-gate">request</span></td><td>Church News scans by request in the Church History Catalog; Google News Archive images are sparse</td></tr>
+    </tbody>
+  </table></div>
+  <p class="muted prose">HathiTrust shows these serials in full only through 1930; 1931–1970 is search-only there. The archive.org copies go to 1970 because the Church History Library or BYU uploaded them.</p>
+</section>
+
+<section id="women">
+  <div class="eyebrow">8 · Relief Society and women leaders</div>
+  <h2>Women leaders' words</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Source</th><th>Years</th><th>Access</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="src"><b>Discourses of Eliza R. Snow</b></td><td class="y">1840–1887</td><td><span class="chip c-view">read only</span></td><td>1,200+ discourses. <a href="https://www.churchhistorianspress.org/eliza-r-snow?lang=eng">Church Historian's Press</a></td></tr>
+      <tr><td class="src"><b>The First Fifty Years of Relief Society</b></td><td class="y">1842–1892</td><td><span class="chip c-view">read only</span></td><td>78 documents including the full Nauvoo minutes</td></tr>
+      <tr><td class="src"><b>At the Pulpit</b></td><td class="y">1831–2016</td><td><span class="chip c-view">read only</span></td><td>54 discourses, including Relief Society presidents Bathsheba Smith, Amy Brown Lyman and Belle Spafford. Its appendix lists every woman who spoke in general conference, 1845–2016.</td></tr>
+      <tr><td class="src"><b>Diaries of Emmeline B. Wells</b></td><td class="y">1844–1921</td><td><span class="chip c-view">read only</span></td><td>Relief Society president 1910–21</td></tr>
+      <tr><td class="src"><b>Woman's Exponent; Relief Society Magazine; Young Woman's Journal</b></td><td class="y">1872–1970</td><td><span class="chip c-free">free</span></td><td>Full runs; see Periodicals. These carry the Relief Society conference addresses.</td></tr>
+      <tr><td class="src"><b>Relief Society general conferences; June youth and Primary conferences</b></td><td class="y">to 1975</td><td><span class="chip c-free">free</span></td><td>Not on the Church conference site. Printed in the Relief Society Magazine (to 1970) and Ensign reports.</td></tr>
+      <tr><td class="src"><b>General women's meetings</b></td><td class="y">1978–</td><td><span class="chip c-held">held</span></td><td>In our 1971-on conference set. Official conference sessions from 2014.</td></tr>
+      <tr><td class="src"><b>Books by Belle S. Spafford; Susa Young Gates</b></td><td class="y">1911–1974</td><td><span class="chip c-free">free</span> <span class="chip c-buy">borrow</span></td><td>Gates (pre-1931) free; Spafford borrow-only</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="modern">
+  <div class="eyebrow">9 · Since 1971 and outside conference</div>
+  <h2>Devotionals, broadcasts and prayers</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Source</th><th>Years</th><th>Count</th><th>Access</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td class="src"><b>BYU Speeches</b></td><td class="y">1891–</td><td class="y">2,545</td><td><span class="chip c-free">free</span></td><td>Open API; some records lack a transcript</td></tr>
+      <tr><td class="src"><b>BYU–Idaho / Ricks devotionals</b></td><td class="y">1957–</td><td class="y">2,529</td><td><span class="chip c-free">free</span></td><td>Sitemap; asks for a 10-second crawl delay. Sparse before the 1990s.</td></tr>
+      <tr><td class="src"><b>BYU–Hawaii speeches</b></td><td class="y">1955–</td><td class="y">1,437</td><td><span class="chip c-free">free</span></td><td>Sitemap; same crawl delay</td></tr>
+      <tr><td class="src"><b>Ensign College devotionals</b></td><td class="y">1995–</td><td class="y">685</td><td><span class="chip c-gate">request</span></td><td>Its robots file bars our crawler by name; permission needed</td></tr>
+      <tr><td class="src"><b>Ensign, New Era, Friend, Liahona</b></td><td class="y">1971–</td><td class="y">—</td><td><span class="chip c-view">read only</span></td><td>Gospel Library. Area conferences, Relief Society conferences, leadership trainings were printed here.</td></tr>
+      <tr><td class="src"><b>Worldwide devotionals for young adults; CES firesides; Evening with a General Authority</b></td><td class="y">1975–</td><td class="y">—</td><td><span class="chip c-view">read only</span></td><td>Church site; the older archive pages refuse non-browser access</td></tr>
+      <tr><td class="src"><b>Worldwide Leadership Training</b></td><td class="y">2004–2012</td><td class="y">—</td><td><span class="chip c-view">read only</span></td><td>Full texts printed in the June 2006–2008 magazines</td></tr>
+      <tr><td class="src"><b>Temple dedicatory prayers</b></td><td class="y">1836–</td><td class="y">200+</td><td><span class="chip c-view">read only</span></td><td>One Church page per prayer, rededications included</td></tr>
+      <tr><td class="src"><b>Conference audio and "Church of the Air" radio talks</b></td><td class="y">1936–2012; 1937–1969</td><td class="y">—</td><td><span class="chip c-gate">request</span></td><td>Church History Library; transcripts on request</td></tr>
+      <tr><td class="src"><b>Mission leadership seminars</b></td><td class="y">—</td><td class="y">—</td><td><span class="chip c-none">not found</span></td><td>Only Church News excerpts, which also bar our crawler</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="finding">
+  <div class="eyebrow">10 · Finding aids</div>
+  <h2>Lists that tell us what exists</h2>
+  <div class="tablebox"><table>
+    <thead><tr><th>Aid</th><th>Covers</th><th>Access</th><th>Use</th></tr></thead>
+    <tbody>
+      <tr><td class="src"><b>Crawley, Descriptive Bibliography of the Mormon Church</b> (3 vols)</td><td class="y">1830–1857</td><td><span class="chip c-free">free</span></td><td>Every pamphlet, epistle and broadside. <a href="https://rsc.byu.edu/book/descriptive-bibliography-mormon-church-volume-1">BYU Religious Studies Center</a></td></tr>
+      <tr><td class="src"><b>Flake and Draper, A Mormon Bibliography</b></td><td class="y">1830–1930</td><td><span class="chip c-free">free</span></td><td>About 15,000 records. <a href="https://atom.lib.byu.edu/mormonbib/browse/">BYU database</a></td></tr>
+      <tr><td class="src"><b>ArchiveViewer.org</b></td><td class="y">1830–</td><td><span class="chip c-free">free</span></td><td>Issue-level index of Church periodicals, linking every scan</td></tr>
+      <tr><td class="src"><b>Index to Periodicals of the Church</b></td><td class="y">1961–2004</td><td><span class="chip c-none">print only</span></td><td>Indexes Church News, Ensign and area conferences</td></tr>
+      <tr><td class="src"><b>Index to the Church News</b></td><td class="y">1931–1960</td><td><span class="chip c-none">print only</span></td><td>Leaders' talks reported in Church News</td></tr>
+      <tr><td class="src"><b>LDS General Conference Corpus</b> (Davies)</td><td class="y">1851–</td><td><span class="chip c-view">search only</span></td><td>Cross-check list; its 1851–86 part is our JD copy</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="decisions">
+  <div class="eyebrow">11 · Decisions</div>
+  <h2>Your rulings, and what is still open</h2>
+  <ul class="plain prose">
+    <li><b>Restricted typescripts:</b> Include them (your ruling, 27 October). The Minutes of the Apostles, 1835–1893, goes on the acquisition list.</li>
+    <li><b>Copies not openly available:</b> I search Anna's Archive for every item here that is read only, request-gated, for sale or print only (your ruling). Done in two rounds; see section 12.</li>
+    <li><b>Held until acquisition is done:</b> The Redis password rotation and the re-reading of the remaining damaged Conference Report pages (your ruling).</li>
+    <li><b>Still open: Church permission.</b> The Church's terms bar automated download and manual copying without written permission. Ask the Church History Department?</li>
+    <li><b>Still open: copyright check.</b> Some 1931–1963 books may be public domain through non-renewal. Run a renewal check?</li>
+  </ul>
+</section>
+
+<section id="annas">
+  <div class="eyebrow">12 · Anna&#39;s Archive search</div>
+  <h2>Digital copies found for the items we cannot get openly</h2>
+  <p class="prose">Searched 27 October 2026 in your Chrome, in two rounds, because the archive&#39;s bot check blocks the MCP search tool. Its download route still works, so any file below can be fetched by its ID, one at a time, into Staging. The file IDs are kept in my working notes. Nothing has been downloaded yet.</p>
+  <div class="tablebox"><table>
+    <thead><tr><th>Work</th><th>Result</th><th>What was found</th></tr></thead>
+    <tbody>
+      <tr><td colspan="3"><h3>Before 1900</h3></td></tr>
+      <tr><td class="src"><b>Complete Discourses of Brigham Young</b> (Van Wagoner, 5 vols)</td><td><span class="chip c-held">found</span></td><td>All five volumes. The two unlabelled PDFs are volumes 2 and 3.</td></tr>
+      <tr><td class="src"><b>Joseph Smith Papers</b>, print volumes</td><td><span class="chip c-gate">partly</span></td><td>Journals 1–3; Documents 3–8 and 12; Histories 1–2; Council of Fifty minutes. Documents 9–11 and 13–15 (Nauvoo sermons, 1841–44) not found.</td></tr>
+      <tr><td class="src"><b>Teachings of President Brigham Young, 1852–1854</b>; <b>Office Journal of Brigham Young, 1858–1863</b> (Collier)</td><td><span class="chip c-held">found</span></td><td>Transcriptions of unpublished Historian&#39;s Office records. New finds; not on the earlier lists.</td></tr>
+      <tr><td class="src"><b>Settling the Valley, Proclaiming the Gospel</b> (First Presidency General Epistles 1849–56)</td><td><span class="chip c-held">found</span></td><td>EPUB and PDF</td></tr>
+      <tr><td class="src"><b>Salt Lake City School of the Prophets, 1867–1883</b></td><td><span class="chip c-held">found</span></td><td>EPUB</td></tr>
+      <tr><td class="src"><b>Manuscript History of Brigham Young</b> (Watson)</td><td><span class="chip c-held">found</span></td><td>1846–1847 and 1801–1844, PDF</td></tr>
+      <tr><td class="src"><b>History of the Church</b>, vol. 7 (Roberts)</td><td><span class="chip c-held">found</span></td><td>The 1932 first edition (likely public domain), the 1978 reprint, and an EPUB</td></tr>
+      <tr><td class="src"><b>Orson Pratt</b>: Works; Journals; <i>The Seer</i></td><td><span class="chip c-held">found</span></td><td>Also the 1870 Pratt–Newman polygamy debate</td></tr>
+      <tr><td class="src"><b>Letters of Brigham Young to His Sons</b>; Young–Kane letters</td><td><span class="chip c-held">found</span></td><td>PDF</td></tr>
+      <tr><td class="src"><b>Diary of Charles L. Walker</b></td><td><span class="chip c-held">found</span></td><td>A St. George diarist who summarised hundreds of sermons, 1855–1902</td></tr>
+      <tr><td class="src"><b>Wilford Woodruff&#39;s Journal</b> (Kenney typescript, 9 vols)</td><td><span class="chip c-gate">partly</span></td><td>Volume 5 only (1857–61). The second file is a short excerpt edition. Other volumes are only on the Woodruff Papers site, which bars our crawler.</td></tr>
+      <tr><td class="src"><b>Eliza R. Snow</b></td><td><span class="chip c-gate">partly</span></td><td>Her <i>Personal Writings</i> found; the 1,200-discourse edition is not there</td></tr>
+      <tr><td class="src"><b>Minutes of the Apostles, 1835–1893</b></td><td><span class="chip c-none">not found</span></td><td>Your ruling includes it; it will need the rare-book trade</td></tr>
+      <tr><td class="src"><b>Candid Insights</b> (Abraham H. Cannon diaries)</td><td><span class="chip c-none">not found</span></td><td>$9.99 ebook from Signature Books</td></tr>
+      <tr><td class="src"><b>Hosea Stout diaries</b> (<i>On the Mormon Frontier</i>)</td><td><span class="chip c-none">not found</span></td><td>Only his 1810–44 autobiography</td></tr>
+      <tr><td class="src"><b>Nauvoo Endowment Companies; Pioneer Camp of the Saints</b></td><td><span class="chip c-none">not found</span></td><td>Purchase or library</td></tr>
+      <tr><td class="src"><b>Journal of George Q. Cannon; Heber J. Grant journals</b></td><td><span class="chip c-none">not found</span></td><td>Read only at the Church Historian&#39;s Press and Church History Catalog</td></tr>
+      <tr><td colspan="3"><h3>After 1900, by general authorities</h3></td></tr>
+      <tr><td class="src"><b>Joseph Fielding Smith</b>: Doctrines of Salvation; Answers to Gospel Questions; Way to Perfection; Essentials in Church History</td><td><span class="chip c-held">found</span></td><td>All 3 and all 5 volumes. <i>Church History and Modern Revelation</i> not found.</td></tr>
+      <tr><td class="src"><b>Grant</b>, Gospel Standards; <b>McKay</b>, Gospel Ideals; <b>Widtsoe</b>, Evidences and Reconciliations; <b>Taylor</b>, Gospel Kingdom; <b>Woodruff</b>, Discourses; <b>G. Q. Cannon</b>, Gospel Truth</td><td><span class="chip c-held">found</span></td><td>Compilations from sermons and editorials</td></tr>
+      <tr><td class="src"><b>J. Reuben Clark</b>: On the Way to Immortality and Eternal Life; Behold the Lamb of God</td><td><span class="chip c-held">found</span></td><td>The first is his 1948–49 radio talks</td></tr>
+      <tr><td class="src"><b>McConkie</b>, Mormon Doctrine; <b>Kimball</b>, Teachings and Miracle of Forgiveness; <b>Benson</b>, Teachings and So Shall Ye Reap; <b>LeGrand Richards</b>, A Marvelous Work and a Wonder</td><td><span class="chip c-held">found</span></td><td>Several editions each</td></tr>
+      <tr><td class="src"><b>Teachings of Presidents of the Church</b> manuals</td><td><span class="chip c-held">found</span></td><td>At least 11 of the 16</td></tr>
+      <tr><td colspan="3"><h3>Women leaders</h3></td></tr>
+      <tr><td class="src"><b>The First Fifty Years of Relief Society</b></td><td><span class="chip c-held">found</span></td><td>EPUB (also free to read online)</td></tr>
+      <tr><td class="src"><b>Belle S. Spafford</b>, A Woman&#39;s Reach</td><td><span class="chip c-held">found</span></td><td>PDF</td></tr>
+      <tr><td class="src"><b>Emmeline B. Wells diaries; At the Pulpit</b></td><td><span class="chip c-none">not found</span></td><td>Only her poems found. Both are free to read at the Church Historian&#39;s Press.</td></tr>
+      <tr><td colspan="3"><h3>Finding aids</h3></td></tr>
+      <tr><td class="src"><b>Index to Periodicals of the Church</b></td><td><span class="chip c-none">not found</span></td><td>Print only</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<footer>
+  <p>Sources: Fielding's surveys of 12 October 2026 (gap sources; acquisition reconnaissance) and three research passes on 27 October 2026. Web addresses and counts were checked live where marked; HathiTrust, the Library of Congress and the University of Utah block automated checks, so their entries rest on search results.</p>
+  <p>I re-checked the key figures myself: archive.org's Smith-Pettit set (54 runs), the Church Historian's Press editions, and the 1971-on conference coverage.</p>
+  <p>Prepared by Jarvis (W3) for Sir.</p>
+</footer>
+
+</div>

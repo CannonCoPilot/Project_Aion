@@ -214,3 +214,7 @@ alfred/.claude/scratch/canary-repo/
 # JICM runtime queues (2026-10-10): retry items hold checkpoint SNAPSHOTS; gpu-queue is a live lock
 .claude/context/jicm/retry/
 .claude/context/jicm/signals/gpu-queue/
+
+# Fielding Archon home: scholarly downloads are symlinks into Staging (Bulk Download Policy)
+projects/fielding/arxiv
+projects/fielding/papers

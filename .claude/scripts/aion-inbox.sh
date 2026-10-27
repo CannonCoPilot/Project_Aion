@@ -36,6 +36,7 @@
 #   aion-inbox.sh send <key> [--from <sender>] [--subject <text>] [--no-nudge]  < body
 #   aion-inbox.sh read <key> [--all]     # unread by default
 #   aion-inbox.sh ack  <key>             # mark everything read
+#   aion-inbox.sh archive <key> [--keep N]   # move old READ messages to inbox/archive/<key>.md
 #   aion-inbox.sh list                   # per-key unread counts
 #
 # Author: Jarvis-dev (W11), 2026-08-14.
@@ -106,6 +107,7 @@ usage:
   aion-inbox.sh send <key> [--from X] [--subject S] [--no-nudge]  < body
   aion-inbox.sh read <key> [--all]
   aion-inbox.sh ack  <key>
+  aion-inbox.sh archive <key> [--keep N]
   aion-inbox.sh list
 keys: $(_lane_keys | tr '\n' ' ')
 USAGE
@@ -268,6 +270,41 @@ cmd_ack() {
     return 0
 }
 
+# ARCHIVE (2026-10-27). The inbox is force-loaded at session start, and it only ever grew: Fielding's reached
+# 573 KB (~140k tokens) of messages read long ago, too big to load. 'archive' moves the oldest READ messages to
+# inbox/archive/<key>.md (append-only, nothing deleted) and keeps every unread message plus the last N read ones.
+# Read messages always form a prefix (send appends; ack marks up to a line), so only that prefix moves.
+# It refuses while a read awaits its ack: the read-through mark is a line number, and moving lines would shift it.
+cmd_archive() {
+    local key="$1" keep=10
+    [[ "${2:-}" == "--keep" ]] && keep="${3:?--keep needs a number}"
+    [[ "$keep" =~ ^[0-9]+$ ]] || { echo "aion-inbox: --keep must be a number" >&2; return 64; }
+    _valid_key "$key" || { echo "aion-inbox: unknown lane '$key'" >&2; return 64; }
+    local file="$INBOX_DIR/$key.md" arch="$INBOX_DIR/archive/$key.md"
+    [[ -f "$file" ]] || { echo "(inbox empty)"; return 0; }
+    [[ -f "$INBOX_DIR/.$key.read-through" ]] && { echo "aion-inbox: a read of $key awaits its ack; ack (or read again) first, then archive" >&2; return 1; }
+    mkdir -p "$INBOX_DIR/archive" 2>/dev/null
+    _lock "$key" || { echo "aion-inbox: inbox lock held >10s for $key; not archiving" >&2; return 75; }
+    # Message k starts at its '---' separator line (the line two above its '## <ts> <mark>' header).
+    local nread move tmp="$file.tmp.$$" atmp="$arch.tmp.$$"
+    nread="$(awk -v r="$READ_MARK" -v m="$UNREAD_MARK" '/^## / && index($0,m){exit} /^## / && index($0,r){n++} END{print n+0}' "$file")"
+    move=$(( nread - keep ))
+    if [[ "$move" -le 0 ]]; then _unlock "$key"; echo "aion-inbox: $key: $nread read message(s), keeping $keep: nothing to archive"; return 0; fi
+    # cut = line number of the separator that opens message (move+1); lines before it (after the preamble) move.
+    local first cut
+    first="$(awk '/^## / && /<!-- (UNREAD|read) -->/{print NR; exit}' "$file")"
+    cut="$(awk -v k=$((move + 1)) '/^## / && /<!-- (UNREAD|read) -->/{c++; if(c==k){print NR; exit}}' "$file")"
+    first=$(( first - 2 )); cut=$(( cut - 2 ))          # each header is preceded by '---' and a blank line
+    if [[ "$first" -lt 1 || "$cut" -le "$first" ]]; then _unlock "$key"; echo "aion-inbox: $key: unexpected layout; not archiving" >&2; return 1; fi
+    { [[ -f "$arch" ]] && cat "$arch"; awk -v a="$first" -v b="$cut" 'NR>=a && NR<b' "$file"; } > "$atmp" \
+        && awk -v a="$first" -v b="$cut" 'NR<a || NR>=b' "$file" > "$tmp" \
+        && mv "$atmp" "$arch" && mv "$tmp" "$file"
+    local rc=$?
+    _unlock "$key"
+    [[ "$rc" -eq 0 ]] || { rm -f "$tmp" "$atmp"; echo "aion-inbox: archive of $key failed; inbox untouched" >&2; return 1; }
+    echo "aion-inbox: archived $move read message(s) of $key to $arch; kept $keep read + all unread"
+}
+
 cmd_list() {
     local f key n
     [[ -d "$INBOX_DIR" ]] || { echo "(no inboxes yet)"; return 0; }
@@ -284,6 +321,7 @@ case "${1:-}" in
     send) shift; cmd_send "${1:?key required}" "${@:2}" ;;
     read) shift; cmd_read "${1:?key required}" "${2:-}" ;;
     ack)  shift; cmd_ack  "${1:?key required}" "${2:-}" ;;
+    archive) shift; cmd_archive "${1:?key required}" "${@:2}" ;;
     list) cmd_list ;;
     _retry) shift; cmd__retry "${1:?key required}" ;;
     -h|--help|"") _usage ;;

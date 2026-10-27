@@ -176,6 +176,11 @@ jicm_key_paths() {
             JK_LANE_LABEL="Urist (W2, the Dwarf Fortress Archon, cwd ~/Claude/Projects/DwarfCron)"
             JK_GIT_DIRS="$HOME/Claude/Projects/DwarfCron:$HOME/Claude/Projects/sw-wt/plugin"
             JK_RESUME_BLOCK="first" ;;
+        # Fielding (2026-10-27 port audit): its checkpoint carried W0's paths and Project_Aion's git, not its own repo.
+        # RESUME_BLOCK stays 'none': its scratchpad leads with '>>> RESUME FIRST <<<' lines, not a '## ... RESUME HERE' heading.
+        fielding|fielding-bg-*)
+            JK_LANE_LABEL="Fielding (W12, the Literary and Theological Archon; home Project_Aion/projects/fielding, working repo ~/Claude/Projects/Fielding)"
+            JK_GIT_DIRS="$HOME/Claude/Projects/Fielding" ;;
     esac
 }
 
