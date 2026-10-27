@@ -54,6 +54,22 @@ RETRY_TTL="${AION_INBOX_RETRY_TTL:-7200}"            # give up after this many s
 UNREAD_MARK="<!-- UNREAD -->"
 READ_MARK="<!-- read -->"
 
+# ONE WRITER AT A TIME per inbox (2026-10-27). 'ack' rewrites the file through a temp copy; a
+# 'send' appending during that rewrite was overwritten by the mv and LOST. send and ack now hold
+# the same mkdir lock. Stale after 30 s (a crashed holder), so a dead lock cannot wedge the inbox.
+_lock() {   # _lock <key>
+    local d="$INBOX_DIR/.lock.$1" i=0
+    while ! mkdir "$d" 2>/dev/null; do
+        if [[ -d "$d" ]] && (( $(date +%s) - $(stat -f %m "$d" 2>/dev/null || date +%s) > 30 )); then
+            rmdir "$d" 2>/dev/null; continue
+        fi
+        i=$((i + 1)); [[ $i -gt 100 ]] && return 1
+        sleep 0.1
+    done
+    return 0
+}
+_unlock() { rmdir "$INBOX_DIR/.lock.$1" 2>/dev/null; }
+
 # Lane keys must match jicm-config.sh's, or a message lands in a file nobody loads.
 #
 # 🔴 A HARDCODED ROSTER DRIFTS, AND IT ALREADY DID. urist was added 2026-08-24 with a
@@ -117,12 +133,14 @@ cmd_send() {
 
     # Append, never rewrite. An inbox that can be truncated by a writer has the
     # same failure mode as the pane it replaces.
+    _lock "$key" || { echo "aion-inbox: inbox lock held >10s for $key; refusing to append unlocked" >&2; return 75; }
     {
         printf '\n---\n\n## %s %s\n' "$ts" "$UNREAD_MARK"
         printf '**From:** %s' "$from"
         [[ -n "$subject" ]] && printf ' · **Subject:** %s' "$subject"
         printf '\n\n%s\n' "$body"
     } >> "$file"
+    _unlock "$key"
 
     echo "aion-inbox: queued for $key → $file"
 
@@ -213,7 +231,13 @@ cmd_read() {
     fi
     # Print from the first UNREAD header to EOF: messages are appended in order,
     # so everything after the earliest unread marker is also unread.
-    awk -v m="$UNREAD_MARK" 'index($0,m){p=1} p' "$file"
+    # READ-THROUGH MARK (2026-10-27). 'ack' used to mark EVERY unread message, so one that arrived
+    # between a 'read' and its 'ack' was marked read unseen (Fielding, 14:33Z). Record how far this
+    # read went (the file's line count; the inbox is append-only and ack keeps line counts), and
+    # 'ack' marks only headers up to that line.
+    local upto; upto="$(wc -l < "$file" | tr -d ' ')"
+    awk -v m="$UNREAD_MARK" -v u="$upto" 'NR>u{exit} index($0,m){p=1} p' "$file"
+    echo "$upto" > "$INBOX_DIR/.$key.read-through"
 }
 
 cmd_ack() {
@@ -224,10 +248,24 @@ cmd_ack() {
     n="$(grep -c "$UNREAD_MARK" "$file" 2>/dev/null)"
     [[ "$n" =~ ^[0-9]+$ ]] || n=0
     [[ "$n" -eq 0 ]] && { echo "(nothing unread)"; return 0; }
-    # In-place via temp + mv: a partial rewrite of an inbox loses messages.
-    local tmp="$file.tmp.$$"
-    sed "s|$UNREAD_MARK|$READ_MARK|g" "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file"
-    echo "aion-inbox: marked $n message(s) read for $key"
+    local wm_file="$INBOX_DIR/.$key.read-through" upto
+    if [[ "${2:-}" == "--all" ]]; then
+        upto=999999999
+    else
+        upto="$(cat "$wm_file" 2>/dev/null)"
+        [[ "$upto" =~ ^[0-9]+$ ]] || { echo "aion-inbox: nothing marked: run 'read $key' first (ack marks only what a read showed; 'ack $key --all' to mark everything)" >&2; return 1; }
+    fi
+    _lock "$key" || { echo "aion-inbox: inbox lock held >10s for $key; not marking" >&2; return 75; }
+    # In-place via temp + mv, under the lock: a partial rewrite of an inbox loses messages.
+    local tmp="$file.tmp.$$" marked left
+    awk -v m="$UNREAD_MARK" -v r="$READ_MARK" -v u="$upto" 'NR<=u && index($0,m){sub(m,r)} {print}' "$file" > "$tmp" 2>/dev/null && mv "$tmp" "$file"
+    _unlock "$key"
+    rm -f "$wm_file"
+    left="$(grep -c "$UNREAD_MARK" "$file" 2>/dev/null)"; [[ "$left" =~ ^[0-9]+$ ]] || left=0
+    marked=$(( n - left ))
+    echo "aion-inbox: marked $marked message(s) read for $key"
+    [[ "$left" -gt 0 ]] && echo "aion-inbox: $left message(s) arrived AFTER your last read and stay UNREAD: read them" >&2
+    return 0
 }
 
 cmd_list() {
@@ -245,7 +283,7 @@ cmd_list() {
 case "${1:-}" in
     send) shift; cmd_send "${1:?key required}" "${@:2}" ;;
     read) shift; cmd_read "${1:?key required}" "${2:-}" ;;
-    ack)  shift; cmd_ack  "${1:?key required}" ;;
+    ack)  shift; cmd_ack  "${1:?key required}" "${2:-}" ;;
     list) cmd_list ;;
     _retry) shift; cmd__retry "${1:?key required}" ;;
     -h|--help|"") _usage ;;
