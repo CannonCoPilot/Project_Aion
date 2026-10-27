@@ -181,6 +181,10 @@ jicm_key_paths() {
         fielding|fielding-bg-*)
             JK_LANE_LABEL="Fielding (W12, the Literary and Theological Archon; home Project_Aion/projects/fielding, working repo ~/Claude/Projects/Fielding)"
             JK_GIT_DIRS="$HOME/Claude/Projects/Fielding" ;;
+        # Fleming (2026-10-27 port audit): same W0 bleed; works in micro1 and, on the User's directive, SnorkelTasks.
+        fleming|fleming-bg-*)
+            JK_LANE_LABEL="Fleming (W6, a Contract Archon: micro1 and Snorkel AI by User assignment; home Project_Aion/projects/fleming, cwd ~/Claude/Projects/micro1)"
+            JK_GIT_DIRS="$HOME/Claude/Projects/micro1:$HOME/Claude/Projects/SnorkelTasks" ;;
     esac
 }
 

@@ -69,3 +69,34 @@ lane identity and AnnasTools/arxiv paths, then restart the lane.
 - **Pending Fielding work, held by the stop order**: wiki_role fix + 8-id rename (measured 20:15Z: 152 units renamed, 0
   to another man, 0 via/display changes; report looks clean). GO waits for the port to finish.
 - **Lane restart** needed for the hook and the force-loaded imports to take effect (registration tier).
+
+## 5. Fleming (Sir, 2026-10-27: "Fix Fleming too. Then reaudit both")
+
+Applied to Fleming: psyche `fleming-identity.md` (new); persona force-loads identity/scratchpad/api_aware/inbox (it loaded
+nothing); `projects/fleming/` home (README; arxiv/papers symlink into Staging, where the launcher's ARXIV/SCHOLAR paths
+already pointed at a folder that did not exist); JICM lane identity (micro1 + SnorkelTasks git); bash safety guard
+(micro1 commit f948740). **Stale persona corrected**: persona and launch prompt said Fleming works ONLY micro1 and must
+never touch Snorkel, but since the User's 2026-10-13 directive Fleming works Snorkel Otter / Beech L1 / Rudder (Riga ended
+10-13), split with Jacques task by task (2026-10-27). Rewritten: the client decides the law; no rule crosses by analogy;
+SnorkelTasks is a shared tree. Memory index header updated the same way. Window list gained Fielding W12.
+
+## 6. Re-audit (both): `.claude/scripts/archon-audit.py`
+
+55 checks Fielding, 52 Fleming: **0 FAIL** each. Covers every persona import and quoted path, identity force-load, home
++ Staging links, launch dir and domain CLAUDE.md, env role/graph/RAG/window, launch prompt quoting, MCP configs, tmux
+window name, statusLine and every hook file, safety guard, JICM files, inbox size, lane label + git dirs, the current
+session transcript, memory index links both ways, Qdrant collections. Graphiti: fielding-core 1,577 and fleming-core 953
+entities. **The checker was validated by its failures**: urist 7 FAIL, genie 7 FAIL (below).
+
+Found on the way and fixed: every launch prompt is single-quoted at launch, so an apostrophe breaks it. My first Fleming
+rewrite had three; removed, and the checker now tests it for every lane (all 6 clean).
+
+## 7. Still open
+- Location (repo/cwd move): Sir's decision.
+- Restarts: Fielding and Fleming load the new imports and the guard only after a restart. Fleming has the User's unsent
+  input in its pane: not restarted. Fielding: restart after the location answer (to restart once).
+- Urist (7 FAIL): no identity force-load (no psyche file), no projects/urist/README, cwd has no top-level CLAUDE.md,
+  no safety guard, Qdrant urist-context/research/codebase missing.
+- Genie (7 FAIL): no projects/genie (README, arxiv, papers), cwd has no top-level CLAUDE.md, no safety guard, no lane label.
+- Jacques: not audited here (lane key 'jaques' differs from the name; add to LANES with care).
+- Fielding engine: DATA_ROOT worktree isolation hole.
