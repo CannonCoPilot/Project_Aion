@@ -9,17 +9,20 @@ making a fortress legible.
 
 ## What is yours
 
-- **DFHack Lua tooling** — `seasonal-wildlife`, `season-boundary-save`, probes, scripts.
+- **DFHack Lua tooling** — `seasonal-wildlife` (repo `CannonCoPilot/seasonal-wildlife`, worked in the
+  `~/Claude/Projects/sw-wt/plugin` worktree on branch `v8-newrules`), `season-boundary-save`, probes, scripts.
 - **Chronicler / DwarfCron product code** — the `chronicler` package, CLI, CDM schema,
   the bridge, ingest pipelines, and the PostgreSQL `chronicler` database.
 - **The live fortress** — embark, play sessions, saves, backups, world state.
-- **DF-Windows VM** — `utmctl` lifecycle, DFHack over SSH, file transfer.
+- **The DF rig** — DF 53.16 + DFHack 53.16-r3 under CrossOver (bottle `Win10`) on this Mac, driven by
+  `DwarfCron/scripts/cx-lifecycle.sh` (skill `df-rig`). The user's own DF shares the same install.
+- **DF-Windows VM** — legacy (`utmctl`, DFHack over SSH); not used since the CrossOver rig replaced it.
 
 ## What is NOT yours
 
 | Domain | Owner |
 |---|---|
-| Aion core engineering: JICM, hooks, watcher, tmux, launcher | **W3 Jarvis-dev** |
+| Aion core engineering: JICM, hooks, watcher, tmux, launcher | **W3 Jarvis-dev** (`aion:3`, inbox `dev.md`) |
 | Research, papers, WVU, Genesis/OriginalDR | **W4 Genie** |
 | Snorkel contract and evaluation authoring | **W5 Jacques** |
 | micro1 contract and evaluation authoring | **W6 Fleming** |
@@ -57,40 +60,40 @@ permanently. Use the `timestream` plugin instead.
 **🔴 asyncpg JSONB**: the pool auto-encodes dicts via `set_type_codec`. Never `json.dumps()`
 before `executemany`.
 
-**DFHack 53.11 API**: `dfhack.units.getReadableName(unit)`, not TranslateName. The field is
-`time`, not `cur_year_tick`. There is no `unit.flags1.active`.
+**DFHack 53.16-r3 API** (verified 26 Oct 2026): names via `dfhack.translation.translateName(name, true)`
+(`dfhack.TranslateName` is gone); `df.global.cur_year_tick` / `cur_season` work. There is no
+`unit.flags1.active`. A population entry's `race` is a PLANT index for Bush/Grass/Tree entries — check
+`pop.type` before naming it.
 
-**Bridge access**: use `dfhack-run` over SSH. TCP RPC is broken under Prism for game-thread
-calls. Do not re-derive this.
+**RPC access** (CrossOver rig): `.venv/bin/python scripts/cx-rpc.py --port N --lua '...'` from DwarfCron.
+The rig's DF listens on 5555; the user's own DF on 5000 (127.0.0.1; macOS AirPlay also holds *:5000).
+One RPC call at a time. Never poll the user's game — one-shot reads only.
 
-**VM**: `utmctl exec` is fire-and-forget and returns no stdout — use
-`vm-lifecycle.sh exec-capture` or `exec-ps`. SCP to Windows REQUIRES `-O -T`.
-VM `DF-Windows` at `192.168.64.3`, user `Jarvis`, key `~/.ssh/df-vm`.
+**VM (legacy)**: `utmctl exec` is fire-and-forget — use `vm-lifecycle.sh exec-capture`. SCP needs `-O -T`.
+VM `DF-Windows` at `192.168.64.3`, user `Jarvis`, key `~/.ssh/df-vm`. TCP RPC was broken under Prism there.
 
 **Embark identification**: the embark dwarves are the historical figures with ZERO
 pre-embark events. **Never assume there are 7.**
 
 **After a JICM clear**, verify fortress identity before referencing any cached name:
-`dfhack-run lua 'print(dfhack.translation.translateName(dfhack.world.getCurrentSite().name,true))'`
+`.venv/bin/python scripts/cx-rpc.py --port 5000 --lua 'print(dfhack.translation.translateName(df.world_site.find(df.global.plotinfo.site_id).name,true))'`
+(5555 for the rig). The JICM checkpoint has fabricated task state before (23 Oct): trust git, the
+scratchpad's top RESUME block and the game over the checkpoint.
 
-## Current state
+## Current state (27 Oct 2026)
 
-Fortress **Girderpriced COLLAPSED in Y256**. A new embark is needed. Do not write as
-though it is live. Chronicler Phases 1-3 are COMPLETE (27/27 DoD, 2026-03-23).
+**Active work is DwarfCron / seasonal-wildlife** (resumed in September on Sir's direction; the 26 Aug
+"set aside" no longer holds). Seasonal-wildlife v8 ("New Rules") is on `v8-newrules`; the user plays
+and tests it in their own fort (Raywalled, y50, at last check 26 Oct) and directs each change.
+Installs go into `.../steamapps/common/DFHack/hack/scripts` only while DF is closed, or as an explicit
+hot-apply. Working state lives in `Project_Aion/.claude/context/.scratchpad.urist.md` (top RESUME block).
 
-**Phase 4 — Narrative Engine: COMPLETE** (2026-08-26). Both blockers closed:
-- Test suite repaired, DwarfCron `2347210`: **468 passed / 2 skipped / 0 failed**. Also
-  fixed a real defect the stale tests were hiding — `embeddings.world_id -> worlds(id)`
-  was NO ACTION, so `DELETE FROM worlds` failed outright (`migrate_embeddings_cascade.sql`,
-  applied to the live DB).
-- **Packaged stand-alone executable**, DwarfCron `0bb68fa`: `packaging/chronicler.spec`,
-  31 MB one-file binary. Acceptance went beyond the rule — the full suite was run against
-  the *packaged binary* serving :8080, not the source tree.
+Fortress **Girderpriced** collapsed in Y256 (the old Chronicler fort) — history, not a live fort.
+Chronicler Phases 1-4 are COMPLETE (Phase 4 2026-08-26: DwarfCron `2347210` tests 468/2/0, `0bb68fa`
+packaged binary). Reconciliation record:
+`projects/chronicler/progress/phase-4-status-reconciliation-2026-08-25.md`.
 
-Reconciliation record: `projects/chronicler/progress/phase-4-status-reconciliation-2026-08-25.md`.
-
-**DwarfCron is SET ASIDE** per Sir's instruction (2026-08-26). Active work is the MtG
-suite at `Projects/mtg-sell-optimizer`; see memory `mtg-domain`.
+The MtG suite (`Projects/mtg-sell-optimizer`) is also Urist's; see memory `mtg-domain`.
 
 ## Introspect before asserting
 
@@ -106,8 +109,10 @@ in a hook. Use the full path `/Users/nathanielcannon/bin/tmux`.
 
 ## Filesystem
 
-Full write: `Projects/DwarfCron/`, `Project_Aion/`, `GitRepos/`, `~/.claude/`.
-Temp files go in a project-local `.claude/scratch/`, **never** `/tmp` or `/var`.
+Full write: `Projects/DwarfCron/`, `Projects/sw-wt/`, `Project_Aion/`, `GitRepos/`, `~/.claude/`.
+Temp files go in a project-local `.claude/scratch/` — for this lane `DwarfCron/.claude/scratch/` —
+**never** `/tmp` or `/var`. This overrides the harness's suggested session scratchpad (which lives under
+`/private/tmp`): use `DwarfCron/.claude/scratch/<session-or-task>/` instead (Sir, 27 Oct 2026).
 
 ## Cross-lane messages
 
