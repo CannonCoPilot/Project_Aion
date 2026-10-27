@@ -1851,6 +1851,26 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         fi
     fi
 
+    # Urist (W2) — add to a running session if missing. Added 2026-10-26: the top-up path
+    # covered every conversational lane EXCEPT Urist and W0, so after a crash took those
+    # windows down there was no supported way to bring them back short of a full relaunch,
+    # which would kill every lane still alive.
+    EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
+    if ! echo "$EXISTING_WINDOWS" | grep -q "^Urist$"; then
+        echo "Adding Urist window (W2) to existing session..."
+        launch_urist_window
+        reorder_windows
+    else
+        echo "  Urist window already exists."
+    fi
+
+    # W0:Jarvis — cannot be added here: its command is built further down (the cold path
+    # builds it inline, then hands it to new-session). Flag it, skip the attach below, and
+    # fall through; the new-session call site checks the flag and adds a window instead.
+    EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
+    AION_TOPUP_W0=false
+    echo "$EXISTING_WINDOWS" | grep -q "^Jarvis$" || AION_TOPUP_W0=true
+
     # Add missing service windows to existing session
     EXISTING_WINDOWS=$("$TMUX_BIN" list-windows -t "$SESSION_NAME" -F '#{window_name}' 2>/dev/null)
     if ! echo "$EXISTING_WINDOWS" | grep -q "^MLX-Embed$"; then
@@ -1876,14 +1896,24 @@ if "$TMUX_BIN" has-session -t "$SESSION_NAME" 2>/dev/null; then
         echo -e "  ${GREEN}✓${NC} Ollama monitor added"
     fi
     HUD_SCRIPT="$PROJECT_DIR/.claude/scripts/jicm-watcher-hud.sh"
-    if [[ -x "$HUD_SCRIPT" ]] && ! echo "$EXISTING_WINDOWS" | grep -q "^HUD$"; then
+    # The HUD runs INSIDE the Watcher window since 2026-08-20, so a present Watcher window
+    # means the HUD is already up. Checking only for a window named HUD added a stray
+    # second copy on every top-up.
+    if [[ -x "$HUD_SCRIPT" ]] && ! echo "$EXISTING_WINDOWS" | grep -qE "^(HUD|Watcher)$"; then
         echo "Adding HUD window to existing session..."
         "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "HUD" -d \
             "cd '$PROJECT_DIR' && bash '$HUD_SCRIPT'; echo 'HUD stopped.'; read"
         "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:HUD" automatic-rename off 2>/dev/null || true
         echo -e "  ${GREEN}✓${NC} HUD-live dashboard added"
     fi
-    if [[ "$ITERM2_MODE" == "true" ]]; then
+    if [[ "$AION_TOPUP_W0" == "true" ]]; then
+        echo "Jarvis window (W0) missing — building it via the cold-path W0 block..."
+    elif [[ ! -t 0 || ! -t 1 ]]; then
+        # Run from a script or an agent: there is no terminal to attach, and the exec
+        # would only fail with "open terminal failed".
+        echo "Top-up complete (no terminal; not attaching)."
+        exit 0
+    elif [[ "$ITERM2_MODE" == "true" ]]; then
         echo "Attaching with iTerm2 integration..."
         exec "$TMUX_BIN" -CC attach-session -t "$SESSION_NAME"
     else
@@ -2077,6 +2107,17 @@ fi
 # modified file (it just exited). Dev-lane contamination only affects initial launch.
 CLAUDE_RESUME="$CLAUDE_BASE --continue"
 W0_WRAPPER="export $CLAUDE_ENV && export ANTHROPIC_CUSTOM_HEADERS=$'$W0_HEADERS' && $CLAUDE_FIRST; while true; do echo ''; echo 'Claude exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $CLAUDE_RESUME; done"
+
+# Top-up of a running session whose W0 window died (flag set in the has-session branch):
+# add W0 as a window with the SAME wrapper a cold launch would use, then stop. Nothing
+# below this point may run against a live session — it would recreate every window.
+if [[ "${AION_TOPUP_W0:-false}" == "true" ]]; then
+    "$TMUX_BIN" new-window -d -t "$SESSION_NAME" -n "Jarvis" -c "$CLAUDE_LAUNCH_DIR" "$W0_WRAPPER"
+    "$TMUX_BIN" set-window-option -t "${SESSION_NAME}:Jarvis" automatic-rename off 2>/dev/null || true
+    reorder_windows
+    echo -e "  ${GREEN}✓${NC} Jarvis window (W0) added"
+    exit 0
+fi
 
 "$TMUX_BIN" new-session -d -s "$SESSION_NAME" -n "Jarvis" -c "$CLAUDE_LAUNCH_DIR" "$W0_WRAPPER"
 
