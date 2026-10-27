@@ -844,7 +844,13 @@ function isFalsePositive(match) {
   // lines and padding while staying far below anything a genuine secret could hit. The
   // patterns themselves are NOT weakened -- this only filters matches that cannot be secrets.
   const distinct = new Set(match).size;
-  if (distinct < 5) return true;
+  // FLOOR RAISED 5 -> 15 (2026-10-27, Fielding's retro sweep). OCR garbage from back-matter
+  // advertisement pages makes 40-105 char runs from 5-12 distinct letters WITH a few capitals,
+  // so the all-lower-case rule below misses them. A random 40-char base64 key averages ~30
+  // distinct characters (64 * (1 - (63/64)^40)); under 15 is far outside anything a key yields.
+  // These runs were committed before only because their 2.6 MB register exceeded the old 1 MiB
+  // read buffer and was silently skipped (fixed in 2542608), so the next commit would block.
+  if (distinct < 15) return true;
 
   // FILESYSTEM PATHS ARE NOT CREDENTIALS.
   // '/' is in the AWS-secret class, so any 40-character run of an absolute path matches --

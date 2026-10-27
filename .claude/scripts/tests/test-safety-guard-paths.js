@@ -125,6 +125,8 @@ const secretCases = [
   ['real private key',  '-----' + 'BEGIN ' + 'RSA ' + 'PRIVATE ' + 'KEY' + '-----', true],
   // Upside-down OCR garbage (2026-10-27, Fielding's corrected-pages registers): all lower-case.
   ['all-lower-case OCR run', '"' + 'ccscccsscoesceseseesec' + 'eescessotseneeeeteees' + '"', false],
+  // Advertisement-page OCR (cr_section_speech_adjudicated.json): few distinct letters, some capitals.
+  ['mixed-case OCR advert run', '"' + 'aaTttaeHhnnoeeTaaNnooh' + 'teeaAtnnheeoTaAtnheeo' + '"', false],
 ];
 for (const [name, text, want] of secretCases) check(name, flags(text) ? 'flag' : 'clean', want ? 'flag' : 'clean');
 
