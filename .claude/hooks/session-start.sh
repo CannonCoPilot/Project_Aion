@@ -369,6 +369,27 @@ build_protocol_instructions() {
         return
     fi
 
+    # LANE-AWARE STARTUP (2026-10-27, W2:Urist point 6). Every lane used to get W0's protocol below
+    # (session-state.md, rag 'sessions', jarvis-graphiti default): an out-of-tree lane was told to
+    # orient on another lane's state. A non-w0 key gets its OWN pointers; w0's text is unchanged.
+    # A '-bg-' key is a background fork of its base lane: it orients like the base (w0 forks keep
+    # W0's protocol, unchanged).
+    local lk="${JICM_KEY%%-bg-*}"
+    if [[ -n "$lk" && "$lk" != "w0" && "$lk" == "${lk//-/}" ]]; then
+        local lscr="$CLAUDE_PROJECT_DIR/.claude/context/.scratchpad.${lk}.md"
+        local lrag="${JK_RAG_COLLECTION:-${lk}-sessions}" lgr="${JK_GRAPHITI_GROUP:-${lk}-core}"
+        [[ "$lk" == "dev" ]] && { lrag="${JK_RAG_COLLECTION:-sessions}"; lgr="${JK_GRAPHITI_GROUP:-jarvis-core}"; }
+        local lread="Read $lscr for your working state (it is NOT force-loaded)."
+        [[ "${JK_RESUME_BLOCK:-none}" == "first" ]] && lread="Read ONLY the top '## RESUME HERE' block of $lscr (the file is large); it is your authoritative state."
+        cat << LANEPROTO
+SESSION START — $LOCAL_DATE at $LOCAL_TIME (${TIME_OF_DAY}) — lane: ${JK_LANE_LABEL:-$JICM_KEY}
+$lread
+Do NOT read session-state.md or .claude/context/.scratchpad.md: those are W0's, not yours.
+After orientation, optionally: jarvis-rag search (collection '$lrag', limit 3) and jarvis-graphiti search (group '$lgr').
+LANEPROTO
+        return
+    fi
+
     # Build weather context if available
     local weather_context=""
     if [[ -n "$WEATHER_INFO" ]]; then
