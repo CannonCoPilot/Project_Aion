@@ -29,8 +29,9 @@
 #   NUDGE (pane)  — a short "you have mail" pointer, delivery-verified.
 #
 # Content NEVER rides the fragile channel. The pointer can be lost harmlessly:
-# the inbox is also force-loaded by each persona's @-import at session start, so
-# a missed nudge delays a message rather than destroying it.
+# session-start.sh tells every lane to read its inbox at each start (2026-10-29: persona @-imports of the inbox
+# never loaded; embedded Archons cannot import files outside their folder), so a missed nudge delays a message
+# rather than destroying it.
 #
 # USAGE
 #   aion-inbox.sh send <key> [--from <sender>] [--subject <text>] [--no-nudge]  < body
@@ -150,15 +151,15 @@ cmd_send() {
     # reported and never fatal — the message is already durable on disk.
     if [[ "$nudge" -eq 1 && -x "$ACTUATE" ]]; then
         local rc
-        JICM_NUDGE_TEXT="Inbox: you have a new message from ${from}${subject:+ — \"$subject\"}. Read it with: .claude/scripts/aion-inbox.sh read $key  then mark it read with: .claude/scripts/aion-inbox.sh ack $key   (it is also @-imported at session start, so it cannot be lost)." \
+        JICM_NUDGE_TEXT="Inbox: you have a new message from ${from}${subject:+ — \"$subject\"}. Read it with: .claude/scripts/aion-inbox.sh read $key  then mark it read with: .claude/scripts/aion-inbox.sh ack $key   (the session-start hook also points you at your inbox, so it cannot be lost)." \
             "$ACTUATE" "$key" nudge >/dev/null 2>&1; rc=$?
         case "$rc" in
             0) echo "aion-inbox: pointer delivered (user turn observed)"
                touch "$INBOX_DIR/.pointer-delivered.$key" 2>/dev/null ;;
-            3) echo "aion-inbox: lane busy — pointer skipped; message is on disk and @-imported at next start"
+            3) echo "aion-inbox: lane busy — pointer skipped; message is on disk and named by the session-start hook at next start"
                _spawn_pointer_retry "$key" ;;
-            4) echo "aion-inbox: pointer UNVERIFIED (no user turn) — message is on disk and @-imported at next start" ;;
-            *) echo "aion-inbox: pointer failed rc=$rc — message is on disk and @-imported at next start" ;;
+            4) echo "aion-inbox: pointer UNVERIFIED (no user turn) — message is on disk and named by the session-start hook at next start" ;;
+            *) echo "aion-inbox: pointer failed rc=$rc — message is on disk and named by the session-start hook at next start" ;;
         esac
     fi
 }
@@ -217,7 +218,7 @@ cmd__retry() {
             _ilog "retry DELIVERED key=$key after $(( $(date +%s) - start ))s ($n unread)"; return 0
         fi
     done
-    _ilog "retry WARN key=$key: pointer NOT delivered within ${RETRY_TTL}s (last rc=$rc); $n unread stay on disk, @-imported at next start"
+    _ilog "retry WARN key=$key: pointer NOT delivered within ${RETRY_TTL}s (last rc=$rc); $n unread stay on disk, named by the session-start hook at next start"
     return 1
 }
 

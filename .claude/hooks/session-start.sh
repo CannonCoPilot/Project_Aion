@@ -384,6 +384,7 @@ build_protocol_instructions() {
         cat << LANEPROTO
 SESSION START — $LOCAL_DATE at $LOCAL_TIME (${TIME_OF_DAY}) — lane: ${JK_LANE_LABEL:-$JICM_KEY}
 $lread
+Then check your inbox: $CLAUDE_PROJECT_DIR/.claude/scripts/aion-inbox.sh read ${lk}  (unread messages only; ack after reading).
 Do NOT read session-state.md or .claude/context/.scratchpad.md: those are W0's, not yours.
 After orientation, optionally: jarvis-rag search (collection '$lrag', limit 3) and jarvis-graphiti search (group '$lgr').
 LANEPROTO
