@@ -14,9 +14,9 @@ def audit(n):
     p = f'{A}/.claude/personas/{n}/CLAUDE.md'; ps = open(p).read()
     imps = re.findall(r'^@(\S+)', ps, re.M)
     chk(imps, 'persona force-loads files')
-    for i in imps: chk(os.path.exists(i), f'import resolves: {i}')
-    chk(f'{C}/psyche/{n}-identity.md' in imps, 'identity is force-loaded')
-    chk(f'{C}/inbox/{n}.md' in imps, 'inbox is force-loaded')
+    for i in imps: chk(os.path.exists(i if i.startswith('/') else os.path.join(os.path.dirname(p), i)), f'import resolves: {i}')
+    chk('identity.md' in imps or f'{C}/psyche/{n}-identity.md' in imps, 'identity is imported by the persona')
+    # (scratchpad + inbox are NOT importable from an embedded lane: session-start.sh names them at every start)
     for path in set(re.findall(r'`(/Users/[^`\s]+)`', ps)):
         chk(os.path.exists(path.rstrip('/')), f'persona path exists: {path}')
     # home
@@ -48,7 +48,10 @@ def audit(n):
         f = [t for t in c.replace('&', ' ').split() if t.startswith('/') or '$' in t]
         f = [t.replace('$CLAUDE_PROJECT_DIR', cwd) for t in f]
         for t in f: chk(os.path.exists(t), f'hook file exists: {t}')
-    chk(any('bash-safety-guard.js' in c for c in cmds), 'bash safety guard registered')
+    user = [h['command'] for ev in json.load(open(f'{H}/.claude/settings.json')).get('hooks', {}).values() for e in ev for h in e['hooks']]
+    nguard = sum('bash-safety-guard.js' in c for c in cmds + user)
+    chk(nguard >= 1, 'bash safety guard registered (user-level counts: it applies to every session)')
+    chk(sum('bash-safety-guard.js' in c for c in cmds) == 0 or not any('bash-safety-guard.js' in c for c in user), 'safety guard not registered twice (project + user)')
     # JICM
     for f in (f'jicm/registry/{n}.json', f'.current-{n}-uuid', f'.scratchpad.{n}.md', f'inbox/{n}.md', f'jicm/chain/{n}.jsonl', f'jicm/checkpoints/{n}.compressed.md'):
         chk(os.path.exists(f'{C}/{f}'), f'jicm file: {f}')
@@ -56,10 +59,22 @@ def audit(n):
     lbl = run(f"/bin/bash -c 'source {A}/.claude/scripts/jicm-config.sh >/dev/null 2>&1; jicm_key_paths {n}; echo \"$JK_LANE_LABEL|$JK_GIT_DIRS\"'").strip()
     chk(lbl.split('|')[0] != '', 'JK_LANE_LABEL set'); 
     for g in lbl.split('|')[1].split(':'): chk(os.path.isdir(f'{g}/.git') or os.path.isfile(f'{g}/.git'), f'JK git dir is a repo: {g}')
-    slug = '-' + cwd.strip('/').replace('/', '-'); uuid = open(f'{C}/.current-{n}-uuid').read().strip()
+    slug = re.sub(r'[^A-Za-z0-9]', '-', cwd); uuid = open(f'{C}/.current-{n}-uuid').read().strip()
+    # TEMPLATE (2026-10-28): the persona must reach the model. Either it IS the cwd CLAUDE.md (embedded lane), or the
+    # lane sets CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 (--add-dir does not load CLAUDE.md by default).
+    pdir = f'{A}/.claude/personas/{n}'
+    embedded = os.path.realpath(cwd) == os.path.realpath(pdir)
+    chk(embedded or 'CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1' in env, 'persona actually loads (cwd is the persona dir, or the add-dir CLAUDE.md switch is on)')
+    for i in imps:
+        full = i if i.startswith('/') else os.path.join(cwd, i)
+        chk(os.path.realpath(full).startswith(os.path.realpath(cwd) + '/'), f'import is inside the launch dir (external imports are refused): {i}')
+    amd = s.get('autoMemoryDirectory')
+    # auto-memory follows the GIT ROOT, not the cwd: a lane launched inside Project_Aion must set its own dir
+    if os.path.realpath(cwd).startswith(os.path.realpath(A) + '/'):
+        chk(bool(amd), 'embedded lane sets autoMemoryDirectory (else it shares Jarvis memory)')
     chk(os.path.isfile(f'{H}/.claude/projects/{slug}/{uuid}.jsonl'), f'current session transcript exists ({uuid[:8]})')
     # memory
-    md = f'{H}/.claude/projects/{slug}/memory'; idx = open(f'{md}/MEMORY.md').read()
+    md = amd or f'{H}/.claude/projects/{slug}/memory'; idx = open(f'{md}/MEMORY.md').read()
     links = set(re.findall(r'\]\(([^)]+\.md)\)', idx)); files = {f for f in os.listdir(md) if f.endswith('.md') and f != 'MEMORY.md'}
     miss = sorted(l for l in links if not os.path.exists(f'{md}/{l}')); chk(not miss, f'memory index links resolve {miss or ""}')
     orphan = sorted(files - links); chk(not orphan, f'every memory file is indexed {orphan or ""}')

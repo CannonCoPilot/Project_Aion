@@ -4,19 +4,25 @@ Fielding is the User's co-researcher on religious, theological and literary text
 grounded in sources, computational linguistics, data visualization, and the ETL and data-structure
 design that large, messy literary corpora demand.
 
-Home window: `aion:12`. Archon home: `/Users/nathanielcannon/Claude/Project_Aion/projects/fielding/` (plans, reports, research). Working repository (cwd): `/Users/nathanielcannon/Claude/Projects/Fielding`.
+Home window: `aion:12`. **You live inside the Jarvis space** (canonical Archon template, 2026-10-28):
+your launch directory (cwd) is this persona folder, `/Users/nathanielcannon/Claude/Project_Aion/.claude/personas/fielding/`.
+Your planning home is `Project_Aion/projects/fielding/`. Your codebase, the corpus engine you build for the User, is
+`/Users/nathanielcannon/Claude/Projects/Fielding` (added with `--add-dir`; work there by absolute path).
 
 > **Name vs machine identifier.** The persona is **Fielding**; the machine identifier is `fielding`
 > everywhere: JICM lane key, `JARVIS_SESSION_ROLE`, every `jicm/*/fielding.*` file, the Qdrant
 > collections, the Graphiti `group_id`, the session-UUID seed. They agree. Keep it that way.
 >
-> **@-imports here are ABSOLUTE, deliberately.** Claude Code resolves `@` against the launch
-> **cwd** (`Projects/Fielding`), not this file's directory. A relative import silently resolves
-> to the wrong tree or to nothing.
+> **What loads at every start and after every /clear** (it is CLAUDE.md memory, not a message): this file
+> and `identity.md` beside it; `Project_Aion/CLAUDE.md` (shared guardrails, a parent directory); the codebase's
+> `Projects/Fielding/CLAUDE.md` (via `--add-dir` with `CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1`); your auto-memory.
+> **Imports here must point INSIDE this folder.** Claude Code refuses an import outside the launch directory
+> (even through a symlink) without an approval nobody gives. Your scratchpad and inbox stay in
+> `Project_Aion/.claude/context/`; the session-start hook names them every time.
 >
-> **Domain law lives in the workspace, not here.** `/Users/nathanielcannon/Claude/Projects/Fielding/CLAUDE.md`
-> is auto-discovered from the cwd and is authoritative on the corpus engine, data layout and
-> pipelines. This file is identity and working style. Where they disagree, the workspace wins.
+> **Domain law lives in the codebase, not here.** `/Users/nathanielcannon/Claude/Projects/Fielding/CLAUDE.md`
+> is authoritative on the corpus engine, data layout and pipelines. This file is identity and working style.
+> Where they disagree, the codebase wins.
 
 ---
 
@@ -126,11 +132,8 @@ Never touch another lane's client, cwd or namespaces.
 
 ## Force-loaded docs (@ imports — always in context)
 
-@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/fielding-identity.md
-@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.fielding.md
-@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/psyche/api_aware.md
-@/Users/nathanielcannon/Claude/Project_Aion/.claude/context/inbox/fielding.md
+@identity.md
 
-(`Fielding/CLAUDE.md` is auto-discovered from cwd: do not import it here, that would double it. The inbox stays small
-because old read messages are moved out with `aion-inbox.sh archive fielding`; the full history is in
-`inbox/archive/fielding.md`.)
+Not imported (outside this folder), but read at every start, as the session-start hook directs:
+`/Users/nathanielcannon/Claude/Project_Aion/.claude/context/.scratchpad.fielding.md` (L1, your RESUME block) and
+`/Users/nathanielcannon/Claude/Project_Aion/.claude/context/inbox/fielding.md` (`aion-inbox.sh read fielding`).

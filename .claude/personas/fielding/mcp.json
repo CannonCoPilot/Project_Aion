@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "fielding-corpus": {
+      "command": "/Users/nathanielcannon/Claude/Projects/Fielding/.venv/bin/python",
+      "args": ["-m", "fielding_corpus.mcp_server"],
+      "cwd": "/Users/nathanielcannon/Claude/Projects/Fielding/corpus",
+      "env": { "PYTHONPATH": "/Users/nathanielcannon/Claude/Projects/Fielding/corpus" }
+    }
+  }
+}

@@ -221,3 +221,8 @@ projects/fielding/papers
 # Fleming Archon home: scholarly downloads are symlinks into Staging (Bulk Download Policy)
 projects/fleming/arxiv
 projects/fleming/papers
+
+# Embedded Archon runtime files written by cwd-relative hooks (prompt-timestamp, insight-capture): lane-private, never tracked
+.claude/personas/*/.claude/context/
+.claude/personas/*/.claude/logs/
+.claude/personas/*/.claude/scratch/

@@ -798,9 +798,15 @@ launch_fleming_window() {
 # comments too — every trap documented there (no apostrophes, JICM_PROJECT_DIR load-bearing,
 # own-projects-dir resume lookup) applies here identically.
 #
-#   cwd            Projects/Fielding  (own repo, own Claude Code memory slug)
+#   cwd            .claude/personas/fielding  (EMBEDDED ARCHON TEMPLATE, 2026-10-28: the lane lives inside the
+#                  Jarvis space; the persona folder is its launch dir, so its CLAUDE.md + identity.md load natively
+#                  and survive /clear, it gets its own transcript slug + auto-memory, its own .claude/settings.json
+#                  hooks and .claude/skills, and inherits Project_Aion/CLAUDE.md + .claude/skills as parents.
+#                  Probe-verified: Project_Aion's own project hooks do NOT load (settings come from cwd only).)
+#   codebase       Projects/Fielding  (--add-dir; its CLAUDE.md loads because of
+#                  CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1, which --add-dir does NOT do by default)
 #   graph / RAG    fielding-core / fielding-sessions
-#   MCP            the shared .mcp.json PLUS Projects/Fielding/.claude/fielding-mcp.json
+#   MCP            the shared .mcp.json PLUS .claude/personas/fielding/mcp.json
 #                  (the fielding-corpus server). --mcp-config is variadic, so the shared file
 #                  is never forked: a change to it reaches Fielding automatically.
 #
@@ -809,8 +815,10 @@ launch_fleming_window() {
 # FROZEN literal — see the seed-derivation warning near JARVIS_DEV_SESSION_ID.
 FIELDING_SEED_UUID="baaeca57-df58-52fa-b654-37e899417379"
 
-FIELDING_LAUNCH_DIR="/Users/nathanielcannon/Claude/Projects/Fielding"
-FIELDING_PROJECT_SLUG="-Users-nathanielcannon-Claude-Projects-Fielding"
+FIELDING_LAUNCH_DIR="/Users/nathanielcannon/Claude/Project_Aion/.claude/personas/fielding"
+FIELDING_CODEBASE="/Users/nathanielcannon/Claude/Projects/Fielding"
+# Claude Code slug of the launch dir: every non-alphanumeric char becomes "-" (/.claude -> --claude).
+FIELDING_PROJECT_SLUG="-Users-nathanielcannon-Claude-Project-Aion--claude-personas-fielding"
 FIELDING_PROJECTS_DIR="$HOME/.claude/projects/${FIELDING_PROJECT_SLUG}"
 
 # Prints "<uuid> <resume|new>". Same trust model as the other out-of-tree resolvers.
@@ -842,14 +850,14 @@ launch_fielding_window() {
 
     local proxy_url="${ANTHROPIC_BASE_URL:-http://localhost:9800}"
     local fielding_headers="x-aion-project: fielding\nx-aion-agent-name: fielding-w12\nx-aion-session-id: $(uuidgen)"
-    # JICM_PROJECT_DIR is load-bearing: cwd is outside the monorepo, so every hook would
-    # otherwise write lane state into Fielding/.claude/ where nothing reads it.
-    local env_fielding="ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=fielding JARVIS_WINDOW=12 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=fielding-core JICM_RAG_COLLECTION=fielding-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Staging/verified/fielding/scholarly/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Staging/verified/fielding/scholarly/papers ANTHROPIC_BASE_URL=$proxy_url"
+    # JICM_PROJECT_DIR is load-bearing: the cwd is the persona folder, so every hook would
+    # otherwise write lane state into personas/fielding/.claude/ where nothing reads it.
+    local env_fielding="CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD=1 ENABLE_TOOL_SEARCH=true CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 CLAUDE_AUTOCOMPACT_PCT_OVERRIDE=80 JARVIS_SESSION_ROLE=fielding JARVIS_WINDOW=12 JICM_PROJECT_DIR=$PROJECT_DIR GRAPHITI_GROUP_ID=fielding-core JICM_RAG_COLLECTION=fielding-sessions ARXIV_STORAGE_PATH=/Users/nathanielcannon/Claude/Staging/verified/fielding/scholarly/arxiv SCHOLAR_DOWNLOAD_PATH=/Users/nathanielcannon/Claude/Staging/verified/fielding/scholarly/papers ANTHROPIC_BASE_URL=$proxy_url"
     # NO APOSTROPHES IN THIS STRING — see launch_jaques_window() for the full trap.
-    local sysappend="You are W12:Fielding, the Literary and Theological Archon of Project Aion: co-researcher to the User on religious, theological and literary text, computational linguistics, data visualization, and ETL and data-structure design for large messy literary corpora. The file Fielding/CLAUDE.md is auto-discovered from your cwd and is AUTHORITATIVE on the corpus engine, data layout and pipelines. A quotation is exact or it is not a quotation: quote only from catalogued text with its citation. Your memory namespace is fielding-context/research/sessions/codebase, the research corpora fielding-lds-discourses/palimpsest/scholarly, and the fielding-core graph; never write to any other Archon collection or graph. Palimpsest and OriginalDR are being handed to you by W0:Jarvis, and until the User confirms the handoff complete OriginalDR decisions route to W0. Aion core engineering belongs to W3:Jarvis-dev; supervision of all Archon projects belongs to W0:Jarvis."
+    local sysappend="You are W12:Fielding, the Literary and Theological Archon of Project Aion: co-researcher to the User on religious, theological and literary text, computational linguistics, data visualization, and ETL and data-structure design for large messy literary corpora. You live inside the Jarvis space: your cwd is your persona folder Project_Aion/.claude/personas/fielding, and your codebase is Projects/Fielding (work there by absolute path); its CLAUDE.md is AUTHORITATIVE on the corpus engine, data layout and pipelines. A quotation is exact or it is not a quotation: quote only from catalogued text with its citation. Your memory namespace is fielding-context/research/sessions/codebase, the research corpora fielding-lds-discourses/palimpsest/scholarly, and the fielding-core graph; never write to any other Archon collection or graph. Palimpsest and OriginalDR are being handed to you by W0:Jarvis, and until the User confirms the handoff complete OriginalDR decisions route to W0. Aion core engineering belongs to W3:Jarvis-dev; supervision of all Archon projects belongs to W0:Jarvis."
     local fielding_mcp="$PROJECT_DIR/.mcp.json"
-    local fielding_mcp_own="$FIELDING_LAUNCH_DIR/.claude/fielding-mcp.json"
-    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --add-dir $PROJECT_DIR --add-dir $PROJECT_DIR/.claude/personas/fielding --add-dir /Users/nathanielcannon/Claude/Projects --mcp-config '$fielding_mcp' '$fielding_mcp_own' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-fielding.log"
+    local fielding_mcp_own="$FIELDING_LAUNCH_DIR/mcp.json"
+    local base="claude --dangerously-skip-permissions --permission-mode bypassPermissions --effort ${AION_EFFORT} --chrome --model '${AION_MODEL}' --add-dir $FIELDING_CODEBASE --mcp-config '$fielding_mcp' '$fielding_mcp_own' --append-system-prompt '$sysappend' --verbose --debug --debug-file $PROJECT_DIR/.claude/logs/debug-fielding.log"
 
     local first
     if [[ "$fielding_mode" == "resume" ]]; then
@@ -858,11 +866,8 @@ launch_fielding_window() {
         first="$base --session-id $fielding_uuid"
     fi
     local loop_resume="$base --resume $fielding_uuid"
-    local init="Please load these files into context: @$PROJECT_DIR/.claude/personas/fielding/CLAUDE.md"
-    # A RESUMED session already holds its persona file: re-sending this prompt lands as a fresh USER
-    # turn that looks like Sir wrote it (W2:Urist 2026-10-27, point 8). Send it only on a new session.
-    local init_arg="'$init'"
-    [[ "$first" == *"--resume "* ]] && init_arg=""
+    # No persona init prompt: the persona is the cwd CLAUDE.md, loaded natively at start and after every /clear.
+    local init_arg=""
 
     "$TMUX_BIN" new-window -t "$SESSION_NAME" -n "Fielding" -d \
         "cd '$FIELDING_LAUNCH_DIR' && export $env_fielding && export ANTHROPIC_CUSTOM_HEADERS=$'$fielding_headers' && $first $init_arg; while true; do echo ''; echo 'Fielding exited. Press Enter to --resume, or Ctrl-C to close window.'; read; $loop_resume; done"
