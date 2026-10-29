@@ -35,9 +35,10 @@ answered, not executed**; (b) Fielding's two items (read §3; establish platform
 ### ⚠️ Hazard to preserve while paused
 In the 43 uncommitted entries, `OCR/gen1-r3-residual.json` is **modified to a one-verse trial**
 (a dr_v3_armB attesting-arm re-read, the R13.1a decision that was Sir's). HEAD holds the Genesis 1
-campaign's **65-verse residual record**. `OCR/r3-residual-GEN-1.json` is an empty `[]`. **Anyone who
-commits that tree wholesale overwrites the campaign record.** Proposed fix (not done): save the trial
-under its own name, `git checkout` the record. Never `git add -A` in palimpsest.
+campaign's **65-verse residual record**. ✅ **RESOLVED 2026-10-28 on Sir's instruction:** trial saved first as
+`OCR/gen1-r3-residual.trial-R13.1a-dr_v3_armB-2026-08-27.json` (sha256 `2f3a6794d62fc01e…`, untracked), then the
+record restored from HEAD (blob `5690f8c4772c`, 65 entries, clean). `OCR/r3-residual-GEN-1.json` (empty `[]`) left
+as is. Still: never `git add -A` in palimpsest.
 
 ### The 43-entry triage proposal (awaiting Sir)
 - **Leave (Sir's):** `ODR/.archive-consensus-full.pre-r9.4b/` (275 MB), `ODR/OriginalDRnotes`.
@@ -47,7 +48,7 @@ under its own name, `git checkout` the record. Never `git add -A` in palimpsest.
   the five master-doc additions, and **`witness/plates/REVIEW-STATE.md` (never committed, yet first on
   Fielding's reading list and already in its RAG)**.
 - **Ignore:** `register-build/lector-class-register-B.html` (15.4 MB build output).
-- **Restore, don't commit:** the residual pair above.
+- **Restore:** done 2026-10-28 (see hazard). The trial file is now an untracked entry; count stays 43.
 - **Sir's call:** `ODR/tough_leaves.txt` (the 188-leaf sampling frame cited by the cold reads; holds full
   local paths); `OCR/rung1_surya.py` guard (blocked in Sep by a scanner false positive since fixed: retry).
 
