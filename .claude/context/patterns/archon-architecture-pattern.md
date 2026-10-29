@@ -6,6 +6,10 @@ The reference architecture for designing autonomous AI entities (Archons) within
 **Category**: Architecture
 **Strictness**: Reference (for new Archon design)
 
+> **For Aion's Archon lanes, the binding spec is [embedded-archon-template.md](embedded-archon-template.md)** (v1,
+> 2026-10-28): every Archon is an embedded variant of Jarvis living in the Jarvis space, launched from its persona
+> folder. This file remains the general three-layer model (Nous/Pneuma/Soma) that the template specializes.
+
 ---
 
 ## Overview

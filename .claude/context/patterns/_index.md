@@ -185,6 +185,7 @@ Patterns defining Archon structure and organization.
 | Pattern | Purpose | When to Use |
 |---------|---------|-------------|
 | [archon-architecture-pattern](archon-architecture-pattern.md) | Three-layer Archon structure | Designing new Archons |
+| [embedded-archon-template](embedded-archon-template.md) | **ALWAYS** — canonical shape, launch contract and processes for every Archon lane (v1, 2026-10-28) | Creating, changing, migrating or auditing an Archon |
 | [organization-pattern](organization-pattern.md) | File placement decisions | Creating new files/directories |
 | [computed-state-pattern](computed-state-pattern.md) | Computed values over stored state | State files, counts, boolean flags |
 
