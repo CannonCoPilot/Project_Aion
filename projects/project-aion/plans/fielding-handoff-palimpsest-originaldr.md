@@ -17,7 +17,7 @@ project**. Verified on disk 2026-10-28:
 | fact | value |
 |---|---|
 | palimpsest commits since 2026-10-09 | **0** (last: `ff5d0bc`, 2026-09-15) |
-| palimpsest vs public origin | in sync, 0 ahead / 0 behind |
+| palimpsest vs public origin | in sync at `c347031` (pushed 2026-10-28) |
 | uncommitted palimpsest entries | **43** (13 modified, 30 untracked), unchanged |
 | gold record `witness/plates/gold-layout.json` | 33 leaves: **31 corrected, 0 accepted**, 2 touched only |
 | `class-rulings.json` | still absent |
@@ -43,7 +43,7 @@ as is. Still: never `git add -A` in palimpsest.
 ### The 43-entry triage proposal
 ✅ **2026-10-28, Sir's instruction: the commit category is DONE** as `b227728` (30 code+data) + `c347031` (6 docs incl.
 REVIEW-STATE.md) = **36 files** (the earlier "31" was a hand-count error; set enumerated against git, swept against all 87
-credential values, 0 hits). **Local only: 2 ahead of the PUBLIC origin; push awaits Sir.** Remaining 7: Sir's 2 (leave),
+credential values, 0 hits). **PUSHED 2026-10-28 on Sir's word** (`ff5d0bc..c347031`; origin in sync). Remaining 7: Sir's 2 (leave),
 register HTML (ignore), saved trial + empty `r3-residual-GEN-1.json`, `tough_leaves.txt` + `rung1_surya.py` (Sir's call).
 - **Leave (Sir's):** `ODR/.archive-consensus-full.pre-r9.4b/` (275 MB), `ODR/OriginalDRnotes`.
 - **Commit (31):** late-Aug detection and review work: 7 tools (`plate_scope`, `sample_gold_leaves`,
