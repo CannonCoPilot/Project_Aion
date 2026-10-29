@@ -40,7 +40,11 @@ campaign's **65-verse residual record**. ✅ **RESOLVED 2026-10-28 on Sir's inst
 record restored from HEAD (blob `5690f8c4772c`, 65 entries, clean). `OCR/r3-residual-GEN-1.json` (empty `[]`) left
 as is. Still: never `git add -A` in palimpsest.
 
-### The 43-entry triage proposal (awaiting Sir)
+### The 43-entry triage proposal
+✅ **2026-10-28, Sir's instruction: the commit category is DONE** as `b227728` (30 code+data) + `c347031` (6 docs incl.
+REVIEW-STATE.md) = **36 files** (the earlier "31" was a hand-count error; set enumerated against git, swept against all 87
+credential values, 0 hits). **Local only: 2 ahead of the PUBLIC origin; push awaits Sir.** Remaining 7: Sir's 2 (leave),
+register HTML (ignore), saved trial + empty `r3-residual-GEN-1.json`, `tough_leaves.txt` + `rung1_surya.py` (Sir's call).
 - **Leave (Sir's):** `ODR/.archive-consensus-full.pre-r9.4b/` (275 MB), `ODR/OriginalDRnotes`.
 - **Commit (31):** late-Aug detection and review work: 7 tools (`plate_scope`, `sample_gold_leaves`,
   `build_detection_standard`, `score_detection`, `tile_probe`, `score_lamination`, `plate_eye_merge`), their
