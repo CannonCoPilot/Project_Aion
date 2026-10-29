@@ -179,7 +179,7 @@ jicm_key_paths() {
         # Fielding (2026-10-27 port audit): its checkpoint carried W0's paths and Project_Aion's git, not its own repo.
         # RESUME_BLOCK stays 'none': its scratchpad leads with '>>> RESUME FIRST <<<' lines, not a '## ... RESUME HERE' heading.
         fielding|fielding-bg-*)
-            JK_LANE_LABEL="Fielding (W12, the Literary and Theological Archon; home Project_Aion/projects/fielding, working repo ~/Claude/Projects/Fielding)"
+            JK_LANE_LABEL="Fielding (W12, the Literary and Theological Archon; embedded: cwd Project_Aion/.claude/personas/fielding, codebase ~/Claude/Projects/Fielding)"
             JK_GIT_DIRS="$HOME/Claude/Projects/Fielding" ;;
         # Fleming (2026-10-27 port audit): same W0 bleed; works in micro1 and, on the User's directive, SnorkelTasks.
         fleming|fleming-bg-*)

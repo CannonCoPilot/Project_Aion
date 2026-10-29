@@ -28,18 +28,16 @@ Your planning home is `Project_Aion/projects/fielding/`. Your codebase, the corp
 
 ## The work
 
-| Project | Where | State |
+| Project | Where | State (2026-10-29) |
 |---|---|---|
-| **LDS discourse corpus** | `Projects/Fielding/pipelines/lds/` → corpus `lds` | **Pipeline built by W3:Jarvis-dev 2026-10-09; corpus BUILDING** — target: Journal of Discourses (1,426) + General Conference 1942–present (5,874) from BYU SCI. Check `./fc stats` for what is actually catalogued. Conference Reports 1880 & 1897–1941 (archive.org OCR, split into talks) are **v1's open engineering item** — see the workspace CLAUDE.md. |
-| **Palimpsest** | `Projects/palimpsest/` (own repo) | **Handing off from W0:Jarvis.** Computational literary-analysis platform. Its imports library is corpus `palimpsest`. |
-| **OriginalDR** | `Projects/palimpsest/projects/originaldr/` | **Handing off from W0:Jarvis.** Documentary transcription of the 1582/1609/1610 Douay-Rheims. |
+| **LDS discourse corpus** | codebase `Projects/Fielding/pipelines/lds/` -> corpus `lds` | Journal of Discourses (1,426) and General Conference 1942-2026 (5,874, BYU SCI) catalogued. **Conference Report split** (1880, 1897-1970; archive.org OCR) is the active work: speaker identity, seal, ingest gate (ADMITTED 0 until every unit passes). Supervised by W3:Jarvis-dev, who verifies each commit. |
+| **LDS leaders source acquisition** | `Project_Aion/projects/fielding/research/` (source map, Anna's md5 list) | Waiting on the User's GO for the download list. Downloads serial, into Staging. |
+| **Palimpsest** | `Projects/palimpsest/` | **PAUSED by the User (2026-10-28)**; handoff from W0 incomplete. Do not work on it unless the User says so. |
+| **OriginalDR** | `Projects/palimpsest/projects/originaldr/` | **PAUSED by the User (2026-10-28)**; decisions route to W0:Jarvis. |
 | **Scholarly literature** | corpus `scholarly` | Grows as projects need it (Anna's Archive, Scholar Gateway, arXiv). |
 
-**THE HANDOFF IS NOT COMPLETE UNTIL THE USER SAYS SO.** Until then, OriginalDR decisions route to
-W0:Jarvis, which keeps the leaf-level work. The plan of record is
-`/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/plans/fielding-handoff-palimpsest-originaldr.md`.
-Read it before touching either project. After the handoff, Jarvis **supervises**: he reviews your
-direction and results, and you own the work.
+Your scratchpad's RESUME block and your memory index are the live record; this table is a pointer. The Palimpsest /
+OriginalDR handoff plan is `/Users/nathanielcannon/Claude/Project_Aion/projects/project-aion/plans/fielding-handoff-palimpsest-originaldr.md`.
 
 ---
 
@@ -102,13 +100,13 @@ integrity rule 5). Never write to a `jarvis-`, `genie-`, `urist-`, `jaques-` or 
 ## Runtime environment
 
 - tmux session `aion`. Fielding is **W12**. Jarvis W0, Protos W1, Urist W2, Jarvis-dev W3, Genie W4,
-  Jacques W5, Fleming W6, Watcher W7, Styx W8, LiteLLM W9, Ollama W10, MLX-Embed W11. W13 is an
-  empty buffer, and Alfred chain windows start at W14.
+  Jacques W5, Fleming W6, Watcher W7, Styx W8, LiteLLM W9, Ollama W10, MLX-Embed W11. Address windows by NAME.
 - Context management: JICM lane key `fielding`, pane-actuated by `jicm-watcher.sh`. A full
   preserve → clear → resume cycle runs on this window. When the Watcher asks you to save
-  working details, update your scratchpad (above) in place and stop.
-- `JICM_PROJECT_DIR` is set at launch and is load-bearing. Your cwd is outside the monorepo, so
-  without it every hook would write lane state where nothing looks.
+  working details, update your scratchpad in place and stop. Never pause pre-emptively for a clear.
+- `JICM_PROJECT_DIR` is set at launch and is load-bearing: your cwd is this persona folder, so without it
+  every hook would write lane state into `personas/fielding/.claude/` where nothing reads it.
+- Your relative paths resolve against THIS folder. Work in the codebase by absolute path (or `cd` there first).
 - **Bulk data lives in `~/Claude/Staging/`** (Spotlight- and Time Machine-excluded) and is reached
   through the workspace's `data` and `data-incoming` symlinks. Never download into a project tree. The
   policy and the kernel panic behind it are in `/Users/nathanielcannon/Claude/Project_Aion/CLAUDE.md`.
