@@ -8,6 +8,61 @@ Every path below was checked on disk on 2026-10-09. Nothing here is from memory 
 
 ---
 
+## ⏸️ 0. PAUSED 2026-10-28 by Sir — read this section first
+
+**Sir paused all OriginalDR and Palimpsest work on 2026-10-28.** Jarvis moved to a generalist principal
+Archon role. Nothing below this section is out of date as a description, but **no one is working the
+project**. Verified on disk 2026-10-28:
+
+| fact | value |
+|---|---|
+| palimpsest commits since 2026-10-09 | **0** (last: `ff5d0bc`, 2026-09-15) |
+| palimpsest vs public origin | in sync, 0 ahead / 0 behind |
+| uncommitted palimpsest entries | **43** (13 modified, 30 untracked), unchanged |
+| gold record `witness/plates/gold-layout.json` | 33 leaves: **31 corrected, 0 accepted**, 2 touched only |
+| `class-rulings.json` | still absent |
+| Plate Tool | not running |
+| Fielding activity on OriginalDR | **none**: 422 commits since 10-09, all on its LDS Conference Reports corpus |
+| Fielding's scratchpad | the OriginalDR extract **is gone** (displaced as the file grew to 536 lines). Recover from `git show e3e217c:.claude/context/.scratchpad.fielding.md` (later edit `3ef752c`). |
+
+### Handoff checklist at pause
+Done: lector-review moved; 21 commits pushed; Fielding scratchpad seeded; 24 memory files copied and
+verified; 13 MOVE entries removed from W0 index; canon + lector-review A–E in `fielding-*` RAG; rulings on
+work 109 and work 101. **Open:** (a) Jarvis's 43-file triage, proposed to Sir 2026-10-09, **never
+answered, not executed**; (b) Fielding's two items (read §3; establish platform state), **not started**;
+(c) Sir's confirmation. **The handoff is incomplete: the project pauses without an active owner.**
+
+### ⚠️ Hazard to preserve while paused
+In the 43 uncommitted entries, `OCR/gen1-r3-residual.json` is **modified to a one-verse trial**
+(a dr_v3_armB attesting-arm re-read, the R13.1a decision that was Sir's). HEAD holds the Genesis 1
+campaign's **65-verse residual record**. `OCR/r3-residual-GEN-1.json` is an empty `[]`. **Anyone who
+commits that tree wholesale overwrites the campaign record.** Proposed fix (not done): save the trial
+under its own name, `git checkout` the record. Never `git add -A` in palimpsest.
+
+### The 43-entry triage proposal (awaiting Sir)
+- **Leave (Sir's):** `ODR/.archive-consensus-full.pre-r9.4b/` (275 MB), `ODR/OriginalDRnotes`.
+- **Commit (31):** late-Aug detection and review work: 7 tools (`plate_scope`, `sample_gold_leaves`,
+  `build_detection_standard`, `score_detection`, `tile_probe`, `score_lamination`, `plate_eye_merge`), their
+  outputs (`gold/fount_*`, `gold/reading_*`, `plates/*.json`, the two probe JSONs cited by DETECT-PROBE),
+  the five master-doc additions, and **`witness/plates/REVIEW-STATE.md` (never committed, yet first on
+  Fielding's reading list and already in its RAG)**.
+- **Ignore:** `register-build/lector-class-register-B.html` (15.4 MB build output).
+- **Restore, don't commit:** the residual pair above.
+- **Sir's call:** `ODR/tough_leaves.txt` (the 188-leaf sampling frame cited by the cold reads; holds full
+  local paths); `OCR/rung1_surya.py` guard (blocked in Sep by a scanner false positive since fixed: retry).
+
+### To resume
+1. Decide the owner (Fielding was the plan). 2. Recover the extract into that owner's L1. 3. Execute the
+triage (sweep against the credential store; themed commits by explicit path; push only on Sir's word).
+4. Sir's pending rulings: accept the 31; export class rulings; Gold Set 1; OT-1635-M role. 5. Next build:
+wire `plate_gold.is_gold` into the scorers in place of `LEAF_LO/LEAF_HI`, then score the director.
+
+**Loose ends outside palimpsest:** `Project_Aion/.claude/scratch/lector-review-2026-09-03/` still exists
+(kept because `Projects/Fielding` has **no remote**; its commit is the only other copy). Fielding's
+scratchpad is far over the watcher's 80-line limit.
+
+---
+
 ## 1. The rule that governs this handoff
 
 **Seed Fielding from primary sources, never from my derived tiers.**
