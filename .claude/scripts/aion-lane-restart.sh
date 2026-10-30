@@ -284,6 +284,30 @@ if [[ "$FRESH" -eq 1 ]]; then
     printf '%s' "$NEW_CMD" | grep -qE -- '(--resume|--session-id)[[:space:]]+[0-9a-fA-F-]{36}' \
         && _die "--fresh: session flag survived the strip — refusing to respawn with an unverified command"
     case "$NEW_CMD" in *claude*) : ;; *) _die "--fresh: rewrite destroyed the claude invocation — refusing" ;; esac
+    # PERSONA PROMPT (W3 2026-10-30). A NEW session needs the lane's init prompt, but the retained
+    # start command carries it only if the window's LAST launch minted a session: launch-aion.sh
+    # omits it on --resume, and a resume restart strips it. So --fresh on a resumed window started
+    # a persona-less session (observed: Jacques 2026-10-30, prompt sent by hand). Re-add it from a
+    # per-lane table that MIRRORS launch-aion.sh's `local init=` lines; keep the two in step. Lanes
+    # whose launch has no init prompt (w0, protos; fielding, whose persona is its cwd CLAUDE.md) get none.
+    case "$KEY" in
+        dev)                 _INIT_FILE="$PROJECT_DIR/.claude/context/dev-session-instructions.md" ;;
+        genie|fleming|urist) _INIT_FILE="$PROJECT_DIR/.claude/personas/$KEY/CLAUDE.md" ;;
+        jaques)              _INIT_FILE="$PROJECT_DIR/.claude/personas/jacques/CLAUDE.md" ;;
+        *)                   _INIT_FILE="" ;;
+    esac
+    if [[ -n "$_INIT_FILE" ]] && ! printf '%s' "$NEW_CMD" | grep -q "Please load these files into context: @"; then
+        [[ -f "$_INIT_FILE" ]] || _die "--fresh: init file missing: $_INIT_FILE — refusing to start $KEY without its persona"
+        case "$NEW_CMD" in *"; while true"*) : ;; *) _die "--fresh: no '; while true' marker to anchor the persona prompt — refusing" ;; esac
+        # The prompt is the FIRST claude call's last argument, i.e. just before the exit loop, so the
+        # loop's own resume command never carries it (the launcher's `$first $init_arg; while true`).
+        _head="${NEW_CMD%%; while true*}"; _tail="${NEW_CMD#"$_head"}"
+        _head="${_head%"${_head##*[! ]}"}"
+        NEW_CMD="$_head 'Please load these files into context: @$_INIT_FILE'$_tail"
+        [[ "$(printf '%s' "$NEW_CMD" | grep -o 'Please load these files into context' | wc -l | tr -d ' ')" == "1" ]] \
+            || _die "--fresh: persona prompt did not land exactly once — refusing to respawn with an unverified command"
+        _log "FRESH: persona init prompt added (@$_INIT_FILE): the retained start command carried none"
+    fi
     _log "FRESH (zero-state): stripped session flags [$OLD_IDS] — lane will start a NEW session on its default context"
 else
     NEW_CMD="$(printf '%s' "$START_CMD" \
